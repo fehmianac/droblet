@@ -180,38 +180,74 @@ jobs:
           fi
           sam deploy "${args[@]}"
 
-      # API, JWT imza anahtari olmadan token uretemez. Yoksa bir kez uretilir; var olan asla ezilmez.
-      - name: JWT imza anahtari (SSM SecureString)
-        if: env.EXECUTE == 'true'
-        run: |
-          set -euo pipefail
-          name="/droblet/$STAGE/api/Jwt"
-          if aws ssm get-parameter --name "$name" >/dev/null 2>&1; then
-            echo "$name mevcut; dokunulmadi."
-          else
-            key=$(openssl rand -base64 48 | tr -d '\n')
-            echo "::add-mask::$key"
-            aws ssm put-parameter --name "$name" --type SecureString --no-overwrite \
-              --value "{\"SecretKey\":\"$key\"}" >/dev/null
-            echo "$name olusturuldu." >> "$GITHUB_STEP_SUMMARY"
-          fi
-
-      # E-posta SendGrid'den gider. Secret tanimliysa her deploy'da yazilir (anahtar donusumu icin);
-      # tanimli degilse dokunulmaz ve e-posta gonderimi (sifre sifirlama) calismaz.
-      - name: SendGrid API anahtari (SSM SecureString)
+      # Parameter Store iskeleti (/droblet/{stage}/...). Kural: YOKSA olusturulur, VAR OLAN ASLA EZILMEZ;
+      # boylece urun sahibi degerleri AWS konsolundan girer ve sonraki deploy'lar onlara dokunmaz.
+      # Gizli olmayan sabit ayarlar (Entitlements, Photos, App, Store, AuthRateLimits...) template.yaml'dadir.
+      - name: Parameter Store iskeleti (SSM)
         if: env.EXECUTE == 'true'
         env:
           SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
         run: |
           set -euo pipefail
-          name="/droblet/$STAGE/api/Email"
-          if [ -z "$SENDGRID_API_KEY" ]; then
-            echo "::warning::SENDGRID_API_KEY secret'i yok; $name yazilmadi. Sifre sifirlama e-postalari gitmez."
-            exit 0
+          base="/droblet/$STAGE"
+          created=()
+          ensure() { # ensure <name> <String|SecureString> <value> <aciklama>
+            if aws ssm get-parameter --name "$base/$1" >/dev/null 2>&1; then
+              echo "$base/$1 mevcut; dokunulmadi."
+            else
+              aws ssm put-parameter --name "$base/$1" --type "$2" --no-overwrite \
+                --description "$4" --value "$3" >/dev/null
+              created+=("$base/$1 ($2)")
+            fi
+          }
+
+          # --- Gizli degerler (SecureString) ---
+          jwt=$(openssl rand -base64 48 | tr -d '\n'); echo "::add-mask::$jwt"
+          ensure "api/Jwt" SecureString "{\"SecretKey\":\"$jwt\"}" \
+            "JWT imza anahtari. Otomatik uretildi; degistirmek tum oturumlari dusurur."
+          ensure "api/Email/SendGrid/ApiKey" SecureString "${SENDGRID_API_KEY:-CHANGE_ME}" \
+            "SendGrid API anahtari (yalniz Mail Send yetkili). CHANGE_ME ise e-posta gitmez."
+          ensure "api/AppleAuth/PrivateKey" SecureString "CHANGE_ME" \
+            "Sign in with Apple .p8 anahtari (token iptali icin; giris dogrulamasi icin gerekmez)."
+          ensure "api/Store/NotificationKey" SecureString "CHANGE_ME" \
+            "Magaza sunucu bildirimlerini dogrulama anahtari (uyelik satin alma acilinca)."
+          ensure "worker/Ai/ApiKey" SecureString "CHANGE_ME" \
+            "AI saglayici (OpenAI) API anahtari. CHANGE_ME ise AI isleri calismaz."
+          ensure "notifier/Push/ServiceAccountJson" SecureString "CHANGE_ME" \
+            "Firebase (FCM) servis hesabi JSON'u. CHANGE_ME ise push gitmez."
+
+          # --- Urun sahibinin duzenledigi ayarlar (String, JSON) ---
+          ensure "api/Email" String \
+            '{"Provider":"SendGrid","From":"Droblet <no-reply@droplet.alatech.co>"}' \
+            "E-posta saglayicisi (SendGrid | Smtp) ve gonderen adresi."
+          ensure "api/GoogleAuth" String \
+            '{"AndroidPackage":"com.alatech.droplet","ClientIds":[]}' \
+            "Google ile giris: kabul edilen OAuth client id'leri (iOS, Android, web). Bos ise Google girisi 503 doner."
+          ensure "api/AppleAuth" String \
+            '{"BundleId":"com.alatech.droplet","AdditionalAudiences":[]}' \
+            "Apple ile giris: identityToken aud = bundle id. TeamId/KeyId token iptali icin eklenir."
+          ensure "worker/Ai" String \
+            '{"Enabled":false,"Provider":"OpenAI","TextModel":"gpt-6-astra","ImageModel":"gpt-image-2.5-sunburst"}' \
+            "AI: acik/kapali, model kimlikleri. Model kimliklerini saglayicinin gercek adlariyla teyit et."
+
+          # Secret sonradan eklendiyse ve parametre hala yer tutucuysa bir kez doldur.
+          if [ -n "${SENDGRID_API_KEY:-}" ]; then
+            cur=$(aws ssm get-parameter --name "$base/api/Email/SendGrid/ApiKey" --with-decryption \
+              --query Parameter.Value --output text)
+            if [ "$cur" = "CHANGE_ME" ]; then
+              aws ssm put-parameter --name "$base/api/Email/SendGrid/ApiKey" --type SecureString \
+                --overwrite --value "$SENDGRID_API_KEY" >/dev/null
+              created+=("$base/api/Email/SendGrid/ApiKey (secret'tan dolduruldu)")
+            fi
           fi
-          value=$(jq -cn --arg k "$SENDGRID_API_KEY" '{SendGrid:{ApiKey:$k}}')
-          aws ssm put-parameter --name "$name" --type SecureString --overwrite --value "$value" >/dev/null
-          echo "$name guncellendi." >> "$GITHUB_STEP_SUMMARY"
+
+          {
+            echo "### Parameter Store ($base)"
+            if [ ${#created[@]} -eq 0 ]; then echo "Yeni parametre yok; var olanlara dokunulmadi."; else
+              printf -- '- olusturuldu: `%s`\n' "${created[@]}"; fi
+            echo
+            echo "Degeri \`CHANGE_ME\` olanlar konsoldan doldurulmali: Systems Manager → Parameter Store → eu-central-1."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Output'lar
         if: env.EXECUTE == 'true'

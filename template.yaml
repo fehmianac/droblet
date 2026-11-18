@@ -3,10 +3,11 @@ Transform: AWS::Serverless-2016-10-31
 Description: >
   Droblet backend — Api (HTTP API), AI workers (ItemProcessor, Stylist, TryOn, Palette; SQS + DLQ),
   Notifier (EventBridge Scheduler), single DynamoDB table, private photo bucket. Region: eu-central-1.
-  Secrets are never template values. deploy-infra writes two SecureString SSM parameters: api/Jwt (generated
-  once, never overwritten) and api/Email (SendGrid API key, from the SENDGRID_API_KEY secret). The owner writes
-  the rest by hand when they exist: AppleAuth, GoogleAuth, Store, worker/Ai, notifier/Push. E-mail goes through
-  SendGrid (HTTPS), so there is no SES resource here.
+  Secrets are never template values. Fixed non-secret config is created here as SSM String parameters.
+  deploy-infra creates the rest once and never overwrites them, so the owner edits them in Parameter Store:
+  SecureString api/Jwt, api/Email/SendGrid/ApiKey, api/AppleAuth/PrivateKey, api/Store/NotificationKey,
+  worker/Ai/ApiKey, notifier/Push/ServiceAccountJson and String api/Email, api/GoogleAuth, api/AppleAuth,
+  worker/Ai. E-mail goes through SendGrid (HTTPS), so there is no SES resource here.
 
 Parameters:
   Stage:
@@ -248,12 +249,20 @@ Resources:
       Name: !Sub /droblet/${Stage}/api/App
       Type: String
       Value: '{"PasswordResetUrl":"https://droplet.alatech.co/reset-password","Scheme":"droplet","BundleId":"com.alatech.droplet"}'
-  SsmApiAi:
+  SsmApiStore:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: !Sub /droblet/${Stage}/api/Ai
+      Name: !Sub /droblet/${Stage}/api/Store
       Type: String
-      Value: '{"Enabled":false}'
+      Description: Store product ids (representative until the store products exist) and credits per consumable pack.
+      Value: '{"ProductIds":{"Premium":["com.alatech.droplet.premium.monthly","com.alatech.droplet.premium.yearly"]},"CreditPacks":{"com.alatech.droplet.credits.20":20}}'
+  SsmApiAuthRateLimits:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/api/AuthRateLimits
+      Type: String
+      Description: Sign-in abuse limits.
+      Value: '{"LoginPerEmailPer15Minutes":10,"LoginPerIpPer15Minutes":50,"RegisterPerIpPerHour":20,"ForgotPerEmailPerHour":3}'
   SsmWorkerEntitlements:
     Type: AWS::SSM::Parameter
     Properties:
