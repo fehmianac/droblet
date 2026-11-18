@@ -44,6 +44,7 @@ public static class DependencyInjection
         services.AddSingleton<IEventManager, EventManager>();
         services.AddSingleton<IEntitlementService, EntitlementService>();
         services.AddSingleton<ICreditService, CreditService>();
+        services.AddSingleton<IItemRecognitionQuotaService, ItemRecognitionQuotaService>();
         services.AddSingleton<IJobLifecycle, JobLifecycle>();
         services.AddDrobletWardrobe(configuration);
         services.AddDrobletStoreSocialCore(configuration);

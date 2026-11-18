@@ -87,6 +87,17 @@ public sealed class EntitlementOptions
 {
     public const string Section = "Entitlements";
     public PremiumLimits Premium { get; set; } = new();
+    public FreeLimits Free { get; set; } = new();
+
+    public sealed class FreeLimits
+    {
+        /// <summary>
+        /// Owner decision 2026-11-18: AI garment recognitions a non-member gets, once, for the lifetime of the account
+        /// (each photo of a single / bulk / split request = 1). 0 = the feature is members-only (straight to the paywall).
+        /// Members are unlimited. Representative default; lives in SSM api/Entitlements and worker/Entitlements.
+        /// </summary>
+        public int ItemRecognitionLimit { get; set; } = 10;
+    }
 
     public sealed class PremiumLimits
     {

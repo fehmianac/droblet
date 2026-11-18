@@ -31,6 +31,7 @@ public static class DeletionPlan
         typeof(ItemEntity),
         typeof(ItemUploadEntity),
         typeof(ItemDraftEntity),
+        typeof(ItemRecognitionUsageEntity),
         typeof(LookEntity),
         typeof(PlanDayEntity),
         typeof(WearLogEntity),

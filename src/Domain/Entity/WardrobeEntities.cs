@@ -125,3 +125,28 @@ public class LibraryItemEntity : IEntity
     public static string GetPk() => "library#item";
     public static string GetSk(string id) => id;
 }
+
+/// <summary>One in-flight AI recognition of a non-member (released when the job fails, counted when it completes).</summary>
+public class ItemRecognitionPending
+{
+    [JsonPropertyName("jobId")] public string JobId { get; set; } = null!;
+    [JsonPropertyName("at")] public DateTime At { get; set; }
+}
+
+// Lifetime counter of a non-member's AI garment recognitions (Entitlements:Free:ItemRecognitionLimit). Server-side only.
+public class ItemRecognitionUsageEntity : IVersionedEntity
+{
+    [JsonPropertyName("pk")] public string Pk => GetPk(TenantId);
+    [JsonPropertyName("sk")] public string Sk => GetSk();
+
+    [JsonPropertyName("tenantId")] public string TenantId { get; set; } = null!;
+    // Recognitions that completed. Never decremented.
+    [JsonPropertyName("used")] public int Used { get; set; }
+    // Reserved when the job is queued; a job that fails gives its slot back, one that completes moves to `used`.
+    [JsonPropertyName("pending")] public List<ItemRecognitionPending> Pending { get; set; } = [];
+    [JsonPropertyName("updatedAt")] public DateTime UpdatedAt { get; set; }
+    [JsonPropertyName("version")] public long Version { get; set; }
+
+    public static string GetPk(string tenantId) => $"tenant#{tenantId}#itemrecognition";
+    public static string GetSk() => "usage";
+}

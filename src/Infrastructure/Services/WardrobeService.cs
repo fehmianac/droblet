@@ -23,6 +23,7 @@ public sealed class WardrobeService(
     IObjectStorage storage,
     IEventManager events,
     IEntitlementService entitlements,
+    IItemRecognitionQuotaService itemRecognition,
     ILibraryCatalog library,
     IOptionsMonitor<PhotoOptions> photoOptions,
     IOptionsMonitor<WardrobeOptions> wardrobeOptions,
@@ -149,14 +150,29 @@ public sealed class WardrobeService(
             pending.Add(upload);
         }
 
+        if (command.Manual)
+            return ServiceResult.Accepted(await ManualDraftsAsync(tenantId, command, pending, drafts, ct));
+
+        // Non-members have a lifetime number of AI recognitions (EntitlementPolicy decides): a bulk request above what is
+        // left processes the first N photos and reports the rest as skipped; nothing left = 402 (the client shows the paywall).
+        var jobIds = pending.Select((_, index) => uploadIds.Count == 1 ? command.RequestId : Ulid.New(Now.AddMilliseconds(index))).ToList();
+        var grant = await itemRecognition.ReserveAsync(tenantId, jobIds, ct);
+        if (pending.Count > 0 && grant.Granted == 0)
+        {
+            return grant.DenyReason == ErrorCodes.PremiumRequired
+                ? ServiceResult.Forbidden<StartDraftsDto>(ErrorCodes.PremiumRequired)
+                : ServiceResult.PaymentRequired<StartDraftsDto>(ErrorCodes.ItemRecognitionLimitReached);
+        }
+
         var jobs = new List<JobEntity>();
         var kind = command.SplitOutfit ? JobKind.ItemSplit : JobKind.ItemProcess;
         var language = await LanguageAsync(tenantId, requestLanguage, ct);
-        foreach (var upload in pending)
+        for (var index = 0; index < grant.Granted && index < pending.Count; index++)
         {
+            var upload = pending[index];
             var now = Now;
             // A single-photo request keeps the client's requestId as the job id; bulk requests get one job per photo.
-            var jobId = uploadIds.Count == 1 ? command.RequestId : Ulid.New(now);
+            var jobId = jobIds[index];
             var job = new JobEntity { Id = jobId, TenantId = tenantId, Kind = kind, Status = JobStatus.Queued, CreatedAt = now, UpdatedAt = now };
             var draft = new ItemDraftEntity
             {
@@ -174,6 +190,8 @@ public sealed class WardrobeService(
             var result = await repository.TransactWriteAsync([TransactWriteOperation.Create(draft), TransactWriteOperation.Put(job)], ct);
             if (!result.Applied)
             {
+                // A concurrent replay created the draft first: this job never runs, so it holds no allowance.
+                await itemRecognition.ReleaseAsync(tenantId, jobId, ct);
                 drafts.Add(await GetDraftAsync(tenantId, upload.UploadId, ct) ?? draft);
                 continue;
             }
@@ -183,11 +201,57 @@ public sealed class WardrobeService(
             jobs.Add(job);
         }
 
-        logger.LogInformation("Queued {Count} item {Kind} jobs for tenant {TenantId}", jobs.Count, kind, tenantId);
+        var skipped = pending.Skip(grant.Granted).Select(u => u.UploadId).ToList();
+        logger.LogInformation("Queued {Count} item {Kind} jobs for tenant {TenantId} ({Skipped} skipped: recognition allowance)", jobs.Count, kind, tenantId, skipped.Count);
         var dtos = new List<ItemDraftDto>();
         foreach (var draft in drafts)
             dtos.Add(await ToDtoAsync(draft, ct));
-        return ServiceResult.Accepted(new StartDraftsDto(dtos, jobs.Select(j => j.ToDto()).ToList()));
+        return ServiceResult.Accepted(new StartDraftsDto(dtos, jobs.Select(j => j.ToDto()).ToList(), skipped.Count, skipped,
+            (await itemRecognition.GetAsync(tenantId, ct)).ToDto()));
+    }
+
+    /// <summary>
+    /// Manual entry (no AI, no allowance): the photo is EXIF-stripped here and kept as the draft's original; the draft is
+    /// immediately "ready" with no suggestions, and becomes an item through the same confirm endpoint with the user's values.
+    /// </summary>
+    private async Task<StartDraftsDto> ManualDraftsAsync(string tenantId, StartDraftsCommand command, IReadOnlyList<ItemUploadEntity> pending,
+        List<ItemDraftEntity> drafts, CancellationToken ct)
+    {
+        var maxBytes = photoOptions.CurrentValue.MaxUploadBytes;
+        var skipped = new List<string>();
+        foreach (var upload in pending)
+        {
+            var raw = await storage.ReadAsync(upload.S3Key, maxBytes, ct);
+            var clean = raw is null ? null : ImageMetadataStripper.Strip(raw);
+            if (clean is null)
+            {
+                skipped.Add(upload.UploadId); // not an image we can keep safely
+                continue;
+            }
+
+            var now = Now;
+            var originalKey = StorageKeys.ItemOriginal(tenantId, upload.UploadId, clean.Extension);
+            await storage.PutAsync(originalKey, clean.Data, clean.ContentType, ct);
+            var draft = new ItemDraftEntity
+            {
+                Id = upload.UploadId,
+                TenantId = tenantId,
+                Kind = ItemDraftKind.Single,
+                Status = ItemDraftStatus.Ready,
+                RequestId = command.RequestId,
+                OriginalKey = originalKey,
+                CreatedAt = now,
+                UpdatedAt = now,
+            };
+            if (!(await repository.TransactWriteAsync([TransactWriteOperation.Create(draft)], ct)).Applied)
+                draft = await GetDraftAsync(tenantId, upload.UploadId, ct) ?? draft;
+            drafts.Add(draft);
+        }
+
+        var dtos = new List<ItemDraftDto>();
+        foreach (var draft in drafts)
+            dtos.Add(await ToDtoAsync(draft, ct));
+        return new StartDraftsDto(dtos, [], skipped.Count, skipped, (await itemRecognition.GetAsync(tenantId, ct)).ToDto());
     }
 
     public async Task<ItemDraftsDto> GetDraftsAsync(string tenantId, CancellationToken ct)

@@ -59,7 +59,15 @@ public record ItemDraftDto(
 /// <param name="Total">Drafts that are (or were) being processed; with Processed this is the "8 / 12" progress card.</param>
 public record ItemDraftsDto(IReadOnlyList<ItemDraftDto> Drafts, int Total, int Processed);
 
-public record StartDraftsDto(IReadOnlyList<ItemDraftDto> Drafts, IReadOnlyList<JobDto> Jobs);
+/// <param name="SkippedCount">Photos of a bulk request that were NOT processed because a non-member's recognition allowance ran out.</param>
+/// <param name="SkippedUploadIds">Their upload ids (the uploads are untouched: they can be sent again with manual = true).</param>
+/// <param name="ItemRecognition">The allowance after this request (null limit = unlimited).</param>
+public record StartDraftsDto(
+    IReadOnlyList<ItemDraftDto> Drafts,
+    IReadOnlyList<JobDto> Jobs,
+    int SkippedCount = 0,
+    IReadOnlyList<string>? SkippedUploadIds = null,
+    ItemRecognitionDto? ItemRecognition = null);
 
 public enum ItemCreateOutcome { Created, AlreadyApplied, Rejected }
 

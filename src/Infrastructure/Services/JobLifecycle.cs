@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Infrastructure.Services;
 
-public sealed class JobLifecycle(IRepository repository, ICreditService credits, TimeProvider timeProvider, ILogger<JobLifecycle> logger) : IJobLifecycle
+public sealed class JobLifecycle(IRepository repository, ICreditService credits, IItemRecognitionQuotaService itemRecognition, TimeProvider timeProvider, ILogger<JobLifecycle> logger) : IJobLifecycle
 {
     public async Task<JobEntity?> StartAsync(string tenantId, string jobId, CancellationToken ct)
     {
@@ -33,6 +33,9 @@ public sealed class JobLifecycle(IRepository repository, ICreditService credits,
 
         if (job.CreditIdempotencyKey is { } key)
             await credits.CommitAsync(job.TenantId, key, ct);
+        // A recognised photo consumes one of a non-member's free recognitions (no-op for members).
+        if (job.Kind is JobKind.ItemProcess or JobKind.ItemSplit)
+            await itemRecognition.CommitAsync(job.TenantId, job.Id, ct);
     }
 
     public async Task FailAsync(JobEntity job, JobFailure failure, CancellationToken ct)
@@ -45,6 +48,9 @@ public sealed class JobLifecycle(IRepository repository, ICreditService credits,
         // A failed AI call never costs the user a credit.
         if (job.CreditIdempotencyKey is { } key)
             await credits.RefundAsync(job.TenantId, key, ct);
+        // …nor one of a non-member's free garment recognitions, whatever the failure (provider, guard, deleted source).
+        if (job.Kind is JobKind.ItemProcess or JobKind.ItemSplit)
+            await itemRecognition.ReleaseAsync(job.TenantId, job.Id, ct);
 
         logger.LogWarning("Job {JobId} ({Kind}) for tenant {TenantId} failed: {Failure}", job.Id, job.Kind, job.TenantId, failure);
     }

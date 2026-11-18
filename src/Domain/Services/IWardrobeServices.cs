@@ -23,7 +23,11 @@ public sealed record UpdateItemCommand(
 public sealed record ItemUploadsCommand(int Count, string ContentType);
 
 /// <param name="SplitOutfit">True = "Kombin fotoğrafından parçaları ayır": each photo is an outfit, pieces become separate drafts.</param>
-public sealed record StartDraftsCommand(string RequestId, IReadOnlyList<string> UploadIds, bool SplitOutfit = false);
+/// <param name="Manual">
+/// True = no AI: every photo becomes a ready draft without suggestions that the user fills in by hand (no job, no
+/// recognition allowance used). This is how a non-member adds a piece after the free recognitions are used up.
+/// </param>
+public sealed record StartDraftsCommand(string RequestId, IReadOnlyList<string> UploadIds, bool SplitOutfit = false, bool Manual = false);
 
 public sealed record ConfirmDraftCommand(
     string DraftId,

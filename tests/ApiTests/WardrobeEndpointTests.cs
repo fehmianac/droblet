@@ -952,3 +952,143 @@ public class TryOnAndPaletteEndpointTests(ApiFactory factory) : IClassFixture<Ap
         _ = tenant;
     }
 }
+
+/// <summary>Owner decision 2026-11-18: non-members get Entitlements:Free:ItemRecognitionLimit AI garment recognitions (lifetime).</summary>
+public class ItemRecognitionQuotaEndpointTests : IClassFixture<ItemRecognitionQuotaEndpointTests.Factory>
+{
+    public sealed class Factory : IDisposable
+    {
+        public ApiFactory Api { get; } = new();
+        public Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory<Api.Entrypoint> WithLimit(int limit) =>
+            Api.WithWebHostBuilder(b => b.UseSetting("Entitlements:Free:ItemRecognitionLimit", limit.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+        public void Dispose() => Api.Dispose();
+    }
+
+    private readonly Factory _factory;
+    public ItemRecognitionQuotaEndpointTests(Factory factory) => _factory = factory;
+
+    private async Task<(HttpClient Client, string TenantId)> UserAsync(int limit)
+    {
+        var client = _factory.WithLimit(limit).CreateClient();
+        var response = await client.PostAsJsonAsync("v1/auth/register", new { name = "Ayşe", email = $"{Guid.NewGuid():N}@example.com", password = "Sifre1234" }, ApiFactory.Json);
+        var auth = (await response.Content.ReadFromJsonAsync<Api.Contracts.AuthResponse>(ApiFactory.Json))!;
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", auth.AccessToken);
+        return (client, auth.TenantId);
+    }
+
+    private async Task<List<string>> UploadAsync(HttpClient client, int count)
+    {
+        var uploads = await (await client.PostJsonAsync("v1/tenant/item/upload-url", new { count, contentType = "image/jpeg" })).ReadAsync<ItemUploadsDto>();
+        foreach (var upload in uploads.Uploads)
+            await _factory.Api.Storage.PutAsync(upload.Fields["key"], Tests.Shared.TestImages.JpegWithExif(), "image/jpeg", default);
+        return uploads.Uploads.Select(u => u.UploadId).ToList();
+    }
+
+    private static Task<HttpResponseMessage> StartAsync(HttpClient client, IEnumerable<string> uploadIds, bool split = false, bool manual = false) =>
+        client.PostJsonAsync("v1/tenant/item-draft", new { requestId = Ulid.New(), uploadIds, splitOutfit = split, manual });
+
+    private static async Task<(int? Limit, int Used, int? Remaining)> QuotaAsync(HttpClient client)
+    {
+        var quota = (await (await client.GetAsync("v1/tenant/entitlement")).JsonAsync()).GetProperty("itemRecognition");
+        int? Number(string name) => quota.GetProperty(name).ValueKind == JsonValueKind.Null ? null : quota.GetProperty(name).GetInt32();
+        return (Number("limit"), quota.GetProperty("used").GetInt32(), Number("remaining"));
+    }
+
+    private async Task SettleAsync(string tenantId, bool succeed)
+    {
+        var lifecycle = _factory.Api.Services.GetRequiredService<IJobLifecycle>();
+        foreach (var job in (await _factory.Api.Repository.GetAllAsync<JobEntity>(JobEntity.GetPk(tenantId))).Where(j => j.Status == JobStatus.Queued))
+        {
+            if (succeed) await lifecycle.CompleteAsync(job, "{}", default);
+            else await lifecycle.FailAsync(job, JobFailure.ProviderError, default);
+        }
+    }
+
+    [Fact]
+    public async Task NonMember_BulkAboveTheAllowance_ProcessesWhatIsLeft_ReportsSkipped_Then402()
+    {
+        var (client, tenantId) = await UserAsync(limit: 3);
+        var uploads = await UploadAsync(client, 5);
+
+        var before = await QuotaAsync(client);
+        var bulk = await StartAsync(client, uploads);
+        var started = await bulk.ReadAsync<StartDraftsDto>();
+        await SettleAsync(tenantId, succeed: true);
+        var again = await StartAsync(client, await UploadAsync(client, 1));
+        var split = await StartAsync(client, await UploadAsync(client, 1), split: true);
+
+        Assert.Equal((3, 0, 3), before);
+        Assert.Equal(HttpStatusCode.Accepted, bulk.StatusCode);
+        Assert.Equal((3, 3, 2), (started.Jobs.Count, started.Drafts.Count, started.SkippedCount));
+        Assert.Equal(uploads.Skip(3), started.SkippedUploadIds);
+        Assert.Equal((3, 3, 0), (started.ItemRecognition!.Limit, started.ItemRecognition.Used, started.ItemRecognition.Remaining));
+        Assert.Equal(3, _factory.Api.Events.Of<ItemProcessRequestedEvent>(tenantId).Count);
+        Assert.Equal((HttpStatusCode.PaymentRequired, "item_recognition_limit_reached"), (again.StatusCode, await again.CodeAsync()));
+        Assert.Equal((HttpStatusCode.PaymentRequired, "item_recognition_limit_reached"), (split.StatusCode, await split.CodeAsync()));
+        Assert.Equal((3, 3, 0), await QuotaAsync(client));
+        Assert.Equal(3, (await _factory.Api.Repository.GetAllAsync<JobEntity>(JobEntity.GetPk(tenantId))).Count); // refused requests create no job
+    }
+
+    [Fact]
+    public async Task FailedJobs_GiveTheRecognitionBack()
+    {
+        var (client, tenantId) = await UserAsync(limit: 2);
+
+        (await StartAsync(client, await UploadAsync(client, 2))).EnsureSuccessStatusCode();
+        var whileRunning = await QuotaAsync(client);
+        await SettleAsync(tenantId, succeed: false);
+        var afterFailure = await QuotaAsync(client);
+        var retry = await StartAsync(client, await UploadAsync(client, 1), split: true);
+
+        Assert.Equal((2, 2, 0), whileRunning);
+        Assert.Equal((2, 0, 2), afterFailure);
+        Assert.Equal(HttpStatusCode.Accepted, retry.StatusCode);
+    }
+
+    [Fact]
+    public async Task ManualEntry_StaysPossible_WithoutAi_WhenTheAllowanceIsUsedUp()
+    {
+        var (client, tenantId) = await UserAsync(limit: 1);
+        (await StartAsync(client, await UploadAsync(client, 1))).EnsureSuccessStatusCode();
+        await SettleAsync(tenantId, succeed: true);
+        var upload = await UploadAsync(client, 1);
+
+        var refused = await StartAsync(client, upload);
+        var manual = await StartAsync(client, upload, manual: true);
+        var draft = Assert.Single((await manual.ReadAsync<StartDraftsDto>()).Drafts);
+        var mutationId = Ulid.New();
+        var confirmed = await client.PostJsonAsync("v1/tenant/item-draft/confirm", new
+        {
+            items = new[] { new { draftId = draft.Id, clientMutationId = mutationId, reviewed = true, name = "Krem kazak", category = "top", colorIds = new[] { "cream" }, fabric = "knit", seasons = new[] { "winter" } } },
+        });
+
+        Assert.Equal(HttpStatusCode.PaymentRequired, refused.StatusCode);
+        Assert.Equal(HttpStatusCode.Accepted, manual.StatusCode);
+        Assert.Equal((ItemDraftStatus.Ready, (string?)null, false), (draft.Status, draft.JobId, draft.NeedsReview));
+        Assert.NotNull(draft.OriginalImageUrl);
+        Assert.Equal(1, (await confirmed.ReadAsync<ItemCreateResultsDto>()).CreatedCount);
+        Assert.Single(_factory.Api.Events.Of<ItemProcessRequestedEvent>(tenantId));   // only the first, AI, request reached a worker
+        Assert.Equal((1, 1, 0), await QuotaAsync(client));
+        // The stored original has no EXIF (stripped by the Api on the manual path).
+        var original = _factory.Api.Storage.Objects.Single(o => o.Key.Contains(draft.Id) && o.Key.Contains("original"));
+        Assert.DoesNotContain("Exif", System.Text.Encoding.Latin1.GetString(original.Value.Data));
+    }
+
+    [Fact]
+    public async Task ZeroLimit_GoesStraightToThePaywall_AndMembersAreUnlimited()
+    {
+        var (client, tenantId) = await UserAsync(limit: 0);
+
+        var paywall = await StartAsync(client, await UploadAsync(client, 1));
+        var free = await QuotaAsync(client);
+        await _factory.Api.PremiumAsync(tenantId);
+        var member = await StartAsync(client, await UploadAsync(client, 4));
+        var premium = await QuotaAsync(client);
+
+        Assert.Equal((HttpStatusCode.Forbidden, "premium_required"), (paywall.StatusCode, await paywall.CodeAsync()));
+        Assert.Equal((0, 0, 0), free);
+        Assert.Equal(HttpStatusCode.Accepted, member.StatusCode);
+        Assert.Equal((4, 0), ((await member.ReadAsync<StartDraftsDto>()).Jobs.Count, (await member.ReadAsync<StartDraftsDto>()).SkippedCount));
+        Assert.Equal(((int?)null, (int?)null), (premium.Limit, premium.Remaining));
+    }
+}

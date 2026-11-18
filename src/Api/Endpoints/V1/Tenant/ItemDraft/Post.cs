@@ -32,8 +32,8 @@ public class Post : IEndpoint
     {
         return endpoints.MapPost("v1/tenant/item-draft", Handler)
             .Produces<StartDraftsDto>(StatusCodes.Status202Accepted)
-            .Problems(StatusCodes.Status403Forbidden, StatusCodes.Status404NotFound, StatusCodes.Status422UnprocessableEntity)
+            .Problems(StatusCodes.Status402PaymentRequired, StatusCodes.Status403Forbidden, StatusCodes.Status404NotFound, StatusCodes.Status422UnprocessableEntity)
             .Validated()
-            .Tenant("Tenant ItemDraft", "Start AI processing of uploaded garment photos", "One draft and one ItemProcessor job per uploaded photo (max 30). splitOutfit = true cuts an outfit photo into one draft per piece. Nothing becomes an item until POST item-draft/confirm.");
+            .Tenant("Tenant ItemDraft", "Start AI processing of uploaded garment photos", "One draft and one ItemProcessor job per uploaded photo (max 30). splitOutfit = true cuts an outfit photo into one draft per piece. Nothing becomes an item until POST item-draft/confirm. Non-members have a lifetime number of AI recognitions (GET entitlement -> itemRecognition): each photo uses one when its job completes (failed jobs use none); a bulk request above what is left processes the first photos and reports skippedCount / skippedUploadIds; none left -> 402 item_recognition_limit_reached (limit 0 -> 403 premium_required). manual = true skips AI: each photo becomes a ready draft without suggestions for the user to fill in — no job, no allowance.");
     }
 }
