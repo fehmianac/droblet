@@ -26,20 +26,20 @@ export function ReadinessRing({ packed, total, ratio }: Readiness) {
       testID="readiness-ring"
     >
       <Svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} style={{ position: 'absolute' }} accessible={false}>
-        <Circle cx={SIZE / 2} cy={SIZE / 2} r={RADIUS} fill="none" stroke={colors.sand} strokeWidth={4} />
+        <Circle cx={SIZE / 2} cy={SIZE / 2} r={RADIUS} fill="none" stroke={colors.sand} strokeWidth={5} />
         <Circle
           cx={SIZE / 2}
           cy={SIZE / 2}
           r={RADIUS}
           fill="none"
           stroke={colors.accent}
-          strokeWidth={4}
+          strokeWidth={5}
           strokeLinecap="round"
           strokeDasharray={`${CIRCUMFERENCE * ratio} ${CIRCUMFERENCE}`}
           transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}
         />
       </Svg>
-      <Text variant="caption" maxFontSizeMultiplier={1.2} accessible={false}>
+      <Text variant="label" maxFontSizeMultiplier={1.2} accessible={false}>
         {t('tripDetail.readinessValue', { packed, total })}
       </Text>
     </View>

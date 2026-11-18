@@ -9,6 +9,7 @@ import {
   type LookSlotKind,
 } from '@/api/contracts/looks';
 import type { Item, ItemCategory } from '@/api/contracts/wardrobe';
+import type { PlaceholderTone } from '@/theme/tokens';
 
 /** One piece per slot (15: five slots). */
 export type SlotMap = Partial<Record<LookSlotKind, LookSlot>>;
@@ -109,6 +110,26 @@ export function canSaveLook(slots: SlotMap): boolean {
 
 export function toSlotInputs(slots: SlotMap): LookSlotInput[] {
   return slotList(slots).map(({ slot, source, refId }) => ({ slot, source, refId }));
+}
+
+/** Names of the pieces still in the look, in slot order (share text). */
+export function lookPieceNames(look: Pick<Look, 'slots'>): string[] {
+  return LOOK_SLOTS.flatMap((kind) => look.slots.filter((s) => s.slot === kind && !s.deleted && s.name.trim() !== '').map((s) => s.name));
+}
+
+/** Pieces the owner does not have yet (added from the store). */
+export function missingPieceCount(look: Pick<Look, 'slots'>): number {
+  return look.slots.filter((s) => s.source === 'store' && !s.deleted).length;
+}
+
+/** Grounds of the look placeholders, in the order 14 Looklar draws them. */
+const COVER_TONES: readonly (PlaceholderTone | 'sand')[] = ['taupe', 'dark', 'clay', 'sand', 'stage', 'camel'];
+
+/** Stable placeholder ground for a look: the same look always gets the same tone. */
+export function coverTone(seed: string): PlaceholderTone | 'sand' {
+  let sum = 0;
+  for (let i = 0; i < seed.length; i += 1) sum = (sum + seed.charCodeAt(i)) % 997;
+  return COVER_TONES[sum % COVER_TONES.length] ?? 'stage';
 }
 
 export function sameSlots(a: LookSlotInput[], b: LookSlotInput[]): boolean {

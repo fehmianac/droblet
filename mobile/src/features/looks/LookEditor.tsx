@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { CircleAlert, Ellipsis, Plus, RefreshCw, Sparkles, Trash2 } from 'lucide-react-native';
+import { CircleAlert, Ellipsis, MirrorRound, Plus, RefreshCw, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Pressable, ScrollView, View } from 'react-native';
@@ -11,7 +11,7 @@ import type { Item } from '@/api/contracts/wardrobe';
 import { ImageTag, PopoverMenu } from '@/components/ui/Bits';
 import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { Button } from '@/components/ui/Button';
-import { Chip, ChipWrap } from '@/components/ui/Chip';
+import { Chip } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
 import { OfflineBanner } from '@/components/ui/OfflineBanner';
@@ -126,61 +126,57 @@ export function LookEditor({ look, initialSlots, skippedCount = 0, items }: Prop
       <ScreenHeader
         title={t(look ? 'lookEditor.titleEdit' : 'lookEditor.titleNew')}
         leading="close"
+        leadingVariant="outline"
         onLeadingPress={leave}
         right={look ? <IconButton icon={Ellipsis} variant="plain" onPress={() => setMenu(true)} accessibilityLabel={t('lookEditor.more')} /> : undefined}
       />
       <OfflineBanner />
-      <ScrollView contentContainerClassName="gap-5 px-gutter pb-8 pt-1" keyboardShouldPersistTaps="handled">
-        <View className="flex-row gap-4">
+      <ScrollView contentContainerClassName="gap-3 px-gutter pb-8 pt-1" keyboardShouldPersistTaps="handled">
+        <View className="flex-row gap-3">
           <LookCover
             tryOnImageUrl={dirty ? null : look?.tryOnImageUrl}
             slots={slotList(slots)}
             itemsById={itemsById}
-            className="aspect-[4/5] w-[42%] rounded-image-lg"
+            figureHeight={150}
+            className="h-[228px] w-[140px] rounded-image-lg"
           >
             <ImageTag label={t('lookEditor.previewTag')} className="absolute bottom-2 left-2" />
           </LookCover>
-          <View className="flex-1 justify-center gap-2">
-            <Text variant="eyebrow">{t('lookEditor.counterEyebrow', { count, total: LOOK_SLOTS.length })}</Text>
-            <Text variant="caption" tone="muted">
-              {t('lookEditor.minHint', { count: LOOK_MIN_PIECES })}
-            </Text>
-            {count === 0 ? (
-              <Text variant="caption" tone="muted">
-                {t('lookEditor.previewEmpty')}
-              </Text>
-            ) : null}
+          <View className="flex-1 justify-between gap-2.5">
+            <TextField
+              label={t('lookEditor.name')}
+              placeholder={t('lookEditor.namePlaceholder')}
+              value={name}
+              onChangeText={setName}
+              maxLength={60}
+              returnKeyType="done"
+            />
+            <View className="gap-1.5">
+              <Text variant="label">{t('lookEditor.occasion')}</Text>
+              <View className="flex-row flex-wrap gap-1.5">
+                {LOOK_OCCASIONS.map((o) => (
+                  <Chip key={o} label={t(`occasion.${o}`)} selected={occasion === o} onPress={() => setOccasion(o)} />
+                ))}
+              </View>
+            </View>
+            <Button variant="secondary" icon={MirrorRound} label={t('lookEditor.tryOn')} onPress={onTryOnPress} disabled={!savable} testID="look-try-on" />
           </View>
         </View>
 
-        <TextField
-          label={t('lookEditor.name')}
-          placeholder={t('lookEditor.namePlaceholder')}
-          value={name}
-          onChangeText={setName}
-          maxLength={60}
-          returnKeyType="done"
-        />
+        {tryOnNote ? (
+          <View className="flex-row items-center gap-1.5" accessibilityLiveRegion="polite">
+            <Icon icon={CircleAlert} size={14} tone="danger" />
+            <Text variant="caption" tone="danger" className="flex-1">
+              {t(tryOnNote === 'offline' ? 'lookEditor.tryOnOffline' : 'lookEditor.tryOnFailed')}
+            </Text>
+          </View>
+        ) : null}
 
-        <View className="gap-2">
-          <Text variant="bodyMedium">{t('lookEditor.occasion')}</Text>
-          <ChipWrap>
-            {LOOK_OCCASIONS.map((o) => (
-              <Chip key={o} label={t(`occasion.${o}`)} selected={occasion === o} onPress={() => setOccasion(o)} />
-            ))}
-          </ChipWrap>
-        </View>
-
-        <View className="gap-2">
-          <Button variant="secondary" icon={Sparkles} label={t('lookEditor.tryOn')} onPress={onTryOnPress} disabled={!savable} />
-          {tryOnNote ? (
-            <View className="flex-row items-center gap-1.5" accessibilityLiveRegion="polite">
-              <Icon icon={CircleAlert} size={14} tone="danger" />
-              <Text variant="caption" tone="danger" className="flex-1">
-                {t(tryOnNote === 'offline' ? 'lookEditor.tryOnOffline' : 'lookEditor.tryOnFailed')}
-              </Text>
-            </View>
-          ) : null}
+        <View className="flex-row items-center justify-between gap-3">
+          <Text variant="eyebrow">{t('lookEditor.counterEyebrow', { count, total: LOOK_SLOTS.length })}</Text>
+          <Text variant="caption" tone="muted">
+            {t('lookEditor.minHint', { count: LOOK_MIN_PIECES })}
+          </Text>
         </View>
 
         {skippedCount > 0 ? (
@@ -189,7 +185,7 @@ export function LookEditor({ look, initialSlots, skippedCount = 0, items }: Prop
           </Text>
         ) : null}
 
-        <View className="gap-2.5">
+        <View className="gap-2">
           {LOOK_SLOTS.map((kind) => {
             const slot = slots[kind];
             const slotLabel = t(`lookSlot.${kind}`);
@@ -201,16 +197,16 @@ export function LookEditor({ look, initialSlots, skippedCount = 0, items }: Prop
                   accessibilityRole="button"
                   accessibilityLabel={t('lookEditor.addSlot', { slot: slotLabel })}
                   accessibilityHint={t('lookEditor.slotEmpty')}
-                  className="min-h-[76px] flex-row items-center gap-3 rounded-card border border-dashed border-line p-3 active:opacity-70"
+                  className="flex-row items-center gap-3 rounded-menu border-[1.5px] border-dashed border-muted/60 px-2.5 py-2 active:opacity-70"
                 >
-                  <View className="h-14 w-12 items-center justify-center rounded-[8px] bg-sand">
-                    <Icon icon={Plus} tone="muted" />
+                  <View className="h-[52px] w-11 items-center justify-center rounded-thumb bg-sand">
+                    <Icon icon={Plus} size={18} tone="muted" />
                   </View>
                   <View className="flex-1 gap-0.5">
-                    <Text variant="caption" tone="muted">
+                    <Text variant="caption" tone="muted" className="text-[11px]">
                       {slotLabel}
                     </Text>
-                    <Text variant="body" tone="muted">
+                    <Text variant="body" tone="muted" numberOfLines={1}>
                       {t('lookEditor.slotEmpty')}
                     </Text>
                   </View>
@@ -220,11 +216,11 @@ export function LookEditor({ look, initialSlots, skippedCount = 0, items }: Prop
             return (
               <View
                 key={kind}
-                className={`min-h-[76px] flex-row items-center gap-3 rounded-card border bg-paper p-3 ${slot.deleted ? 'border-danger' : 'border-line'}`}
+                className={`flex-row items-center gap-3 rounded-menu border bg-paper px-2.5 py-2 ${slot.deleted ? 'border-danger' : 'border-line'}`}
               >
-                <SlotThumb slot={slot} itemsById={itemsById} className="h-14 w-12 rounded-[8px]" glyphSize={22} />
+                <SlotThumb slot={slot} itemsById={itemsById} className="h-[52px] w-11 rounded-thumb" glyphSize={22} />
                 <View className="flex-1 gap-0.5">
-                  <Text variant="caption" tone="muted">
+                  <Text variant="caption" tone="muted" className="text-[11px]">
                     {slot.source === 'store' ? t('lookEditor.slotFromStore', { slot: slotLabel }) : slotLabel}
                   </Text>
                   <Text variant="bodyMedium" numberOfLines={2}>
@@ -243,7 +239,13 @@ export function LookEditor({ look, initialSlots, skippedCount = 0, items }: Prop
                     </Text>
                   ) : null}
                 </View>
-                <IconButton icon={RefreshCw} onPress={() => setSheetSlot(kind)} accessibilityLabel={t('lookEditor.changeSlot', { slot: slotLabel })} />
+                <IconButton
+                  icon={RefreshCw}
+                  variant="plain"
+                  iconSize={18}
+                  onPress={() => setSheetSlot(kind)}
+                  accessibilityLabel={t('lookEditor.changeSlot', { slot: slotLabel })}
+                />
               </View>
             );
           })}
@@ -251,13 +253,11 @@ export function LookEditor({ look, initialSlots, skippedCount = 0, items }: Prop
       </ScrollView>
 
       <BottomActionBar>
-        <View className="gap-2">
-          {savable ? null : (
-            <Text variant="caption" tone="muted" accessibilityLiveRegion="polite">
-              {hasDeletedPiece(slots) ? t('lookEditor.saveHintDeleted') : t('lookEditor.saveHint', { count: LOOK_MIN_PIECES })}
-            </Text>
-          )}
-          <Button label={t('lookEditor.save')} onPress={onSave} disabled={!savable} testID="look-save" />
+        <View className="flex-row items-center gap-2.5">
+          <Text variant="caption" tone="muted" className="flex-1" accessibilityLiveRegion="polite">
+            {hasDeletedPiece(slots) ? t('lookEditor.saveHintDeleted') : t('lookEditor.saveHint', { count: LOOK_MIN_PIECES })}
+          </Text>
+          <Button size="bar" label={t('lookEditor.save')} onPress={onSave} disabled={!savable} className="px-7" testID="look-save" />
         </View>
       </BottomActionBar>
 

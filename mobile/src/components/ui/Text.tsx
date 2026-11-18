@@ -2,7 +2,7 @@ import { Text as RNText, type TextProps as RNTextProps } from 'react-native';
 
 import { maxFontScale, type TypeVariant } from '@/theme/tokens';
 
-export type TextTone = 'ink' | 'muted' | 'accent' | 'danger' | 'paper';
+export type TextTone = 'ink' | 'muted' | 'accent' | 'danger' | 'paper' | 'cream';
 
 const variantClass: Record<TypeVariant, string> = {
   display: 'text-display font-display',
@@ -14,7 +14,18 @@ const variantClass: Record<TypeVariant, string> = {
   eyebrow: 'text-eyebrow font-sans-medium',
   brand: 'text-brand font-sans-medium',
   button: 'text-button font-sans-medium',
-  tab: 'text-tab font-sans-medium',
+  tab: 'text-tab font-sans',
+  tabActive: 'text-tabActive font-sans-semibold',
+  title: 'text-title font-sans-medium',
+  chip: 'text-chip font-sans',
+  segment: 'text-segment font-sans-medium',
+  badge: 'text-badge font-sans-medium',
+  tag: 'text-tag font-sans-medium',
+  miss: 'text-miss font-sans-medium',
+  price: 'text-price font-sans-medium',
+  total: 'text-total font-sans-medium',
+  label: 'text-label font-sans-medium',
+  dot: 'text-dot font-sans-semibold',
 };
 
 const toneClass: Record<TextTone, string> = {
@@ -23,6 +34,7 @@ const toneClass: Record<TextTone, string> = {
   accent: 'text-accent',
   danger: 'text-danger',
   paper: 'text-paper',
+  cream: 'text-cream',
 };
 
 export type TextProps = RNTextProps & {

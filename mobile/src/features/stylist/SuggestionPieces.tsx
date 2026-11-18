@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { CircleCheck } from 'lucide-react-native';
+import { Check } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { Pressable, View } from 'react-native';
 
@@ -11,15 +11,17 @@ import { formatMoney } from '@/lib/format';
 
 type Props = {
   pieces: StylistPiece[];
-  /** `{stylistJobId}:{index}` — lets the builder load the suggestion it completes. */
-  suggestionId: string;
 };
 
-/** Piece rows of a suggestion: wardrobe pieces ("Gardırobun" ✓) and missing store pieces with "Look'u tamamla". */
-export function SuggestionPieces({ pieces, suggestionId }: Props) {
+/**
+ * Piece rows of a suggestion (17): 40 × 48 thumb, name over its source, a hairline under every row.
+ * Wardrobe pieces end with the "Gardırobunda var" check; a missing store piece reads in espresso and
+ * ends with the "Look'u tamamla" chip, which opens the product (22) as on the board.
+ */
+export function SuggestionPieces({ pieces }: Props) {
   const { t } = useTranslation();
   return (
-    <View className="gap-2.5">
+    <View>
       {pieces.map((piece) => {
         const missing = piece.source === 'store';
         const caption = !missing
@@ -30,36 +32,41 @@ export function SuggestionPieces({ pieces, suggestionId }: Props) {
               ? t('stylistResult.missingStorePrice', { price: formatMoney(piece.price) })
               : t('stylistResult.missingStore');
         return (
-          <View key={`${piece.slot}${piece.refId}`} className="min-h-12 flex-row items-center gap-3">
-            <View className={`overflow-hidden rounded-[8px] ${missing ? 'border border-dashed border-accent' : ''}`}>
-              <ItemThumb category={piece.category} color={piece.color ?? undefined} uri={piece.imageUrl} className="h-12 w-10" glyphSize={20} />
-            </View>
+          <View key={`${piece.slot}${piece.refId}`} className="flex-row items-center gap-3 border-b border-line py-[7px]">
+            <ItemThumb category={piece.category} color={piece.color ?? undefined} uri={piece.imageUrl} className="h-12 w-10 rounded-[8px]" glyphSize={18} />
             <View
-              className="flex-1 gap-0.5"
+              className="flex-1"
               accessible
               accessibilityLabel={missing ? t('stylistResult.missingPieceA11y', { name: piece.name, detail: caption }) : t('stylistResult.wardrobePieceA11y', { name: piece.name })}
             >
               <Text variant="body" numberOfLines={1}>
                 {piece.name}
               </Text>
-              <Text variant="caption" tone={missing ? 'accent' : 'muted'} numberOfLines={1}>
-                {caption}
-              </Text>
+              {missing ? (
+                <Text variant="caption" tone="accent" numberOfLines={2} className="font-sans-medium">
+                  {caption}
+                </Text>
+              ) : (
+                <Text variant="caption" tone="muted" numberOfLines={1}>
+                  {caption}
+                </Text>
+              )}
             </View>
             {missing ? (
               <Pressable
-                onPress={() => router.push({ pathname: '/shop/builder', params: { suggestion: suggestionId, productId: piece.refId } })}
+                onPress={() => router.push({ pathname: '/shop/product/[id]', params: { id: piece.refId } })}
                 accessibilityRole="button"
                 accessibilityLabel={t('stylistResult.completeLook')}
                 hitSlop={{ top: 4, bottom: 4 }}
-                className="h-chip items-center justify-center rounded-pill border border-ink px-3.5 active:opacity-80"
+                testID="complete-look"
+                className="h-chip items-center justify-center rounded-pill border border-accent px-[15px] active:opacity-80"
               >
-                <Text variant="bodyMedium" numberOfLines={1}>
+                <Text variant="chip" tone="accent" numberOfLines={1}>
                   {t('stylistResult.completeLook')}
                 </Text>
               </Pressable>
             ) : (
-              <Icon icon={CircleCheck} size={18} tone="accent" />
+              <Icon icon={Check} size={18} />
             )}
           </View>
         );

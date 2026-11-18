@@ -33,7 +33,7 @@ function mondayOf(isoDate: string): string {
 }
 
 /** Dev/test knobs for states the fixtures cannot reach otherwise. */
-export const todayFixtureOptions: { hasBodyPhoto: boolean } = { hasBodyPhoto: true };
+export const todayFixtureOptions: { hasBodyPhoto: boolean; sponsoredBy: string | null } = { hasBodyPhoto: true, sponsoredBy: null };
 
 const watchlist = new Set<string>();
 const savedEditLooks = new Set<string>();
@@ -58,6 +58,7 @@ onFixtureSeed((db, { empty }) => {
   watchlist.clear();
   savedEditLooks.clear();
   todayFixtureOptions.hasBodyPhoto = true;
+  todayFixtureOptions.sponsoredBy = null;
   if (empty) return;
   const today = toIsoDate(new Date());
   const has = (id: string | null) => (id && db.looks.some((l) => l.id === id) ? id : null);
@@ -84,11 +85,14 @@ onFixtureSeed((db, { empty }) => {
 
 /** The catalogue piece the stylist suggests to finish the blazer look (board 06 "Eksik parça"). */
 const MISSING_PIECE: Record<string, LookPiece> = {
-  look_lacivert_blazer: { id: 'prod_earrings', name: 'Küçük taşlı küpe', source: 'store', imageUrl: null },
+  look_lacivert_blazer: { id: 'prod_earrings', name: 'Küçük taşlı küpe', source: 'store', imageUrl: null, category: 'accessory', color: 'other' },
 };
 
 function todayLook(look: Look, date: string): TodayLook {
-  const pieces: LookPiece[] = look.slots.map((s) => ({ id: s.refId, name: s.name, source: s.source, imageUrl: s.imageUrl }));
+  const pieces: LookPiece[] = look.slots.map((s) => {
+    const owned = s.source === 'wardrobe' ? fixtureDb.items.find((i) => i.id === s.refId) : undefined;
+    return { id: s.refId, name: s.name, source: s.source, imageUrl: s.imageUrl, category: owned?.category ?? s.slot, color: owned?.color ?? null };
+  });
   const missing = MISSING_PIECE[look.id];
   return {
     id: look.id,
@@ -266,6 +270,33 @@ const EDIT_SEED: LookSeed[] = [
   },
 ];
 
+/** Main colour of the edit's placeholder products (ground of the picture placeholder). */
+const PRODUCT_COLOR: Record<string, string> = {
+  prod_poplin_shirt: 'white',
+  prod_high_trousers: 'black',
+  prod_croc_flats: 'brown',
+  prod_city_bag: 'black',
+  prod_lux_flats: 'brown',
+  prod_lux_bag: 'black',
+  prod_midi_dress: 'black',
+  prod_slim_belt: 'brown',
+  prod_lux_belt: 'black',
+  prod_navy_blazer: 'navy',
+  prod_loafers: 'brown',
+  prod_lux_loafers: 'black',
+  prod_satin_shirt: 'cream',
+  prod_lux_satin: 'cream',
+  prod_cream_knit: 'cream',
+  prod_ankle_boots: 'brown',
+  prod_lux_boots: 'beige',
+  prod_jeans: 'blue',
+  prod_tote: 'beige',
+  prod_lux_tote: 'brown',
+  prod_linen_shirt: 'beige',
+  prod_sandals: 'brown',
+  prod_lux_sandals: 'brown',
+};
+
 function product([id, brand, name, price, category, ownedItemId]: ProductSeed): EditProduct {
   return {
     id,
@@ -274,6 +305,7 @@ function product([id, brand, name, price, category, ownedItemId]: ProductSeed): 
     price: moneyFromMajor(price, 'TRY'),
     imageUrl: null,
     category,
+    color: PRODUCT_COLOR[id] ?? null,
     ownedItemId: ownedItemId && fixtureDb.items.some((i) => i.id === ownedItemId) ? ownedItemId : null,
     inWatchlist: watchlist.has(id),
   };
@@ -304,6 +336,7 @@ export function fixtureWeeklyEdit(id: string, today: Date = new Date()): WeeklyE
     weekEnd: shift(weekStart, 6),
     looks: buildEditLooks(weekStart),
     hasBodyPhoto: todayFixtureOptions.hasBodyPhoto,
+    sponsoredBy: todayFixtureOptions.sponsoredBy,
   });
 }
 
@@ -362,15 +395,15 @@ export function fixtureSaveEditLook(request: SaveEditLookRequest): void {
 // ---------- 04b / 12b ready-made library ----------
 
 export const libraryFixture: LibraryItem[] = [
-  { id: 'lib_white_shirt', name: 'Beyaz poplin gömlek', category: 'top', imageUrl: null },
-  { id: 'lib_navy_blazer', name: 'Lacivert yün blazer', category: 'outerwear', imageUrl: null },
-  { id: 'lib_black_midi', name: 'Siyah midi elbise', category: 'dress', imageUrl: null },
-  { id: 'lib_straight_jeans', name: 'Düz jean', category: 'bottom', imageUrl: null },
-  { id: 'lib_cream_knit', name: 'Krem triko', category: 'top', imageUrl: null },
-  { id: 'lib_croc_flats', name: 'Kroko babet', category: 'shoes', imageUrl: null },
-  { id: 'lib_black_bag', name: 'Siyah deri çanta', category: 'bag', imageUrl: null },
-  { id: 'lib_tweed_jacket', name: 'Tüvit ceket', category: 'outerwear', imageUrl: null },
-  { id: 'lib_beige_trench', name: 'Bej trençkot', category: 'outerwear', imageUrl: null },
+  { id: 'lib_white_shirt', name: 'Beyaz poplin gömlek', category: 'top', imageUrl: null, color: 'white' },
+  { id: 'lib_navy_blazer', name: 'Lacivert yün blazer', category: 'outerwear', imageUrl: null, color: 'navy' },
+  { id: 'lib_black_midi', name: 'Siyah midi elbise', category: 'dress', imageUrl: null, color: 'black' },
+  { id: 'lib_straight_jeans', name: 'Düz jean', category: 'bottom', imageUrl: null, color: 'blue' },
+  { id: 'lib_cream_knit', name: 'Krem triko', category: 'top', imageUrl: null, color: 'cream' },
+  { id: 'lib_croc_flats', name: 'Kroko babet', category: 'shoes', imageUrl: null, color: 'brown' },
+  { id: 'lib_black_bag', name: 'Siyah deri çanta', category: 'bag', imageUrl: null, color: 'black' },
+  { id: 'lib_tweed_jacket', name: 'Tüvit ceket', category: 'outerwear', imageUrl: null, color: 'grey' },
+  { id: 'lib_beige_trench', name: 'Bej trençkot', category: 'outerwear', imageUrl: null, color: 'beige' },
 ];
 
 /** Simulated latency so loading skeletons are exercised in development. */

@@ -2,6 +2,7 @@ import type { QueryClient } from '@tanstack/react-query';
 
 import { registerAnalyticsMutation } from '@/analytics/AnalyticsHost';
 import { registerAccountMutations } from '@/features/account/mutations';
+import { registerNotificationMutations } from '@/features/notifications/mutations';
 import { registerSocialMutations } from '@/features/social/mutations';
 import { registerStoreMutations } from '@/features/store/mutations';
 
@@ -13,5 +14,6 @@ export function registerFeatureMutations(client: QueryClient): void {
   registerStoreMutations(client);
   registerSocialMutations(client);
   registerAccountMutations(client);
+  registerNotificationMutations(client);
   registerAnalyticsMutation(client);
 }

@@ -30,6 +30,11 @@ describe('revealTiming', () => {
     for (const t of [first, third]) expect(t.enterMs + t.holdMs + t.exitMs + t.restMs).toBe(4800);
   });
 
+  it('stilist cards: hidden for the first 10 %, in by 30 %, shown until 85 %, out by the end of the 4.5 s loop', () => {
+    const t = revealTiming({ index: 1, staggerMs: 500, cycleMs: 4500, leadMs: 450, enterMs: 900, exitMs: 675, exitAt: 1 });
+    expect(t).toEqual({ delayMs: 500, leadMs: 450, enterMs: 900, holdMs: 2475, exitMs: 675, restMs: 0 });
+  });
+
   it('never produces negative phases for a short cycle', () => {
     const t = revealTiming({ index: 1, staggerMs: 500, cycleMs: 1000, enterMs: 900, exitMs: 675, exitAt: 0.9 });
     expect(Math.min(t.delayMs, t.enterMs, t.holdMs, t.exitMs, t.restMs)).toBeGreaterThanOrEqual(0);
@@ -142,5 +147,11 @@ describe('AI loading language', () => {
     expect(screen.getByLabelText('Görsel hazırlanıyor, 1 kredi')).toBeTruthy();
     expect(screen.getByLabelText('Hazırlanıyor')).toBeTruthy();
     expect(screen.getByLabelText('Foto 7').props.accessibilityValue).toEqual({ min: 0, max: 100, now: 50 });
+  });
+
+  it('a stopped stage is no longer busy and can hide its tag', async () => {
+    setReduceMotion(false);
+    await render(<AiTryOnStage className="h-[470px] w-full" active={false} tag={null} />);
+    expect(screen.queryByText('SENİN ÜZERİNDE · HAZIRLANIYOR')).toBeNull();
   });
 });

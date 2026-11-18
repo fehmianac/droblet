@@ -1,0 +1,17 @@
+# Opens an app link and confirms the iOS "Open in Droblet?" prompt when it appears.
+appId: com.alatech.droplet
+env:
+  URL: ${URL}
+---
+- openLink: ${URL}
+- runFlow:
+    when:
+      visible: "Open"
+    commands:
+      - tapOn: "Open"
+- runFlow:
+    when:
+      visible: "Aç"
+    commands:
+      - tapOn: "Aç"
+- waitForAnimationToEnd

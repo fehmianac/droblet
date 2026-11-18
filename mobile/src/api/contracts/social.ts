@@ -26,6 +26,9 @@ export type FeedPiece = {
   imageUrl: string | null;
   brandName: string | null;
   price: Money | null;
+  /** Category / main colour (wardrobe or catalogue vocabulary), when known: the placeholder while there is no picture. */
+  category?: string | null;
+  color?: string | null;
 };
 
 export type FeedLook = {
@@ -75,7 +78,14 @@ export type PersonProfile = PersonRef & {
 };
 
 /** GET v1/tenant/people/{handle}/look · /item — 404 when hidden. */
-export type PersonTile = { id: string; name: string; imageUrl: string | null };
+export type PersonTile = {
+  id: string;
+  name: string;
+  imageUrl: string | null;
+  /** Item tiles: category / main colour (wardrobe vocabulary), when sent — the placeholder while there is no picture. */
+  category?: string | null;
+  color?: string | null;
+};
 /** GET v1/tenant/people/{handle}/trip — finished trips only: city + month (`YYYY-MM`). Owner-only for now. */
 export type PersonTrip = { id: string; city: string; month: string };
 

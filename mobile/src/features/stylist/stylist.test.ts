@@ -2,9 +2,12 @@ import type { StylistOutfitRequest } from '@/api/contracts/stylist';
 import { fixtureDb, resetFixtureDb } from '@/fixtures/db';
 import { getFixtureJob, resetFixtureJobs } from '@/fixtures/jobs';
 import { acceptFixtureSuggestion, buildFixtureSuggestions, startFixtureStylistOutfit } from '@/fixtures/stylist';
-import { isTryOnTargetKind } from '@/features/tryon/api';
+import { isTryOnTargetKind, TRY_ON_TIMEOUT_MS } from '@/features/tryon/api';
+import i18n from '@/i18n';
 
-import { dateParamOrToday, toStylistRequest, validateStylistDraft, type StylistDraft } from './api';
+import { dateParamOrToday, STYLIST_TIMEOUT_MS, stylistWaitLines, toStylistRequest, validateStylistDraft, type StylistDraft } from './api';
+import { tilePieces } from './SuggestionMedia';
+import { neighbourSuggestion, suggestionShareMessage } from './SuggestionResult';
 import { calendarOptions, defaultCalendarDate } from './SuggestionSheets';
 
 const draft = (over: Partial<StylistDraft> = {}): StylistDraft => ({
@@ -148,5 +151,64 @@ describe('accepting a suggestion (fixture server)', () => {
   it('rejects an unknown suggestion', () => {
     const jobId = finishedJob();
     expect(() => acceptFixtureSuggestion(jobId, 9, { lookId: 'x', date: null, ...meta })).toThrow();
+  });
+});
+
+describe('17 paging and sharing', () => {
+  it('steps to the neighbouring open suggestion and wraps round', () => {
+    expect(neighbourSuggestion([0, 1, 2], 0, 1)).toBe(1);
+    expect(neighbourSuggestion([0, 1, 2], 2, 1)).toBe(0);
+    expect(neighbourSuggestion([0, 1, 2], 0, -1)).toBe(2);
+    // A dismissed suggestion is not in the order any more.
+    expect(neighbourSuggestion([0, 2], 0, 1)).toBe(2);
+    expect(neighbourSuggestion([0, 2], 1, 1)).toBe(0);
+    expect(neighbourSuggestion([1], 1, 1)).toBeNull();
+  });
+
+  it('builds the share text from the occasion, the name, the note and the pieces', async () => {
+    await i18n.changeLanguage('tr');
+    const message = suggestionShareMessage(i18n.t, 'Akşam yemeği', {
+      name: 'Gece Laciverti',
+      note: 'Koyu tonları tek bir açık parçayla dengele.',
+      pieces: buildFixtureSuggestions({ wardrobeOnly: true }, fixtureDb.items)[0]?.pieces.slice(0, 2) ?? [],
+    });
+    const [first, second, , pieces, , last] = message.split('\n');
+    expect(first).toBe('Akşam yemeği için kombin önerim: Gece Laciverti');
+    expect(second).toBe('Koyu tonları tek bir açık parçayla dengele.');
+    expect(pieces?.split(' · ')).toHaveLength(2);
+    expect(last).toBe('Droblet ile hazırlandı.');
+  });
+});
+
+describe('17 piece tiles', () => {
+  it('keeps the missing store piece among the three tiles, last', () => {
+    const [first] = buildFixtureSuggestions({ wardrobeOnly: false }, fixtureDb.items);
+    const pieces = first?.pieces ?? [];
+    expect(pieces.length).toBeGreaterThan(3);
+    const tiles = tilePieces(pieces, 3);
+    expect(tiles).toHaveLength(3);
+    expect(tiles[2]?.source).toBe('store');
+    expect(tiles.slice(0, 2).every((p) => p.source === 'wardrobe')).toBe(true);
+    // Nothing missing: simply the first three.
+    const owned = pieces.filter((p) => p.source === 'wardrobe');
+    expect(tilePieces(owned, 3)).toEqual(owned.slice(0, 3));
+  });
+});
+
+describe('AI wait', () => {
+  it('stops after 60 s, as the canvas note says', () => {
+    expect(STYLIST_TIMEOUT_MS).toBe(60_000);
+    expect(TRY_ON_TIMEOUT_MS).toBe(60_000);
+  });
+
+  it('writes the three stilist lines; the weather line carries the forecast summary when there is one', async () => {
+    await i18n.changeLanguage('tr');
+    expect(stylistWaitLines(i18n.t, { temperatureC: 13.6, summary: 'Hafif yağmur' }, 3, 'tr')).toEqual([
+      'Gardırobuna bakıyorum…',
+      'Hava 14°, hafif yağmur…',
+      '3 kombin hazırlıyorum…',
+    ]);
+    expect(stylistWaitLines(i18n.t, { temperatureC: 14, summary: null }, 3, 'tr')[1]).toBe('Hava 14°, ona göre seçiyorum…');
+    expect(stylistWaitLines(i18n.t, null, 3, 'tr')[1]).toBe('Ortama göre seçiyorum…');
   });
 });

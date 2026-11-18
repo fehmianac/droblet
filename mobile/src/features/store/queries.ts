@@ -1,5 +1,5 @@
 import type { LookSlotKind } from '@/api/contracts/looks';
-import { keepPreviousData, queryOptions, useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, queryOptions, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { apiRequest } from '@/api/client';
 import type {
@@ -17,13 +17,12 @@ import type {
   ProductSummary,
   PurchasePrompt,
   SeriesOutfit,
-  TryOnState,
   Watchlist,
   WeeklyEditSummary,
 } from '@/api/contracts/store';
 import { fromSource, queryString } from '@/api/dataSource';
-import { ApiError, isGone } from '@/api/errors';
-import { toJob, type JobWire } from '@/api/wire/core';
+import type { TryOnResult } from '@/api/contracts/tryon';
+import { isGone } from '@/api/errors';
 import type { ProductWire } from '@/api/wire/catalog';
 import {
   fromProductCategory,
@@ -38,7 +37,6 @@ import {
   toProductSummary,
   toPurchasePrompt,
   toSeriesOutfit,
-  toTryOnState,
   toWatchlist,
   toWeeklyEditSummary,
   type BrandWire,
@@ -49,12 +47,12 @@ import {
   type ProductMatchWire,
   type ProductPageWire,
   type PurchasePromptWire,
-  type TryOnImageWire,
   type WatchItemWire,
 } from '@/api/wire/store';
+import { cachedTryOnJobId, requestExistingTryOn } from '@/api/wire/tryon';
 import { storeFixtures } from '@/fixtures/store';
 
-import { localFavorites, mutedWatchAlerts, pendingProductTryOns } from './localState';
+import { localFavorites, mutedWatchAlerts } from './localState';
 import { lookSlotCategories, slotCategories } from './slots';
 
 /** Query keys for E8. Global catalogue/content data and tenant data are kept under separate roots. */
@@ -68,7 +66,7 @@ export const storeKeys = {
   match: (id: string) => ['tenant', 'catalog', 'match', id] as const,
   complete: (itemId: string) => ['tenant', 'stylist', 'complete', itemId] as const,
   favorites: ['tenant', 'favorite', 'product'] as const,
-  tryOn: (productId: string) => ['tenant', 'tryon', 'product', productId] as const,
+  tryOnJob: (productId: string) => ['tenant', 'tryon', 'product', productId, 'job'] as const,
   cart: ['tenant', 'cart', 'current'] as const,
   watchlist: ['tenant', 'watchlist', 'current'] as const,
   purchasePrompts: ['tenant', 'purchase-prompt'] as const,
@@ -250,55 +248,34 @@ export function useFavoriteProducts() {
   });
 }
 
-/** The owner's existing image for the product with the current body photo; `none` when there is none (404). */
-async function findProductTryOn(productId: string): Promise<TryOnState> {
-  try {
-    return toTryOnState(await apiRequest<TryOnImageWire>(`v1/tenant/tryon${queryString({ kind: 'product', id: productId })}`));
-  } catch (e) {
-    if (isGone(e)) return { status: 'none', imageUrl: null };
-    throw e;
-  }
-}
-
-/** While a job runs for the product: poll it, then read the image it produced. A failed job refunds its credit. */
-async function readProductTryOn(productId: string): Promise<TryOnState> {
-  const jobId = pendingProductTryOns.get(productId);
-  if (!jobId) return findProductTryOn(productId);
-  let job;
-  try {
-    job = await toJob<{ tryOnImageId: string }>(await apiRequest<JobWire>(`v1/tenant/job/${jobId}`));
-  } catch (e) {
-    if (e instanceof ApiError && e.status === 404) {
-      pendingProductTryOns.delete(productId);
-      return { status: 'failed', imageUrl: null };
-    }
-    throw e;
-  }
-  if (job.status === 'failed') {
-    pendingProductTryOns.delete(productId);
-    return { status: 'failed', imageUrl: null };
-  }
-  if (job.status !== 'done' || !job.result) return { status: 'pending', imageUrl: null };
-  pendingProductTryOns.delete(productId);
-  return toTryOnState(await apiRequest<TryOnImageWire>(`v1/tenant/tryon/${job.result.tryOnImageId}`));
-}
-
 /**
- * 22 "Üzerimde" — the owner's try-on image of a product (`GET v1/tenant/tryon?kind=product&id=`).
- * Polls the job while the TryOn worker runs. The signed image URL is short-lived, so this query is
- * never persisted.
+ * 22 "Üzerimde" — the id of the try-on job started for a product in this session, so coming back to
+ * the product shows the same image (or the same wait) instead of spending another credit. The job
+ * itself is started and polled with the shared `useStartTryOn` / `useTryOnJob` (features/tryon).
+ * Never persisted: a job and its signed image URL do not outlive the session.
  */
-export function productTryOnOptions(productId: string) {
+function productTryOnJobOptions(productId: string) {
   return queryOptions({
-    queryKey: storeKeys.tryOn(productId),
+    queryKey: storeKeys.tryOnJob(productId),
     meta: { persist: false },
-    queryFn: () => fromSource<TryOnState>('jobs', () => storeFixtures.tryOn(productId), () => readProductTryOn(productId)),
-    refetchInterval: (query) => (query.state.data?.status === 'pending' ? 1500 : false),
+    staleTime: Infinity,
+    // Client-held state: a refetch (e.g. a broad invalidation) answers with what is already known.
+    // The first read asks the server for an image the owner already has of the product
+    // (`GET v1/tenant/tryon?kind=product&id=`, 404 = none): it opens without spending a credit.
+    queryFn: async ({ client, queryKey }) => {
+      const known = client.getQueryData<string | null>(queryKey);
+      if (known) return known;
+      const existing = await fromSource<TryOnResult | null>('jobs', () => null, () => requestExistingTryOn({ kind: 'product', id: productId }));
+      return existing ? cachedTryOnJobId(existing.tryOnId) : null;
+    },
   });
 }
 
-export function useProductTryOn(productId: string, enabled: boolean) {
-  return useQuery({ ...productTryOnOptions(productId), enabled });
+export function useProductTryOnJobId(productId: string): [jobId: string | null, remember: (jobId: string | null) => void] {
+  const client = useQueryClient();
+  const options = productTryOnJobOptions(productId);
+  const query = useQuery(options);
+  return [query.data ?? null, (jobId) => client.setQueryData(options.queryKey, jobId)];
 }
 
 // ---------- Cart (24) and watchlist (24b) ----------

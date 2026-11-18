@@ -100,6 +100,8 @@ export type PhotoUploadUrlRequest = { kind: PhotoKind; contentType: 'image/jpeg'
 export type Entitlement = {
   tier: 'free' | 'member';
   credits: { monthlyAllowance: number; remaining: number; resetsAt: string };
+  /** Billing period of the active membership ("Yıllık" on 28 Profil), read from the store product id; absent when unknown. */
+  plan?: 'monthly' | 'yearly';
   /**
    * AI recognition of garment photos (owner decision 2026-11-18): free for non-members up to a
    * server-configured `limit`; `limit: null` = unlimited (members), then `remaining` is null too.
@@ -135,6 +137,9 @@ export type LookPiece = {
   /** 'wardrobe' = the user owns it; 'store' = missing piece suggested from the catalogue. */
   source: 'wardrobe' | 'store';
   imageUrl: string | null;
+  /** Wardrobe category / colour of the piece, when known: glyph and ground of its placeholder while there is no picture. */
+  category?: string | null;
+  color?: string | null;
 };
 
 export type TodayLook = {
@@ -173,4 +178,11 @@ export type TodayResponse = {
 export type WearLogRequest = { lookId: string; date: string; occurredAt: string; clientMutationId: string };
 
 /** GET v1/tenant/library/item — ready-made piece library (04b / 12b); names in the profile language. */
-export type LibraryItem = { id: string; name: string; category: string; imageUrl: string | null };
+export type LibraryItem = {
+  id: string;
+  name: string;
+  category: string;
+  imageUrl: string | null;
+  /** Main colour (wardrobe colour vocabulary), when the library knows it: ground of the placeholder while there is no picture. */
+  color?: string | null;
+};

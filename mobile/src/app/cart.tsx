@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { Bookmark, CircleAlert, ShoppingBag, Trash2 } from 'lucide-react-native';
+import { Bookmark, CircleAlert, ExternalLink, ShoppingBag, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { RefreshControl, ScrollView, View } from 'react-native';
@@ -8,16 +8,18 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { track } from '@/analytics/track';
 import { ONE_SIZE, type Cart, type CartGroup } from '@/api/contracts/store';
-import { Card, InfoNote } from '@/components/blocks/basics';
+import { Card } from '@/components/blocks/basics';
 import { BrandMark } from '@/components/blocks/BrandMark';
+import { InfoNote } from '@/components/ui/Bits';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
-import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
+import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { useBrandCheckout, useRemoveCartLine } from '@/features/store/mutations';
 import { useCart } from '@/features/store/queries';
@@ -37,22 +39,19 @@ function CartSkeleton() {
   );
 }
 
-/** `SepetBos` — "Sepetin boş" + "Ürünleri keşfet". */
+/** `SepetBos` — the 96 sand circle with the bag, "Sepetin boş", one sentence and "Ürünleri keşfet". */
 function EmptyCart() {
   const { t } = useTranslation();
   return (
-    <View className="flex-1 items-center justify-center gap-4 px-gutter pb-12">
-      <View className="h-20 w-20 items-center justify-center rounded-pill bg-sand">
-        <Icon icon={ShoppingBag} size={30} tone="accent" />
-      </View>
-      <Text variant="h2" className="text-center">
-        {t('cart.emptyTitle')}
-      </Text>
-      <Text variant="body" tone="muted" className="text-center">
-        {t('cart.emptyBody')}
-      </Text>
-      <Button label={t('cart.emptyAction')} onPress={() => router.push('/shop')} className="mt-2 self-stretch" />
-    </View>
+    <StateMessage
+      icon={ShoppingBag}
+      title={t('cart.emptyTitle')}
+      message={t('cart.emptyBody')}
+      actionLabel={t('cart.emptyAction')}
+      actionVariant="primary"
+      onAction={() => router.push('/shop')}
+      role="status"
+    />
   );
 }
 
@@ -84,15 +83,24 @@ function BrandGroup({
       </View>
       {group.lines.map((line) => (
         <View key={line.lineId} className="flex-row items-center gap-3 py-2">
-          <PlaceholderImage uri={line.imageUrl} className="h-[68px] w-14 rounded-image" />
-          <View className="flex-1 gap-0.5">
+          <ImageSlot
+            uri={line.imageUrl}
+            className="h-[68px] w-14 rounded-thumb"
+            accessibilityLabel={line.name}
+            placeholder={{ kind: 'garment', category: line.category, color: line.color, glyphSize: 24 }}
+          />
+          <View className="flex-1">
             <Text variant="body" numberOfLines={2}>
               {line.name}
             </Text>
             <Text variant="caption" tone="muted">
               {t('cart.size', { size: line.size === ONE_SIZE ? t('shop.oneSize') : line.size })}
             </Text>
-            {line.price !== null ? <Text variant="bodyMedium">{formatMoney(line.price)}</Text> : null}
+            {line.price !== null ? (
+              <Text variant="price" className="mt-[3px]">
+                {formatMoney(line.price)}
+              </Text>
+            ) : null}
           </View>
           <IconButton
             icon={Trash2}
@@ -106,7 +114,10 @@ function BrandGroup({
         label={t('cart.payAt', { brand: suffixed(group.brandName, 'locative', language) })}
         onPress={onPay}
         loading={paying}
-        className="mt-2"
+        size="md"
+        icon={ExternalLink}
+        iconPosition="trailing"
+        accessibilityHint={t('cart.browserNote')}
       />
       {error ? (
         <View className="mt-2 flex-row items-center gap-1.5" accessibilityLiveRegion="polite">
@@ -123,7 +134,7 @@ function BrandGroup({
 /**
  * 24 Sepetim — lines grouped by brand; each brand has its own "[Marka]'da öde", which asks the
  * server for that brand's checkout link and opens it in the in-app browser. Droblet never takes a
- * payment; the info note says so. Empty state: `SepetBos`.
+ * payment; the info note says so. Empty state: `SepetBos`. Checkout screen: no bottom menu.
  */
 export default function CartScreen() {
   const { t } = useTranslation();
@@ -151,6 +162,8 @@ export default function CartScreen() {
     }
   };
 
+  const hasLines = (cart.data?.lineCount ?? 0) > 0;
+
   const summary = (data: Cart) =>
     t('cart.summary', {
       items: t('cart.itemCount', { count: data.lineCount }),
@@ -162,7 +175,10 @@ export default function CartScreen() {
       <ScreenHeader
         title={t('screens.cart')}
         leading="back"
-        right={<IconButton icon={Bookmark} onPress={() => router.push('/watchlist')} accessibilityLabel={t('cart.watchlist')} />}
+        // `SepetBos` has no watchlist button: it appears with the first line.
+        right={
+          hasLines ? <IconButton icon={Bookmark} onPress={() => router.push('/watchlist')} accessibilityLabel={t('cart.watchlist')} /> : undefined
+        }
       />
       <ScreenState query={cart} skeleton={<CartSkeleton />}>
         {(data) =>
@@ -176,7 +192,7 @@ export default function CartScreen() {
                   <RefreshControl refreshing={cart.isRefetching} onRefresh={() => void cart.refetch()} tintColor={colors.muted} />
                 }
               >
-                <InfoNote>{t('cart.infoNote')}</InfoNote>
+                <InfoNote text={t('cart.infoNote')} />
                 {data.groups.map((group) => (
                   <BrandGroup
                     key={group.brandId}
@@ -190,16 +206,21 @@ export default function CartScreen() {
                   {t('cart.browserNote')}
                 </Text>
               </ScrollView>
+              {/* Canvas `.bar` without an action: every brand has its own pay button above. */}
               <View
-                className="flex-row items-center justify-between gap-4 border-t border-line bg-paper px-gutter pt-3"
-                style={{ paddingBottom: Math.max(insets.bottom, 12) }}
+                className="border-t border-line bg-paper px-gutter pt-3"
+                style={{ paddingBottom: Math.max(insets.bottom, 16) }}
                 accessible
                 accessibilityLabel={[summary(data), data.total ? `${t('product.total')} ${formatMoney(data.total)}` : null].filter(Boolean).join(', ')}
               >
                 <Text variant="caption" tone="muted">
                   {summary(data)}
                 </Text>
-                {data.total ? <Text variant="h3">{formatMoney(data.total)}</Text> : null}
+                {data.total ? (
+                  <Text variant="total" className="mt-0.5 text-[18px]">
+                    {formatMoney(data.total)}
+                  </Text>
+                ) : null}
               </View>
             </>
           )

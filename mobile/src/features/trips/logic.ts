@@ -1,4 +1,4 @@
-import { TRIP_MAX_DAYS, type City, type Trip, type TripItem } from '@/api/contracts/trips';
+import { TRIP_MAX_DAYS, type City, type Trip, type TripDetail, type TripItem } from '@/api/contracts/trips';
 import type { ItemCategory } from '@/api/contracts/wardrobe';
 import { parseLocalDate, toIsoDate } from '@/lib/format';
 
@@ -120,4 +120,32 @@ export function splitTrips<T extends Pick<Trip, 'endDate' | 'startDate'>>(trips:
 /** Checklist sections in wardrobe-category order. */
 export function groupByCategory(items: TripItem[], order: readonly ItemCategory[]): { category: ItemCategory; items: TripItem[] }[] {
   return order.map((category) => ({ category, items: items.filter((i) => i.category === category) })).filter((g) => g.items.length > 0);
+}
+
+/** Localised pieces of the shared packing list; the caller supplies them from the translation files. */
+export type TripShareLabels = {
+  /** First line, e.g. "Londra bavulu · 2–6 Aralık · 5 gün". */
+  title: string;
+  listHeader: string;
+  item: (name: string, packed: boolean) => string;
+  looksHeader: string;
+  look: (date: string, name: string) => string;
+  missingHeader: string;
+  missing: (name: string, reason: string) => string;
+  footer: string;
+};
+
+/**
+ * Readable text of a suitcase for the system share sheet (19 "Paylaş"): title, the packing list,
+ * the daily looks and the missing pieces. Empty sections are left out. Plain text only — a trip is
+ * private to its owner, so there is no link another person could open.
+ */
+export function tripShareText(trip: Pick<TripDetail, 'items' | 'days' | 'missing'>, labels: TripShareLabels): string {
+  const sections: string[][] = [[labels.title]];
+  if (trip.items.length > 0) sections.push([labels.listHeader, ...trip.items.map((i) => labels.item(i.name, i.packed))]);
+  const looks = trip.days.flatMap((d) => (d.look ? [labels.look(d.date, d.look.name)] : []));
+  if (looks.length > 0) sections.push([labels.looksHeader, ...looks]);
+  if (trip.missing.length > 0) sections.push([labels.missingHeader, ...trip.missing.map((m) => labels.missing(m.name, m.reason))]);
+  sections.push([labels.footer]);
+  return sections.map((lines) => lines.join('\n')).join('\n\n');
 }

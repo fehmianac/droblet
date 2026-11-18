@@ -6,10 +6,8 @@ import { FlatList, Pressable, View } from 'react-native';
 
 import { BULK_ADD_MAX, type ItemDraft } from '@/api/contracts/wardrobe';
 import { AiBackgroundAction, AiProgressBar, AiShimmerImage } from '@/components/ui/ai';
-import { Badge } from '@/components/ui/Bits';
 import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { Button } from '@/components/ui/Button';
-import { Chip } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
 import { Screen } from '@/components/ui/Screen';
@@ -20,6 +18,7 @@ import { Text } from '@/components/ui/Text';
 import type { PreparedPhoto } from '@/features/photos/preparePhoto';
 import { usePhotoPicker } from '@/features/photos/usePhotoPicker';
 import { draftProgress, formFromDraft, isDraftComplete, limitBulkSelection, toItemFields } from '@/features/wardrobe/form';
+import { CautionBadge } from '@/features/wardrobe/ItemForm';
 import { ItemThumb } from '@/features/wardrobe/ItemThumb';
 import { useAddItems, useDiscardDraft, useRetryDraft, useStartItemDrafts } from '@/features/wardrobe/mutations';
 import { StatePanel } from '@/features/wardrobe/parts';
@@ -64,10 +63,10 @@ function DraftRow({ draft, index, checked, onToggle, onEdit, onRemove, onRetry, 
 
   if (draft.status === 'processing') {
     return (
-      <View className="flex-row items-center gap-3 rounded-card border border-line bg-paper p-3" accessible accessibilityLabel={t('bulkAdd.rowProcessing', { name })} accessibilityState={{ busy: true }}>
-        <AiShimmerImage className="h-12 w-10 rounded-[8px]" />
+      <View className="flex-row items-center gap-3 rounded-menu border border-line bg-paper p-2.5" accessible accessibilityLabel={t('bulkAdd.rowProcessing', { name })} accessibilityState={{ busy: true }}>
+        <AiShimmerImage className="h-[62px] w-[52px] rounded-thumb" />
         <View className="flex-1 gap-1.5">
-          <Text variant="body" className="text-[12.5px]" numberOfLines={1}>
+          <Text variant="bodyMedium" numberOfLines={1}>
             {name}
           </Text>
           <AiProgressBar index={index % 3} />
@@ -78,8 +77,8 @@ function DraftRow({ draft, index, checked, onToggle, onEdit, onRemove, onRetry, 
 
   if (draft.status === 'failed') {
     return (
-      <View className="flex-row items-center gap-3 rounded-card border border-line bg-paper p-3">
-        <ItemThumb category="top" uri={draft.imageUrl} className="h-12 w-10 rounded-[8px]" glyphSize={20} />
+      <View className="flex-row items-center gap-3 rounded-menu border border-line bg-paper p-2.5">
+        <ItemThumb category="top" uri={draft.imageUrl} className="h-[62px] w-[52px] rounded-thumb" glyphSize={30} />
         <View className="flex-1 gap-0.5">
           <Text variant="bodyMedium" numberOfLines={1}>
             {name}
@@ -99,14 +98,14 @@ function DraftRow({ draft, index, checked, onToggle, onEdit, onRemove, onRetry, 
 
   const meta = [s?.category ? t(`itemCategory.${s.category}`) : null, s?.color ? t(`itemColor.${s.color}`) : null].filter(Boolean).join(' · ');
   return (
-    <View className="flex-row items-center gap-3 rounded-card border border-line bg-paper p-3">
+    <View className="flex-row items-center gap-3 rounded-menu border border-line bg-paper p-2.5">
       <Pressable
         onPress={onEdit}
         accessibilityRole="button"
         accessibilityLabel={t('bulkAdd.editA11y', { name })}
         className="min-h-icon-btn flex-1 flex-row items-center gap-3 active:opacity-80"
       >
-        <ItemThumb category={s?.category ?? 'top'} color={s?.color ?? 'other'} uri={draft.imageUrl} className="h-12 w-10 rounded-[8px]" glyphSize={20} />
+        <ItemThumb category={s?.category ?? 'top'} color={s?.color ?? 'other'} uri={draft.imageUrl} className="h-[62px] w-[52px] rounded-thumb" glyphSize={30} />
         <View className="flex-1 gap-0.5">
           <Text variant="bodyMedium" numberOfLines={1}>
             {name}
@@ -117,8 +116,8 @@ function DraftRow({ draft, index, checked, onToggle, onEdit, onRemove, onRetry, 
             </Text>
           ) : null}
           {draft.lowConfidence.length > 0 || !complete ? (
-            <View className="pt-0.5">
-              <Badge tone="accent" icon={CircleAlert} label={t(!complete ? 'bulkAdd.incomplete' : draft.lowConfidence.includes('category') ? 'bulkAdd.checkCategory' : 'bulkAdd.checkFields')} />
+            <View className="pt-1">
+              <CautionBadge label={t(!complete ? 'bulkAdd.incomplete' : draft.lowConfidence.includes('category') ? 'bulkAdd.checkCategory' : 'bulkAdd.checkFields')} />
             </View>
           ) : null}
         </View>
@@ -133,8 +132,8 @@ function DraftRow({ draft, index, checked, onToggle, onEdit, onRemove, onRetry, 
         hitSlop={10}
         className="h-icon-btn w-8 items-center justify-center"
       >
-        <View className={`h-6 w-6 items-center justify-center rounded-[7px] border ${checked ? 'border-ink bg-ink' : 'border-line bg-paper'} ${complete ? '' : 'opacity-40'}`}>
-          {checked ? <Icon icon={Check} size={15} tone="paper" /> : null}
+        <View className={`h-[22px] w-[22px] items-center justify-center rounded-[5px] border ${checked ? 'border-ink bg-ink' : 'border-muted bg-paper'} ${complete ? '' : 'opacity-40'}`}>
+          {checked ? <Icon icon={Check} size={15} tone="cream" /> : null}
         </View>
       </Pressable>
     </View>
@@ -162,6 +161,8 @@ export default function ItemBulkScreen() {
   const [splitOutfit, setSplitOutfit] = useState(false);
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
   const [notice, setNotice] = useState<Notice>({ kind: 'none' });
+  /** Picked photos the free AI recognition did not cover: each "Elle gir" takes the next one into the manual form. */
+  const [unrecognised, setUnrecognised] = useState<string[]>([]);
 
   const queued = drafts.data?.length ?? 0;
 
@@ -173,14 +174,24 @@ export default function ItemBulkScreen() {
     void recognition.refresh();
     openRecognitionPaywall();
   };
-  // "Elle gir": a photo sent as a manual draft (no AI, no allowance), then form 12c.
+  // "Elle gir" (no AI, no allowance), then form 12c: a manual draft a refused recognition left behind, else the
+  // next unrecognised photo of the pick, else a photo picked now.
   const manual = useManualEntry({ from: 'bulk', onError: () => setNotice({ kind: 'photoFailed' }) });
-  const enterManually = manual.enter;
+  const enterManually = () => {
+    if (manual.hasPending) {
+      manual.enter();
+      return;
+    }
+    const [photoUri, ...rest] = unrecognised;
+    setUnrecognised(rest);
+    manual.enter(photoUri ?? null);
+  };
 
   const onPicked = (photos: PreparedPhoto[]) => {
     const { accepted: withinBatch, rejected } = limitBulkSelection(photos, queued);
     // Only part of the batch may fit the free recognition quota: process those, report the rest.
     const { accepted, skipped } = fitToRecognitionQuota(withinBatch, recognition.remaining);
+    setUnrecognised(withinBatch.slice(accepted.length).map((p) => p.localUri));
     if (withinBatch.length > 0 && accepted.length === 0) {
       limitReached();
       return;
@@ -197,9 +208,14 @@ export default function ItemBulkScreen() {
         if (skipped + serverSkipped > 0) setNotice({ kind: 'quotaSkipped', skipped: skipped + serverSkipped });
       })
       .catch((error: unknown) => {
-        manual.adopt(error);
-        if (isRecognitionLimitReached(error)) limitReached();
-        else setNotice({ kind: 'startFailed' });
+        if (!isRecognitionLimitReached(error)) {
+          setNotice({ kind: 'startFailed' });
+          return;
+        }
+        // Nothing was started (402): every photo of this pick can still be entered by hand — on the API they
+        // already are manual drafts (`adopt`), otherwise the photos travel into the form one by one.
+        if (!manual.adopt(error)) setUnrecognised(withinBatch.map((p) => p.localUri));
+        limitReached();
       });
   };
   const picker = usePhotoPicker({ onPicked, onError: () => setNotice({ kind: 'photoFailed' }) });
@@ -253,10 +269,28 @@ export default function ItemBulkScreen() {
     </View>
   ) : null;
 
+  // Canvas: a two-segment switch on the sand track (padding 3, segments 38 high, chip-size text) — not chips.
   const modeChips = (
-    <View className="flex-row flex-wrap gap-2" accessibilityRole="radiogroup">
-      <Chip label={t('bulkAdd.modeSingle')} selected={!splitOutfit} onPress={() => setSplitOutfit(false)} />
-      <Chip label={t('bulkAdd.modeSplit')} selected={splitOutfit} onPress={() => setSplitOutfit(true)} />
+    <View className="flex-row gap-[3px] rounded-pill bg-sand p-[3px]" accessibilityRole="radiogroup" accessibilityLabel={t('bulkAdd.modeA11y')}>
+      {([false, true] as const).map((split) => {
+        const selected = splitOutfit === split;
+        const label = t(split ? 'bulkAdd.modeSplit' : 'bulkAdd.modeSingle');
+        return (
+          <Pressable
+            key={String(split)}
+            onPress={() => setSplitOutfit(split)}
+            accessibilityRole="radio"
+            accessibilityLabel={label}
+            accessibilityState={{ selected }}
+            hitSlop={{ top: 3, bottom: 3 }}
+            className={`h-[38px] flex-1 items-center justify-center rounded-pill px-2 ${selected ? 'bg-paper shadow-sm' : ''}`}
+          >
+            <Text variant="chip" tone={selected ? 'ink' : 'muted'} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
+              {label}
+            </Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 
@@ -302,11 +336,11 @@ export default function ItemBulkScreen() {
               <FlatList
                 data={list}
                 keyExtractor={(d) => d.id}
-                contentContainerClassName="gap-2.5 px-gutter pb-8 pt-1"
+                contentContainerClassName="gap-2 px-gutter pb-8 pt-1"
                 ListHeaderComponent={
                   <View className="gap-3 pb-2">
                     {modeChips}
-                    <View className="gap-2.5 rounded-card border border-line bg-paper p-4" accessibilityLiveRegion="polite">
+                    <View className="gap-2.5 rounded-card border border-line bg-paper p-3.5" accessibilityLiveRegion="polite">
                       <View className="flex-row flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                         <Text variant="bodyMedium" className="flex-1">
                           {t(working ? 'bulkAdd.processing' : 'bulkAdd.allDone', { count: progress.total })}
@@ -360,7 +394,7 @@ export default function ItemBulkScreen() {
                 )}
               />
               <BottomActionBar>
-                <Button label={t('bulkAdd.add', { count: checked.length })} disabled={checked.length === 0} onPress={addChecked} testID="bulk-add" />
+                <Button size="lg" label={t('bulkAdd.add', { count: checked.length })} disabled={checked.length === 0} onPress={addChecked} testID="bulk-add" />
               </BottomActionBar>
             </>
           );

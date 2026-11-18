@@ -44,11 +44,17 @@ function FilterSheetBody({ items, filters, onApply }: Pick<Props, 'items' | 'fil
         <Text variant="h3" className="flex-1">
           {t('items.filterTitle')}
         </Text>
-        <Button
-          variant="text"
-          label={t('items.clear')}
+        <Pressable
           onPress={() => setDraft({ ...draft, seasons: [], colors: [], brands: [], sort: 'newest' })}
-        />
+          accessibilityRole="button"
+          accessibilityLabel={t('items.clear')}
+          hitSlop={8}
+          className="min-h-icon-btn justify-center active:opacity-70"
+        >
+          <Text variant="chip" className="underline">
+            {t('items.clear')}
+          </Text>
+        </Pressable>
       </View>
       <ScrollView className="max-h-[420px]" contentContainerClassName="gap-4 pb-1" showsVerticalScrollIndicator={false}>
         <View className="gap-2">
@@ -68,7 +74,7 @@ function FilterSheetBody({ items, filters, onApply }: Pick<Props, 'items' | 'fil
         {colors.length > 0 ? (
           <View className="gap-2">
             <Text variant="eyebrow">{t('items.colorEyebrow')}</Text>
-            <View className="flex-row flex-wrap gap-x-1 gap-y-2">
+            <View className="flex-row flex-wrap gap-2.5">
               {colors.map((c) => {
                 const selected = draft.colors.includes(c);
                 return (
@@ -78,14 +84,10 @@ function FilterSheetBody({ items, filters, onApply }: Pick<Props, 'items' | 'fil
                     accessibilityRole="checkbox"
                     accessibilityLabel={t(`itemColor.${c}`)}
                     accessibilityState={{ checked: selected }}
-                    className="min-h-icon-btn min-w-14 items-center gap-1 px-1"
+                    className="active:opacity-80"
                   >
-                    <View className={`rounded-pill border-2 p-0.5 ${selected ? 'border-ink' : 'border-transparent'}`}>
-                      <ColorSwatch color={c} />
-                    </View>
-                    <Text variant="caption" tone={selected ? 'ink' : 'muted'} numberOfLines={1}>
-                      {t(`itemColor.${c}`)}
-                    </Text>
+                    {/* Canvas: a 44 round button filled with the colour. Chosen = ink ring + a check, so colour is never the only cue. */}
+                    <ColorSwatch color={c} size={44} selected={selected} />
                   </Pressable>
                 );
               })}

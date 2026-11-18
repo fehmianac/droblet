@@ -44,8 +44,8 @@ export const SPLASH_TIMELINE = {
   exit: 220,
 } as const;
 
-/** 92 wide, as on `Splash.dc.html`. */
-const MARK_HEIGHT = 128;
+/** 92 wide, as on `Splash.dc.html` (92 × 108 box). */
+const MARK_WIDTH = 92;
 
 function Letter({ char, progress }: { char: string; progress: SharedValue<number> }) {
   const style = useAnimatedStyle(() => ({
@@ -54,7 +54,7 @@ function Letter({ char, progress }: { char: string; progress: SharedValue<number
   }));
   return (
     <Animated.View style={style}>
-      <RNText maxFontSizeMultiplier={1.3} className="font-display text-[54px] leading-[58px] text-ink" accessible={false}>
+      <RNText maxFontSizeMultiplier={1.3} className="font-display text-[54px] leading-[58px] tracking-[-0.54px] text-ink" accessible={false}>
         {char}
       </RNText>
     </Animated.View>
@@ -147,7 +147,7 @@ export function AnimatedSplash({ onDone }: Props) {
       {/* The mark sits exactly at the screen centre — where the native splash drew it. */}
       <View className="flex-1" />
       <Animated.View style={markStyle} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-          <Svg width={MARK_HEIGHT * MARK_ASPECT} height={MARK_HEIGHT} viewBox={MARK_VIEWBOX}>
+          <Svg width={MARK_WIDTH} height={MARK_WIDTH / MARK_ASPECT} viewBox={MARK_VIEWBOX}>
             <AnimatedPath d={DROP_PATH} fill={colors.ink} animatedProps={fillProps} />
             <AnimatedPath
               d={DROP_PATH}

@@ -110,9 +110,9 @@ export function StarRating({ value, onRate }: StarRatingProps) {
             accessibilityRole="radio"
             accessibilityLabel={t('feed.rateStar', { count: score })}
             accessibilityState={{ checked: value === score }}
-            className="h-icon-btn w-10 items-center justify-center active:opacity-70"
+            className="h-icon-btn w-icon-btn items-center justify-center active:opacity-70"
           >
-            <Icon icon={Star} size={22} tone={on ? 'accent' : 'muted'} filled={on} />
+            <Icon icon={Star} size={24} tone={on ? 'accent' : 'muted'} filled={on} />
           </Pressable>
         );
       })}

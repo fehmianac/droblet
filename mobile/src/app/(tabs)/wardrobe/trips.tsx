@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { ChevronRight, Luggage } from 'lucide-react-native';
+import { ChevronRight } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 
@@ -14,6 +14,7 @@ import { useTrips, useTripWrites } from '@/features/trips/api';
 import { todayIso } from '@/features/trips/DateRangePicker';
 import { splitTrips, tripLengthDays } from '@/features/trips/logic';
 import { TripForm } from '@/features/trips/TripForm';
+import { ItemThumb } from '@/features/wardrobe/ItemThumb';
 import { WardrobeHeader } from '@/features/wardrobe/WardrobeHeader';
 import { formatDate, formatDateRange, parseLocalDate } from '@/lib/format';
 import { useIsOnline } from '@/sync/network';
@@ -34,20 +35,18 @@ function TripRow({ trip, past }: { trip: Trip; past: boolean }) {
       onPress={() => router.push({ pathname: '/trip/[id]', params: { id: trip.id } })}
       accessibilityRole="button"
       accessibilityLabel={t('trips.rowLabel', { city: trip.cityName, meta })}
-      className="min-h-[76px] flex-row items-center gap-3 rounded-card border border-line bg-paper p-3 active:opacity-80"
+      className="flex-row items-center gap-3 rounded-card border border-line bg-paper p-2.5 active:opacity-80"
     >
-      <View className="h-14 w-12 items-center justify-center rounded-[8px] bg-sand">
-        <Icon icon={Luggage} tone="muted" />
-      </View>
-      <View className="flex-1 gap-0.5">
-        <Text variant="bodyMedium" numberOfLines={1}>
+      <ItemThumb category="bag" color="beige" className="h-[52px] w-[52px] rounded-field" glyphSize={21} />
+      <View className="flex-1">
+        <Text variant="bodyMedium" numberOfLines={1} className="text-[14.5px]">
           {trip.cityName}
         </Text>
         <Text variant="caption" tone="muted" numberOfLines={2}>
           {meta}
         </Text>
       </View>
-      <Icon icon={ChevronRight} size={18} tone="muted" />
+      <Icon icon={ChevronRight} size={18} />
     </Pressable>
   );
 }
@@ -76,7 +75,7 @@ export default function WardrobeTripsScreen() {
       ) : (
         <>
           {upcoming.length > 0 ? (
-            <View className="gap-2.5">
+            <View className="gap-3">
               <Text variant="eyebrow">{t('trips.upcomingEyebrow')}</Text>
               {upcoming.map((trip) => (
                 <TripRow key={trip.id} trip={trip} past={false} />
@@ -84,7 +83,7 @@ export default function WardrobeTripsScreen() {
             </View>
           ) : null}
           {past.length > 0 ? (
-            <View className="gap-2.5">
+            <View className="gap-3">
               <Text variant="eyebrow">{t('trips.pastEyebrow')}</Text>
               {past.map((trip) => (
                 <TripRow key={trip.id} trip={trip} past />
@@ -115,8 +114,8 @@ export default function WardrobeTripsScreen() {
     list = (
       <View className="gap-2.5" accessible accessibilityLabel={t('a11y.loading')}>
         <Skeleton className="h-3 w-40 rounded-field" />
-        <Skeleton className="h-[76px] w-full rounded-card" />
-        <Skeleton className="h-[76px] w-full rounded-card" />
+        <Skeleton className="h-[74px] w-full rounded-card" />
+        <Skeleton className="h-[74px] w-full rounded-card" />
       </View>
     );
   }
@@ -126,11 +125,11 @@ export default function WardrobeTripsScreen() {
       <WardrobeHeader current="trips" eyebrow={t('trips.eyebrow')} title={t('trips.title')} />
       <OfflineBanner />
       <ScrollView
-        contentContainerClassName="gap-6 px-gutter pb-8 pt-2"
+        contentContainerClassName="gap-3.5 px-gutter pb-8"
         keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={trips.isRefetching} onRefresh={() => void trips.refetch()} tintColor={colors.muted} />}
       >
-        <View className="gap-4 rounded-card border border-line bg-paper p-4">
+        <View className="gap-3 rounded-card border border-line bg-paper p-4">
           <Text variant="h3">{t('trips.newTitle')}</Text>
           <TripForm
             submitLabel={t('tripNew.submit')}

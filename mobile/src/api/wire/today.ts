@@ -285,6 +285,7 @@ function toEditProduct(wire: ProductWire, state: EditUserState): EditProduct {
     price: toMoney(wire.priceMinor, wire.currency) ?? { amountMinor: wire.priceMinor, currency: wire.currency },
     imageUrl: wire.images[0] ?? null,
     category: toWardrobeCategory(wire.category),
+    color: wire.colors[0] ?? null,
     ownedItemId: state.ownedByProduct.get(wire.id) ?? null,
     inWatchlist: state.watchedProductIds.has(wire.id),
   };
@@ -317,6 +318,8 @@ export function toWeeklyEdit(wire: EditWire, state: EditUserState = NO_EDIT_USER
     weekEnd: wire.weekEnd,
     looks: [...wire.looks].sort((a, b) => a.day - b.day).map((l) => toEditLook(l, wire.weekStart, state)),
     hasBodyPhoto: state.hasBodyPhoto,
+    // "SPONSORLU" on 08: the brand of a sponsored edit (`sponsorName`, in the request language).
+    sponsoredBy: wire.sponsored ? (wire.sponsorName ?? null) : null,
   };
 }
 

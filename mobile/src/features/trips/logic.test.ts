@@ -10,6 +10,7 @@ import {
   splitTrips,
   tripDates,
   tripLengthDays,
+  tripShareText,
   validateTripDates,
 } from './logic';
 
@@ -107,5 +108,46 @@ describe('lists', () => {
       ['top', ['t1', 't2']],
       ['shoes', ['s']],
     ]);
+  });
+});
+
+describe('tripShareText', () => {
+  const labels = {
+    title: 'Londra · 5 days',
+    listHeader: 'Packing list',
+    item: (name: string, packed: boolean) => (packed ? `- ${name} (packed)` : `- ${name}`),
+    looksHeader: 'Daily looks',
+    look: (date: string, name: string) => `${date}: ${name}`,
+    missingHeader: 'Missing piece',
+    missing: (name: string, reason: string) => `${name} · ${reason}`,
+    footer: 'Prepared with Droblet.',
+  };
+  const item = (name: string, packed: boolean) => ({ itemId: name, name, category: 'top' as const, color: 'white' as const, imageUrl: null, packed });
+
+  it('writes the list, the daily looks and the missing pieces as sections', () => {
+    const text = tripShareText(
+      {
+        items: [item('Gömlek', true), item('Jean', false)],
+        days: [
+          { date: '2026-12-02', look: { id: 'l1', name: 'Ofis', occasion: 'office', imageUrl: null } },
+          { date: '2026-12-03', look: null },
+        ],
+        missing: [{ id: 'm1', name: 'Yağmur botu', reason: '3 gün yağmur var', category: 'shoes', productId: null }],
+      },
+      labels,
+    );
+    expect(text).toBe(
+      [
+        'Londra · 5 days',
+        'Packing list\n- Gömlek (packed)\n- Jean',
+        'Daily looks\n2026-12-02: Ofis',
+        'Missing piece\nYağmur botu · 3 gün yağmur var',
+        'Prepared with Droblet.',
+      ].join('\n\n'),
+    );
+  });
+
+  it('leaves empty sections out', () => {
+    expect(tripShareText({ items: [], days: [], missing: [] }, labels)).toBe('Londra · 5 days\n\nPrepared with Droblet.');
   });
 });

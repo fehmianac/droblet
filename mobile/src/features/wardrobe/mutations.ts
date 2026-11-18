@@ -61,6 +61,11 @@ export type ConfirmDraftsVariables = {
   request: ConfirmItemDraftsRequest;
   /** Local preview per new item id, for the optimistic grid tile. */
   previews: Record<string, string | null>;
+  /**
+   * New item id → local photo of a piece entered without AI (the photo taken before the free recognition
+   * quota ran out). Uploaded when the write is sent — presigned URLs expire — and passed on as `photoKey`.
+   */
+  photos?: Record<string, string>;
 };
 export type DiscardDraftVariables = ClientMutationMeta & { draftId: string };
 
@@ -168,19 +173,21 @@ export function registerWardrobeMutations(client: QueryClient): void {
   // --- POST v1/tenant/item-draft/confirm (AI drafts after review, and library / manual pieces)
   client.setMutationDefaults(wardrobeMutationKeys.confirmDrafts, {
     scope: TENANT_WRITE_SCOPE,
-    mutationFn: (vars: ConfirmDraftsVariables) =>
-      fromSource<ConfirmItemDraftsResponse>(
+    mutationFn: async (vars: ConfirmDraftsVariables) => {
+      const request = await withManualPhotos(vars);
+      return fromSource<ConfirmItemDraftsResponse>(
         'wardrobe',
-        () => fixtureConfirmDrafts(vars.request),
-        () => confirmOnApi(vars.request),
-      ),
+        () => fixtureConfirmDrafts(request),
+        () => confirmOnApi(request),
+      );
+    },
     onMutate: async (vars: ConfirmDraftsVariables) => {
       await client.cancelQueries({ queryKey: wardrobeKeys.items });
       await client.cancelQueries({ queryKey: wardrobeKeys.drafts });
       const now = new Date().toISOString();
       const optimistic = vars.request.items.map((entry): Item => {
-        const { draftId: _d, libraryItemId: _l, reviewed: _r, clientMutationId: _c, ...fields } = entry;
-        void [_d, _l, _r, _c];
+        const { draftId: _d, libraryItemId: _l, reviewed: _r, clientMutationId: _c, photoKey: _p, ...fields } = entry;
+        void [_d, _l, _r, _c, _p];
         const preview = vars.previews[entry.id] ?? null;
         return { ...fields, imageUrl: preview, originalImageUrl: preview, wearCount: 0, lastWornAt: null, createdAt: now, baseVersion: 0 };
       });
@@ -251,14 +258,25 @@ export function useDeleteItems() {
   return { ...m, remove: (ids: string[]) => ids.forEach((id) => m.mutate({ id, ...newClientMutation() })) };
 }
 
-export type NewItemInput = { fields: ItemFields; draftId: string | null; libraryItemId?: string | null; preview?: string | null; reviewed?: boolean };
+export type NewItemInput = {
+  fields: ItemFields;
+  draftId: string | null;
+  libraryItemId?: string | null;
+  preview?: string | null;
+  reviewed?: boolean;
+  /** Manual entry only: the local photo to save with the piece (see `ConfirmDraftsVariables.photos`). */
+  photoUri?: string | null;
+};
 
 /** Builds the confirm request; ids and mutation ids are created here, at user-action time. */
 export function buildConfirmVariables(inputs: NewItemInput[]): ConfirmDraftsVariables {
   const previews: Record<string, string | null> = {};
+  const photos: Record<string, string> = {};
   const items = inputs.map((input) => {
     const id = ulid();
-    previews[id] = input.preview ?? null;
+    const photoUri = input.draftId ? null : (input.photoUri ?? null);
+    if (photoUri) photos[id] = photoUri;
+    previews[id] = input.preview ?? photoUri;
     return {
       ...input.fields,
       id,
@@ -268,7 +286,26 @@ export function buildConfirmVariables(inputs: NewItemInput[]): ConfirmDraftsVari
       clientMutationId: ulid(),
     };
   });
-  return { request: { items }, previews };
+  return Object.keys(photos).length > 0 ? { request: { items }, previews, photos } : { request: { items }, previews };
+}
+
+/**
+ * Keeps the own photo of every manual entry. Runs when the write is sent (also after an offline wait or an
+ * app restart), so the upload URL is always fresh. Real API: the photos are uploaded and turned into
+ * manual drafts (`POST v1/tenant/item-draft { manual: true }` — no AI, no allowance), and the entries are
+ * confirmed through those drafts. Fixture mode: nothing is uploaded; the local file is the `photoKey`.
+ */
+export async function withManualPhotos(vars: ConfirmDraftsVariables): Promise<ConfirmItemDraftsRequest> {
+  const entries = Object.entries(vars.photos ?? {});
+  if (entries.length === 0) return vars.request;
+  const uris = entries.map(([, uri]) => uri);
+  if (DATA_SOURCE.wardrobe === 'api') {
+    const draftIds = await startManualDrafts(await uploadItemPhotos(uris));
+    const draftById = new Map(entries.map(([id], i) => [id, draftIds[i] ?? null]));
+    return { items: vars.request.items.map((item) => (draftById.get(item.id) ? { ...item, draftId: draftById.get(item.id) ?? null } : item)) };
+  }
+  const keyById = new Map(entries.map(([id], i) => [id, uris[i] ?? null]));
+  return { items: vars.request.items.map((item) => (keyById.get(item.id) ? { ...item, photoKey: keyById.get(item.id) } : item)) };
 }
 
 /** "Gardıroba kaydet" / "N parçayı gardıroba ekle" / library add. Nothing is saved without this user action. */

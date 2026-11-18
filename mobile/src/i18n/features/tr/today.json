@@ -4,15 +4,23 @@
     "weather": "{{temperature}} {{city}}",
     "lookImageA11y": "{{name}}, senin üzerinde",
     "pieceMissingA11y": "{{name}}, eksik parça",
-    "missingPieceTag": "EKSİK PARÇA",
     "refreshing": "Yeni öneri hazırlanıyor",
     "refreshFailed": "Yeni öneri alınamadı. Tekrar dene.",
     "noPlanTitle": "Bugün için plan yok",
     "noPlanBody": "Ortamını ve havayı biliyoruz; stilist sana üç kombin hazırlasın.",
-    "noPlanAction": "Stilistten öneri al"
+    "noPlanAction": "Stilistten öneri al",
+    "lookEyebrow": "BUGÜNÜN KOMBİNİ · {{occasion}}",
+    "greetingAlone": {
+      "Morning": "Günaydın {{name}}.",
+      "Day": "İyi günler {{name}}.",
+      "Evening": "İyi akşamlar {{name}}."
+    },
+    "seeEdit": "Haftanın edit'ini aç",
+    "editTag": "{{weekday}} · {{name}}",
+    "editCardA11y": "{{weekday}}, {{name}}"
   },
   "weekPlan": {
-    "eyebrow": "ÖNÜMÜZDEKİ 7 GÜN",
+    "eyebrowThisWeek": "BU HAFTA · {{range}}",
     "title": "Haftalık plan",
     "calendar": "Takvim",
     "loading": "Haftalık plan yükleniyor",
@@ -26,7 +34,6 @@
     "nothingToTryOn": "Üzerinde görmek için önce en az bir gün planla.",
     "nothingToPlan": "Bu hafta planlanacak boş gün kalmadı.",
     "dayEyebrow": "{{weekday}} · {{occasion}}",
-    "todayBadge": "Bugün",
     "dayOptions": "{{day}} için seçenekler",
     "change": "Değiştir",
     "remove": "Kaldır",
@@ -66,10 +73,10 @@
       "high_street": "High street",
       "luxury_touch": "Lüks dokunuş"
     },
-    "ownedHidden_one": "{{count}} parça gardırobunda var · gizlendi",
-    "ownedHidden_other": "{{count}} parça gardırobunda var · gizlendi",
-    "ownedShown_one": "{{count}} parça gardırobunda var",
-    "ownedShown_other": "{{count}} parça gardırobunda var",
+    "ownedCount_one": "{{count}} parça gardırobunda var",
+    "ownedCount_other": "{{count}} parça gardırobunda var",
+    "hiddenSuffix": " · gizlendi",
+    "sponsoredBy": "{{brand}} iş birliğiyle hazırlandı.",
     "show": "Göster",
     "hide": "Gizle",
     "ownedBadge": "Gardırobunda",
@@ -102,6 +109,7 @@
     "noLogs": "Bu ay henüz kayıt yok",
     "mostWorn": "En çok giyilen: {{name}}",
     "report": "Rapor",
+    "reportA11y": "{{month}} raporunu aç",
     "statusWorn": "Giyildi",
     "statusPlanned": "Planlandı",
     "lookMeta": "{{occasion}} · {{pieces}}",
@@ -110,5 +118,25 @@
     "change": "Değiştir",
     "emptyDay": "Bu gün için look yok. Stilist ortama ve havaya göre önersin.",
     "suggestForDay": "Bu gün için öner"
+  },
+  "monthReport": {
+    "eyebrow": "AYLIK RAPOR",
+    "statDays_one": "gün kayıtlı",
+    "statDays_other": "gün kayıtlı",
+    "statPieces_one": "farklı parça giyildi",
+    "statPieces_other": "farklı parça giyildi",
+    "statLooks_one": "farklı look",
+    "statLooks_other": "farklı look",
+    "coverage": "Ayın {{total}} gününden {{logged}} tanesi kayıtlı.",
+    "topItems": "En çok giyilenler",
+    "wornTimes_one": "{{count}} kez",
+    "wornTimes_other": "{{count}} kez",
+    "occasions": "Ortamlar",
+    "unworn": "Bu ay giyilmeyenler",
+    "unwornCount_one": "Gardırobundaki {{count}} parça bu ay hiç giyilmedi.",
+    "unwornCount_other": "Gardırobundaki {{count}} parça bu ay hiç giyilmedi.",
+    "allWorn": "Bu ay gardırobundaki her parçayı giydin.",
+    "emptyMessage": "Bu ay için kayıt yok. \"Bunu giyiyorum\" dediğin günler burada toplanır.",
+    "emptyAction": "Takvime dön"
   }
 }

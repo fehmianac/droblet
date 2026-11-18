@@ -141,7 +141,11 @@ export type ProductPage = { items: ProductSummary[]; nextPageToken: string | nul
 export type ProductDetail = ProductSummary;
 
 /** GET v1/tenant/catalog/product/{id}/match → `{ productId, compatibleCount, items[] }`. */
-export type ProductMatch = { count: number; items: { id: string; name: string; imageUrl: string | null }[] };
+export type ProductMatch = {
+  count: number;
+  /** Wardrobe pieces; `category` / `color` (wardrobe vocabulary, optional) draw the placeholder while there is no picture. */
+  items: { id: string; name: string; imageUrl: string | null; category?: string | null; color?: string | null }[];
+};
 
 /** GET v1/tenant/favorite/product → `{ productIds }` (the heart on product cards; separate from the watch list). */
 export type FavoriteProducts = { productIds: string[] };
@@ -204,6 +208,9 @@ export type CartLine = {
   imageUrl: string | null;
   /** false = the product was retired; it stays in the cart but adds nothing to the totals. */
   available?: boolean;
+  /** Category / main colour of the product, when the cart carries them: glyph and ground of the placeholder while there is no picture. */
+  category?: ProductCategory | null;
+  color?: CatalogColor | null;
 };
 export type CartGroup = { brandId: string; brandName: string; brandLogoUrl?: string | null; subtotal: Money | null; lines: CartLine[] };
 /** GET v1/tenant/cart (`CartDto`) — grouped by brand, priced with the current catalogue price on every read. */

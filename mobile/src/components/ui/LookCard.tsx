@@ -5,7 +5,7 @@ import { Pressable, View } from 'react-native';
 import { formatNumber } from '@/lib/format';
 
 import { Icon } from './Icon';
-import { PlaceholderImage } from './PlaceholderImage';
+import { ImageSlot, type Piece } from './ImageSlot';
 import { Text } from './Text';
 
 type Props = {
@@ -13,6 +13,10 @@ type Props = {
   /** Occasion / day label shown above the name. */
   tag: string;
   imageUri?: string | null;
+  /** The look's pieces: drawn as a collage while there is no rendered image. */
+  pieces?: Piece[];
+  /** Stable id of the look: picks the ground of the figure placeholder when there are no pieces either. */
+  seed?: string;
   /** Friends' average rating, when present. */
   rating?: number | null;
   onPress: () => void;
@@ -20,7 +24,7 @@ type Props = {
 };
 
 /** Image + occasion tag + name + optional friends' rating. */
-export function LookCard({ name, tag, imageUri, rating, onPress, className }: Props) {
+export function LookCard({ name, tag, imageUri, pieces, seed, rating, onPress, className }: Props) {
   const { t } = useTranslation();
   const ratingText =
     rating != null ? formatNumber(rating, { maximumFractionDigits: 1 }) : null;
@@ -31,7 +35,7 @@ export function LookCard({ name, tag, imageUri, rating, onPress, className }: Pr
       accessibilityLabel={[tag, name, ratingText ? t('a11y.rating', { rating: ratingText }) : null].filter(Boolean).join(', ')}
       className={`gap-2 ${className ?? ''}`}
     >
-      <PlaceholderImage uri={imageUri} className="aspect-[4/5] w-full rounded-image-lg" />
+      <ImageSlot uri={imageUri} className="aspect-[4/5] w-full rounded-image-lg" placeholder={{ kind: 'look', pieces: pieces ?? [], seed: seed ?? name }} />
       <View className="gap-0.5">
         <Text variant="caption" tone="muted" numberOfLines={1}>
           {tag}

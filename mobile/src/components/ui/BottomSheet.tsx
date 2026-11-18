@@ -14,7 +14,10 @@ type Props = {
   children: ReactNode;
 };
 
-/** Bottom sheet: 28 top radius, grabber, scrim tap closes. Animation is off with reduce-motion. */
+/**
+ * Bottom sheet (canvas `.sheet`): paper, 28 top radius, 40 × 5 grabber 10 below the edge, scrim tap closes.
+ * Animation is off with reduce-motion.
+ */
 export function BottomSheet({ visible, onClose, title, children }: Props) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -36,10 +39,10 @@ export function BottomSheet({ visible, onClose, title, children }: Props) {
         />
         <View
           accessibilityViewIsModal
-          className="rounded-t-sheet bg-paper px-gutter pt-3"
+          className="rounded-t-sheet bg-paper px-gutter pt-2.5 shadow-lg"
           style={{ paddingBottom: Math.max(insets.bottom, 20) }}
         >
-          <View className="mb-4 h-1 w-9 self-center rounded-pill bg-line" accessible={false} />
+          <View className="mb-4 h-[5px] w-10 self-center rounded-pill bg-line" accessible={false} />
           {title ? (
             <Text variant="h3" className="mb-3">
               {title}

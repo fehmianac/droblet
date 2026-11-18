@@ -21,7 +21,8 @@ describe('navigation (signed in, onboarded)', () => {
     await AsyncStorage.setItem('droblet.onboarding.u1', 'done');
     await renderRouter('./src/app', { initialUrl: '/' });
     await waitFor(() => expect(screen.getByText("I'm wearing this")).toBeTruthy(), { timeout: 3000 });
-    expect(screen.getByText("TODAY'S OUTFIT")).toBeTruthy();
+    // Canvas 06: one line, "BUGÜNÜN KOMBİNİ · OFİS".
+    expect(screen.getByText("TODAY'S OUTFIT · OFFICE")).toBeTruthy();
     expect(screen.getByLabelText('Stylist')).toBeTruthy();
     expect(screen.getByText('Lacivert Blazer')).toBeTruthy();
   });

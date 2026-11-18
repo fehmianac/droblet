@@ -18,11 +18,14 @@ type Options = {
  * (or the library), so manual entry is a photo sent as a manual draft (`manual: true`: no AI, no
  * recognition allowance) and then form 12c with empty fields:
  * - after a refused recognition the photo is already a manual draft (`adopt(error)`) → straight to the form;
- * - otherwise the user picks the photo first.
- * In fixture mode the form opens without a photo, as before.
+ * - a photo the screen already holds (`enter(photoUri)`: the shot in the 12 frame, an unrecognised bulk
+ *   photo) travels into the form and is saved with the piece (uploaded as a manual draft on save);
+ * - otherwise the user picks the photo first (API) or the form opens without one (fixtures).
  */
 export function useManualEntry({ from, onError }: Options): {
-  enter: () => void;
+  enter: (photoUri?: string | null) => void;
+  /** Manual drafts left behind by a refused recognition are waiting for the form. */
+  hasPending: boolean;
   /** Remembers the manual drafts a refused recognition left behind. Returns true for such an error. */
   adopt: (error: unknown) => boolean;
   busy: boolean;
@@ -53,11 +56,13 @@ export function useManualEntry({ from, onError }: Options): {
   const picker = usePhotoPicker({ onPicked, onError });
 
   return {
-    enter: () => {
+    enter: (photoUri) => {
       const [next, ...rest] = pending;
       if (next) {
         setPending(rest);
         openForm(next);
+      } else if (photoUri) {
+        router.push({ pathname: '/item/form', params: { photoUri, ...(from ? { from } : {}) } });
       } else if (startDrafts.manualNeedsPhoto) {
         picker.chooseFromLibrary(1);
       } else {
@@ -69,6 +74,7 @@ export function useManualEntry({ from, onError }: Options): {
       setPending(error.manualDraftIds);
       return true;
     },
+    hasPending: pending.length > 0,
     busy,
     sheet: picker.sheet,
   };

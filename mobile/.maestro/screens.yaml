@@ -1,0 +1,215 @@
+# Screen tour for design review: signs in with an existing account (login.yaml), then opens every screen and
+# takes one screenshot per canvas board. Screens are opened with app links (droplet://<route>), so the
+# tour does not depend on copy or layout.
+# Run: maestro test -e EMAIL=… -e PASSWORD=… -e LANG=tr -e LOCALE=tr_TR -e WEEK="2026-11-16" .maestro/screens.yaml
+#      WEEK = Monday of the current week (ids of the weekly edit: edit_<WEEK>_<n>).
+appId: com.alatech.droplet
+env:
+  EMAIL: ${EMAIL}
+  WEEK: ${WEEK}
+  PASSWORD: ${PASSWORD}
+  LANG: ${LANG}
+  LOCALE: ${LOCALE}
+---
+- runFlow: login.yaml
+
+# 2 · Bugün
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://plan/week"
+- takeScreenshot: 07-haftalik-plan
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://edit/edit_${WEEK}_1"
+- takeScreenshot: 08-haftanin-editi
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://calendar"
+- takeScreenshot: 09-takvim
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://plan/report"
+- takeScreenshot: 09r-rapor
+
+# 3 · Gardırop
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://wardrobe"
+- takeScreenshot: 10-gardirop
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://item/item_navy_blazer"
+- takeScreenshot: 11-parca-detayi
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://item/add"
+- takeScreenshot: 12-parca-ekle
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://item/library"
+- takeScreenshot: 12b-kutuphane
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://item/form?itemId=item_navy_blazer"
+- takeScreenshot: 12c-parca-bilgileri
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://item/bulk"
+- takeScreenshot: 13-toplu-ekle
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://wardrobe/looks"
+- takeScreenshot: 14-looklar
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://look/new"
+- takeScreenshot: 15-look-olustur
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://look/look_lacivert_blazer"
+- takeScreenshot: 14d-look-detayi
+
+# 4 · Stilist ve bavul
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://stylist"
+- takeScreenshot: 16-stilist
+- runFlow:
+    when:
+      visible: "Ofis"
+    commands:
+      - tapOn: "Ofis"
+- runFlow:
+    when:
+      visible: "Office"
+    commands:
+      - tapOn: "Office"
+- tapOn:
+    id: "stylist-submit"
+- takeScreenshot: ai-kombin-onerisi-bekleme
+- extendedWaitUntil:
+    visible:
+      id: "suggestion-pager"
+    timeout: 30000
+    optional: true
+- takeScreenshot: 17-kombin-onerisi
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://wardrobe/trips"
+- takeScreenshot: 18-bavullar
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://trip/trip_londra"
+- takeScreenshot: 19-bavul-detayi
+
+# 5 · Keşfet ve mağaza
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://discover"
+- takeScreenshot: 20-kesfet
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://shop"
+- takeScreenshot: 21-stil-magazasi
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://shop/product/prod_001"
+- takeScreenshot: 22-urun
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://shop/builder"
+- takeScreenshot: 23-kombin-olusturucu
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://cart"
+- takeScreenshot: 24-sepet
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://watchlist"
+- takeScreenshot: 24b-izleme-listem
+
+# 6 · Sosyal
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://friends/feed"
+- takeScreenshot: 25-arkadas-akisi
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://u/selin"
+- takeScreenshot: 26-kisi-profili
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://u/deniz"
+- takeScreenshot: 26g-kisi-gizli-dolap
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://friends/find"
+- takeScreenshot: 27-dolaplari-kesfet
+
+# 7 · Profil
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://profile"
+- takeScreenshot: 28-profil
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://edit-profile"
+- takeScreenshot: 28e-profili-duzenle
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://settings"
+- takeScreenshot: 29-ayarlar
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://delete-account"
+- takeScreenshot: 29c-hesap-sil
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://palette"
+- takeScreenshot: 30-renk-paleti
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://notifications"
+- takeScreenshot: bildirimler
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://subscription"
+- takeScreenshot: uyelik-yonetimi
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://paywall"
+- takeScreenshot: 05-uyelik

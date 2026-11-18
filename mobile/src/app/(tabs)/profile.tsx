@@ -1,33 +1,24 @@
 import { router } from 'expo-router';
-import {
-  Bookmark,
-  ChartNoAxesColumn,
-  CircleCheck,
-  CircleAlert,
-  Crown,
-  Luggage,
-  Palette as PaletteIcon,
-  Pencil,
-  Settings,
-  ShieldCheck,
-  Users,
-} from 'lucide-react-native';
+import { Bookmark, Briefcase, Check, CircleAlert, Crown, Lock, Palette as PaletteIcon, Pencil, Settings, Users } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-import { RefreshControl, ScrollView, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 
 import type { Entitlement } from '@/api/contracts';
 import { useSession } from '@/auth/session';
-import { Avatar, Badge, Card } from '@/components/blocks/basics';
-import { MenuRow } from '@/components/blocks/rows';
+import { Card } from '@/components/blocks/basics';
+import { Logo } from '@/components/brand/Logo';
+import { Badge } from '@/components/ui/Bits';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
 import { OfflineBanner } from '@/components/ui/OfflineBanner';
+import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Screen } from '@/components/ui/Screen';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { useEntitlement } from '@/entitlement/useEntitlement';
 import { useMyPhotos, useMyProfile, usePalette, useProfileStats } from '@/features/account/queries';
+import { ProfileMenuRow, RowCard } from '@/features/account/rows';
 import { creditSheetStore } from '@/features/credits/creditSheetStore';
 import { priceDropPercent } from '@/features/store/cartMath';
 import { useWatchlist } from '@/features/store/queries';
@@ -37,49 +28,68 @@ import { suffixed } from '@/lib/trSuffix';
 import { toDisplayUpper } from '@/lib/upper';
 import { useThemeColors } from '@/theme/useThemeColors';
 
-/** AI credit counter — every number comes from `GET v1/tenant/entitlement`; nothing is fixed in the app. */
+/**
+ * AI credit counter, drawn as on 28: an ink card with cream text, the month's allowance bar, the photo
+ * status and "Kredi yükle" (→ 05b). Every number comes from `GET v1/tenant/entitlement`; nothing is fixed in the app.
+ */
 function CreditCard({ entitlement, hasBodyPhoto }: { entitlement: Entitlement; hasBodyPhoto: boolean | null }) {
   const { t } = useTranslation();
+  const colors = useThemeColors();
   const language = currentLanguage();
   const { monthlyAllowance, remaining, resetsAt } = entitlement.credits;
-  const reset = new Date(resetsAt);
-  // The allowance belongs to the month before the reset date.
-  const month = new Date(reset.getFullYear(), reset.getMonth() - 1, 1);
+  const renewal = new Date(resetsAt);
+  // The allowance belongs to the month before the renewal date.
+  const month = new Date(renewal.getFullYear(), renewal.getMonth() - 1, 1);
   const left = t('me.creditsLeft', { total: monthlyAllowance, remaining: suffixed(remaining, 'possessive', language) });
   const share = monthlyAllowance > 0 ? Math.min(1, Math.max(0, remaining / monthlyAllowance)) : 0;
+  const soft = { color: colors.sand };
 
   return (
-    <Card className="gap-3 p-4">
+    <View className="gap-2.5 rounded-card bg-ink p-3.5" testID="credit-card">
       <View className="flex-row flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <Text variant="eyebrow">{t('me.creditsEyebrow', { month: toDisplayUpper(formatMonthName(month), language) })}</Text>
-        <Text variant="caption" tone="muted">
-          {t('me.renews', { date: suffixed(formatDayMonth(reset), 'locative', language) })}
+        <Text variant="eyebrow" style={soft}>
+          {t('me.creditsEyebrow', { month: toDisplayUpper(formatMonthName(month), language) })}
+        </Text>
+        <Text variant="caption" style={soft}>
+          {t('me.renews', { date: suffixed(formatDayMonth(renewal), 'locative', language) })}
         </Text>
       </View>
-      <Text variant="h3">{left}</Text>
+      <Text variant="title" tone="cream">
+        {left}
+      </Text>
       <View
-        className="h-1.5 overflow-hidden rounded-pill bg-sand"
+        className="h-1.5 overflow-hidden rounded-pill bg-cream/20"
         accessible
         accessibilityRole="progressbar"
         accessibilityLabel={left}
         accessibilityValue={{ min: 0, max: monthlyAllowance, now: remaining }}
       >
-        <View className="h-full rounded-pill bg-accent" style={{ width: `${Math.round(share * 100)}%` }} />
+        <View className="h-full rounded-pill bg-cream" style={{ width: `${Math.round(share * 100)}%` }} />
       </View>
-      <View className="flex-row items-center justify-between gap-3">
+      <View className="flex-row items-center justify-between gap-2.5">
         {hasBodyPhoto === null ? (
           <View className="flex-1" />
         ) : (
           <View className="flex-1 flex-row items-center gap-1.5">
-            <Icon icon={hasBodyPhoto ? CircleCheck : CircleAlert} size={16} tone={hasBodyPhoto ? 'accent' : 'muted'} />
-            <Text variant="caption" tone="muted" className="flex-1">
+            <Icon icon={hasBodyPhoto ? Check : CircleAlert} size={15} tone="sand" />
+            <Text variant="caption" style={soft} className="flex-1">
               {t(hasBodyPhoto ? 'me.photoReady' : 'me.photoMissing')}
             </Text>
           </View>
         )}
-        <Button label={t('me.topUp')} onPress={() => creditSheetStore.open('topUp')} className="h-btn-secondary px-5" />
+        <Pressable
+          onPress={() => creditSheetStore.open('topUp')}
+          accessibilityRole="button"
+          accessibilityLabel={t('me.topUp')}
+          hitSlop={{ top: 2, bottom: 2 }}
+          className="h-10 items-center justify-center rounded-pill bg-cream px-4 active:opacity-80"
+        >
+          <Text variant="segment" tone="ink" numberOfLines={1}>
+            {t('me.topUp')}
+          </Text>
+        </Pressable>
       </View>
-    </Card>
+    </View>
   );
 }
 
@@ -97,9 +107,23 @@ function MembershipTeaser() {
   );
 }
 
+/** "86 parça": the number in medium weight, the word regular — as the canvas draws the stats line. */
+function Stat({ label }: { label: string }) {
+  const space = label.indexOf(' ');
+  if (space < 0) return <Text variant="label">{label}</Text>;
+  return (
+    <>
+      <Text variant="label">{label.slice(0, space)}</Text>
+      {label.slice(space)}
+    </>
+  );
+}
+
 /**
- * 28 Profil — who you are, your numbers, the AI credit counter ("Bu ay 30 görselden N'si kaldı" +
- * "Kredi yükle" → 05b) and the menu (İzleme listem, Renk paletim, Üyelik, Aile planı "Yakında", ayarlar).
+ * 28 Profil — logo header + settings, who you are (photo, name, handle · style, numbers, "Profili düzenle"),
+ * the AI credit counter ("Bu ay 30 görselden N'si kaldı" + "Kredi yükle" → 05b) and the menu exactly as
+ * drawn: Gardırop istatistikleri, Seyahat arşivi, Renk paletim, İzleme listem, Üyelik, Aile planı
+ * ("Yakında"), Gizlilik, fotoğraflar ve ayarlar. Tab root: the bottom menu is the tab navigator's.
  */
 export default function ProfileTab() {
   const { t } = useTranslation();
@@ -117,49 +141,67 @@ export default function ProfileTab() {
   const identity = [profile.data?.handle ? `@${profile.data.handle}` : null, ...tags].filter(Boolean).join(' · ');
   const drops = (watchlist.data?.items ?? []).filter((i) => priceDropPercent(i.price, i.previousPrice) !== null).length;
   const isMember = entitlement.data?.tier === 'member';
+  const membership = !entitlement.data
+    ? undefined
+    : !isMember
+      ? t('me.menu.membershipFree')
+      : entitlement.data.plan
+        ? t(`me.menu.plan.${entitlement.data.plan}`)
+        : t('me.menu.membershipActive');
 
   const refresh = () => {
     void profile.refetch();
     void stats.refetch();
     void entitlement.refetch();
     void watchlist.refetch();
+    void photos.refetch();
+    void palette.refetch();
   };
 
   return (
     <Screen>
-      <OfflineBanner />
-      <View className="flex-row items-center justify-between px-gutter pb-2 pt-2">
-        <Text variant="brand" tone="ink">
-          {t('brand.wordmark')}
-        </Text>
+      <View className="h-12 flex-row items-center justify-between px-gutter">
+        <Logo />
         <IconButton icon={Settings} onPress={() => router.push('/settings')} accessibilityLabel={t('me.settings')} testID="profile.settings" />
       </View>
+      <OfflineBanner />
       <ScrollView
-        contentContainerClassName="gap-5 px-gutter pb-8"
+        contentContainerClassName="gap-3 px-gutter pb-8 pt-1"
         refreshControl={<RefreshControl refreshing={profile.isRefetching} onRefresh={refresh} tintColor={colors.muted} />}
       >
-        <View className="flex-row items-center gap-4">
-          <Avatar name={name || t('me.avatar')} uri={profile.data?.avatarUrl} size={72} />
-          <View className="flex-1 gap-1">
-            {name ? <Text variant="h2">{name}</Text> : <Skeleton className="h-7 w-32 rounded-field" />}
+        <View className="flex-row items-center gap-3.5">
+          <ImageSlot
+            uri={profile.data?.avatarUrl}
+            className="h-16 w-16 rounded-pill"
+            accessibilityLabel={profile.data?.avatarUrl ? t('me.avatar') : undefined}
+            placeholder={{ kind: 'avatar', name: name || profile.data?.handle }}
+          />
+          <View className="flex-1">
+            {name ? (
+              <Text variant="h2" numberOfLines={1}>
+                {name}
+              </Text>
+            ) : (
+              <Skeleton className="h-7 w-32 rounded-field" />
+            )}
             {identity ? (
-              <Text variant="caption" tone="muted">
+              <Text variant="caption" tone="muted" numberOfLines={1}>
                 {identity}
               </Text>
             ) : null}
             {stats.data ? (
-              <Text variant="caption" tone="muted">
-                {[
-                  t('me.items', { count: stats.data.itemCount }),
-                  t('me.looks', { count: stats.data.lookCount }),
-                  t('me.followers', { count: stats.data.followerCount }),
-                ].join(' · ')}
+              <Text variant="caption" className="mt-0.5" testID="profile-stats">
+                <Stat label={t('me.items', { count: stats.data.itemCount })} />
+                {' · '}
+                <Stat label={t('me.looks', { count: stats.data.lookCount })} />
+                {' · '}
+                <Stat label={t('me.followers', { count: stats.data.followerCount })} />
               </Text>
             ) : stats.isPending ? (
-              <Skeleton className="h-4 w-40 rounded-field" />
+              <Skeleton className="mt-1 h-4 w-40 rounded-field" />
             ) : null}
           </View>
-          <IconButton icon={Pencil} onPress={() => router.push('/settings')} accessibilityLabel={t('me.editProfile')} />
+          <IconButton icon={Pencil} iconSize={18} onPress={() => router.push('/edit-profile')} accessibilityLabel={t('me.editProfile')} />
         </View>
 
         {entitlement.data ? (
@@ -176,33 +218,33 @@ export default function ProfileTab() {
             <Button variant="text" label={t('common.retry')} onPress={() => void entitlement.refetch()} className="-ml-2" />
           </Card>
         ) : (
-          <Skeleton className="h-40 w-full rounded-card" />
+          <Skeleton className="h-36 w-full rounded-card" />
         )}
 
-        <Card>
-          <MenuRow first icon={ChartNoAxesColumn} label={t('me.menu.wardrobeStats')} onPress={() => router.navigate('/wardrobe')} />
-          <MenuRow icon={Luggage} label={t('me.menu.tripArchive')} onPress={() => router.navigate('/wardrobe/trips')} />
-          <MenuRow
+        <RowCard>
+          <ProfileMenuRow first icon="hanger" label={t('me.menu.wardrobeStats')} onPress={() => router.navigate('/wardrobe')} />
+          <ProfileMenuRow icon={Briefcase} label={t('me.menu.tripArchive')} onPress={() => router.navigate('/wardrobe/trips')} />
+          <ProfileMenuRow
             icon={PaletteIcon}
             label={t('me.menu.palette')}
             value={palette.data?.status === 'ready' ? t(`palette.season.${palette.data.seasonType}`) : undefined}
             onPress={() => router.push('/palette')}
           />
-          <MenuRow
+          <ProfileMenuRow
             icon={Bookmark}
             label={t('me.menu.watchlist')}
             trailing={drops > 0 ? <Badge tone="accent" label={t('me.menu.priceDrops', { count: drops })} /> : undefined}
             onPress={() => router.push('/watchlist')}
           />
-          <MenuRow
+          <ProfileMenuRow
             icon={Crown}
             label={t('me.menu.membership')}
-            value={entitlement.data ? t(isMember ? 'me.menu.membershipActive' : 'me.menu.membershipFree') : undefined}
-            onPress={() => router.push({ pathname: '/paywall', params: { from: 'profile' } })}
+            value={membership}
+            onPress={() => (isMember ? router.push('/subscription') : router.push({ pathname: '/paywall', params: { from: 'profile' } }))}
           />
-          <MenuRow icon={Users} label={t('me.menu.family')} disabled trailing={<Badge label={t('common.comingSoon')} />} />
-          <MenuRow icon={ShieldCheck} label={t('me.menu.settings')} onPress={() => router.push('/settings')} />
-        </Card>
+          <ProfileMenuRow icon={Users} label={t('me.menu.family')} disabled trailing={<Badge label={t('common.comingSoon')} />} />
+          <ProfileMenuRow icon={Lock} label={t('me.menu.settings')} onPress={() => router.push('/settings')} />
+        </RowCard>
 
         {__DEV__ ? <Button variant="text" label={t('profile.components')} onPress={() => router.push('/dev/components')} /> : null}
       </ScrollView>

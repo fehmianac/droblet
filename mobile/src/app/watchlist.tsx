@@ -1,16 +1,18 @@
 import { router } from 'expo-router';
 import { Bell, BellOff } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-import { FlatList, RefreshControl, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, View } from 'react-native';
 
 import type { ProductSummary, WatchlistEntry } from '@/api/contracts/store';
 import { useBodyProfile } from '@/api/profile';
-import { Badge, Card } from '@/components/blocks/basics';
+import { Card } from '@/components/blocks/basics';
 import { BrandMark } from '@/components/blocks/BrandMark';
 import { CartButton } from '@/components/blocks/SectionState';
+import { Badge } from '@/components/ui/Bits';
 import { Button } from '@/components/ui/Button';
-import { IconButton } from '@/components/ui/IconButton';
-import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
+import { Icon } from '@/components/ui/Icon';
+import { ImageSlot } from '@/components/ui/ImageSlot';
+import { ListTabBar } from '@/components/navigation/TabBar';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
@@ -61,61 +63,83 @@ function WatchCard({ entry, profileSize }: { entry: WatchlistEntry; profileSize:
     router.push('/cart');
   };
 
+  const price = entry.price !== null ? formatMoney(entry.price) : null;
+  const alertLabel = t(entry.alertEnabled ? 'watchlist.alertOn' : 'watchlist.alertOff');
+
   return (
-    <Card className="gap-3 p-3.5">
-      <View className="flex-row gap-3">
-        <PlaceholderImage uri={entry.imageUrl} className="h-[84px] w-[68px] rounded-image" />
-        <View className="flex-1 gap-0.5">
-          <BrandMark name={entry.brandName} logoUrl={entry.brandLogoUrl} />
-          <Text variant="body" numberOfLines={2}>
-            {entry.name}
-          </Text>
-          {entry.price !== null ? (
-            <View className="flex-row flex-wrap items-baseline gap-2">
-              {drop !== null && entry.previousPrice !== null ? (
-                <Text
-                  variant="caption"
-                  tone="muted"
-                  className="line-through"
-                  accessibilityLabel={t('watchlist.oldPrice', { price: formatMoney(entry.previousPrice) })}
-                >
-                  {formatMoney(entry.previousPrice)}
-                </Text>
-              ) : null}
-              <Text variant="bodyMedium">{formatMoney(entry.price)}</Text>
-            </View>
-          ) : null}
-          {drop !== null ? (
-            <View className="mt-1">
-              <Badge tone="accent" label={t('watchlist.priceDropped', { percent: formatPercent(drop) })} />
-            </View>
-          ) : null}
-        </View>
-        <IconButton
-          icon={entry.alertEnabled ? Bell : BellOff}
-          active={entry.alertEnabled}
+    <Card className="gap-2.5 p-3">
+      <View className="flex-row items-center gap-3">
+        <Pressable
+          onPress={openProduct}
+          accessibilityRole="button"
+          accessibilityLabel={[entry.brandName, entry.name, price, drop !== null ? t('watchlist.priceDropped', { percent: formatPercent(drop) }) : null]
+            .filter(Boolean)
+            .join(', ')}
+          className="flex-1 flex-row items-center gap-3 active:opacity-80"
+        >
+          <ImageSlot
+            uri={entry.imageUrl}
+            className="h-[78px] w-16 rounded-thumb"
+            placeholder={{ kind: 'garment', category: entry.category, color: entry.colors[0], glyphSize: 26 }}
+          />
+          <View className="flex-1">
+            <BrandMark name={entry.brandName} logoUrl={entry.brandLogoUrl} />
+            <Text variant="body" numberOfLines={2} className="mt-0.5">
+              {entry.name}
+            </Text>
+            {price !== null ? (
+              <View className="mt-1 flex-row flex-wrap items-baseline gap-1">
+                {drop !== null && entry.previousPrice !== null ? (
+                  <Text
+                    variant="chip"
+                    tone="muted"
+                    className="line-through"
+                    accessibilityLabel={t('watchlist.oldPrice', { price: formatMoney(entry.previousPrice) })}
+                  >
+                    {formatMoney(entry.previousPrice)}
+                  </Text>
+                ) : null}
+                <Text variant="price">{price}</Text>
+              </View>
+            ) : null}
+            {drop !== null ? (
+              <View className="mt-1">
+                <Badge tone="accent" label={t('watchlist.priceDropped', { percent: formatPercent(drop) })} />
+              </View>
+            ) : null}
+          </View>
+        </Pressable>
+        {/* The bell is the price alert of this one product: ink when on, muted and struck through when off. */}
+        <Pressable
           onPress={() => setWatch({ productId: entry.productId, watching: true, alertEnabled: !entry.alertEnabled })}
-          accessibilityLabel={t(entry.alertEnabled ? 'watchlist.alertOn' : 'watchlist.alertOff')}
-        />
+          accessibilityRole="switch"
+          accessibilityLabel={alertLabel}
+          accessibilityState={{ checked: entry.alertEnabled }}
+          className="h-icon-btn w-icon-btn items-center justify-center rounded-pill active:opacity-70"
+        >
+          <Icon icon={entry.alertEnabled ? Bell : BellOff} size={20} tone={entry.alertEnabled ? 'ink' : 'muted'} />
+        </Pressable>
       </View>
-      <View className="flex-row items-center justify-between gap-3">
-        <Text variant="caption" tone="muted" className="flex-1" numberOfLines={2}>
-          {sourceText ?? ''}
-        </Text>
-        {drop !== null ? (
-          <Button label={t('watchlist.addToCart')} onPress={add} className="h-btn-secondary px-5" />
-        ) : (
-          <Button variant="secondary" label={t('watchlist.viewProduct')} onPress={openProduct} />
-        )}
-      </View>
+      {sourceText !== null || drop !== null ? (
+        <View className="flex-row items-center gap-2">
+          <Text variant="caption" tone="muted" className="flex-1" numberOfLines={2}>
+            {sourceText ?? ''}
+          </Text>
+          {drop !== null ? (
+            <Button size="md" label={t('watchlist.addToCart')} onPress={add} className="px-4" />
+          ) : (
+            <Button variant="secondary" size="md" label={t('watchlist.viewProduct')} onPress={openProduct} className="px-4" />
+          )}
+        </View>
+      ) : null}
     </Card>
   );
 }
 
 function WatchlistSkeleton() {
   return (
-    <View className="gap-3 px-gutter pt-2">
-      <Skeleton className="h-8 w-48 rounded-field" />
+    <View className="gap-2.5 px-gutter pt-1">
+      <Skeleton className="h-9 w-48 rounded-field" />
       {[0, 1, 2].map((i) => (
         <Skeleton key={i} className="h-36 w-full rounded-card" />
       ))}
@@ -125,8 +149,9 @@ function WatchlistSkeleton() {
 
 /**
  * 24b İzleme listem — missing pieces of looks and products the user watches (separate from the
- * heart / favourites). A price drop shows the old and new price with a badge; the bell turns the
- * price alert for one product on or off.
+ * heart / favourites). A price drop shows the old and new price with the "Fiyat %20 düştü" badge and
+ * "Sepete ekle"; other entries that came from a look or the edit show "Ürünü gör". The bell turns the
+ * price alert for one product on or off. Tapping the product opens it (22).
  */
 export default function WatchlistScreen() {
   const { t } = useTranslation();
@@ -135,7 +160,7 @@ export default function WatchlistScreen() {
   const profileSize = useBodyProfile().data?.size ?? null;
 
   return (
-    <Screen bottom>
+    <Screen>
       <ScreenHeader leading="back" right={<CartButton />} />
       <ScreenState
         query={watchlist}
@@ -147,14 +172,16 @@ export default function WatchlistScreen() {
           <FlatList
             data={data.items}
             keyExtractor={(item) => item.productId}
-            contentContainerClassName="gap-3 px-gutter pb-8"
+            contentContainerClassName="gap-2.5 px-gutter pb-8 pt-1"
             refreshControl={
               <RefreshControl refreshing={watchlist.isRefetching} onRefresh={() => void watchlist.refetch()} tintColor={colors.muted} />
             }
             ListHeaderComponent={
-              <View className="gap-2 pb-2">
-                <Text variant="eyebrow">{t('watchlist.eyebrow')}</Text>
-                <Text variant="display">{t('watchlist.title')}</Text>
+              <View className="gap-3.5 pb-1">
+                <View className="gap-1.5">
+                  <Text variant="eyebrow">{t('watchlist.eyebrow')}</Text>
+                  <Text variant="display">{t('watchlist.title')}</Text>
+                </View>
                 <Text variant="body" tone="muted">
                   {t('watchlist.body')}
                 </Text>
@@ -164,6 +191,7 @@ export default function WatchlistScreen() {
           />
         )}
       </ScreenState>
+      <ListTabBar owner="profile" />
     </Screen>
   );
 }

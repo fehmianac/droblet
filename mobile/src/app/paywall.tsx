@@ -1,31 +1,44 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Check, X } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import { Briefcase, Palette, Sparkles, X, type LucideIcon } from 'lucide-react-native';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Pressable, ScrollView, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { track } from '@/analytics/track';
 import { onboardingStore } from '@/auth/onboarding';
 import { useSession } from '@/auth/session';
 import { openPrivacy, openTerms } from '@/components/LegalLinks';
+import { Badge } from '@/components/ui/Bits';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
-import { Screen } from '@/components/ui/Screen';
+import { Silhouette } from '@/components/ui/Silhouette';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { useEntitlement } from '@/entitlement/useEntitlement';
 import { useStoreProducts } from '@/entitlement/useStoreProducts';
+import { CanvasGlyph } from '@/features/account/rows';
 import type { StoreProduct } from '@/fixtures/storeProducts';
+import { placeholderTones, type PlaceholderTone } from '@/theme/tokens';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 type Plan = 'year' | 'month';
 
-const BENEFITS = [
-  ['paywall.benefitAiTitle', 'paywall.benefitAiBody'],
-  ['paywall.benefitStylistTitle', 'paywall.benefitStylistBody'],
-  ['paywall.benefitPackingTitle', 'paywall.benefitPackingBody'],
-  ['paywall.benefitPaletteTitle', 'paywall.benefitPaletteBody'],
-] as const;
+/** The three look tiles at the top of `Paywall.dc.html`. */
+const TILES: { tone: PlaceholderTone; figure: 'ink' | 'cream' }[] = [
+  { tone: 'camel', figure: 'ink' },
+  { tone: 'dark', figure: 'cream' },
+  { tone: 'clay', figure: 'ink' },
+];
+
+const BENEFITS: { title: 'paywall.benefitAiTitle' | 'paywall.benefitStylistTitle' | 'paywall.benefitPackingTitle' | 'paywall.benefitPaletteTitle'; body: 'paywall.benefitAiBody' | 'paywall.benefitStylistBody' | 'paywall.benefitPackingBody' | 'paywall.benefitPaletteBody'; icon: LucideIcon | 'mirror' }[] = [
+  { title: 'paywall.benefitAiTitle', body: 'paywall.benefitAiBody', icon: 'mirror' },
+  { title: 'paywall.benefitStylistTitle', body: 'paywall.benefitStylistBody', icon: Sparkles },
+  { title: 'paywall.benefitPackingTitle', body: 'paywall.benefitPackingBody', icon: Briefcase },
+  { title: 'paywall.benefitPaletteTitle', body: 'paywall.benefitPaletteBody', icon: Palette },
+];
 
 function PlanOption({
   plan,
@@ -46,30 +59,72 @@ function PlanOption({
   const price = product
     ? t(plan === 'year' ? 'paywall.perYear' : 'paywall.perMonth', { price: product.localizedPrice })
     : null;
+  const trial = product?.trialDays ? t('paywall.trialDays', { count: product.trialDays }) : null;
   return (
     <Pressable
       onPress={onSelect}
       accessibilityRole="radio"
       accessibilityState={{ checked: selected, busy: loading }}
-      accessibilityLabel={[tag, name, price].filter(Boolean).join(', ')}
-      className={`flex-1 gap-1 rounded-card border bg-paper p-4 ${selected ? 'border-ink' : 'border-line'}`}
+      accessibilityLabel={[tag, name, price, trial].filter(Boolean).join(', ')}
+      // The 2 pt ink ring of the chosen plan replaces the 1 pt line; the padding keeps both cards the same size.
+      className={`flex-1 rounded-card bg-paper ${selected ? 'border-2 border-ink p-[11px]' : 'border border-line p-3'}`}
+      testID={`plan-${plan}`}
     >
-      <Text variant="caption" tone="accent">
-        {tag}
+      <Badge label={tag} tone={plan === 'year' ? 'ink' : 'sand'} />
+      <Text variant="bodyMedium" className="mb-0.5 mt-2">
+        {name}
       </Text>
-      <Text variant="h3">{name}</Text>
-      {price ? <Text variant="bodyMedium">{price}</Text> : <Skeleton className="mt-1 h-5 w-24 rounded-field" />}
+      {price ? (
+        <Text variant="button" numberOfLines={1} adjustsFontSizeToFit>
+          {price}
+        </Text>
+      ) : (
+        <Skeleton className="h-5 w-24 rounded-tag" />
+      )}
+      {trial ? (
+        <Text variant="caption" tone="muted">
+          {trial}
+        </Text>
+      ) : null}
     </Pressable>
   );
 }
 
+/** Underlined 11.5 footer link with a 44 pt target. */
+function FooterLink({ label, onPress }: { label: string; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="link"
+      accessibilityLabel={label}
+      className="min-h-icon-btn justify-center px-1.5 active:opacity-70"
+    >
+      <Text variant="caption" className="text-[11.5px] underline">
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function Dot() {
+  return (
+    <Text variant="caption" tone="muted" accessible={false}>
+      ·
+    </Text>
+  );
+}
+
 /**
- * 05 Üyelik. Copy per README §9: "Ayda 30 AI görseli" (not unlimited). Price, period and trial length
- * always come from the store products (useStoreProducts); the close (×) is always visible; restore,
- * terms and privacy links are always present. Purchases are disabled until the billing bridge (E10).
+ * 05 Üyelik. Look tiles fading into cream, the promise as the headline, four benefits ("Ayda 30 AI görseli",
+ * not unlimited — README §9), two plan cards and the fixed footer. Price, period and trial length always come
+ * from the store products (useStoreProducts) — the canvas prices are representative and nothing is stored in
+ * the app. The close (×) is always visible; restore, terms and privacy are always present. Purchases are
+ * disabled until the billing bridge (E10).
  */
 export default function PaywallScreen() {
   const { t } = useTranslation();
+  const colors = useThemeColors();
+  const insets = useSafeAreaInsets();
   const { from } = useLocalSearchParams<{ from?: string }>();
   const session = useSession();
   const store = useStoreProducts();
@@ -105,82 +160,112 @@ export default function PaywallScreen() {
     if (!store.data?.purchasesAvailable) storeUnavailable();
   };
 
-  const pricePerPeriod = chosen
-    ? t(plan === 'year' ? 'paywall.perYear' : 'paywall.perMonth', { price: chosen.localizedPrice })
-    : null;
   const trialDays = chosen?.trialDays ?? null;
+  let finePrint: string | null = null;
+  if (chosen) {
+    const price = chosen.localizedPrice;
+    if (plan === 'year') finePrint = t(trialDays ? 'paywall.finePrintTrialYear' : 'paywall.finePrintYear', { price });
+    else finePrint = t(trialDays ? 'paywall.finePrintTrialMonth' : 'paywall.finePrintMonth', { price });
+  }
+
+  let action: ReactNode;
+  if (isMember) {
+    action = <Button variant="secondary" size="lg" label={t('paywall.manage')} onPress={() => router.replace('/subscription')} />;
+  } else {
+    action = (
+      <>
+        <Button
+          label={trialDays ? t('paywall.startTrial', { count: trialDays }) : t('paywall.subscribe')}
+          onPress={purchase}
+          disabled={!chosen}
+          loading={store.isPending}
+          testID="paywall-purchase"
+        />
+        {finePrint ? (
+          <Text variant="caption" tone="muted" className="text-center text-[11px] leading-[15px]">
+            {finePrint}
+          </Text>
+        ) : (
+          <Skeleton className="h-4 w-full rounded-tag" />
+        )}
+      </>
+    );
+  }
 
   return (
-    <Screen bottom>
-      <View className="flex-row justify-end px-gutter pt-2">
-        <IconButton icon={X} variant="plain" onPress={() => void close()} accessibilityLabel={t('a11y.close')} testID="paywall.close" />
-      </View>
-      <ScrollView contentContainerClassName="gap-7 px-gutter pb-6">
-        <View className="gap-2">
-          <Text variant="eyebrow">{t('paywall.eyebrow')}</Text>
-          <Text variant="display">{t('paywall.title')}</Text>
-          <Text variant="body" tone="muted">
+    <View className="flex-1 bg-cream">
+      <ScrollView className="flex-1" contentContainerClassName="pb-3">
+        <View className="h-[250px]" accessible={false} importantForAccessibility="no-hide-descendants">
+          <View style={StyleSheet.absoluteFill} className="flex-row gap-1.5 p-1.5">
+            {TILES.map((tile) => (
+              <View
+                key={tile.tone}
+                className="h-[238px] flex-1 items-center justify-center overflow-hidden rounded-[16px]"
+                style={{ backgroundColor: placeholderTones[tile.tone] }}
+              >
+                <Silhouette height={160} tone={tile.figure} opacity={0.16} />
+              </View>
+            ))}
+          </View>
+          <LinearGradient
+            colors={[colors.creamClear, colors.cream]}
+            locations={[0.45, 1]}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+        </View>
+
+        <View className="-mt-[30px] gap-3.5 px-6">
+          <Text variant="eyebrow" tone="accent">
+            {t('paywall.eyebrow')}
+          </Text>
+          <Text variant="display" className="text-[32px] leading-[34px]">
             {t('paywall.tagline')}
           </Text>
-        </View>
 
-        <View className="gap-4">
-          {BENEFITS.map(([title, body]) => (
-            <View key={title} className="flex-row gap-3">
-              <View className="h-7 w-7 items-center justify-center rounded-pill bg-sand">
-                <Icon icon={Check} tone="accent" size={16} />
+          <View className="mt-0.5 gap-2.5">
+            {BENEFITS.map(({ title, body, icon }) => (
+              <View key={title} className="flex-row items-center gap-3">
+                <View className="h-9 w-9 items-center justify-center rounded-pill border border-line bg-paper">
+                  {icon === 'mirror' ? <CanvasGlyph name="mirror" size={18} /> : <Icon icon={icon} size={18} />}
+                </View>
+                <View className="flex-1">
+                  <Text variant="bodyMedium">{t(title)}</Text>
+                  <Text variant="caption" tone="muted">
+                    {t(body)}
+                  </Text>
+                </View>
               </View>
-              <View className="flex-1 gap-0.5">
-                <Text variant="bodyMedium">{t(title)}</Text>
-                <Text variant="body" tone="muted">
-                  {t(body)}
-                </Text>
-              </View>
-            </View>
-          ))}
-        </View>
-
-        {isMember ? (
-          <View className="rounded-card bg-sand p-4">
-            <Text variant="bodyMedium">{t('paywall.active')}</Text>
+            ))}
           </View>
-        ) : (
-          <View className="gap-4">
-            <View accessibilityRole="radiogroup" className="flex-row gap-3">
+
+          {isMember ? (
+            <View className="mt-0.5 rounded-card bg-sand p-4">
+              <Text variant="bodyMedium">{t('paywall.active')}</Text>
+            </View>
+          ) : (
+            <View accessibilityRole="radiogroup" className="mt-0.5 flex-row gap-2.5">
               <PlanOption plan="year" product={yearly} selected={plan === 'year'} onSelect={() => setPlan('year')} loading={store.isPending} />
               <PlanOption plan="month" product={monthly} selected={plan === 'month'} onSelect={() => setPlan('month')} loading={store.isPending} />
             </View>
-
-            <Button
-              label={trialDays ? t('paywall.startTrial', { count: trialDays }) : t('paywall.subscribe')}
-              onPress={purchase}
-              disabled={!chosen}
-              loading={store.isPending}
-            />
-            {pricePerPeriod ? (
-              <Text variant="caption" tone="muted" className="text-center">
-                {t(trialDays ? 'paywall.renewalTrial' : 'paywall.renewal', { price: pricePerPeriod })}
-              </Text>
-            ) : (
-              <Skeleton className="h-4 w-full rounded-field" />
-            )}
-            <Text variant="caption" tone="muted" className="text-center">
-              {t('paywall.cancelAnytime')}
-            </Text>
-          </View>
-        )}
-
-        <View className="items-center gap-1">
-          <Button variant="text" label={t('paywall.restore')} onPress={restore} />
-          <View className="flex-row items-center gap-1">
-            <Button variant="text" label={t('paywall.terms')} onPress={openTerms} />
-            <Text variant="caption" tone="muted">
-              ·
-            </Text>
-            <Button variant="text" label={t('paywall.privacy')} onPress={openPrivacy} />
-          </View>
+          )}
         </View>
       </ScrollView>
-    </Screen>
+
+      <View className="absolute right-5" style={{ top: insets.top + 4 }}>
+        <IconButton icon={X} onPress={() => void close()} variant="inverse" accessibilityLabel={t('a11y.close')} className="border border-line" testID="paywall.close" />
+      </View>
+
+      <View className="gap-1.5 px-6 pt-3" style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
+        {action}
+        <View className="flex-row flex-wrap items-center justify-center gap-x-1">
+          <FooterLink label={t('paywall.restore')} onPress={restore} />
+          <Dot />
+          <FooterLink label={t('paywall.termsShort')} onPress={openTerms} />
+          <Dot />
+          <FooterLink label={t('paywall.privacyShort')} onPress={openPrivacy} />
+        </View>
+      </View>
+    </View>
   );
 }

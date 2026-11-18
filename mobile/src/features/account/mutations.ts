@@ -18,7 +18,7 @@ import type {
   PutVisibilityRequest,
   RemovePhotoRequest,
 } from '@/api/contracts/account';
-import { fromSource } from '@/api/dataSource';
+import { DATA_SOURCE, fromSource } from '@/api/dataSource';
 import { apiErrorCode, isPaywallError } from '@/api/errors';
 import {
   fromNotificationSettings,
@@ -295,6 +295,62 @@ export function useAnalyzePalette() {
     const id = ulid();
     m.mutate({ requestId: id, clientMutationId: id });
   };
+}
+
+/**
+ * What "Profili düzenle" saves. `avatar`: a newly picked local file, `null` to remove the photo, absent
+ * to keep it — the API has no avatar upload yet, so it is applied in fixture mode only (see
+ * `AVATAR_EDIT_SUPPORTED`).
+ */
+export type ProfileEdit = { displayName: string; handle: string; avatar?: { localUri: string } | null; baseVersion: number };
+
+/** The backend has no avatar endpoint yet: the edit form hides "change photo" against the real API. */
+export const AVATAR_EDIT_SUPPORTED = DATA_SOURCE.account === 'fixtures';
+
+/**
+ * 28 "Profili düzenle" — name and handle. Interactive and online-only (never queued): whether the handle
+ * is free is the server's answer, and the user must see it at once. Real API: the name is a partial
+ * `PUT v1/tenant/profile { displayName, baseVersion }` (409 + the current profile on a version race);
+ * a changed handle goes to `PUT v1/tenant/profile/handle` (409 `handle_taken`, 422 `handle_reserved`,
+ * 400 `handle_invalid`).
+ */
+export function useUpdateProfile() {
+  const client = useQueryClient();
+  return useMutation<MyProfile, unknown, ProfileEdit>({
+    networkMode: 'always',
+    retry: false,
+    mutationFn: (edit) =>
+      fromSource(
+        'account',
+        () =>
+          accountFixtures.updateProfile(
+            {
+              displayName: edit.displayName,
+              handle: edit.handle,
+              baseVersion: edit.baseVersion,
+              clientMutationId: newClientMutation().clientMutationId,
+            },
+            edit.avatar === undefined ? undefined : (edit.avatar?.localUri ?? null),
+          ),
+        async () => {
+          const before = client.getQueryData<MyProfile>(accountKeys.profile);
+          let saved = before;
+          if (!before || edit.displayName !== before.displayName) {
+            const body: PutProfileWire = { displayName: edit.displayName, baseVersion: edit.baseVersion };
+            saved = profileFromWire(client, await apiRequest<ProfileWire>('v1/tenant/profile', { method: 'PUT', body }));
+            client.setQueryData(accountKeys.profile, saved);
+          }
+          if (!saved || edit.handle !== (saved.handle ?? '')) {
+            const body: PutHandleWire = { handle: edit.handle };
+            saved = profileFromWire(client, await apiRequest<ProfileWire>('v1/tenant/profile/handle', { method: 'PUT', body }));
+          }
+          return saved;
+        },
+      ),
+    onSuccess: (saved) => {
+      client.setQueryData(accountKeys.profile, saved);
+    },
+  });
 }
 
 /**

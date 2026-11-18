@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { KeyboardAvoidingView, Platform, ScrollView, View, type TextInputInstance } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View, type TextInputInstance } from 'react-native';
 
 import { useAppleSignIn, useGoogleSignIn, useLogin, useRegister } from '@/api/auth';
 import { extractApiError, fieldErrors, type KnownErrorCode } from '@/api/errors';
@@ -21,7 +21,7 @@ type Field = 'name' | 'email' | 'password';
 type Errors = Partial<Record<Field | 'form', string>>;
 
 /**
- * 02 Kayıt / giriş — one screen, Kayıt ol / Giriş yap tabs. Apple (iOS only), Google, e-mail + password.
+ * 02 Kayıt / giriş — one screen, Kayıt ol / Giriş yap switch (ink segment), no eyebrow, 24 inset. Apple (iOS only), Google, e-mail + password.
  * Field errors sit under the field in danger. Success: register → 03, login → 06 (navigation guards).
  */
 export default function AuthStartScreen() {
@@ -102,9 +102,8 @@ export default function AuthStartScreen() {
     <Screen bottom>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
         <ScreenHeader leading="back" />
-        <ScrollView contentContainerClassName="gap-6 px-gutter pb-8" keyboardShouldPersistTaps="handled">
-          <View className="gap-2">
-            <Text variant="eyebrow">{t(mode === 'register' ? 'auth.eyebrowRegister' : 'auth.eyebrowLogin')}</Text>
+        <ScrollView contentContainerClassName="gap-5 px-6 pb-8 pt-2" keyboardShouldPersistTaps="handled">
+          <View className="gap-2.5">
             <Text variant="display">{t(mode === 'register' ? 'auth.titleRegister' : 'auth.titleLogin')}</Text>
             <Text variant="body" tone="muted">
               {t('auth.subtitle')}
@@ -112,19 +111,20 @@ export default function AuthStartScreen() {
           </View>
 
           <SegmentedControl<Mode>
+            variant="ink"
+            testID="auth.tab"
             value={mode}
             onChange={(m) => {
               setMode(m);
               setErrors({});
             }}
-            testID="auth.tab"
             segments={[
               { value: 'register', label: t('auth.tabRegister') },
               { value: 'login', label: t('auth.tabLogin') },
             ]}
           />
 
-          <View className="gap-3">
+          <View className="gap-2.5">
             <AppleButton mode={mode} onPress={() => void onApple()} disabled={busy} />
             <GoogleSignIn
               onIdToken={onGoogleToken}
@@ -137,15 +137,17 @@ export default function AuthStartScreen() {
 
           <View className="flex-row items-center gap-3" accessible={false}>
             <View className="h-px flex-1 bg-line" />
-            <Text variant="caption" tone="muted">
-              {t('auth.or')}
-            </Text>
+            <Text variant="eyebrow">{t('auth.or')}</Text>
             <View className="h-px flex-1 bg-line" />
           </View>
 
-          <View className="gap-4">
+          <View className="gap-3">
             {mode === 'register' ? (
               <TextField
+                testID="auth.name"
+                maxLength={60}
+                autoCapitalize="words"
+                autoCorrect={false}
                 label={t('auth.name')}
                 value={name}
                 onChangeText={(v) => {
@@ -153,10 +155,6 @@ export default function AuthStartScreen() {
                   clear('name');
                 }}
                 error={errors.name}
-                testID="auth.name"
-                maxLength={60}
-                autoCapitalize="words"
-                autoCorrect={false}
                 autoComplete="name"
                 textContentType="name"
                 returnKeyType="next"
@@ -165,6 +163,7 @@ export default function AuthStartScreen() {
             ) : null}
             <TextField
               ref={emailRef}
+              testID="auth.email"
               label={t('auth.email')}
               value={email}
               onChangeText={(v) => {
@@ -172,7 +171,6 @@ export default function AuthStartScreen() {
                 clear('email');
               }}
               error={errors.email}
-              testID="auth.email"
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType="email-address"
@@ -183,6 +181,7 @@ export default function AuthStartScreen() {
             />
             <TextField
               ref={passwordRef}
+              testID="auth.password"
               label={t('auth.password')}
               value={password}
               onChangeText={(v) => {
@@ -190,25 +189,27 @@ export default function AuthStartScreen() {
                 clear('password');
               }}
               error={errors.password}
-              testID="auth.password"
               hint={mode === 'register' ? t('auth.passwordHint') : undefined}
               password
               autoCapitalize="none"
               autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
-              textContentType={mode === 'register' ? 'newPassword' : 'password'}
+              // 'password' in both modes: with 'newPassword' iOS lays its strong-password assistant over the field and
+              // typed characters replace each other (sign-up then stores a password the user never typed).
+              textContentType="password"
               returnKeyType="go"
               onSubmitEditing={submit}
             />
             {mode === 'login' ? (
-              <View className="items-start">
-                <Button
-                  variant="text"
-                  label={t('auth.forgot')}
-                  testID="auth.forgot"
-                  onPress={() => router.push({ pathname: '/forgot-password', params: { email: email.trim() } })}
-                  className="-ml-2"
-                />
-              </View>
+              <Pressable
+                onPress={() => router.push({ pathname: '/forgot-password', params: { email: email.trim() } })}
+                testID="auth.forgot"
+                accessibilityRole="link"
+                accessibilityLabel={t('auth.forgot')}
+                hitSlop={8}
+                className="min-h-icon-btn justify-center self-end active:opacity-70"
+              >
+                <Text variant="label">{t('auth.forgot')}</Text>
+              </Pressable>
             ) : null}
           </View>
 
@@ -218,13 +219,7 @@ export default function AuthStartScreen() {
             </Text>
           ) : null}
 
-          <Button
-            label={t('auth.submit')}
-            onPress={submit}
-            loading={register.isPending || login.isPending}
-            disabled={busy}
-            testID="auth.submit"
-          />
+          <Button testID="auth.submit" label={t(mode === 'register' ? 'auth.submit' : 'auth.submitLogin')} onPress={submit} loading={register.isPending || login.isPending} disabled={busy} />
         </ScrollView>
       </KeyboardAvoidingView>
     </Screen>

@@ -22,7 +22,7 @@ function FormSkeleton() {
   return (
     <View className="gap-5 px-gutter pt-1">
       <View className="flex-row gap-4">
-        <Skeleton className="h-[150px] w-[120px] rounded-image-lg" />
+        <Skeleton className="h-[164px] w-[132px] rounded-image-lg" />
         <View className="flex-1 justify-center gap-2">
           <Skeleton className="h-3 w-32 rounded-field" />
           <Skeleton className="h-7 w-40 rounded-pill" />
@@ -121,7 +121,7 @@ function DraftForm({ draftId, from }: { draftId: string; from: string | undefine
         return (
           <View className="flex-1 gap-5 px-gutter pt-1">
             <View className="flex-row gap-4">
-              <AiShimmerImage className="h-[150px] w-[120px] rounded-image-lg" />
+              <AiShimmerImage className="h-[164px] w-[132px] rounded-image-lg" />
               <View className="flex-1 justify-center gap-2.5">
                 <AiProgressLines size="compact" lines={[t('ai.tagging'), t('itemForm.processingClean'), t('itemForm.processingFields')]} />
                 <AiChipReveal labels={[t('itemForm.type'), t('itemForm.color'), t('itemForm.fabric')]} />
@@ -148,11 +148,14 @@ function DraftForm({ draftId, from }: { draftId: string; from: string | undefine
 
 /**
  * 12c Parça bilgisi (route). `draftId` → review an AI draft (waits with the AI loading language while
- * it is processing); `itemId` → edit an existing piece; neither → manual entry without a photo.
+ * it is processing); `itemId` → edit an existing piece; neither → manual entry — with `photoUri` when a photo
+ * was already taken (free AI recognition used up), so it is saved with the piece.
  */
 export default function ItemFormScreen() {
   const { t } = useTranslation();
-  const params = useLocalSearchParams<{ draftId?: string; itemId?: string; from?: string }>();
+  const params = useLocalSearchParams<{ draftId?: string; itemId?: string; from?: string; photoUri?: string }>();
+  // A photo taken before the free AI recognition ran out (402) travels with the manual entry.
+  const photoUri = params.photoUri || null;
   const addItems = useAddItems();
 
   let content;
@@ -165,10 +168,11 @@ export default function ItemFormScreen() {
         <ItemForm
           mode="manual"
           initial={EMPTY_FORM}
-          imageUrl={null}
-          originalImageUrl={null}
+          imageUrl={photoUri}
+          originalImageUrl={photoUri}
+          unprocessedPhoto={photoUri !== null}
           onSubmit={(fields) => {
-            addItems.add([{ fields, draftId: null }]);
+            addItems.add([{ fields: photoUri ? { ...fields, useOriginalImage: true } : fields, draftId: null, photoUri, preview: photoUri }]);
             leave(params.from);
           }}
         />
