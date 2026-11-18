@@ -243,3 +243,31 @@ Uygulama **çok dilli**; ilk diller **Türkçe ve İngilizce**, sonrası veriyle
 | E-posta ve bildirim | Alıcının profil diline göre şablon |
 | Web (landing, yasal sayfalar), mağaza sayfası | TR + EN — E12 kapsamında, henüz yazılmadı |
 | Büyük harf etiketler | Dil başına çeviri dosyasında büyük harfle yazılır (TR'de İ) |
+
+---
+
+## 13. Ürün sahibi kararları — geliştirme turu (2026-11-19)
+
+| # | Konu | Karar |
+|---|---|---|
+| 1 | Admin panel adresi | `droblet-admin.alatech.co` (Cloudflare arkasında statik site) |
+| 2 | Admin hesapları | Uygulama hesaplarından **ayrı** admin kullanıcıları, roller: süper admin · içerik editörü · moderatör; admin kullanıcıları panelden yönetilir |
+| 3 | Admin girişi | E-posta + şifre, ardından **e-postaya 6 haneli kod** (SendGrid) |
+| 4 | Panel kapsamı (ilk sürüm) | Katalog ve içerik (markalar, ürünler + CSV, haftanın edit'i, koleksiyonlar, hazır kütüphane) · kullanıcılar ve moderasyon · raporlar (gelir, huni, özet) · uygulama ayarları (Parameter Store) ve admin kullanıcı yönetimi. Tasarım: Metronic benzeri düzen (koyu yan menü, kartlar, filtreli tablolar); Metronic kodu/asset'i kullanılmaz |
+| 5 | Panel dili | TR + EN |
+| 6 | Hava durumu | Şimdilik Open-Meteo ücretsiz; lansmandan önce yeniden karar |
+| 7 | Dolap gizliliği varsayılanı | **Yalnızca takipçiler** (profil kartı aramada görünür) |
+| 8 | Takip | "Yalnızca takipçiler" / gizli hesaplarda **onaylı takip isteği**; herkese açık hesaplarda anında |
+| 9 | Varsayılan açık bildirimler | Sabah kombin hatırlatması, haftanın edit'i. Arkadaş puanları ve fiyat düşüşü varsayılan kapalı |
+| 10 | İzleme listesi | Markaya gidilip **48 saat** içinde dönüşüm gelmezse ürün kendiliğinden izleme listesine düşer |
+| 11 | Ücretsiz parça tanıma | **10** fotoğraf (toplam), sonra paywall; elle giriş her zaman açık |
+| 12 | Arka plan temizleme | GPT Image ile |
+| 13 | Rehberden arkadaş bulma | **Faz 1'de var**: açık rıza ekranı + karma (hash) eşleştirme, rehber verisi saklanmaz |
+| 14 | Katalog girişi | Admin panelden elle + CSV; feed sonra |
+| 15 | Affiliate postback | **Admitad**, **Gelir Ortakları (ReklamAction)** ve doğrudan marka anlaşmaları |
+| 16 | Hazır kütüphane görselleri | AI (GPT Image) ile üretilir |
+| 17 | Lovable/Supabase taşıma | Yalnız **katalog ve görseller** (kullanıcılar taşınmaz); Supabase erişimi ürün sahibinden |
+| 18 | Yasal metinler | Claude kapsamlı taslak yazar → ürün sahibi son bakış → hukuk onayı |
+| 19 | Prod / API adresi | Şimdilik API Gateway adresi; özel alan adı yok |
+| 20 | OpenAI modelleri | `gpt-6-astra` (metin), `gpt-image-2.5-sunburst` (görsel) — teyitli |
+| 21 | Ürün sahibi kurulumları (tamam) | Apple profili + App Store Connect kaydı, Cloudflare proxy + SSL, SendGrid. **Bekleyen:** Google OAuth client id'leri, Firebase servis hesabı, Android imza anahtarı + Play kaydı, Supabase erişimi |
