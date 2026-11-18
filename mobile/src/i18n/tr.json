@@ -1,5 +1,8 @@
 {
   "common": {
+    "missingPiece": "Eksik parça",
+    "missingTag": "EKSİK PARÇA",
+    "missingTagShort": "EKSİK",
     "continue": "Devam et",
     "skip": "Atla",
     "close": "Kapat",
@@ -82,10 +85,7 @@
     "socialFailed": "Giriş tamamlanamadı. Tekrar dene."
   },
   "welcome": {
-    "tileWardrobe": "Kişisel gardırop",
-    "tileStylist": "Stil asistanı",
-    "tilePacking": "Bavul",
-    "brand": "Droblet",
+    "eyebrow": "KİŞİSEL GARDIROP · STİL ASİSTANI · BAVUL",
     "promise": "Sabah “ne giysem” derdi ve saatler süren bavul hazırlığı bitti. Dolabın artık senin için düşünüyor.",
     "start": "Hemen başla",
     "haveAccount": "Zaten hesabım var",

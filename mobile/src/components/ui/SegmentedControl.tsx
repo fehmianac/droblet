@@ -9,15 +9,21 @@ type Props<T extends string> = {
   value: T;
   onChange: (value: T) => void;
   accessibilityLabel?: string;
+  /**
+   * 'paper' (default) — Gardırop's Parçalar / Looklar / Bavullar: 44 track, the selected segment is paper with a
+   * light shadow. 'ink' — the 02 Kayıt ol / Giriş yap switch: 48 track, the selected segment is filled ink.
+   */
+  variant?: 'paper' | 'ink';
 };
 
-/** Sand track; the selected segment is paper with a light shadow. */
-export function SegmentedControl<T extends string>({ segments, value, onChange, accessibilityLabel }: Props<T>) {
+/** Sand track with 4 pt padding and gap; segments are full pills. */
+export function SegmentedControl<T extends string>({ segments, value, onChange, accessibilityLabel, variant = 'paper' }: Props<T>) {
+  const ink = variant === 'ink';
   return (
     <View
       accessibilityRole="tablist"
       accessibilityLabel={accessibilityLabel}
-      className="h-btn-secondary flex-row rounded-pill bg-sand p-1"
+      className={`flex-row gap-1 rounded-pill bg-sand p-1 ${ink ? 'h-12' : 'h-btn-secondary'}`}
     >
       {segments.map((s) => {
         const selected = s.value === value;
@@ -28,9 +34,15 @@ export function SegmentedControl<T extends string>({ segments, value, onChange, 
             accessibilityRole="tab"
             accessibilityLabel={s.label}
             accessibilityState={{ selected }}
-            className={`flex-1 items-center justify-center rounded-pill ${selected ? 'bg-paper shadow-sm' : ''}`}
+            className={`flex-1 items-center justify-center rounded-pill ${
+              selected ? (ink ? 'bg-ink' : 'bg-paper shadow-sm') : ''
+            }`}
           >
-            <Text variant="bodyMedium" tone={selected ? 'ink' : 'muted'} numberOfLines={1}>
+            <Text
+              variant={ink ? 'chip' : 'segment'}
+              tone={selected ? (ink ? 'cream' : 'ink') : ink ? 'ink' : 'muted'}
+              numberOfLines={1}
+            >
               {s.label}
             </Text>
           </Pressable>

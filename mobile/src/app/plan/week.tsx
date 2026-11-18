@@ -11,6 +11,7 @@ import { Badge, PopoverMenu } from '@/components/ui/Bits';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 import { IconButton } from '@/components/ui/IconButton';
+import { ListTabBar } from '@/components/navigation/TabBar';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
@@ -100,7 +101,7 @@ export default function PlanWeekScreen() {
   };
 
   return (
-    <Screen bottom>
+    <Screen>
       <ScreenHeader
         leading="back"
         onLeadingPress={goBack}
@@ -295,6 +296,7 @@ export default function PlanWeekScreen() {
           );
         }}
       </ScreenState>
+      <ListTabBar owner="index" />
     </Screen>
   );
 }

@@ -13,7 +13,7 @@ type ChipProps = {
   accessibilityHint?: string;
 };
 
-/** 36 high pill. Selected = filled ink. */
+/** 36 high pill, line border on the screen colour, Jost 13 (canvas `.chip`). Selected = filled ink, cream text. */
 export function Chip({ label, selected = false, onPress, disabled = false, badge, accessibilityHint }: ChipProps) {
   return (
     <Pressable
@@ -24,16 +24,16 @@ export function Chip({ label, selected = false, onPress, disabled = false, badge
       accessibilityHint={accessibilityHint}
       accessibilityState={{ selected, disabled }}
       hitSlop={{ top: 4, bottom: 4 }}
-      className={`h-chip flex-row items-center gap-2 rounded-pill border px-4 ${
-        selected ? 'border-ink bg-ink' : 'border-line bg-paper'
+      className={`h-chip flex-row items-center gap-1.5 rounded-pill border px-[15px] ${
+        selected ? 'border-ink bg-ink' : 'border-line bg-transparent'
       } ${disabled ? 'opacity-40' : 'active:opacity-80'}`}
     >
-      <Text variant="bodyMedium" tone={selected ? 'paper' : 'ink'} numberOfLines={1}>
+      <Text variant="chip" tone={selected ? 'cream' : 'ink'} numberOfLines={1}>
         {label}
       </Text>
       {badge ? (
-        <View className="rounded-pill bg-sand px-2 py-0.5">
-          <Text variant="caption" tone="accent">
+        <View className="h-[18px] justify-center rounded-pill bg-sand px-2">
+          <Text variant="dot" className="font-sans-medium">
             {badge}
           </Text>
         </View>

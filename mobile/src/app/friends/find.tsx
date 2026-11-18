@@ -13,6 +13,7 @@ import { Chip } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
+import { ListTabBar } from '@/components/navigation/TabBar';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -101,7 +102,7 @@ export default function FindFriendsScreen() {
   };
 
   return (
-    <Screen bottom>
+    <Screen>
       <ScreenHeader title={t('screens.friendsFind')} leading="back" />
       <OfflineBanner />
       <ScrollView contentContainerClassName="gap-6 pb-10" keyboardShouldPersistTaps="handled">
@@ -230,6 +231,7 @@ export default function FindFriendsScreen() {
           </>
         )}
       </ScrollView>
+      <ListTabBar owner="discover" />
     </Screen>
   );
 }

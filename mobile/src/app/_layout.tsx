@@ -7,6 +7,7 @@ import { CormorantGaramond_500Medium } from '@expo-google-fonts/cormorant-garamo
 import { CormorantGaramond_600SemiBold } from '@expo-google-fonts/cormorant-garamond/600SemiBold';
 import { Jost_400Regular } from '@expo-google-fonts/jost/400Regular';
 import { Jost_500Medium } from '@expo-google-fonts/jost/500Medium';
+import { Jost_600SemiBold } from '@expo-google-fonts/jost/600SemiBold';
 import { Roboto_500Medium } from '@expo-google-fonts/roboto/500Medium';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
@@ -34,6 +35,7 @@ export default function RootLayout() {
     CormorantGaramond_600SemiBold,
     Jost_400Regular,
     Jost_500Medium,
+    Jost_600SemiBold,
     Roboto_500Medium,
   });
   const session = useSession();

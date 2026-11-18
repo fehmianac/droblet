@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/Button';
 import { Chip, ChipRow } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { OfflineBanner } from '@/components/ui/OfflineBanner';
+import { ListTabBar } from '@/components/navigation/TabBar';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -214,7 +215,7 @@ export default function ShopScreen() {
   );
 
   return (
-    <Screen bottom>
+    <Screen>
       <ScreenHeader title={t('screens.shop')} leading="back" right={<CartButton />} />
       <OfflineBanner />
       <FlatList
@@ -350,6 +351,7 @@ export default function ShopScreen() {
           </SectionState>
         </View>
       </BottomSheet>
+      <ListTabBar owner="discover" />
     </Screen>
   );
 }

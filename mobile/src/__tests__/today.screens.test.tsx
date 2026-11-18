@@ -56,7 +56,8 @@ describe('07 Haftalık plan', () => {
     await waitFor(() => expect(screen.getByText('Lacivert Blazer')).toBeTruthy(), WAIT);
     expect(screen.getByText('Weekly plan')).toBeTruthy();
     expect(screen.getByText('Plan my week')).toBeTruthy();
-    expect(screen.getByText('Today')).toBeTruthy();
+    // "Today" = the day badge and the tab of the bottom menu, which stays on this list screen (canvas 07).
+    expect(screen.getAllByText('Today').length).toBe(2);
 
     // 07b: the cost is shown before anything is spent.
     await fireEvent.press(screen.getByText('Try it on me'));

@@ -7,17 +7,17 @@ import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { Icon } from './Icon';
 import { Text } from './Text';
 
-/** Small pill label ("Sonbahar", "Yakında", "Öneri: A"). `accent` = filled espresso. */
+/** Small pill label ("Sonbahar", "Yakında", "Mağaza") — canvas `.badge`: 22 high, Jost 500 11. `accent` = filled espresso. */
 export function Badge({ label, tone = 'sand', icon }: { label: string; tone?: 'sand' | 'accent' | 'ink'; icon?: LucideIcon }) {
   const filled = tone !== 'sand';
   return (
     <View
-      className={`h-7 flex-row items-center gap-1 self-start rounded-pill px-2.5 ${
+      className={`h-badge flex-row items-center gap-1 self-start rounded-pill px-2 ${
         tone === 'accent' ? 'bg-accent' : tone === 'ink' ? 'bg-ink' : 'bg-sand'
       }`}
     >
-      {icon ? <Icon icon={icon} size={13} tone={filled ? 'paper' : 'ink'} /> : null}
-      <Text variant="caption" tone={filled ? 'paper' : 'ink'} numberOfLines={1}>
+      {icon ? <Icon icon={icon} size={12} tone={filled ? 'paper' : 'ink'} /> : null}
+      <Text variant="badge" tone={filled ? 'paper' : 'ink'} numberOfLines={1}>
         {label}
       </Text>
     </View>
@@ -25,23 +25,43 @@ export function Badge({ label, tone = 'sand', icon }: { label: string; tone?: 's
 }
 
 /**
- * Upper-case label sitting on an image ("OFİS", "ÖNİZLEME", "ARKA PLAN YOK"). The string must already
- * be upper-case (translation file or `toDisplayUpper`). Position it with `className` (absolute …).
+ * Upper-case label sitting on an image ("OFİS", "ÖNİZLEME", "SENİN ÜZERİNDE") — canvas `.tag`: paper at 92 %,
+ * radius 6, Jost 500 9.5 with 10 % tracking. The string must already be upper-case (translation file or
+ * `toDisplayUpper`). Position it with `className` (the canvas default is `absolute bottom-2 left-2`).
  */
 export function ImageTag({ label, className }: { label: string; className?: string }) {
   return (
-    <View className={`self-start rounded-pill bg-paper/90 px-2.5 py-1 ${className ?? ''}`}>
-      <Text variant="eyebrow" tone="ink" numberOfLines={1}>
+    <View className={`self-start rounded-tag bg-paper/90 px-[7px] py-1 ${className ?? ''}`}>
+      <Text variant="tag" tone="ink" numberOfLines={1}>
         {label}
       </Text>
     </View>
   );
 }
 
-/** Sand information box: icon + one or two calm sentences. */
+/**
+ * "EKSİK PARÇA" marker on a piece the user does not own (canvas `.miss`): espresso, paper text, radius 6,
+ * top-right of the image. `short` = "EKSİK" for 56-wide thumbnails. Position it with `className`.
+ */
+export function MissingTag({ short = false, className }: { short?: boolean; className?: string }) {
+  const { t } = useTranslation();
+  return (
+    <View
+      accessible
+      accessibilityLabel={t('common.missingPiece')}
+      className={`self-start rounded-tag bg-accent ${short ? 'px-1 py-0.5' : 'px-1.5 py-[3px]'} ${className ?? ''}`}
+    >
+      <Text variant="miss" tone="paper" numberOfLines={1} className={short ? 'text-[8px] leading-[10px]' : ''}>
+        {t(short ? 'common.missingTagShort' : 'common.missingTag')}
+      </Text>
+    </View>
+  );
+}
+
+/** Sand information box (canvas `.info`): icon + one or two calm sentences. */
 export function InfoNote({ text, icon = Info }: { text: string; icon?: LucideIcon }) {
   return (
-    <View className="flex-row items-start gap-2.5 rounded-image-lg bg-sand p-3">
+    <View className="flex-row items-start gap-2.5 rounded-image-lg bg-sand px-3.5 py-3">
       <Icon icon={icon} size={18} />
       <Text variant="caption" className="flex-1">
         {text}
@@ -78,7 +98,7 @@ export function PopoverMenu({ visible, onClose, actions, top, right = 20 }: Menu
       <View
         accessibilityRole="menu"
         accessibilityViewIsModal
-        className="absolute min-w-52 rounded-image-lg border border-line bg-paper py-1 shadow-sm"
+        className="absolute min-w-[190px] rounded-menu border border-line bg-paper p-1.5 shadow-lg"
         style={{ top, right }}
       >
         {actions.map((action) => (
@@ -90,7 +110,7 @@ export function PopoverMenu({ visible, onClose, actions, top, right = 20 }: Menu
               onClose();
               action.onPress();
             }}
-            className="min-h-icon-btn flex-row items-center gap-3 px-4 active:opacity-70"
+            className="min-h-icon-btn flex-row items-center gap-2.5 rounded-thumb px-3 active:opacity-70"
           >
             {action.icon ? <Icon icon={action.icon} size={18} tone={action.destructive ? 'danger' : 'ink'} /> : null}
             <Text variant="body" tone={action.destructive ? 'danger' : 'ink'} numberOfLines={1}>

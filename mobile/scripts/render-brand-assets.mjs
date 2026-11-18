@@ -22,18 +22,37 @@ const DROP = 'M26 6C26 6 10 24 10 36a16 16 0 0 0 32 0C42 24 26 6 26 6z';
 const HOOK = 'M23.4 27a2.7 2.7 0 1 1 3.8 2.5c-.8.3-1.2.9-1.2 1.7v1.5M26 32.7 15.8 40.6h20.4z';
 const BASE = 'M26 32.7 15.8 40.6h20.4z';
 
-/** The mark, `height` px tall, centred in a `size`×`size` canvas (mark box is 36:50 — the whole drop). */
+/**
+ * The mark's box, exactly as every canvas board draws it: `viewBox="8 4 36 42"`. The drop path runs to
+ * y = 52, the box ends at y = 46, and an SVG clips at its viewport — the canvas mark has a flat base.
+ * Keep in sync with MARK_BOX_HEIGHT in src/components/brand/logoPaths.ts (50 = the whole round drop).
+ */
+const BOX_W = 36;
+const BOX_H = 42;
+
+let clipSeq = 0;
+
+function round(n) {
+  return Math.round(n * 1000) / 1000;
+}
+
+/** The mark with a box `height` px tall, centred in a `size`×`canvasHeight` canvas, clipped to its box. */
 function mark({ size, height, drop, hook, hookPath = HOOK, strokeWidth = 2.2, cutOut = false, canvasHeight = size }) {
-  const width = (height * 36) / 50;
+  const scale = height / BOX_H;
+  const width = BOX_W * scale;
   const x = (size - width) / 2;
   const y = (canvasHeight - height) / 2;
+  const id = `c${clipSeq++}`;
   const stroke = `fill="none" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"`;
+  const open = `<defs><clipPath id="${id}"><rect x="8" y="4" width="${BOX_W}" height="${BOX_H}"/></clipPath>`;
+  const group = `<g transform="translate(${round(x)} ${round(y)}) scale(${round(scale)}) translate(-8 -4)" clip-path="url(#${id})">`;
   if (cutOut) {
     // Monochrome layer: the hook is transparent (alpha is the only channel Android uses).
-    return `<defs><mask id="m" maskUnits="userSpaceOnUse" x="8" y="4" width="36" height="50"><rect x="8" y="4" width="36" height="50" fill="#fff"/><path d="${hookPath}" ${stroke} stroke="#000"/></mask></defs>
-  <svg x="${x}" y="${y}" width="${width}" height="${height}" viewBox="8 4 36 50"><path d="${DROP}" fill="${drop}" mask="url(#m)"/></svg>`;
+    return `${open}<mask id="m${id}" maskUnits="userSpaceOnUse" x="8" y="4" width="${BOX_W}" height="${BOX_H}"><rect x="8" y="4" width="${BOX_W}" height="${BOX_H}" fill="#fff"/><path d="${hookPath}" ${stroke} stroke="#000"/></mask></defs>
+  ${group}<path d="${DROP}" fill="${drop}" mask="url(#m${id})"/></g>`;
   }
-  return `<svg x="${x}" y="${y}" width="${width}" height="${height}" viewBox="8 4 36 50"><path d="${DROP}" fill="${drop}"/><path d="${hookPath}" ${stroke} stroke="${hook}"/></svg>`;
+  return `${open}</defs>
+  ${group}<path d="${DROP}" fill="${drop}"/><path d="${hookPath}" ${stroke} stroke="${hook}"/></g>`;
 }
 
 function svg(width, height, body, background) {
@@ -41,42 +60,57 @@ function svg(width, height, body, background) {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${bg}\n  ${body}\n</svg>\n`;
 }
 
+/**
+ * Proportions from `LogoIkon.dc.html`:
+ * - iOS tile 180 → mark box 116 high (64.4 % of the tile), stroke 2.2.
+ * - Android adaptive: the 120 circle on the board is the visible 72 dp of the 108 dp layer and holds a
+ *   66-high box → 39.6 dp → 36.7 % of the layer.
+ * - 29 px: box 19 of 29 high, hook dropped, hanger base only at stroke 3.4, tile radius 7 of 29.
+ */
+const IOS_MARK = 116 / 180;
+const ANDROID_MARK = ((66 / 120) * 72) / 108;
+
 /** name → { png (relative to assets/), width, height, svg } */
 const assets = {
-  // iOS / store icon: cream drop on ink, mark = 62 % of the tile height. Full bleed; the OS masks it.
-  icon: { png: 'images/icon.png', w: 1024, h: 1024, svg: svg(1024, 1024, mark({ size: 1024, height: 636, drop: CREAM, hook: INK }), INK) },
-  // Android adaptive: 108 dp canvas, 66 dp safe zone; the mark is 42 dp tall.
+  // iOS / store icon: cream drop on ink. Full bleed; the OS masks it.
+  icon: { png: 'images/icon.png', w: 1024, h: 1024, svg: svg(1024, 1024, mark({ size: 1024, height: 1024 * IOS_MARK, drop: CREAM, hook: INK }), INK) },
   'android-foreground': {
     png: 'images/android-icon-foreground.png',
     w: 512,
     h: 512,
-    svg: svg(512, 512, mark({ size: 512, height: 200, drop: CREAM, hook: INK })),
+    svg: svg(512, 512, mark({ size: 512, height: 512 * ANDROID_MARK, drop: CREAM, hook: INK })),
   },
   'android-background': { png: 'images/android-icon-background.png', w: 512, h: 512, svg: svg(512, 512, '', INK) },
   'android-monochrome': {
     png: 'images/android-icon-monochrome.png',
     w: 432,
     h: 432,
-    svg: svg(432, 432, mark({ size: 432, height: 168, drop: WHITE, hook: WHITE, cutOut: true })),
+    svg: svg(432, 432, mark({ size: 432, height: 432 * ANDROID_MARK, drop: WHITE, hook: WHITE, cutOut: true })),
   },
   // Native splash: the static mark on the cream window background (the animated splash takes over in-app).
+  // The image is exactly the mark's 36:42 box; app.config.ts shows it 92 wide like `Splash.dc.html`.
   splash: {
     png: 'images/splash-icon.png',
-    w: 368,
-    h: 512,
-    svg: svg(368, 512, mark({ size: 368, canvasHeight: 512, height: 511, drop: INK, hook: CREAM })),
+    w: 432,
+    h: 504,
+    svg: svg(432, 504, mark({ size: 432, canvasHeight: 504, height: 504, drop: INK, hook: CREAM })),
   },
-  // Web favicon: at this size the hook is dropped, only the hanger base stays.
+  // Web favicon = the 29 px icon: the hook is dropped, only the hanger base stays.
   favicon: {
     png: 'images/favicon.png',
     w: 48,
     h: 48,
-    svg: svg(48, 48, `<rect width="48" height="48" rx="11" fill="${INK}"/>` + mark({ size: 48, height: 34, drop: CREAM, hook: INK, hookPath: BASE, strokeWidth: 3.4 })),
+    svg: svg(
+      48,
+      48,
+      `<rect width="48" height="48" rx="${round((48 * 7) / 29)}" fill="${INK}"/>` +
+        mark({ size: 48, height: (48 * 19) / 29, drop: CREAM, hook: INK, hookPath: BASE, strokeWidth: 3.4 }),
+    ),
   },
 };
 
 // Layer for the iOS Icon Composer bundle (assets/expo.icon): the mark only, on a transparent canvas.
-const iosLayer = svg(1024, 1024, mark({ size: 1024, height: 636, drop: CREAM, hook: INK }));
+const iosLayer = svg(1024, 1024, mark({ size: 1024, height: 1024 * IOS_MARK, drop: CREAM, hook: INK }));
 
 function findChrome() {
   const candidates = [

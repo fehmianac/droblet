@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { IconButton } from '@/components/ui/IconButton';
 import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
+import { ListTabBar } from '@/components/navigation/TabBar';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
@@ -161,7 +162,7 @@ export default function FriendsFeedScreen() {
   const shareUrl = sharing && invite.data ? lookShareUrl(linkDomain(), sharing.lookId, invite.data.code) : null;
 
   return (
-    <Screen bottom>
+    <Screen>
       <ScreenHeader
         title={t('feed.title')}
         leading="back"
@@ -215,6 +216,7 @@ export default function FriendsFeedScreen() {
         message={shareUrl ? t('share.lookMessage', { url: shareUrl }) : ''}
         kind="look"
       />
+      <ListTabBar owner="discover" />
     </Screen>
   );
 }

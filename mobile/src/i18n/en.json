@@ -1,5 +1,8 @@
 {
   "common": {
+    "missingPiece": "Missing piece",
+    "missingTag": "MISSING PIECE",
+    "missingTagShort": "MISSING",
     "continue": "Continue",
     "skip": "Skip",
     "close": "Close",
@@ -82,10 +85,7 @@
     "socialFailed": "Sign-in couldn't be completed. Try again."
   },
   "welcome": {
-    "tileWardrobe": "Personal wardrobe",
-    "tileStylist": "Style assistant",
-    "tilePacking": "Packing",
-    "brand": "Droblet",
+    "eyebrow": "PERSONAL WARDROBE · STYLE ASSISTANT · PACKING",
     "promise": "No more “what do I wear” mornings or hours of packing. Your wardrobe now thinks for you.",
     "start": "Get started",
     "haveAccount": "I already have an account",

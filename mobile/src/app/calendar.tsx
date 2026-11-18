@@ -12,6 +12,7 @@ import { Chip } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
 import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
+import { ListTabBar } from '@/components/navigation/TabBar';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
@@ -82,7 +83,7 @@ export default function CalendarScreen() {
   };
 
   return (
-    <Screen bottom>
+    <Screen>
       <ScreenHeader leading="back" onLeadingPress={goBack} />
       <View className="gap-1 px-gutter pb-3">
         <Text variant="eyebrow">{t('calendarScreen.eyebrow')}</Text>
@@ -230,6 +231,7 @@ export default function CalendarScreen() {
           );
         }}
       </ScreenState>
+      <ListTabBar owner="index" />
     </Screen>
   );
 }

@@ -11,6 +11,7 @@ import { CartButton } from '@/components/blocks/SectionState';
 import { Button } from '@/components/ui/Button';
 import { IconButton } from '@/components/ui/IconButton';
 import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
+import { ListTabBar } from '@/components/navigation/TabBar';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
@@ -135,7 +136,7 @@ export default function WatchlistScreen() {
   const profileSize = useBodyProfile().data?.size ?? null;
 
   return (
-    <Screen bottom>
+    <Screen>
       <ScreenHeader leading="back" right={<CartButton />} />
       <ScreenState
         query={watchlist}
@@ -164,6 +165,7 @@ export default function WatchlistScreen() {
           />
         )}
       </ScreenState>
+      <ListTabBar owner="profile" />
     </Screen>
   );
 }

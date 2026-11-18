@@ -4,13 +4,29 @@
  */
 
 /**
- * Box around the whole drop (x 10–42, y 6–52, plus 2 units of air): 36 × 50. The canvas boards use
- * `viewBox="8 4 36 42"`, which cuts the bottom of the drop wherever the SVG clips (it does in
- * react-native-svg), so the app uses the full shape drawn on `Logo.dc.html`.
+ * The mark is drawn in the box every canvas screen uses: `viewBox="8 4 36 42"` (headers 20 × 24,
+ * welcome 44 × 52, splash 92 × 108, app icon 104 × 116 in a 180 tile — `LogoIkon`, `LogoKullanim`,
+ * `Main`, `Splash`). That box ends at y = 46 while the drop path runs to y = 52, and an SVG clips at
+ * its viewport — so on the canvas the drop has a flat base, on every screen and on every icon size.
+ * The app reproduces exactly that. (The presentation boards `Logo` and the horizontal lock-up on
+ * `LogoKullanim` use a taller box and show the round base; to switch the whole app and the generated
+ * icons to that shape, set MARK_BOX_HEIGHT to 50 here and in scripts/render-brand-assets.mjs.)
  * The aspect ratio must never change (LogoKullanim: no stretching, no rotation).
  */
-export const MARK_VIEWBOX = '8 4 36 50';
-export const MARK_ASPECT = 36 / 50;
+export const MARK_BOX_WIDTH = 36;
+export const MARK_BOX_HEIGHT = 42;
+export const MARK_VIEWBOX = `8 4 ${MARK_BOX_WIDTH} ${MARK_BOX_HEIGHT}`;
+export const MARK_ASPECT = MARK_BOX_WIDTH / MARK_BOX_HEIGHT;
+/** Width of the drop itself in viewBox units (x 10–42); clear space is half of it on every side (LogoKullanim). */
+export const DROP_WIDTH = 32;
+/** Smallest sizes allowed by `LogoKullanim`: symbol alone 16 wide, horizontal lock-up 96 wide. */
+export const MIN_MARK_WIDTH = 16;
+export const MIN_LOCKUP_WIDTH = 96;
+
+/** Minimum empty space around a mark `markWidth` wide: half the drop's width. */
+export function logoClearSpace(markWidth: number): number {
+  return ((DROP_WIDTH / MARK_BOX_WIDTH) * markWidth) / 2;
+}
 
 export const DROP_PATH = 'M26 6C26 6 10 24 10 36a16 16 0 0 0 32 0C42 24 26 6 26 6z';
 export const HOOK_PATH = 'M23.4 27a2.7 2.7 0 1 1 3.8 2.5c-.8.3-1.2.9-1.2 1.7v1.5M26 32.7 15.8 40.6h20.4z';

@@ -24,9 +24,9 @@ export function TextField({ label, error, hint, password = false, ref, ...input 
   const [hidden, setHidden] = useState(true);
   return (
     <View className="gap-1.5">
-      <Text variant="bodyMedium">{label}</Text>
+      <Text variant="label">{label}</Text>
       <View
-        className={`h-btn-primary flex-row items-center rounded-field border bg-paper ${
+        className={`h-field flex-row items-center rounded-field border bg-paper ${
           error ? 'border-danger' : 'border-line'
         }`}
       >
@@ -38,7 +38,7 @@ export function TextField({ label, error, hint, password = false, ref, ...input 
           selectionColor={colors.accent}
           secureTextEntry={password && hidden}
           maxFontSizeMultiplier={1.6}
-          className="h-full flex-1 px-4 font-sans text-body text-ink"
+          className="h-full flex-1 px-3.5 font-sans text-[15px] text-ink"
           {...input}
         />
         {password ? (

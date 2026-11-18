@@ -38,7 +38,7 @@ export function ProductCard({ brand, name, price, imageUri, favorite, onToggleFa
           <Text variant="body" numberOfLines={1}>
             {name}
           </Text>
-          {price !== null ? <Text variant="bodyMedium">{formatMoney(price)}</Text> : null}
+          {price !== null ? <Text variant="price">{formatMoney(price)}</Text> : null}
         </View>
       </Pressable>
       <View className="absolute right-2 top-2">
