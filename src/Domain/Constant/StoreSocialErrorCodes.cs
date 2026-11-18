@@ -1,0 +1,35 @@
+namespace Domain.Constant;
+
+/// <summary>Error codes of E8 (store), E9 (social), E11 (settings), analytics and weather. Same rules as <see cref="ErrorCodes"/>.</summary>
+public static class StoreSocialErrorCodes
+{
+    // Admin
+    public const string BrandNotFound = "brand_not_found";
+    public const string ProductNotFound = "product_not_found";
+
+    // Store
+    public const string ProductRetired = "product_retired";
+    public const string SizeNotAvailable = "size_not_available";
+    public const string CartEmpty = "cart_empty";
+    public const string CartFull = "cart_full";
+    public const string AffiliateLinkMissing = "affiliate_link_missing";
+    public const string WatchListFull = "watch_list_full";
+
+    // Affiliate postback
+    public const string InvalidSignature = "invalid_signature";
+    public const string ClickNotFound = "click_not_found";
+
+    // Social
+    public const string CannotTargetSelf = "cannot_target_self";
+    public const string FollowLimitReached = "follow_limit_reached";
+    public const string InviteCodeNotFound = "invite_code_not_found";
+    public const string InviteAlreadyAttributed = "invite_already_attributed";
+    public const string InviteWindowClosed = "invite_window_closed";
+
+    // Settings
+    public const string DeviceLimitReached = "device_limit_reached";
+
+    // Weather
+    public const string CityNotFound = "city_not_found";
+    public const string WeatherUnavailable = "weather_unavailable";
+}

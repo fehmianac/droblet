@@ -27,6 +27,25 @@ public static class DeletionPlan
         typeof(PaletteResultEntity),
         typeof(AffiliateClickEntity),
         typeof(AffiliateConversionEntity),
+        // E8 / E9 / E11 (store, social, settings). Cross-tenant twins: ICrossTenantCleanup.
+        typeof(CartLineEntity),
+        typeof(WatchItemEntity),
+        typeof(FollowingEntity),
+        typeof(FollowerEntity),
+        typeof(RatingEntity),
+        typeof(RatingGivenEntity),
+        typeof(LookRatingSummaryEntity),
+        typeof(SavedLookEntity),
+        typeof(SavedByEntity),
+        typeof(ShareEntity),
+        typeof(InviteEntity),
+        typeof(InviteeEntity),
+        typeof(BlockEntity),
+        typeof(BlockedByEntity),
+        typeof(ReportFiledEntity),
+        typeof(ReportReceivedEntity),
+        typeof(NotificationPrefEntity),
+        typeof(NotificationSentEntity),
     ];
 
     public static IReadOnlyList<string> TenantPartitionKeys(string tenantId) =>

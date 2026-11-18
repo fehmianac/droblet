@@ -11,6 +11,7 @@ public static partial class HandleRules
     [
         "admin", "administrator", "droblet", "droplet", "support", "help", "root", "system",
         "api", "www", "official", "staff", "moderator", "security", "privacy", "editor", "edit",
+        "suggested", // v1/tenant/people/suggested
     ];
 
     [GeneratedRegex("^[a-z0-9](?:[a-z0-9._]*[a-z0-9])?$")]
