@@ -21,25 +21,25 @@ const LIVE = {
   /** Hazır parça kütüphanesi (04b, 12b): `GET v1/tenant/library/item`, `POST v1/tenant/item/from-library`. */
   library: true,
   /** Bugün, haftalık plan, takvim (06–09). */
-  today: false,
+  today: true,
   /** Parçalar, look'lar, bavullar (10–15, 18–19). */
-  wardrobe: false,
+  wardrobe: true,
   /** Stilist önerileri (16–17). */
-  stylist: false,
+  stylist: true,
   /** AI job polling, try-on (22) and credits. */
-  jobs: false,
+  jobs: true,
   /** Keşfet editorial content (20). */
-  content: false,
+  content: true,
   /** Stil mağazası catalogue and products (21–23). */
-  catalog: false,
-  cart: false,
-  watchlist: false,
+  catalog: true,
+  cart: true,
+  watchlist: true,
   /** Arkadaş akışı, kişi profili, keşif (25–27). */
-  social: false,
+  social: true,
   /** Profil, gizlilik ve ayarlar, hesap silme (28–29). */
-  account: false,
+  account: true,
   /** Renk paleti (30). */
-  palette: false,
+  palette: true,
 } satisfies Record<string, boolean>;
 
 export const DATA_SOURCE = Object.fromEntries(
