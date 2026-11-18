@@ -29,7 +29,6 @@ import { IconButton } from '@/components/ui/IconButton';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
-import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { CreditConfirmSheet } from '@/features/credits/CreditConfirmSheet';
 import { indexItems, LookCover } from '@/features/looks/LookCover';
@@ -55,31 +54,6 @@ const FORECAST_ROW_MAX = 7;
 function leave() {
   if (router.canGoBack()) router.back();
   else router.replace('/wardrobe/trips');
-}
-
-function TripSkeleton() {
-  return (
-    <View className="gap-3 px-gutter">
-      <View className="gap-2">
-        <Skeleton className="h-3 w-40 rounded-field" />
-        <Skeleton className="h-9 w-1/2 rounded-field" />
-      </View>
-      <View className="flex-row gap-1.5">
-        {[0, 1, 2, 3, 4].map((i) => (
-          <Skeleton key={i} className="h-[60px] flex-1 rounded-field" />
-        ))}
-      </View>
-      <Skeleton className="h-[86px] w-full rounded-card" />
-      <View className="flex-row gap-2">
-        {[0, 1, 2, 3, 4].map((i) => (
-          <Skeleton key={i} className="h-[72px] w-16 rounded-thumb" />
-        ))}
-      </View>
-      {[0, 1, 2, 3].map((i) => (
-        <Skeleton key={i} className="h-9 w-full rounded-field" />
-      ))}
-    </View>
-  );
 }
 
 function Forecast({ trip }: { trip: TripDetail }) {
@@ -394,7 +368,7 @@ export default function TripDetailScreen() {
           ) : undefined
         }
       />
-      <ScreenState query={trip} skeleton={<TripSkeleton />}>
+      <ScreenState query={trip}>
         {(detail) => {
           const range = formatDateRange(parseLocalDate(detail.startDate), parseLocalDate(detail.endDate), { day: 'numeric', month: 'long' });
           const days = t('trips.days', { count: tripLengthDays(detail.startDate, detail.endDate) });

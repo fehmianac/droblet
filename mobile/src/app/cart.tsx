@@ -18,7 +18,6 @@ import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
-import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { useBrandCheckout, useRemoveCartLine } from '@/features/store/mutations';
@@ -28,16 +27,6 @@ import { formatMoney } from '@/lib/format';
 import { suffixed } from '@/lib/trSuffix';
 import { useIsOnline } from '@/sync/network';
 import { useThemeColors } from '@/theme/useThemeColors';
-
-function CartSkeleton() {
-  return (
-    <View className="gap-3 px-gutter pt-1">
-      <Skeleton className="h-14 w-full rounded-image-lg" />
-      <Skeleton className="h-64 w-full rounded-card" />
-      <Skeleton className="h-44 w-full rounded-card" />
-    </View>
-  );
-}
 
 /** `SepetBos` — the 96 sand circle with the bag, "Sepetin boş", one sentence and "Ürünleri keşfet". */
 function EmptyCart() {
@@ -180,7 +169,7 @@ export default function CartScreen() {
           hasLines ? <IconButton icon={Bookmark} onPress={() => router.push('/watchlist')} accessibilityLabel={t('cart.watchlist')} /> : undefined
         }
       />
-      <ScreenState query={cart} skeleton={<CartSkeleton />}>
+      <ScreenState query={cart}>
         {(data) =>
           data.lineCount === 0 ? (
             <EmptyCart />

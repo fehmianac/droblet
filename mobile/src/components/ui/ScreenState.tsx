@@ -4,9 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
 import { extractApiError } from '@/api/errors';
+import { DropLoader } from '@/components/brand/DropLoader';
 import { useIsOnline } from '@/sync/network';
 
-import { OfflineBanner } from './OfflineBanner';
 import { StateMessage } from './StateMessage';
 
 type QueryLike<T> = {
@@ -35,8 +35,6 @@ type EmptyState = {
 
 type Props<T> = {
   query: QueryLike<T>;
-  /** Loading = skeleton boxes shaped like the content (not a spinner). */
-  skeleton: ReactNode;
   isEmpty?: (data: T) => boolean;
   /** Empty = one sentence + one action. */
   empty?: EmptyState;
@@ -45,22 +43,18 @@ type Props<T> = {
    * a known cause. Known causes (no connection, session, server) keep their own sentence.
    */
   error?: { title?: string; message?: string };
-  /** Text of the offline top band, e.g. "Çevrimdışısın · kayıtlı gardırop gösteriliyor". */
-  offlineMessage?: string;
   /** Screen-reader name of the loading state ("Gardırop yükleniyor"). */
   loadingLabel?: string;
-  /** `false` when the screen draws `<OfflineBanner />` itself, above its header (default `true`). */
-  banner?: boolean;
   children: (data: T) => ReactNode;
 };
 
 /**
  * The five states of every list screen, drawn as on the `Durum*` boards (canvas note "Tüm liste ekranları
  * için ortak durumlar"): loading = skeleton boxes shaped like the content (never a spinner) · empty = one
- * sentence + one action · error = "Tekrar dene" · offline = cached data under the top band (or an explained
- * state when nothing is cached) · success.
+ * sentence + one action · error = "Tekrar dene" · offline = cached data (the root sync pill says so) or an explained
+ * state when nothing is cached · success.
  */
-export function ScreenState<T>({ query, skeleton, isEmpty, empty, error, offlineMessage, loadingLabel, banner = true, children }: Props<T>) {
+export function ScreenState<T>({ query, isEmpty, empty, error, loadingLabel, children }: Props<T>) {
   const { t } = useTranslation();
   const online = useIsOnline();
   const retry = () => void query.refetch();
@@ -116,17 +110,13 @@ export function ScreenState<T>({ query, skeleton, isEmpty, empty, error, offline
       />
     );
   } else {
-    body = (
-      <View testID="state-loading" accessibilityLabel={loadingLabel ?? t('a11y.loading')} accessibilityState={{ busy: true }} accessible>
-        {skeleton}
-      </View>
-    );
+    // First load with nothing cached: the drop loader holds the content's place (flex-1), so the header,
+    // chips and tab bar never move when the data arrives. Cached data is shown at once (no loader at all).
+    body = <DropLoader size="screen" testID="state-loading" accessibilityLabel={loadingLabel ?? t('a11y.loading')} />;
   }
 
   return (
-    <View className="flex-1">
-      {banner ? <OfflineBanner message={offlineMessage} /> : null}
-      {body}
-    </View>
+    // Offline / sync status is the floating `SyncPill` at the root: nothing here pushes the content.
+    <View className="flex-1">{body}</View>
   );
 }

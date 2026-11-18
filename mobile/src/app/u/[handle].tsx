@@ -35,17 +35,6 @@ type ProfileTab = 'looks' | 'closet' | 'trips';
 /** Distance from the top of the header to the ⋯ menu (canvas `.menu`, `top:52px`). */
 const MENU_OFFSET = 52;
 
-function ProfileSkeleton() {
-  return (
-    <View className="items-center gap-2 px-gutter pt-1">
-      <Skeleton className="h-[84px] w-[84px] rounded-pill" />
-      <Skeleton className="h-7 w-32 rounded-field" />
-      <Skeleton className="h-12 w-56 rounded-field" />
-      <Skeleton className="h-btn-secondary w-full rounded-pill" />
-    </View>
-  );
-}
-
 function GridSkeleton() {
   return (
     <View className="flex-row gap-1 px-1">
@@ -274,7 +263,6 @@ export default function PersonScreen() {
       />
       <ScreenState
         query={person}
-        skeleton={<ProfileSkeleton />}
         isEmpty={(data) => data === null}
         empty={{ message: t('person.notFound'), actionLabel: t('person.notFoundAction'), onAction: goBack }}
       >

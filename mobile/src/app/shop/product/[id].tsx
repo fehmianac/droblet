@@ -47,20 +47,6 @@ type ProductView = 'product' | 'onMe';
 /** Height of the image area on the board (it runs under the status bar). */
 const HERO_CLASS = 'h-[390px]';
 
-function DetailSkeleton() {
-  return (
-    <View className="gap-3.5">
-      <Skeleton className={`${HERO_CLASS} w-full`} />
-      <View className="gap-3 px-gutter">
-        <Skeleton className="h-3 w-24 rounded-field" />
-        <Skeleton className="h-7 w-56 rounded-field" />
-        <Skeleton className="h-chip w-full rounded-pill" />
-        <Skeleton className="h-16 w-full rounded-image-lg" />
-      </View>
-    </View>
-  );
-}
-
 /** One side of the Ürün / Üzerimde switch: a borderless 36 chip inside the paper pill. */
 function ViewOption({ label, selected, onPress, glyph }: { label: string; selected: boolean; onPress: () => void; glyph?: ReactNode }) {
   return (
@@ -460,7 +446,6 @@ export default function ProductScreen() {
       {loaded ? null : <ScreenHeader title={t('screens.product')} leading="back" />}
       <ScreenState
         query={product}
-        skeleton={<DetailSkeleton />}
         isEmpty={(data) => data === null}
         empty={{
           message: t('productDetail.notFound'),

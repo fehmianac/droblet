@@ -14,7 +14,6 @@ import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
-import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -396,7 +395,6 @@ export default function SettingsScreen() {
   return (
     <Screen bottom>
       <ScreenHeader title={t('screens.settings')} leading="back" />
-      <OfflineBanner />
       <ScrollView contentContainerClassName="gap-2.5 px-gutter pb-10 pt-0.5">
         <Text variant="eyebrow">{t('settings.visibilityEyebrow')}</Text>
         <RowCard>

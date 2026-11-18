@@ -14,7 +14,6 @@ import { Badge } from '@/components/ui/Bits';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
-import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Text } from '@/components/ui/Text';
@@ -89,7 +88,6 @@ export default function TryOnScreen() {
             <IconButton icon={ChevronLeft} variant="inverse" onPress={close} accessibilityLabel={t('a11y.back')} />
           </View>
         </View>
-        <OfflineBanner />
         <View className="flex-1 gap-3.5 px-6 pt-[22px]">
           <Text variant="eyebrow">{t('ai.tryOnEyebrow')}</Text>
           <AiFailure layout="inline" creditRefunded={job.creditRefunded} onRetry={retry} retrying={start.isStarting} />

@@ -16,7 +16,6 @@ import { ListTabBar } from '@/components/navigation/TabBar';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
-import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { preferredSize, priceDropPercent } from '@/features/store/cartMath';
 import { useAddToCart, useSetWatch } from '@/features/store/mutations';
@@ -136,17 +135,6 @@ function WatchCard({ entry, profileSize }: { entry: WatchlistEntry; profileSize:
   );
 }
 
-function WatchlistSkeleton() {
-  return (
-    <View className="gap-2.5 px-gutter pt-1">
-      <Skeleton className="h-9 w-48 rounded-field" />
-      {[0, 1, 2].map((i) => (
-        <Skeleton key={i} className="h-36 w-full rounded-card" />
-      ))}
-    </View>
-  );
-}
-
 /**
  * 24b İzleme listem — missing pieces of looks and products the user watches (separate from the
  * heart / favourites). A price drop shows the old and new price with the "Fiyat %20 düştü" badge and
@@ -164,7 +152,6 @@ export default function WatchlistScreen() {
       <ScreenHeader leading="back" right={<CartButton />} />
       <ScreenState
         query={watchlist}
-        skeleton={<WatchlistSkeleton />}
         isEmpty={(data) => data.items.length === 0}
         empty={{ message: t('watchlist.empty'), actionLabel: t('watchlist.emptyAction'), onAction: () => router.push('/shop') }}
       >

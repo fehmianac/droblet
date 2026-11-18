@@ -18,7 +18,6 @@ import { useMyProfile } from '@/features/account/queries';
 import { useRefreshTodayLook, useSetLookFavorite } from '@/features/today/api';
 import { dayPart, todayGreeting } from '@/features/today/logic';
 import { TodayLookCard } from '@/features/today/TodayLookCard';
-import { TodaySkeleton } from '@/features/today/TodaySkeleton';
 import { WeekStrip } from '@/features/today/WeekStrip';
 import { currentLanguage } from '@/i18n';
 import { formatLongDate, formatTemperature, parseLocalDate, seasonOf, weekdayShort } from '@/lib/format';
@@ -46,7 +45,7 @@ export default function TodayScreen() {
         <Logo />
         <IconButton icon={Bell} onPress={() => router.push('/notifications')} accessibilityLabel={t('todayHome.notifications')} />
       </View>
-      <ScreenState query={today} skeleton={<TodaySkeleton />}>
+      <ScreenState query={today}>
         {(data) => {
           const date = parseLocalDate(data.date);
           const lang = currentLanguage();
@@ -163,3 +162,6 @@ export default function TodayScreen() {
     </Screen>
   );
 }
+
+/** A render error in this tab shows the error state with "Tekrar dene"; the tab bar and the other tabs keep working. */
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';

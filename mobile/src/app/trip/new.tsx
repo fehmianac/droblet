@@ -2,30 +2,15 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, View } from 'react-native';
 
-import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
-import { Skeleton } from '@/components/ui/Skeleton';
 import { useTrip, useTripWrites } from '@/features/trips/api';
 import { TripForm } from '@/features/trips/TripForm';
 
 function leave() {
   if (router.canGoBack()) router.back();
   else router.replace('/wardrobe/trips');
-}
-
-function FormSkeleton() {
-  return (
-    <View className="gap-3 px-gutter pt-2">
-      <Skeleton className="h-field w-full rounded-field" />
-      <View className="flex-row gap-2.5">
-        <Skeleton className="h-field flex-1 rounded-field" />
-        <Skeleton className="h-field flex-1 rounded-field" />
-      </View>
-      <Skeleton className="h-chip w-2/3 rounded-pill" />
-    </View>
-  );
 }
 
 /**
@@ -44,7 +29,7 @@ export default function TripNewScreen() {
     <Screen bottom>
       <ScreenHeader title={t(id ? 'tripNew.editTitle' : 'tripNew.title')} leading="close" leadingVariant="outline" onLeadingPress={leave} />
       {id ? (
-        <ScreenState query={trip} skeleton={<FormSkeleton />}>
+        <ScreenState query={trip}>
           {(data) => (
             <ScrollView contentContainerClassName="px-gutter pb-8 pt-1" keyboardShouldPersistTaps="handled">
               <View className="rounded-card border border-line bg-paper p-4">
@@ -63,7 +48,6 @@ export default function TripNewScreen() {
         </ScreenState>
       ) : (
         <>
-          <OfflineBanner />
           <ScrollView contentContainerClassName="px-gutter pb-8 pt-1" keyboardShouldPersistTaps="handled">
             <View className="rounded-card border border-line bg-paper p-4">
               <TripForm

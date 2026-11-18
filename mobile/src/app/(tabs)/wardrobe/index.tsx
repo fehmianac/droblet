@@ -11,7 +11,6 @@ import { Badge } from '@/components/ui/Bits';
 import { Button } from '@/components/ui/Button';
 import { Chip, ChipRow } from '@/components/ui/Chip';
 import { IconButton } from '@/components/ui/IconButton';
-import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { ScreenState } from '@/components/ui/ScreenState';
 import { Text } from '@/components/ui/Text';
 import { TextField } from '@/components/ui/TextField';
@@ -19,7 +18,7 @@ import { FilterSheet } from '@/features/wardrobe/FilterSheet';
 import { applyFilters, BRAND_OTHER, DEFAULT_FILTERS, isFiltering, sheetFilterCount, toggleIn, type ItemFilters } from '@/features/wardrobe/filters';
 import { HangerGlyph } from '@/features/wardrobe/HangerGlyph';
 import { useDeleteItems, useUpdateItem } from '@/features/wardrobe/mutations';
-import { DeleteConfirmSheet, ItemGridSkeleton, ItemTile, OutlineBadge, padToColumns, SeasonSheet } from '@/features/wardrobe/parts';
+import { DeleteConfirmSheet, ItemTile, OutlineBadge, padToColumns, SeasonSheet } from '@/features/wardrobe/parts';
 import { useItems } from '@/features/wardrobe/queries';
 import { WardrobeHeader } from '@/features/wardrobe/WardrobeHeader';
 import { formatDate } from '@/lib/format';
@@ -283,12 +282,9 @@ export default function WardrobeItemsScreen() {
 
   return (
     <>
-      <OfflineBanner message={t('items.offlineBand')} />
       {header}
       <ScreenState
         query={query}
-        banner={false}
-        skeleton={<ItemGridSkeleton />}
         loadingLabel={t('items.loading')}
         error={{ title: t('items.errorTitle'), message: t('items.errorBody') }}
         isEmpty={(list) => list.length === 0}

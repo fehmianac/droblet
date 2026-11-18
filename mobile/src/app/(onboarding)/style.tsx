@@ -13,7 +13,6 @@ import { Badge } from '@/components/ui/Bits';
 import { Button } from '@/components/ui/Button';
 import { Chip, ChipWrap } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
-import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 
@@ -94,7 +93,6 @@ export default function StyleProfileScreen() {
 
   return (
     <Screen>
-      <OfflineBanner />
       <StepHeader step={1} total={3} />
       <ScrollView className="flex-1" contentContainerClassName="gap-6 px-6 pb-6 pt-6">
         <View className="gap-2.5">

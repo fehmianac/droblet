@@ -26,16 +26,6 @@ import { useThemeColors } from '@/theme/useThemeColors';
 
 type DiscoverSection = 'editor' | 'influencer' | 'series';
 
-function EditorSkeleton() {
-  return (
-    <View className="gap-4 pt-1.5">
-      <Skeleton className="mx-gutter h-[290px] rounded-card" />
-      <Skeleton className="mx-gutter h-6 w-48 rounded-field" />
-      <CreatorStripSkeleton />
-    </View>
-  );
-}
-
 function CreatorStripSkeleton() {
   return (
     <View className="flex-row gap-2.5 px-gutter">
@@ -123,24 +113,23 @@ export default function DiscoverTab() {
       <View className="h-12 flex-row items-center justify-between px-gutter">
         <Logo />
         <View className="flex-row gap-2">
-          <IconButton icon={Search} onPress={() => router.push('/shop')} accessibilityLabel={t('explore.search')} />
-          <CartButton />
+          <IconButton icon={Search} onPress={() => router.push('/shop')} accessibilityLabel={t('explore.search')} testID="discover.search" />
+          <CartButton testID="discover.cart" />
         </View>
       </View>
       <View className="pt-0.5">
         <ChipRow>
-          <Chip label={t('discover.chipEditor')} selected={section === 'editor'} onPress={() => setSection('editor')} />
-          <Chip label={t('discover.chipShop')} onPress={() => router.push('/shop')} />
-          <Chip label={t('discover.chipInfluencer')} selected={section === 'influencer'} onPress={() => setSection('influencer')} />
-          <Chip label={t('discover.chipFriends')} onPress={() => router.push('/friends/feed')} />
-          <Chip label={t('discover.chipSeries')} selected={section === 'series'} onPress={() => setSection('series')} />
+          <Chip testID="discover.chip.editor" label={t('discover.chipEditor')} selected={section === 'editor'} onPress={() => setSection('editor')} />
+          <Chip testID="discover.chip.shop" label={t('discover.chipShop')} onPress={() => router.push('/shop')} />
+          <Chip testID="discover.chip.influencer" label={t('discover.chipInfluencer')} selected={section === 'influencer'} onPress={() => setSection('influencer')} />
+          <Chip testID="discover.chip.friends" label={t('discover.chipFriends')} onPress={() => router.push('/friends/feed')} />
+          <Chip testID="discover.chip.series" label={t('discover.chipSeries')} selected={section === 'series'} onPress={() => setSection('series')} />
         </ChipRow>
       </View>
 
       {section === 'editor' ? (
         <ScreenState
           query={edit}
-          skeleton={<EditorSkeleton />}
           isEmpty={(data) => data === null}
           empty={{ message: t('explore.editEmpty'), actionLabel: t('explore.editEmptyAction'), onAction: () => router.push('/shop') }}
         >
@@ -190,11 +179,6 @@ export default function DiscoverTab() {
       {section === 'influencer' ? (
         <ScreenState
           query={creators}
-          skeleton={
-            <View className="pt-3">
-              <CreatorStripSkeleton />
-            </View>
-          }
           isEmpty={(list) => list.length === 0}
           empty={{
             message: t('explore.creatorsEmpty'),
@@ -218,11 +202,6 @@ export default function DiscoverTab() {
       {section === 'series' ? (
         <ScreenState
           query={series}
-          skeleton={
-            <View className="pt-3">
-              <CreatorStripSkeleton />
-            </View>
-          }
           isEmpty={(list) => list.length === 0}
           empty={{ message: t('explore.seriesEmpty'), actionLabel: t('explore.seriesEmptyAction'), onAction: () => setSection('editor') }}
         >
@@ -249,3 +228,6 @@ export default function DiscoverTab() {
     </Screen>
   );
 }
+
+/** A render error in this tab shows the error state with "Tekrar dene"; the tab bar and the other tabs keep working. */
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';

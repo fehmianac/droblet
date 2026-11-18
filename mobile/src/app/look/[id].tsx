@@ -16,7 +16,6 @@ import { IconButton } from '@/components/ui/IconButton';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
-import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { CreditConfirmSheet } from '@/features/credits/CreditConfirmSheet';
@@ -34,26 +33,6 @@ import { useIsOnline } from '@/sync/network';
 function leave() {
   if (router.canGoBack()) router.back();
   else router.replace('/wardrobe/looks');
-}
-
-function DetailSkeleton() {
-  return (
-    <View className="gap-3 px-gutter pt-1">
-      <View className="flex-row gap-2.5">
-        <Skeleton className="h-[264px] w-[200px] rounded-image-lg" />
-        <View className="flex-1 gap-2">
-          {[0, 1, 2].map((i) => (
-            <Skeleton key={i} className="h-[82px] w-full rounded-field" />
-          ))}
-        </View>
-      </View>
-      <Skeleton className="h-3 w-32 rounded-field" />
-      <Skeleton className="h-7 w-3/5 rounded-field" />
-      {[0, 1, 2].map((i) => (
-        <Skeleton key={i} className="h-12 w-full rounded-field" />
-      ))}
-    </View>
-  );
 }
 
 /** One piece of the look, as the piece rows of 17: 40 × 48 thumb, name, where it comes from. */
@@ -309,7 +288,7 @@ export default function LookScreen() {
           ) : undefined
         }
       />
-      <ScreenState query={query} skeleton={<DetailSkeleton />}>
+      <ScreenState query={query}>
         {(data) => <LookBody look={data} itemsById={itemsById} note={noteText} />}
       </ScreenState>
 

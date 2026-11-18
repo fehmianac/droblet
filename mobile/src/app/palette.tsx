@@ -241,7 +241,7 @@ export default function PaletteScreen() {
   return (
     <Screen bottom>
       <ScreenHeader title={t('screens.palette')} leading="back" />
-      <ScreenState query={palette} skeleton={<PaletteSkeleton />}>
+      <ScreenState query={palette}>
         {(data) => {
           if (data?.status === 'ready') return <ReadyView palette={data} faceUrl={photos.data?.face?.url ?? null} />;
           if (data?.status === 'pending') {

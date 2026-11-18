@@ -7,9 +7,7 @@ import { Text } from 'react-native';
 import '@/i18n';
 import { ApiError } from '@/api/errors';
 
-import { OfflineBanner } from './OfflineBanner';
 import { ScreenState } from './ScreenState';
-import { SkeletonGrid } from './Skeleton';
 import { StateMessage } from './StateMessage';
 
 type Query = Parameters<typeof ScreenState<string[]>>[0]['query'];
@@ -24,16 +22,16 @@ afterEach(() => {
 });
 
 describe('the five list states (canvas `Durum*` boards)', () => {
-  it('loading: the skeleton shaped like the content, named for screen readers and marked busy', async () => {
+  it('first load without cache: the drop loader holds the place, named for screen readers and marked busy', async () => {
     await show(
-      <ScreenState query={base} skeleton={<SkeletonGrid />} loadingLabel="Loading your wardrobe">
+      <ScreenState query={base} loadingLabel="Loading your wardrobe">
         {list}
       </ScreenState>,
     );
     const loading = screen.getByTestId('state-loading');
     expect(loading.props.accessibilityLabel).toBe('Loading your wardrobe');
     expect(loading.props.accessibilityState).toEqual({ busy: true });
-    expect(screen.queryByTestId('offline-banner')).toBeNull();
+    expect(loading.props.accessibilityRole).toBe('progressbar');
   });
 
   it('empty: headline, one sentence, the action — and the optional second way in', async () => {
@@ -42,7 +40,6 @@ describe('the five list states (canvas `Durum*` boards)', () => {
     await show(
       <ScreenState
         query={{ ...base, data: [], status: 'success', fetchStatus: 'idle' }}
-        skeleton={null}
         isEmpty={(items) => items.length === 0}
         empty={{
           icon: Shirt,
@@ -71,7 +68,6 @@ describe('the five list states (canvas `Durum*` boards)', () => {
     await show(
       <ScreenState
         query={{ ...base, data: [], status: 'success', fetchStatus: 'idle' }}
-        skeleton={null}
         isEmpty={(items) => items.length === 0}
         empty={{ message: 'Nothing saved yet.', actionLabel: 'Explore', onAction }}
       >
@@ -88,7 +84,6 @@ describe('the five list states (canvas `Durum*` boards)', () => {
     await show(
       <ScreenState
         query={{ ...base, status: 'error', fetchStatus: 'idle', error: new Error('boom'), refetch }}
-        skeleton={null}
         error={{ title: "Couldn't load your wardrobe", message: 'Your pieces are safe; try again shortly.' }}
       >
         {list}
@@ -103,7 +98,7 @@ describe('the five list states (canvas `Durum*` boards)', () => {
 
   it('error: a known cause keeps its own sentence, and the default headline is used without one', async () => {
     await show(
-      <ScreenState query={{ ...base, status: 'error', fetchStatus: 'idle', error: new ApiError('network', 0, null) }} skeleton={null} error={{ message: 'Screen sentence.' }}>
+      <ScreenState query={{ ...base, status: 'error', fetchStatus: 'idle', error: new ApiError('network', 0, null) }} error={{ message: 'Screen sentence.' }}>
         {list}
       </ScreenState>,
     );
@@ -112,30 +107,24 @@ describe('the five list states (canvas `Durum*` boards)', () => {
     expect(screen.queryByText('Screen sentence.')).toBeNull();
   });
 
-  it('offline with cached data: the list stays, under the top band with the screen text', async () => {
+  it('offline with cached data: the list stays and no band pushes it (the root sync pill reports offline)', async () => {
     onlineManager.setOnline(false);
     await show(
-      <ScreenState query={{ ...base, data: ['Blazer', 'Jean'], status: 'success', fetchStatus: 'paused' }} skeleton={null} offlineMessage="You're offline · showing your saved wardrobe">
-        {list}
-      </ScreenState>,
+      <ScreenState query={{ ...base, data: ['Blazer', 'Jean'], status: 'success', fetchStatus: 'paused' }}>{list}</ScreenState>,
     );
-    expect(screen.getByTestId('offline-banner')).toBeTruthy();
-    expect(screen.getByText("You're offline · showing your saved wardrobe")).toBeTruthy();
+    expect(screen.queryByTestId('offline-banner')).toBeNull();
     expect(screen.getByText('Blazer, Jean')).toBeTruthy();
   });
 
-  it('offline without cached data: explains it, and the screen can draw the band itself (`banner={false}`)', async () => {
+  it('offline without cached data: explains it', async () => {
     onlineManager.setOnline(false);
     await show(
       <>
-        <OfflineBanner />
-        <ScreenState query={{ ...base, fetchStatus: 'paused' }} skeleton={null} banner={false}>
+        <ScreenState query={{ ...base, fetchStatus: 'paused' }}>
           {list}
         </ScreenState>
       </>,
     );
-    expect(screen.getAllByTestId('offline-banner')).toHaveLength(1);
-    expect(screen.getByText("You're offline · showing what was last saved")).toBeTruthy();
     expect(screen.getByTestId('state-offline')).toBeTruthy();
     expect(screen.getByText("You're offline")).toBeTruthy();
   });

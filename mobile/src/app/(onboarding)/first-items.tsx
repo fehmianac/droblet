@@ -15,7 +15,6 @@ import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenState } from '@/components/ui/ScreenState';
-import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { libraryCategory } from '@/features/wardrobe/form';
 import { asGarmentColor } from '@/components/ui/ImageSlot';
@@ -60,24 +59,6 @@ function LibraryTile({ item, selected, onToggle }: { item: LibraryItem; selected
         {item.name}
       </Text>
     </Pressable>
-  );
-}
-
-function GridSkeleton() {
-  return (
-    <View className="gap-2.5 px-5 pt-3">
-      <Skeleton className="h-14 w-full rounded-card" />
-      {[0, 1, 2].map((row) => (
-        <View key={row} className="flex-row gap-2.5">
-          {[0, 1, 2].map((col) => (
-            <View key={col} className="flex-1 gap-1.5">
-              <Skeleton className="h-20 w-full rounded-image" />
-              <Skeleton className="h-3 w-2/3 rounded-tag" />
-            </View>
-          ))}
-        </View>
-      ))}
-    </View>
   );
 }
 
@@ -146,7 +127,6 @@ export default function FirstItemsScreen() {
 
       <ScreenState
         query={library}
-        skeleton={<GridSkeleton />}
         isEmpty={(items) => items.length === 0}
         empty={{ message: t('firstItems.empty'), actionLabel: t('firstItems.emptyAction'), onAction: openCamera }}
       >

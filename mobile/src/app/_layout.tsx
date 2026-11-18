@@ -19,6 +19,7 @@ import { useOnboardingStatus } from '@/auth/onboarding';
 import { AnimatedSplash } from '@/components/brand/AnimatedSplash';
 import { sessionStore, useSession } from '@/auth/session';
 import { AppHosts } from '@/components/AppHosts';
+import { SyncPill } from '@/components/ui/SyncPill';
 import { restoreLanguagePreference } from '@/i18n/preference';
 import { ConflictHost } from '@/sync/ConflictHost';
 import { wireNetworkAndFocus } from '@/sync/network';
@@ -132,8 +133,13 @@ export default function RootLayout() {
         <Stack.Screen name="(auth)/reset-password" />
       </Stack>
       <ConflictHost />
+      {/* Floating offline / sync status under the header: overlaid, never pushes a screen's content. */}
+      {signedIn ? <SyncPill /> : null}
       <AppHosts userId={userId} />
       {splashDone ? null : <AnimatedSplash onDone={finishSplash} />}
     </QueryProvider>
   );
 }
+
+/** Last resort for any screen without its own boundary: the error state instead of the app closing. */
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';

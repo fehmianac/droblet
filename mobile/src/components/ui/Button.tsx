@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react-native';
-import { ActivityIndicator, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
-import { useThemeColors } from '@/theme/useThemeColors';
+import { DropLoader } from '@/components/brand/DropLoader';
 
 import { Icon } from './Icon';
 import { Text } from './Text';
@@ -16,8 +16,12 @@ type Props = {
   variant?: ButtonVariant;
   /** Defaults: primary/danger 52, secondary/text 44. */
   size?: ButtonSize;
-  /** Shows a spinner instead of the label; the press is ignored. */
+  /**
+   * The inline drop loader over the label; the button keeps its width (canvas `YukleniyorInline`) and the
+   * press is ignored. `loadingLabel` ("Kaydediliyor…") replaces the label while loading.
+   */
   loading?: boolean;
+  loadingLabel?: string;
   disabled?: boolean;
   icon?: LucideIcon;
   /** Where the icon sits; 'trailing' for links that leave the app ("[Marka]'da öde"). Default 'leading'. */
@@ -50,6 +54,7 @@ export function Button({
   variant = 'primary',
   size,
   loading = false,
+  loadingLabel,
   disabled = false,
   icon,
   iconPosition = 'leading',
@@ -57,7 +62,6 @@ export function Button({
   className,
   testID,
 }: Props) {
-  const colors = useThemeColors();
   const inactive = disabled || loading;
   const filled = variant === 'primary' || variant === 'danger';
   const contentTone = filled ? 'cream' : 'ink';
@@ -75,17 +79,24 @@ export function Button({
         disabled ? 'opacity-40' : ''
       } ${className ?? ''}`}
     >
+      {/* The label stays laid out (invisible while loading) so the width never changes. */}
+      <View className={`flex-row items-center gap-2 ${loading ? 'opacity-0' : ''}`}>
+        {icon && iconPosition === 'leading' ? <Icon icon={icon} tone={contentTone} size={18} /> : null}
+        <Text variant="button" tone={contentTone} numberOfLines={1}>
+          {label}
+        </Text>
+        {icon && iconPosition === 'trailing' ? <Icon icon={icon} tone={contentTone} size={16} /> : null}
+      </View>
       {loading ? (
-        <ActivityIndicator color={filled ? colors.cream : colors.ink} />
-      ) : (
-        <View className="flex-row items-center gap-2">
-          {icon && iconPosition === 'leading' ? <Icon icon={icon} tone={contentTone} size={18} /> : null}
-          <Text variant="button" tone={contentTone} numberOfLines={1}>
-            {label}
-          </Text>
-          {icon && iconPosition === 'trailing' ? <Icon icon={icon} tone={contentTone} size={16} /> : null}
+        <View className="absolute inset-0 flex-row items-center justify-center gap-2" pointerEvents="none">
+          <DropLoader size="inline" tone={filled ? 'cream' : 'ink'} accessibilityLabel={loadingLabel ?? label} />
+          {loadingLabel ? (
+            <Text variant="button" tone={contentTone} numberOfLines={1}>
+              {loadingLabel}
+            </Text>
+          ) : null}
         </View>
-      )}
+      ) : null}
     </Pressable>
   );
 }

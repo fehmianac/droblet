@@ -1,8 +1,8 @@
-import { ActivityIndicator, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import { thirdPartyColors } from '@/theme/tokens';
-import { useThemeColors } from '@/theme/useThemeColors';
+import { DropLoader } from '@/components/brand/DropLoader';
 
 import { Text } from './Text';
 
@@ -37,7 +37,6 @@ function GoogleMark() {
  * four-colour G mark (never recoloured) and the label in the button type style.
  */
 export function GoogleButton({ label, onPress, loading = false, disabled = false }: Props) {
-  const colors = useThemeColors();
   const inactive = disabled || loading;
   return (
     <Pressable
@@ -52,7 +51,7 @@ export function GoogleButton({ label, onPress, loading = false, disabled = false
       }`}
     >
       {loading ? (
-        <ActivityIndicator color={colors.ink} />
+        <DropLoader size="inline" accessibilityLabel={label} />
       ) : (
         <View className="flex-row items-center gap-2">
           <GoogleMark />

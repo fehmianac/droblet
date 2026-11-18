@@ -10,7 +10,7 @@ export { GoogleButton } from './GoogleButton';
 export { Icon } from './Icon';
 export { CountDot, IconButton } from './IconButton';
 export { LookCard } from './LookCard';
-export { OfflineBanner } from './OfflineBanner';
+export { SyncPill } from './SyncPill';
 export { PlaceholderImage } from './PlaceholderImage';
 export { ProductCard } from './ProductCard';
 export { ProductRow } from './ProductRow';

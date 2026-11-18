@@ -27,7 +27,6 @@ import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
-import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { StateMessage } from '@/components/ui/StateMessage';
@@ -261,7 +260,6 @@ export function SuggestionResult({ jobId, title, result, focused, onAskAgain, as
         leading="back"
         right={waiting ? undefined : <IconButton icon={ShareIcon} iconSize={19} onPress={share} accessibilityLabel={t('stylistResult.share')} testID="share-suggestion" />}
       />
-      <OfflineBanner />
       <ScrollView contentContainerClassName="pb-6">
         {notice ? (
           <Text variant="caption" tone="muted" accessibilityLiveRegion="polite" className="px-gutter pb-2 pt-1">

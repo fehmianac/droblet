@@ -7,7 +7,6 @@ import { Badge } from '@/components/ui/Bits';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
-import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { useLooks } from '@/features/looks/queries';
 import { useCalendarMonth } from '@/features/today/api';
@@ -28,26 +27,6 @@ const UNWORN_SHOWN = 8;
 
 const itemImage = (item: Item) => (item.useOriginalImage ? item.originalImageUrl : item.imageUrl);
 const openItem = (id: string) => router.push({ pathname: '/item/[id]', params: { id } });
-
-function ReportSkeleton() {
-  return (
-    <View className="gap-6 px-gutter pt-1">
-      <View className="flex-row gap-2">
-        {[0, 1, 2].map((i) => (
-          <View key={i} className="flex-1">
-            <Skeleton className="h-[76px] w-full rounded-card" />
-          </View>
-        ))}
-      </View>
-      <View className="gap-2">
-        <Skeleton className="h-5 w-40 rounded-field" />
-        {[0, 1, 2].map((i) => (
-          <Skeleton key={i} className="h-16 w-full rounded-field" />
-        ))}
-      </View>
-    </View>
-  );
-}
 
 function Stat({ value, label }: { value: string; label: string }) {
   return (
@@ -88,7 +67,6 @@ export default function MonthReportScreen() {
       </View>
       <ScreenState
         query={query}
-        skeleton={<ReportSkeleton />}
         isEmpty={({ a }) => a.a.wearLogs.length === 0}
         empty={{ message: t('monthReport.emptyMessage'), actionLabel: t('monthReport.emptyAction'), onAction: goBack }}
       >

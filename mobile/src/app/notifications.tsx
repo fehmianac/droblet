@@ -11,7 +11,6 @@ import { IconButton } from '@/components/ui/IconButton';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
-import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { RowCard } from '@/features/account/rows';
 import { groupByDay, targetOf, unreadCount, type NotificationGroup } from '@/features/notifications/logic';
@@ -67,17 +66,6 @@ function groupLabel(group: NotificationGroup, t: TFunction, language: AppLanguag
   if (group.bucket === 'today') return t('notifCenter.today');
   if (group.bucket === 'yesterday') return t('notifCenter.yesterday');
   return toDisplayUpper(formatDate(group.date, { day: 'numeric', month: 'long', weekday: 'long' }), language);
-}
-
-function ListSkeleton() {
-  return (
-    <View className="gap-2.5 px-gutter pt-2">
-      <Skeleton className="h-4 w-24 rounded-field" />
-      <Skeleton className="h-36 w-full rounded-card" />
-      <Skeleton className="h-4 w-24 rounded-field" />
-      <Skeleton className="h-36 w-full rounded-card" />
-    </View>
-  );
 }
 
 type RowProps = { notification: AppNotification; group: NotificationGroup; first: boolean; onOpen: (n: AppNotification) => void };
@@ -146,7 +134,6 @@ export default function NotificationsScreen() {
       />
       <ScreenState
         query={notifications}
-        skeleton={<ListSkeleton />}
         isEmpty={(data) => data.items.length === 0}
         empty={{ message: t('notifCenter.empty'), actionLabel: t('notifCenter.settings'), onAction: openSettings }}
       >

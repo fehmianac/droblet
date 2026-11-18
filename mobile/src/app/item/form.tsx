@@ -6,7 +6,6 @@ import { View } from 'react-native';
 import type { ItemFields } from '@/api/contracts/wardrobe';
 import { AiChipReveal, AiFailure, AiProgressLines, AiShimmerImage } from '@/components/ui/ai';
 import { Button } from '@/components/ui/Button';
-import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
@@ -18,26 +17,6 @@ import { ItemForm } from '@/features/wardrobe/ItemForm';
 import { useAddItems, useRetryDraft, useUpdateItem } from '@/features/wardrobe/mutations';
 import { useItemDetail, useItemDrafts } from '@/features/wardrobe/queries';
 
-function FormSkeleton() {
-  return (
-    <View className="gap-5 px-gutter pt-1">
-      <View className="flex-row gap-4">
-        <Skeleton className="h-[164px] w-[132px] rounded-image-lg" />
-        <View className="flex-1 justify-center gap-2">
-          <Skeleton className="h-3 w-32 rounded-field" />
-          <Skeleton className="h-7 w-40 rounded-pill" />
-        </View>
-      </View>
-      {[0, 1, 2, 3].map((i) => (
-        <View key={i} className="gap-1.5">
-          <Skeleton className="h-3 w-20 rounded-field" />
-          <Skeleton className="h-btn-primary w-full rounded-field" />
-        </View>
-      ))}
-    </View>
-  );
-}
-
 /** Where the form returns to: back to the bulk review list, otherwise to the wardrobe grid. */
 function leave(from: string | undefined) {
   if (from === 'bulk' && router.canGoBack()) router.back();
@@ -48,7 +27,7 @@ function EditForm({ itemId }: { itemId: string }) {
   const query = useItemDetail(itemId);
   const update = useUpdateItem();
   return (
-    <ScreenState query={query} skeleton={<FormSkeleton />}>
+    <ScreenState query={query}>
       {(item) => (
         <ItemForm
           key={item.id}
@@ -78,7 +57,7 @@ function DraftForm({ draftId, from }: { draftId: string; from: string | undefine
   const [manual, setManual] = useState(false);
 
   return (
-    <ScreenState query={drafts} skeleton={<FormSkeleton />}>
+    <ScreenState query={drafts}>
       {(list) => {
         const draft = list.find((d) => d.id === draftId);
         if (!draft) {
@@ -164,7 +143,6 @@ export default function ItemFormScreen() {
   else {
     content = (
       <>
-        <OfflineBanner />
         <ItemForm
           mode="manual"
           initial={EMPTY_FORM}

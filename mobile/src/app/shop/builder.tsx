@@ -18,7 +18,6 @@ import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
-import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { ImageSlot, type Piece } from '@/components/ui/ImageSlot';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -205,7 +204,6 @@ export default function BuilderScreen() {
   return (
     <Screen>
       <ScreenHeader title={t('screens.builder')} leading="back" />
-      <OfflineBanner />
       <ScrollView contentContainerClassName="gap-3 pb-8 pt-1">
         <Text variant="body" tone="muted" className="px-gutter">
           {t('builder.intro')}

@@ -15,7 +15,6 @@ import { ListTabBar } from '@/components/navigation/TabBar';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
-import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { coverPieces } from '@/features/looks/LookCover';
 import { useLooks } from '@/features/looks/queries';
@@ -33,23 +32,6 @@ import { useThemeColors } from '@/theme/useThemeColors';
  * this screen is the first one rendered (deep link / cold start). Without history, go to Bugün.
  */
 const goBack = () => (router.canGoBack() ? router.back() : router.replace('/'));
-
-function CalendarSkeleton() {
-  return (
-    <View className="gap-[5px] px-gutter">
-      {[0, 1, 2, 3, 4].map((row) => (
-        <View key={row} className="flex-row gap-[5px] pt-[17px]">
-          {[0, 1, 2, 3, 4, 5, 6].map((cell) => (
-            <View key={cell} className="flex-1">
-              <Skeleton className="h-[52px] w-full rounded-lg" />
-            </View>
-          ))}
-        </View>
-      ))}
-      <Skeleton className="mt-3 h-20 w-full rounded-card" />
-    </View>
-  );
-}
 
 /**
  * 09 Takvim — "ne giyeceğim, ne giydim": a Monday-first month grid (the day number above a 52-high box:
@@ -97,7 +79,7 @@ export default function CalendarScreen() {
           </Text>
         ))}
       </View>
-      <ScreenState query={query} skeleton={<CalendarSkeleton />}>
+      <ScreenState query={query}>
         {({ a: data, b: lookList }) => {
           const lookOf = (status: DayStatus): Look | null =>
             status.kind !== 'empty' && status.lookId ? (lookList.find((l) => l.id === status.lookId) ?? null) : null;

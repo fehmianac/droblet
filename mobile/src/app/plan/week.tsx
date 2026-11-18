@@ -16,7 +16,6 @@ import { ListTabBar } from '@/components/navigation/TabBar';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
-import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { CreditConfirmSheet } from '@/features/credits/CreditConfirmSheet';
 import { useLooks } from '@/features/looks/queries';
@@ -30,17 +29,6 @@ import { currentLanguage } from '@/i18n';
 import { formatDate, formatIsoDateRange, parseLocalDate, toIsoDate } from '@/lib/format';
 import { toDisplayUpper } from '@/lib/upper';
 import { useThemeColors } from '@/theme/useThemeColors';
-
-function WeekSkeleton() {
-  return (
-    <View className="gap-2 px-gutter pt-1">
-      <Skeleton className="mb-1.5 h-[168px] w-full rounded-card" />
-      {[0, 1, 2, 3].map((i) => (
-        <Skeleton key={i} className="h-[94px] w-full rounded-card" />
-      ))}
-    </View>
-  );
-}
 
 /**
  * Explicit back: `ScreenHeader`'s default reads `router.canGoBack()` during render, which throws when
@@ -123,7 +111,6 @@ export default function PlanWeekScreen() {
       </View>
       <ScreenState
         query={query}
-        skeleton={<WeekSkeleton />}
         isEmpty={({ a, b }) => a.length === 0 && b.length === 0}
         empty={{ message: t('weekPlan.emptyMessage'), actionLabel: t('weekPlan.emptyAction'), onAction: () => router.push('/look/new') }}
       >

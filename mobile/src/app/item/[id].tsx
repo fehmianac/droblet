@@ -15,7 +15,6 @@ import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
-import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { ItemThumb } from '@/features/wardrobe/ItemThumb';
@@ -28,26 +27,6 @@ import type { PlaceholderTone } from '@/theme/tokens';
 
 /** Grounds of the look tiles on board 11, in order. */
 const LOOK_TONES: PlaceholderTone[] = ['taupe', 'dark', 'clay'];
-
-function DetailSkeleton() {
-  return (
-    <View className="gap-4">
-      <Skeleton className="h-[350px] w-full" />
-      <View className="gap-3 px-gutter">
-        <Skeleton className="h-3 w-40 rounded-field" />
-        <Skeleton className="h-7 w-3/5 rounded-field" />
-        <View className="flex-row gap-2">
-          {[0, 1, 2, 3].map((i) => (
-            <View key={i} className="flex-1">
-              <Skeleton className="h-14 w-full rounded-image" />
-            </View>
-          ))}
-        </View>
-        <Skeleton className="h-32 w-full rounded-image-lg" />
-      </View>
-    </View>
-  );
-}
 
 function InfoCard({ label, value }: { label: string; value: string }) {
   const { t } = useTranslation();
@@ -104,11 +83,6 @@ export default function ItemDetailScreen() {
     <Screen top={false}>
       <ScreenState
         query={query}
-        skeleton={
-          <View>
-            <DetailSkeleton />
-          </View>
-        }
       >
         {(item: ItemDetail) => {
           const meta = t('itemDetail.metaLine', {

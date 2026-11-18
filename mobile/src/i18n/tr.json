@@ -53,14 +53,20 @@
     "preview": "AI ÖNİZLEME"
   },
   "states": {
-    "offlineBanner": "Çevrimdışısın · son kaydedilen hali gösteriliyor",
-    "syncing": "Senkronize ediliyor ({{count}})",
     "errorTitle": "Bu sayfa şu an yüklenemedi.",
     "errorHeadline": "Yüklenemedi",
     "offlineHeadline": "Çevrimdışısın",
     "offlineNoCache": "Çevrimdışısın. Bağlantı gelince burayı dolduracağız.",
     "placeholder": "Bu ekran bir sonraki sürümde burada olacak.",
-    "placeholderAction": "Bugün'e dön"
+    "placeholderAction": "Bugün'e dön",
+    "pill": {
+      "syncing": "Senkronize ediliyor…",
+      "synced": "Senkronize edildi",
+      "offline": "Çevrimdışı · değişiklikler cihazda",
+      "error": "Senkronize edilemedi"
+    },
+    "crashTitle": "Bu ekran açılamadı",
+    "crashBody": "Bir şeyler ters gitti. Uygulamanın geri kalanı çalışıyor; bu ekranı yeniden deneyebilirsin."
   },
   "conflict": {
     "changedTitle": "Bunu başka bir cihazda değiştirdin",

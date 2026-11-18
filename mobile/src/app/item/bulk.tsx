@@ -13,7 +13,6 @@ import { IconButton } from '@/components/ui/IconButton';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
-import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import type { PreparedPhoto } from '@/features/photos/preparePhoto';
 import { usePhotoPicker } from '@/features/photos/usePhotoPicker';
@@ -32,17 +31,6 @@ type Notice =
   | { kind: 'offline' | 'photoFailed' | 'startFailed' | 'recognitionLimit' }
   | { kind: 'overLimit'; rejected: number }
   | { kind: 'quotaSkipped'; skipped: number };
-
-function BulkSkeleton() {
-  return (
-    <View className="gap-3 px-gutter pt-2">
-      <Skeleton className="h-24 w-full rounded-card" />
-      {[0, 1, 2].map((i) => (
-        <Skeleton key={i} className="h-[72px] w-full rounded-card" />
-      ))}
-    </View>
-  );
-}
 
 type RowProps = {
   draft: ItemDraft;
@@ -297,7 +285,7 @@ export default function ItemBulkScreen() {
   return (
     <Screen>
       <ScreenHeader title={t('bulkAdd.title')} leading="back" />
-      <ScreenState query={drafts} skeleton={<BulkSkeleton />}>
+      <ScreenState query={drafts}>
         {(list) => {
           if (list.length === 0) {
             return (

@@ -16,7 +16,6 @@ import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 import { Chip, ChipWrap } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
-import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
@@ -175,7 +174,6 @@ export default function BodyScreen() {
 
   return (
     <Screen>
-      <OfflineBanner />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
         <StepHeader step={2} total={3} onSkip={skip} skipTestID="body.skip" />
         <ScrollView className="flex-1" contentContainerClassName="gap-4 px-6 pb-6 pt-[18px]" keyboardShouldPersistTaps="handled">

@@ -12,7 +12,6 @@ import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
-import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { TextField } from '@/components/ui/TextField';
 import { HANDLE_MAX, HANDLE_MIN, NAME_MAX, normalizeHandle, validateProfile } from '@/features/account/logic';
@@ -29,16 +28,6 @@ function isHandleRefusal(error: unknown): boolean {
 
 /** keep = the saved photo, new = a file picked on this screen, removed = no photo after saving. */
 type AvatarDraft = { kind: 'keep' } | { kind: 'new'; photo: PreparedPhoto } | { kind: 'removed' };
-
-function FormSkeleton() {
-  return (
-    <View className="items-center gap-5 px-gutter pt-4">
-      <Skeleton className="h-[88px] w-[88px] rounded-pill" />
-      <Skeleton className="h-field w-full rounded-field" />
-      <Skeleton className="h-field w-full rounded-field" />
-    </View>
-  );
-}
 
 function Form({ profile }: { profile: MyProfile }) {
   const { t } = useTranslation();
@@ -194,7 +183,7 @@ export default function EditProfileScreen() {
   return (
     <Screen>
       <ScreenHeader title={t('profileEdit.title')} leading="back" />
-      <ScreenState query={profile} skeleton={<FormSkeleton />}>
+      <ScreenState query={profile}>
         {(data) => <Form profile={data} />}
       </ScreenState>
     </Screen>

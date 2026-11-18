@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
-import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { useEntitlement } from '@/entitlement/useEntitlement';
 import { useStoreProducts } from '@/entitlement/useStoreProducts';
@@ -95,16 +94,6 @@ function CreditsCard({ credits }: { credits: Entitlement['credits'] }) {
   );
 }
 
-function SubscriptionSkeleton() {
-  return (
-    <View className="gap-4 px-gutter pt-2">
-      <Skeleton className="h-36 w-full rounded-card" />
-      <Skeleton className="h-32 w-full rounded-card" />
-      <Skeleton className="h-24 w-full rounded-card" />
-    </View>
-  );
-}
-
 /**
  * Üyelik yönetimi (no board — derived from 05 Üyelik, 28 Profil and 29 Ayarlar): the current plan and its
  * renewal date, the month's AI image balance with "Kredi yükle", and the store actions (manage in the
@@ -128,7 +117,7 @@ export default function SubscriptionScreen() {
   return (
     <Screen bottom>
       <ScreenHeader title={t('subscription.title')} />
-      <ScreenState query={entitlement} skeleton={<SubscriptionSkeleton />}>
+      <ScreenState query={entitlement}>
         {(data) => {
           const isMember = data.tier === 'member';
           return (

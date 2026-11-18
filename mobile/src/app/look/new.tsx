@@ -64,7 +64,7 @@ export default function LookNewScreen() {
       const { slots, skipped } = assignItemsToSlots(items.data, itemIds);
       return <LookEditor look={null} initialSlots={slots} skippedCount={skipped.length} items={items.data} />;
     }
-    return shell(t('lookEditor.titleNew'), <ScreenState query={items} skeleton={<EditorSkeleton />}>{() => null}</ScreenState>);
+    return shell(t('lookEditor.titleNew'), <ScreenState query={items}>{() => null}</ScreenState>);
   }
 
   // Edit: the look is required; the wardrobe is only needed to flag deleted pieces, so an unavailable
@@ -75,7 +75,7 @@ export default function LookNewScreen() {
   }
   return shell(
     t('lookEditor.titleEdit'),
-    <ScreenState query={look} skeleton={<EditorSkeleton />}>
+    <ScreenState query={look}>
       {() => <EditorSkeleton />}
     </ScreenState>,
   );

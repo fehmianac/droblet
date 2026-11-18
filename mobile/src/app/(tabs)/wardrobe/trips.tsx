@@ -7,7 +7,6 @@ import type { Trip } from '@/api/contracts/trips';
 import { extractApiError } from '@/api/errors';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
-import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { useTrips, useTripWrites } from '@/features/trips/api';
@@ -123,7 +122,6 @@ export default function WardrobeTripsScreen() {
   return (
     <>
       <WardrobeHeader current="trips" eyebrow={t('trips.eyebrow')} title={t('trips.title')} />
-      <OfflineBanner />
       <ScrollView
         contentContainerClassName="gap-3.5 px-gutter pb-8"
         keyboardShouldPersistTaps="handled"

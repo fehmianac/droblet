@@ -53,14 +53,20 @@
     "preview": "AI PREVIEW"
   },
   "states": {
-    "offlineBanner": "You're offline · showing what was last saved",
-    "syncing": "Syncing ({{count}})",
     "errorTitle": "This page couldn't load right now.",
     "errorHeadline": "Couldn't load this",
     "offlineHeadline": "You're offline",
     "offlineNoCache": "You're offline. We'll fill this in once you're connected.",
     "placeholder": "This screen arrives in the next release.",
-    "placeholderAction": "Back to Today"
+    "placeholderAction": "Back to Today",
+    "pill": {
+      "syncing": "Syncing…",
+      "synced": "Synced",
+      "offline": "Offline · changes saved on device",
+      "error": "Couldn't sync"
+    },
+    "crashTitle": "This screen couldn't open",
+    "crashBody": "Something went wrong. The rest of the app still works; you can try this screen again."
   },
   "conflict": {
     "changedTitle": "You changed this on another device",

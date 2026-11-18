@@ -71,7 +71,7 @@ export function SectionState<T>({ query, skeleton, isEmpty, emptyText, errorText
 }
 
 /** Cart icon with the line-count badge → 24 Sepet. Used on 20, 21, 22 and 24b. */
-export function CartButton({ variant = 'outline' }: { variant?: 'outline' | 'plain' | 'inverse' }) {
+export function CartButton({ variant = 'outline', testID }: { variant?: 'outline' | 'plain' | 'inverse'; testID?: string }) {
   const { t } = useTranslation();
   const count = useCartCount().data ?? 0;
   return (
@@ -80,6 +80,7 @@ export function CartButton({ variant = 'outline' }: { variant?: 'outline' | 'pla
       variant={variant}
       badge={count}
       onPress={() => router.push('/cart')}
+      testID={testID}
       accessibilityLabel={count > 0 ? t('a11y.cartWithCount', { count }) : t('a11y.cart')}
     />
   );

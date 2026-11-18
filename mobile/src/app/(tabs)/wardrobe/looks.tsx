@@ -10,7 +10,6 @@ import { Chip, ChipRow } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
 import { ScreenState } from '@/components/ui/ScreenState';
-import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { useLookWrites } from '@/features/looks/api';
@@ -23,19 +22,6 @@ import { currentLanguage } from '@/i18n';
 import { formatNumber } from '@/lib/format';
 import { toDisplayUpper } from '@/lib/upper';
 import { useThemeColors } from '@/theme/useThemeColors';
-
-function LooksSkeleton() {
-  return (
-    <View className="flex-row flex-wrap gap-x-3 gap-y-3.5 px-gutter pt-2">
-      {[0, 1, 2, 3].map((i) => (
-        <View key={i} className="w-[47%] grow gap-2">
-          <Skeleton className="h-[210px] w-full rounded-image-lg" />
-          <Skeleton className="h-3 w-3/4 rounded-field" />
-        </View>
-      ))}
-    </View>
-  );
-}
 
 function LookTile({ look, itemsById, onToggleFavorite }: { look: Look; itemsById: ItemsById; onToggleFavorite: () => void }) {
   const { t } = useTranslation();
@@ -100,7 +86,6 @@ export default function WardrobeLooksScreen() {
       />
       <ScreenState
         query={looks}
-        skeleton={<LooksSkeleton />}
         isEmpty={(data) => data.length === 0}
         empty={{ message: t('looks.empty'), actionLabel: t('looks.create'), onAction: createLook }}
       >

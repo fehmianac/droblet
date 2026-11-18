@@ -1,11 +1,12 @@
 import { Info, Search, X } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Pressable, TextInput, View } from 'react-native';
+import { Pressable, TextInput, View } from 'react-native';
 
 import { Icon } from '@/components/ui/Icon';
 import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Text } from '@/components/ui/Text';
+import { DropLoader } from '@/components/brand/DropLoader';
 import { useThemeColors } from '@/theme/useThemeColors';
 
 /** Small pill label: "Yakında", "Örnek", "1 fiyat düştü". `accent` = filled espresso. */
@@ -125,7 +126,6 @@ type DangerButtonProps = { label: string; onPress: () => void; loading?: boolean
 
 /** Destructive primary action (52 high, danger fill). Always labelled with text — colour never carries the meaning alone. */
 export function DangerButton({ label, onPress, loading = false, disabled = false }: DangerButtonProps) {
-  const colors = useThemeColors();
   const inactive = disabled || loading;
   return (
     <Pressable
@@ -139,7 +139,7 @@ export function DangerButton({ label, onPress, loading = false, disabled = false
       }`}
     >
       {loading ? (
-        <ActivityIndicator color={colors.paper} />
+        <DropLoader size="inline" tone="cream" accessibilityLabel={label} />
       ) : (
         <Text variant="button" tone="paper" numberOfLines={1}>
           {label}

@@ -19,7 +19,7 @@ import { Text } from '@/components/ui/Text';
 import { matchesSearch, toggleIn } from '@/features/wardrobe/filters';
 import { libraryCategory, libraryItemFields } from '@/features/wardrobe/form';
 import { useAddItems } from '@/features/wardrobe/mutations';
-import { ItemGridSkeleton, ItemTile, padToColumns } from '@/features/wardrobe/parts';
+import { ItemTile, padToColumns } from '@/features/wardrobe/parts';
 import { useThemeColors } from '@/theme/useThemeColors';
 
 /**
@@ -47,7 +47,6 @@ export default function ItemLibraryScreen() {
       <ScreenHeader title={t('itemLibrary.title')} leading="back" />
       <ScreenState
         query={library}
-        skeleton={<ItemGridSkeleton rows={4} tileClassName="h-24 rounded-image" />}
         isEmpty={(items) => items.length === 0}
         empty={{ message: t('itemLibrary.empty'), actionLabel: t('itemLibrary.emptyAction'), onAction: () => router.replace('/item/add') }}
       >

@@ -8,7 +8,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { extractApiError } from '@/api/errors';
 import { InfoNote } from '@/components/ui/Bits';
 import { Button } from '@/components/ui/Button';
-import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Text } from '@/components/ui/Text';
@@ -40,7 +39,6 @@ export default function DeleteAccountScreen() {
   return (
     <Screen>
       <ScreenHeader leading="back" />
-      <OfflineBanner />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
         <ScrollView contentContainerClassName="gap-[18px] px-6 pb-6 pt-2" keyboardShouldPersistTaps="handled">
           <View className="gap-2.5">

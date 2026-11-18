@@ -25,7 +25,6 @@ import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
-import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { useAddToWatchlist, useSaveEditLook, useWeeklyEdit } from '@/features/today/api';
 import { EditProductRow } from '@/features/today/EditProductRow';
@@ -39,21 +38,6 @@ import { useIsOnline } from '@/sync/network';
 
 /** The image on 08 is 350 high and starts at the very top of the screen, under the status bar. */
 const HERO_HEIGHT = 350;
-
-function EditSkeleton() {
-  return (
-    <View className="gap-2.5">
-      <Skeleton className="h-[350px] w-full" />
-      <View className="gap-2.5 px-gutter pt-1">
-        <Skeleton className="h-3 w-2/3 rounded-field" />
-        <Skeleton className="h-7 w-3/4 rounded-field" />
-        <Skeleton className="h-10 w-full rounded-field" />
-        <Skeleton className="h-11 w-full rounded-pill" />
-        <Skeleton className="h-20 w-full rounded-field" />
-      </View>
-    </View>
-  );
-}
 
 /** Without history (deep link / cold start), back goes to Bugün. */
 const goBack = () => (router.canGoBack() ? router.back() : router.replace('/'));
@@ -161,7 +145,6 @@ export default function WeeklyEditScreen() {
       {overlay ? null : <ScreenHeader leading="back" onLeadingPress={goBack} right={actions('outline')} />}
       <ScreenState
         query={query}
-        skeleton={<EditSkeleton />}
         isEmpty={(data) => data.looks.length === 0}
         empty={{ message: t('weekEdit.emptyMessage'), actionLabel: t('weekEdit.emptyAction'), onAction: () => router.dismissTo('/') }}
       >

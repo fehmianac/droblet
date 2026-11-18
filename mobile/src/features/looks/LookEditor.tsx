@@ -14,7 +14,6 @@ import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
-import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Text } from '@/components/ui/Text';
@@ -130,7 +129,6 @@ export function LookEditor({ look, initialSlots, skippedCount = 0, items }: Prop
         onLeadingPress={leave}
         right={look ? <IconButton icon={Ellipsis} variant="plain" onPress={() => setMenu(true)} accessibilityLabel={t('lookEditor.more')} /> : undefined}
       />
-      <OfflineBanner />
       <ScrollView contentContainerClassName="gap-3 px-gutter pb-8 pt-1" keyboardShouldPersistTaps="handled">
         <View className="flex-row gap-3">
           <LookCover

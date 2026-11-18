@@ -5,7 +5,6 @@ import { View } from 'react-native';
 
 import { STYLIST_SUGGESTION_COUNT, type StylistOutfitRequest, type StylistOutfitResult } from '@/api/contracts/stylist';
 import { AiBackgroundAction, AiDropPulse, AiFailure, AiProgressLines, AiSkeletonCards, AiSkeletonRows } from '@/components/ui/ai';
-import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Text } from '@/components/ui/Text';
@@ -54,7 +53,6 @@ export default function StylistResultScreen() {
       <Screen bottom>
         {/* The board's leading control is the back chevron, named "Vazgeç": leaving does not cancel the job on the server. */}
         <ScreenHeader title={title} leading="back" leadingLabel={t('stylistResult.cancel')} />
-        <OfflineBanner />
         <View className="flex-1 gap-[22px] px-gutter pt-6" accessibilityState={{ busy: true }}>
           <View className="items-center gap-4">
             <AiDropPulse height={61} />
@@ -80,7 +78,6 @@ export default function StylistResultScreen() {
     return (
       <Screen bottom>
         <ScreenHeader title={title} leading="back" />
-        <OfflineBanner />
         {/* Text suggestions never reserve a credit, so there is nothing to refund. */}
         <AiFailure creditRefunded={false} onRetry={askAgain} retrying={restart.isStarting} />
       </Screen>

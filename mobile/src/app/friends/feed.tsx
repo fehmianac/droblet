@@ -25,23 +25,6 @@ import { ShareSheet } from '@/features/social/ShareSheet';
 import { formatNumber, relativeTime } from '@/lib/format';
 import { useThemeColors } from '@/theme/useThemeColors';
 
-function FeedSkeleton() {
-  return (
-    <View className="gap-3 pt-1">
-      <View className="flex-row gap-3.5 px-gutter">
-        {[0, 1, 2, 3, 4].map((i) => (
-          <Skeleton key={i} className="h-[58px] w-[58px] rounded-pill" />
-        ))}
-      </View>
-      <View className="gap-2.5 px-gutter">
-        <Skeleton className="h-9 w-48 rounded-field" />
-        <Skeleton className="h-[290px] w-full rounded-tile" />
-        <Skeleton className="h-11 w-full rounded-field" />
-      </View>
-    </View>
-  );
-}
-
 /** Story row: 58 rings, 14 apart, the first name under each (accent ring = a new look). */
 function Stories({ stories }: { stories: FeedStory[] }) {
   const { t } = useTranslation();
@@ -190,7 +173,6 @@ export default function FriendsFeedScreen() {
       />
       <ScreenState
         query={feed}
-        skeleton={<FeedSkeleton />}
         isEmpty={(data) => data.pages.every((p) => p.items.length === 0)}
         empty={{ message: t('feed.empty'), actionLabel: t('feed.emptyAction'), onAction: () => router.push('/friends/find') }}
       >

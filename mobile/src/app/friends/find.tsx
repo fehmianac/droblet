@@ -12,7 +12,6 @@ import { Badge } from '@/components/ui/Bits';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
-import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { ImageSlot } from '@/components/ui/ImageSlot';
 import { ListTabBar } from '@/components/navigation/TabBar';
 import { Screen } from '@/components/ui/Screen';
@@ -148,7 +147,6 @@ export default function FindFriendsScreen() {
   return (
     <Screen>
       <ScreenHeader title={t('screens.friendsFind')} leading="back" />
-      <OfflineBanner />
       <ScrollView contentContainerClassName="gap-3.5 pb-10 pt-1" keyboardShouldPersistTaps="handled">
         <View className="px-gutter">
           <PeopleSearch value={text} onChangeText={setText} />
