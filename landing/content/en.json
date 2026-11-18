@@ -1,0 +1,520 @@
+{
+  "meta": {
+    "siteName": "Droblet",
+    "homeTitle": "Droblet — Your wardrobe now thinks for you",
+    "homeDescription": "Photograph your clothes; Droblet prepares your outfit for every day and every trip. Personal wardrobe, style assistant and smart suitcase.",
+    "ogImageAlt": "Droblet logo: a drop whose inner space is a hanger hook"
+  },
+  "common": {
+    "skipToContent": "Skip to content",
+    "appStore": "Download on the App Store",
+    "googlePlay": "Get it on Google Play",
+    "appStoreSoon": "App Store · Coming soon",
+    "googlePlaySoon": "Google Play · Coming soon",
+    "openInApp": "Open in the app",
+    "backHome": "Back to home",
+    "unavailableTitle": "Currently unavailable"
+  },
+  "header": {
+    "homeAria": "Droblet home",
+    "navAria": "Site",
+    "how": "How it works",
+    "features": "Features",
+    "membership": "Membership",
+    "cta": "Get the app"
+  },
+  "home": {
+    "hero": {
+      "eyebrow": "PERSONAL WARDROBE · STYLE ASSISTANT · SUITCASE",
+      "title": "No more \"what do I wear\" mornings or hours of packing.",
+      "body": "Your wardrobe now thinks for you. Photograph your clothes; Droblet prepares your outfit for every day and every trip.",
+      "platforms": "iOS and Android · Turkish and English",
+      "phoneAlt": "App screen placeholder: Today",
+      "phoneLabel": "App screen: Today"
+    },
+    "how": {
+      "eyebrow": "HOW IT WORKS",
+      "title": "A ready wardrobe in three steps.",
+      "steps": [
+        {
+          "title": "Digitise",
+          "body": "Photograph your clothes or pick from the ready-made library. Droblet recognises the type, colour and fabric, and organises your wardrobe by category and season."
+        },
+        {
+          "title": "Combine",
+          "body": "Daily and weekly looks are prepared around the season, the weather, your calendar and your colour palette."
+        },
+        {
+          "title": "Complete",
+          "body": "If a look is missing a piece, we suggest one in your size and budget; one tap takes you to the brand's store."
+        }
+      ]
+    },
+    "features": {
+      "eyebrow": "FEATURES",
+      "title": "Shortens every morning and every trip.",
+      "items": [
+        {
+          "title": "Style advisor",
+          "body": "The outfit of the day is ready every morning: matched to the weather and the occasion in your calendar, from your own wardrobe.",
+          "tag": "APP SCREEN: STYLIST",
+          "alt": "Image placeholder: Stylist screen"
+        },
+        {
+          "title": "See it on me",
+          "body": "See outfits and store products on your own photo. AI images are always shown with the \"On you\" label.",
+          "tag": "ON YOU",
+          "alt": "Image placeholder: AI image on you"
+        },
+        {
+          "title": "Smart suitcase",
+          "body": "Enter the city and dates; you get daily looks and a packing list where every piece is worn more than once.",
+          "tag": "APP SCREEN: SUITCASE",
+          "alt": "Image placeholder: Suitcase screen"
+        },
+        {
+          "title": "Colour palette",
+          "body": "Finds your season type and the tones that suit you best from a face photo, and shows how well your wardrobe matches your palette.",
+          "tag": "APP SCREEN: COLOUR PALETTE",
+          "alt": "Image placeholder: Colour palette screen"
+        },
+        {
+          "title": "Style store",
+          "body": "Find the pieces that complete your look in your size. Payment and delivery happen in the brand's own store.",
+          "tag": "APP SCREEN: STORE",
+          "alt": "Image placeholder: Style store screen"
+        },
+        {
+          "title": "Friends",
+          "body": "Rate your friends' looks with 1–5 stars, get ratings on your own looks, and browse wardrobes.",
+          "tag": "APP SCREEN: FRIENDS",
+          "alt": "Image placeholder: Friends feed screen"
+        }
+      ]
+    },
+    "privacy": {
+      "eyebrow": "PRIVACY",
+      "title": "Your photos and the images generated on you are visible only to you. You can delete them at any time.",
+      "points": [
+        "Your face and full-length photos are never shown to anyone else, under any visibility setting.",
+        "You delete your photos and generated images with one tap from Profile › Privacy.",
+        "You choose who sees your wardrobe: everyone, followers only, or private."
+      ]
+    },
+    "membership": {
+      "eyebrow": "DROBLET MEMBERSHIP",
+      "title": "An outfit ready every morning. A suitcase ready for every trip.",
+      "body": "Monthly or yearly; start with a free trial. Wardrobe, looks, calendar, store and friends are open without a membership too.",
+      "benefits": [
+        {
+          "title": "30 AI images a month",
+          "body": "See products and outfits on your own photo"
+        },
+        {
+          "title": "Personal style advisor",
+          "body": "A daily outfit for the occasion and the weather"
+        },
+        {
+          "title": "Smart suitcase",
+          "body": "A list and daily looks for your city and dates"
+        },
+        {
+          "title": "Colour palette analysis",
+          "body": "The tones that suit your face best"
+        }
+      ],
+      "priceTitle": "The price is shown in the store",
+      "priceNote": "The current price and trial length are listed on the App Store and Google Play. Need more? Add an extra AI image pack.",
+      "cta": "Start the free trial"
+    },
+    "final": {
+      "title": "Your wardrobe now thinks for you."
+    }
+  },
+  "footer": {
+    "company": "Droblet Ltd",
+    "navAria": "Legal and contact",
+    "terms": "Terms of Use",
+    "privacy": "Privacy Policy",
+    "kvkk": "KVKK Privacy Notice",
+    "subscription": "Subscription Terms",
+    "cookies": "Cookie Notice",
+    "deleteAccount": "Delete my account",
+    "contact": "Contact",
+    "langAria": "Language"
+  },
+  "notFound": {
+    "metaTitle": "Page not found — Droblet",
+    "eyebrow": "404",
+    "title": "We couldn't find this page.",
+    "body": "The link may be old or mistyped.",
+    "cta": "Back to home"
+  },
+  "legal": {
+    "draftBadge": "DRAFT",
+    "draftTitle": "Draft — pending legal review",
+    "draftBody": "This page is a draft of structure and headings; it is not a binding text. The final text will be published after legal review.",
+    "tocLabel": "CONTENTS",
+    "controllerLabel": "Data controller",
+    "controller": "Droblet Ltd (London, United Kingdom)",
+    "docs": {
+      "terms": {
+        "eyebrow": "LEGAL",
+        "title": "Terms of Use",
+        "description": "Droblet Terms of Use — draft, pending legal review.",
+        "intro": "These terms govern the use of the Droblet mobile app and this website. The service is provided by Droblet Ltd (London, United Kingdom).",
+        "sections": [
+          {
+            "heading": "Scope of the service",
+            "paragraphs": [
+              "Droblet is a personal wardrobe app where you digitise your clothes, get outfit suggestions and plan your suitcase for trips.",
+              "Draft — pending legal review: the full definition and limits of the service."
+            ]
+          },
+          {
+            "heading": "Account",
+            "paragraphs": [
+              "You create an account to use the app. You can delete your account at any time from the app (Profile › Settings › Delete my account) or from the Delete my account page on this site.",
+              "Draft — pending legal review: age requirement, account security and user obligations."
+            ]
+          },
+          {
+            "heading": "Your content and photos",
+            "paragraphs": [
+              "Your photos and the images generated on you are visible only to you. You can delete them at any time from Profile › Privacy.",
+              "Draft — pending legal review: content licence, prohibited uses and the reporting process."
+            ]
+          },
+          {
+            "heading": "AI-generated content",
+            "paragraphs": [
+              "Outfit suggestions and images labelled \"On you\" are generated by artificial intelligence and are meant to give you an idea.",
+              "Draft — pending legal review: limits of liability for AI output."
+            ]
+          },
+          {
+            "heading": "Store and third-party brands",
+            "paragraphs": [
+              "Droblet does not take payment. When you want to buy a product you are taken to the brand's own store; payment and delivery are completed there.",
+              "Draft — pending legal review: liability for third-party stores and commission disclosure."
+            ]
+          },
+          {
+            "heading": "Membership",
+            "paragraphs": [
+              "The terms of Droblet Membership are set out on the Subscription Terms page.",
+              "Draft — pending legal review."
+            ]
+          },
+          {
+            "heading": "Liability, changes and governing law",
+            "paragraphs": [
+              "Draft — pending legal review: limitation of liability, notice of changes to these terms, governing law and jurisdiction."
+            ]
+          },
+          {
+            "heading": "Contact",
+            "paragraphs": [
+              "Draft — pending legal review: contact address and channels."
+            ]
+          }
+        ]
+      },
+      "privacy": {
+        "eyebrow": "LEGAL",
+        "title": "Privacy Policy",
+        "description": "Droblet Privacy Policy — draft, pending legal review.",
+        "intro": "This policy explains how Droblet processes personal data. The data controller is Droblet Ltd (London, United Kingdom). For users in Türkiye the KVKK applies, alongside the UK GDPR.",
+        "sections": [
+          {
+            "heading": "Our core privacy promises",
+            "paragraphs": [
+              "Your photos and the images generated on you are visible only to you.",
+              "Your face and full-length photos are never shown to anyone else, under any visibility setting.",
+              "You can delete your photos and generated images at any time from Profile › Privacy; this works without deleting your account.",
+              "You choose who sees your wardrobe: everyone, followers only, or private."
+            ]
+          },
+          {
+            "heading": "Data we process",
+            "paragraphs": [
+              "Your account details (such as your e-mail address), the pieces you add to your wardrobe and their photos, your full-length and face photos, the looks you create, and your calendar and suitcase plans.",
+              "Draft — pending legal review: the full list of data categories and the legal basis for each."
+            ]
+          },
+          {
+            "heading": "What we use data for",
+            "paragraphs": [
+              "To organise your wardrobe, prepare outfit and suitcase suggestions, run the colour palette analysis and generate \"On you\" images.",
+              "Draft — pending legal review: purposes of processing and legal bases."
+            ]
+          },
+          {
+            "heading": "Processing with artificial intelligence",
+            "paragraphs": [
+              "\"On you\" images and the colour palette analysis are generated by artificial intelligence from the photos you upload.",
+              "Draft — pending legal review: service providers, international transfers and the scope of explicit consent."
+            ]
+          },
+          {
+            "heading": "Sharing and transfers",
+            "paragraphs": [
+              "When you go to a brand's store to buy a product, payment and delivery are completed there; Droblet does not receive payment details.",
+              "Draft — pending legal review: processors, recipient groups and safeguards for international transfers."
+            ]
+          },
+          {
+            "heading": "Retention and deletion",
+            "paragraphs": [
+              "You can delete your photos and generated images from Profile › Privacy, and your whole account from the app or from the Delete my account page on this site.",
+              "Draft — pending legal review: retention periods."
+            ]
+          },
+          {
+            "heading": "Your rights",
+            "paragraphs": [
+              "Draft — pending legal review: your rights under KVKK Article 11 and the UK GDPR, and how to exercise them."
+            ]
+          },
+          {
+            "heading": "Contact",
+            "paragraphs": [
+              "Draft — pending legal review: data controller contact details and request channels."
+            ]
+          }
+        ]
+      },
+      "kvkk": {
+        "eyebrow": "LEGAL",
+        "title": "KVKK Privacy Notice",
+        "description": "Droblet KVKK Privacy Notice — draft, pending legal review.",
+        "intro": "This is a draft of the privacy notice prepared under Article 10 of the Turkish Personal Data Protection Law no. 6698 (KVKK). The Turkish version of this notice is the original.",
+        "sections": [
+          {
+            "heading": "Data controller",
+            "paragraphs": [
+              "Droblet Ltd (London, United Kingdom).",
+              "Draft — pending legal review: registration and address details, and the representative in Türkiye if any."
+            ]
+          },
+          {
+            "heading": "Personal data processed",
+            "paragraphs": [
+              "Identity and contact data (such as your e-mail address), visual data (photos of pieces, full-length and face photo, images generated on you), and usage data (wardrobe, look, calendar and suitcase records).",
+              "Draft — pending legal review: the data category and scope of the face photo and colour palette analysis."
+            ]
+          },
+          {
+            "heading": "Purposes of processing",
+            "paragraphs": [
+              "Draft — pending legal review: purposes of processing for each data category."
+            ]
+          },
+          {
+            "heading": "Legal bases and method of collection",
+            "paragraphs": [
+              "Draft — pending legal review: legal bases under KVKK Articles 5 and 6; data is collected electronically through the app."
+            ]
+          },
+          {
+            "heading": "Explicit consent",
+            "paragraphs": [
+              "Draft — pending legal review: the explicit consent text for processing the full-length and face photo, the colour palette analysis and international transfers, and how consent is withdrawn."
+            ]
+          },
+          {
+            "heading": "Transfers",
+            "paragraphs": [
+              "Draft — pending legal review: the recipient groups data is transferred to and the basis for international transfers."
+            ]
+          },
+          {
+            "heading": "Your rights under KVKK Article 11",
+            "paragraphs": [
+              "Draft — pending legal review: the list of rights and how to apply."
+            ]
+          }
+        ]
+      },
+      "subscriptionTerms": {
+        "eyebrow": "LEGAL",
+        "title": "Subscription Terms",
+        "description": "Droblet Membership subscription terms — draft, pending legal review.",
+        "intro": "This page summarises the terms of the Droblet Membership subscription.",
+        "sections": [
+          {
+            "heading": "What Droblet Membership includes",
+            "paragraphs": [
+              "30 AI images a month, the personal style advisor, the smart suitcase and the colour palette analysis.",
+              "Wardrobe, looks, calendar, store and friends are open without a membership too."
+            ]
+          },
+          {
+            "heading": "AI image allowance",
+            "paragraphs": [
+              "Membership includes 30 AI images a month. The allowance renews every month; unused images do not carry over to the next month.",
+              "If you need more, you can buy an extra AI image pack in the app."
+            ]
+          },
+          {
+            "heading": "Price and free trial",
+            "paragraphs": [
+              "Membership is monthly or yearly. The current price and trial length are shown on the App Store and Google Play.",
+              "Draft — pending legal review: charging at the end of the trial, and taxes."
+            ]
+          },
+          {
+            "heading": "Renewal and cancellation",
+            "paragraphs": [
+              "Your membership is managed through the App Store / Google Play and is cancelled there. Deleting your account does not cancel the subscription; cancel it in your store settings first.",
+              "Draft — pending legal review: auto-renewal terms."
+            ]
+          },
+          {
+            "heading": "Refunds and right of withdrawal",
+            "paragraphs": [
+              "Draft — pending legal review: refund conditions and the right of withdrawal."
+            ]
+          },
+          {
+            "heading": "Changes",
+            "paragraphs": [
+              "Draft — pending legal review: notice of changes to price and scope."
+            ]
+          }
+        ]
+      },
+      "cookies": {
+        "eyebrow": "LEGAL",
+        "title": "Cookie Notice",
+        "description": "Droblet Cookie Notice — draft, pending legal review.",
+        "intro": "This notice explains the use of cookies and similar technologies on this website.",
+        "sections": [
+          {
+            "heading": "Cookies on this site",
+            "paragraphs": [
+              "This site's own code does not set cookies, does not save data to browser storage, and contains no analytics or advertising tools.",
+              "Draft — pending legal review: the list of strictly necessary cookies the infrastructure provider may use for security."
+            ]
+          },
+          {
+            "heading": "Types of cookies",
+            "paragraphs": [
+              "Draft — pending legal review: definitions of strictly necessary, functional, analytics and marketing cookies and their status on this site."
+            ]
+          },
+          {
+            "heading": "Managing your preferences",
+            "paragraphs": [
+              "You can delete or block cookies in your browser settings.",
+              "Draft — pending legal review: preference management if a cookie that requires consent is added."
+            ]
+          },
+          {
+            "heading": "Changes and contact",
+            "paragraphs": [
+              "Draft — pending legal review."
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "deleteAccount": {
+    "metaTitle": "Delete my account — Droblet",
+    "metaDescription": "Permanently delete your Droblet account without opening the app. See what is deleted and how to cancel your subscription.",
+    "eyebrow": "ACCOUNT DELETION",
+    "title": "Delete your account",
+    "intro": "You can permanently delete your Droblet account from this page, without installing the app.",
+    "whatTitle": "What is permanently deleted",
+    "whatItems": [
+      "The pieces in your wardrobe and your looks",
+      "Your photos and all AI images",
+      "Calendar, suitcases, follows and ratings",
+      "Your profile and account details"
+    ],
+    "irreversible": "This cannot be undone.",
+    "subscriptionTitle": "If you have an active membership",
+    "subscriptionNote": "Your membership is managed through the App Store / Google Play. Deleting your account does not cancel the subscription; cancel it in your store settings first.",
+    "manageApple": "Manage App Store subscriptions",
+    "manageGoogle": "Manage Google Play subscriptions",
+    "socialTitle": "Do you sign in with Apple or Google?",
+    "socialBody": "These accounts are deleted from the app: Profile › Settings › Delete my account.",
+    "unavailableBody": "Deleting an account on the web is currently unavailable. You can delete your account from the app: Profile › Settings › Delete my account.",
+    "signInTitle": "Sign in first",
+    "signInBody": "Sign in with your e-mail address and password to confirm the account is yours. Your session is not stored on this page.",
+    "email": "E-mail",
+    "password": "Password",
+    "signIn": "Sign in",
+    "signingIn": "Signing in…",
+    "confirmTitle": "You are about to delete your account",
+    "confirmBody": "This cannot be undone. Everything listed above is permanently deleted.",
+    "confirmLabel": "Type DELETE to confirm",
+    "confirmWord": "DELETE",
+    "deleteButton": "Permanently delete my account",
+    "deleting": "Deleting…",
+    "cancel": "Cancel",
+    "successTitle": "Your account has been deleted",
+    "successBody": "Your account and all the data listed above have been deleted. If you have an active membership, remember to cancel it in your store settings.",
+    "errors": {
+      "invalid_credentials": "The e-mail or password is incorrect.",
+      "too_many_attempts": "Too many attempts. Please try again in a while.",
+      "validation": "Check your e-mail address and password.",
+      "session_expired": "Your session has expired. Please sign in again.",
+      "network": "Could not connect. Check your internet connection and try again.",
+      "unknown": "Something went wrong. Please try again."
+    }
+  },
+  "resetPassword": {
+    "metaTitle": "Reset password — Droblet",
+    "metaDescription": "Set a new password for your Droblet account.",
+    "eyebrow": "PASSWORD RESET",
+    "title": "Set your new password",
+    "intro": "If the Droblet app is installed, you can set your password there. Or use the form below.",
+    "orWeb": "Or set it here",
+    "newPassword": "New password",
+    "passwordHint": "At least 8 characters",
+    "repeatPassword": "New password (again)",
+    "submit": "Save password",
+    "submitting": "Saving…",
+    "missingTitle": "The link is incomplete or invalid",
+    "missingBody": "This page opens from the password reset link in your e-mail. You can request a new link in the app with \"Forgot password\".",
+    "unavailableBody": "Setting a password on the web is currently unavailable. Open the link on the phone where the Droblet app is installed.",
+    "successTitle": "Your password has been updated",
+    "successBody": "You can now sign in to the app with your new password.",
+    "errors": {
+      "too_short": "The password must be at least 8 characters.",
+      "mismatch": "The passwords do not match.",
+      "invalid_or_expired_token": "This link has expired or has already been used. Request a new link in the app.",
+      "too_many_attempts": "Too many attempts. Please try again in a while.",
+      "validation": "This password was not accepted. Choose a password between 8 and 128 characters.",
+      "network": "Could not connect. Check your internet connection and try again.",
+      "unknown": "Something went wrong. Please try again."
+    }
+  },
+  "invite": {
+    "metaTitle": "Droblet invitation",
+    "metaDescription": "You have been invited to Droblet. Get the app and build your wardrobe.",
+    "eyebrow": "INVITATION",
+    "title": "You have been invited to Droblet",
+    "titleWithName": "{name} invites you to Droblet",
+    "body": "If Droblet is installed, open the invitation in the app. If not, download it first.",
+    "genericTitle": "Discover Droblet",
+    "genericBody": "Photograph your clothes; Droblet prepares your outfit for every day and every trip.",
+    "codeLabel": "YOUR INVITE CODE",
+    "codeHint": "If you open this link again after installing the app, the invitation opens in the app.",
+    "copy": "Copy code",
+    "copied": "Copied",
+    "storeTitle": "Don't have the app?"
+  },
+  "look": {
+    "metaTitle": "Shared look — Droblet",
+    "metaDescription": "This look opens in the Droblet app. Get the app to see it.",
+    "eyebrow": "SHARED LOOK",
+    "title": "This look opens in Droblet",
+    "body": "If Droblet is installed, open the look in the app. If not, download it first.",
+    "genericTitle": "Discover Droblet",
+    "genericBody": "Photograph your clothes; Droblet prepares your outfit for every day and every trip.",
+    "storeTitle": "Don't have the app?"
+  }
+}
