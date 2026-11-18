@@ -78,7 +78,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       {
         backgroundColor: CREAM,
         image: './assets/images/splash-icon.png',
-        // = MARK_HEIGHT × 36/50 in src/components/brand/AnimatedSplash.tsx, so the hand-over does not jump.
+        // = MARK_WIDTH in src/components/brand/AnimatedSplash.tsx, so the hand-over does not jump.
         imageWidth: 92,
       },
     ],
@@ -95,6 +95,17 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         cameraPermission:
           'Boy fotoğrafını ve parçalarını çekebilmen için kameraya erişmemiz gerekiyor.',
         microphonePermission: false,
+      },
+    ],
+    [
+      // 12 Parça ekle: the in-app live camera (photos only — no audio, no barcode scanning).
+      'expo-camera',
+      {
+        // Default (TR) string; per-language strings live in ./locales/ios/*.json.
+        cameraPermission: 'Boy fotoğrafını ve parçalarını çekebilmen için kameraya erişmemiz gerekiyor.',
+        microphonePermission: false,
+        recordAudioAndroid: false,
+        barcodeScannerEnabled: false,
       },
     ],
   ],
