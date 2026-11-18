@@ -8,13 +8,13 @@ import { shareTargetUrl } from './ShareSheet';
 
 describe('deep links', () => {
   it('maps invite links and keeps the code', () => {
-    expect(mapIncomingLink('https://droplet.alatech.co/invite/DAMLA24')).toEqual({ path: '/friends/find', inviteCode: 'DAMLA24' });
+    expect(mapIncomingLink('https://droblet.alatech.co/invite/DAMLA24')).toEqual({ path: '/friends/find', inviteCode: 'DAMLA24' });
     expect(mapIncomingLink('droplet://invite/DAMLA24')).toEqual({ path: '/friends/find', inviteCode: 'DAMLA24' });
     expect(mapIncomingLink('/invite/DAMLA24')).toEqual({ path: '/friends/find', inviteCode: 'DAMLA24' });
   });
 
   it('maps shared looks and profiles, stripping the invite code from the route', () => {
-    expect(mapIncomingLink('https://droplet.alatech.co/l/flook_1?invite=DAMLA24')).toEqual({
+    expect(mapIncomingLink('https://droblet.alatech.co/l/flook_1?invite=DAMLA24')).toEqual({
       path: '/friends/feed?look=flook_1',
       inviteCode: 'DAMLA24',
     });
@@ -31,8 +31,8 @@ describe('deep links', () => {
   });
 
   it('builds share links that carry the invite code', () => {
-    expect(lookShareUrl('droplet.alatech.co', 'flook_1', 'DAMLA24')).toBe('https://droplet.alatech.co/l/flook_1?invite=DAMLA24');
-    expect(profileShareUrl('droplet.alatech.co', 'selin', null)).toBe('https://droplet.alatech.co/u/selin');
+    expect(lookShareUrl('droblet.alatech.co', 'flook_1', 'DAMLA24')).toBe('https://droblet.alatech.co/l/flook_1?invite=DAMLA24');
+    expect(profileShareUrl('droblet.alatech.co', 'selin', null)).toBe('https://droblet.alatech.co/u/selin');
     expect(shareTargetUrl('whatsapp', 'https://x.y/l/1', 'Bak: https://x.y/l/1')).toBe(
       'https://wa.me/?text=Bak%3A%20https%3A%2F%2Fx.y%2Fl%2F1',
     );

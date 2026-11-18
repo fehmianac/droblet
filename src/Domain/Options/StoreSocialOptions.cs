@@ -40,7 +40,7 @@ public sealed class SocialOptions
     public int SuggestedCandidateLimit { get; set; } = 200;
     public int SearchPageSize { get; set; } = 20;
     /// <summary>Invite links: {InviteUrl}/{code} (README §9.4 domain decision).</summary>
-    public string InviteUrl { get; set; } = "https://droplet.alatech.co/i";
+    public string InviteUrl { get; set; } = "https://droblet.alatech.co/i";
     /// <summary>An invite can only be attributed to an account created within this many days.</summary>
     public int InviteAttributionWindowDays { get; set; } = 30;
     public int ReportsPerDay { get; set; } = 20;

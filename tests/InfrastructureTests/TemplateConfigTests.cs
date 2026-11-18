@@ -15,7 +15,8 @@ namespace InfrastructureTests;
 /// </summary>
 public partial class TemplateConfigTests
 {
-    [GeneratedRegex(@"Name: !Sub /droblet/\$\{Stage\}/(?<scope>api|worker|notifier)/(?<section>[A-Za-z/]+)\s*\n\s*Type: String\s*\n(?:\s*Description: [^\n]*\n)?\s*Value: '(?<value>[^'\n]*)'")]
+    [GeneratedRegex(@"Name: !Sub /droblet/\$\{Stage\}/(?<scope>api|worker|notifier)/(?<section>[A-Za-z/]+)\s*\n\s*Type: String\s*\n(?:\s*Description: [^\n]*\n)?\s*Value: (?:!If\s*\n\s*- IsProd\s*\n\s*- )?'(?<value>[^'\n]*)'")]
+    // A value may be `!If [IsProd, '<prod>', '<dev>']` written as a block list; the prod literal is the one checked.
     private static partial Regex ParameterPattern();
 
     private static string Template()
@@ -114,7 +115,7 @@ public partial class TemplateConfigTests
         Assert.Equal(("OpenMeteo", 60, "https://api.open-meteo.com"), (weather.Provider, weather.CacheMinutes, weather.ForecastBaseUrl));
         Assert.Equal((24, 60, 10 * 1024 * 1024L), (catalog.PageSize, catalog.MaxPageSize, catalog.MaxImageBytes));
         Assert.Empty(catalog.ImageHosts);
-        Assert.Equal((500, "https://droplet.alatech.co/i"), (social.MaxFollowing, social.InviteUrl));
+        Assert.Equal((500, "https://droblet.alatech.co/i"), (social.MaxFollowing, social.InviteUrl));
         Assert.Equal(("07:30", "Europe/Istanbul"), (notifications.DefaultMorningLocal, notifications.DefaultTimeZone));
         Assert.Equal((26, 12), (stylist.HotFromC, stylist.ColdBelowC));
     }

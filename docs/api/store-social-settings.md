@@ -263,7 +263,7 @@ wear log, cart, watch list, notification settings, e-mail.
 
 | Method | Path | Body | Result / errors |
 |---|---|---|---|
-| GET | `v1/tenant/invite/link` | — | `{ "code": "ABCDEFGH", "url": "https://droplet.alatech.co/i/ABCDEFGH", "invitedCount": 1 }` |
+| GET | `v1/tenant/invite/link` | — | `{ "code": "ABCDEFGH", "url": "https://droblet.alatech.co/i/ABCDEFGH", "invitedCount": 1 }` |
 | POST | `v1/tenant/share` | `{ "clientMutationId": ULID, "channel", "targetKind", "targetId"?, "ownerHandle"? }` — `targetId` required for `look`, `product`, `edit` | `{ "shareId", "inviteCode", "url", "channel" }` — share `url`. Idempotent by `clientMutationId`. |
 | GET | `v1/invite/{code}` | — (anonymous) | `{ "code", "inviterFirstName": "Zeynep" }`. `404 invite_code_not_found`, `429 too_many_attempts`. |
 | POST | `v1/tenant/invite/attribution` | `{ "code" }` | `204`. `404 invite_code_not_found`, `422 cannot_target_self`, `409 invite_already_attributed`, `422 invite_window_closed` (account older than 30 days). |
@@ -439,7 +439,7 @@ TABLE_NAME=droblet-dev-table dotnet run --project tools/Seed -- apply     # writ
 | `AffiliatePostback` (SecureString) | `NetworkSecret`, `DirectSecret`, `DirectBrandSecrets{}`, `DefaultClickIdParameter` | no secrets → postbacks answer 503 |
 | `Localization` | `SupportedLanguages[]`, `DefaultLanguage` | `tr`, `en` / `tr` |
 | `Catalog` | `PageSize`, `MaxPageSize`, `CacheSeconds`, `MaxCartLines`, `MaxWatchItems`, `MaxFavoriteProducts` (code default 500; not in the SSM default yet), `BulkUpsertMax`, `ImageHosts[]` (hosts product images may be downloaded from for try-on; empty = any https host), `MaxImageBytes` | 24, 60, 60, 100, 200, 200, empty, 10 MB |
-| `Social` | `MaxFollowing`, `FeedPageSize`, `SuggestedPageSize`, `SuggestedCandidateLimit`, `SearchPageSize`, `InviteUrl`, `InviteAttributionWindowDays`, `ReportsPerDay`, `InviteResolvePerIpPerHour` | 500, 20, 20, 100, 20, `https://droplet.alatech.co/i`, 30, 20, 60 |
+| `Social` | `MaxFollowing`, `FeedPageSize`, `SuggestedPageSize`, `SuggestedCandidateLimit`, `SearchPageSize`, `InviteUrl`, `InviteAttributionWindowDays`, `ReportsPerDay`, `InviteResolvePerIpPerHour` | 500, 20, 20, 100, 20, `https://droblet.alatech.co/i`, 30, 20, 60 |
 | `Weather` | `Provider`, `CacheMinutes`, `ForecastBaseUrl`, `GeocodingBaseUrl`, `TimeoutSeconds` | `OpenMeteo`, 60 |
 | `Notifications` | `DefaultMorningLocal`, `DefaultTimeZone`, `MaxDevicesPerTenant` | `07:30`, `Europe/Istanbul`, 10 |
 | `/droblet/{stage}/notifier/Push/ServiceAccountJson` (SecureString) | the Firebase service-account JSON file as downloaded (`project_id`, `client_email`, `private_key`) | `CHANGE_ME` or empty → push disabled |

@@ -159,9 +159,9 @@ describe('social wire mappers', () => {
       name: 'Beyaz tişört',
       imageUrl: null,
     });
-    expect(toInviteLink({ code: 'ABCDEFGH', url: 'https://droplet.alatech.co/i/ABCDEFGH', invitedCount: 1 })).toEqual({
+    expect(toInviteLink({ code: 'ABCDEFGH', url: 'https://droblet.alatech.co/i/ABCDEFGH', invitedCount: 1 })).toEqual({
       code: 'ABCDEFGH',
-      url: 'https://droplet.alatech.co/i/ABCDEFGH',
+      url: 'https://droblet.alatech.co/i/ABCDEFGH',
       invitedCount: 1,
     });
     expect(fromReportReason('minor_safety')).toBe('minorSafety');
@@ -171,20 +171,20 @@ describe('social wire mappers', () => {
 
 describe('share and invite links from the server', () => {
   it('opens the server share link on the right screen and keeps the invite code', () => {
-    expect(mapIncomingLink('https://droplet.alatech.co/i/ABCDEFGH')).toEqual({ path: '/friends/find', inviteCode: 'ABCDEFGH' });
-    expect(mapIncomingLink('https://droplet.alatech.co/i/ABCDEFGH?t=look&id=01LOOK&u=ayse')).toEqual({
+    expect(mapIncomingLink('https://droblet.alatech.co/i/ABCDEFGH')).toEqual({ path: '/friends/find', inviteCode: 'ABCDEFGH' });
+    expect(mapIncomingLink('https://droblet.alatech.co/i/ABCDEFGH?t=look&id=01LOOK&u=ayse')).toEqual({
       path: '/friends/feed?look=01LOOK',
       inviteCode: 'ABCDEFGH',
     });
-    expect(mapIncomingLink('https://droplet.alatech.co/i/ABCDEFGH?t=profile&u=ayse')).toEqual({ path: '/u/ayse', inviteCode: 'ABCDEFGH' });
+    expect(mapIncomingLink('https://droblet.alatech.co/i/ABCDEFGH?t=profile&u=ayse')).toEqual({ path: '/u/ayse', inviteCode: 'ABCDEFGH' });
     expect(mapIncomingLink('droplet://i/ABCDEFGH?t=product&id=hs-white-shirt').path).toBe('/shop/product/hs-white-shirt');
   });
 
   it('puts the server link into the message, or keeps the device link when there is none', () => {
-    const local = 'https://droplet.alatech.co/l/01LOOK?invite=ABCDEFGH';
-    expect(withShareUrl(`Bak: ${local}`, local, 'https://droplet.alatech.co/i/ABCDEFGH?t=look&id=01LOOK')).toEqual({
-      url: 'https://droplet.alatech.co/i/ABCDEFGH?t=look&id=01LOOK',
-      message: 'Bak: https://droplet.alatech.co/i/ABCDEFGH?t=look&id=01LOOK',
+    const local = 'https://droblet.alatech.co/l/01LOOK?invite=ABCDEFGH';
+    expect(withShareUrl(`Bak: ${local}`, local, 'https://droblet.alatech.co/i/ABCDEFGH?t=look&id=01LOOK')).toEqual({
+      url: 'https://droblet.alatech.co/i/ABCDEFGH?t=look&id=01LOOK',
+      message: 'Bak: https://droblet.alatech.co/i/ABCDEFGH?t=look&id=01LOOK',
     });
     expect(withShareUrl(`Bak: ${local}`, local, null)).toEqual({ url: local, message: `Bak: ${local}` });
   });

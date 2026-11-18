@@ -1,7 +1,7 @@
 /**
  * Incoming links → app routes (MOBILE_ENGINEER §Deep link).
  *
- *   droplet://invite/{code}  ·  https://droplet.alatech.co/invite/{code}   → 27 Dolapları keşfet
+ *   droplet://invite/{code}  ·  https://droblet.alatech.co/invite/{code}   → 27 Dolapları keşfet
  *   …/i/{code}[?t=look|profile|product|edit&id=…&u=handle]                → the server's share / invite link
  *     (`GET v1/tenant/invite/link`, `POST v1/tenant/share`): look → 25, profile → 26, product → 22,
  *     edit → 08, otherwise 27

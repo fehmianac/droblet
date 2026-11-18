@@ -79,7 +79,7 @@ Droblet'in ek ihtiyaçları (hepsi `npx expo install`; kesin seçim ilgili epic 
 | Fontlar | `@expo-google-fonts/cormorant-garamond`, `@expo-google-fonts/jost` | S0 | Uygulamaya gömülü |
 | Abonelik | StoreKit 2 / Play Billing native köprü (config plugin'li) | E10 | Yukarıdaki satırla aynı karar |
 
-Uygulama kimliği: bundle id / package **`com.alatech.droplet`**, scheme `droplet`, universal link alanı `droplet.alatech.co` — üçü de **Açık karar (A-10)**; tahmin edilip yazılmaz. **Mağaza kaydından sonra değişmez.**
+Uygulama kimliği: bundle id / package **`com.alatech.droplet`**, scheme `droplet`, universal link alanı `droblet.alatech.co` — üçü de **Açık karar (A-10)**; tahmin edilip yazılmaz. **Mağaza kaydından sonra değişmez.**
 
 ---
 
@@ -403,7 +403,7 @@ Droblet bildirim türleri (`Notifier`, ekran 29'daki anahtarlar = Android kanall
 
 ## Deep link
 
-- Şema: `droplet://...`; web linki `https://droplet.alatech.co/...` — uygulama yüklüyse uygulamayı açar (universal link / app link), değilse web sayfası mağaza butonunu gösterir.
+- Şema: `droplet://...`; web linki `https://droblet.alatech.co/...` — uygulama yüklüyse uygulamayı açar (universal link / app link), değilse web sayfası mağaza butonunu gösterir.
 - **Android:** kurulumdan sonra parametre Play Install Referrer ile gelebilir. **iOS:** deferred deep link ayrı bir servis kararıdır; elle giriş her zaman çalışmalı.
 - Kullanıcı giriş yapmamışsa link parametresi saklanır; kayıttan sonra uygulanır.
 
@@ -414,8 +414,8 @@ Droblet rotaları (scheme ve alan adı **Açık karar (A-10)**):
 | `droplet://today` | 06 Bugün | Sabah bildirimi |
 | `droplet://edit/{id}` | 08 Haftanın edit'i | Bildirim |
 | `droplet://look/{id}` | Look detayı | Arkadaş puanı bildirimi (kendi look'u) |
-| `https://droplet.alatech.co/invite/{code}` | 27 → davet edenin profili (26) + "Takip et" | Davet linki (27). Uygulama yoksa web karşılama sayfası ([FRONTEND_ENGINEER.md](FRONTEND_ENGINEER.md)); girişten sonra uygulanır |
-| `https://droplet.alatech.co/u/{handle}`, `/l/{id}` | Paylaşılan profil / look | **Açık karar (A-6)** — karar gelmeden yapılmaz |
+| `https://droblet.alatech.co/invite/{code}` | 27 → davet edenin profili (26) + "Takip et" | Davet linki (27). Uygulama yoksa web karşılama sayfası ([FRONTEND_ENGINEER.md](FRONTEND_ENGINEER.md)); girişten sonra uygulanır |
+| `https://droblet.alatech.co/u/{handle}`, `/l/{id}` | Paylaşılan profil / look | **Açık karar (A-6)** — karar gelmeden yapılmaz |
 
 ---
 

@@ -411,7 +411,7 @@ Sorulur, tahmin edilmez. Kapanan kararlar üstü çizilir ve karar yanına yazı
 | A-7 | **Kısmen kapandı (brief):** influencer'larla anlaşma yok, gerçek isim yayında kullanılmaz. **Açık:** editör içeriği kaynağı, "Dizi outfitleri" lisansı | S5 sonu |
 | A-8 | Rehberden arkadaş bulma: kişi listesi sunucuya gidecek mi (hash'li eşleşme) | V1.5 öncesi (MVP'de yok) |
 | A-9 | **Kapandı (brief):** faz 1'de karanlık mod yok; token'lar sonradan eklemeye uygun | — |
-| A-10 | **Kapandı 2026-11-18:** bundle id / package `com.alatech.droplet`, scheme `droplet`, alan adı `droplet.alatech.co`. Ürün adı "Droblet" ile yazım farkı mağaza kaydından önce teyit edilmeli | S0 (mağaza kaydı) |
+| A-10 | **Kapandı 2026-11-18:** bundle id / package `com.alatech.droplet`, scheme `droplet`, alan adı `droblet.alatech.co`. Ürün adı "Droblet" ile yazım farkı mağaza kaydından önce teyit edilmeli | S0 (mağaza kaydı) |
 | A-11 | North Star tanımının onayı (öneri: haftalık giyinen kullanıcı) | S1 (olaylar yazılmadan) |
 | A-12 | MVP kapsam önerisinin onayı (BACKLOG'a ertelenenler) | S0 |
 | A-13 | Sabah kombin hatırlatmasının varsayılan saati | S4 |

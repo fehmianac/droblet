@@ -33,7 +33,7 @@ public class SendGridEmailServiceTests
     private static EmailOptions Options(string? apiKey = "SG.test") => new()
     {
         Provider = "SendGrid",
-        From = "Droblet <no-reply@droplet.alatech.co>",
+        From = "Droblet <no-reply@droblet.alatech.co>",
         SendGrid = new EmailOptions.SendGridOptions { ApiKey = apiKey },
     };
 
@@ -55,7 +55,7 @@ public class SendGridEmailServiceTests
         using var json = JsonDocument.Parse(handler.Body!);
         var root = json.RootElement;
         Assert.Equal("damla@example.com", root.GetProperty("personalizations")[0].GetProperty("to")[0].GetProperty("email").GetString());
-        Assert.Equal("no-reply@droplet.alatech.co", root.GetProperty("from").GetProperty("email").GetString());
+        Assert.Equal("no-reply@droblet.alatech.co", root.GetProperty("from").GetProperty("email").GetString());
         Assert.Equal("Droblet", root.GetProperty("from").GetProperty("name").GetString());
         Assert.Equal("Şifreni sıfırla", root.GetProperty("subject").GetString());
         Assert.Equal("text/plain", root.GetProperty("content")[0].GetProperty("type").GetString());

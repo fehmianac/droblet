@@ -5,7 +5,7 @@
 ## Role Overview
 Web tarafındaki işlerden sen sorumlusun. Mobil öncelikli bir üründe tipik parçalar:
 
-Alan adı: **`droplet.alatech.co`** — **Açık karar (A-10)**; tahmin edilip yazılmaz.
+Alan adı: **`droblet.alatech.co`** — **Açık karar (A-10)**; tahmin edilip yazılmaz.
 
 1. **Landing** (`landing/`) — ürünü anlatan, App Store / Google Play'e yönlendiren site (çok dilliyse `/` varsayılan dil + `/{locale}` + hreflang; dil seçici; CSS animasyon, `prefers-reduced-motion`'da kapalı).
 2. **Deep link karşılama sayfaları** (proje gerektirirse) — paylaşılan bir link, uygulama yüklü olmayan birinin telefonunda açıldığında görünen sayfa.

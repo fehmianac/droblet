@@ -53,7 +53,7 @@ public static class StoreResults
     {
         Status = StatusCodes.Status422UnprocessableEntity,
         Title = StoreSocialErrorCodes.ProductNotFound,
-        Type = $"https://droplet.alatech.co/errors/{StoreSocialErrorCodes.ProductNotFound}",
+        Type = $"https://droblet.alatech.co/errors/{StoreSocialErrorCodes.ProductNotFound}",
         Extensions = { ["code"] = StoreSocialErrorCodes.ProductNotFound, ["productIds"] = productIds },
     });
 }

@@ -142,5 +142,5 @@ export const socialFixtures = {
     people = people.map((p) => (p.handle === handle ? { ...p, blocked: false } : p));
   },
 
-  inviteLink: (): InviteLink => ({ url: 'https://droplet.alatech.co/i/DAMLA24A', code: 'DAMLA24A', invitedCount: 0 }),
+  inviteLink: (): InviteLink => ({ url: 'https://droblet.alatech.co/i/DAMLA24A', code: 'DAMLA24A', invitedCount: 0 }),
 };
