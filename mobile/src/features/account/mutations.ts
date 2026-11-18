@@ -19,7 +19,7 @@ import type {
   PutVisibilityRequest,
   RemovePhotoRequest,
 } from '@/api/contracts/account';
-import { DATA_SOURCE, fromSource } from '@/api/dataSource';
+import { fromSource } from '@/api/dataSource';
 import { apiErrorCode, isPaywallError } from '@/api/errors';
 import {
   fromNotificationSettings,
@@ -42,6 +42,7 @@ import { newClientMutation } from '@/sync/clientMutation';
 import { TENANT_WRITE_SCOPE } from '@/sync/queryKeys';
 import { registerVersionedWrite } from '@/sync/versionedWrite';
 
+import { removeAvatar, uploadAvatar, type PickedAvatar } from './avatar';
 import { DEVICE_ID_KEY } from './device';
 import { accountKeys, profileFromWire } from './queries';
 
@@ -327,21 +328,18 @@ export function useAnalyzePalette() {
 }
 
 /**
- * What "Profili düzenle" saves. `avatar`: a newly picked local file, `null` to remove the photo, absent
- * to keep it — the API has no avatar upload yet, so it is applied in fixture mode only (see
- * `AVATAR_EDIT_SUPPORTED`).
+ * What "Profili düzenle" saves. `avatar`: a newly picked photo, `null` to remove the photo, absent to
+ * keep it.
  */
-export type ProfileEdit = { displayName: string; handle: string; avatar?: { localUri: string } | null; baseVersion: number };
-
-/** The backend has no avatar endpoint yet: the edit form hides "change photo" against the real API. */
-export const AVATAR_EDIT_SUPPORTED = DATA_SOURCE.account === 'fixtures';
+export type ProfileEdit = { displayName: string; handle: string; avatar?: PickedAvatar | null; baseVersion: number };
 
 /**
  * 28 "Profili düzenle" — name and handle. Interactive and online-only (never queued): whether the handle
  * is free is the server's answer, and the user must see it at once. Real API: the name is a partial
  * `PUT v1/tenant/profile { displayName, baseVersion }` (409 + the current profile on a version race);
  * a changed handle goes to `PUT v1/tenant/profile/handle` (409 `handle_taken`, 422 `handle_reserved`,
- * 400 `handle_invalid`).
+ * 400 `handle_invalid`). A new profile photo goes last (`features/account/avatar`): 422
+ * `avatar_too_large` / `unsupported_image` keep the name and handle already saved.
  */
 export function useUpdateProfile() {
   const client = useQueryClient();
@@ -372,6 +370,13 @@ export function useUpdateProfile() {
           if (!saved || edit.handle !== (saved.handle ?? '')) {
             const body: PutHandleWire = { handle: edit.handle };
             saved = profileFromWire(client, await apiRequest<ProfileWire>('v1/tenant/profile/handle', { method: 'PUT', body }));
+            client.setQueryData(accountKeys.profile, saved);
+          }
+          if (edit.avatar) {
+            saved = profileFromWire(client, await uploadAvatar(edit.avatar));
+          } else if (edit.avatar === null && saved?.avatarUrl) {
+            await removeAvatar();
+            saved = { ...saved, avatarUrl: null };
           }
           return saved;
         },

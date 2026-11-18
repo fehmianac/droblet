@@ -21,10 +21,7 @@ import {
   normalizeHandle,
   validateProfile,
 } from "@/features/account/logic";
-import {
-  AVATAR_EDIT_SUPPORTED,
-  useUpdateProfile,
-} from "@/features/account/mutations";
+import { useUpdateProfile } from "@/features/account/mutations";
 import { CitySection } from "@/features/account/CitySection";
 import { handleStatus } from "@/features/account/profileEdit";
 import {
@@ -159,7 +156,11 @@ function Form({ profile }: { profile: MyProfile }) {
         handle: cleanHandle,
         avatar:
           avatar.kind === "new"
-            ? { localUri: avatar.photo.localUri }
+            ? {
+                localUri: avatar.photo.localUri,
+                width: avatar.photo.width,
+                height: avatar.photo.height,
+              }
             : avatar.kind === "removed"
               ? null
               : undefined,
@@ -192,15 +193,14 @@ function Form({ profile }: { profile: MyProfile }) {
             )}
             placeholder={{ kind: "avatar", name: name.trim() || handle }}
           />
-          {AVATAR_EDIT_SUPPORTED ? (
-            <Button
-              variant="text"
-              label={t(
-                avatarUri ? "profileEdit.changePhoto" : "profileEdit.addPhoto",
-              )}
-              onPress={() => setPhotoOpen(true)}
-            />
-          ) : null}
+          <Button
+            variant="text"
+            label={t(
+              avatarUri ? "profileEdit.changePhoto" : "profileEdit.addPhoto",
+            )}
+            onPress={() => setPhotoOpen(true)}
+            testID="profileEdit.photo"
+          />
           {photoFailed ? (
             <Text
               variant="caption"
@@ -305,7 +305,8 @@ function Form({ profile }: { profile: MyProfile }) {
 /**
  * "Profili düzenle" — the pencil on 28 Profil. No board exists; derived from the canvas vocabulary
  * (29c form: centred header, 48 pt fields with 12 pt labels, one primary action at the bottom):
- * profile photo, name and @handle. Saved online only — the server decides whether the handle is free.
+ * profile photo (followers see it; kept apart from the private body / face photos), name and @handle.
+ * Saved online only — the server decides whether the handle is free.
  */
 export default function EditProfileScreen() {
   const { t } = useTranslation();

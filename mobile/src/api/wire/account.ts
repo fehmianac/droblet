@@ -26,13 +26,14 @@ const APP_LANGUAGES: readonly string[] = ['tr', 'en'];
 
 /**
  * `ProfileDto` → the app's profile card. Style tags are not part of the profile on the wire (they
- * come from `GET v1/tenant/style-profile`); there is no avatar in phase 1.
+ * come from `GET v1/tenant/style-profile`). `avatarUrl` is a short-lived presigned GET.
  */
 export function toMyProfile(wire: ProfileWire, styleTags: StyleTag[]): MyProfile {
   return {
     handle: wire.handle,
     displayName: wire.displayName ?? '',
-    avatarUrl: null,
+    avatarUrl: wire.avatarUrl ?? null,
+    ageConfirmedAt: wire.ageConfirmedAt ?? null,
     styleTags,
     closetVisibility: toVisibility(wire.closetVisibility),
     language: APP_LANGUAGES.includes(wire.language) ? (wire.language as AppLanguage) : null,

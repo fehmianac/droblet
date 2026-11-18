@@ -20,8 +20,10 @@ export type MyProfile = {
   /** Without the leading @; null until claimed (`PUT v1/tenant/profile/handle`). */
   handle: string | null;
   displayName: string;
-  /** No avatars in phase 1 — always null from the API. */
+  /** Profile photo (followers see it; never a body / face photo); short-lived URL, null = none. */
   avatarUrl: string | null;
+  /** 18+ confirmation time; null = not confirmed. */
+  ageConfirmedAt?: string | null;
   styleTags: StyleTag[];
   closetVisibility: ClosetVisibility;
   /** Language for server content, e-mails and notifications; null when the server's is not an app language. */
@@ -60,7 +62,7 @@ export type CityOption = { id: string; name: string; region: string | null; coun
  * "Profili düzenle" (28) — what the form saves. On the wire it is two calls: `displayName` goes in the
  * partial `PUT v1/tenant/profile { displayName, baseVersion }`, a changed handle in
  * `PUT v1/tenant/profile/handle { handle }` (409 `handle_taken`, 422 `handle_reserved`).
- * `avatarPhotoId` is fixture-only: the API has no avatar upload yet.
+ * The photo has its own calls (`v1/tenant/profile/avatar`, see `useUpdateProfile`).
  */
 export type UpdateProfileRequest = {
   displayName: string;
