@@ -33,3 +33,6 @@ mobile/.expo/
 
 # Claude Code agent worktrees
 .claude/worktrees/
+
+# Mobile release
+play-service-account.json

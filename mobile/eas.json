@@ -1,0 +1,40 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "channel": "preview",
+      "android": { "buildType": "apk" },
+      "env": {
+        "DROBLET_API_BASE_URL": "https://b8lvaj4r5e.execute-api.eu-central-1.amazonaws.com/dev",
+        "DROBLET_TERMS_URL": "https://droplet.alatech.co/terms",
+        "DROBLET_PRIVACY_URL": "https://droplet.alatech.co/privacy"
+      }
+    },
+    "production": {
+      "channel": "production",
+      "autoIncrement": true,
+      "env": {
+        "DROBLET_API_BASE_URL": "https://api.droplet.alatech.co",
+        "DROBLET_TERMS_URL": "https://droplet.alatech.co/terms",
+        "DROBLET_PRIVACY_URL": "https://droplet.alatech.co/privacy"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "[APPLE_ID_EMAIL]",
+        "ascAppId": "[APP_STORE_CONNECT_APP_ID]",
+        "appleTeamId": "[APPLE_TEAM_ID]"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./play-service-account.json",
+        "track": "internal"
+      }
+    }
+  }
+}

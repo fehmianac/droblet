@@ -1,0 +1,142 @@
+name: Release mobile
+
+# Elle: "preview" (test kurulumu; dev API) ya da "production" profiliyle build.
+# Tag ile:  mobile-vX.Y.Z (iOS + Android) · ios-vX.Y.Z · android-vX.Y.Z  -> production build.
+# Build EAS'te (Expo bulutu) alinir; imzalama kimlikleri EAS'te tutulur.
+# Magazaya gonderim ayri ve istege bagli bir adimdir (submit).
+
+on:
+  push:
+    tags:
+      - 'mobile-v*'
+      - 'ios-v*'
+      - 'android-v*'
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: Build profili
+        type: choice
+        options: [preview, production]
+        default: preview
+      platform:
+        description: Platform
+        type: choice
+        options: [all, ios, android]
+        default: android
+      submit:
+        description: Build bitince magazaya gonder (yalniz production)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-mobile
+  cancel-in-progress: false
+
+jobs:
+  resolve:
+    name: Hedefi belirle
+    runs-on: ubuntu-latest
+    outputs:
+      profile: ${{ steps.r.outputs.profile }}
+      platform: ${{ steps.r.outputs.platform }}
+      submit: ${{ steps.r.outputs.submit }}
+      environment: ${{ steps.r.outputs.environment }}
+    steps:
+      - id: r
+        env:
+          EVENT: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          IN_PROFILE: ${{ inputs.profile }}
+          IN_PLATFORM: ${{ inputs.platform }}
+          IN_SUBMIT: ${{ inputs.submit }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" = "push" ]; then
+            if [[ ! "$REF_NAME" =~ ^(mobile|ios|android)-v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "::error::Tag bicimi yanlis: $REF_NAME (beklenen: mobile-vX.Y.Z, ios-vX.Y.Z, android-vX.Y.Z)"; exit 1
+            fi
+            case "${BASH_REMATCH[1]}" in mobile) platform=all ;; *) platform="${BASH_REMATCH[1]}" ;; esac
+            profile=production; submit=false
+          else
+            profile="$IN_PROFILE"; platform="$IN_PLATFORM"; submit="$IN_SUBMIT"
+            [ "$profile" != "production" ] && submit=false
+          fi
+          # production, onay gerektiren ortamda calisir; preview serbest.
+          if [ "$profile" = "production" ]; then environment=mobile-release; else environment=mobile-preview; fi
+          {
+            echo "profile=$profile"; echo "platform=$platform"; echo "submit=$submit"; echo "environment=$environment"
+          } >> "$GITHUB_OUTPUT"
+          echo "Profil: **$profile** · platform: **$platform** · gonderim: **$submit**" >> "$GITHUB_STEP_SUMMARY"
+
+  build:
+    name: Build (${{ needs.resolve.outputs.profile }} · ${{ needs.resolve.outputs.platform }})
+    needs: resolve
+    runs-on: ubuntu-latest
+    environment: ${{ needs.resolve.outputs.environment }}
+    defaults:
+      run:
+        working-directory: mobile
+    env:
+      PROFILE: ${{ needs.resolve.outputs.profile }}
+      PLATFORM: ${{ needs.resolve.outputs.platform }}
+      SUBMIT: ${{ needs.resolve.outputs.submit }}
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: EXPO_TOKEN kontrolu
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::EXPO_TOKEN secret'i yok. expo.dev → Account settings → Access tokens."; exit 1
+          fi
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - run: npm ci
+
+      # Build'den once uc kontrol; sonuncusu tsc'nin gecirip bundler'in reddettigi import'lari yakalar.
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: ESLint + test
+        run: |
+          npx eslint .
+          npm test -- --ci
+      - name: Bundle kontrolu (expo export)
+        run: |
+          case "$PLATFORM" in all) p="ios android" ;; *) p="$PLATFORM" ;; esac
+          for x in $p; do npx expo export --platform "$x" --output-dir "$RUNNER_TEMP/export-$x"; done
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      # --wait: basarisiz bir build icin basari raporlamamak icin beklenir.
+      - name: EAS build
+        run: eas build --platform "$PLATFORM" --profile "$PROFILE" --non-interactive --wait
+
+      - name: Play servis hesabi
+        if: env.SUBMIT == 'true' && env.PLATFORM != 'ios'
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$PLAY_SERVICE_ACCOUNT_JSON" ]; then
+            echo "::error::PLAY_SERVICE_ACCOUNT_JSON secret'i yok."; exit 1
+          fi
+          printf '%s' "$PLAY_SERVICE_ACCOUNT_JSON" > play-service-account.json
+
+      # Gonderim ayri adim: reddedilen bir yukleme basarisiz bir build gibi gorunmemeli.
+      - name: EAS submit
+        if: env.SUBMIT == 'true'
+        run: eas submit --platform "$PLATFORM" --profile production --latest --non-interactive
+
+      - name: Temizlik
+        if: always()
+        run: rm -f play-service-account.json
