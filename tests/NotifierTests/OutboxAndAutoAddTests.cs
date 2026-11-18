@@ -48,6 +48,7 @@ public class OutboxAndAutoAddTests
     private async Task TenantAsync(string id, string language = "tr", string? handle = null, params NotificationType[] subscriptions)
     {
         await _host.Repository.SaveAsync(new TenantEntity { Id = id, OwnerUserId = "u-" + id, Language = language, Handle = handle, Version = 1 });
+        await _host.Repository.SaveAsync(NotificationJobsTests.MarketingConsent(id));
         await _host.Repository.SaveAsync(new DeviceEntity { TenantId = id, DeviceId = "d-" + id, Platform = "ios", PushToken = "token-" + id });
         foreach (var type in subscriptions)
             await _host.Repository.SaveAsync(new NotificationSubscriberEntity { Type = type, SubscriberTenantId = id, UserId = "u-" + id });
@@ -160,4 +161,34 @@ public class OutboxAndAutoAddTests
         Assert.Empty(await WatchAsync("gone"));
         Assert.Empty(await _host.Repository.GetAllAsync<WatchAutoAddCandidateEntity>(WatchAutoAddCandidateEntity.GetPk(clickedAt.AddHours(48))));
     }
+
+    [Fact]
+    public async Task Outbox_FollowRequestReachesTheInboxEvenWithThePushOff_PriceDropOnlyWithConsentAndPush()
+    {
+        await TenantAsync("asker", handle: "ayse");
+        await TenantAsync("owner-off");
+        await RequestAsync("asker", "owner-off");
+        await QueueAsync(NotificationType.FollowRequest, "owner-off", "asker");
+        await TenantAsync("wants", subscriptions: NotificationType.PriceDrop);
+        await TenantAsync("withdrawn", subscriptions: NotificationType.PriceDrop);
+        await _host.Repository.DeleteAsync(ConsentEntity.GetPk("withdrawn"), ConsentEntity.GetSk(ConsentType.MarketingNotifications));
+        foreach (var tenant in new[] { "wants", "withdrawn" })
+        {
+            await _host.Repository.SaveAsync(new WatchItemEntity
+            {
+                TenantId = tenant, ProductId = "p1", PriceAtAddMinor = 1000, PriceDropped = true, DroppedToMinor = 800, NotifyPending = true, AddedAt = Now,
+            });
+            await QueueAsync(NotificationType.PriceDrop, tenant, "p1");
+        }
+
+        await _jobs.RunAsync(NotificationJob.Reminder, Now, default);
+
+        var follow = Assert.Single(await _host.Repository.GetAllAsync<NotificationInboxEntity>(NotificationInboxEntity.GetPk("owner-off")));
+        Assert.Equal((NotificationType.FollowRequest, "ayse"), (follow.Type, follow.Data["handle"]));
+        var drop = Assert.Single(await _host.Repository.GetAllAsync<NotificationInboxEntity>(NotificationInboxEntity.GetPk("wants")));
+        Assert.Equal("p1", drop.Data["productId"]);
+        Assert.Empty(await _host.Repository.GetAllAsync<NotificationInboxEntity>(NotificationInboxEntity.GetPk("withdrawn")));
+        Assert.Equal(["token-wants"], _push.Sent.Select(m => m.Token).ToArray());
+    }
 }
+

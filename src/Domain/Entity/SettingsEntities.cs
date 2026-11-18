@@ -79,6 +79,32 @@ public class NotificationSentEntity : IEntity
 }
 
 /// <summary>
+/// The in-app notification inbox (Bildirimler): one row per event the Notifier handles — morning outfit, weekly edit, friend
+/// ratings digest, price drop, follow request. The sort key is the push receipt key (type + key), so an event lands once.
+/// Ids only (edit id, day, product id, handle) — sentences are built in the app. Kept 90 days (TTL; reads skip expired rows).
+/// </summary>
+public class NotificationInboxEntity : IEntity
+{
+    public const int RetentionDays = 90;
+
+    [JsonPropertyName("pk")] public string Pk => GetPk(TenantId);
+    [JsonPropertyName("sk")] public string Sk => GetSk(Type, Key);
+
+    /// <summary>ULID (time ordered); the id the app marks as read.</summary>
+    [JsonPropertyName("id")] public string Id { get; set; } = null!;
+    [JsonPropertyName("tenantId")] public string TenantId { get; set; } = null!;
+    [JsonPropertyName("type")] public NotificationType Type { get; set; }
+    [JsonPropertyName("key")] public string Key { get; set; } = null!;
+    [JsonPropertyName("data")] public Dictionary<string, string> Data { get; set; } = [];
+    [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; }
+    [JsonPropertyName("readAt")] public DateTime? ReadAt { get; set; }
+    [JsonPropertyName("ttl")] public long Ttl => CreatedAt.AddDays(RetentionDays).ToUnixTimeSeconds();
+
+    public static string GetPk(string tenantId) => $"tenant#{tenantId}#inbox";
+    public static string GetSk(NotificationType type, string key) => $"{type.ToString().ToLowerInvariant()}#{key}";
+}
+
+/// <summary>
 /// Own analytics (README §9.2): no third-party SDK. No personal content: the actor is a salted hash of the tenant id,
 /// properties are allow-listed scalars. TTL 400 days.
 /// </summary>

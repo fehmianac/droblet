@@ -37,6 +37,7 @@ public class Put : IEndpoint
     public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints)
     {
         return endpoints.MapPut("v1/tenant/user/me/notifications", Handler)
+            .RequireConsent(c => c.Argument<UpdateNotificationPrefsRequest>() is { } r && (r.WeeklyEdit || r.PriceDrop == true) ? ConsentRules.Marketing : [])
             .Produces<NotificationPrefsDto>(StatusCodes.Status200OK)
             .Produces<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest)
             .Produces<NotificationPrefsDto>(StatusCodes.Status409Conflict)

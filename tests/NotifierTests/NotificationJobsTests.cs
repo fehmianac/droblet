@@ -54,9 +54,11 @@ public class NotificationJobsTests
     }
 
     private async Task AddTenantAsync(string tenantId, string language = "tr", string? token = "token", NotificationType[]? subscriptions = null,
-        string? morningLocalTime = null, string timeZone = "Europe/Istanbul")
+        string? morningLocalTime = null, string timeZone = "Europe/Istanbul", bool marketingConsent = true)
     {
         await _host.Repository.SaveAsync(new TenantEntity { Id = tenantId, OwnerUserId = "u-" + tenantId, Language = language, Version = 1 });
+        if (marketingConsent)
+            await _host.Repository.SaveAsync(MarketingConsent(tenantId));
         if (token is not null)
             await _host.Repository.SaveAsync(new DeviceEntity { TenantId = tenantId, DeviceId = "device-" + tenantId, Platform = "ios", PushToken = token + "-" + tenantId });
         foreach (var type in subscriptions ?? [])
@@ -64,6 +66,11 @@ public class NotificationJobsTests
         if (morningLocalTime is not null)
             await _host.Repository.SaveAsync(new ReminderSlotEntity { LocalTime = morningLocalTime, SubscriberTenantId = tenantId, UserId = "u-" + tenantId, TimeZone = timeZone });
     }
+
+    internal static ConsentEntity MarketingConsent(string tenantId, string version = ConsentOptions.DefaultVersion) => new()
+    {
+        TenantId = tenantId, Type = ConsentType.MarketingNotifications, Granted = true, Version = version, GrantedAt = Now, UpdatedAt = Now,
+    };
 
     private Task PublishEditAsync(string id, string weekStart, bool published = true) => _host.Repository.SaveAsync(new WeeklyEditEntity
     {
@@ -194,4 +201,50 @@ public class NotificationJobsTests
         Assert.Equal(PushTokenType.Apns, _push.Sent.Single(m => m.Token == "a1b2c3").TokenType);
         Assert.Equal(PushTokenType.Fcm, _push.Sent.Single(m => m.Token == "token-t1").TokenType);
     }
+
+    private async Task<List<NotificationInboxEntity>> InboxAsync(string tenantId) =>
+        await _host.Repository.GetAllAsync<NotificationInboxEntity>(NotificationInboxEntity.GetPk(tenantId));
+
+    [Fact]
+    public async Task WeeklyEdit_IsMarketing_NeitherPushNorInbox_WithoutAValidConsent()
+    {
+        await PublishEditAsync("edit-47", "2026-11-16");
+        await AddTenantAsync("consented", subscriptions: [NotificationType.WeeklyEdit]);
+        await AddTenantAsync("legacy-switch", subscriptions: [NotificationType.WeeklyEdit], marketingConsent: false); // on before consents existed
+        await AddTenantAsync("old-text", subscriptions: [NotificationType.WeeklyEdit], marketingConsent: false);
+        await _host.Repository.SaveAsync(MarketingConsent("old-text", version: "2025-01-01"));                         // consent on an outdated text
+        await AddTenantAsync("no-device", token: null, subscriptions: [NotificationType.WeeklyEdit]);
+
+        var run = await _jobs.RunAsync(NotificationJob.WeeklyEdit, Now, default);
+
+        Assert.Equal((2, 1), (run.Candidates, run.Sent));
+        Assert.Equal(["token-consented"], _push.Sent.Select(m => m.Token).ToArray());
+        var row = Assert.Single(await InboxAsync("consented"));
+        Assert.Equal((NotificationType.WeeklyEdit, "edit-47"), (row.Type, row.Data["editId"]));
+        Assert.Single(await InboxAsync("no-device"));                                   // the inbox does not need a device
+        Assert.Empty(await InboxAsync("legacy-switch"));
+        Assert.Empty(await InboxAsync("old-text"));
+    }
+
+    [Fact]
+    public async Task Inbox_GetsEveryHandledEvent_Once_EvenWhenThePushIsOffOrNotDelivered()
+    {
+        await AddTenantAsync("planned", token: null, morningLocalTime: "07:30");
+        _outfits.Tenants.Add("planned");
+        await AddTenantAsync("rated-push-off");
+        await _host.Repository.SaveAsync(new RatingDigestEntity { Day = "2026-11-18", OwnerTenantId = "rated-push-off", CreatedAt = Now });
+
+        await _jobs.RunAsync(NotificationJob.Reminder, Now, default);
+        await _jobs.RunAsync(NotificationJob.Reminder, Now.AddMinutes(10), default);    // same slot again: no second row
+        await _jobs.RunAsync(NotificationJob.FriendRatings, Now.AddHours(12), default);
+        await _jobs.RunAsync(NotificationJob.FriendRatings, Now.AddHours(13), default);
+
+        var morning = Assert.Single(await InboxAsync("planned"));
+        Assert.Equal((NotificationType.MorningOutfit, "2026-11-18", (DateTime?)null), (morning.Type, morning.Data["day"], morning.ReadAt));
+        var ratings = Assert.Single(await InboxAsync("rated-push-off"));
+        Assert.Equal(NotificationType.FriendRatings, ratings.Type);
+        Assert.Empty(_push.Sent);                                                       // no device / switched off: inbox only
+        Assert.True(morning.Ttl - new DateTimeOffset(morning.CreatedAt).ToUnixTimeSeconds() == 90 * 24 * 3600);
+    }
 }
+

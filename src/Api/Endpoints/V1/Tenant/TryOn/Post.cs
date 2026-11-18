@@ -30,6 +30,7 @@ public class Post : IEndpoint
     public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints)
     {
         return endpoints.MapPost("v1/tenant/tryon", Handler)
+            .RequireConsent(ConsentRules.BodyPhoto)
             .Produces<TryOnStartDto>(StatusCodes.Status200OK)
             .Produces<TryOnStartDto>(StatusCodes.Status202Accepted)
             .Problems(StatusCodes.Status402PaymentRequired, StatusCodes.Status403Forbidden, StatusCodes.Status404NotFound, StatusCodes.Status409Conflict, StatusCodes.Status422UnprocessableEntity)

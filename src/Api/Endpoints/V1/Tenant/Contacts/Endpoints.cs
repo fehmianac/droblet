@@ -1,3 +1,4 @@
+using Domain.Enum;
 using Api.Contracts;
 using Api.Infrastructure.Contract;
 using Api.Infrastructure.Extensions;
@@ -18,6 +19,7 @@ public class PostSalt : IEndpoint
 
     public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints) =>
         endpoints.MapPost("v1/tenant/contacts/salt", Handler)
+            .RequireConsent(ConsentRules.Contacts)
             .Produces<ContactSaltDto>(StatusCodes.Status200OK)
             .Tenant("Tenant Social", "Get a contact-matching salt",
                 "Single-use salt for one matching request (10 minutes). The app hashes e-mail addresses on the device with it; raw contacts never leave the device.");
@@ -61,6 +63,7 @@ public class PostMatch : IEndpoint
 
     public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints) =>
         endpoints.MapPost("v1/tenant/contacts/match", Handler)
+            .RequireConsent(ConsentRules.Contacts)
             .Produces<ContactMatchesDto>(StatusCodes.Status200OK)
             .Validated()
             .Problems(StatusCodes.Status404NotFound, StatusCodes.Status429TooManyRequests)

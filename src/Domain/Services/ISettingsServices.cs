@@ -41,12 +41,33 @@ public interface ISettingsService
     Task<NotificationPrefsDto> GetNotificationPrefsAsync(string tenantId, string userId, CancellationToken ct);
     Task<(SettingsOutcome Outcome, NotificationPrefsDto Prefs)> SetNotificationPrefsAsync(string tenantId, string userId, NotificationPrefsInput input, CancellationToken ct);
 
-    /// <summary>Registers / refreshes a push token. The first registration with a token switches on the morning outfit and the weekly edit (decision 9).</summary>
+    /// <summary>Registers / refreshes a push token. The first registration with a token switches on the morning outfit (decision 9; the weekly edit needs marketing consent).</summary>
     Task<(SettingsOutcome Outcome, DeviceDto? Device)> RegisterDeviceAsync(
         string tenantId, string userId, string deviceId, DevicePlatform platform, string? pushToken, PushTokenType? pushTokenType, string? timeZone, CancellationToken ct);
     Task RemoveDeviceAsync(string tenantId, string deviceId, CancellationToken ct);
 
     Task<SettingsDto?> GetSettingsAsync(string tenantId, string userId, CancellationToken ct);
+}
+
+// ── Notification inbox ──────────────────────────────────────────────────────────────────────────────────────────
+
+/// <summary>type = the push code (morning_outfit, weekly_edit, friend_ratings, price_drop, follow_request); data = ids only.</summary>
+public sealed record InboxNotificationDto(string Id, string Type, DateTime CreatedAt, DateTime? ReadAt, IReadOnlyDictionary<string, string> Data);
+
+public sealed record InboxPageDto(IReadOnlyList<InboxNotificationDto> Items, string? PageToken, int UnreadCount);
+
+public sealed record InboxReadResultDto(int UnreadCount);
+
+public interface INotificationInbox
+{
+    /// <summary>Records an event once per (type, key): a repeated call keeps the first row (and its read state). True when added.</summary>
+    Task<bool> AddAsync(string tenantId, NotificationType type, string key, IReadOnlyDictionary<string, string> data, DateTime now, CancellationToken ct);
+
+    /// <summary>Newest first. pageToken = the opaque cursor of the previous page. Expired rows (TTL not yet applied) are skipped.</summary>
+    Task<InboxPageDto> GetPageAsync(string tenantId, string? pageToken, int limit, CancellationToken ct);
+
+    /// <summary>Marks the given ids (null = every unread row) as read; unknown ids are ignored. Returns the unread count left.</summary>
+    Task<InboxReadResultDto> MarkReadAsync(string tenantId, IReadOnlyCollection<string>? ids, CancellationToken ct);
 }
 
 // ── Analytics ───────────────────────────────────────────────────────────────────────────────────────────────────

@@ -37,6 +37,19 @@ public static partial class ErrorCodes
     public const string HandleReserved = "handle_reserved";
     public const string SegmentNotAvailable = "segment_not_available";
 
+    /// <summary>400 (register): the "I am 18 or older" box was not ticked.</summary>
+    public const string AgeConfirmationRequired = "age_confirmation_required";
+
+    // Consents (docs/legal consents 1–6)
+    /// <summary>403 with `missing` (camelCase consent types): the feature needs an explicit consent on the current text version.</summary>
+    public const string ConsentRequired = "consent_required";
+    /// <summary>409: a consent was given on a text version that is no longer current (outdated app).</summary>
+    public const string ConsentVersionOutdated = "consent_version_outdated";
+
+    // Avatar
+    /// <summary>422: the avatar's longest side is above Avatar:MaxDimension (the app resizes before upload).</summary>
+    public const string AvatarTooLarge = "avatar_too_large";
+
     // Photo
     public const string UploadNotFound = "upload_not_found";
     public const string UploadKindMismatch = "upload_kind_mismatch";

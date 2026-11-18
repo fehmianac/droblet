@@ -416,11 +416,11 @@ public class SettingsAnalyticsWeatherEndpointTests(StoreSocialApiFactory factory
         Assert.False((await noToken.JsonAsync()).GetProperty("pushEnabled").GetBoolean());
         Assert.Equal(0, prefsBefore.GetProperty("version").GetInt64());
         Assert.True((await withToken.JsonAsync()).GetProperty("pushEnabled").GetBoolean());
-        // Decision 9: only the morning outfit and the weekly edit start on.
-        Assert.Equal((true, true, false, "Europe/Berlin"), (prefsAfter.GetProperty("morningOutfit").GetBoolean(), prefsAfter.GetProperty("weeklyEdit").GetBoolean(),
+        // Decision 9 as amended by the legal review (G2): only the morning outfit starts on; the weekly edit is marketing (opt-in).
+        Assert.Equal((true, false, false, "Europe/Berlin"), (prefsAfter.GetProperty("morningOutfit").GetBoolean(), prefsAfter.GetProperty("weeklyEdit").GetBoolean(),
             prefsAfter.GetProperty("friendRatings").GetBoolean(), prefsAfter.GetProperty("timeZone").GetString()));
         Assert.Equal((false, false), (prefsAfter.GetProperty("priceDrop").GetBoolean(), prefsAfter.GetProperty("followRequests").GetBoolean()));
-        Assert.False(prefsKept.GetProperty("weeklyEdit").GetBoolean());              // a later device never overrides the user's choice
+        Assert.False(prefsKept.GetProperty("morningOutfit").GetBoolean());           // a later device never overrides the user's choice
         Assert.Equal(2, settings.GetProperty("devices").GetArrayLength());
         Assert.Equal("tr", settings.GetProperty("language").GetString());
         Assert.DoesNotContain("fcm-token", settings.GetRawText());                    // tokens are never returned

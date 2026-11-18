@@ -1,3 +1,4 @@
+using Domain.Services;
 using Api.Infrastructure.Contract;
 using Api.Infrastructure.Extensions;
 using Domain.Constant;
@@ -50,6 +51,7 @@ public class Put : IEndpoint
     public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints)
     {
         return endpoints.MapPut("v1/tenant/body-profile", Handler)
+            .RequireConsent(c => c.Argument<UpdateBodyProfileRequest>()?.WeightKg is not null ? ConsentRules.Weight : [])
             .Produces<BodyProfileDto>(StatusCodes.Status200OK)
             .Produces<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest)
             .Produces(StatusCodes.Status404NotFound)

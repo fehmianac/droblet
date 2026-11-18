@@ -84,3 +84,9 @@ public enum VisibleResource
 
 /// <summary>Admin panel roles (owner decision 2). Permissions per role: Domain.Services.Admin.AdminPermissions.</summary>
 public enum AdminRole { SuperAdmin, ContentEditor, Moderator }
+
+/// <summary>
+/// The six separate explicit consents of docs/legal (landing `/consents`). Wire names are camelCase
+/// (bodyPhotoAi, facePhotoPalette, weight, contacts, marketingNotifications, crossBorderTransfer).
+/// </summary>
+public enum ConsentType { BodyPhotoAi, FacePhotoPalette, Weight, Contacts, MarketingNotifications, CrossBorderTransfer }

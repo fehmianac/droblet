@@ -14,14 +14,19 @@ public class DeleteOne : IEndpoint
         [FromRoute] string photoId,
         [FromServices] IApiContext apiContext,
         [FromServices] IPhotoService photoService,
+        [FromServices] IConsentService consents,
         CancellationToken cancellationToken)
     {
         if (!PhotoKindRoute.TryParse(kind, out var photoKind))
             return ApiResults.Problem(StatusCodes.Status404NotFound, ErrorCodes.NotFound);
 
-        return await photoService.DeleteAsync(apiContext.TenantId, photoKind, photoId, cancellationToken)
-            ? Results.NoContent()
-            : ApiResults.Problem(StatusCodes.Status404NotFound, ErrorCodes.NotFound);
+        if (!await photoService.DeleteAsync(apiContext.TenantId, photoKind, photoId, cancellationToken))
+            return ApiResults.Problem(StatusCodes.Status404NotFound, ErrorCodes.NotFound);
+
+        // Legal text (consents, "withdrawing"): deleting the photo counts as withdrawing its consent.
+        var consent = photoKind == Domain.Enum.PhotoKind.Body ? Domain.Enum.ConsentType.BodyPhotoAi : Domain.Enum.ConsentType.FacePhotoPalette;
+        await consents.WithdrawAsync(apiContext.TenantId, apiContext.UserId, consent, "photo_deleted", cancellationToken);
+        return Results.NoContent();
     }
 
     public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints)
@@ -33,7 +38,7 @@ public class DeleteOne : IEndpoint
             .ProducesProblem(StatusCodes.Status500InternalServerError)
             .RequireAuthorization(ClaimNames.TenantUserPolicy)
             .WithSummary("Delete my body or face photo")
-            .WithDescription("Screen 29: removes the active photo of one kind. Body: the try-on images generated with it go too. Face: the palette result goes too. 404 not_found when photoId is not the active photo of that kind.")
+            .WithDescription("Screen 29: removes the active photo of one kind. Body: the try-on images generated with it go too. Face: the palette result goes too. Records the withdrawal of that kind's consent (bodyPhotoAi / facePhotoPalette). 404 not_found when photoId is not the active photo of that kind.")
             .WithTags("Tenant Photo");
     }
 }

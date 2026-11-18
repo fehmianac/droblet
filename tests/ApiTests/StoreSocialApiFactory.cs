@@ -82,15 +82,17 @@ public sealed class StoreSocialApiFactory : WebApplicationFactory<Entrypoint>
 
     public static string Unique(string prefix = "u") => prefix + Guid.NewGuid().ToString("N")[..10];
 
-    public async Task<(HttpClient Client, AuthResponse Auth)> RegisterAsync(string? email = null, string name = "Ayşe Yılmaz")
+    public async Task<(HttpClient Client, AuthResponse Auth)> RegisterAsync(string? email = null, string name = "Ayşe Yılmaz", bool grantConsents = true)
     {
         var client = CreateClient();
-        var response = await client.PostAsJsonAsync("v1/auth/register", new { name, email = email ?? $"{Guid.NewGuid():N}@example.com", password = Password }, ApiFactory.Json);
+        var response = await client.PostAsJsonAsync("v1/auth/register", new { name, email = email ?? $"{Guid.NewGuid():N}@example.com", password = Password, ageConfirmed = true }, ApiFactory.Json);
         if (response.StatusCode == HttpStatusCode.Conflict && email is not null)
             response = await client.PostAsJsonAsync("v1/auth/login", new { email, password = Password }, ApiFactory.Json);
         response.EnsureSuccessStatusCode();
         var auth = (await response.Content.ReadFromJsonAsync<AuthResponse>(ApiFactory.Json))!;
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.AccessToken);
+        if (grantConsents)
+            await ApiFactory.GrantAllConsentsAsync(client);
         return (client, auth);
     }
 
