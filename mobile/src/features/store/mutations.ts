@@ -1,3 +1,4 @@
+import { wardrobeKeys } from '@/features/wardrobe/queries';
 import { useMutation, type QueryClient } from '@tanstack/react-query';
 
 import { track } from '@/analytics/track';
@@ -72,7 +73,7 @@ export function registerStoreMutations(client: QueryClient): void {
         () => storeFixtures.addToWardrobe(vars.productId),
         () => apiRequest<void>('v1/tenant/item/from-product', { method: 'POST', body: vars }),
       ),
-    onSuccess: () => void client.invalidateQueries({ queryKey: storeKeys.wardrobePieces }),
+    onSuccess: () => void client.invalidateQueries({ queryKey: wardrobeKeys.items }),
   });
 
   client.setMutationDefaults(storeMutationKeys.requestTryOn, {

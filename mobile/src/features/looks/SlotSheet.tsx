@@ -12,10 +12,11 @@ import { Icon } from '@/components/ui/Icon';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { Text } from '@/components/ui/Text';
 import { ItemThumb } from '@/features/wardrobe/ItemThumb';
-import { stubSlotProducts } from '@/fixtures/looks';
-import { currentLanguage } from '@/i18n';
-import { formatMoney, moneyFromMajor } from '@/lib/format';
-import { toDisplayUpper } from '@/lib/upper';
+import { useLookSlotProducts } from '@/features/store/queries';
+import { BrandMark } from '@/components/blocks/BrandMark';
+import { SectionState } from '@/components/blocks/SectionState';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { formatMoney } from '@/lib/format';
 
 import { SLOT_FALLBACK_CATEGORY, slotFromWardrobeItem } from './logic';
 
@@ -33,17 +34,17 @@ type Props = {
 
 /**
  * Slot picker of the look builder ("Ayakkabı seç"): Gardırobum lists the wardrobe pieces whose
- * category fits the slot; Mağaza lists catalogue pieces (a small stand-in list until the store slice
- * provides the catalogue) which are added as missing pieces (`source: 'store'`).
+ * category fits the slot; Mağaza lists the catalogue pieces of the store slice
+ * that fit the slot; they are added as missing pieces (`source: 'store'`).
  */
 export function SlotSheet({ slot, current, items, onPick, onRemove, onClose }: Props) {
   const { t } = useTranslation();
   const [source, setSource] = useState<Source>('wardrobe');
+  const products = useLookSlotProducts(slot && source === 'store' ? slot : null);
   if (!slot) return <BottomSheet visible={false} onClose={onClose}>{null}</BottomSheet>;
 
   const slotLabel = t(`lookSlot.${slot}`);
   const fitting = (items ?? []).filter((i) => SLOT_CATEGORIES[slot].includes(i.category));
-  const products = stubSlotProducts.filter((p) => p.slot === slot);
   const isCurrent = (src: Source, id: string) => current?.source === src && current.refId === id && !current.deleted;
 
   return (
@@ -106,35 +107,55 @@ export function SlotSheet({ slot, current, items, onPick, onRemove, onClose }: P
               <Text variant="caption" tone="muted" className="pb-1">
                 {t('lookEditor.storeNote')}
               </Text>
-              {products.map((product) => {
-                const selected = isCurrent('store', product.id);
-                const money = moneyFromMajor(product.price, 'TRY');
-                const price = formatMoney(money);
-                return (
-                  <Pressable
-                    key={product.id}
-                    onPress={() =>
-                      onPick({ slot, source: 'store', refId: product.id, name: product.name, imageUrl: null, brand: product.brand, price: money, deleted: false })
-                    }
-                    accessibilityRole="button"
-                    accessibilityLabel={t(selected ? 'lookEditor.productLabelSelected' : 'lookEditor.productLabel', { brand: product.brand, name: product.name, price })}
-                    accessibilityState={{ selected }}
-                    className="min-h-16 flex-row items-center gap-3 py-1.5 active:opacity-70"
-                  >
-                    <ItemThumb category={SLOT_FALLBACK_CATEGORY[slot]} className="h-14 w-12 rounded-[8px]" glyphSize={22} />
-                    <View className="flex-1 gap-0.5">
-                      <Text variant="brand" tone="muted" numberOfLines={1}>
-                        {toDisplayUpper(product.brand, currentLanguage())}
-                      </Text>
-                      <Text variant="body" numberOfLines={2}>
-                        {product.name}
-                      </Text>
-                    </View>
-                    <Text variant="bodyMedium">{price}</Text>
-                    {selected ? <Icon icon={Check} size={18} tone="accent" /> : null}
-                  </Pressable>
-                );
-              })}
+              <SectionState
+                query={products}
+                inset={false}
+                skeleton={<Skeleton className="h-16 rounded-image" />}
+                isEmpty={(list) => list.length === 0}
+                emptyText={t('lookEditor.storeEmpty', { slot: slotLabel })}
+                errorText={t('lookEditor.storeError')}
+              >
+                {(list) => (
+                  <View className="gap-1">
+                    {list.map((product) => {
+                      const selected = isCurrent('store', product.id);
+                      const price = product.price ? formatMoney(product.price) : null;
+                      const label = [product.brandName, product.name, price].filter(Boolean).join(', ');
+                      return (
+                        <Pressable
+                          key={product.id}
+                          onPress={() =>
+                            onPick({
+                              slot,
+                              source: 'store',
+                              refId: product.id,
+                              name: product.name,
+                              imageUrl: product.imageUrl,
+                              brand: product.brandName,
+                              price: product.price,
+                              deleted: false,
+                            })
+                          }
+                          accessibilityRole="button"
+                          accessibilityLabel={selected ? t('lookEditor.selected', { name: label }) : label}
+                          accessibilityState={{ selected }}
+                          className="min-h-16 flex-row items-center gap-3 py-1.5 active:opacity-70"
+                        >
+                          <ItemThumb category={SLOT_FALLBACK_CATEGORY[slot]} uri={product.imageUrl} className="h-14 w-12 rounded-[8px]" glyphSize={22} />
+                          <View className="flex-1 gap-0.5">
+                            <BrandMark name={product.brandName} logoUrl={product.brandLogoUrl} />
+                            <Text variant="body" numberOfLines={2}>
+                              {product.name}
+                            </Text>
+                          </View>
+                          {price ? <Text variant="bodyMedium">{price}</Text> : null}
+                          {selected ? <Icon icon={Check} size={18} tone="accent" /> : null}
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                )}
+              </SectionState>
             </>
           )}
         </ScrollView>

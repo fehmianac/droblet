@@ -1,5 +1,7 @@
+import { fixtureDb } from '@/fixtures/db';
+import { slotOfItemCategory } from '@/features/store/slots';
 import type { Cart, ProductSummary } from '@/api/contracts/store';
-import { brandsFixture, buildCart, filterProducts, localizedCatalogue, paginate, productsFixture, wardrobeFixture } from '@/fixtures/store';
+import { brandsFixture, buildCart, filterProducts, localizedCatalogue, paginate, productsFixture } from '@/fixtures/store';
 
 import { EMPTY_SLOTS, filledCount, firstEmptySlot, storeItems, storeTotal, toLookSlots, withProduct } from './builder';
 import { addLinesToCart, preferredSize, priceDropPercent, removeLineFromCart } from './cartMath';
@@ -110,7 +112,7 @@ describe('outfit builder', () => {
   it('places products in their slot, counts store pieces and builds the look', () => {
     let slots = withProduct(EMPTY_SLOTS, byId('prod_001'), 'S'); // shirt → top
     slots = withProduct(slots, byId('prod_003'), 'S'); // shoes
-    const blazer = wardrobeFixture.find((w) => w.slot === 'outerwear');
+    const blazer = fixtureDb.items.find((w) => slotOfItemCategory(w.category) === 'outerwear');
     if (!blazer) throw new Error('fixture');
     slots = { ...slots, outerwear: { source: 'wardrobe', piece: blazer } };
 

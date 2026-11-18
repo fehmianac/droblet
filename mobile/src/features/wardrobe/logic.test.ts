@@ -178,7 +178,10 @@ describe('bulk add (13)', () => {
     const [a, b] = vars.request.items;
     expect(a?.id).toBeTruthy();
     expect(a?.clientMutationId).toBeTruthy();
-    expect(buildConfirmVariables([{ fields, draftId: 'd1', preview: 'file://a.jpg' }]).previews).toEqual({ [a?.id ?? '']: 'file://a.jpg' });
+    // Previews are keyed by the new item's id. Checked on a single-item request of its own: the test
+    // id generator is time-based only, so two calls (or two items) may or may not share a millisecond.
+    const single = buildConfirmVariables([{ fields, draftId: 'd1', preview: 'file://a.jpg' }]);
+    expect(single.previews).toEqual({ [single.request.items[0]?.id ?? '']: 'file://a.jpg' });
     expect(b).toMatchObject({ draftId: null, libraryItemId: 'lib_1', reviewed: true });
   });
 });

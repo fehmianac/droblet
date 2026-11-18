@@ -47,8 +47,6 @@
     "sheetEmpty": "Gardırobunda bu yere uygun parça yok.",
     "sheetEmptyAction": "Parça ekle",
     "storeNote": "Mağazadan seçtiğin ürün look'a eksik parça olarak eklenir.",
-    "productLabel": "{{brand}}, {{name}}, {{price}}",
-    "productLabelSelected": "{{brand}}, {{name}}, {{price}}, seçili",
     "selected": "{{name}}, seçili",
     "more": "Daha fazla",
     "delete": "Look'u sil",
@@ -56,7 +54,9 @@
     "deleteBody": "Look lookbook'undan kaldırılır. Parçaların gardırobunda kalır.",
     "deleteConfirm": "Sil",
     "skipped_one": "{{count}} parça yerleştirilemedi; yeri dolu ya da bu look'a uymuyor.",
-    "skipped_other": "{{count}} parça yerleştirilemedi; yerleri dolu ya da bu look'a uymuyor."
+    "skipped_other": "{{count}} parça yerleştirilemedi; yerleri dolu ya da bu look'a uymuyor.",
+    "storeEmpty": "Mağazada bu alana uygun ürün yok.",
+    "storeError": "Mağaza ürünleri yüklenemedi."
   },
   "trips": {
     "eyebrow": "SEYAHAT PLANLARIN",

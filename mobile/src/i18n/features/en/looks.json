@@ -47,8 +47,6 @@
     "sheetEmpty": "Nothing in your wardrobe fits this spot.",
     "sheetEmptyAction": "Add a piece",
     "storeNote": "A product you pick from the store is added to the look as a missing piece.",
-    "productLabel": "{{brand}}, {{name}}, {{price}}",
-    "productLabelSelected": "{{brand}}, {{name}}, {{price}}, selected",
     "selected": "{{name}}, selected",
     "more": "More",
     "delete": "Delete look",
@@ -56,7 +54,9 @@
     "deleteBody": "The look is removed from your lookbook. Your pieces stay in your wardrobe.",
     "deleteConfirm": "Delete",
     "skipped_one": "{{count}} piece couldn't be placed; its spot is taken or it doesn't fit this look.",
-    "skipped_other": "{{count}} pieces couldn't be placed; their spots are taken or they don't fit this look."
+    "skipped_other": "{{count}} pieces couldn't be placed; their spots are taken or they don't fit this look.",
+    "storeEmpty": "No store products fit this slot.",
+    "storeError": "Store products could not be loaded."
   },
   "trips": {
     "eyebrow": "YOUR TRAVEL PLANS",

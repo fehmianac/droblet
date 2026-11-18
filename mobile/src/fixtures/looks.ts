@@ -1,25 +1,13 @@
-import { moneyFromMajor } from '@/lib/format';
-import type { CreateLookRequest, Look, LookSlot, LookSlotInput, LookSlotKind, PutLookRequest } from '@/api/contracts/looks';
+import type { CreateLookRequest, Look, LookSlot, LookSlotInput, PutLookRequest } from '@/api/contracts/looks';
 import { ApiError } from '@/api/errors';
 
 import { clone, fixtureDb } from './db';
+import { localizedCatalogue } from './store';
 
 /**
- * Fixture "server" for look writes (E3) and a tiny stand-in catalogue for the slot sheet's Mağaza tab.
- * The real catalogue (E8) belongs to the store slice; these few products only let the look builder
- * exercise `source: 'store'` slots.
+ * Fixture "server" for look writes (E3). Store slots (`source: 'store'`, a missing piece) are resolved
+ * from the catalogue fixture of the store slice, like the server resolves them from the catalogue.
  */
-export type StubProduct = { id: string; slot: LookSlotKind; brand: string; name: string; price: number };
-
-export const stubSlotProducts: StubProduct[] = [
-  { id: 'prod_silk_blouse', slot: 'top', brand: 'Atölye Nord', name: 'İpek bluz', price: 4250 },
-  { id: 'prod_wide_trousers', slot: 'bottom', brand: 'Maison Lin', name: 'Bol paça pantolon', price: 3890 },
-  { id: 'prod_wool_coat', slot: 'outerwear', brand: 'Atölye Nord', name: 'Yün kaban', price: 12900 },
-  { id: 'prod_rain_boots', slot: 'shoes', brand: 'Kuzey', name: 'Yağmur botu', price: 3450 },
-  { id: 'prod_loafers', slot: 'shoes', brand: 'Maison Lin', name: 'Deri loafer', price: 5600 },
-  { id: 'prod_earrings', slot: 'accessory', brand: 'Atölye Nord', name: 'Küçük taşlı küpe', price: 1850 },
-];
-
 function resolveSlot(input: LookSlotInput): LookSlot {
   if (input.source === 'wardrobe') {
     const item = fixtureDb.items.find((i) => i.id === input.refId);
@@ -32,8 +20,8 @@ function resolveSlot(input: LookSlotInput): LookSlot {
       deleted: !item,
     };
   }
-  const product = stubSlotProducts.find((p) => p.id === input.refId);
-  return { ...input, name: product?.name ?? '', imageUrl: null, brand: product?.brand ?? null, price: product ? moneyFromMajor(product.price, 'TRY') : null, deleted: false };
+  const product = localizedCatalogue().find((p) => p.id === input.refId);
+  return { ...input, name: product?.name ?? '', imageUrl: product?.imageUrl ?? null, brand: product?.brandName ?? null, price: product?.price ?? null, deleted: false };
 }
 
 export function fixtureCreateLook(request: CreateLookRequest): Look {

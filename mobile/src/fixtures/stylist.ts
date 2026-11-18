@@ -1,4 +1,4 @@
-import { moneyFromMajor } from '@/lib/format';
+import { productsFixture } from './store';
 import type { Look, LookSlot, LookSlotKind } from '@/api/contracts/looks';
 import {
   STYLIST_SUGGESTION_COUNT,
@@ -33,14 +33,16 @@ const SLOT_OF: Record<ItemCategory, LookSlotKind> = {
   accessory: 'accessory',
 };
 
-/** The missing piece the stylist proposes from the catalogue (sample from the 17 board). */
+/** The missing piece the stylist proposes — a product of the catalogue fixture (leather belt). */
+const STORE_PRODUCT = productsFixture.find((p) => p.id === 'prod_023') ?? (productsFixture[0] as (typeof productsFixture)[number]);
+
 const STORE_PIECE: StylistPiece = {
   slot: 'accessory',
   source: 'store',
-  refId: 'prod_earrings',
-  name: 'Küçük taşlı küpe',
-  brand: 'Atelier Mono',
-  price: moneyFromMajor(1450, 'TRY'),
+  refId: STORE_PRODUCT.id,
+  name: STORE_PRODUCT.name,
+  brand: STORE_PRODUCT.brandName,
+  price: STORE_PRODUCT.price,
   imageUrl: null,
   category: 'accessory',
   color: null,

@@ -1,3 +1,4 @@
+import { fixtureDb } from '@/fixtures/db';
 import {
   ONE_SIZE,
   type AddCartLinesRequest,
@@ -18,13 +19,12 @@ import {
   type SeriesOutfit,
   type SetWatchRequest,
   type TryOnState,
-  type WardrobePiece,
   type Watchlist,
   type WatchlistEntry,
   type WeeklyEditSummary,
 } from '@/api/contracts/store';
 import { ApiError } from '@/api/errors';
-import { slotOfCategory } from '@/features/store/slots';
+import { slotOfCategory, slotOfItemCategory } from '@/features/store/slots';
 import { currentLanguage } from '@/i18n';
 import { moneyFromMajor, sumMoney, toIsoDate, type Money } from '@/lib/format';
 
@@ -180,17 +180,6 @@ export function paginate<T>(items: T[], pageToken: string | null, pageSize: numb
   return { items: items.slice(start, end), nextPageToken: end < items.length ? String(end) : null };
 }
 
-export const wardrobeFixture: WardrobePiece[] = [
-  { id: 'item_blazer', name: 'Lacivert yün blazer', slot: 'outerwear', imageUrl: null },
-  { id: 'item_shirt', name: 'Beyaz poplin gömlek', slot: 'top', imageUrl: null },
-  { id: 'item_trousers', name: 'Siyah kumaş pantolon', slot: 'bottom', imageUrl: null },
-  { id: 'item_jeans', name: 'Düz jean', slot: 'bottom', imageUrl: null },
-  { id: 'item_midi', name: 'Siyah midi elbise', slot: null, imageUrl: null },
-  { id: 'item_knit', name: 'Krem triko', slot: 'top', imageUrl: null },
-  { id: 'item_flats', name: 'Kroko babet', slot: 'shoes', imageUrl: null },
-  { id: 'item_bag', name: 'Siyah deri çanta', slot: 'bag', imageUrl: null },
-];
-
 function addDays(date: Date, days: number): Date {
   const d = new Date(date);
   d.setDate(d.getDate() + days);
@@ -294,14 +283,15 @@ export const storeFixtures = {
   match: (id: string): ProductMatch => {
     const p = product(id);
     const own = slotOfCategory(p.category);
-    const items = wardrobeFixture.filter((w) => w.slot !== own);
+    // The user's real (fixture) wardrobe — the same pieces Gardırop shows.
+    const items = fixtureDb.items.filter((w) => slotOfItemCategory(w.category) !== own);
     return { count: items.length, items: items.map(({ id: itemId, name, imageUrl }) => ({ id: itemId, name, imageUrl })) };
   },
   complete: (itemId: string): CompleteSuggestions => {
-    const piece = wardrobeFixture.find((w) => w.id === itemId);
-    return { products: localizedCatalogue().filter((p) => slotOfCategory(p.category) !== (piece?.slot ?? null)).slice(0, 10) };
+    const piece = fixtureDb.items.find((w) => w.id === itemId);
+    const own = piece ? slotOfItemCategory(piece.category) : null;
+    return { products: localizedCatalogue().filter((p) => slotOfCategory(p.category) !== own).slice(0, 10) };
   },
-  wardrobe: (): WardrobePiece[] => wardrobeFixture,
 
   favorites: (): FavoriteProducts => ({ productIds: [...state.favorites] }),
   setFavorite: (productId: string, favorite: boolean): void => {

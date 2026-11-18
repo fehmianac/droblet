@@ -123,22 +123,10 @@ export type SetFavoriteRequest = { productId: string; favorite: boolean; clientM
 /** POST v1/tenant/item/from-product — "Gardıroba ekle" (22). */
 export type AddItemFromProductRequest = { clientMutationId: string; productId: string; size: ProductSize };
 
-// ---------- Wardrobe pieces used by 21 "Parçamı tamamla" and 23 ----------
+// ---------- Outfit builder (23); wardrobe pieces are `Item`s from `./wardrobe` ----------
 
 export const BUILDER_SLOTS = ['top', 'bottom', 'outerwear', 'shoes', 'bag'] as const;
 export type BuilderSlot = (typeof BUILDER_SLOTS)[number];
-
-/**
- * Minimal view of GET v1/tenant/item (E2, owned by the Gardırop work). Replace with the shared
- * wardrobe hook once that contract lands.
- */
-export type WardrobePiece = {
-  id: string;
-  name: string;
-  /** Builder slot the piece fits, when it fits one. */
-  slot: BuilderSlot | null;
-  imageUrl: string | null;
-};
 
 /**
  * POST v1/tenant/stylist/complete { requestId, itemIds } — "Parçamı tamamla".

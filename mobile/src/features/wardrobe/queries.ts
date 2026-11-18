@@ -24,9 +24,10 @@ function fixtureItemDetail(id: string): ItemDetail {
 }
 
 /** 10 Parçalar — the whole wardrobe; filtering, sorting and search run on the device (works offline from cache). */
-export function useItems() {
+export function useItems(options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: wardrobeKeys.items,
+    enabled: options.enabled ?? true,
     queryFn: () =>
       fromSource<Item[]>(
         'wardrobe',

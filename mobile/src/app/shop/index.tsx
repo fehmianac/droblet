@@ -1,3 +1,7 @@
+import type { Item } from '@/api/contracts/wardrobe';
+import { ItemThumb } from '@/features/wardrobe/ItemThumb';
+import { itemImage } from '@/features/wardrobe/parts';
+import { useItems } from '@/features/wardrobe/queries';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowUpDown, Puzzle, Shirt, X } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
@@ -10,7 +14,6 @@ import {
   type ProductCategory,
   type ProductQuery,
   type ProductSummary,
-  type WardrobePiece,
 } from '@/api/contracts/store';
 import { useBodyProfile } from '@/api/profile';
 import { Card, SearchField } from '@/components/blocks/basics';
@@ -20,7 +23,6 @@ import { Button } from '@/components/ui/Button';
 import { Chip, ChipRow } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { OfflineBanner } from '@/components/ui/OfflineBanner';
-import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -34,7 +36,6 @@ import {
   useCompleteSuggestions,
   useFavoriteProducts,
   useProducts,
-  useWardrobePieces,
 } from '@/features/store/queries';
 import { useThemeColors } from '@/theme/useThemeColors';
 
@@ -102,7 +103,7 @@ export default function ShopScreen() {
   const [search, setSearch] = useState('');
   const [sheet, setSheet] = useState<FilterKind | null>(null);
   const [completeOpen, setCompleteOpen] = useState(false);
-  const [completeFor, setCompleteFor] = useState<WardrobePiece | null>(null);
+  const [completeFor, setCompleteFor] = useState<Item | null>(null);
 
   // Search as you type, but only ask the catalogue once typing pauses.
   useEffect(() => {
@@ -112,7 +113,7 @@ export default function ShopScreen() {
 
   const products = useProducts(query, completeFor === null);
   const complete = useCompleteSuggestions(completeFor?.id ?? null);
-  const wardrobe = useWardrobePieces(completeOpen);
+  const wardrobe = useItems({ enabled: completeOpen });
   const favorites = useFavoriteProducts();
   const setFavorite = useSetFavorite();
   const favoriteIds = favorites.data?.productIds ?? [];
@@ -337,7 +338,7 @@ export default function ShopScreen() {
                       accessibilityLabel={piece.name}
                       className="w-24 gap-1.5 active:opacity-80"
                     >
-                      <PlaceholderImage uri={piece.imageUrl} className="aspect-[4/5] w-full rounded-image" />
+                      <ItemThumb category={piece.category} color={piece.color} uri={itemImage(piece)} className="aspect-[4/5] w-full rounded-image" />
                       <Text variant="caption" numberOfLines={2}>
                         {piece.name}
                       </Text>

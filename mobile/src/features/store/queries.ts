@@ -1,3 +1,4 @@
+import type { LookSlotKind } from '@/api/contracts/looks';
 import { keepPreviousData, queryOptions, useInfiniteQuery, useQuery } from '@tanstack/react-query';
 
 import { apiRequest } from '@/api/client';
@@ -10,11 +11,11 @@ import type {
   FavoriteProducts,
   ProductDetail,
   ProductMatch,
+  ProductCategory,
   ProductPage,
   ProductQuery,
   SeriesOutfit,
   TryOnState,
-  WardrobePiece,
   Watchlist,
   WeeklyEditSummary,
 } from '@/api/contracts/store';
@@ -22,7 +23,7 @@ import { fromSource, queryString } from '@/api/dataSource';
 import { isGone } from '@/api/errors';
 import { storeFixtures } from '@/fixtures/store';
 
-import { slotCategories } from './slots';
+import { lookSlotCategories, slotCategories } from './slots';
 
 /** Query keys for E8. Global catalogue/content data and tenant data are kept under separate roots. */
 export const storeKeys = {
@@ -34,7 +35,6 @@ export const storeKeys = {
   product: (id: string) => ['catalog', 'product', 'detail', id] as const,
   match: (id: string) => ['tenant', 'catalog', 'match', id] as const,
   complete: (itemId: string) => ['tenant', 'stylist', 'complete', itemId] as const,
-  wardrobePieces: ['tenant', 'item', 'pieces'] as const,
   favorites: ['tenant', 'favorite', 'product'] as const,
   tryOn: (productId: string) => ['tenant', 'tryon', 'product', productId] as const,
   cart: ['tenant', 'cart', 'current'] as const,
@@ -119,14 +119,24 @@ export function useProducts(query: ProductQuery, enabled = true) {
   });
 }
 
-/** 23 — store suggestions for one builder slot (first page is enough for the strip). */
-export function useSlotProducts(slot: BuilderSlot | null) {
-  const query: ProductQuery = { ...EMPTY_PRODUCT_QUERY, categories: slot ? slotCategories(slot) : [] };
+/** First catalogue page of some categories — enough for a suggestion strip or a slot picker. */
+function useCategoryProducts(categories: ProductCategory[] | null) {
+  const query: ProductQuery = { ...EMPTY_PRODUCT_QUERY, categories: categories ?? [] };
   return useQuery({
     queryKey: [...storeKeys.products(query), 'first-page'] as const,
-    enabled: slot !== null,
+    enabled: categories !== null,
     queryFn: async () => (await fetchProducts(query, null)).items,
   });
+}
+
+/** 23 — store suggestions for one builder slot. */
+export function useSlotProducts(slot: BuilderSlot | null) {
+  return useCategoryProducts(slot ? slotCategories(slot) : null);
+}
+
+/** 15 Look oluştur, "Mağaza" tab — catalogue pieces that can fill one look slot. */
+export function useLookSlotProducts(slot: LookSlotKind | null) {
+  return useCategoryProducts(slot ? lookSlotCategories(slot) : null);
 }
 
 /** 22 — product detail. `null` when the product is no longer in the catalogue (404). */
@@ -164,15 +174,6 @@ export function useCompleteSuggestions(itemId: string | null) {
         () => storeFixtures.complete(itemId ?? ''),
         () => apiRequest<CompleteSuggestions>('v1/tenant/stylist/complete', { method: 'POST', body: { requestId: itemId, itemIds: [itemId] } }),
       ),
-  });
-}
-
-/** Wardrobe pieces for 21 "Parçamı tamamla" and the 23 slots. Swap for the shared Gardırop hook once E2 lands. */
-export function useWardrobePieces(enabled = true) {
-  return useQuery({
-    queryKey: storeKeys.wardrobePieces,
-    enabled,
-    queryFn: () => fromSource('wardrobe', storeFixtures.wardrobe, () => apiRequest<WardrobePiece[]>('v1/tenant/item')),
   });
 }
 

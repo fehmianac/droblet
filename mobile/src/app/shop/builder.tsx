@@ -1,3 +1,7 @@
+import { slotOfItemCategory } from '@/features/store/slots';
+import { ItemThumb } from '@/features/wardrobe/ItemThumb';
+import { itemImage } from '@/features/wardrobe/parts';
+import { useItems } from '@/features/wardrobe/queries';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Check, Plus, X } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
@@ -34,7 +38,7 @@ import {
   type SlotFill,
 } from '@/features/store/builder';
 import { useAddToCart, useCreateLook } from '@/features/store/mutations';
-import { useProduct, useSlotProducts, useWardrobePieces } from '@/features/store/queries';
+import { useProduct, useSlotProducts } from '@/features/store/queries';
 import { formatMoney } from '@/lib/format';
 
 type Source = 'store' | 'wardrobe';
@@ -78,7 +82,7 @@ function SlotCard({
       >
         {fill ? (
           <PlaceholderImage
-            uri={fill.source === 'store' ? fill.product.imageUrl : fill.piece.imageUrl}
+            uri={fill.source === 'store' ? fill.product.imageUrl : itemImage(fill.piece)}
             className="h-11 w-9 rounded-image"
           />
         ) : (
@@ -164,7 +168,7 @@ export default function BuilderScreen() {
   }, [params.lookId]);
 
   const storeSuggestions = useSlotProducts(source === 'store' ? selected : null);
-  const wardrobe = useWardrobePieces(source === 'wardrobe');
+  const wardrobe = useItems({ enabled: source === 'wardrobe' });
 
   const fillSlot = (fill: SlotFill | null, slot: BuilderSlot = selected) => {
     const next = { ...slots, [slot]: fill };
@@ -255,7 +259,7 @@ export default function BuilderScreen() {
           ) : (
             <SectionState
               query={{
-                data: wardrobe.data?.filter((piece) => piece.slot === selected),
+                data: wardrobe.data?.filter((piece) => slotOfItemCategory(piece.category) === selected),
                 status: wardrobe.status,
                 fetchStatus: wardrobe.fetchStatus,
                 error: wardrobe.error,
@@ -276,7 +280,7 @@ export default function BuilderScreen() {
                       accessibilityLabel={piece.name}
                       className="w-24 gap-1 active:opacity-80"
                     >
-                      <PlaceholderImage uri={piece.imageUrl} className="aspect-[4/5] w-full rounded-image" />
+                      <ItemThumb category={piece.category} color={piece.color} uri={itemImage(piece)} className="aspect-[4/5] w-full rounded-image" />
                       <Text variant="caption" numberOfLines={2}>
                         {piece.name}
                       </Text>

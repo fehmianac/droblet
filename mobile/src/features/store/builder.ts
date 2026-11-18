@@ -4,8 +4,8 @@ import {
   type CreateLookRequest,
   type ProductSize,
   type ProductSummary,
-  type WardrobePiece,
 } from '@/api/contracts/store';
+import type { Item } from '@/api/contracts/wardrobe';
 
 import { sumMoney, type Money } from '@/lib/format';
 
@@ -15,7 +15,7 @@ import { slotOfCategory } from './slots';
 /** What fills a slot of the outfit builder (23): a store product (with a size) or a wardrobe piece. */
 export type SlotFill =
   | { source: 'store'; product: ProductSummary; size: ProductSize }
-  | { source: 'wardrobe'; piece: WardrobePiece };
+  | { source: 'wardrobe'; piece: Item };
 
 export type BuilderSlots = Record<BuilderSlot, SlotFill | null>;
 
