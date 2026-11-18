@@ -282,11 +282,25 @@ internal sealed partial class AiSmokeCommand(IServiceProvider services, OpsArgum
 
     // ── model ids from the worker logs ───────────────────────────────────────────────────────────────────────────────
 
-    [GeneratedRegex(@"OpenAI (?<op>[a-z_]+) (?<outcome>ok|failed)[^\n]*?(model (?<model>[A-Za-z0-9._:\-]+))?[,)]", RegexOptions.ExplicitCapture)]
+    [GeneratedRegex(@"OpenAI (?<op>[a-z_]+) (?<outcome>ok|failed)", RegexOptions.ExplicitCapture)]
     private static partial Regex OpenAiLine();
+
+    [GeneratedRegex(@"model (?<model>[A-Za-z0-9._:\-]+)", RegexOptions.ExplicitCapture)]
+    private static partial Regex ModelId();
+
+    private static string Describe(string message)
+    {
+        var line = OpenAiLine().Match(message);
+        if (!line.Success)
+            return "";
+        var model = ModelId().Match(message[line.Index..]);
+        return $"{line.Groups["op"].Value} {line.Groups["outcome"].Value}{(model.Success ? " " + model.Groups["model"].Value : "")}";
+    }
 
     private async Task AttachModelsAsync(DateTime started, CancellationToken ct)
     {
+        // CloudWatch Logs ingestion lags a few seconds behind the last job.
+        await Task.Delay(TimeSpan.FromSeconds(20), ct);
         var window = DateTime.UtcNow - started + TimeSpan.FromMinutes(2);
         foreach (var worker in WorkerOf.Values.Distinct())
         {
@@ -301,8 +315,8 @@ internal sealed partial class AiSmokeCommand(IServiceProvider services, OpsArgum
                 continue;
             }
             var calls = events.Where(e => e.At >= started.AddSeconds(-5))
-                .Select(e => OpenAiLine().Match(e.Message)).Where(m => m.Success)
-                .GroupBy(m => $"{m.Groups["op"].Value} {m.Groups["outcome"].Value}{(m.Groups["model"].Success ? " " + m.Groups["model"].Value : "")}")
+                .Select(e => Describe(e.Message)).Where(d => d.Length > 0)
+                .GroupBy(d => d)
                 .Select(g => $"{g.Key} ×{g.Count()}").ToList();
             output.Line($"{worker} log: {(calls.Count == 0 ? "no OpenAI lines" : string.Join("; ", calls))}");
             foreach (var (row, index) in _rows.Select((r, i) => (r, i)).ToList())
