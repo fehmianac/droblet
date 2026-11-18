@@ -263,8 +263,11 @@ Resources:
     Properties:
       Name: !Sub /droblet/${Stage}/api/AuthRateLimits
       Type: String
-      Description: Sign-in abuse limits.
-      Value: '{"LoginPerEmailPer15Minutes":10,"LoginPerIpPer15Minutes":50,"RegisterPerIpPerHour":20,"ForgotPerEmailPerHour":3}'
+      Description: Sign-in abuse limits. dev is looser so automated UI tests from one IP are not locked out.
+      Value: !If
+        - IsProd
+        - '{"LoginPerEmailPer15Minutes":10,"LoginPerIpPer15Minutes":50,"RegisterPerIpPerHour":20,"ForgotPerEmailPerHour":3}'
+        - '{"LoginPerEmailPer15Minutes":50,"LoginPerIpPer15Minutes":500,"RegisterPerIpPerHour":500,"ForgotPerEmailPerHour":20}'
   SsmWorkerEntitlements:
     Type: AWS::SSM::Parameter
     Properties:

@@ -15,7 +15,8 @@ namespace InfrastructureTests;
 /// </summary>
 public partial class TemplateConfigTests
 {
-    [GeneratedRegex(@"Name: !Sub /droblet/\$\{Stage\}/(?<scope>api|worker|notifier)/(?<section>[A-Za-z/]+)\s*\n\s*Type: String\s*\n(?:\s*Description: [^\n]*\n)?\s*Value: '(?<value>[^'\n]*)'")]
+    [GeneratedRegex(@"Name: !Sub /droblet/\$\{Stage\}/(?<scope>api|worker|notifier)/(?<section>[A-Za-z/]+)\s*\n\s*Type: String\s*\n(?:\s*Description: [^\n]*\n)?\s*Value: (?:!If\s*\n\s*- IsProd\s*\n\s*- )?'(?<value>[^'\n]*)'")]
+    // A value may be `!If [IsProd, '<prod>', '<dev>']` written as a block list; the prod literal is the one checked.
     private static partial Regex ParameterPattern();
 
     private static string Template()
