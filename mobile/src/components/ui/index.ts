@@ -1,3 +1,4 @@
+export * from './ai';
 export { AiBadge, AiImage } from './AiBadge';
 export { BottomActionBar } from './BottomActionBar';
 export { BottomSheet } from './BottomSheet';
