@@ -71,8 +71,8 @@
     "reason": {
       "inappropriate": "Uygunsuz içerik",
       "harassment": "Taciz veya zorbalık",
-      "fake": "Sahte hesap",
-      "unauthorized_photo": "İzinsiz paylaşılan fotoğraf",
+      "impersonation": "Başkasının yerine geçen sahte hesap",
+      "minor_safety": "Çocuk güvenliği",
       "spam": "Spam",
       "other": "Diğer"
     },

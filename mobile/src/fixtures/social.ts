@@ -131,5 +131,16 @@ export const socialFixtures = {
       .sort((a, b) => b.styleMatch - a.styleMatch)
       .map((p) => ({ ...ref(p), styleMatch: p.styleMatch, isFollowing: p.isFollowing })),
 
-  inviteLink: (): InviteLink => ({ url: 'https://droplet.alatech.co/invite/DAMLA24', code: 'DAMLA24' }),
+  savedLooks: (): FeedLook[] => socialFixtures.feed(null).items.filter((l) => l.saved),
+  followers: (): PersonSuggestion[] =>
+    people.filter((p) => !p.blocked && p.handle === 'selin').map((p) => ({ ...ref(p), styleMatch: p.styleMatch, isFollowing: p.isFollowing })),
+  following: (): PersonSuggestion[] =>
+    people.filter((p) => !p.blocked && p.isFollowing).map((p) => ({ ...ref(p), styleMatch: p.styleMatch, isFollowing: true })),
+  blocked: (): PersonSuggestion[] =>
+    people.filter((p) => p.blocked).map((p) => ({ ...ref(p), styleMatch: p.styleMatch, isFollowing: false })),
+  unblock: (handle: string): void => {
+    people = people.map((p) => (p.handle === handle ? { ...p, blocked: false } : p));
+  },
+
+  inviteLink: (): InviteLink => ({ url: 'https://droplet.alatech.co/i/DAMLA24A', code: 'DAMLA24A', invitedCount: 0 }),
 };

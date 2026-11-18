@@ -1,16 +1,26 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 
 import { apiRequest } from '@/api/client';
-import type {
-  FeedPage,
-  InviteLink,
-  PersonProfile,
-  PersonSuggestion,
-  PersonTile,
-  PersonTrip,
-} from '@/api/contracts/social';
+import { PEOPLE_SEARCH_MIN, type FeedLook } from '@/api/contracts/social';
 import { fromSource, queryString } from '@/api/dataSource';
 import { isGone } from '@/api/errors';
+import {
+  toFeedLook,
+  toFeedPage,
+  toInviteLink,
+  toItemTile,
+  toLookTile,
+  toPersonProfile,
+  toPersonSuggestion,
+  toPersonTrip,
+  type FeedPageWire,
+  type InviteLinkWire,
+  type PersonCardWire,
+  type PersonItemWire,
+  type PersonProfileWire,
+  type PersonTripWire,
+  type SocialLookWire,
+} from '@/api/wire/social';
 import { socialFixtures } from '@/fixtures/social';
 
 /**
@@ -26,6 +36,10 @@ export const socialKeys = {
   personTrips: (handle: string) => ['tenant', 'social', 'person', handle, 'trip'] as const,
   search: (q: string) => ['tenant', 'social', 'search', q] as const,
   suggested: ['tenant', 'social', 'suggested'] as const,
+  savedLooks: ['tenant', 'social', 'saved-look'] as const,
+  followers: ['tenant', 'social', 'follower'] as const,
+  following: ['tenant', 'social', 'following'] as const,
+  blocked: ['tenant', 'social', 'block'] as const,
   inviteLink: ['tenant', 'invite', 'link'] as const,
 };
 
@@ -39,33 +53,71 @@ async function orHidden<T>(request: Promise<T>): Promise<T | null> {
   }
 }
 
-/** 25 — looks of the people this user follows (+ story rings on the first page). */
+/** Path segment of a handle (the leading `@` is not part of it). */
+export const handlePath = (handle: string) => encodeURIComponent(handle.replace(/^@/, ''));
+
+const people = async (path: string) => (await apiRequest<PersonCardWire[]>(path)).map(toPersonSuggestion);
+
+/**
+ * 25 — `GET v1/tenant/feed?pageToken=`: looks of the people this user follows, newest first, 20 per
+ * page. The story rings of the first page are derived from its authors (no backend story concept).
+ */
 export function useFeed() {
   return useInfiniteQuery({
     queryKey: socialKeys.feed,
     initialPageParam: null as string | null,
     queryFn: ({ pageParam }) =>
-      fromSource('social', () => socialFixtures.feed(pageParam), () => apiRequest<FeedPage>(`v1/tenant/feed${queryString({ pageToken: pageParam })}`)),
+      fromSource(
+        'social',
+        () => socialFixtures.feed(pageParam),
+        async () => toFeedPage(await apiRequest<FeedPageWire>(`v1/tenant/feed${queryString({ pageToken: pageParam })}`), pageParam === null),
+      ),
     getNextPageParam: (last) => last.nextPageToken,
   });
 }
 
-/** 26 — profile card. `null` = not found / blocked. */
+/** `GET v1/tenant/saved-look` — looks this user saved, most recently saved first (hidden ones are omitted). */
+export function useSavedLooks(enabled = true) {
+  return useQuery({
+    queryKey: socialKeys.savedLooks,
+    enabled,
+    queryFn: () =>
+      fromSource<FeedLook[]>(
+        'social',
+        () => socialFixtures.savedLooks(),
+        async () => (await apiRequest<SocialLookWire[]>('v1/tenant/saved-look')).map((l) => toFeedLook(l, false)),
+      ),
+  });
+}
+
+/** 26 — `GET v1/tenant/people/{handle}`. `null` = not found / private / blocked (404). */
 export function usePerson(handle: string) {
   return useQuery({
     queryKey: socialKeys.person(handle),
     queryFn: () =>
-      orHidden(fromSource('social', () => socialFixtures.profile(handle), () => apiRequest<PersonProfile>(`v1/tenant/people/${handle}`))),
+      orHidden(
+        fromSource(
+          'social',
+          () => socialFixtures.profile(handle),
+          async () => toPersonProfile(await apiRequest<PersonProfileWire>(`v1/tenant/people/${handlePath(handle)}`)),
+        ),
+      ),
   });
 }
 
-/** 26 tabs — each resolves to `null` when the closet is hidden from this viewer. */
+/** 26 tabs — each resolves to `null` when the closet is hidden from this viewer (404). */
 export function usePersonLooks(handle: string, enabled: boolean) {
   return useQuery({
     queryKey: socialKeys.personLooks(handle),
     enabled,
     queryFn: () =>
-      orHidden(fromSource('social', () => socialFixtures.looks(handle), () => apiRequest<PersonTile[]>(`v1/tenant/people/${handle}/look`))),
+      orHidden(
+        fromSource(
+          'social',
+          () => socialFixtures.looks(handle),
+          async () => (await apiRequest<SocialLookWire[]>(`v1/tenant/people/${handlePath(handle)}/look`)).map(toLookTile),
+        ),
+      ),
   });
 }
 
@@ -74,43 +126,83 @@ export function usePersonItems(handle: string, enabled: boolean) {
     queryKey: socialKeys.personItems(handle),
     enabled,
     queryFn: () =>
-      orHidden(fromSource('social', () => socialFixtures.items(handle), () => apiRequest<PersonTile[]>(`v1/tenant/people/${handle}/item`))),
+      orHidden(
+        fromSource(
+          'social',
+          () => socialFixtures.items(handle),
+          async () => (await apiRequest<PersonItemWire[]>(`v1/tenant/people/${handlePath(handle)}/item`)).map(toItemTile),
+        ),
+      ),
   });
 }
 
+/** Trips stay owner-only on the server (open decision A-6): for anyone else this is 404 → `null`. */
 export function usePersonTrips(handle: string, enabled: boolean) {
   return useQuery({
     queryKey: socialKeys.personTrips(handle),
     enabled,
     queryFn: () =>
-      orHidden(fromSource('social', () => socialFixtures.trips(handle), () => apiRequest<PersonTrip[]>(`v1/tenant/people/${handle}/trip`))),
+      orHidden(
+        fromSource(
+          'social',
+          () => socialFixtures.trips(handle),
+          async () => (await apiRequest<PersonTripWire[]>(`v1/tenant/people/${handlePath(handle)}/trip`)).map(toPersonTrip),
+        ),
+      ),
   });
 }
 
-/** 27 — @username prefix search. Disabled for an empty query. */
+/** 27 — `GET v1/tenant/people?q=`: @handle prefix search. The server needs at least 2 characters. */
 export function usePeopleSearch(q: string) {
   const needle = q.trim().replace(/^@/, '');
   return useQuery({
     queryKey: socialKeys.search(needle),
-    enabled: needle.length > 0,
-    queryFn: () =>
-      fromSource('social', () => socialFixtures.search(needle), () => apiRequest<PersonSuggestion[]>(`v1/tenant/people${queryString({ q: needle })}`)),
+    enabled: needle.length >= PEOPLE_SEARCH_MIN,
+    queryFn: () => fromSource('social', () => socialFixtures.search(needle), () => people(`v1/tenant/people${queryString({ q: needle })}`)),
   });
 }
 
-/** 27 — "Sana benzeyen dolaplar" with style match %. */
+/** 27 — "Sana benzeyen dolaplar": public profiles not followed yet, by style match %. */
 export function useSuggestedPeople() {
   return useQuery({
     queryKey: socialKeys.suggested,
-    queryFn: () => fromSource('social', socialFixtures.suggested, () => apiRequest<PersonSuggestion[]>('v1/tenant/people/suggested')),
+    queryFn: () => fromSource('social', socialFixtures.suggested, () => people('v1/tenant/people/suggested')),
   });
 }
 
-/** The user's invite link + code; every shared link carries the code. */
+/** `GET v1/tenant/follower` — people following this user. */
+export function useFollowers(enabled = true) {
+  return useQuery({
+    queryKey: socialKeys.followers,
+    enabled,
+    queryFn: () => fromSource('social', () => socialFixtures.followers(), () => people('v1/tenant/follower')),
+  });
+}
+
+/** `GET v1/tenant/following` — people this user follows. */
+export function useFollowing(enabled = true) {
+  return useQuery({
+    queryKey: socialKeys.following,
+    enabled,
+    queryFn: () => fromSource('social', () => socialFixtures.following(), () => people('v1/tenant/following')),
+  });
+}
+
+/** `GET v1/tenant/block` — accounts this user blocked (handle + name only). */
+export function useBlockedPeople(enabled = true) {
+  return useQuery({
+    queryKey: socialKeys.blocked,
+    enabled,
+    queryFn: () => fromSource('social', () => socialFixtures.blocked(), () => people('v1/tenant/block')),
+  });
+}
+
+/** `GET v1/tenant/invite/link` — the user's invite link + code; every shared link carries the code. */
 export function useInviteLink() {
   return useQuery({
     queryKey: socialKeys.inviteLink,
     staleTime: 24 * 60 * 60_000,
-    queryFn: () => fromSource('social', socialFixtures.inviteLink, () => apiRequest<InviteLink>('v1/tenant/invite/link')),
+    queryFn: () =>
+      fromSource('social', socialFixtures.inviteLink, async () => toInviteLink(await apiRequest<InviteLinkWire>('v1/tenant/invite/link'))),
   });
 }

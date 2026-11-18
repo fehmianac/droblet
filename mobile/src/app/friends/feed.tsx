@@ -214,6 +214,7 @@ export default function FriendsFeedScreen() {
         url={shareUrl}
         message={shareUrl ? t('share.lookMessage', { url: shareUrl }) : ''}
         kind="look"
+        target={sharing ? { targetKind: 'look', targetId: sharing.lookId, ownerHandle: sharing.author.handle } : undefined}
       />
     </Screen>
   );

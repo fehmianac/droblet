@@ -4,9 +4,12 @@ import { useTranslation } from 'react-i18next';
 import { Linking, Pressable, Share, View } from 'react-native';
 
 import { track } from '@/analytics/track';
+import type { ShareTarget } from '@/api/contracts/social';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Icon } from '@/components/ui/Icon';
 import { Text } from '@/components/ui/Text';
+
+import { requestShareUrl, withShareUrl } from './share';
 
 export type ShareChannel = 'whatsapp' | 'pinterest' | 'link';
 
@@ -25,6 +28,11 @@ type Props = {
   message: string;
   /** What is shared, for analytics. */
   kind: 'look' | 'profile' | 'invite';
+  /**
+   * What is shared, for `POST v1/tenant/share`: the server records the share and returns the link to
+   * send. Without it (or offline) the device-built `url` is shared.
+   */
+  target?: ShareTarget;
 };
 
 function Option({ icon, label, onPress }: { icon: LucideIcon; label: string; onPress: () => void }) {
@@ -47,7 +55,7 @@ function Option({ icon, label, onPress }: { icon: LucideIcon; label: string; onP
  * "Look'u paylaş" — WhatsApp, Pinterest or the system share sheet for the link. Every link carries
  * the sharer's invite code; when the app is not installed the link leads to the store page.
  */
-export function ShareSheet({ visible, onClose, url, message, kind }: Props) {
+export function ShareSheet({ visible, onClose, url, message, kind, target }: Props) {
   const { t } = useTranslation();
   const [failed, setFailed] = useState(false);
 
@@ -55,8 +63,9 @@ export function ShareSheet({ visible, onClose, url, message, kind }: Props) {
     if (!url) return;
     setFailed(false);
     try {
-      if (channel === 'link') await Share.share({ message });
-      else await Linking.openURL(shareTargetUrl(channel, url, message));
+      const link = withShareUrl(message, url, target ? await requestShareUrl(target, channel) : null);
+      if (channel === 'link') await Share.share({ message: link.message });
+      else await Linking.openURL(shareTargetUrl(channel, link.url, link.message));
       track('look_shared', { channel, kind });
       onClose();
     } catch {

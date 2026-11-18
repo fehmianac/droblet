@@ -71,8 +71,8 @@
     "reason": {
       "inappropriate": "Inappropriate content",
       "harassment": "Harassment or bullying",
-      "fake": "Fake account",
-      "unauthorized_photo": "Photo shared without permission",
+      "impersonation": "Fake account or impersonation",
+      "minor_safety": "Child safety",
       "spam": "Spam",
       "other": "Other"
     },

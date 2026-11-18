@@ -24,6 +24,7 @@ import { profileShareUrl } from '@/features/social/feedMath';
 import { useFollow } from '@/features/social/mutations';
 import { useInviteLink, usePerson, usePersonItems, usePersonLooks, usePersonTrips } from '@/features/social/queries';
 import { ReportSheet } from '@/features/social/ReportSheet';
+import { requestShareUrl } from '@/features/social/share';
 import { formatYearMonth , formatNumber, formatPercent } from '@/lib/format';
 
 type ProfileTab = 'looks' | 'closet' | 'trips';
@@ -224,8 +225,11 @@ export default function PersonScreen() {
 
   const shareProfile = () => {
     setMenu(false);
-    const url = profileShareUrl(linkDomain(), handle, invite.data?.code ?? null);
-    void Share.share({ message: t('share.profileMessage', { url }) }).catch(() => undefined);
+    const local = profileShareUrl(linkDomain(), handle, invite.data?.code ?? null);
+    // The server records the share and returns the link to send; offline, the device-built link is used.
+    void requestShareUrl({ targetKind: 'profile', ownerHandle: handle }, 'link')
+      .then((url) => Share.share({ message: t('share.profileMessage', { url: url ?? local }) }))
+      .catch(() => undefined);
   };
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/friends/feed'));
 
