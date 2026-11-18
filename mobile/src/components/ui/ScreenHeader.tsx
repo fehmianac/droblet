@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useCanGoBack } from 'expo-router';
 import { ChevronLeft, X } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -17,7 +17,9 @@ type Props = {
 
 export function ScreenHeader({ title, leading, onLeadingPress, right }: Props) {
   const { t } = useTranslation();
-  const mode = leading ?? (router.canGoBack() ? 'back' : 'none');
+  // Hook, not `router.canGoBack()`: the imperative router is unavailable when a detail screen is the first route (deep link).
+  const canGoBack = useCanGoBack();
+  const mode = leading ?? (canGoBack ? 'back' : 'none');
   const onPress = onLeadingPress ?? (() => router.back());
   return (
     <View className="min-h-14 flex-row items-center gap-2 px-gutter py-1">
