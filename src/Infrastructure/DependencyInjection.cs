@@ -29,6 +29,9 @@ public static class DependencyInjection
         services.Configure<StoreOptions>(configuration.GetSection(StoreOptions.Section));
         services.Configure<AiOptions>(configuration.GetSection(AiOptions.Section));
         services.Configure<AffiliateOptions>(configuration.GetSection(AffiliateOptions.Section));
+        // Secrets created by deploy-infra hold the literal CHANGE_ME until the owner fills them in: bind that as "not set".
+        services.PostConfigure<AiOptions>(o => o.ApiKey = ConfigSecret.OrNull(o.ApiKey));
+        services.PostConfigure<StoreOptions>(o => o.NotificationKey = ConfigSecret.OrNull(o.NotificationKey));
 
         services.AddSingleton(TimeProvider.System);
 
@@ -73,6 +76,8 @@ public static class DependencyInjection
         services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.Section));
         services.Configure<AppLinksOptions>(configuration.GetSection(AppLinksOptions.Section));
         services.Configure<AuthRateLimitOptions>(configuration.GetSection(AuthRateLimitOptions.Section));
+        services.PostConfigure<AppleAuthOptions>(o => o.PrivateKey = ConfigSecret.OrNull(o.PrivateKey));
+        services.PostConfigure<EmailOptions>(o => o.SendGrid.ApiKey = ConfigSecret.OrNull(o.SendGrid.ApiKey));
 
         services.AddHttpContextAccessor();
         services.AddScoped<IApiContext, ApiContext>();

@@ -34,15 +34,7 @@ public static class StoreSocialDependencyInjection
         // The one language list: static helpers (Localized.*) used by rules, workers and prompts read the same config.
         Localized.Configure(configuration.GetSection(LocalizationOptions.Section).Get<LocalizationOptions>() ?? new LocalizationOptions());
         services.TryAddSingleton<IRequestLanguage, Infrastructure.Context.RequestLanguage>();
-        services.Configure<FirebaseServiceAccountOptions>(o =>
-        {
-            // Google's service-account JSON uses snake_case names.
-            var section = configuration.GetSection(FirebaseServiceAccountOptions.Section);
-            o.ProjectId = section["project_id"] ?? section["ProjectId"];
-            o.ClientEmail = section["client_email"] ?? section["ClientEmail"];
-            o.PrivateKey = section["private_key"] ?? section["PrivateKey"];
-            o.TokenUri = section["token_uri"] ?? section["TokenUri"] ?? o.TokenUri;
-        });
+        services.Configure<FirebaseServiceAccountOptions>(o => FirebaseServiceAccountBinder.Bind(configuration, o));
 
         // Shared by the admin API and the seed tool.
         services.TryAddSingleton<IValidator<BrandInput>, BrandInputValidator>();
@@ -83,4 +75,58 @@ public static class StoreSocialDependencyInjection
         services.TryAddSingleton<ICrossTenantCleanup, CrossTenantCleanup>();
         return services;
     }
+}
+
+/// <summary>
+/// Binds the Firebase service account from configuration. Shapes that reach us:
+///   • Push:ServiceAccountJson = "CHANGE_ME" (deploy placeholder) or empty → nothing is bound (push disabled);
+///   • Push:ServiceAccountJson = the JSON file as ONE string (local user-secrets / env var) → parsed here;
+///   • Push:ServiceAccountJson:project_id, … — the SSM loader (JsonOrStringParameterProcessor) flattens a JSON
+///     parameter value into child keys, so this is what the Notifier Lambda actually sees;
+///   • FirebaseServiceAccount:* — the earlier section name, still accepted.
+/// Google's file uses snake_case names.
+/// </summary>
+public static class FirebaseServiceAccountBinder
+{
+    public static void Bind(IConfiguration configuration, FirebaseServiceAccountOptions options)
+    {
+        var json = configuration.GetSection(FirebaseServiceAccountOptions.JsonKey);
+        if (ConfigSecret.IsSet(json.Value) && TryParse(json.Value!, out var parsed))
+        {
+            Apply(options, key => parsed.GetValueOrDefault(key));
+            return;
+        }
+
+        var section = json.GetChildren().Any() ? json : configuration.GetSection(FirebaseServiceAccountOptions.Section);
+        Apply(options, key => section[key] ?? section[Pascal(key)]);
+    }
+
+    private static void Apply(FirebaseServiceAccountOptions options, Func<string, string?> read)
+    {
+        options.ProjectId = ConfigSecret.OrNull(read("project_id"));
+        options.ClientEmail = ConfigSecret.OrNull(read("client_email"));
+        options.PrivateKey = ConfigSecret.OrNull(read("private_key"));
+        options.TokenUri = ConfigSecret.OrNull(read("token_uri")) ?? options.TokenUri;
+    }
+
+    private static bool TryParse(string json, out Dictionary<string, string?> values)
+    {
+        values = new Dictionary<string, string?>(StringComparer.Ordinal);
+        try
+        {
+            using var document = System.Text.Json.JsonDocument.Parse(json);
+            if (document.RootElement.ValueKind != System.Text.Json.JsonValueKind.Object)
+                return false;
+            foreach (var property in document.RootElement.EnumerateObject())
+                values[property.Name] = property.Value.ValueKind == System.Text.Json.JsonValueKind.String ? property.Value.GetString() : null;
+            return true;
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static string Pascal(string snake) =>
+        string.Concat(snake.Split('_').Select(part => part.Length == 0 ? part : char.ToUpperInvariant(part[0]) + part[1..]));
 }

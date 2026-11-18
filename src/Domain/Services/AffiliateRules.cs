@@ -58,12 +58,16 @@ public static class PostbackSignature
         return CryptographicOperations.FixedTimeEquals(SHA256.HashData(Encoding.UTF8.GetBytes(secret)), SHA256.HashData(Encoding.UTF8.GetBytes(key)));
     }
 
+    /// <summary>
+    /// Null = no usable secret: the postback is refused. An empty value and the deploy placeholder (CHANGE_ME) are
+    /// both "not configured" — otherwise anybody could sign a conversion with the well-known placeholder.
+    /// </summary>
     public static string? SecretFor(AffiliatePostbackOptions options, AffiliateSource source, string? brandId) => source switch
     {
-        AffiliateSource.Network => options.NetworkSecret,
-        _ => brandId is not null && options.DirectBrandSecrets.TryGetValue(brandId, out var secret) && !string.IsNullOrEmpty(secret)
+        AffiliateSource.Network => ConfigSecret.OrNull(options.NetworkSecret),
+        _ => brandId is not null && options.DirectBrandSecrets.TryGetValue(brandId, out var secret) && ConfigSecret.IsSet(secret)
             ? secret
-            : options.DirectSecret,
+            : ConfigSecret.OrNull(options.DirectSecret),
     };
 }
 

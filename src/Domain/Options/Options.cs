@@ -25,6 +25,9 @@ public sealed class AppleAuthOptions
     public string? KeyId { get; set; }
     public string? PrivateKey { get; set; }
 
+    /// <summary>False while the SSM parameter still holds the CHANGE_ME placeholder (ConfigSecret).</summary>
+    public bool HasPrivateKey => ConfigSecret.IsSet(PrivateKey);
+
     public IReadOnlyList<string> Audiences() =>
         new[] { BundleId }.Concat(AdditionalAudiences).Where(a => !string.IsNullOrWhiteSpace(a)).Distinct().ToList();
 }
@@ -100,6 +103,9 @@ public sealed class StoreOptions
     public Dictionary<string, int> CreditPacks { get; set; } = [];
     public string? NotificationKey { get; set; }
 
+    /// <summary>False while the SSM parameter still holds the CHANGE_ME placeholder (ConfigSecret).</summary>
+    public bool HasNotificationKey => ConfigSecret.IsSet(NotificationKey);
+
     public sealed class StoreProductIds
     {
         public List<string> Premium { get; set; } = [];
@@ -141,8 +147,15 @@ public sealed class AiOptions
     public string? Provider { get; set; }
     public string? TextModel { get; set; }
     public string? ImageModel { get; set; }
-    /// <summary>SSM SecureString /droblet/{stage}/worker/Ai. Never logged.</summary>
+    /// <summary>
+    /// SSM SecureString /droblet/{stage}/worker/Ai/ApiKey — a plain string parameter nested under the worker/Ai JSON
+    /// (Enabled, Provider, TextModel, ImageModel), so both bind to this section. Never logged. Workers only: the Api
+    /// Lambda reads /droblet/{stage}/api and never sees it.
+    /// </summary>
     public string? ApiKey { get; set; }
+
+    /// <summary>False while the key is empty or still the CHANGE_ME placeholder (ConfigSecret).</summary>
+    public bool HasApiKey => ConfigSecret.IsSet(ApiKey);
     public string BaseUrl { get; set; } = "https://api.openai.com";
     public string ImageSize { get; set; } = "1024x1536";
     public int TimeoutSeconds { get; set; } = 100;

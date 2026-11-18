@@ -39,7 +39,7 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
         get
         {
             var o = options.CurrentValue;
-            return o.Enabled && !string.IsNullOrWhiteSpace(o.ApiKey) && !string.IsNullOrWhiteSpace(o.TextModel) && !string.IsNullOrWhiteSpace(o.ImageModel);
+            return o.Enabled && o.HasApiKey && !string.IsNullOrWhiteSpace(o.TextModel) && !string.IsNullOrWhiteSpace(o.ImageModel);
         }
     }
 
@@ -138,7 +138,8 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
         var settings = options.CurrentValue;
         if (!settings.Enabled)
             throw new AiProviderException("AI is disabled (Ai.Enabled = false).");
-        if (string.IsNullOrWhiteSpace(settings.ApiKey) || string.IsNullOrWhiteSpace(model(settings)))
+        // An empty key and the deploy placeholder (CHANGE_ME) are the same thing: not configured — nothing is sent.
+        if (!settings.HasApiKey || string.IsNullOrWhiteSpace(model(settings)))
             throw new AiProviderException("AI provider 'OpenAI' is not configured (Ai:ApiKey / Ai:TextModel / Ai:ImageModel).");
         return settings;
     }

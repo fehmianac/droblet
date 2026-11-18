@@ -40,7 +40,7 @@ public class GetNetwork : IEndpoint
         if (!validation.IsValid)
             return Results.BadRequest(validation.Errors.ToProblemDetails());
 
-        var secret = options.CurrentValue.NetworkSecret;
+        var secret = PostbackSignature.SecretFor(options.CurrentValue, AffiliateSource.Network, null);
         if (string.IsNullOrEmpty(secret))
             return ApiResults.Problem(StatusCodes.Status503ServiceUnavailable, ErrorCodes.ProviderNotConfigured);
         if (!PostbackSignature.VerifySharedKey(secret, key))

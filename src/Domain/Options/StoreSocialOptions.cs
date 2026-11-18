@@ -77,16 +77,20 @@ public sealed class AffiliatePostbackOptions
     public string DefaultClickIdParameter { get; set; } = "click_id";
 }
 
-/// <summary>Notifier only (/droblet/{stage}/notifier/FirebaseServiceAccount, Google's JSON key names). Empty = push disabled.</summary>
+/// <summary>
+/// Notifier only: SSM SecureString /droblet/{stage}/notifier/Push/ServiceAccountJson = the Firebase service-account
+/// JSON file as downloaded from Google (config key Push:ServiceAccountJson). Empty or the CHANGE_ME placeholder =
+/// push disabled (PushResult.NotConfigured). The older section name FirebaseServiceAccount is still read.
+/// </summary>
 public sealed class FirebaseServiceAccountOptions
 {
     public const string Section = "FirebaseServiceAccount";
+    public const string JsonKey = "Push:ServiceAccountJson";
     public string? ProjectId { get; set; }
     public string? ClientEmail { get; set; }
     public string? PrivateKey { get; set; }
     public string TokenUri { get; set; } = "https://oauth2.googleapis.com/token";
     public string MessagingBaseUrl { get; set; } = "https://fcm.googleapis.com";
 
-    public bool IsConfigured =>
-        !string.IsNullOrWhiteSpace(ProjectId) && !string.IsNullOrWhiteSpace(ClientEmail) && !string.IsNullOrWhiteSpace(PrivateKey);
+    public bool IsConfigured => ConfigSecret.IsSet(ProjectId) && ConfigSecret.IsSet(ClientEmail) && ConfigSecret.IsSet(PrivateKey);
 }
