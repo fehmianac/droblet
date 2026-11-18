@@ -1,0 +1,505 @@
+{
+  "_comment": "PLACEHOLDER DATA. Prices are NOT real (100000 = 1.000,00 TRY for every high-street item, 500000 for every luxury-touch item); product names, images and links are samples. Same shape as POST v1/admin/product/bulk.",
+  "products": [
+    {
+      "id": "hs-white-shirt",
+      "brandId": "gap",
+      "name": {
+        "tr": "Beyaz Poplin Gömlek",
+        "en": "White Poplin Shirt"
+      },
+      "description": {
+        "tr": "Örnek ürün açıklaması (yer tutucu).",
+        "en": "Sample product description (placeholder)."
+      },
+      "category": "shirt",
+      "colors": [
+        "white"
+      ],
+      "sizes": [
+        "XS",
+        "S",
+        "M",
+        "L"
+      ],
+      "priceMinor": 100000,
+      "currency": "TRY",
+      "priceBand": "highStreet",
+      "images": [
+        "https://example.com/placeholder/hs-white-shirt.jpg"
+      ],
+      "affiliateUrl": "https://example.com/out/gap/hs-white-shirt"
+    },
+    {
+      "id": "hs-striped-tee",
+      "brandId": "gap",
+      "name": {
+        "tr": "Çizgili Tişört",
+        "en": "Striped T-Shirt"
+      },
+      "description": {
+        "tr": "Örnek ürün açıklaması (yer tutucu).",
+        "en": "Sample product description (placeholder)."
+      },
+      "category": "tshirt",
+      "colors": [
+        "navy",
+        "white"
+      ],
+      "sizes": [
+        "XS",
+        "S",
+        "M",
+        "L"
+      ],
+      "priceMinor": 100000,
+      "currency": "TRY",
+      "priceBand": "highStreet",
+      "images": [
+        "https://example.com/placeholder/hs-striped-tee.jpg"
+      ],
+      "affiliateUrl": "https://example.com/out/gap/hs-striped-tee"
+    },
+    {
+      "id": "hs-knit",
+      "brandId": "marks-and-spencer",
+      "name": {
+        "tr": "Bej Triko Kazak",
+        "en": "Beige Knit Sweater"
+      },
+      "description": {
+        "tr": "Örnek ürün açıklaması (yer tutucu).",
+        "en": "Sample product description (placeholder)."
+      },
+      "category": "knitwear",
+      "colors": [
+        "beige"
+      ],
+      "sizes": [
+        "S",
+        "M",
+        "L"
+      ],
+      "priceMinor": 100000,
+      "currency": "TRY",
+      "priceBand": "highStreet",
+      "images": [
+        "https://example.com/placeholder/hs-knit.jpg"
+      ],
+      "affiliateUrl": "https://example.com/out/marks-and-spencer/hs-knit"
+    },
+    {
+      "id": "hs-jeans",
+      "brandId": "gap",
+      "name": {
+        "tr": "Düz Paça Jean",
+        "en": "Straight Leg Jeans"
+      },
+      "description": {
+        "tr": "Örnek ürün açıklaması (yer tutucu).",
+        "en": "Sample product description (placeholder)."
+      },
+      "category": "jeans",
+      "colors": [
+        "denim"
+      ],
+      "sizes": [
+        "S",
+        "M",
+        "L"
+      ],
+      "priceMinor": 100000,
+      "currency": "TRY",
+      "priceBand": "highStreet",
+      "images": [
+        "https://example.com/placeholder/hs-jeans.jpg"
+      ],
+      "affiliateUrl": "https://example.com/out/gap/hs-jeans"
+    },
+    {
+      "id": "hs-trousers",
+      "brandId": "marks-and-spencer",
+      "name": {
+        "tr": "Siyah Kumaş Pantolon",
+        "en": "Black Tailored Trousers"
+      },
+      "description": {
+        "tr": "Örnek ürün açıklaması (yer tutucu).",
+        "en": "Sample product description (placeholder)."
+      },
+      "category": "trousers",
+      "colors": [
+        "black"
+      ],
+      "sizes": [
+        "S",
+        "M",
+        "L"
+      ],
+      "priceMinor": 100000,
+      "currency": "TRY",
+      "priceBand": "highStreet",
+      "images": [
+        "https://example.com/placeholder/hs-trousers.jpg"
+      ],
+      "affiliateUrl": "https://example.com/out/marks-and-spencer/hs-trousers"
+    },
+    {
+      "id": "hs-skirt",
+      "brandId": "marks-and-spencer",
+      "name": {
+        "tr": "Midi Etek",
+        "en": "Midi Skirt"
+      },
+      "description": {
+        "tr": "Örnek ürün açıklaması (yer tutucu).",
+        "en": "Sample product description (placeholder)."
+      },
+      "category": "skirt",
+      "colors": [
+        "camel"
+      ],
+      "sizes": [
+        "S",
+        "M",
+        "L"
+      ],
+      "priceMinor": 100000,
+      "currency": "TRY",
+      "priceBand": "highStreet",
+      "images": [
+        "https://example.com/placeholder/hs-skirt.jpg"
+      ],
+      "affiliateUrl": "https://example.com/out/marks-and-spencer/hs-skirt"
+    },
+    {
+      "id": "hs-blazer",
+      "brandId": "gap",
+      "name": {
+        "tr": "Lacivert Blazer",
+        "en": "Navy Blazer"
+      },
+      "description": {
+        "tr": "Örnek ürün açıklaması (yer tutucu).",
+        "en": "Sample product description (placeholder)."
+      },
+      "category": "jacket",
+      "colors": [
+        "navy"
+      ],
+      "sizes": [
+        "S",
+        "M",
+        "L"
+      ],
+      "priceMinor": 100000,
+      "currency": "TRY",
+      "priceBand": "highStreet",
+      "images": [
+        "https://example.com/placeholder/hs-blazer.jpg"
+      ],
+      "affiliateUrl": "https://example.com/out/gap/hs-blazer"
+    },
+    {
+      "id": "hs-leggings",
+      "brandId": "lululemon",
+      "name": {
+        "tr": "Spor Tayt",
+        "en": "Training Leggings"
+      },
+      "description": {
+        "tr": "Örnek ürün açıklaması (yer tutucu).",
+        "en": "Sample product description (placeholder)."
+      },
+      "category": "activewear",
+      "colors": [
+        "black"
+      ],
+      "sizes": [
+        "XS",
+        "S",
+        "M",
+        "L"
+      ],
+      "priceMinor": 100000,
+      "currency": "TRY",
+      "priceBand": "highStreet",
+      "images": [
+        "https://example.com/placeholder/hs-leggings.jpg"
+      ],
+      "affiliateUrl": "https://example.com/out/lululemon/hs-leggings"
+    },
+    {
+      "id": "hs-sneakers",
+      "brandId": "gap",
+      "name": {
+        "tr": "Beyaz Spor Ayakkabı",
+        "en": "White Sneakers"
+      },
+      "description": {
+        "tr": "Örnek ürün açıklaması (yer tutucu).",
+        "en": "Sample product description (placeholder)."
+      },
+      "category": "shoes",
+      "colors": [
+        "white"
+      ],
+      "sizes": [
+        "36",
+        "37",
+        "38",
+        "39",
+        "40"
+      ],
+      "priceMinor": 100000,
+      "currency": "TRY",
+      "priceBand": "highStreet",
+      "images": [
+        "https://example.com/placeholder/hs-sneakers.jpg"
+      ],
+      "affiliateUrl": "https://example.com/out/gap/hs-sneakers"
+    },
+    {
+      "id": "hs-tote",
+      "brandId": "marks-and-spencer",
+      "name": {
+        "tr": "Günlük Omuz Çantası",
+        "en": "Everyday Tote Bag"
+      },
+      "description": {
+        "tr": "Örnek ürün açıklaması (yer tutucu).",
+        "en": "Sample product description (placeholder)."
+      },
+      "category": "bag",
+      "colors": [
+        "black"
+      ],
+      "sizes": [],
+      "priceMinor": 100000,
+      "currency": "TRY",
+      "priceBand": "highStreet",
+      "images": [
+        "https://example.com/placeholder/hs-tote.jpg"
+      ],
+      "affiliateUrl": "https://example.com/out/marks-and-spencer/hs-tote"
+    },
+    {
+      "id": "lx-silk-blouse",
+      "brandId": "vakko",
+      "name": {
+        "tr": "İpek Bluz",
+        "en": "Silk Blouse"
+      },
+      "description": {
+        "tr": "Örnek ürün açıklaması (yer tutucu).",
+        "en": "Sample product description (placeholder)."
+      },
+      "category": "blouse",
+      "colors": [
+        "cream"
+      ],
+      "sizes": [
+        "S",
+        "M",
+        "L"
+      ],
+      "priceMinor": 500000,
+      "currency": "TRY",
+      "priceBand": "luxuryTouch",
+      "images": [
+        "https://example.com/placeholder/lx-silk-blouse.jpg"
+      ],
+      "affiliateUrl": "https://example.com/out/vakko/lx-silk-blouse"
+    },
+    {
+      "id": "lx-cashmere-knit",
+      "brandId": "beymen",
+      "name": {
+        "tr": "Kaşmir Kazak",
+        "en": "Cashmere Sweater"
+      },
+      "description": {
+        "tr": "Örnek ürün açıklaması (yer tutucu).",
+        "en": "Sample product description (placeholder)."
+      },
+      "category": "knitwear",
+      "colors": [
+        "grey"
+      ],
+      "sizes": [
+        "S",
+        "M",
+        "L"
+      ],
+      "priceMinor": 500000,
+      "currency": "TRY",
+      "priceBand": "luxuryTouch",
+      "images": [
+        "https://example.com/placeholder/lx-cashmere-knit.jpg"
+      ],
+      "affiliateUrl": "https://example.com/out/beymen/lx-cashmere-knit"
+    },
+    {
+      "id": "lx-wool-trousers",
+      "brandId": "beymen",
+      "name": {
+        "tr": "Yün Pantolon",
+        "en": "Wool Trousers"
+      },
+      "description": {
+        "tr": "Örnek ürün açıklaması (yer tutucu).",
+        "en": "Sample product description (placeholder)."
+      },
+      "category": "trousers",
+      "colors": [
+        "grey"
+      ],
+      "sizes": [
+        "S",
+        "M",
+        "L"
+      ],
+      "priceMinor": 500000,
+      "currency": "TRY",
+      "priceBand": "luxuryTouch",
+      "images": [
+        "https://example.com/placeholder/lx-wool-trousers.jpg"
+      ],
+      "affiliateUrl": "https://example.com/out/beymen/lx-wool-trousers"
+    },
+    {
+      "id": "lx-dress",
+      "brandId": "vakko",
+      "name": {
+        "tr": "Siyah Midi Elbise",
+        "en": "Black Midi Dress"
+      },
+      "description": {
+        "tr": "Örnek ürün açıklaması (yer tutucu).",
+        "en": "Sample product description (placeholder)."
+      },
+      "category": "dress",
+      "colors": [
+        "black"
+      ],
+      "sizes": [
+        "S",
+        "M",
+        "L"
+      ],
+      "priceMinor": 500000,
+      "currency": "TRY",
+      "priceBand": "luxuryTouch",
+      "images": [
+        "https://example.com/placeholder/lx-dress.jpg"
+      ],
+      "affiliateUrl": "https://example.com/out/vakko/lx-dress"
+    },
+    {
+      "id": "lx-coat",
+      "brandId": "beymen",
+      "name": {
+        "tr": "Kaşe Kaban",
+        "en": "Wool Coat"
+      },
+      "description": {
+        "tr": "Örnek ürün açıklaması (yer tutucu).",
+        "en": "Sample product description (placeholder)."
+      },
+      "category": "coat",
+      "colors": [
+        "camel"
+      ],
+      "sizes": [
+        "S",
+        "M",
+        "L"
+      ],
+      "priceMinor": 500000,
+      "currency": "TRY",
+      "priceBand": "luxuryTouch",
+      "images": [
+        "https://example.com/placeholder/lx-coat.jpg"
+      ],
+      "affiliateUrl": "https://example.com/out/beymen/lx-coat"
+    },
+    {
+      "id": "lx-loafers",
+      "brandId": "communite",
+      "name": {
+        "tr": "Deri Loafer",
+        "en": "Leather Loafers"
+      },
+      "description": {
+        "tr": "Örnek ürün açıklaması (yer tutucu).",
+        "en": "Sample product description (placeholder)."
+      },
+      "category": "shoes",
+      "colors": [
+        "brown"
+      ],
+      "sizes": [
+        "36",
+        "37",
+        "38",
+        "39",
+        "40"
+      ],
+      "priceMinor": 500000,
+      "currency": "TRY",
+      "priceBand": "luxuryTouch",
+      "images": [
+        "https://example.com/placeholder/lx-loafers.jpg"
+      ],
+      "affiliateUrl": "https://example.com/out/communite/lx-loafers"
+    },
+    {
+      "id": "lx-bag",
+      "brandId": "vakko",
+      "name": {
+        "tr": "Deri El Çantası",
+        "en": "Leather Handbag"
+      },
+      "description": {
+        "tr": "Örnek ürün açıklaması (yer tutucu).",
+        "en": "Sample product description (placeholder)."
+      },
+      "category": "bag",
+      "colors": [
+        "brown"
+      ],
+      "sizes": [],
+      "priceMinor": 500000,
+      "currency": "TRY",
+      "priceBand": "luxuryTouch",
+      "images": [
+        "https://example.com/placeholder/lx-bag.jpg"
+      ],
+      "affiliateUrl": "https://example.com/out/vakko/lx-bag"
+    },
+    {
+      "id": "lx-scarf",
+      "brandId": "communite",
+      "name": {
+        "tr": "İpek Fular",
+        "en": "Silk Scarf"
+      },
+      "description": {
+        "tr": "Örnek ürün açıklaması (yer tutucu).",
+        "en": "Sample product description (placeholder)."
+      },
+      "category": "accessory",
+      "colors": [
+        "red"
+      ],
+      "sizes": [],
+      "priceMinor": 500000,
+      "currency": "TRY",
+      "priceBand": "luxuryTouch",
+      "images": [
+        "https://example.com/placeholder/lx-scarf.jpg"
+      ],
+      "affiliateUrl": "https://example.com/out/communite/lx-scarf"
+    }
+  ]
+}
