@@ -1,13 +1,26 @@
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import { AppState } from 'react-native';
+import Constants from 'expo-constants';
+import { AppState, Platform } from 'react-native';
 
 import { apiRequest } from '@/api/client';
 import type { EventBatchRequest } from '@/api/contracts/analytics';
+import { toEventBatchWire, type EventBatchResponseWire } from '@/api/wire/analytics';
 
 import { bindAnalyticsSink, flushAnalytics } from './track';
 
 export const analyticsMutationKey = ['tenant', 'event', 'batch'] as const;
+
+/**
+ * `POST v1/tenant/event` — the batch is converted to the server's vocabulary first (`wire/analytics`);
+ * a batch with nothing the server takes from the client is not sent. Individually rejected events
+ * (`rejected[]`) are dropped: the API says never to retry them.
+ */
+export async function sendEventBatch(batch: EventBatchRequest): Promise<EventBatchResponseWire> {
+  const body = toEventBatchWire(batch.events, Platform.OS === 'android' ? 'android' : 'ios', Constants.expoConfig?.version ?? '0.0.0');
+  if (!body) return { accepted: 0, rejected: [] };
+  return apiRequest<EventBatchResponseWire>('v1/tenant/event', { method: 'POST', body });
+}
 
 /**
  * Analytics batches use their own scope: they queue and retry like every other write, but a slow or
@@ -16,7 +29,7 @@ export const analyticsMutationKey = ['tenant', 'event', 'batch'] as const;
 export function registerAnalyticsMutation(client: QueryClient): void {
   client.setMutationDefaults(analyticsMutationKey, {
     scope: { id: 'analytics' },
-    mutationFn: (batch: EventBatchRequest) => apiRequest<void>('v1/tenant/event', { method: 'POST', body: batch }),
+    mutationFn: sendEventBatch,
   });
 }
 

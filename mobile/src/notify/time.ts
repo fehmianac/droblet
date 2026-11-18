@@ -1,7 +1,7 @@
 /**
- * Reminder times are shown in the device's local time and travel as UTC `HH:mm`
- * (MOBILE_ENGINEER §Push bildirimleri). The offset is taken for `on` (today by default), so the
- * conversion follows daylight-saving changes where they exist.
+ * Reminder times are the user's LOCAL wall-clock time on the wire (`morningOutfitLocalTime`, `HH:mm`,
+ * quarter hours) together with the device's IANA time zone (`deviceTimeZone`) — the server does the
+ * DST-safe conversion. The UTC helpers below remain for local scheduling maths only.
  */
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -29,3 +29,20 @@ export const REMINDER_TIMES: string[] = Array.from({ length: 12 }, (_, i) => {
   const total = 5 * 60 + 30 + i * 30;
   return `${pad(Math.floor(total / 60))}:${pad(total % 60)}`;
 });
+
+/** The device's IANA time zone id (`Europe/Istanbul`), sent with notification preferences and device registration. */
+export function deviceTimeZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Istanbul';
+  } catch {
+    return 'Europe/Istanbul';
+  }
+}
+
+/** Nearest quarter hour of an `HH:mm` value — the only minutes the API accepts. */
+export function toQuarterHour(time: string): string {
+  const t = parse(time);
+  if (!t) return time;
+  const total = (Math.round((t.hours * 60 + t.minutes) / 15) * 15) % 1440;
+  return `${pad(Math.floor(total / 60))}:${pad(total % 60)}`;
+}

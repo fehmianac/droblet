@@ -12,7 +12,8 @@ export function paletteCatalogColors(tones: PaletteTone[]): CatalogColor[] {
   return [...new Set(tones.map((tone) => tone.catalogColor).filter((c): c is CatalogColor => c !== null))];
 }
 
-/** Tone names come from the server per language; Turkish is the fallback for a language it does not send yet. */
+/** The API sends the tone name already in the request language; fixtures carry a per-language map (Turkish fallback). */
 export function toneName(tone: PaletteTone, language: AppLanguage): string {
+  if (typeof tone.name === 'string') return tone.name;
   return tone.name[language] ?? tone.name.tr;
 }

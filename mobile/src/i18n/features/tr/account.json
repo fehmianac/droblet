@@ -120,7 +120,7 @@
     "season": {
       "light_spring": "Açık İlkbahar",
       "warm_spring": "Sıcak İlkbahar",
-      "clear_spring": "Parlak İlkbahar",
+      "bright_spring": "Parlak İlkbahar",
       "light_summer": "Açık Yaz",
       "cool_summer": "Soğuk Yaz",
       "soft_summer": "Yumuşak Yaz",
@@ -129,7 +129,7 @@
       "deep_autumn": "Koyu Sonbahar",
       "deep_winter": "Koyu Kış",
       "cool_winter": "Soğuk Kış",
-      "clear_winter": "Parlak Kış"
+      "bright_winter": "Parlak Kış"
     }
   },
   "credits": {

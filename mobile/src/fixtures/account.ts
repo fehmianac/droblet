@@ -38,7 +38,7 @@ function initialState(): State {
       face: { photoId: 'photo_face_1', url: null },
       generatedImageCount: 48,
     },
-    notifications: { morningReminder: true, morningTimeUtc: '04:30', weeklyEdit: true, friendRatings: false, baseVersion: 1 },
+    notifications: { morningReminder: true, morningTimeLocal: '07:30', weeklyEdit: true, friendRatings: false, baseVersion: 1 },
     palette: 'ready',
   };
 }
@@ -78,7 +78,7 @@ const PALETTE_DURATION_MS = 1500;
 
 export const accountFixtures = {
   profile: (): MyProfile => state.profile,
-  stats: (): ProfileStats => ({ itemCount: 86, lookCount: 24, followerCount: 12, tripCount: 3 }),
+  stats: (): ProfileStats => ({ itemCount: 86, lookCount: 24, followerCount: 12, followingCount: 18, tripCount: 3 }),
   setVisibility: (closetVisibility: ClosetVisibility): MyProfile => {
     state.profile = { ...state.profile, closetVisibility, baseVersion: state.profile.baseVersion + 1 };
     return state.profile;
@@ -110,7 +110,7 @@ export const accountFixtures = {
   },
 
   palette: (): Palette => {
-    if (state.palette === 'none') throw new ApiError('http', 404, { status: 404, code: 'not_found' });
+    if (state.palette === 'none') throw new ApiError('http', 404, { status: 404, code: 'palette_not_found' });
     if (state.palette === 'ready') return readyPalette;
     if (Date.now() >= state.palette.pendingUntil) {
       state.palette = 'ready';

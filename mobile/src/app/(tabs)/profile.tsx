@@ -92,7 +92,7 @@ function MembershipTeaser() {
       <Text variant="body" tone="muted">
         {t('me.teaserBody')}
       </Text>
-      <Button label={t('me.teaserAction')} onPress={() => router.push({ pathname: '/paywall', params: { from: 'profile' } })} />
+      <Button label={t('me.teaserAction')} onPress={() => router.push({ pathname: '/paywall', params: { from: 'profile' } })} testID="profile.membership" />
     </Card>
   );
 }
@@ -132,7 +132,7 @@ export default function ProfileTab() {
         <Text variant="brand" tone="ink">
           {t('brand.wordmark')}
         </Text>
-        <IconButton icon={Settings} onPress={() => router.push('/settings')} accessibilityLabel={t('me.settings')} />
+        <IconButton icon={Settings} onPress={() => router.push('/settings')} accessibilityLabel={t('me.settings')} testID="profile.settings" />
       </View>
       <ScrollView
         contentContainerClassName="gap-5 px-gutter pb-8"

@@ -1,4 +1,5 @@
 import { AnalyticsHost } from '@/analytics/AnalyticsHost';
+import { DeviceHost } from '@/features/account/DeviceHost';
 import { LanguageSyncHost } from '@/features/account/LanguageSyncHost';
 import { CreditSheetHost } from '@/features/credits/CreditPackSheet';
 import { InviteHost } from '@/features/social/InviteHost';
@@ -15,6 +16,8 @@ export function AppHosts({ userId }: { userId: string | null }) {
       {userId ? <CreditSheetHost /> : null}
       {/* Keyed by user: a new sign-in re-checks the profile language against this phone's. */}
       {userId ? <LanguageSyncHost key={userId} /> : null}
+      {/* Registers this installation (`PUT v1/tenant/user/me/device`) once per sign-in / app start. */}
+      {userId ? <DeviceHost key={`device-${userId}`} /> : null}
     </>
   );
 }
