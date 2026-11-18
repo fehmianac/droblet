@@ -163,7 +163,7 @@ change the text.
 | G3 | ~~No age confirmation~~ **Implemented:** required "18 yaşından büyüğüm / I am 18 or older" box on e-mail sign-up and a one-time confirmation after the first Apple / Google sign-in, stored as `ageConfirmedAt`; unconfirmed accounts see the confirmation before anything else. Self-declaration only (no age verification) — confirm with Q6. | Terms §3; privacy §17 |
 | G4 | ~~No server-side consent record~~ **Implemented:** per-user records `{ type, granted, version, grantedAt, withdrawnAt, locale, source }` plus an append-only audit log; text versions come from config (`Consents:Versions`), a new version re-prompts. Kept until account deletion (deleted with the account). **There is no data-export (portability) endpoint yet** — the records are not in any export. | Consents §1 |
 | G5 | **Mostly implemented:** Ayarlar › Gizlilik lists every consent with on/off and its date; withdrawing a photo consent offers to delete the photo and generated images; withdrawing weight clears it; withdrawing marketing switches those pushes off; deleting a photo counts as withdrawal (as the text says). Still open: a "do not match me" switch for contact matching (others can still find the user by e-mail hash). | Consents §8; privacy §7 |
-| G6 | No retention (TTL) on reports, affiliate clicks/conversions; no CloudWatch log retention. | Privacy §13; KVKK §7 |
+| G6 | ~~No retention~~ **Implemented defaults** (lawyer to confirm): Lambda log retention, TTLs on resolved reports and unconverted affiliate clicks — see §5a. Conversions / revenue ledger still have no period. | Privacy §13; KVKK §7 |
 | G7 | No automated objectionable-content filter on item photos beyond AI garment detection; "content removed" is a recorded resolution — confirm the admin action really removes/hides the item or look. | Community guidelines §8; Apple 1.2 |
 | G8 | Paywall: check the subscription terms link and the 24-hour auto-renew disclosure; mobile `LegalLinks` currently links Terms and Privacy only. | Subscription terms |
 | G9 | Analytics rows survive account deletion (hashed actor). | Privacy §9, §14 |
@@ -188,6 +188,8 @@ whatever the period.
 | AI jobs (inputs / results of stylist, try-on, palette, item jobs) | 7 days | DynamoDB TTL (`JobEntity`, `ItemDraftEntity`) |
 | Credit reservations and ledger entries | 400 days | DynamoDB TTL |
 | Stylist "Beğenmedim" feedback | 400 days | DynamoDB TTL |
+| In-app notification inbox (Bildirimler: ids only — day, edit id, product id, requester handle) | 90 days | DynamoDB TTL (`NotificationInboxEntity`); a deleted account's follow-request row is removed from the other person's inbox |
+| Consent records and their audit log (type, granted / withdrawn, text version, time, locale, source) | until account deletion (legal text: consents §1) | account deletion · *lawyer: keep a minimal proof after deletion?* |
 | Push send receipts | 14 days | DynamoDB TTL (`NotificationSentEntity`); queued events 3 days, rating digest markers 3 days |
 | Offline-sync mutation receipts | 30 days | DynamoDB TTL |
 | Uploads not yet confirmed (photos, garment photos) | 1 day | S3 lifecycle `uploads/tmp/` + DynamoDB TTL on the upload slots |
@@ -196,7 +198,7 @@ whatever the period.
 | App Store / Play notification receipts | 90 days | DynamoDB TTL |
 | Refresh tokens, password-reset tokens, admin sign-in codes / tokens | until they expire (admin codes + 1 day) | DynamoDB TTL |
 | Weather cache | short-lived cache | DynamoDB TTL |
-| Account data, wardrobe, looks, photos, generated images, consents | until the user deletes them or the account | account deletion |
+| Account data, wardrobe, looks, photos, generated images, profile picture, 18+ confirmation time | until the user deletes them or the account | account deletion |
 
 Rows written before these TTLs existed (dev data only; prod has no users yet) keep no expiry; nothing back-fills them.
 
