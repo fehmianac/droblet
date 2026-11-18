@@ -97,6 +97,9 @@ public sealed class AuthService(
         var user = await repository.GetAsync<UserEntity>(UserEntity.GetPk(), UserEntity.GetSk(credential.UserId), ct);
         if (user is null)
             return AuthResult.Fail(AuthOutcome.InvalidCredentials);
+        // Suspended by an admin: only after the password matched, so the answer does not reveal the account to a guesser.
+        if (user.SuspendedAt is not null)
+            return AuthResult.Fail(AuthOutcome.Suspended);
 
         if (verification == PasswordVerification.SuccessRehashNeeded)
         {
@@ -179,6 +182,8 @@ public sealed class AuthService(
         var user = await repository.GetAsync<UserEntity>(UserEntity.GetPk(), UserEntity.GetSk(stored.UserId), ct);
         if (user is null || (user.TokensValidAfter is { } validAfter && stored.IssuedAt < validAfter))
             return AuthResult.Fail(AuthOutcome.InvalidToken);
+        if (user.SuspendedAt is not null)
+            return AuthResult.Fail(AuthOutcome.Suspended);
 
         if (stored.RotatedAt is not null)
         {
@@ -234,7 +239,7 @@ public sealed class AuthService(
         {
             var known = await repository.GetAsync<UserEntity>(UserEntity.GetPk(), UserEntity.GetSk(existing.UserId), ct);
             if (known is not null)
-                return AuthResult.Ok(await IssueAsync(known, null, false, ct));
+                return known.SuspendedAt is not null ? AuthResult.Fail(AuthOutcome.Suspended) : AuthResult.Ok(await IssueAsync(known, null, false, ct));
         }
 
         var identity = new AuthIdentityEntity { Provider = provider, Subject = external.Subject, CreatedAt = now };
@@ -247,6 +252,8 @@ public sealed class AuthService(
             var linked = emailIdentity is null
                 ? null
                 : await repository.GetAsync<UserEntity>(UserEntity.GetPk(), UserEntity.GetSk(emailIdentity.UserId), ct);
+            if (linked is { SuspendedAt: not null })
+                return AuthResult.Fail(AuthOutcome.Suspended);
             if (linked is not null)
             {
                 identity.UserId = linked.Id;

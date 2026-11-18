@@ -17,6 +17,10 @@ public class UserEntity : IEntity
     [JsonPropertyName("tokensValidAfter")] public DateTime? TokensValidAfter { get; set; }
     // AuthIdentityEntity sort keys linked to this user, so account deletion can remove them.
     [JsonPropertyName("identities")] public List<string> Identities { get; set; } = [];
+    // Set by an admin (panel: suspend, or a report resolved with "userSuspended"). A suspended user cannot sign in or
+    // refresh; TokensValidAfter is moved at the same time so existing refresh tokens die.
+    [JsonPropertyName("suspendedAt")] public DateTime? SuspendedAt { get; set; }
+    [JsonPropertyName("suspendReason")] public string? SuspendReason { get; set; }
 
     public static string GetPk() => "users";
     public static string GetSk(string id) => id;

@@ -31,7 +31,8 @@ public interface ICatalogService
     Task<bool> RetireBrandAsync(string brandId, CancellationToken ct);
     Task<ProductWriteResult> UpsertProductAsync(ProductInput input, CancellationToken ct);
     Task<bool> RetireProductAsync(string productId, CancellationToken ct);
-    Task<BulkUpsertResult> BulkUpsertProductsAsync(IReadOnlyList<ProductInput> inputs, CancellationToken ct);
+    /// <summary>dryRun = validate every row and report the outcomes without writing (admin CSV preview).</summary>
+    Task<BulkUpsertResult> BulkUpsertProductsAsync(IReadOnlyList<ProductInput> inputs, CancellationToken ct, bool dryRun = false);
     void InvalidateCache();
 }
 

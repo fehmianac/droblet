@@ -10,7 +10,7 @@ Not in this document: wardrobe items, looks, today/plan/calendar, stylist/trips,
 | Topic | Rule |
 |---|---|
 | Auth | `Authorization: Bearer <accessToken>` on everything except the two postback routes and `GET v1/invite/{code}`. Missing/invalid token → `401` (empty body). |
-| Admin | `v1/admin/*` needs a signed-in user listed in config `Admin:UserIds` / `Admin:Emails`. Anyone else → `403` (empty body). The mobile app never calls these. |
+| Admin | `v1/admin/*` needs an **admin panel** token (separate admin accounts, sign-in with password + e-mailed code) whose role holds the route's permission — see [admin.md](admin.md). An app token → `401`; missing permission → `403 forbidden`. The mobile app never calls these. |
 | JSON | camelCase. Enums are camelCase strings (`highStreet`, `followersOnly`). Unknown enum value or malformed JSON → `400 validation_failed`. |
 | Errors | ProblemDetails: `{ "type", "title", "status", "code" }` — `code` is the stable value to switch on. Validation: `400` with `code: "validation_failed"` and `errors: { "<field>": ["<code>"] }`. |
 | No prose | The API never returns sentences of its own. Only stored content (product names, edit titles, city names…) is text; everything else is a code or enum the client translates. Push notifications are the one exception (§9). |
@@ -435,7 +435,7 @@ deleted: `DELETE` retires (ids are never reused). Ids: `^[a-z0-9][a-z0-9-]{1,62}
 | GET | `v1/admin/collection/{kind}/{id}/look` | — | `AdminCollectionLookDto[]` |
 | PUT | `v1/admin/collection/{kind}/{id}/look/{lookId}` | `{ "title": L, "note"?: L, "imageUrl"?, "productIds"?: [≤ 10], "sortOrder", "retired"? }` | `AdminCollectionLookDto`. `404 not_found` (collection), `422 product_not_found`. |
 | DELETE | `v1/admin/collection/{kind}/{id}/look/{lookId}` | — | `204`. `404`. |
-| GET | `v1/admin/report/revenue` | `from`, `to` (`yyyy-MM-dd` UTC, inclusive; default last 30 days; max 366) | `RevenueReport` |
+| GET | `v1/admin/report/revenue` | `from`, `to` (`yyyy-MM-dd` UTC, inclusive; default last 30 days; max 366) | `RevenueReport` (+ `clicks`, `byDay`, `byNetwork` — [admin.md §5](admin.md)) |
 | GET | `v1/admin/report/funnel` | `from`, `to` (default last 30 days; max 92) | `FunnelReport` |
 | GET | `v1/admin/moderation/report` | `status` (`open` default), `pageToken`, `limit` | `{ "items": [ModerationReportDto], "pageToken" }`, newest first |
 | POST | `v1/admin/moderation/report/{id}/resolve` | `{ "resolution", "note"? (≤ 500) }` | `ModerationReportDto`. `404 not_found`. An already resolved report is returned unchanged. |
@@ -485,7 +485,7 @@ TABLE_NAME=droblet-dev-table dotnet run --project tools/Seed -- apply     # writ
 
 | Section (SSM `/droblet/{stage}/api/<Section>`) | Keys | Default |
 |---|---|---|
-| `Admin` | `UserIds[]`, `Emails[]` | empty → nobody is admin |
+| `AdminAuth`, `AdminJwt` (SecureString) | see [admin.md §8](admin.md#8-configuration) — replaced the former `Admin:UserIds` / `Admin:Emails` list | — |
 | `AffiliatePostback` (SecureString) | `NetworkSecret`, `DirectSecret`, `DirectBrandSecrets{}`, `DefaultClickIdParameter` | no secrets → postbacks answer 503 |
 | `Localization` | `SupportedLanguages[]`, `DefaultLanguage` | `tr`, `en` / `tr` |
 | `Catalog` | `PageSize`, `MaxPageSize`, `CacheSeconds`, `MaxCartLines`, `MaxWatchItems`, `MaxFavoriteProducts` (code default 500; not in the SSM default yet), `BulkUpsertMax`, `ImageHosts[]` (hosts product images may be downloaded from for try-on; empty = any https host), `MaxImageBytes`, `WatchAutoAddHours` (decision 10; 0 = off) | 24, 60, 60, 100, 200, 200, empty, 10 MB, 48 |
@@ -494,7 +494,7 @@ TABLE_NAME=droblet-dev-table dotnet run --project tools/Seed -- apply     # writ
 | `Notifications` | `DefaultMorningLocal`, `DefaultTimeZone`, `MaxDevicesPerTenant` | `07:30`, `Europe/Istanbul`, 10 |
 | `/droblet/{stage}/notifier/Push/ServiceAccountJson` (SecureString) | the Firebase service-account JSON file as downloaded (`project_id`, `client_email`, `private_key`) | `CHANGE_ME` or empty → push disabled |
 
-`template.yaml` creates the non-secret sections (`Localization`, `Admin`, `Catalog`, `Social`, `Weather`, `Notifications`,
+`template.yaml` creates the non-secret sections (`Localization`, `AdminAuth`, `Catalog`, `Social`, `Weather`, `Notifications`,
 `Affiliate`, plus `Wardrobe`, `Stylist`, `Packing`, `Palette`, `Entitlements`) as SSM String parameters with these defaults —
 for the Api and, where a worker applies the same rule, under `/worker/` (and `Localization` under `/notifier/`).
 Secrets are created by `deploy-infra` with the placeholder `CHANGE_ME`, which the code treats as **not configured**

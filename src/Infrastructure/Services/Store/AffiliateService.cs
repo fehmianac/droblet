@@ -123,6 +123,16 @@ public sealed class AffiliateService(
             operations.Add(TransactWriteOperation.Put(candidate));
         }
         operations.Add(TransactWriteOperation.Put(click));
+        // Global click ledger for the admin revenue report (clicks per day / brand / network; no user id).
+        operations.Add(TransactWriteOperation.Put(new AffiliateClickLedgerEntity
+        {
+            Month = now.ToString("yyyy-MM", CultureInfo.InvariantCulture),
+            ClickId = clickId,
+            BrandId = brand.Id,
+            Source = brand.Source,
+            Network = brand.Network,
+            CreatedAt = now,
+        }));
         var result = await repository.TransactWriteAsync(operations, ct);
         if (!result.Applied)
             throw new InvalidOperationException($"Click could not be recorded: {result.Outcome}.");
@@ -323,11 +333,14 @@ public sealed class AffiliateService(
     public async Task<RevenueReport> GetRevenueReportAsync(DateOnly from, DateOnly to, CancellationToken ct)
     {
         var rows = new List<AffiliateConversionLedgerEntity>();
+        var clicks = new List<AffiliateClickLedgerEntity>();
         for (var month = new DateOnly(from.Year, from.Month, 1); month <= to; month = month.AddMonths(1))
         {
-            rows.AddRange(await repository.GetAllAsync<AffiliateConversionLedgerEntity>(
-                AffiliateConversionLedgerEntity.GetPk(month.ToString("yyyy-MM", CultureInfo.InvariantCulture)), ct));
+            var key = month.ToString("yyyy-MM", CultureInfo.InvariantCulture);
+            rows.AddRange(await repository.GetAllAsync<AffiliateConversionLedgerEntity>(AffiliateConversionLedgerEntity.GetPk(key), ct));
+            clicks.AddRange(await repository.GetAllAsync<AffiliateClickLedgerEntity>(AffiliateClickLedgerEntity.GetPk(key), ct));
         }
-        return RevenueReportRules.Build(rows, from, to);
+        var networks = (await catalog.GetBrandsAsync(ct)).ToDictionary(b => b.Id, b => b.Network, StringComparer.Ordinal);
+        return RevenueReportRules.Build(rows, from, to, clicks: clicks, brandNetworks: networks);
     }
 }

@@ -29,7 +29,6 @@ public static class StoreSocialDependencyInjection
         services.Configure<WeatherOptions>(configuration.GetSection(WeatherOptions.Section));
         services.Configure<NotificationOptions>(configuration.GetSection(NotificationOptions.Section));
         services.Configure<AffiliatePostbackOptions>(configuration.GetSection(AffiliatePostbackOptions.Section));
-        services.Configure<AdminOptions>(configuration.GetSection(AdminOptions.Section));
         services.Configure<LocalizationOptions>(configuration.GetSection(LocalizationOptions.Section));
         // The one language list: static helpers (Localized.*) used by rules, workers and prompts read the same config.
         void ApplyLanguages() =>

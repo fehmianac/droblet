@@ -26,6 +26,7 @@ public class Login : IEndpoint
         {
             AuthOutcome.Success => Results.Ok(AuthResponse.From(result.Tokens!)),
             AuthOutcome.TooManyAttempts => ApiResults.Problem(StatusCodes.Status429TooManyRequests, ErrorCodes.TooManyAttempts),
+            AuthOutcome.Suspended => ApiResults.Problem(StatusCodes.Status403Forbidden, ErrorCodes.AccountSuspended),
             // Wrong e-mail and wrong password answer the same.
             _ => ApiResults.Problem(StatusCodes.Status401Unauthorized, ErrorCodes.InvalidCredentials),
         };
@@ -37,6 +38,7 @@ public class Login : IEndpoint
             .Produces<AuthResponse>(StatusCodes.Status200OK)
             .Produces<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest)
             .Produces<ProblemDetails>(StatusCodes.Status401Unauthorized)
+            .Produces<ProblemDetails>(StatusCodes.Status403Forbidden)
             .Produces<ProblemDetails>(StatusCodes.Status429TooManyRequests)
             .ProducesProblem(StatusCodes.Status500InternalServerError)
             .AllowAnonymous()

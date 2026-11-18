@@ -1,3 +1,4 @@
+using Domain.Services.Admin;
 using System.Text.Json;
 using Api.Contracts;
 using Api.Infrastructure.Contract;
@@ -43,10 +44,8 @@ public class GetPaged : IEndpoint
     {
         return endpoints.MapGet("v1/admin/product", Handler)
             .Produces<GetPagedResponse<AdminProductDto>>(StatusCodes.Status200OK)
-            .Produces(StatusCodes.Status401Unauthorized)
-            .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status500InternalServerError)
-            .RequireAuthorization(AdminOptions.Policy)
+            .RequireAdmin(AdminPermissions.CatalogManage)
             .WithSummary("Products (admin, paged)")
             .WithDescription("Newest first, retired included unless includeRetired=false. Filters: brand, q (id or any-language name).")
             .WithTags("Admin Catalog");

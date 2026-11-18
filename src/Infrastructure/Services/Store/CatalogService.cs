@@ -145,7 +145,7 @@ public sealed class CatalogService(
         return true;
     }
 
-    public async Task<BulkUpsertResult> BulkUpsertProductsAsync(IReadOnlyList<ProductInput> inputs, CancellationToken ct)
+    public async Task<BulkUpsertResult> BulkUpsertProductsAsync(IReadOnlyList<ProductInput> inputs, CancellationToken ct, bool dryRun = false)
     {
         var now = Now;
         var brands = (await repository.GetAllAsync<BrandEntity>(BrandEntity.GetPk(), ct)).ToDictionary(b => b.Id, StringComparer.Ordinal);
@@ -189,6 +189,9 @@ public sealed class CatalogService(
             if (previous is null) created++; else updated++;
             rows.Add(new BulkRowResult(i, input.Id, previous is null ? "created" : "updated"));
         }
+
+        if (dryRun)
+            return new BulkUpsertResult(created, updated, failed, rows); // validation preview: nothing is written
 
         if (writes.Count > 0)
             await repository.BatchWriteAsync(writes.Values.Cast<Domain.Entity.Base.IEntity>().ToList(), ct);

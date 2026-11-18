@@ -1,3 +1,4 @@
+using Domain.Services.Admin;
 using System.Text.Json;
 using Api.Contracts;
 using Api.Infrastructure.Contract;
@@ -34,10 +35,8 @@ public class Get : IEndpoint
         return endpoints.MapGet("v1/admin/product/{id}", Handler)
             .Produces<AdminProductDto>(StatusCodes.Status200OK)
             .Produces<ProblemDetails>(StatusCodes.Status404NotFound)
-            .Produces(StatusCodes.Status401Unauthorized)
-            .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status500InternalServerError)
-            .RequireAuthorization(AdminOptions.Policy)
+            .RequireAdmin(AdminPermissions.CatalogManage)
             .WithSummary("Product (admin)")
             .WithDescription("Full record with localized text maps, affiliate link and price history fields.")
             .WithTags("Admin Catalog");

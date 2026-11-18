@@ -1,3 +1,4 @@
+using Domain.Services.Admin;
 using System.Text.Json;
 using Api.Contracts;
 using Api.Infrastructure.Contract;
@@ -31,10 +32,8 @@ public class GetAll : IEndpoint
     {
         return endpoints.MapGet("v1/admin/edit", Handler)
             .Produces<List<AdminEditDto>>(StatusCodes.Status200OK)
-            .Produces(StatusCodes.Status401Unauthorized)
-            .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status500InternalServerError)
-            .RequireAuthorization(AdminOptions.Policy)
+            .RequireAdmin(AdminPermissions.ContentManage)
             .WithSummary("Weekly edits (admin)")
             .WithDescription("Every edit, newest week first, drafts and retired included.")
             .WithTags("Admin Content");

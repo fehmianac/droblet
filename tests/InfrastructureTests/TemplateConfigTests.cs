@@ -101,7 +101,7 @@ public partial class TemplateConfigTests
     public void ApiSections_BindToTheirOptions()
     {
         var palette = Bind<PaletteOptions>("api", PaletteOptions.Section);
-        var admin = Bind<AdminOptions>("api", AdminOptions.Section);
+        var admin = Bind<AdminAuthOptions>("api", AdminAuthOptions.Section);
         var weather = Bind<WeatherOptions>("api", WeatherOptions.Section);
         var catalog = Bind<CatalogOptions>("api", CatalogOptions.Section);
         var social = Bind<SocialOptions>("api", SocialOptions.Section);
@@ -110,8 +110,9 @@ public partial class TemplateConfigTests
 
         Assert.True(palette.NeutralsCountAsCompatible);
         Assert.Empty(palette.NeutralColorIds);
-        Assert.Empty(admin.Emails);
-        Assert.Empty(admin.UserIds);
+        Assert.Equal(("fehmianac@gmail.com", "https://droblet-admin.alatech.co"), (admin.BootstrapSuperAdminEmail, admin.PanelUrl));
+        Assert.Equal(["https://droblet-admin.alatech.co"], admin.AllowedOrigins);   // prod value: no localhost
+        Assert.Equal((10, 5, 600), (admin.CodeTtlMinutes, admin.CodeMaxAttempts, admin.RequestsPerMinute));
         Assert.Equal(("OpenMeteo", 60, "https://api.open-meteo.com"), (weather.Provider, weather.CacheMinutes, weather.ForecastBaseUrl));
         Assert.Equal((24, 60, 10 * 1024 * 1024L), (catalog.PageSize, catalog.MaxPageSize, catalog.MaxImageBytes));
         Assert.Empty(catalog.ImageHosts);
@@ -128,5 +129,21 @@ public partial class TemplateConfigTests
 
         foreach (var section in new[] { "Entitlements", "Localization", "Wardrobe", "Weather", "Stylist", "Packing", "Catalog" })
             Assert.Equal(api[section], worker[section]);
+    }
+
+    [Fact]
+    public void Admin_TheOldConfigListIsGone_AndSsmWritesAreExactlyTheEditableParameters()
+    {
+        var template = Template();
+        Assert.DoesNotMatch(@"/api/Admin\s", template);
+        Assert.DoesNotContain("AllowOrigins: ['*']", template);   // CORS is answered by the Api, not the gateway
+
+        var put = Regex.Match(template, @"Action: ssm:PutParameter\s*\n\s*Resource:\s*\n(?<arns>(?:\s*- !Sub arn:[^\n]*\n)+)");
+        Assert.True(put.Success);
+        var written = Regex.Matches(put.Groups["arns"].Value, @"parameter/droblet/\$\{Stage\}/(?<name>[A-Za-z/]+)")
+            .Select(m => m.Groups["name"].Value).Order(StringComparer.Ordinal).ToList();
+        var editable = Domain.Services.Admin.SettingsCatalog.WritableParameters.Select(p => $"{p.Scope}/{p.Section}").Order(StringComparer.Ordinal).ToList();
+        Assert.Equal(editable, written);
+        Assert.Single(Regex.Matches(template, "ssm:PutParameter"));   // no other statement may write SSM
     }
 }

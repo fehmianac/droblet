@@ -1,3 +1,4 @@
+using Domain.Services.Admin;
 using System.Text.Json;
 using Api.Contracts;
 using Api.Infrastructure.Contract;
@@ -33,10 +34,9 @@ public class Delete : IEndpoint
         return endpoints.MapDelete("v1/admin/edit/{id}", Handler)
             .Produces(StatusCodes.Status204NoContent)
             .Produces<ProblemDetails>(StatusCodes.Status404NotFound)
-            .Produces(StatusCodes.Status401Unauthorized)
-            .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status500InternalServerError)
-            .RequireAuthorization(AdminOptions.Policy)
+            .RequireAdmin(AdminPermissions.ContentManage)
+            .Audited("edit.retire", "edit", "id", AdminAuditBefore.Edit)
             .WithSummary("Retire a weekly edit")
             .WithDescription("Unpublishes and retires the edit.")
             .WithTags("Admin Content");
