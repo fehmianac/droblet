@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { apiRequest } from '@/api/client';
-import type { StartTryOnRequest, StartTryOnResponse, TryOnResult, TryOnTarget } from '@/api/contracts/tryon';
+import type { StartTryOnRequest, StartTryOnResponse, TryOnResult, TryOnTarget, TryOnTargetKind } from '@/api/contracts/tryon';
 import { ApiError } from '@/api/errors';
 import { useJob, type JobView } from '@/api/jobs';
 import { fromSource } from '@/api/source';
@@ -12,6 +12,13 @@ import { ulid } from '@/lib/ids';
 
 /** Every try-on image costs one credit (README §9.1). Shown before starting; the server is authoritative. */
 export const TRY_ON_CREDIT_COST = 1;
+
+const TARGET_KINDS: readonly TryOnTargetKind[] = ['look', 'product', 'suggestion', 'plan-day', 'trip-day'];
+
+/** Narrows a route param to a try-on target kind (the try-on screen takes `kind` + `id` so it can retry). */
+export function isTryOnTargetKind(value: string | undefined): value is TryOnTargetKind {
+  return Boolean(value) && (TARGET_KINDS as readonly string[]).includes(value ?? '');
+}
 
 function startFixtureTryOn(request: StartTryOnRequest): StartTryOnResponse {
   const credits = fixtureDb.entitlement.credits;
