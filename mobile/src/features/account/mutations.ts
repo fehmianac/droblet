@@ -15,6 +15,7 @@ import type {
   PutNotificationSettingsRequest,
   PutProfileCityRequest,
   PutProfileLanguageRequest,
+  PutProfileNameRequest,
   PutVisibilityRequest,
   RemovePhotoRequest,
 } from '@/api/contracts/account';
@@ -48,6 +49,7 @@ export const accountMutationKeys = {
   putVisibility: ['tenant', 'profile', 'visibility', 'put'] as const,
   putLanguage: ['tenant', 'profile', 'language', 'put'] as const,
   putCity: ['tenant', 'profile', 'city', 'put'] as const,
+  putName: ['tenant', 'profile', 'name', 'put'] as const,
   removePhoto: ['tenant', 'photo', 'remove-one'] as const,
   deleteAllPhotos: ['tenant', 'photo', 'delete-all'] as const,
   putNotifications: ['tenant', 'user', 'notifications', 'put'] as const,
@@ -112,6 +114,23 @@ export function registerAccountMutations(client: QueryClient): void {
         },
       ),
     optimistic: (prev, vars) => (prev ? { ...prev, cityId: vars.cityId || null } : prev),
+    mapCurrent: (wire) => profileFromWire(client, wire as ProfileWire),
+  });
+
+  // Display name: partial PUT with `displayName` only. 400 `name_required` for a blank name.
+  registerVersionedWrite<PutProfileNameRequest, MyProfile>(client, {
+    mutationKey: accountMutationKeys.putName,
+    queryKey: accountKeys.profile,
+    send: (vars) =>
+      fromSource(
+        'account',
+        () => accountFixtures.setDisplayName(vars.displayName),
+        async () => {
+          const body: PutProfileWire = { displayName: vars.displayName, baseVersion: vars.baseVersion };
+          return profileFromWire(client, await apiRequest<ProfileWire>('v1/tenant/profile', { method: 'PUT', body }));
+        },
+      ),
+    optimistic: (prev, vars) => (prev ? { ...prev, displayName: vars.displayName } : prev),
     mapCurrent: (wire) => profileFromWire(client, wire as ProfileWire),
   });
 
@@ -235,6 +254,13 @@ export function useSaveProfileCity() {
     m.mutate({ cityId, baseVersion, clientMutationId: newClientMutation().clientMutationId });
 }
 
+/** Saves the display name (trimmed; the caller does not send a blank one). */
+export function useSaveDisplayName() {
+  const m = useMutation<MyProfile, unknown, PutProfileNameRequest>({ mutationKey: accountMutationKeys.putName });
+  return (displayName: string, baseVersion: number) =>
+    m.mutate({ displayName: displayName.trim(), baseVersion, clientMutationId: newClientMutation().clientMutationId });
+}
+
 /**
  * Claims or changes the @handle (`PUT v1/tenant/profile/handle`). Interactive and online: the caller
  * shows the outcome — 400 `validation_failed` (`handle_invalid`), 409 `handle_taken`, 422 `handle_reserved`.
@@ -248,7 +274,7 @@ export function useClaimHandle() {
     mutationFn: (handle: string) =>
       fromSource<MyProfile>(
         'account',
-        () => ({ ...accountFixtures.profile(), handle }),
+        () => accountFixtures.setHandle(handle.trim().replace(/^@/, '').toLowerCase()),
         async () => {
           const body: PutHandleWire = { handle: handle.trim().replace(/^@/, '') };
           return profileFromWire(client, await apiRequest<ProfileWire>('v1/tenant/profile/handle', { method: 'PUT', body }));

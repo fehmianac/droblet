@@ -21,7 +21,8 @@ import { ScreenState } from '@/components/ui/ScreenState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { profileShareUrl } from '@/features/social/feedMath';
-import { useFollow } from '@/features/social/mutations';
+import { useAnswerFollowRequest, useFollow } from '@/features/social/mutations';
+import { FOLLOW_LABEL } from '@/features/social/PeopleRows';
 import { useInviteLink, usePerson, usePersonItems, usePersonLooks, usePersonTrips } from '@/features/social/queries';
 import { ReportSheet } from '@/features/social/ReportSheet';
 import { requestShareUrl } from '@/features/social/share';
@@ -105,6 +106,7 @@ function HiddenCloset({ name }: { name: string }) {
 function PersonBody({ person }: { person: PersonProfile }) {
   const { t } = useTranslation();
   const follow = useFollow();
+  const answer = useAnswerFollowRequest();
   const [tab, setTab] = useState<ProfileTab>('looks');
   const visible = person.closetVisible;
   const looks = usePersonLooks(person.handle, visible && tab === 'looks');
@@ -131,17 +133,53 @@ function PersonBody({ person }: { person: PersonProfile }) {
           <Stat value={formatPercent(person.styleMatch)} label={t('person.statMatch')} />
         </View>
         <View className="flex-row items-center gap-3 self-stretch">
-          <Button
-            className="flex-1"
-            variant={person.isFollowing ? 'secondary' : 'primary'}
-            label={t(person.isFollowing ? 'person.following' : 'person.follow')}
-            onPress={() => follow(person.handle, !person.isFollowing)}
-          />
+          {person.isSelf ? null : (
+            <Button
+              className="flex-1"
+              variant={person.followState === 'none' ? 'primary' : 'secondary'}
+              label={t(FOLLOW_LABEL[person.followState])}
+              // Takip et → follow (public) or request (others); İstek gönderildi → withdraw; Takip ediliyor → unfollow.
+              onPress={() => follow(person.handle, person.followState === 'none')}
+              accessibilityHint={
+                person.followState === 'requested'
+                  ? t('friends.requestedHint')
+                  : person.followState === 'following'
+                    ? t('friends.followingHint')
+                    : undefined
+              }
+              testID="person.follow"
+            />
+          )}
           {visible ? (
             <Button variant="secondary" className="flex-1" label={t('person.exploreCloset')} onPress={() => setTab('closet')} />
           ) : null}
         </View>
       </View>
+
+      {person.requestedYou ? (
+        <View className="px-gutter">
+          <Card className="gap-3 p-4">
+            <Text variant="bodyMedium">{t('friends.requestedYou', { name: person.displayName })}</Text>
+            <View className="flex-row gap-2">
+              <Button
+                className="flex-1"
+                label={t('friends.approve')}
+                onPress={() => answer(person.handle, 'approve')}
+                accessibilityHint={t('friends.approveA11y', { name: person.displayName })}
+                testID="person.approve"
+              />
+              <Button
+                className="flex-1"
+                variant="secondary"
+                label={t('friends.decline')}
+                onPress={() => answer(person.handle, 'decline')}
+                accessibilityHint={t('friends.declineA11y', { name: person.displayName })}
+                testID="person.decline"
+              />
+            </View>
+          </Card>
+        </View>
+      ) : null}
 
       {visible ? (
         <View className="gap-4">

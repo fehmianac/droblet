@@ -132,6 +132,8 @@ describe('store wire mappers', () => {
       imageUrl: null,
       sponsored: true,
     });
+    // A creator with a Droblet account carries its @handle (find-friends creator row).
+    expect(toCreatorCard({ ...collection, handle: '@ornek_stilist' }).handle).toBe('ornek_stilist');
     expect(toSeriesOutfit({ ...collection, kind: 'series', subtitle: 'Dizi' })).toEqual({
       id: 'creator-1',
       title: 'Editör 1',

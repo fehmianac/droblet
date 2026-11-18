@@ -140,13 +140,15 @@ export type ContentCollectionWire = {
   imageUrl: string | null;
   sponsored: boolean;
   sponsorName: string | null;
+  /** The creator's Droblet @handle when the account exists (creators only; older servers omit it). */
+  handle?: string | null;
 };
 
-/** A creator collection is editorial content, not an account: no handle, no role. */
+/** A creator collection is editorial content; `handle` links it to the creator's account when there is one. No role. */
 export function toCreatorCard(wire: ContentCollectionWire): CreatorCard {
   return {
     id: wire.id,
-    handle: null,
+    handle: wire.handle ? wire.handle.replace(/^@/, '') : null,
     displayName: wire.title,
     role: null,
     lookTitle: wire.subtitle ?? '',
