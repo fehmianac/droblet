@@ -198,6 +198,7 @@ jobs:
               aws ssm put-parameter --name "$base/$1" --type "$2" --no-overwrite \
                 --description "$4" --value "$3" >/dev/null
               created+=("$base/$1 ($2)")
+              echo "$base/$1 olusturuldu ($2)."
             fi
           }
 
@@ -207,6 +208,8 @@ jobs:
             "JWT imza anahtari. Otomatik uretildi; degistirmek tum oturumlari dusurur."
           ensure "api/Email/SendGrid/ApiKey" SecureString "${SENDGRID_API_KEY:-CHANGE_ME}" \
             "SendGrid API anahtari (yalniz Mail Send yetkili). CHANGE_ME ise e-posta gitmez."
+          ensure "api/Email/SendGrid/BaseUrl" String "https://api.sendgrid.com" \
+            "SendGrid API adresi. AB'ye sabitlenmis hesap icin https://api.eu.sendgrid.com."
           ensure "api/AppleAuth/PrivateKey" SecureString "CHANGE_ME" \
             "Sign in with Apple .p8 anahtari (token iptali icin; giris dogrulamasi icin gerekmez)."
           ensure "api/Store/NotificationKey" SecureString "CHANGE_ME" \
