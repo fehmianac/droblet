@@ -29,8 +29,11 @@
       "title": "Sabah \"ne giysem\" derdi ve saatler süren bavul hazırlığı bitti.",
       "body": "Dolabın artık senin için düşünüyor. Kıyafetlerini fotoğrafla; Droblet her gün ve her seyahat için kombinini hazırlasın.",
       "platforms": "iOS ve Android · Türkçe ve İngilizce",
-      "phoneAlt": "Uygulama ekranı yer tutucusu: Bugün",
-      "phoneLabel": "Uygulama ekranı: Bugün"
+      "chips": {
+        "onYou": "SENİN ÜZERİNDE",
+        "weather": "14° İstanbul",
+        "missing": "Eksik parça"
+      }
     },
     "how": {
       "eyebrow": "NASIL ÇALIŞIR",
@@ -57,40 +60,47 @@
         {
           "title": "Stil danışmanı",
           "body": "Her sabah günün kombini hazır: hava durumuna ve takvimindeki ortama göre, kendi gardırobundan.",
-          "tag": "UYGULAMA EKRANI: STİLİST",
-          "alt": "Görsel yer tutucusu: Stilist ekranı"
+          "tag": "STİLİST"
         },
         {
           "title": "Üzerimde gör",
           "body": "Kombinleri ve mağaza ürünlerini kendi fotoğrafında gör. AI görselleri her zaman \"Senin üzerinde\" etiketiyle gösterilir.",
-          "tag": "SENİN ÜZERİNDE",
-          "alt": "Görsel yer tutucusu: Senin üzerinde AI görseli"
+          "tag": "SENİN ÜZERİNDE"
         },
         {
           "title": "Akıllı bavul",
           "body": "Şehir ve tarihi gir; günlük looklar ve her parçanın birden fazla kez giyildiği bir bavul listesi hazırlanır.",
-          "tag": "UYGULAMA EKRANI: BAVUL",
-          "alt": "Görsel yer tutucusu: Bavul ekranı"
+          "tag": "BAVUL"
         },
         {
           "title": "Renk paleti",
           "body": "Yüz fotoğrafından sezon tipini ve sana en çok yakışan tonları çıkarır; gardırobunun paletinle uyumunu gösterir.",
-          "tag": "UYGULAMA EKRANI: RENK PALETİ",
-          "alt": "Görsel yer tutucusu: Renk paleti ekranı"
+          "tag": "RENK PALETİ"
         },
         {
           "title": "Stil mağazası",
           "body": "Look'unu tamamlayan parçaları bedeninde bul. Ödeme ve teslimat markanın kendi mağazasında.",
-          "tag": "UYGULAMA EKRANI: MAĞAZA",
-          "alt": "Görsel yer tutucusu: Stil mağazası ekranı"
+          "tag": "STİL MAĞAZASI"
         },
         {
           "title": "Arkadaşlar",
           "body": "Arkadaşlarının look'larını 1–5 yıldızla puanla, kendi look'larına puan al; dolaplara göz at.",
-          "tag": "UYGULAMA EKRANI: ARKADAŞLAR",
-          "alt": "Görsel yer tutucusu: Arkadaş akışı ekranı"
+          "tag": "ARKADAŞLAR"
         }
-      ]
+      ],
+      "tones": {
+        "label": "Örnek palet: sıcak sonbahar",
+        "names": [
+          "Tarçın",
+          "Karamel",
+          "Zeytin",
+          "Gece mavisi",
+          "Kum",
+          "Bordo",
+          "Krem",
+          "Espresso"
+        ]
+      }
     },
     "privacy": {
       "eyebrow": "GİZLİLİK",
@@ -127,8 +137,65 @@
       "priceNote": "Güncel fiyat ve deneme süresi App Store ve Google Play'de yer alır. Fazlası için ek AI görseli paketi.",
       "cta": "Ücretsiz denemeyi başlat"
     },
+    "gallery": {
+      "eyebrow": "EKRANLAR",
+      "title": "Uygulamanın içinden.",
+      "region": "Uygulama ekranları — yatay kaydırılır",
+      "previous": "Önceki ekranlar",
+      "next": "Sonraki ekranlar"
+    },
     "final": {
       "title": "Dolabın artık senin için düşünüyor."
+    },
+    "screens": {
+      "welcome": {
+        "alt": "Droblet uygulamasının hoş geldin ekranı",
+        "caption": "Hoş geldin"
+      },
+      "today": {
+        "alt": "Droblet uygulaması, Bugün ekranı: hava durumu ve günün kombini",
+        "caption": "Bugün"
+      },
+      "wardrobe": {
+        "alt": "Droblet uygulaması, Gardırop ekranı: kategorilere ayrılmış parçalar",
+        "caption": "Gardırop"
+      },
+      "looks": {
+        "alt": "Droblet uygulaması, Looklar ekranı: kaydedilmiş kombinler",
+        "caption": "Looklar"
+      },
+      "stylist": {
+        "alt": "Droblet uygulaması, Stilist ekranı: ortam ve hava seçimi",
+        "caption": "Stilist"
+      },
+      "suggestion": {
+        "alt": "Droblet uygulaması, kombin önerisi ekranı",
+        "caption": "Kombin önerisi"
+      },
+      "trip": {
+        "alt": "Droblet uygulaması, bavul detayı: günlük looklar ve bavul listesi",
+        "caption": "Bavul"
+      },
+      "palette": {
+        "alt": "Droblet uygulaması, Renk paletim ekranı: sezon tipi ve yakışan tonlar",
+        "caption": "Renk paletim"
+      },
+      "shop": {
+        "alt": "Droblet uygulaması, Stil mağazası ekranı",
+        "caption": "Stil mağazası"
+      },
+      "product": {
+        "alt": "Droblet uygulaması, ürün ekranı: beden seçimi ve mağazaya geçiş",
+        "caption": "Ürün"
+      },
+      "friends": {
+        "alt": "Droblet uygulaması, Arkadaş akışı: arkadaşların look'ları ve yıldız puanları",
+        "caption": "Arkadaşlar"
+      },
+      "profile": {
+        "alt": "Droblet uygulaması, Profil ekranı: bu ayki AI görseli kredisi ve üyelik",
+        "caption": "Profil"
+      }
     }
   },
   "footer": {
