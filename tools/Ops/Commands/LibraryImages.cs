@@ -78,7 +78,7 @@ internal static class LibraryImagePlan
         ItemCategory.Dress => "Shown on an invisible ghost mannequin, straight front view, full length from neckline to hem.",
         ItemCategory.Outerwear => "Shown on an invisible ghost mannequin, straight front view, closed, natural 3D shape, full length.",
         ItemCategory.Shoes => "A pair, placed side by side, photographed from a three-quarter front-side angle at product height.",
-        ItemCategory.Bag => "Standing upright, front three-quarter view, handles or strap neatly arranged.",
+        ItemCategory.Bag => "Standing upright, front three-quarter view; handles or a long strap neatly coiled or draped so that the whole bag and strap stay inside the frame.",
         ItemCategory.Accessory => "Neatly folded and softly draped, top-down flat-lay view.",
         ItemCategory.Beachwear => "Shown on an invisible ghost mannequin, straight front view.",
         ItemCategory.Skiwear => "Shown on an invisible ghost mannequin, straight front view, zipped, natural 3D shape.",
