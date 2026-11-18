@@ -43,8 +43,23 @@ env:
 - tapOn:
     id: "auth.password"
 - inputText: "Sm0keTest2026"
+# Close the keyboard by tapping the screen title (hideKeyboard is unreliable on iOS secure fields).
+- tapOn:
+    point: "50%,12%"
+# 18+ confirmation is required on e-mail sign-up.
+- scrollUntilVisible:
+    element:
+      id: "age.checkbox"
+    direction: DOWN
+- tapOn:
+    id: "age.checkbox"
 - takeScreenshot: 02b-kayit-dolu
-- pressKey: Enter
+- scrollUntilVisible:
+    element:
+      id: "auth.submit"
+    direction: DOWN
+- tapOn:
+    id: "auth.submit"
 
 # iOS offers to save the new password in the keychain (a system sheet over the app, hiding it from
 # Maestro): wait for it briefly and decline it, in either system language.
