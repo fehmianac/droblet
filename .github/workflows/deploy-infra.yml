@@ -228,6 +228,10 @@ jobs:
           jwt=$(openssl rand -base64 48 | tr -d '\n'); echo "::add-mask::$jwt"
           ensure "api/Jwt" SecureString "{\"SecretKey\":\"$jwt\"}" \
             "JWT imza anahtari. Otomatik uretildi; degistirmek tum oturumlari dusurur."
+          # Admin paneli token imza anahtari: uygulama JWT anahtarindan AYRI (admin uclarinda kullanici token'i gecmez).
+          adminjwt=$(openssl rand -base64 48 | tr -d '\n'); echo "::add-mask::$adminjwt"
+          ensure "api/AdminJwt" SecureString "{\"SecretKey\":\"$adminjwt\"}" \
+            "Admin paneli JWT imza anahtari. Otomatik uretildi; degistirmek tum admin oturumlarini dusurur."
           ensure "api/Email/SendGrid/ApiKey" SecureString "${SENDGRID_API_KEY:-CHANGE_ME}" \
             "SendGrid API anahtari (yalniz Mail Send yetkili). CHANGE_ME ise e-posta gitmez."
           ensure "api/Email/SendGrid/BaseUrl" String "https://api.sendgrid.com" \
