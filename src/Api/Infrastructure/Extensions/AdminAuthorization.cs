@@ -218,25 +218,37 @@ public static class DrobletCors
     public static IApplicationBuilder UseDrobletCors(this IApplicationBuilder app) => app.Use(async (context, next) =>
     {
         var origin = context.Request.Headers.Origin.ToString();
-        var headers = context.Response.Headers;
+        var cors = new Dictionary<string, string>(StringComparer.Ordinal);
         if (IsAdminPath(context.Request.Path))
         {
             var allowed = context.RequestServices.GetRequiredService<IOptionsMonitor<AdminAuthOptions>>().CurrentValue.AllowedOrigins;
             if (origin.Length > 0 && allowed.Contains(origin.TrimEnd('/'), StringComparer.OrdinalIgnoreCase))
             {
-                headers.AccessControlAllowOrigin = origin;
-                headers.Vary = "Origin";
-                headers.AccessControlAllowMethods = AllowMethods;
-                headers.AccessControlAllowHeaders = AllowHeaders;
-                headers.AccessControlMaxAge = "600";
+                cors["Access-Control-Allow-Origin"] = origin;
+                cors["Vary"] = "Origin";
+                cors["Access-Control-Allow-Methods"] = AllowMethods;
+                cors["Access-Control-Allow-Headers"] = AllowHeaders;
+                cors["Access-Control-Max-Age"] = "600";
             }
         }
         else if (origin.Length > 0)
         {
-            headers.AccessControlAllowOrigin = "*";
-            headers.AccessControlAllowMethods = AllowMethods;
-            headers.AccessControlAllowHeaders = context.Request.Headers.AccessControlRequestHeaders.ToString() is { Length: > 0 } requested ? requested : "*";
-            headers.AccessControlMaxAge = "600";
+            cors["Access-Control-Allow-Origin"] = "*";
+            cors["Access-Control-Allow-Methods"] = AllowMethods;
+            cors["Access-Control-Allow-Headers"] = context.Request.Headers.AccessControlRequestHeaders.ToString() is { Length: > 0 } requested ? requested : "*";
+            cors["Access-Control-Max-Age"] = "600";
+        }
+
+        // Applied when the response starts, so an error response (the exception handler clears headers) keeps them
+        // and the browser shows the real status instead of a CORS failure.
+        if (cors.Count > 0)
+        {
+            context.Response.OnStarting(() =>
+            {
+                foreach (var (name, value) in cors)
+                    context.Response.Headers[name] = value;
+                return Task.CompletedTask;
+            });
         }
 
         // Preflight: answered here (the ANY /{proxy+} route forwards OPTIONS to the Lambda).
