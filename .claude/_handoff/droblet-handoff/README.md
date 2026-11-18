@@ -227,3 +227,19 @@ Brief'te üst etiket ve marka adı **büyük harf**. Proje kuralı gereği büy�
 Eklenenler: logo (öneri: **A — iç boşluğu askı kancası olan damla**; `Logo`, `LogoIkon`, `LogoKullanim`), animasyonlu splash (`Splash`, `SplashKareler`; toplam 2,6 sn, `cubic-bezier(0.2,0.8,0.2,1)`), yeni ekranlar (02b–d şifre sıfırlama, 04b İlk 5 parça, 05b ek kredi, 07b kredi onayı, 12b hazır kütüphane, 12c parça bilgisi, 17b kredi bitti, 17c görsel üretiliyor, 24b izleme listem, 26b şikayet/engelle, 29b–c silme onayları), durum board'ları (`Durum*`, `BugunPlanYok`, `EditFotoYok`, `SepetBos`, `KisiGizli`, `PaletBos`), web landing (`Landing`, `LandingMobil`) ve AI bekleme dili (`AiYukleniyor`, `AiYukleniyorStilist`, `AiYukleniyorVaryantlar`: çark yok; parlama 1,8 sn, siluet çizimi 3,2 sn, parçalar 300 ms arayla, metinler 2 sn'de bir geçiş; hareket azaltmada durağan hal). Hata hali: "Şu an oluşturamadık. Kredin iade edildi." + "Tekrar dene".
 
 Dev ortamı (2026-11-18): `https://b8lvaj4r5e.execute-api.eu-central-1.amazonaws.com/dev` (stack `droblet-dev`, eu-central-1).
+
+---
+
+## 12. Çok dillilik (ürün sahibi kararı, 2026-11-18)
+
+Uygulama **çok dilli**; ilk diller **Türkçe ve İngilizce**, sonrası veriyle eklenebilir olmalı.
+
+| Katman | Kural |
+|---|---|
+| Mobil | Tüm metinler `tr` ve `en` çeviri dosyalarında (erişilebilirlik etiketleri dahil). Tarih, sayı, para, çoğul yerel ayara göre tek yardımcıdan. İlk açılışta cihaz dili destekleniyorsa o, yoksa TR. Dil değişimi anında uygulanır, cihazda saklanır ve profile yazılır. Yeni dil = yeni çeviri dosyası + tek kayıt. `tr`/`en` anahtar eşitliği testle korunur |
+| API | Sabit metin dönmez; kod/enum döner, istemci çevirir. İstemci `Accept-Language` gönderir. Dil sırası: profil `language` → `Accept-Language` → `tr` |
+| İçerik (katalog, edit, kütüphane, renk/sezon adları) | Yerelleştirilmiş alanlar `{ "tr": "…", "en": "…" }` haritası; admin uçları haritayı alır; desteklenen diller config listesinde |
+| AI metni | Kullanıcının dilinde üretilir; üretilen sonuçla birlikte dili saklanır |
+| E-posta ve bildirim | Alıcının profil diline göre şablon |
+| Web (landing, yasal sayfalar), mağaza sayfası | TR + EN — E12 kapsamında, henüz yazılmadı |
+| Büyük harf etiketler | Dil başına çeviri dosyasında büyük harfle yazılır (TR'de İ) |
