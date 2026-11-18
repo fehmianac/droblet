@@ -11,6 +11,8 @@ const LINK_DOMAIN = 'droplet.alatech.co';
 
 /** = `CREAM` in src/theme/tokens.ts (app config is evaluated by Node and cannot import app TS). */
 const CREAM = '#F4F1EC';
+/** = `ink` in src/theme/tokens.ts. */
+const INK = '#1C1A17';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
@@ -40,7 +42,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   android: {
     package: BUNDLE_ID,
     adaptiveIcon: {
-      backgroundColor: CREAM,
+      // Default icon: cream drop on ink (canvas v2 `LogoIkon`). Regenerate with scripts/render-brand-assets.mjs.
+      backgroundColor: INK,
       foregroundImage: './assets/images/android-icon-foreground.png',
       backgroundImage: './assets/images/android-icon-background.png',
       monochromeImage: './assets/images/android-icon-monochrome.png',
@@ -66,7 +69,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       {
         backgroundColor: CREAM,
         image: './assets/images/splash-icon.png',
-        imageWidth: 76,
+        // = MARK_HEIGHT × 36/50 in src/components/brand/AnimatedSplash.tsx, so the hand-over does not jump.
+        imageWidth: 92,
       },
     ],
     'expo-secure-store',

@@ -12,9 +12,10 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { useOnboardingStatus } from '@/auth/onboarding';
+import { AnimatedSplash } from '@/components/brand/AnimatedSplash';
 import { sessionStore, useSession } from '@/auth/session';
 import { ConflictHost } from '@/sync/ConflictHost';
 import { wireNetworkAndFocus } from '@/sync/network';
@@ -48,6 +49,10 @@ export default function RootLayout() {
   useEffect(() => {
     if (ready) void SplashScreen.hideAsync();
   }, [ready]);
+
+  // 00 Splash: the native (static) splash hands over to the animated one, once per cold start.
+  const [splashDone, setSplashDone] = useState(false);
+  const finishSplash = useCallback(() => setSplashDone(true), []);
 
   if (!ready) return null;
 
@@ -116,6 +121,7 @@ export default function RootLayout() {
         <Stack.Screen name="(auth)/reset-password" />
       </Stack>
       <ConflictHost />
+      {splashDone ? null : <AnimatedSplash onDone={finishSplash} />}
     </QueryProvider>
   );
 }

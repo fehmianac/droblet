@@ -2,6 +2,7 @@ import { router, Slot, usePathname } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
+import { Logo } from '@/components/brand/Logo';
 import { Screen } from '@/components/ui/Screen';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { Text } from '@/components/ui/Text';
@@ -19,7 +20,9 @@ export default function WardrobeLayout() {
   return (
     <Screen>
       <View className="gap-4 px-gutter pb-3 pt-2">
-        <Text variant="eyebrow">{t('brand.wordmark')}</Text>
+        <View className="flex-row">
+          <Logo />
+        </View>
         <Text variant="display">{t('wardrobe.title')}</Text>
         <SegmentedControl<WardrobeView>
           accessibilityLabel={t('tabs.wardrobe')}
