@@ -1,11 +1,12 @@
 /**
  * Turkish case suffixes for dynamic words (brand names, people's names, numbers), written after an
- * apostrophe: "Liman'da öde", "Selin'i şikayet et", "30 görselden 12'si kaldı", "1 Aralık'ta".
+ * apostrophe: "Vakko'da öde", "Selin'i şikayet et", "30 görselden 12'si kaldı", "1 Aralık'ta".
  * Vowel harmony and consonant voicing are applied to the word as it is read; numbers are read in
  * Turkish first (12 → "on iki"). English strings never use these helpers (see `suffixed`).
  *
- * Foreign brand names are spelled differently from how they are read, so their suffix is a best
- * effort from the spelling.
+ * Foreign brand names are spelled differently from how they are read ("Gap" is read "gep"), so
+ * the names we know carry their spoken form in `SPOKEN_AS`; any other foreign name gets a best
+ * effort from its spelling.
  */
 export type TrCase = 'possessive' | 'accusative' | 'locative' | 'genitive';
 
@@ -16,6 +17,15 @@ const VOICELESS = 'fstkçşhp';
 
 const DIGITS = ['sıfır', 'bir', 'iki', 'üç', 'dört', 'beş', 'altı', 'yedi', 'sekiz', 'dokuz'];
 const TENS = ['', 'on', 'yirmi', 'otuz', 'kırk', 'elli', 'altmış', 'yetmiş', 'seksen', 'doksan'];
+
+/** How a name is read aloud in Turkish, where the spelling would give the wrong suffix. Keys are lower-case. */
+const SPOKEN_AS: Record<string, string> = {
+  'marks & spencer': 'spensır',
+  'm&s': 'es',
+  gap: 'gep',
+  communité: 'komünite',
+  communite: 'komünite',
+};
 
 function lowerTr(value: string): string {
   return value.replace(/I/g, 'ı').replace(/İ/g, 'i').toLowerCase();
@@ -36,6 +46,8 @@ function numberReading(n: number): string {
 
 /** The pronounceable tail of a word: trailing digits are read as numbers, other symbols are skipped. */
 function spokenTail(word: string): string {
+  const known = SPOKEN_AS[lowerTr(word).trim()];
+  if (known) return known;
   const cleaned = lowerTr(word).replace(/[^a-zçğıöşü0-9]+$/u, '');
   const digits = /(\d+)$/.exec(cleaned);
   return digits ? numberReading(Number(digits[1])) : cleaned;

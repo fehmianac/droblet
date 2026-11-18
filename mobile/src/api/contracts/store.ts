@@ -74,12 +74,17 @@ export type ProductSize = string;
 export const ONE_SIZE = 'ONE';
 
 /** GET v1/catalog/brand */
-export type Brand = { id: string; name: string };
+/**
+ * `logoUrl` is the brand's official logo as supplied through the catalogue; when absent the app
+ * shows the brand name in the brand text style (see `BrandMark`).
+ */
+export type Brand = { id: string; name: string; logoUrl?: string | null };
 
 export type ProductSummary = {
   id: string;
   brandId: string;
   brandName: string;
+  brandLogoUrl?: string | null;
   name: string;
   /** Null when the brand has not published a price. */
   price: Money | null;
@@ -174,7 +179,7 @@ export type CartLine = {
   price: Money | null;
   imageUrl: string | null;
 };
-export type CartGroup = { brandId: string; brandName: string; subtotal: Money | null; lines: CartLine[] };
+export type CartGroup = { brandId: string; brandName: string; brandLogoUrl?: string | null; subtotal: Money | null; lines: CartLine[] };
 /** GET v1/tenant/cart — grouped by brand, priced with the current catalogue price. */
 export type Cart = { groups: CartGroup[]; total: Money | null; lineCount: number };
 
@@ -192,6 +197,7 @@ export type WatchlistEntry = {
   productId: string;
   brandId: string;
   brandName: string;
+  brandLogoUrl?: string | null;
   name: string;
   price: Money | null;
   /** Set when the price dropped since the product was added. */

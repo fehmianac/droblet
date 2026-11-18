@@ -3,12 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, View } from 'react-native';
 
 import type { ProductSummary } from '@/api/contracts/store';
+import { BrandMark } from '@/components/blocks/BrandMark';
 import { IconButton } from '@/components/ui/IconButton';
 import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
 import { Text } from '@/components/ui/Text';
-import { currentLanguage } from '@/i18n';
 import { formatMoney } from '@/lib/intl';
-import { toDisplayUpper } from '@/lib/upper';
 
 type Props = { product: ProductSummary; favorite: boolean; onToggleFavorite: () => void; onPress: () => void };
 
@@ -30,9 +29,7 @@ export function ShopProductCard({ product, favorite, onToggleFavorite, onPress }
       >
         <PlaceholderImage uri={product.imageUrl} className="aspect-[4/5] w-full rounded-image-lg" />
         <View className="gap-0.5">
-          <Text variant="brand" tone="muted" numberOfLines={1}>
-            {toDisplayUpper(product.brandName, currentLanguage())}
-          </Text>
+          <BrandMark name={product.brandName} logoUrl={product.brandLogoUrl} />
           <Text variant="body" numberOfLines={1}>
             {product.name}
           </Text>

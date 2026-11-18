@@ -6,6 +6,7 @@ import { FlatList, RefreshControl, View } from 'react-native';
 import type { ProductSummary, WatchlistEntry } from '@/api/contracts/store';
 import { useBodyProfile } from '@/api/profile';
 import { Badge, Card } from '@/components/blocks/basics';
+import { BrandMark } from '@/components/blocks/BrandMark';
 import { CartButton } from '@/components/blocks/SectionState';
 import { Button } from '@/components/ui/Button';
 import { IconButton } from '@/components/ui/IconButton';
@@ -18,9 +19,7 @@ import { Text } from '@/components/ui/Text';
 import { preferredSize, priceDropPercent } from '@/features/store/cartMath';
 import { useAddToCart, useSetWatch } from '@/features/store/mutations';
 import { useWatchlist } from '@/features/store/queries';
-import { currentLanguage } from '@/i18n';
 import { formatMoney, formatPercent } from '@/lib/intl';
-import { toDisplayUpper } from '@/lib/upper';
 import { useThemeColors } from '@/theme/useThemeColors';
 
 function toProduct(entry: WatchlistEntry): ProductSummary {
@@ -28,6 +27,7 @@ function toProduct(entry: WatchlistEntry): ProductSummary {
     id: entry.productId,
     brandId: entry.brandId,
     brandName: entry.brandName,
+    brandLogoUrl: entry.brandLogoUrl ?? null,
     name: entry.name,
     price: entry.price,
     imageUrl: entry.imageUrl,
@@ -66,9 +66,7 @@ function WatchCard({ entry, profileSize }: { entry: WatchlistEntry; profileSize:
       <View className="flex-row gap-3">
         <PlaceholderImage uri={entry.imageUrl} className="h-[84px] w-[68px] rounded-image" />
         <View className="flex-1 gap-0.5">
-          <Text variant="brand" tone="muted" numberOfLines={1}>
-            {toDisplayUpper(entry.brandName, currentLanguage())}
-          </Text>
+          <BrandMark name={entry.brandName} logoUrl={entry.brandLogoUrl} />
           <Text variant="body" numberOfLines={2}>
             {entry.name}
           </Text>

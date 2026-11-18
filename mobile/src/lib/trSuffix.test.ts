@@ -11,23 +11,40 @@ describe('trSuffix', () => {
   });
 
   it('applies vowel harmony and consonant voicing to names', () => {
-    expect(trSuffix('Liman', 'locative')).toBe('da');
-    expect(trSuffix('Ada Club', 'locative')).toBe('da');
+    expect(trSuffix('Vakko', 'locative')).toBe('da');
     expect(trSuffix('Sepet', 'locative')).toBe('te');
-    expect(trSuffix('Defne & Co', 'locative')).toBe('da');
     expect(trSuffix('1 Aralık', 'locative')).toBe('ta');
     expect(trSuffix('1 Kasım', 'locative')).toBe('da');
     expect(trSuffix('Selin', 'accusative')).toBe('i');
     expect(trSuffix('Ayşe', 'accusative')).toBe('yi');
-    expect(trSuffix('Maison Kum', 'genitive')).toBe('un');
-    expect(trSuffix('Sade Studio', 'genitive')).toBe('nun');
+    expect(trSuffix('Kum', 'genitive')).toBe('un');
+    expect(trSuffix('Studio', 'genitive')).toBe('nun');
     expect(trSuffix('IŞIK', 'accusative')).toBe('ı');
+  });
+
+  it('gives the catalogue brands the form they are read with', () => {
+    const locative: [string, string][] = [
+      ['Vakko', "Vakko'da"],
+      ['Gap', "Gap'te"],
+      ['Marks & Spencer', "Marks & Spencer'da"],
+      ['Beymen Club', "Beymen Club'da"],
+      ['Communité', "Communité'de"],
+      ['Lululemon', "Lululemon'da"],
+    ];
+    locative.forEach(([brand, expected]) => expect(suffixed(brand, 'locative', 'tr')).toBe(expected));
+    expect(suffixed('Marks & Spencer', 'genitive', 'tr')).toBe("Marks & Spencer'ın");
+    expect(suffixed('Communité', 'genitive', 'tr')).toBe("Communité'nin");
+    expect(suffixed('Gap', 'genitive', 'tr')).toBe("Gap'in");
+    expect(suffixed('Vakko', 'genitive', 'tr')).toBe("Vakko'nun");
+    expect(suffixed('Lululemon', 'genitive', 'tr')).toBe("Lululemon'un");
+    expect(suffixed('Beymen Club', 'genitive', 'tr')).toBe("Beymen Club'un");
+    expect(suffixed('MARKS & SPENCER', 'locative', 'tr')).toBe("MARKS & SPENCER'da");
   });
 
   it('only suffixes in Turkish and keeps the display text', () => {
     expect(suffixed(12, 'possessive', 'tr')).toBe("12'si");
     expect(suffixed(12, 'possessive', 'en')).toBe('12');
     expect(suffixed(64, 'possessive', 'tr', '%64')).toBe("%64'ü");
-    expect(suffixed('Liman', 'locative', 'tr')).toBe("Liman'da");
+    expect(suffixed('Vakko', 'locative', 'tr')).toBe("Vakko'da");
   });
 });

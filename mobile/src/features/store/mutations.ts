@@ -172,6 +172,7 @@ export function registerStoreMutations(client: QueryClient): void {
           productId: vars.product.id,
           brandId: vars.product.brandId,
           brandName: vars.product.brandName,
+          brandLogoUrl: vars.product.brandLogoUrl ?? null,
           name: vars.product.name,
           price: vars.product.price,
           previousPrice: null,

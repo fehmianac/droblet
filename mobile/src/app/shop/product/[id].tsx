@@ -8,6 +8,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { ONE_SIZE, type ProductDetail, type ProductSize } from '@/api/contracts/store';
 import { useBodyProfile } from '@/api/profile';
 import { Card } from '@/components/blocks/basics';
+import { BrandMark } from '@/components/blocks/BrandMark';
 import { CartButton } from '@/components/blocks/SectionState';
 import { AiImage } from '@/components/ui/AiBadge';
 import { BottomActionBar } from '@/components/ui/BottomActionBar';
@@ -42,7 +43,6 @@ import {
 import { currentLanguage } from '@/i18n';
 import { formatMoney } from '@/lib/intl';
 import { suffixed } from '@/lib/trSuffix';
-import { toDisplayUpper } from '@/lib/upper';
 
 type ProductView = 'product' | 'onMe';
 
@@ -186,9 +186,7 @@ function ProductBody({ product }: { product: ProductDetail }) {
         <View className="gap-5 px-gutter">
           <View className="flex-row items-start justify-between gap-3">
             <View className="flex-1 gap-1">
-              <Text variant="brand" tone="muted">
-                {toDisplayUpper(product.brandName, language)}
-              </Text>
+              <BrandMark name={product.brandName} logoUrl={product.brandLogoUrl} />
               <Text variant="h2">{product.name}</Text>
             </View>
             {product.price !== null ? <Text variant="h3">{formatMoney(product.price)}</Text> : null}

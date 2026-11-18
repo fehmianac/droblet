@@ -7,6 +7,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { track } from '@/analytics/track';
 import { BUILDER_SLOTS, type BuilderSlot } from '@/api/contracts/store';
 import { useBodyProfile } from '@/api/profile';
+import { BrandMark } from '@/components/blocks/BrandMark';
 import { SectionState } from '@/components/blocks/SectionState';
 import { AiImage } from '@/components/ui/AiBadge';
 import { BottomActionBar } from '@/components/ui/BottomActionBar';
@@ -34,9 +35,7 @@ import {
 } from '@/features/store/builder';
 import { useAddToCart, useCreateLook } from '@/features/store/mutations';
 import { useProduct, useSlotProducts, useWardrobePieces } from '@/features/store/queries';
-import { currentLanguage } from '@/i18n';
 import { formatMoney } from '@/lib/intl';
-import { toDisplayUpper } from '@/lib/upper';
 
 type Source = 'store' | 'wardrobe';
 
@@ -139,7 +138,6 @@ function StripSkeleton() {
  */
 export default function BuilderScreen() {
   const { t } = useTranslation();
-  const language = currentLanguage();
   const params = useLocalSearchParams<{ productId?: string; lookId?: string }>();
   const profileSize = useBodyProfile().data?.size ?? null;
   const stats = useProfileStats();
@@ -243,9 +241,7 @@ export default function BuilderScreen() {
                       className="w-24 gap-1 active:opacity-80"
                     >
                       <PlaceholderImage uri={product.imageUrl} className="aspect-[4/5] w-full rounded-image" />
-                      <Text variant="brand" tone="muted" numberOfLines={1}>
-                        {toDisplayUpper(product.brandName, language)}
-                      </Text>
+                      <BrandMark name={product.brandName} logoUrl={product.brandLogoUrl} />
                       {product.price !== null ? (
                         <Text variant="caption" tone="accent">
                           {formatMoney(product.price)}

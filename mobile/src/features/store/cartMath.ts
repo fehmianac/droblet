@@ -24,7 +24,7 @@ export function addLinesToCart(cart: Cart | undefined, lines: NewCartLine[]): Ca
     if (groups.some((g) => g.lines.some((l) => l.lineId === clientMutationId))) continue;
     let group = groups.find((g) => g.brandId === product.brandId);
     if (!group) {
-      group = { brandId: product.brandId, brandName: product.brandName, subtotal: null, lines: [] };
+      group = { brandId: product.brandId, brandName: product.brandName, brandLogoUrl: product.brandLogoUrl ?? null, subtotal: null, lines: [] };
       groups.push(group);
     }
     group.lines.push({

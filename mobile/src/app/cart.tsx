@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { track } from '@/analytics/track';
 import { ONE_SIZE, type Cart, type CartGroup } from '@/api/contracts/store';
 import { Card, InfoNote } from '@/components/blocks/basics';
+import { BrandMark } from '@/components/blocks/BrandMark';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
@@ -23,7 +24,6 @@ import { useCart } from '@/features/store/queries';
 import { currentLanguage } from '@/i18n';
 import { formatMoney } from '@/lib/intl';
 import { suffixed } from '@/lib/trSuffix';
-import { toDisplayUpper } from '@/lib/upper';
 import { useIsOnline } from '@/sync/network';
 import { useThemeColors } from '@/theme/useThemeColors';
 
@@ -75,9 +75,7 @@ function BrandGroup({
   return (
     <Card className="px-3.5 pb-3.5 pt-1">
       <View className="flex-row items-center justify-between gap-3 border-b border-line py-2.5">
-        <Text variant="brand" tone="ink" numberOfLines={1} className="flex-1">
-          {toDisplayUpper(group.brandName, language)}
-        </Text>
+        <BrandMark name={group.brandName} logoUrl={group.brandLogoUrl} tone="ink" className="flex-1" />
         {group.subtotal ? (
           <Text variant="caption" tone="muted">
             {formatMoney(group.subtotal)}

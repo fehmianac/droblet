@@ -25,71 +25,79 @@ import {
 } from '@/api/contracts/store';
 import { ApiError } from '@/api/errors';
 import { slotOfCategory } from '@/features/store/slots';
+import { currentLanguage } from '@/i18n';
 import { toIsoDate } from '@/lib/format';
 import { sumMoney, type Money } from '@/lib/intl';
 
 /**
  * Typed fixtures for E8 (Keşfet, mağaza, sepet, izleme listesi), used while `DATA_SOURCE` points the
- * feature at 'fixture'. Brand and product names are neutral samples and prices are placeholders —
- * none of them is real catalogue data. The module keeps a small in-memory state so writes
- * (cart, watchlist, favourites) behave like a server within one app session.
+ * feature at 'fixture'. Brands and product names follow the design canvas / brief; prices are the
+ * canvas examples where it shows one and plain sample values elsewhere — FIXTURES ONLY, real names,
+ * prices and brand logos come from the catalogue API. `logoUrl` is deliberately empty: official
+ * logo files are supplied by the owner / brands through the catalogue, never drawn or bundled here.
+ * The module keeps a small in-memory state so writes (cart, watchlist, favourites) behave like a
+ * server within one app session.
  */
 
-export const brandsFixture: Brand[] = [
-  { id: 'brand_nord', name: 'Atölye Nord' },
-  { id: 'brand_kum', name: 'Maison Kum' },
-  { id: 'brand_liman', name: 'Liman' },
-  { id: 'brand_sade', name: 'Sade Studio' },
-  { id: 'brand_defne', name: 'Defne & Co' },
-  { id: 'brand_ada', name: 'Ada Club' },
-];
+const BRANDS = {
+  ms: { id: 'brand_ms', name: 'Marks & Spencer', logoUrl: null },
+  vakko: { id: 'brand_vakko', name: 'Vakko', logoUrl: null },
+  beymen: { id: 'brand_beymen_club', name: 'Beymen Club', logoUrl: null },
+  communite: { id: 'brand_communite', name: 'Communité', logoUrl: null },
+  gap: { id: 'brand_gap', name: 'Gap', logoUrl: null },
+  lululemon: { id: 'brand_lululemon', name: 'Lululemon', logoUrl: null },
+} satisfies Record<string, Brand>;
+type BrandKey = keyof typeof BRANDS;
 
-/** Placeholder prices are whole lira amounts; the wire format is minor units + ISO code. */
+export const brandsFixture: Brand[] = Object.values(BRANDS);
+
+/** Fixture prices are whole lira amounts; the wire format is minor units + ISO code. */
 const lira = (amount: number): Money => ({ amountMinor: amount * 100, currency: 'TRY' });
 
 const APPAREL = ['XS', 'S', 'M', 'L', 'XL'];
 const SHOES = ['36', '37', '38', '39', '40'];
 const SINGLE = [ONE_SIZE];
 
-type Seed = [name: string, category: ProductCategory, colors: CatalogColor[], price: number | null];
+type Seed = [tr: string, en: string, brand: BrandKey, category: ProductCategory, colors: CatalogColor[], price: number | null];
 
+/** The first rows are the canvas examples (with the canvas prices); the rest are sample values. */
 const SEEDS: Seed[] = [
-  ['Beyaz Poplin Gömlek', 'shirt', ['white'], 3000],
-  ['Yün Karışımlı Blazer', 'jacket', ['navy'], null],
-  ['Deri Kroko Babet', 'shoes', ['black'], 3300],
-  ['City Medium Siyah Çanta', 'bag', ['black'], 12950],
-  ['Krem Triko Kazak', 'knit', ['cream'], 4200],
-  ['Yüksek Bel Kumaş Pantolon', 'trousers', ['black'], 3600],
-  ['Pamuklu Basic Tişört', 'tshirt', ['white'], 900],
-  ['Saten Midi Elbise', 'dress', ['burgundy'], 5400],
-  ['Küçük Taşlı Küpe', 'accessory', ['cream'], null],
-  ['Keten Oversize Gömlek', 'shirt', ['beige'], 2800],
-  ['Karamel Yün Kaban', 'jacket', ['camel'], 9800],
-  ['Düz Paça Jean', 'trousers', ['navy'], 2400],
-  ['Zeytin Rengi Triko Yelek', 'knit', ['olive'], 2100],
-  ['Çizgili Uzun Kollu Tişört', 'tshirt', ['navy', 'white'], 1100],
-  ['Süet Loafer', 'shoes', ['brown'], 4700],
-  ['İpek Fular', 'accessory', ['burgundy', 'cream'], 1600],
-  ['Mini Omuz Çantası', 'bag', ['camel'], 6900],
-  ['Triko Midi Elbise', 'dress', ['grey'], 4300],
-  ['Gri Flanel Pantolon', 'trousers', ['grey'], 3900],
-  ['Bej Trençkot', 'jacket', ['beige'], 8600],
-  ['Siyah Balıkçı Yaka Kazak', 'knit', ['black'], 2700],
-  ['Bordo Saten Gömlek', 'shirt', ['burgundy'], 3200],
-  ['Deri Kemer', 'accessory', ['brown'], 1400],
-  ['Beyaz Deri Sneaker', 'shoes', ['white'], 5200],
-  ['Lacivert Poplin Elbise', 'dress', ['navy'], 4800],
-  ['Krem Rengi Kısa Kollu Tişört', 'tshirt', ['cream'], 950],
-  ['Hasır Dokulu Tote Çanta', 'bag', ['beige'], null],
-  ['Kahverengi Kadife Ceket', 'jacket', ['brown'], 7400],
-  ['Zeytin Kargo Pantolon', 'trousers', ['olive'], 3100],
-  ['Karamel Kaşmir Kazak', 'knit', ['camel'], 6200],
-  ['Siyah Topuklu Bot', 'shoes', ['black'], 6800],
-  ['Gri Yün Atkı', 'accessory', ['grey'], 1200],
-  ['Beyaz Dantelli Gömlek', 'shirt', ['white'], 3400],
-  ['Siyah Deri Clutch', 'bag', ['black'], 5600],
-  ['Bej Keten Elbise', 'dress', ['beige'], 3700],
-  ['Lacivert Polo Tişört', 'tshirt', ['navy'], 1300],
+  ['Beyaz Poplin Gömlek', 'White Poplin Shirt', 'ms', 'shirt', ['white'], 3000],
+  ['Yün Karışımlı Blazer', 'Wool-Blend Blazer', 'vakko', 'jacket', ['navy'], null],
+  ['Deri Kroko Babet', 'Leather Croc Ballet Flats', 'ms', 'shoes', ['black'], 3300],
+  ['City Medium Siyah Çanta', 'City Medium Black Bag', 'beymen', 'bag', ['black'], 12950],
+  ['Triko Kazak', 'Knit Jumper', 'communite', 'knit', ['cream'], 4200],
+  ['Yün Karışımlı Balloon Paça Pantolon', 'Wool-Blend Balloon-Leg Trousers', 'ms', 'trousers', ['black'], 7300],
+  ['Pamuklu Basic Tişört', 'Cotton Basic T-Shirt', 'gap', 'tshirt', ['white'], 900],
+  ['Saten Midi Elbise', 'Satin Midi Dress', 'vakko', 'dress', ['burgundy'], 5400],
+  ['Küçük Taşlı Küpe', 'Small Stone Earrings', 'beymen', 'accessory', ['cream'], null],
+  ['Keten Oversize Gömlek', 'Oversized Linen Shirt', 'communite', 'shirt', ['beige'], 2800],
+  ['Karamel Yün Kaban', 'Camel Wool Coat', 'vakko', 'jacket', ['camel'], 9800],
+  ['Düz Paça Jean', 'Straight-Leg Jeans', 'gap', 'trousers', ['navy'], 2400],
+  ['Zeytin Rengi Triko Yelek', 'Olive Knit Vest', 'communite', 'knit', ['olive'], 2100],
+  ['Çizgili Uzun Kollu Tişört', 'Striped Long-Sleeve T-Shirt', 'gap', 'tshirt', ['navy', 'white'], 1100],
+  ['Süet Loafer', 'Suede Loafers', 'beymen', 'shoes', ['brown'], 4700],
+  ['İpek Fular', 'Silk Scarf', 'vakko', 'accessory', ['burgundy', 'cream'], 1600],
+  ['Mini Omuz Çantası', 'Mini Shoulder Bag', 'ms', 'bag', ['camel'], 6900],
+  ['Triko Midi Elbise', 'Knit Midi Dress', 'communite', 'dress', ['grey'], 4300],
+  ['Gri Flanel Pantolon', 'Grey Flannel Trousers', 'beymen', 'trousers', ['grey'], 3900],
+  ['Bej Trençkot', 'Beige Trench Coat', 'ms', 'jacket', ['beige'], 8600],
+  ['Siyah Balıkçı Yaka Kazak', 'Black Roll-Neck Jumper', 'lululemon', 'knit', ['black'], 2700],
+  ['Bordo Saten Gömlek', 'Burgundy Satin Shirt', 'vakko', 'shirt', ['burgundy'], 3200],
+  ['Deri Kemer', 'Leather Belt', 'gap', 'accessory', ['brown'], 1400],
+  ['Beyaz Deri Sneaker', 'White Leather Trainers', 'lululemon', 'shoes', ['white'], 5200],
+  ['Lacivert Poplin Elbise', 'Navy Poplin Dress', 'ms', 'dress', ['navy'], 4800],
+  ['Krem Rengi Kısa Kollu Tişört', 'Cream Short-Sleeve T-Shirt', 'lululemon', 'tshirt', ['cream'], 950],
+  ['Hasır Dokulu Tote Çanta', 'Woven Tote Bag', 'communite', 'bag', ['beige'], null],
+  ['Kahverengi Kadife Ceket', 'Brown Velvet Jacket', 'beymen', 'jacket', ['brown'], 7400],
+  ['Zeytin Kargo Pantolon', 'Olive Cargo Trousers', 'gap', 'trousers', ['olive'], 3100],
+  ['Karamel Kaşmir Kazak', 'Camel Cashmere Jumper', 'vakko', 'knit', ['camel'], 6200],
+  ['Siyah Topuklu Bot', 'Black Heeled Boots', 'beymen', 'shoes', ['black'], 6800],
+  ['Gri Yün Atkı', 'Grey Wool Scarf', 'ms', 'accessory', ['grey'], 1200],
+  ['Beyaz Dantelli Gömlek', 'White Lace Shirt', 'communite', 'shirt', ['white'], 3400],
+  ['Siyah Deri Clutch', 'Black Leather Clutch', 'vakko', 'bag', ['black'], 5600],
+  ['Bej Keten Elbise', 'Beige Linen Dress', 'gap', 'dress', ['beige'], 3700],
+  ['Lacivert Polo Tişört', 'Navy Polo Shirt', 'lululemon', 'tshirt', ['navy'], 1300],
 ];
 
 function sizesFor(category: ProductCategory): string[] {
@@ -98,13 +106,16 @@ function sizesFor(category: ProductCategory): string[] {
   return APPAREL;
 }
 
-/** Newest first: index 0 is the newest product. */
-export const productsFixture: ProductSummary[] = SEEDS.map(([name, category, colors, price], index) => {
-  const brand = brandsFixture[index % brandsFixture.length] ?? { id: 'brand_nord', name: 'Atölye Nord' };
+const productId = (index: number) => `prod_${String(index + 1).padStart(3, '0')}`;
+
+/** Newest first: index 0 is the newest product. Names are the Turkish catalogue text. */
+export const productsFixture: ProductSummary[] = SEEDS.map(([name, , brandKey, category, colors, price], index) => {
+  const brand = BRANDS[brandKey];
   return {
-    id: `prod_${String(index + 1).padStart(3, '0')}`,
+    id: productId(index),
     brandId: brand.id,
     brandName: brand.name,
+    brandLogoUrl: brand.logoUrl,
     name,
     price: price === null ? null : lira(price),
     imageUrl: null,
@@ -113,6 +124,13 @@ export const productsFixture: ProductSummary[] = SEEDS.map(([name, category, col
     sizes: sizesFor(category),
   };
 });
+
+/** The server localizes catalogue text to `Accept-Language`; the fixtures do the same for the app language. */
+const EN_NAMES = new Map(SEEDS.map(([, en], index) => [productId(index), en]));
+export function localizedCatalogue(language: string = currentLanguage()): ProductSummary[] {
+  if (language !== 'en') return productsFixture;
+  return productsFixture.map((p) => ({ ...p, name: EN_NAMES.get(p.id) ?? p.name }));
+}
 
 const COLOR_WORDS: Record<CatalogColor, string> = {
   white: 'beyaz white',
@@ -196,7 +214,7 @@ function currentEdit(today: Date = new Date()): WeeklyEditSummary {
 export const creatorsFixture: CreatorCard[] = [
   { id: 'creator_1', handle: 'ornek_stilist', displayName: '@ornek_stilist', role: 'Stil danışmanı', lookTitle: 'Quiet luxury ofis', imageUrl: null, sponsored: false },
   { id: 'creator_2', handle: 'ornek_editor', displayName: 'Stil editörü', role: 'Editör', lookTitle: 'Hafta sonu katman', imageUrl: null, sponsored: false },
-  { id: 'creator_3', handle: null, displayName: 'Örnek marka vitrini', role: null, lookTitle: 'Lüks dokunuş', imageUrl: null, sponsored: true },
+  { id: 'creator_3', handle: null, displayName: 'Marka vitrini', role: null, lookTitle: 'Lüks dokunuş', imageUrl: null, sponsored: true },
 ];
 
 // ---------- In-memory state ----------
@@ -237,7 +255,7 @@ export function resetStoreFixtures(): void {
 }
 
 function product(id: string): ProductSummary {
-  const found = productsFixture.find((p) => p.id === id);
+  const found = localizedCatalogue().find((p) => p.id === id);
   if (!found) throw new ApiError('http', 404, { status: 404, code: 'not_found' });
   return found;
 }
@@ -250,7 +268,7 @@ export function buildCart(rows: CartRow[], catalogue: ProductSummary[]): Cart {
     if (!p) continue;
     let group = groups.find((g) => g.brandId === p.brandId);
     if (!group) {
-      group = { brandId: p.brandId, brandName: p.brandName, subtotal: null, lines: [] };
+      group = { brandId: p.brandId, brandName: p.brandName, brandLogoUrl: p.brandLogoUrl ?? null, subtotal: null, lines: [] };
       groups.push(group);
     }
     group.lines.push({ lineId: row.lineId, productId: p.id, name: p.name, size: row.size, price: p.price, imageUrl: p.imageUrl });
@@ -272,7 +290,7 @@ export const storeFixtures = {
   brands: (): Brand[] => brandsFixture,
 
   products: (query: ProductQuery, pageToken: string | null): ProductPage =>
-    paginate(filterProducts(productsFixture, query), pageToken),
+    paginate(filterProducts(localizedCatalogue(), query), pageToken),
   product: (id: string): ProductDetail => product(id),
   match: (id: string): ProductMatch => {
     const p = product(id);
@@ -282,7 +300,7 @@ export const storeFixtures = {
   },
   complete: (itemId: string): CompleteSuggestions => {
     const piece = wardrobeFixture.find((w) => w.id === itemId);
-    return { products: productsFixture.filter((p) => slotOfCategory(p.category) !== (piece?.slot ?? null)).slice(0, 10) };
+    return { products: localizedCatalogue().filter((p) => slotOfCategory(p.category) !== (piece?.slot ?? null)).slice(0, 10) };
   },
   wardrobe: (): WardrobePiece[] => wardrobeFixture,
 
@@ -307,7 +325,7 @@ export const storeFixtures = {
     }
   },
 
-  cart: (): Cart => buildCart(state.cart, productsFixture),
+  cart: (): Cart => buildCart(state.cart, localizedCatalogue()),
   addCartLines: (request: AddCartLinesRequest): void => {
     for (const line of request.lines) {
       // Idempotent on clientMutationId, like the server.
@@ -330,6 +348,7 @@ export const storeFixtures = {
         productId,
         brandId: p.brandId,
         brandName: p.brandName,
+        brandLogoUrl: p.brandLogoUrl ?? null,
         name: p.name,
         price: p.price,
         previousPrice: entry.previousPrice,

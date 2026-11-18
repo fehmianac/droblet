@@ -1,5 +1,5 @@
 import type { Cart, ProductSummary } from '@/api/contracts/store';
-import { buildCart, filterProducts, paginate, productsFixture, wardrobeFixture } from '@/fixtures/store';
+import { brandsFixture, buildCart, filterProducts, localizedCatalogue, paginate, productsFixture, wardrobeFixture } from '@/fixtures/store';
 
 import { EMPTY_SLOTS, filledCount, firstEmptySlot, storeItems, storeTotal, toLookSlots, withProduct } from './builder';
 import { addLinesToCart, preferredSize, priceDropPercent, removeLineFromCart } from './cartMath';
@@ -19,9 +19,9 @@ describe('catalogue filtering and paging', () => {
     expect(filterProducts(productsFixture, { ...EMPTY_PRODUCT_QUERY, sizes: ['38'] }).every((p) => p.category === 'shoes')).toBe(true);
     expect(filterProducts(productsFixture, { ...EMPTY_PRODUCT_QUERY, q: 'İPEK' }).map((p) => p.name)).toEqual(['İpek Fular']);
     expect(filterProducts(productsFixture, { ...EMPTY_PRODUCT_QUERY, q: 'bordo' }).length).toBeGreaterThan(1);
-    const brand = filterProducts(productsFixture, { ...EMPTY_PRODUCT_QUERY, brandIds: ['brand_liman'] });
+    const brand = filterProducts(productsFixture, { ...EMPTY_PRODUCT_QUERY, brandIds: ['brand_vakko'] });
     expect(brand.length).toBeGreaterThan(0);
-    expect(brand.every((p) => p.brandId === 'brand_liman')).toBe(true);
+    expect(brand.every((p) => p.brandId === 'brand_vakko')).toBe(true);
   });
 
   it('sorts by price with unpriced products last', () => {
@@ -42,19 +42,41 @@ describe('catalogue filtering and paging', () => {
   });
 });
 
+describe('fixture catalogue', () => {
+  it('uses the brands and example prices of the design canvas, without bundled logos', () => {
+    expect(brandsFixture.map((b) => b.name)).toEqual(['Marks & Spencer', 'Vakko', 'Beymen Club', 'Communité', 'Gap', 'Lululemon']);
+    expect(brandsFixture.every((b) => !b.logoUrl)).toBe(true);
+    const price = (name: string) => productsFixture.find((p) => p.name === name);
+    expect(price('Beyaz Poplin Gömlek')).toMatchObject({ brandName: 'Marks & Spencer', price: lira(3000) });
+    expect(price('Yün Karışımlı Balloon Paça Pantolon')).toMatchObject({ brandName: 'Marks & Spencer', price: lira(7300) });
+    expect(price('Deri Kroko Babet')).toMatchObject({ brandName: 'Marks & Spencer', price: lira(3300) });
+    expect(price('City Medium Siyah Çanta')).toMatchObject({ brandName: 'Beymen Club', price: lira(12950) });
+    expect(price('Yün Karışımlı Blazer')).toMatchObject({ brandName: 'Vakko', price: null });
+    expect(price('Triko Kazak')?.brandName).toBe('Communité');
+  });
+
+  it('localizes product names like the server would, keeping brand names as they are', () => {
+    expect(localizedCatalogue('tr')[0]?.name).toBe('Beyaz Poplin Gömlek');
+    expect(localizedCatalogue('en')[0]).toMatchObject({ name: 'White Poplin Shirt', brandName: 'Marks & Spencer' });
+  });
+});
+
 describe('cart', () => {
   const rows = [
     { lineId: 'a', productId: 'prod_001', size: 'S' },
     { lineId: 'b', productId: 'prod_003', size: '38' },
-    { lineId: 'c', productId: 'prod_007', size: 'M' },
+    { lineId: 'c', productId: 'prod_004', size: 'ONE' },
   ];
 
   it('groups lines by brand with subtotals and a total', () => {
     const cart = buildCart(rows, productsFixture);
-    // prod_001 and prod_007 share a brand (6 brands, index 0 and 6).
-    expect(cart.groups.map((g) => g.lines.length)).toEqual([2, 1]);
-    expect(cart.groups[0]?.subtotal).toEqual(lira(3900));
-    expect(cart.total).toEqual(lira(7200));
+    // The canvas cart: two Marks & Spencer lines (₺6.300) and one Beymen Club line (₺12.950).
+    expect(cart.groups.map((g) => [g.brandName, g.lines.length])).toEqual([
+      ['Marks & Spencer', 2],
+      ['Beymen Club', 1],
+    ]);
+    expect(cart.groups[0]?.subtotal).toEqual(lira(6300));
+    expect(cart.total).toEqual(lira(19250));
     expect(cart.lineCount).toBe(3);
   });
 
@@ -64,6 +86,8 @@ describe('cart', () => {
     const added = addLinesToCart(start, [line]);
     expect(added.groups).toHaveLength(2);
     expect(added.total).toEqual(lira(15950));
+    // A second product of a brand already in the cart joins that brand's group.
+    expect(addLinesToCart(added, [{ clientMutationId: 'm2', product: byId('prod_006'), size: 'S' }]).groups.map((g) => g.lines.length)).toEqual([2, 1]);
     expect(addLinesToCart(added, [line])).toEqual(added);
     const removed = removeLineFromCart(added, 'm1');
     expect(removed.groups).toHaveLength(1);
