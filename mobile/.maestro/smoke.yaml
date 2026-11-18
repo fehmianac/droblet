@@ -46,6 +46,18 @@ env:
 - takeScreenshot: 02b-kayit-dolu
 - pressKey: Enter
 
+# iOS offers to save the new password in the keychain (a system sheet over the app, hiding it from
+# Maestro): wait for it briefly and decline it, in either system language.
+- extendedWaitUntil:
+    visible: "Not Now|Şimdi Değil"
+    timeout: 10000
+    optional: true
+- runFlow:
+    when:
+      visible: "Not Now|Şimdi Değil"
+    commands:
+      - tapOn: "Not Now|Şimdi Değil"
+
 # 03 Stil profili — a new account always goes through onboarding
 - extendedWaitUntil:
     visible:

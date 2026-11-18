@@ -22,7 +22,6 @@ import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 import { Chip, ChipRow } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
-import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -259,7 +258,6 @@ export default function ShopScreen() {
   return (
     <Screen>
       <ScreenHeader title={t('screens.shop')} leading="back" right={<CartButton />} />
-      <OfflineBanner />
       <FlatList
         data={items ?? []}
         keyExtractor={(item) => item.id}
@@ -279,9 +277,10 @@ export default function ShopScreen() {
             tintColor={colors.muted}
           />
         }
-        renderItem={({ item }) => (
+        renderItem={({ item, index }) => (
           <View style={{ width: cardWidth }}>
             <ShopProductCard
+              testID={`shop.product.${index}`}
               product={item}
               favorite={favoriteIds.includes(item.id)}
               onToggleFavorite={() => setFavorite(item.id, !favoriteIds.includes(item.id))}

@@ -1,0 +1,74 @@
+# Keşfet tour (signed-in app, any account): every chip and the screens it opens — Editör, Mağaza (21),
+# Influencer, Arkadaşlar (25), Dizi outfitleri, search, cart (24), a product (22) and the builder (23).
+# Regression flow for the owner's "Keşfet crashes" report. Runs on the current session (no clearState).
+# Run: maestro test .maestro/discover.yaml
+appId: com.alatech.droplet
+---
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible:
+      id: "tab.discover"
+    timeout: 20000
+- extendedWaitUntil:
+    notVisible:
+      id: "animated-splash"
+    timeout: 10000
+- tapOn:
+    id: "tab.discover"
+- extendedWaitUntil:
+    visible:
+      id: "discover.chip.editor"
+    timeout: 10000
+- takeScreenshot: k20-editor
+- tapOn:
+    id: "discover.chip.influencer"
+- waitForAnimationToEnd
+- takeScreenshot: k20-influencer
+- tapOn:
+    id: "discover.chip.series"
+- waitForAnimationToEnd
+- takeScreenshot: k20-dizi
+- tapOn:
+    id: "discover.chip.editor"
+- tapOn:
+    id: "discover.chip.shop"
+- waitForAnimationToEnd
+- takeScreenshot: k21-magaza
+- runFlow:
+    when:
+      visible:
+        id: "shop.product.0"
+    commands:
+      - tapOn:
+          id: "shop.product.0"
+      - waitForAnimationToEnd
+      - takeScreenshot: k22-urun
+      - openLink: "droplet://discover"
+- openLink: "droplet://discover"
+- waitForAnimationToEnd
+- tapOn:
+    id: "discover.chip.friends"
+- waitForAnimationToEnd
+- takeScreenshot: k25-arkadaslar
+- openLink: "droplet://discover"
+- waitForAnimationToEnd
+- tapOn:
+    id: "discover.search"
+- waitForAnimationToEnd
+- takeScreenshot: k21-arama
+- openLink: "droplet://discover"
+- waitForAnimationToEnd
+- tapOn:
+    id: "discover.cart"
+- waitForAnimationToEnd
+- takeScreenshot: k24-sepet
+- openLink: "droplet://discover"
+- waitForAnimationToEnd
+- openLink: "droplet://shop/builder"
+- waitForAnimationToEnd
+- takeScreenshot: k23-olusturucu
+- openLink: "droplet://discover"
+- waitForAnimationToEnd
+- assertVisible:
+    id: "tab.discover"

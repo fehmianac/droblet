@@ -9,7 +9,7 @@ import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Text } from '@/components/ui/Text';
 import { formatMoney } from '@/lib/format';
 
-type Props = { product: ProductSummary; favorite: boolean; onToggleFavorite: () => void; onPress: () => void };
+type Props = { product: ProductSummary; favorite: boolean; onToggleFavorite: () => void; onPress: () => void; testID?: string };
 
 /**
  * Catalogue grid card (21) as drawn: 180-high image (radius 12), a 32 paper heart 8 in from the top-right
@@ -17,12 +17,13 @@ type Props = { product: ProductSummary; favorite: boolean; onToggleFavorite: () 
  * formatter; a product without a published price shows no price line. The heart is the favourite —
  * separate from the watchlist.
  */
-export function ShopProductCard({ product, favorite, onToggleFavorite, onPress }: Props) {
+export function ShopProductCard({ product, favorite, onToggleFavorite, onPress, testID }: Props) {
   const { t } = useTranslation();
   const price = product.price ? formatMoney(product.price) : null;
   return (
     <View>
       <Pressable
+        testID={testID}
         onPress={onPress}
         accessibilityRole="button"
         accessibilityLabel={[product.brandName, product.name, price].filter(Boolean).join(', ')}
