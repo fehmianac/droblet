@@ -16,9 +16,9 @@ public sealed class AiProviderException(string message, Exception? inner = null)
 
 public sealed record ImageInput(byte[] Data, string ContentType);
 
-public sealed record GarmentSuggestion(ItemCategoryHint? Category, IReadOnlyList<string> ColorIds, string? Fabric, IReadOnlyList<Season> Seasons, IReadOnlyDictionary<string, double> Confidence);
+public sealed record GarmentSuggestion(ItemCategoryHint? Category, IReadOnlyList<string> ColorIds, string? Fabric, IReadOnlyList<Season> Seasons, IReadOnlyDictionary<string, double> Confidence, string? Name = null, bool IsGarment = true, int GarmentCount = 1);
 
-public enum ItemCategoryHint { Top, Bottom, Dress, Outerwear, Shoes, Bag, Accessory }
+public enum ItemCategoryHint { Top, Bottom, Dress, Outerwear, Shoes, Bag, Accessory, Beachwear, Skiwear }
 
 public enum Season { Spring, Summer, Autumn, Winter }
 
@@ -29,7 +29,7 @@ public interface IImageCleanup
 
 public interface IGarmentVision
 {
-    Task<GarmentSuggestion> DescribeAsync(ImageInput garmentImage, CancellationToken ct);
+    Task<GarmentSuggestion> DescribeAsync(ImageInput garmentImage, string language, CancellationToken ct);
 }
 
 public interface ITryOnRenderer
@@ -37,7 +37,8 @@ public interface ITryOnRenderer
     Task<ImageInput> RenderAsync(ImageInput bodyPhoto, IReadOnlyList<ImageInput> garments, CancellationToken ct);
 }
 
-public sealed record StylistPrompt(JobKind Kind, string InputJson);
+/// <param name="Language">Language of every generated text (tr | en …) — always passed explicitly, never guessed by the model.</param>
+public sealed record StylistPrompt(JobKind Kind, string InputJson, string Language = "tr");
 
 public interface IStylistModel
 {
@@ -45,9 +46,16 @@ public interface IStylistModel
     Task<string> GenerateAsync(StylistPrompt prompt, CancellationToken ct);
 }
 
-public sealed record PaletteAnalysis(string SeasonTypeId, IReadOnlyList<string> FlatteringColorIds, IReadOnlyList<string> AvoidColorIds, int FacesDetected);
+public sealed record PaletteAnalysis(string SeasonTypeId, IReadOnlyList<string> FlatteringColorIds, IReadOnlyList<string> AvoidColorIds, int FacesDetected, double Confidence = 1, string? Refusal = null);
 
 public interface IPaletteAnalyzer
 {
     Task<PaletteAnalysis> AnalyzeAsync(ImageInput facePhoto, CancellationToken ct);
+}
+
+/// <summary>"Kombin fotoğrafından parçaları ayır": detect the pieces worn in one outfit photo, then cut each one out.</summary>
+public interface IOutfitSplitter
+{
+    Task<IReadOnlyList<GarmentSuggestion>> DetectPiecesAsync(ImageInput outfitPhoto, string language, CancellationToken ct);
+    Task<ImageInput> ExtractPieceAsync(ImageInput outfitPhoto, GarmentSuggestion piece, CancellationToken ct);
 }

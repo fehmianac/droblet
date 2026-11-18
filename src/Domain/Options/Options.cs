@@ -126,7 +126,7 @@ public sealed class QueueOptions
 
     public string? UrlFor(JobKind kind) => kind switch
     {
-        JobKind.ItemProcess => ItemProcessRequest,
+        JobKind.ItemProcess or JobKind.ItemSplit => ItemProcessRequest,
         JobKind.TryOn => TryOnRequest,
         JobKind.Palette => PaletteRequest,
         _ => StylistRequest,
@@ -141,6 +141,14 @@ public sealed class AiOptions
     public string? Provider { get; set; }
     public string? TextModel { get; set; }
     public string? ImageModel { get; set; }
+    /// <summary>SSM SecureString /droblet/{stage}/worker/Ai. Never logged.</summary>
+    public string? ApiKey { get; set; }
+    public string BaseUrl { get; set; } = "https://api.openai.com";
+    public string ImageSize { get; set; } = "1024x1536";
+    public int TimeoutSeconds { get; set; } = 100;
+    /// <summary>Below this per-field confidence a draft field is flagged ("Kategoriyi kontrol et").</summary>
+    public double VisionConfidenceThreshold { get; set; } = 0.7;
+    public double PaletteConfidenceThreshold { get; set; } = 0.6;
 }
 
 public sealed class AuthRateLimitOptions

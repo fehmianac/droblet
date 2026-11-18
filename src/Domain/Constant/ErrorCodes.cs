@@ -1,7 +1,7 @@
 namespace Domain.Constant;
 
 /// <summary>Stable snake_case error codes. The client owns the TR/EN sentences.</summary>
-public static class ErrorCodes
+public static partial class ErrorCodes
 {
     public const string ValidationFailed = "validation_failed";
     public const string NotFound = "not_found";

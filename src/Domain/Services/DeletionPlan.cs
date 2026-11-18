@@ -27,6 +27,17 @@ public static class DeletionPlan
         typeof(PaletteResultEntity),
         typeof(AffiliateClickEntity),
         typeof(AffiliateConversionEntity),
+        // E2–E5 (wardrobe, looks, plan, stylist, trips)
+        typeof(ItemEntity),
+        typeof(ItemUploadEntity),
+        typeof(ItemDraftEntity),
+        typeof(LookEntity),
+        typeof(PlanDayEntity),
+        typeof(WearLogEntity),
+        typeof(TripEntity),
+        typeof(TripItemEntity),
+        typeof(TripDayEntity),
+        typeof(StylistFeedbackEntity),
     ];
 
     public static IReadOnlyList<string> TenantPartitionKeys(string tenantId) =>
