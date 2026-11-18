@@ -45,12 +45,14 @@ public sealed class PaletteJobService(
             }
 
             var analysis = await analyzer.AnalyzeAsync(new ImageInput(bytes, face.ContentType), ct);
-            if (analysis.FacesDetected != 1)
+            // PaletteOutputGuard: one face, season type from the fixed table; the model's own colour lists are never stored.
+            var verdict = PaletteOutputGuard.Evaluate(analysis, aiOptions.CurrentValue.PaletteConfidenceThreshold);
+            if (verdict.Outcome is PaletteGuardOutcome.NoFace or PaletteGuardOutcome.PhotoUnsuitable)
             {
                 await jobs.FailAsync(job, JobFailure.NoFaceDetected, ct);
                 return;
             }
-            if (string.IsNullOrWhiteSpace(analysis.SeasonTypeId) || analysis.FlatteringColorIds.Intersect(analysis.AvoidColorIds).Any())
+            if (verdict.Outcome != PaletteGuardOutcome.Accepted || verdict.SeasonType is not { } season)
             {
                 await jobs.FailAsync(job, JobFailure.GuardRejected, ct);
                 return;
@@ -65,14 +67,15 @@ public sealed class PaletteJobService(
             await repository.SaveAsync(new PaletteResultEntity
             {
                 TenantId = message.TenantId,
-                SeasonTypeId = analysis.SeasonTypeId,
-                FlatteringColorIds = analysis.FlatteringColorIds.ToList(),
-                AvoidColorIds = analysis.AvoidColorIds.ToList(),
+                SeasonTypeId = season.Id,
+                FlatteringColorIds = season.FlatteringColorIds.ToList(),
+                AvoidColorIds = season.AvoidColorIds.ToList(),
+                LowConfidence = verdict.LowConfidence,
                 SourcePhotoId = message.FacePhotoId,
-                ModelVersion = aiOptions.CurrentValue.ImageModel,
+                ModelVersion = aiOptions.CurrentValue.TextModel,
                 AnalyzedAt = timeProvider.GetUtcNow().UtcDateTime,
             }, ct);
-            await jobs.CompleteAsync(job, $$"""{"seasonTypeId":"{{analysis.SeasonTypeId}}"}""", ct);
+            await jobs.CompleteAsync(job, $$"""{"seasonTypeId":"{{season.Id}}","lowConfidence":{{(verdict.LowConfidence ? "true" : "false")}}}""", ct);
         }
         catch (Exception ex) when (!WorkerFailure.IsRetryable(ex, isLastAttempt))
         {

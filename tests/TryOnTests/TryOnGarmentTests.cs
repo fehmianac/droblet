@@ -1,0 +1,106 @@
+using Domain.Entity;
+using Domain.Enum;
+using Domain.Events;
+using Domain.Services;
+using Domain.Services.Ai;
+using Domain.Services.Styling;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Tests.Shared;
+using TryOn.Services;
+
+namespace TryOnTests;
+
+public class TryOnGarmentTests
+{
+    private const string Tenant = "01JTENANT0000000000000000A";
+    private const string Other = "01JTENANT0000000000000000B";
+
+    private sealed class CapturingRenderer : ITryOnRenderer
+    {
+        public List<IReadOnlyList<ImageInput>> Garments { get; } = [];
+
+        public Task<ImageInput> RenderAsync(ImageInput bodyPhoto, IReadOnlyList<ImageInput> garments, CancellationToken ct)
+        {
+            Garments.Add(garments);
+            return Task.FromResult(new ImageInput([7, 7, 7], "image/webp"));
+        }
+    }
+
+    private static async Task<(WorkerTestHost Host, CapturingRenderer Renderer, JobEntity Job, TryOnRequestedEvent Message)> ArrangeAsync(params OutfitPiece[] pieces)
+    {
+        var renderer = new CapturingRenderer();
+        var host = new WorkerTestHost(services =>
+        {
+            services.AddSingleton<ITryOnJobService, TryOnJobService>();
+            services.RemoveAll<ITryOnRenderer>();
+            services.AddSingleton<ITryOnRenderer>(renderer);
+        });
+        await host.MakePremiumAsync(Tenant);
+        var body = await host.AddPhotoAsync(Tenant, PhotoKind.Body);
+        var target = new TryOnTarget(TryOnTargetKind.Look, TryOnFingerprint.Of(pieces), 0);
+        var key = CreditLedger.TryOnIdempotencyKey(body.Id, target.Kind, target.Id, target.Version);
+        var job = await host.QueueJobAsync(Tenant, JobKind.TryOn, key);
+        job.Input = StylingJson.Serialize(new TryOnJobInput(pieces));
+        await host.Repository.SaveAsync(job);
+        await host.Get<ICreditService>().ReserveAsync(Tenant, key, job.Id, default);
+        return (host, renderer, job, new TryOnRequestedEvent(Tenant, job.Id, target, body.Id, key));
+    }
+
+    private static async Task AddItemAsync(WorkerTestHost host, string tenant, string id, byte marker)
+    {
+        var key = StorageKeys.ItemImage(tenant, id);
+        await host.Storage.PutAsync(key, [marker], "image/webp", default);
+        await host.Repository.SaveAsync(new ItemEntity { Id = id, TenantId = tenant, Category = ItemCategory.Top, ImageKey = key, Version = 1 });
+    }
+
+    [Fact]
+    public async Task Process_SendsTheImagesOfTheOutfitsOwnPieces_AndCommitsTheCredit()
+    {
+        var (host, renderer, job, message) = await ArrangeAsync(new OutfitPiece("item1", null), new OutfitPiece("item2", null));
+        await AddItemAsync(host, Tenant, "item1", 1);
+        await AddItemAsync(host, Tenant, "item2", 2);
+
+        await host.Get<ITryOnJobService>().ProcessAsync(message, false, default);
+
+        Assert.Equal(JobStatus.Completed, (await host.JobAsync(job))!.Status);
+        Assert.Equal([[1], [2]], Assert.Single(renderer.Garments).Select(g => g.Data));
+        Assert.Equal(29, await host.RemainingCreditsAsync(Tenant));
+    }
+
+    [Fact]
+    public async Task Process_PieceDeletedMeanwhile_SourceDeleted_Refunds_NothingRendered()
+    {
+        var (host, renderer, job, message) = await ArrangeAsync(new OutfitPiece("item1", null), new OutfitPiece("gone", null));
+        await AddItemAsync(host, Tenant, "item1", 1);
+
+        await host.Get<ITryOnJobService>().ProcessAsync(message, false, default);
+
+        Assert.Equal(JobFailure.SourceDeleted, (await host.JobAsync(job))!.Failure);
+        Assert.Empty(renderer.Garments);
+        Assert.Equal(30, await host.RemainingCreditsAsync(Tenant));
+    }
+
+    [Fact]
+    public async Task Process_AnotherTenantsItemId_IsNeverRead()
+    {
+        var (host, renderer, job, message) = await ArrangeAsync(new OutfitPiece("theirs", null));
+        await AddItemAsync(host, Other, "theirs", 9);
+
+        await host.Get<ITryOnJobService>().ProcessAsync(message, false, default);
+
+        Assert.Equal(JobFailure.SourceDeleted, (await host.JobAsync(job))!.Failure);
+        Assert.Empty(renderer.Garments);
+    }
+
+    [Fact]
+    public async Task Process_CatalogProductWithoutReadableImage_SourceDeleted_Refunds()
+    {
+        var (host, _, job, message) = await ArrangeAsync(new OutfitPiece(null, "prd1"));
+
+        await host.Get<ITryOnJobService>().ProcessAsync(message, false, default);
+
+        Assert.Equal(JobFailure.SourceDeleted, (await host.JobAsync(job))!.Failure);
+        Assert.Equal(30, await host.RemainingCreditsAsync(Tenant));
+    }
+}
