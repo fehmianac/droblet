@@ -129,6 +129,8 @@ public class ContentCollectionEntity : IEntity
     [JsonPropertyName("imageUrl")] public string? ImageUrl { get; set; }
     [JsonPropertyName("sortOrder")] public int SortOrder { get; set; }
     [JsonPropertyName("sponsorName")] public Dictionary<string, string>? SponsorName { get; set; }
+    /// <summary>Optional Droblet @handle of the creator (normalised), so the app can open her profile.</summary>
+    [JsonPropertyName("handle")] public string? Handle { get; set; }
     [JsonPropertyName("retired")] public bool Retired { get; set; }
     [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; }
     [JsonPropertyName("updatedAt")] public DateTime UpdatedAt { get; set; }
@@ -211,6 +213,11 @@ public class WatchItemEntity : IEntity
     [JsonPropertyName("droppedAt")] public DateTime? DroppedAt { get; set; }
     /// <summary>True until the price-drop push has been sent.</summary>
     [JsonPropertyName("notifyPending")] public bool NotifyPending { get; set; }
+    /// <summary>The bell on the row: price-drop push for this product. Null (rows written before the flag) = on.</summary>
+    [JsonPropertyName("notify")] public bool? Notify { get; set; }
+    [JsonPropertyName("origin")] public WatchOrigin Origin { get; set; }
+
+    [JsonIgnore] public bool NotifyEnabled => Notify ?? true;
 
     public static string GetPk(string tenantId) => $"tenant#{tenantId}#watch";
     public static string GetSk(string productId) => productId;

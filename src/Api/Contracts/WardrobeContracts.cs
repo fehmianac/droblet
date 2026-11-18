@@ -78,10 +78,13 @@ public class UpdateItemCommandValidator : AbstractValidator<UpdateItemCommand>
         RuleFor(x => x.BaseVersion).GreaterThan(0).WithErrorCode("base_version_invalid");
         RuleFor(x => x).Custom((command, context) =>
         {
-            foreach (var code in ItemRules.Validate(new ItemFields(command.Name, command.Category, command.ColorIds, command.Fabric, command.Seasons, command.Size, command.Brand)))
+            foreach (var code in ItemRules.Validate(new ItemFields(command.Name, command.Category, command.ColorIds, command.Fabric, command.Seasons, command.Size, command.Brand,
+                         Clean(command.Subcategory), Clean(command.FabricText), command.ColorHex)))
                 context.AddFailure(new FluentValidation.Results.ValidationFailure(ItemFieldOf(code), code) { ErrorCode = code });
         });
     }
+
+    internal static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     internal static string ItemFieldOf(string code) => code switch
     {
@@ -89,6 +92,9 @@ public class UpdateItemCommandValidator : AbstractValidator<UpdateItemCommand>
         ErrorCodes.ColorRequired or ErrorCodes.ColorUnknown => "colorIds",
         ErrorCodes.FabricUnknown => "fabric",
         ErrorCodes.SeasonRequired => "seasons",
+        ErrorCodes.SubcategoryInvalid => "subcategory",
+        ErrorCodes.FabricTextTooLong => "fabricText",
+        ErrorCodes.ColorHexInvalid => "colorHex",
         _ => "item",
     };
 }
@@ -144,6 +150,21 @@ public class AddLibraryItemsCommandValidator : AbstractValidator<AddLibraryItems
             item.RuleFor(i => i.LibraryItemId).NotEmpty().MaximumLength(64).WithErrorCode("library_item_id_invalid");
             item.RuleFor(i => i.ItemId).Must(WardrobeApi.OptionalUlid).WithErrorCode("item_id_invalid");
             item.RuleFor(i => i.Size).MaximumLength(ItemRules.MaxSizeLength).WithErrorCode("size_too_long");
+        });
+    }
+}
+
+public class CreateItemCommandValidator : AbstractValidator<CreateItemCommand>
+{
+    public CreateItemCommandValidator()
+    {
+        RuleFor(x => x.ClientMutationId).Must(Ulid.IsValid).WithErrorCode("client_mutation_id_invalid");
+        RuleFor(x => x.ItemId).Must(WardrobeApi.OptionalUlid).WithErrorCode("item_id_invalid");
+        RuleFor(x => x).Custom((command, context) =>
+        {
+            foreach (var code in ItemRules.Validate(new ItemFields(command.Name, command.Category, command.ColorIds, command.Fabric, command.Seasons, command.Size, command.Brand,
+                         UpdateItemCommandValidator.Clean(command.Subcategory), UpdateItemCommandValidator.Clean(command.FabricText), command.ColorHex)))
+                context.AddFailure(new FluentValidation.Results.ValidationFailure(UpdateItemCommandValidator.ItemFieldOf(code), code) { ErrorCode = code });
         });
     }
 }

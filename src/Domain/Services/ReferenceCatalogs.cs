@@ -55,7 +55,11 @@ public static class ColorCatalog
         new("olive", "green", "#6B6B3A", Localized.Of("Zeytin yeşili", "Olive")),
         new("emerald", "green", "#0F7B5F", Localized.Of("Zümrüt", "Emerald")),
         new("forest-green", "green", "#24452F", Localized.Of("Orman yeşili", "Forest green")),
+        // "Diğer": a colour outside the list; the item may carry its own #RRGGBB (ItemEntity.ColorHex).
+        new(OtherId, OtherId, "#B4ADA3", Localized.Of("Diğer", "Other")),
     ];
+
+    public const string OtherId = "other";
 
     private static readonly FrozenDictionary<string, ColorDefinition> ById = All.ToFrozenDictionary(c => c.Id, StringComparer.Ordinal);
 

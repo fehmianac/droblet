@@ -108,6 +108,13 @@ export default function RootLayout() {
           <Stack.Screen name="watchlist" />
           <Stack.Screen name="friends/feed" />
           <Stack.Screen name="friends/find" />
+          <Stack.Screen name="friends/requests" />
+          <Stack.Screen name="friends/followers" />
+          <Stack.Screen name="friends/following" />
+          <Stack.Screen name="friends/saved" />
+          <Stack.Screen name="friends/blocked" />
+          <Stack.Screen name="friends/contacts" />
+          <Stack.Screen name="profile-edit" />
           <Stack.Screen name="u/[handle]" />
           <Stack.Screen name="settings" />
           <Stack.Screen name="subscription" />

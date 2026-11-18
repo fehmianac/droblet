@@ -68,6 +68,10 @@ public sealed class SettingsService(
     private Task<NotificationPrefEntity?> PrefAsync(string tenantId, string userId, CancellationToken ct) =>
         repository.GetAsync<NotificationPrefEntity>(NotificationPrefEntity.GetPk(tenantId), NotificationPrefEntity.GetSk(userId), ct);
 
+    /// <summary>
+    /// <paramref name="enabled"/> = the first device registration with a push token. Decision 9 (2026-11-19): only the morning
+    /// outfit and the weekly edit start on; friend ratings, price drops and follow requests start off.
+    /// </summary>
     private NotificationPrefEntity DefaultPref(string tenantId, string userId, bool enabled, string? timeZone) => new()
     {
         TenantId = tenantId,
@@ -75,12 +79,14 @@ public sealed class SettingsService(
         MorningOutfit = enabled,
         MorningOutfitLocalTime = ReminderRules.IsValidLocalTime(options.CurrentValue.DefaultMorningLocal) ? options.CurrentValue.DefaultMorningLocal : "07:30",
         WeeklyEdit = enabled,
-        FriendRatings = enabled,
+        FriendRatings = false,
+        PriceDrop = false,
+        FollowRequests = false,
         TimeZone = ReminderRules.IsValidTimeZone(timeZone) ? timeZone! : options.CurrentValue.DefaultTimeZone,
     };
 
     private static NotificationPrefsDto ToDto(NotificationPrefEntity p) =>
-        new(p.MorningOutfit, p.MorningOutfitLocalTime, p.WeeklyEdit, p.FriendRatings, p.TimeZone, p.Version, p.Version == 0 ? null : p.UpdatedAt);
+        new(p.MorningOutfit, p.MorningOutfitLocalTime, p.WeeklyEdit, p.FriendRatings, p.TimeZone, p.Version, p.Version == 0 ? null : p.UpdatedAt, p.PriceDrop, p.FollowRequests);
 
     public async Task<NotificationPrefsDto> GetNotificationPrefsAsync(string tenantId, string userId, CancellationToken ct) =>
         ToDto(await PrefAsync(tenantId, userId, ct) ?? DefaultPref(tenantId, userId, enabled: false, timeZone: null));
@@ -100,6 +106,8 @@ public sealed class SettingsService(
             MorningOutfitLocalTime = input.MorningOutfitLocalTime,
             WeeklyEdit = input.WeeklyEdit,
             FriendRatings = input.FriendRatings,
+            PriceDrop = input.PriceDrop ?? existing?.PriceDrop ?? false,
+            FollowRequests = input.FollowRequests ?? existing?.FollowRequests ?? false,
             TimeZone = input.TimeZone,
             UpdatedAt = Now,
             Version = input.BaseVersion,
@@ -130,6 +138,8 @@ public sealed class SettingsService(
 
         await SyncSubscriberAsync(NotificationType.WeeklyEdit, current.WeeklyEdit, current, ct);
         await SyncSubscriberAsync(NotificationType.FriendRatings, current.FriendRatings, current, ct);
+        await SyncSubscriberAsync(NotificationType.PriceDrop, current.PriceDrop, current, ct);
+        await SyncSubscriberAsync(NotificationType.FollowRequest, current.FollowRequests, current, ct);
     }
 
     private async Task SyncSubscriberAsync(NotificationType type, bool enabled, NotificationPrefEntity pref, CancellationToken ct)
@@ -160,7 +170,7 @@ public sealed class SettingsService(
         };
         await repository.SaveAsync(device, ct);
 
-        // Proposal (owner confirms): when push permission is first granted, the three notification types start switched on.
+        // Decision 9: when push permission is first granted, the morning outfit and the weekly edit start switched on.
         if (device.PushToken is not null && await PrefAsync(tenantId, userId, ct) is null)
         {
             var pref = DefaultPref(tenantId, userId, enabled: true, timeZone);

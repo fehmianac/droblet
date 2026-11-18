@@ -32,11 +32,13 @@ public sealed class ContentService(IRepository repository, ICatalogService catal
     public async Task<IReadOnlyList<ContentCollectionDto>> GetCollectionsAsync(ContentCollectionKind kind, CancellationToken ct)
     {
         var language = await requestLanguage.GetAsync(ct);
-        return (await ListCollectionsAsync(kind, ct))
-            .Where(c => !c.Retired)
-            .Select(c => new ContentCollectionDto(c.Id, c.Kind, Text(c.Title, language) ?? "", Text(c.Subtitle, language), c.ImageUrl,
-                c.SponsorName is { Count: > 0 }, Text(c.SponsorName, language)))
-            .ToList();
+        var result = new List<ContentCollectionDto>();
+        foreach (var c in (await ListCollectionsAsync(kind, ct)).Where(c => !c.Retired))
+        {
+            result.Add(new ContentCollectionDto(c.Id, c.Kind, Text(c.Title, language) ?? "", Text(c.Subtitle, language), c.ImageUrl,
+                c.SponsorName is { Count: > 0 }, Text(c.SponsorName, language), await ExistingHandleAsync(c.Handle, ct)));
+        }
+        return result;
     }
 
     public async Task<IReadOnlyList<ContentLookDto>?> GetCollectionLooksAsync(ContentCollectionKind kind, string collectionId, CancellationToken ct)
@@ -135,6 +137,10 @@ public sealed class ContentService(IRepository repository, ICatalogService catal
         (await repository.GetAllAsync<ContentCollectionEntity>(ContentCollectionEntity.GetPk(kind), ct))
             .OrderBy(c => c.SortOrder).ThenBy(c => c.Id, StringComparer.Ordinal).ToList();
 
+    /// <summary>The handle only while an account holds it (a released or never-claimed handle is not shown).</summary>
+    private async Task<string?> ExistingHandleAsync(string? handle, CancellationToken ct) =>
+        handle is null || await repository.GetAsync<HandleEntity>(HandleEntity.GetPk(), HandleEntity.GetSk(handle), ct) is null ? null : handle;
+
     public async Task<(CatalogWriteOutcome Outcome, ContentCollectionEntity Collection)> UpsertCollectionAsync(ContentCollectionInput input, CancellationToken ct)
     {
         var now = Now;
@@ -148,6 +154,7 @@ public sealed class ContentService(IRepository repository, ICatalogService catal
             ImageUrl = NullIfEmpty(input.ImageUrl),
             SortOrder = input.SortOrder,
             SponsorName = LocalizedText.NormalizeOptional(input.SponsorName),
+            Handle = string.IsNullOrWhiteSpace(input.Handle) ? null : HandleRules.Normalize(input.Handle),
             Retired = input.Retired,
             CreatedAt = existing?.CreatedAt ?? now,
             UpdatedAt = now,

@@ -23,6 +23,7 @@ public sealed class AffiliateService(
     IAnalyticsService analytics,
     IOptionsMonitor<AffiliateOptions> affiliateOptions,
     IOptionsMonitor<AffiliatePostbackOptions> postbackOptions,
+    IOptionsMonitor<CatalogOptions> catalogOptions,
     TimeProvider timeProvider,
     ILogger<AffiliateService> logger) : IAffiliateService
 {
@@ -109,7 +110,20 @@ public sealed class AffiliateService(
             Source = brand.Source,
             CreatedAt = now,
         };
-        var result = await repository.TransactWriteAsync([TransactWriteOperation.Create(index), TransactWriteOperation.Put(click)], ct);
+        var operations = new List<TransactWriteOperation> { TransactWriteOperation.Create(index) };
+        // Decision 10: no conversion within the window → the products go on the watch list (Notifier pass).
+        if (catalogOptions.CurrentValue.WatchAutoAddHours > 0)
+        {
+            var candidate = new WatchAutoAddCandidateEntity
+            {
+                TenantId = tenantId, ClickId = clickId, ProductIds = productIds, ClickedAt = now,
+                DueAt = now.AddHours(catalogOptions.CurrentValue.WatchAutoAddHours),
+            };
+            click.WatchAutoAddDueAt = candidate.DueAt;
+            operations.Add(TransactWriteOperation.Put(candidate));
+        }
+        operations.Add(TransactWriteOperation.Put(click));
+        var result = await repository.TransactWriteAsync(operations, ct);
         if (!result.Applied)
             throw new InvalidOperationException($"Click could not be recorded: {result.Outcome}.");
 

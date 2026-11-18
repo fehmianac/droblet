@@ -1,5 +1,6 @@
 import type {
   ClosetVisibility,
+  HandleAvailability,
   MyPhotos,
   MyProfile,
   NotificationSettings,
@@ -38,7 +39,7 @@ function initialState(): State {
       face: { photoId: 'photo_face_1', url: null },
       generatedImageCount: 48,
     },
-    notifications: { morningReminder: true, morningTimeLocal: '07:30', weeklyEdit: true, friendRatings: false, baseVersion: 1 },
+    notifications: { morningReminder: true, morningTimeLocal: '07:30', weeklyEdit: true, friendRatings: false, priceDrop: false, followRequests: false, baseVersion: 1 },
     palette: 'ready',
   };
 }
@@ -81,6 +82,25 @@ export const accountFixtures = {
   stats: (): ProfileStats => ({ itemCount: 86, lookCount: 24, followerCount: 12, followingCount: 18, tripCount: 3 }),
   setVisibility: (closetVisibility: ClosetVisibility): MyProfile => {
     state.profile = { ...state.profile, closetVisibility, baseVersion: state.profile.baseVersion + 1 };
+    return state.profile;
+  },
+
+  setDisplayName: (displayName: string): MyProfile => {
+    state.profile = { ...state.profile, displayName, baseVersion: state.profile.baseVersion + 1 };
+    return state.profile;
+  },
+  /** Fixture rules: reserved words, taken sample handles, the server's format. */
+  handleAvailability: (raw: string): HandleAvailability => {
+    const handle = raw.trim().replace(/^@/, '').toLowerCase();
+    if (!/^[a-z0-9](?:[a-z0-9._]*[a-z0-9])?$/.test(handle) || handle.length < 3 || handle.length > 30 || handle.includes('..'))
+      return { handle, available: false, code: 'handle_invalid' };
+    if (['admin', 'droblet', 'support', 'help'].includes(handle)) return { handle, available: false, code: 'handle_reserved' };
+    if (handle !== state.profile.handle && ['selin', 'elif', 'zeynep', 'ayse', 'deniz'].includes(handle))
+      return { handle, available: false, code: 'handle_taken' };
+    return { handle, available: true, code: null };
+  },
+  setHandle: (handle: string): MyProfile => {
+    state.profile = { ...state.profile, handle, baseVersion: state.profile.baseVersion + 1 };
     return state.profile;
   },
 

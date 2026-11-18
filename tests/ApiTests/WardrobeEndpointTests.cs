@@ -317,6 +317,64 @@ public class WardrobeEndpointTests(ApiFactory factory) : IClassFixture<ApiFactor
         Assert.Equal(9, en.Categories.Count);
         Assert.Equal((2, 30), (en.LookMinPieces, en.MaxBulkItems));
         Assert.Equal([ItemCategory.Bag, ItemCategory.Accessory], en.Slots.Single(s => s.Slot == OutfitSlot.BagAccessory).Categories);
+        Assert.Equal("Other", en.Colors.Single(c => c.Id == "other").Name);
+    }
+
+    [Fact]
+    public async Task ManualPiece_WithoutAPhoto_IsCreatedOnce_KeepsTheLossyFields_AndIsValidated()
+    {
+        var (client, _) = await factory.RegisterAsync();
+        var mutationId = Ulid.New();
+        object Body(string id, string[]? seasons = null, string[]? colors = null, string? hex = "#a1b2c3", string? subcategory = "blazer") => new
+        {
+            clientMutationId = id, name = "Ekose ceket", category = "outerwear", subcategory, colorIds = colors ?? ["other", "navy"], colorHex = hex,
+            fabricText = "Yün karışımlı tüvit", seasons = seasons ?? ["autumn"], size = "38", brand = "Vintage",
+        };
+
+        var created = await client.PostJsonAsync("v1/tenant/item", Body(mutationId));
+        var replay = await client.PostJsonAsync("v1/tenant/item", Body(mutationId));
+        var noSeason = await client.PostJsonAsync("v1/tenant/item", Body(Ulid.New(), seasons: []));
+        var noColor = await client.PostJsonAsync("v1/tenant/item", Body(Ulid.New(), colors: []));
+        var badHex = await client.PostJsonAsync("v1/tenant/item", Body(Ulid.New(), hex: "blue"));
+        var badSubcategory = await client.PostJsonAsync("v1/tenant/item", Body(Ulid.New(), subcategory: "Blazer Ceket"));
+        var noCategory = await client.PostJsonAsync("v1/tenant/item", new { clientMutationId = Ulid.New(), colorIds = new[] { "black" }, seasons = new[] { "winter" } });
+
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, replay.StatusCode);
+        Assert.Equal("alreadyApplied", (await replay.JsonAsync()).GetProperty("outcome").GetString());
+        var item = Assert.Single((await client.GetAsync<List<ItemDto>>("v1/tenant/item"))!);
+        Assert.Equal((mutationId, ItemSource.Manual, ItemCategory.Outerwear), (item.Id, item.Source, item.Category));
+        Assert.Equal(("blazer", "Yün karışımlı tüvit", "#A1B2C3"), (item.Subcategory, item.FabricText, item.ColorHex));
+        Assert.Equal(["other", "navy"], item.ColorIds);
+        Assert.Null(item.ImageUrl);
+        Assert.False(item.HasOriginalImage);
+        Assert.Contains("season_required", (await noSeason.JsonAsync()).GetProperty("errors").GetProperty("seasons").EnumerateArray().Select(e => e.GetString()));
+        Assert.Contains("color_required", (await noColor.JsonAsync()).GetProperty("errors").GetProperty("colorIds").EnumerateArray().Select(e => e.GetString()));
+        Assert.Contains("color_hex_invalid", (await badHex.JsonAsync()).GetProperty("errors").GetProperty("colorHex").EnumerateArray().Select(e => e.GetString()));
+        Assert.Contains("subcategory_invalid", (await badSubcategory.JsonAsync()).GetProperty("errors").GetProperty("subcategory").EnumerateArray().Select(e => e.GetString()));
+        Assert.Equal(HttpStatusCode.BadRequest, noCategory.StatusCode);
+    }
+
+    [Fact]
+    public async Task Put_KeepsSubcategoryAndFreeTextFabric_HexOnlyWithOther()
+    {
+        var (client, auth) = await factory.RegisterAsync();
+        var item = await factory.ItemAsync(auth.TenantId, ItemCategory.Top);
+
+        var withOther = await client.PutJsonAsync($"v1/tenant/item/{item.Id}", new
+        {
+            category = "top", subcategory = "crop-top", colorIds = new[] { "other" }, colorHex = "#112233", fabric = (string?)null, fabricText = "Modal",
+            seasons = new[] { "summer" }, baseVersion = 1,
+        });
+        var withoutOther = await client.PutJsonAsync($"v1/tenant/item/{item.Id}", new
+        {
+            category = "top", colorIds = new[] { "white" }, colorHex = "#112233", seasons = new[] { "summer" }, baseVersion = 2,
+        });
+
+        var first = await withOther.ReadAsync<ItemDto>();
+        var second = await withoutOther.ReadAsync<ItemDto>();
+        Assert.Equal(("crop-top", "Modal", "#112233"), (first.Subcategory, first.FabricText, first.ColorHex));
+        Assert.Equal(((string?)null, (string?)null, (string?)null), (second.Subcategory, second.FabricText, second.ColorHex)); // PUT replaces; hex needs "other"
     }
 }
 
@@ -758,6 +816,31 @@ public class TryOnAndPaletteEndpointTests(ApiFactory factory) : IClassFixture<Ap
         var job = (await factory.Repository.GetAsync<JobEntity>(JobEntity.GetPk(tenant), JobEntity.GetSk(started.Job.Id)))!;
         Assert.Equal(message.CreditIdempotencyKey, job.CreditIdempotencyKey); // the worker refunds through this key on failure
         Assert.Equal(2, StylingJson.TryDeserialize<TryOnJobInput>(job.Input)!.Pieces.Count);
+    }
+
+    [Fact]
+    public async Task TripDay_RendersTheDaysLook_SharesTheLooksJob_AndCache_UnknownDay404()
+    {
+        var (client, tenant, look, _) = await ArrangeAsync();
+        var tripId = Ulid.New();
+        await factory.Repository.SaveAsync(new TripDayEntity
+        {
+            TenantId = tenant, TripId = tripId, Date = "2027-03-01", Occasion = Occasion.Dinner,
+            Slots = look.Slots.Select(s => new LookSlotValue { Slot = s.Slot, ItemId = s.ItemId }).ToList(),
+        });
+
+        var day = await client.PostJsonAsync("v1/tenant/tryon", TryOn($"{tripId}/2027-03-01", "tripDay"));
+        var sameOutfit = await client.PostJsonAsync("v1/tenant/tryon", TryOn(look.Id));
+        var unknownDay = await client.PostJsonAsync("v1/tenant/tryon", TryOn($"{tripId}/2027-03-09", "tripDay"));
+        var malformed = await client.PostJsonAsync("v1/tenant/tryon", TryOn(tripId, "tripDay"));
+        var findBefore = await client.GetAsync($"v1/tenant/tryon?kind=tripDay&id={tripId}/2027-03-01");
+
+        Assert.Equal(HttpStatusCode.Accepted, day.StatusCode);
+        Assert.Equal((await day.ReadAsync<TryOnStartDto>()).Job!.Id, (await sameOutfit.ReadAsync<TryOnStartDto>()).Job!.Id); // one outfit, one job
+        Assert.Equal(29, await factory.CreditsAsync(tenant));
+        Assert.Equal((HttpStatusCode.NotFound, "target_not_found"), (unknownDay.StatusCode, await unknownDay.CodeAsync()));
+        Assert.Equal(HttpStatusCode.NotFound, malformed.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, findBefore.StatusCode); // nothing rendered yet
     }
 
     [Fact]

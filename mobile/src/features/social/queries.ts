@@ -1,12 +1,13 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 
 import { apiRequest } from '@/api/client';
-import { PEOPLE_SEARCH_MIN, type FeedLook } from '@/api/contracts/social';
+import { PEOPLE_SEARCH_MIN, type FeedLook, type FollowRequestDirection, type FollowRequestEntry } from '@/api/contracts/social';
 import { fromSource, queryString } from '@/api/dataSource';
 import { isGone } from '@/api/errors';
 import {
   toFeedLook,
   toFeedPage,
+  toFollowRequest,
   toInviteLink,
   toItemTile,
   toLookTile,
@@ -14,6 +15,7 @@ import {
   toPersonSuggestion,
   toPersonTrip,
   type FeedPageWire,
+  type FollowRequestWire,
   type InviteLinkWire,
   type PersonCardWire,
   type PersonItemWire,
@@ -40,6 +42,8 @@ export const socialKeys = {
   followers: ['tenant', 'social', 'follower'] as const,
   following: ['tenant', 'social', 'following'] as const,
   blocked: ['tenant', 'social', 'block'] as const,
+  followRequests: ['tenant', 'social', 'follow-request'] as const,
+  followRequestList: (direction: FollowRequestDirection) => ['tenant', 'social', 'follow-request', direction] as const,
   inviteLink: ['tenant', 'invite', 'link'] as const,
 };
 
@@ -205,4 +209,26 @@ export function useInviteLink() {
     queryFn: () =>
       fromSource('social', socialFixtures.inviteLink, async () => toInviteLink(await apiRequest<InviteLinkWire>('v1/tenant/invite/link'))),
   });
+}
+
+/**
+ * `GET v1/tenant/follow-request/incoming` (people asking to follow me — approve / decline) and
+ * `/outgoing` (my pending requests — cancel). Newest first.
+ */
+export function useFollowRequests(direction: FollowRequestDirection, enabled = true) {
+  return useQuery({
+    queryKey: socialKeys.followRequestList(direction),
+    enabled,
+    queryFn: () =>
+      fromSource<FollowRequestEntry[]>(
+        'social',
+        () => socialFixtures.followRequests(direction),
+        async () => (await apiRequest<FollowRequestWire[]>(`v1/tenant/follow-request/${direction}`)).map(toFollowRequest),
+      ),
+  });
+}
+
+/** Number of people waiting for my approval (badge on Profil / Arkadaşlar); 0 while unknown. */
+export function useIncomingRequestCount(): number {
+  return useFollowRequests('incoming').data?.length ?? 0;
 }

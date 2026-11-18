@@ -86,6 +86,7 @@ public static class DependencyInjection
         services.AddSingleton<IPasswordHasher>(_ => new PasswordHasher());
         services.AddSingleton<ITokenService, TokenService>();
         services.AddSingleton<IRateLimiter, RateLimiter>();
+        services.AddSingleton<IContactDirectory, Infrastructure.Services.Social.ContactDirectory>();
         services.AddSingleton<IAuthService, AuthService>();
         services.AddSingleton<IAccountDeletionService, AccountDeletionService>();
         services.AddSingleton<IPhotoService, PhotoService>();

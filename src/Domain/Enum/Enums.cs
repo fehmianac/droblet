@@ -18,7 +18,8 @@ public enum JobStatus { Queued, Processing, Completed, Failed }
 
 public enum JobFailure { ProviderError, Timeout, GuardRejected, SourceDeleted, NoFaceDetected }
 
-public enum TryOnTargetKind { Item, Look, Product, EditLook, Suggestion }
+/// <summary>TripDay id = "{tripId}/{yyyy-MM-dd}": the look of one trip day (BavulDetay).</summary>
+public enum TryOnTargetKind { Item, Look, Product, EditLook, Suggestion, TripDay }
 
 public enum Tier { Free, Premium }
 
@@ -37,7 +38,7 @@ public enum EntitlementSource { Store }
 
 public enum StorePlatform { Apple, Google }
 
-public enum NotificationType { MorningOutfit, WeeklyEdit, FriendRatings }
+public enum NotificationType { MorningOutfit, WeeklyEdit, FriendRatings, PriceDrop, FollowRequest }
 
 public enum AuthProvider { Email, Apple, Google }
 

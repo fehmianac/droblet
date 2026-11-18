@@ -41,23 +41,23 @@ The only prose the API returns is (a) AI-generated text and (b) reference names.
 |---|---|
 | `ItemCategory` | `top`, `bottom`, `dress`, `outerwear`, `shoes`, `bag`, `accessory`, `beachwear`, `skiwear` |
 | `Season` | `spring`, `summer`, `autumn`, `winter` |
-| `ItemSource` | `photo`, `library`, `purchase` |
+| `ItemSource` | `photo`, `library`, `purchase`, `manual` (typed in without a photo) |
 | `ItemListingStatus` | `none` (phase 1 always), `forSale`, `forRent`, `sold`, `rented` (reserved for phase 2) |
 | `ItemDraftStatus` | `uploaded`, `processing`, `ready`, `failed` |
 | `ItemDraftKind` | `single`, `outfit` (source photo of a split), `piece` (cut out of an outfit photo) |
 | `ItemCreateOutcome` | `created`, `alreadyApplied`, `rejected` |
 | `OutfitSlot` | `top`, `bottom`, `outerwear`, `shoes`, `bagAccessory` |
-| `Occasion` | `office`, `dinner`, `weekend`, `wedding`, `travel`, `sport` |
+| `Occasion` | `office`, `dinner`, `weekend`, `wedding`, `travel`, `sport` — there is no separate `evening`: the design's short label "Akşam" (Looklar filter, look tags) and "Akşam yemeği" (Stilist chips, week summary) are the same occasion and never appear side by side, so the app maps its `evening` key to `dinner` (`mobile/src/api/wire/wardrobe.ts`, tested) |
 | `LookSource` | `user`, `stylist`, `edit`, `builder` (`stylist` is set only by the accept endpoints) |
 | `TripType` | `business`, `dinner`, `sightseeing` |
 | `TripStatus` | `upcoming`, `active`, `past` |
 | `WeatherCondition` | `clear`, `partlyCloudy`, `cloudy`, `fog`, `drizzle`, `rain`, `snow`, `showers`, `thunderstorm`, `unknown` (one enum for the whole API — same as `GET v1/weather`) |
 | `DislikeReason` | `notMyStyle`, `wrongOccasion`, `wrongWeather`, `colorMismatch`, `wornTooOften`, `other` |
 | `MissingPieceReason` | `emptySlot`, `rain`, `cold`, `noShoes`, `suggested` |
-| `TryOnTargetKind` | `item`, `look`, `product`, `editLook`, `suggestion` |
+| `TryOnTargetKind` | `item`, `look`, `product`, `editLook`, `suggestion`, `tripDay` |
 | `StartStatus` | `cached`, `queued` |
 
-Colour ids, fabric ids and season type ids are fixed kebab-case strings; get them from `GET v1/tenant/reference/wardrobe`.
+Colour ids, fabric ids and season type ids are fixed kebab-case strings; get them from `GET v1/tenant/reference/wardrobe`. The colour list ends with `other` ("Diğer" / "Other", family `other`): a colour outside the list, optionally with the user's own `colorHex` on the item.
 
 ---
 
@@ -99,7 +99,8 @@ Ready-made library (screens 04b, 12b). Names in the profile language.
 ### ItemDto
 ```json
 {
-  "id": "01J…", "name": "Lacivert blazer", "category": "outerwear", "colorIds": ["navy"], "fabric": "wool",
+  "id": "01J…", "name": "Lacivert blazer", "category": "outerwear", "subcategory": "blazer",
+  "colorIds": ["navy"], "colorHex": null, "fabric": "wool", "fabricText": null,
   "seasons": ["autumn", "winter"], "size": "M", "brand": "Mango",
   "source": "photo", "productId": null, "libraryItemId": null,
   "imageUrl": "https://…", "imageUrlExpiresAt": "2026-11-18T09:05:00Z",
@@ -109,6 +110,11 @@ Ready-made library (screens 04b, 12b). Names in the profile language.
 }
 ```
 `colorIds[0]` is the main colour. `wearCount` / `lastWornAt` are server-computed from wear logs and cannot be written.
+Form fields that are kept as entered: `subcategory` (free sub-type id from the form, lower-case words joined by `-`,
+≤ 40 chars, e.g. `blazer`, `mini-skirt` — the `category` still drives outfit slots), `fabricText` (free-text fabric
+≤ 60 chars when it is none of the fabric ids; `fabric` stays the id or `null`), `colorHex` (`#RRGGBB`, upper-cased,
+kept only when `colorIds` contains `other`; otherwise stored as `null`). `imageUrl` is `null` for a piece without a
+photo (`source: "manual"`) — show the category glyph.
 
 | Method | Path | Request | Response |
 |---|---|---|---|
@@ -119,9 +125,10 @@ Ready-made library (screens 04b, 12b). Names in the profile language.
 
 PUT body (all user fields are replaced):
 ```json
-{ "name": "Krem kazak", "category": "top", "colorIds": ["cream"], "fabric": "knit", "seasons": ["winter"], "size": "M", "brand": null, "useOriginalImage": false, "baseVersion": 1 }
+{ "name": "Krem kazak", "category": "top", "subcategory": "sweater", "colorIds": ["cream"], "colorHex": null, "fabric": "knit", "fabricText": null,
+  "seasons": ["winter"], "size": "M", "brand": null, "useOriginalImage": false, "baseVersion": 1 }
 ```
-Validation codes (400 `errors`): `category_required`, `color_required`, `color_unknown` (unknown id, duplicate, more than 5), `fabric_unknown`, `season_required` (**at least one season**), `base_version_invalid`. Limits: name 80, brand 60, size 12 chars. `useOriginalImage: true` = "Orijinale dön".
+Validation codes (400 `errors`): `category_required`, `color_required`, `color_unknown` (unknown id, duplicate, more than 5), `fabric_unknown`, `season_required` (**at least one season**), `subcategory_invalid`, `fabric_text_too_long`, `color_hex_invalid`, `base_version_invalid`. Limits: name 80, brand 60, size 12 chars. `useOriginalImage: true` = "Orijinale dön".
 
 ### Photo upload → draft → confirm
 
@@ -135,7 +142,7 @@ Validation codes (400 `errors`): `category_required`, `color_required`, `color_u
    { "drafts": [ItemDraftDto], "jobs": [JobDto], "skippedCount": 0, "skippedUploadIds": [],
      "itemRecognition": { "limit": 10, "used": 3, "remaining": 7 } }
    ```
-   **AI recognition allowance (non-members).** A non-member has a lifetime number of AI recognitions (`Entitlements:Free:ItemRecognitionLimit`, default 10; `GET v1/tenant/entitlement` → `itemRecognition`). Every photo of a single, bulk or split request uses one **when its job completes**; a job that fails (`providerError`, `guardRejected`, `sourceDeleted`, …) uses none. A bulk request above what is left processes the first photos and returns the rest in `skippedCount` / `skippedUploadIds` (those uploads are untouched). Nothing left → **402 `item_recognition_limit_reached`** (show the paywall); limit configured as 0 → **403 `premium_required`**. Members: unlimited (`limit` / `remaining` are `null`).
+   **AI recognition allowance (non-members).** A non-member has a lifetime number of AI recognitions (`Entitlements:Free:ItemRecognitionLimit`, default 10; `GET v1/tenant/entitlement` → `itemRecognition`). Every photo of a single, bulk or split request uses one **when its job completes**; a job that fails (`providerError`, `guardRejected`, `sourceDeleted`, …) uses none. A bulk request above what is left processes the first photos and returns the rest in `skippedCount` / `skippedUploadIds` (those uploads are untouched). Nothing left → **402 `item_recognition_limit_reached`** (show the paywall); limit configured as 0 → **403 `premium_required`** (kept as documented; the app treats both as the paywall, and `GET v1/tenant/entitlement` reports a 0 limit exactly like an exhausted one: `{ "limit": 0, "used": 0, "remaining": 0 }`). The free limit is 10 (`Entitlements:Free:ItemRecognitionLimit` in `api/Entitlements` and `worker/Entitlements`). Members: unlimited (`limit` / `remaining` are `null`).
    **Manual entry.** `"manual": true` uses no AI and no allowance: each photo becomes a draft that is immediately `ready`, without suggestions and without a job (`jobId: null`); the user fills the form and confirms it as usual. Use it after a 402, or for the skipped uploads.
    One draft (id = `uploadId`) and one job per photo; with a single photo the job id is `requestId`. `splitOutfit: true` = "Kombin fotoğrafından parçaları ayır": each photo is an outfit, its pieces come back as separate drafts (`kind: "piece"`, `parentDraftId`), at most 6 per photo.
    Errors: 404 `upload_not_found` · 422 `upload_missing` (nothing was uploaded to that slot) · 402 `item_recognition_limit_reached` · 403 `premium_required` · 400 `request_id_invalid`, `upload_ids_out_of_range`, `upload_id_invalid`.
@@ -157,7 +164,8 @@ Validation codes (400 `errors`): `category_required`, `color_required`, `color_u
 4. **POST `v1/tenant/item-draft/confirm`** (1–30 rows, each with the user's final values — the server never copies AI values on its own)
    ```json
    { "items": [{ "draftId": "01J…", "clientMutationId": "01J…", "reviewed": true, "name": "Lacivert blazer", "category": "outerwear",
-       "colorIds": ["navy"], "fabric": "wool", "seasons": ["autumn", "winter"], "size": "M", "brand": "Mango", "useOriginalImage": false, "itemId": null }] }
+       "colorIds": ["navy"], "fabric": "wool", "seasons": ["autumn", "winter"], "size": "M", "brand": "Mango", "useOriginalImage": false, "itemId": null,
+       "subcategory": "blazer", "fabricText": null, "colorHex": null }] }
    ```
    → 200
    ```json
@@ -179,6 +187,17 @@ Validation codes (400 `errors`): `category_required`, `color_required`, `color_u
 
 ### Without a photo
 
+- **POST `v1/tenant/item`** — "Fotoğrafsız ekle": a piece typed in by hand (no photo, no AI, no recognition allowance).
+  ```json
+  { "clientMutationId": "01J…", "itemId": null, "name": "Ekose ceket", "category": "outerwear", "subcategory": "blazer",
+    "colorIds": ["other"], "colorHex": "#A1B2C3", "fabric": null, "fabricText": "Yün karışımlı tüvit",
+    "seasons": ["autumn"], "size": "38", "brand": null }
+  ```
+  → **201** `{ "refId": "<clientMutationId>", "outcome": "created", "code": null, "errors": null, "item": ItemDto }` ·
+  **200** with `outcome: "alreadyApplied"` on a replay of the same `clientMutationId` (never a second item).
+  Category, at least one colour and at least one season are required; 400 carries the item codes above plus
+  `client_mutation_id_invalid`, `item_id_invalid`. The item has `source: "manual"` and `imageUrl: null`. A photo can be
+  added later only by adding the piece again with a photo (no image attach endpoint in phase 1).
 - **POST `v1/tenant/item/from-library`** `{ "items": [{ "clientMutationId": "01J…", "libraryItemId": "lib-white-tshirt", "size": "S" }] }` (1–30)
   → same `results` shape (`refId` = `libraryItemId`); rejected code `library_item_not_found`. Items get `source: "library"`.
 - **POST `v1/tenant/item/from-product`** `{ "clientMutationId": "01J…", "productId": "prd…", "size": "M" }`
@@ -347,7 +366,7 @@ One generated image = 1 credit. The credit is reserved when the job is queued, k
 ```json
 { "requestId": "01J…", "target": { "kind": "look", "id": "01J…", "index": null } }
 ```
-`target.id`: item id · look id · product id (catalog) · edit look id · for `suggestion` the **stylist job id** with `index`.
+`target.id`: item id · look id · product id (catalog) · edit look id · for `suggestion` the **stylist job id** with `index` · for `tripDay` `"{tripId}/{yyyy-MM-dd}"` (the look of that trip day, `TripDetailDto.days[]`; its existing pieces are the outfit, so the same pieces as a look or suggestion share one cached image and one credit; an unknown trip or day → 404 `target_not_found`, a day whose pieces are all gone → 422 `tryon_target_empty`).
 `editLook` ids: a weekly-edit look id (`EditDto.looks[].id`) renders its first price-band variant; `"{lookId}@{priceBand}"` (e.g. `edit-2026-w47-d1@luxuryTouch`) renders that variant; `"{collectionId}/{lookId}"` renders a creator / series collection look. Only published, non-retired content resolves. Product garments are rendered from the product's first catalog image.
 
 | Status | Body | Meaning |

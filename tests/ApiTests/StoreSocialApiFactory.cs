@@ -85,7 +85,7 @@ public sealed class StoreSocialApiFactory : WebApplicationFactory<Entrypoint>
         var (client, auth) = await RegisterAsync(name: name);
         var handle = Unique();
         (await client.PutJsonAsync("v1/tenant/profile/handle", new { handle })).EnsureSuccessStatusCode();
-        if (visibility != ClosetVisibility.Private)
+        if (visibility != ClosetVisibility.FollowersOnly) // FollowersOnly is the default of a new account (decision 7)
             (await client.PutJsonAsync("v1/tenant/profile/visibility", new { closetVisibility = visibility, baseVersion = 2 })).EnsureSuccessStatusCode();
         if (tags is not null)
             (await client.PutJsonAsync("v1/tenant/style-profile", new { segment = Segment.Women, styleTags = tags, budget = Budget.Mixed, baseVersion = 0 })).EnsureSuccessStatusCode();

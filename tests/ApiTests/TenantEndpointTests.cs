@@ -13,7 +13,7 @@ namespace ApiTests;
 public class ProfileEndpointTests(ApiFactory factory) : IClassFixture<ApiFactory>
 {
     [Fact]
-    public async Task GetProfile_ReturnsOwnProfileWithPrivateDefault()
+    public async Task GetProfile_ReturnsOwnProfileWithFollowersOnlyDefault()
     {
         var email = $"{Guid.NewGuid():N}@example.com";
         var (client, auth) = await factory.RegisterAsync(email);
@@ -23,7 +23,7 @@ public class ProfileEndpointTests(ApiFactory factory) : IClassFixture<ApiFactory
         Assert.Equal(auth.TenantId, profile!.TenantId);
         Assert.Equal("Ayşe", profile.DisplayName);
         Assert.Equal(email, profile.Email);
-        Assert.Equal(ClosetVisibility.Private, profile.ClosetVisibility);
+        Assert.Equal(ClosetVisibility.FollowersOnly, profile.ClosetVisibility);
         Assert.Equal(1, profile.Version);
     }
 

@@ -59,8 +59,8 @@ export default function ItemAddScreen() {
     void recognition.refresh();
     openRecognitionPaywall();
   };
-  // "Elle gir": the refused photo is already a manual draft; otherwise a photo is picked first (no AI, no allowance).
-  const manual = useManualEntry({ onError: () => setNotice('photoFailed') });
+  // "Elle gir": the refused photo is already a manual draft; otherwise the form opens without a photo (no AI, no allowance).
+  const manual = useManualEntry();
   const enterManually = manual.enter;
 
   const onPicked = (photos: PreparedPhoto[]) => {
@@ -200,7 +200,6 @@ export default function ItemAddScreen() {
         <Shortcut icon={LayoutGrid} label={t('itemAdd.library')} a11y={t('itemAdd.libraryA11y')} onPress={() => router.push('/item/library')} />
       </View>
       {picker.sheet}
-      {manual.sheet}
     </View>
   );
 }

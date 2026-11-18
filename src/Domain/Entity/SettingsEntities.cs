@@ -21,6 +21,10 @@ public class NotificationPrefEntity : IVersionedEntity
     [JsonPropertyName("morningOutfitLocalTime")] public string MorningOutfitLocalTime { get; set; } = "07:30";
     [JsonPropertyName("weeklyEdit")] public bool WeeklyEdit { get; set; }
     [JsonPropertyName("friendRatings")] public bool FriendRatings { get; set; }
+    /// <summary>Watch-list price drops (decision 9: off by default).</summary>
+    [JsonPropertyName("priceDrop")] public bool PriceDrop { get; set; }
+    /// <summary>New follow requests (decision 8; off by default like every type outside decision 9's list).</summary>
+    [JsonPropertyName("followRequests")] public bool FollowRequests { get; set; }
     [JsonPropertyName("timeZone")] public string TimeZone { get; set; } = "Europe/Istanbul";
     [JsonPropertyName("updatedAt")] public DateTime UpdatedAt { get; set; }
     [JsonPropertyName("version")] public long Version { get; set; }
@@ -44,7 +48,7 @@ public class ReminderSlotEntity : IEntity
     public static string GetSk(string subscriberTenantId) => subscriberTenantId;
 }
 
-/// <summary>Global: tenants with a notification type switched on (WeeklyEdit, FriendRatings) — the Notifier's send list.</summary>
+/// <summary>Global: tenants with a notification type switched on (WeeklyEdit, FriendRatings, PriceDrop, FollowRequest) — the Notifier's send list.</summary>
 public class NotificationSubscriberEntity : IEntity
 {
     [JsonPropertyName("pk")] public string Pk => GetPk(Type);
