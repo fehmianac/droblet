@@ -21,9 +21,12 @@ public class Refresh : IEndpoint
             return Results.BadRequest(validation.Errors.ToProblemDetails());
 
         var result = await authService.RefreshAsync(request.RefreshToken, cancellationToken);
-        return result.Outcome == AuthOutcome.Success
-            ? Results.Ok(AuthResponse.From(result.Tokens!))
-            : ApiResults.Problem(StatusCodes.Status401Unauthorized, ErrorCodes.InvalidRefreshToken);
+        return result.Outcome switch
+        {
+            AuthOutcome.Success => Results.Ok(AuthResponse.From(result.Tokens!)),
+            AuthOutcome.Suspended => ApiResults.Problem(StatusCodes.Status403Forbidden, ErrorCodes.AccountSuspended),
+            _ => ApiResults.Problem(StatusCodes.Status401Unauthorized, ErrorCodes.InvalidRefreshToken),
+        };
     }
 
     public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints)
@@ -32,6 +35,7 @@ public class Refresh : IEndpoint
             .Produces<AuthResponse>(StatusCodes.Status200OK)
             .Produces<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest)
             .Produces<ProblemDetails>(StatusCodes.Status401Unauthorized)
+            .Produces<ProblemDetails>(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status500InternalServerError)
             .AllowAnonymous()
             .WithSummary("Rotate the refresh token")

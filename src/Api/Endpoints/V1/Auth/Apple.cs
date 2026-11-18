@@ -39,9 +39,12 @@ public class Apple : IEndpoint
         // Apple sends the name only on the very first authorization; it is stored then.
         var name = request.FullName is { } n ? string.Join(' ', new[] { n.GivenName, n.FamilyName }.Where(p => !string.IsNullOrWhiteSpace(p))) : null;
         var result = await authService.SignInExternalAsync(AuthProvider.Apple, identity, name, httpContext.Language(), cancellationToken);
-        return result.Outcome == AuthOutcome.Success
-            ? Results.Ok(AuthResponse.From(result.Tokens!))
-            : ApiResults.Problem(StatusCodes.Status401Unauthorized, ErrorCodes.InvalidIdentityToken);
+        return result.Outcome switch
+        {
+            AuthOutcome.Success => Results.Ok(AuthResponse.From(result.Tokens!)),
+            AuthOutcome.Suspended => ApiResults.Problem(StatusCodes.Status403Forbidden, ErrorCodes.AccountSuspended),
+            _ => ApiResults.Problem(StatusCodes.Status401Unauthorized, ErrorCodes.InvalidIdentityToken),
+        };
     }
 
     public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints)
@@ -50,6 +53,7 @@ public class Apple : IEndpoint
             .Produces<AuthResponse>(StatusCodes.Status200OK)
             .Produces<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest)
             .Produces<ProblemDetails>(StatusCodes.Status401Unauthorized)
+            .Produces<ProblemDetails>(StatusCodes.Status403Forbidden)
             .Produces<ProblemDetails>(StatusCodes.Status503ServiceUnavailable)
             .ProducesProblem(StatusCodes.Status500InternalServerError)
             .AllowAnonymous()

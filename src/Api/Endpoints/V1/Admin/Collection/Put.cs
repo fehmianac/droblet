@@ -1,3 +1,4 @@
+using Domain.Services.Admin;
 using System.Text.Json;
 using Api.Contracts;
 using Api.Infrastructure.Contract;
@@ -45,10 +46,9 @@ public class Put : IEndpoint
             .Produces<AdminCollectionDto>(StatusCodes.Status200OK)
             .Produces<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest)
             .Produces<ProblemDetails>(StatusCodes.Status404NotFound)
-            .Produces(StatusCodes.Status401Unauthorized)
-            .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status500InternalServerError)
-            .RequireAuthorization(AdminOptions.Policy)
+            .RequireAdmin(AdminPermissions.ContentManage)
+            .Audited("collection.upsert", "collection", "id", AdminAuditBefore.Collection)
             .WithSummary("Create or update a content collection")
             .WithDescription("A creator / editor (placeholder name until A-7 closes) or a series-outfit group.")
             .WithTags("Admin Content");

@@ -1,3 +1,4 @@
+using Domain.Services.Admin;
 using System.Text.Json;
 using Api.Contracts;
 using Api.Infrastructure.Contract;
@@ -32,10 +33,8 @@ public class GetAll : IEndpoint
     {
         return endpoints.MapGet("v1/admin/brand", Handler)
             .Produces<List<AdminBrandDto>>(StatusCodes.Status200OK)
-            .Produces(StatusCodes.Status401Unauthorized)
-            .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status500InternalServerError)
-            .RequireAuthorization(AdminOptions.Policy)
+            .RequireAdmin(AdminPermissions.CatalogManage)
             .WithSummary("Brands (admin)")
             .WithDescription("Every brand, retired included.")
             .WithTags("Admin Catalog");

@@ -25,6 +25,7 @@ public class Entrypoint
         builder.Services.AddAdminAuthorization();
         builder.Services.AddDrobletCore(builder.Configuration);
         builder.Services.AddDrobletApiServices(builder.Configuration);
+        builder.Services.AddDrobletAdmin(builder.Configuration);
 
         var app = builder.Build();
 
@@ -40,18 +41,9 @@ public class Entrypoint
             await ApiResults.Problem(status, code).ExecuteAsync(context);
         }));
 
-        // CORS preflight: API Gateway adds the Access-Control-* headers (template.yaml CorsConfiguration) but the
-        // ANY /{proxy+} route still forwards OPTIONS here, and without this the browser sees 405 and blocks the
-        // web pages (account deletion, password reset) from calling the API.
-        app.Use(async (context, next) =>
-        {
-            if (HttpMethods.IsOptions(context.Request.Method))
-            {
-                context.Response.StatusCode = StatusCodes.Status204NoContent;
-                return;
-            }
-            await next();
-        });
+        // CORS lives in the Api, not in API Gateway: admin routes answer only the panel origin (docs/api/admin.md).
+        // The ANY /{proxy+} route forwards OPTIONS here; preflights end in UseDrobletCors with 204.
+        app.UseDrobletCors();
 
         app.UseAuthentication();
         app.UseAuthorization();

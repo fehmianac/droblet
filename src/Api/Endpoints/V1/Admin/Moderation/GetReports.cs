@@ -1,3 +1,4 @@
+using Domain.Services.Admin;
 using System.Text.Json;
 using Api.Contracts;
 using Api.Infrastructure.Contract;
@@ -38,10 +39,8 @@ public class GetReports : IEndpoint
         return endpoints.MapGet("v1/admin/moderation/report", Handler)
             .Produces<PagedDto<ModerationReportDto>>(StatusCodes.Status200OK)
             .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
-            .Produces(StatusCodes.Status401Unauthorized)
-            .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status500InternalServerError)
-            .RequireAuthorization(AdminOptions.Policy)
+            .RequireAdmin(AdminPermissions.ModerationManage)
             .WithSummary("Moderation queue")
             .WithDescription("status = open (default) | resolved, newest first.")
             .WithTags("Admin Moderation");

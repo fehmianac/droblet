@@ -10,16 +10,17 @@ namespace ApiTests;
 public class AdminAndCatalogEndpointTests(StoreSocialApiFactory factory) : IClassFixture<StoreSocialApiFactory>
 {
     [Fact]
-    public async Task Admin_Anonymous401_NonAdmin403_Admin200()
+    public async Task Admin_Anonymous401_AppUserToken401_Admin200()
     {
-        var (user, _) = await factory.RegisterAsync();
+        // Even an app account with the admin's e-mail is not an admin: admin routes accept only admin tokens.
+        var (user, _) = await factory.RegisterAsync(StoreSocialApiFactory.AdminEmail);
         var admin = await factory.AdminAsync();
 
         Assert.Equal(HttpStatusCode.Unauthorized, (await factory.CreateClient().GetAsync("v1/admin/brand")).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await user.GetAsync("v1/admin/brand")).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await user.PutJsonAsync("v1/admin/brand/x-brand", new { name = "X", source = "network" })).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await user.GetAsync("v1/admin/report/revenue")).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await user.GetAsync("v1/admin/moderation/report")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await user.GetAsync("v1/admin/brand")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await user.PutJsonAsync("v1/admin/brand/x-brand", new { name = "X", source = "network" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await user.GetAsync("v1/admin/report/revenue")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await user.GetAsync("v1/admin/moderation/report")).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await admin.GetAsync("v1/admin/brand")).StatusCode);
     }
 
