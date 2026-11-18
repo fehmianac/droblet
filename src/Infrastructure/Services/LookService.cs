@@ -15,14 +15,24 @@ public sealed class LookService(IRepository repository, ICatalogProductLookup pr
     {
         var looks = await repository.GetAllAsync<LookEntity>(LookEntity.GetPk(tenantId), ct);
         var itemIds = await ItemIdsAsync(repository, tenantId, ct);
-        return looks.OrderByDescending(l => l.CreatedAt).ThenByDescending(l => l.Id, StringComparer.Ordinal).Select(l => l.ToDto(itemIds)).ToList();
+        // One partition read for every look's rating summary (the owner always sees the ratings of their own looks).
+        var ratings = (await repository.GetAllAsync<LookRatingSummaryEntity>(LookRatingSummaryEntity.GetPk(tenantId), ct))
+            .ToDictionary(r => r.LookId, StringComparer.Ordinal);
+        return looks.OrderByDescending(l => l.CreatedAt).ThenByDescending(l => l.Id, StringComparer.Ordinal)
+            .Select(l => l.ToDto(itemIds) with { Rating = ToRating(ratings.GetValueOrDefault(l.Id)) }).ToList();
     }
 
     public async Task<LookDto?> GetAsync(string tenantId, string id, CancellationToken ct)
     {
         var look = await GetEntityAsync(tenantId, id, ct);
-        return look?.ToDto(await ItemIdsAsync(repository, tenantId, ct));
+        if (look is null)
+            return null;
+        var rating = await repository.GetAsync<LookRatingSummaryEntity>(LookRatingSummaryEntity.GetPk(tenantId), LookRatingSummaryEntity.GetSk(id), ct);
+        return look.ToDto(await ItemIdsAsync(repository, tenantId, ct)) with { Rating = ToRating(rating) };
     }
+
+    private static LookRatingSummaryDto? ToRating(LookRatingSummaryEntity? summary) =>
+        summary is not null && LookRatingRules.Average(summary.Sum, summary.Count) is { } average ? new LookRatingSummaryDto(average, summary.Count) : null;
 
     public async Task<ServiceResult<LookDto>> CreateAsync(string tenantId, CreateLookCommand command, CancellationToken ct)
     {
@@ -89,6 +99,8 @@ public sealed class LookService(IRepository repository, ICatalogProductLookup pr
         if (look is null)
             return false;
         await repository.DeleteAsync(look.Pk, look.Sk, ct);
+        // The look's rating summary goes with it (the raters' own rows are removed by their own account deletion / unsave).
+        await repository.DeleteAsync(LookRatingSummaryEntity.GetPk(tenantId), LookRatingSummaryEntity.GetSk(id), ct);
         return true;
     }
 

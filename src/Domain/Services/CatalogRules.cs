@@ -142,6 +142,16 @@ public static class CatalogRules
         return new CatalogPage(items, next, sorted.Count);
     }
 
+    /// <summary>
+    /// "Paletime uygun ürünler": products that carry at least one of the palette's flattering colours and none of its
+    /// colours to avoid as the main (first) colour. Rule based — never AI. Retired products are excluded by Matches.
+    /// </summary>
+    public static bool MatchesPalette(CatalogProductEntity product, IReadOnlySet<string> flattering, IReadOnlySet<string> avoid)
+    {
+        var colors = product.Colors.Select(NormalizeColor).ToList();
+        return colors.Count > 0 && !avoid.Contains(colors[0]) && colors.Any(flattering.Contains);
+    }
+
     public static CatalogPage Query(IEnumerable<CatalogProductEntity> products, CatalogQuery query, string? pageToken, int pageSize,
         IReadOnlyDictionary<string, string>? brandNames = null) =>
         Page(Sort(products.Where(p => Matches(p, query, brandNames)), query.Sort), pageToken, pageSize);

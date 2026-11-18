@@ -227,5 +227,7 @@ public interface IPaletteService
     Task<ServiceResult<PaletteStartDto>> StartAsync(string tenantId, StartPaletteCommand command, string? requestLanguage, CancellationToken ct);
     Task<PaletteDto?> GetAsync(string tenantId, string? requestLanguage, CancellationToken ct);
     Task<PaletteMismatchDto?> GetMismatchAsync(string tenantId, CancellationToken ct);
+    /// <summary>Flattering / avoid colour ids of the stored palette; null = no palette yet.</summary>
+    Task<(IReadOnlySet<string> Flattering, IReadOnlySet<string> Avoid)?> GetColorsAsync(string tenantId, CancellationToken ct);
     Task DeleteAsync(string tenantId, CancellationToken ct);
 }

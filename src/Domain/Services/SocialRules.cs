@@ -4,6 +4,14 @@ using Domain.Enum;
 
 namespace Domain.Services;
 
+public static class LookRatingRules
+{
+    /// <summary>Average with one decimal; null when nobody rated.</summary>
+    public static double? Average(long sum, long count) =>
+        count <= 0 ? null : Math.Round((double)sum / count, 1, MidpointRounding.AwayFromZero);
+}
+
+
 /// <summary>Invite codes carried by every shared link (brief §5.7). 8 chars, no look-alike characters.</summary>
 public static class InviteCodeRules
 {

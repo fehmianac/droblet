@@ -94,7 +94,14 @@ public record LookDto(
     LookSource Source,
     DateTime CreatedAt,
     DateTime UpdatedAt,
-    long Version);
+    long Version,
+    // Friends' ratings of this look (average 1 decimal, count). Filled by GET look / GET look/{id}; null elsewhere and when nobody rated.
+    LookRatingSummaryDto? Rating = null);
+
+public record LookRatingSummaryDto(double Average, long Count);
+
+/// <summary>Screen 28 profile counters.</summary>
+public record ProfileStatsDto(int ItemCount, int LookCount, int TripCount, int FollowerCount, int FollowingCount);
 
 // ── E4 today / plan / calendar ────────────────────────────────────────────────────────────────────────────────────
 

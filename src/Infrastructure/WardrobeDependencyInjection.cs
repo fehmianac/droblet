@@ -28,6 +28,7 @@ public static class WardrobeDependencyInjection
             sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Services.Integration.CatalogProductLookup>>()));
         services.TryAddSingleton<IEditLookLookup, Services.Integration.EditLookLookup>();
 
+        services.AddSingleton<Services.Integration.IProfileStatsService, Services.Integration.ProfileStatsService>();
         services.AddSingleton<ILibraryCatalog, LibraryCatalog>();
         services.AddSingleton<IWardrobeService, WardrobeService>();
         services.AddSingleton<ILookService, LookService>();

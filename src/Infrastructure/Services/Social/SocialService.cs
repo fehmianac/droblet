@@ -230,7 +230,7 @@ public sealed class SocialService(
     }
 
     private static double? Average(LookRatingSummaryEntity? summary) =>
-        summary is null || summary.Count <= 0 ? null : Math.Round((double)summary.Sum / summary.Count, 1, MidpointRounding.AwayFromZero);
+        summary is null ? null : LookRatingRules.Average(summary.Sum, summary.Count);
 
     // ── Feed ────────────────────────────────────────────────────────────────────────────────────────────────────
 

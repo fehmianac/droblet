@@ -66,6 +66,14 @@ public sealed class PaletteService(
         return new PaletteMismatchDto(result);
     }
 
+    public async Task<(IReadOnlySet<string> Flattering, IReadOnlySet<string> Avoid)?> GetColorsAsync(string tenantId, CancellationToken ct)
+    {
+        var palette = await GetEntityAsync(tenantId, ct);
+        if (palette is null)
+            return null;
+        return (palette.FlatteringColorIds.ToHashSet(StringComparer.Ordinal), palette.AvoidColorIds.ToHashSet(StringComparer.Ordinal));
+    }
+
     public Task DeleteAsync(string tenantId, CancellationToken ct) =>
         repository.DeleteAsync(PaletteResultEntity.GetPk(tenantId), PaletteResultEntity.GetSk(), ct);
 
