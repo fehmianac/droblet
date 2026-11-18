@@ -164,6 +164,13 @@
     "draftEyebrow": "TASLAK LİSTE",
     "draftBody": "Listeyi kontrol et; onayladığında bavuluna kaydedilir.",
     "acceptDraft": "Listeyi onayla",
-    "regenerate": "Yeniden hazırla"
+    "regenerate": "Yeniden hazırla",
+    "missingReason": {
+      "emptySlot": "gardırobunda uygun parça yok",
+      "rain": "yağmur bekleniyor",
+      "cold": "hava soğuk olacak",
+      "noShoes": "uygun ayakkabı yok",
+      "suggested": "stilistin önerisi"
+    }
   }
 }

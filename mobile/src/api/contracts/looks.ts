@@ -1,5 +1,6 @@
 /**
- * E3 Look'lar — PROVISIONAL contract (BACKEND_ENGINEER §Uç nokta haritası, E3).
+ * E3 Look'lar — the APP-side types. Wire shapes (`LookDto`: slots as `itemId` / `productId`, slot
+ * `bagAccessory`, `favorite`, `version`, `rating { average, count }`) and mappers: `../wire/wardrobe.ts`.
  */
 import type { Money } from '@/lib/format';
 import type { Occasion } from '../contracts';
@@ -57,7 +58,7 @@ export type LookListResponse = Look[];
 
 export type LookSlotInput = Pick<LookSlot, 'slot' | 'source' | 'refId'>;
 
-/** POST v1/tenant/look — idempotent on `id` + `clientMutationId`. */
+/** POST v1/tenant/look → 201 / 200 on replay (idempotent on `id`). 422: `look_min_pieces`, `slot_category_mismatch`, `dress_closes_bottom`, … */
 export type CreateLookRequest = {
   id: string;
   name: string;
@@ -66,7 +67,7 @@ export type CreateLookRequest = {
   clientMutationId: string;
 };
 
-/** PUT v1/tenant/look/{id} — versioned (409 on conflict). */
+/** PUT v1/tenant/look/{id} — versioned (409 answers the current look). The heart is this PUT with `favorite` changed. */
 export type PutLookRequest = {
   name: string;
   occasion: Occasion;

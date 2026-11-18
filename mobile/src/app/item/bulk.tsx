@@ -25,6 +25,7 @@ import { useAddItems, useDiscardDraft, useRetryDraft, useStartItemDrafts } from 
 import { StatePanel } from '@/features/wardrobe/parts';
 import { fitToRecognitionQuota, isRecognitionLimitReached, openRecognitionPaywall, useItemRecognition } from '@/features/wardrobe/recognition';
 import { useItemDrafts } from '@/features/wardrobe/queries';
+import { useManualEntry } from '@/features/wardrobe/useManualEntry';
 import { useIsOnline } from '@/sync/network';
 
 type Notice =
@@ -172,7 +173,9 @@ export default function ItemBulkScreen() {
     void recognition.refresh();
     openRecognitionPaywall();
   };
-  const enterManually = () => router.push({ pathname: '/item/form', params: { from: 'bulk' } });
+  // "Elle gir": a photo sent as a manual draft (no AI, no allowance), then form 12c.
+  const manual = useManualEntry({ from: 'bulk', onError: () => setNotice({ kind: 'photoFailed' }) });
+  const enterManually = manual.enter;
 
   const onPicked = (photos: PreparedPhoto[]) => {
     const { accepted: withinBatch, rejected } = limitBulkSelection(photos, queued);
@@ -193,7 +196,11 @@ export default function ItemBulkScreen() {
         const serverSkipped = res.skippedCount ?? 0;
         if (skipped + serverSkipped > 0) setNotice({ kind: 'quotaSkipped', skipped: skipped + serverSkipped });
       })
-      .catch((error: unknown) => (isRecognitionLimitReached(error) ? limitReached() : setNotice({ kind: 'startFailed' })));
+      .catch((error: unknown) => {
+        manual.adopt(error);
+        if (isRecognitionLimitReached(error)) limitReached();
+        else setNotice({ kind: 'startFailed' });
+      });
   };
   const picker = usePhotoPicker({ onPicked, onError: () => setNotice({ kind: 'photoFailed' }) });
 
@@ -360,6 +367,7 @@ export default function ItemBulkScreen() {
         }}
       </ScreenState>
       {picker.sheet}
+      {manual.sheet}
     </Screen>
   );
 }

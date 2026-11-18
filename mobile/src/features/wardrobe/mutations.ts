@@ -1,6 +1,5 @@
-import { itemRecognitionKey } from './recognition';
+import { isRecognitionLimitReached, itemRecognitionKey } from './recognition';
 import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
-import { File, UploadType } from 'expo-file-system';
 
 import { apiRequest } from '@/api/client';
 import type {
@@ -14,10 +13,21 @@ import type {
   ItemFields,
   ItemSeason,
   ItemUploadUrlRequest,
-  ItemUploadUrlResponse,
   PutItemRequest,
 } from '@/api/contracts/wardrobe';
 import { ApiError, isConflict, isGone } from '@/api/errors';
+import {
+  fromItemFields,
+  toItem,
+  type ConfirmDraftRowWire,
+  type CreateItemDraftsResultWire,
+  type CreateItemDraftsWire,
+  type FromLibraryRowWire,
+  type ItemCreateResultsWire,
+  type ItemUploadsWire,
+  type ItemWire,
+  type PutItemWire,
+} from '@/api/wire/wardrobe';
 import { DATA_SOURCE, fromSource } from '@/api/dataSource';
 import { lookKeys } from '@/features/looks/queries';
 import {
@@ -31,6 +41,7 @@ import {
 import { ulid } from '@/lib/ids';
 import { newClientMutation, type ClientMutationMeta } from '@/sync/clientMutation';
 import { conflictStore } from '@/sync/conflicts';
+import { postToPresigned } from '@/sync/photoUpload';
 import { TENANT_WRITE_SCOPE } from '@/sync/queryKeys';
 
 import { fieldsOf } from './form';
@@ -52,6 +63,12 @@ export type ConfirmDraftsVariables = {
   previews: Record<string, string | null>;
 };
 export type DiscardDraftVariables = ClientMutationMeta & { draftId: string };
+
+function currentItem(error: ApiError): Item | undefined {
+  const current = error.current as (ItemWire & Partial<Item>) | null;
+  if (!current) return undefined;
+  return 'version' in current ? toItem(current) : (current as unknown as Item);
+}
 
 function patchItem(client: QueryClient, id: string, patch: (item: Item) => Item): void {
   client.setQueryData<Item[]>(wardrobeKeys.items, (prev) => prev?.map((i) => (i.id === id ? patch(i) : i)));
@@ -86,7 +103,11 @@ export function registerWardrobeMutations(client: QueryClient): void {
       return fromSource<Item>(
         'wardrobe',
         () => fixturePutItem(vars.id, body),
-        () => apiRequest<Item>(`v1/tenant/item/${vars.id}`, { method: 'PUT', body }),
+        async () => {
+          // PUT v1/tenant/item/{id}: all user fields are replaced; 409 → the current ItemDto.
+          const wire: PutItemWire = { ...fromItemFields(vars.fields, cached?.colorIds), baseVersion: body.baseVersion };
+          return toItem(await apiRequest<ItemWire>(`v1/tenant/item/${vars.id}`, { method: 'PUT', body: wire }));
+        },
       );
     },
     onMutate: async (vars: PutItemVariables) => {
@@ -99,7 +120,8 @@ export function registerWardrobeMutations(client: QueryClient): void {
     },
     onError: (error: unknown, vars: PutItemVariables) => {
       if (isConflict(error)) {
-        const current = error.problem?.current as Item | undefined;
+        // Fixtures answer `{ current }` in the app shape; the API answers the current ItemDto itself.
+        const current = currentItem(error);
         conflictStore.push({
           id: vars.clientMutationId,
           kind: 'changed',
@@ -150,7 +172,7 @@ export function registerWardrobeMutations(client: QueryClient): void {
       fromSource<ConfirmItemDraftsResponse>(
         'wardrobe',
         () => fixtureConfirmDrafts(vars.request),
-        () => apiRequest<ConfirmItemDraftsResponse>('v1/tenant/item-draft/confirm', { method: 'POST', body: vars.request }),
+        () => confirmOnApi(vars.request),
       ),
     onMutate: async (vars: ConfirmDraftsVariables) => {
       await client.cancelQueries({ queryKey: wardrobeKeys.items });
@@ -169,10 +191,14 @@ export function registerWardrobeMutations(client: QueryClient): void {
       const confirmed = new Set(vars.request.items.map((i) => i.draftId));
       client.setQueryData<ItemDraft[]>(wardrobeKeys.drafts, (prev) => prev?.filter((d) => !confirmed.has(d.id)));
     },
-    onSuccess: (saved: ConfirmItemDraftsResponse | undefined) => {
+    onSuccess: (saved: ConfirmItemDraftsResponse | undefined, vars: ConfirmDraftsVariables) => {
       if (!saved) return;
       const byId = new Map(saved.items.map((i) => [i.id, i]));
-      client.setQueryData<Item[]>(wardrobeKeys.items, (prev) => prev?.map((i) => byId.get(i.id) ?? i));
+      // A row the server rejected (draft gone / not ready, validation) is not in the wardrobe: its
+      // optimistic tile is removed and the draft list is read again so the draft is back for review.
+      const rejected = new Set(vars.request.items.map((i) => i.id).filter((id) => !byId.has(id)));
+      client.setQueryData<Item[]>(wardrobeKeys.items, (prev) => prev?.filter((i) => !rejected.has(i.id)).map((i) => byId.get(i.id) ?? i));
+      if (rejected.size > 0) void client.invalidateQueries({ queryKey: wardrobeKeys.drafts });
     },
     onError: () => {
       void client.invalidateQueries({ queryKey: wardrobeKeys.items });
@@ -256,26 +282,120 @@ export function useDiscardDraft() {
   return { ...m, discard: (draftId: string) => m.mutate({ draftId, ...newClientMutation() }) };
 }
 
+/**
+ * `POST v1/tenant/item/upload-url { count, contentType }` → one presigned S3 POST per photo, then each
+ * photo is sent as a multipart form (fields first, file last). Returns the `uploadId`s in photo order.
+ */
 async function uploadItemPhotos(localUris: string[]): Promise<string[]> {
   const request: ItemUploadUrlRequest = { count: localUris.length, contentType: 'image/jpeg' };
-  // Presigned URLs are requested at send time — they expire.
-  const { uploads } = await apiRequest<ItemUploadUrlResponse>('v1/tenant/item/upload-url', { method: 'POST', body: request });
+  // Presigned forms are requested at send time — they expire.
+  const { uploads } = await apiRequest<ItemUploadsWire>('v1/tenant/item/upload-url', { method: 'POST', body: request });
   await Promise.all(
     localUris.map(async (uri, i) => {
       const target = uploads[i];
       if (!target) throw new ApiError('http', 500, null);
-      const result = await new File(uri).upload(target.uploadUrl, {
-        httpMethod: 'PUT',
-        uploadType: UploadType.BINARY_CONTENT,
-        headers: { 'Content-Type': 'image/jpeg' },
-      });
-      if (result.status < 200 || result.status >= 300) throw new ApiError('http', result.status, null);
+      const status = await postToPresigned(uri, target);
+      if (status < 200 || status >= 300) throw new ApiError('http', status, null);
     }),
   );
-  return uploads.slice(0, localUris.length).map((u) => u.photoKey);
+  return uploads.slice(0, localUris.length).map((u) => u.uploadId);
 }
 
-export type StartDraftsVariables = { requestId: string; localUris: string[]; splitOutfit: boolean };
+function toDraftsResponse(requestId: string, wire: CreateItemDraftsResultWire): CreateItemDraftsResponse {
+  const confirmable = wire.drafts.filter((d) => d.kind !== 'outfit');
+  return {
+    jobId: wire.jobs[0]?.id ?? requestId,
+    draftIds: (confirmable.length > 0 ? confirmable : wire.drafts).map((d) => d.id),
+    ...(wire.skippedCount > 0 ? { skippedCount: wire.skippedCount } : {}),
+  };
+}
+
+function postDrafts(body: CreateItemDraftsWire): Promise<CreateItemDraftsResultWire> {
+  return apiRequest<CreateItemDraftsResultWire>('v1/tenant/item-draft', { method: 'POST', body });
+}
+
+/**
+ * The uploaded photos as manual drafts (`manual: true`): no AI, no allowance, immediately `ready`
+ * with empty fields — the user fills the form (12c) and confirms as usual.
+ */
+async function startManualDrafts(uploadIds: string[]): Promise<string[]> {
+  if (uploadIds.length === 0) return [];
+  const res = await postDrafts({ requestId: ulid(), uploadIds, splitOutfit: false, manual: true });
+  return res.drafts.map((d) => d.id);
+}
+
+/**
+ * Thrown when the recognition allowance refused the request (402 `item_recognition_limit_reached`,
+ * 403 `premium_required`). The photos are already uploaded and were turned into manual drafts, so
+ * "Elle gir" continues with `manualDraftIds` instead of asking for the photo again.
+ */
+export class RecognitionLimitError extends ApiError {
+  readonly manualDraftIds: string[];
+  constructor(cause: ApiError, manualDraftIds: string[]) {
+    super('http', cause.status, cause.problem);
+    this.manualDraftIds = manualDraftIds;
+  }
+}
+
+async function startDraftsOnApi(vars: StartDraftsVariables): Promise<CreateItemDraftsResponse> {
+  const uploadIds = await uploadItemPhotos(vars.localUris);
+  if (vars.manual) {
+    return { jobId: vars.requestId, draftIds: await startManualDrafts(uploadIds) };
+  }
+  let wire: CreateItemDraftsResultWire;
+  try {
+    wire = await postDrafts({ requestId: vars.requestId, uploadIds, splitOutfit: vars.splitOutfit, manual: false });
+  } catch (error) {
+    if (!(error instanceof ApiError) || !isRecognitionLimitReached(error)) throw error;
+    const manualDraftIds = await startManualDrafts(uploadIds).catch(() => []);
+    throw new RecognitionLimitError(error, manualDraftIds);
+  }
+  // Photos beyond the remaining allowance were left untouched: they become manual drafts.
+  const skipped = wire.skippedUploadIds ?? [];
+  if (skipped.length > 0) await startManualDrafts(skipped).catch(() => []);
+  return toDraftsResponse(vars.requestId, wire);
+}
+
+/**
+ * Confirm request → the two endpoints behind it:
+ * - rows with a `draftId` → `POST v1/tenant/item-draft/confirm` (the user's final values; item id = `itemId`),
+ * - rows with a `libraryItemId` → `POST v1/tenant/item/from-library` (item id = `itemId`).
+ * Each answers per-row results (`created` | `alreadyApplied` | `rejected` + `code`); only the items
+ * that exist afterwards are returned. A row with neither (no photo, no library piece) cannot be
+ * created on the server — it is reported as rejected by not being returned.
+ */
+async function confirmOnApi(request: ConfirmItemDraftsRequest): Promise<ConfirmItemDraftsResponse> {
+  const draftRows: ConfirmDraftRowWire[] = [];
+  const libraryRows: FromLibraryRowWire[] = [];
+  request.items.forEach((entry) => {
+    if (entry.draftId) {
+      draftRows.push({
+        ...fromItemFields(entry),
+        draftId: entry.draftId,
+        clientMutationId: entry.clientMutationId,
+        reviewed: entry.reviewed,
+        itemId: entry.id,
+      });
+    } else if (entry.libraryItemId) {
+      // The item id is `itemId ?? clientMutationId`: both carry the device's id, so the optimistic tile matches either way.
+      libraryRows.push({ clientMutationId: entry.id, libraryItemId: entry.libraryItemId, size: entry.size, itemId: entry.id });
+    }
+  });
+  const [fromDrafts, fromLibrary] = await Promise.all([
+    draftRows.length > 0
+      ? apiRequest<ItemCreateResultsWire>('v1/tenant/item-draft/confirm', { method: 'POST', body: { items: draftRows } })
+      : null,
+    libraryRows.length > 0
+      ? apiRequest<ItemCreateResultsWire>('v1/tenant/item/from-library', { method: 'POST', body: { items: libraryRows } })
+      : null,
+  ]);
+  const items = [...(fromDrafts?.results ?? []), ...(fromLibrary?.results ?? [])]
+    .filter((r) => r.outcome !== 'rejected' && r.item)
+    .map((r) => toItem(r.item as ItemWire));
+  return { items };
+}
+
+export type StartDraftsVariables = { requestId: string; localUris: string[]; splitOutfit: boolean; manual?: boolean };
 
 /**
  * Uploads item photos and starts one ItemProcessor job per photo (12, 13). NOT queued: AI processing
@@ -287,21 +407,27 @@ export function useStartItemDrafts() {
   const m = useMutation<CreateItemDraftsResponse, unknown, StartDraftsVariables>({
     mutationFn: async (vars) => {
       // Fixture mode: nothing is uploaded; the local file is the draft's picture.
-      const photoKeys = DATA_SOURCE.wardrobe === 'api' ? await uploadItemPhotos(vars.localUris) : vars.localUris;
-      const body: CreateItemDraftsRequest = { requestId: vars.requestId, photoKeys, splitOutfit: vars.splitOutfit };
+      const body: CreateItemDraftsRequest = { requestId: vars.requestId, photoKeys: vars.localUris, splitOutfit: vars.splitOutfit };
       return fromSource<CreateItemDraftsResponse>(
         'wardrobe',
         () => fixtureCreateDrafts(body),
-        () => apiRequest<CreateItemDraftsResponse>('v1/tenant/item-draft', { method: 'POST', body }),
+        // upload-url → S3 POST → POST v1/tenant/item-draft (202)
+        () => startDraftsOnApi(vars),
       );
     },
-    onSuccess: () => void client.invalidateQueries({ queryKey: wardrobeKeys.drafts }),
+    // Also after a refused request: the photos may have become manual drafts.
+    onSettled: () => void client.invalidateQueries({ queryKey: wardrobeKeys.drafts }),
     // Each recognition (and a 402) changes the free quota.
-    onSettled: () => void client.invalidateQueries({ queryKey: itemRecognitionKey }),
+    onSuccess: () => void client.invalidateQueries({ queryKey: itemRecognitionKey }),
+    onError: () => void client.invalidateQueries({ queryKey: itemRecognitionKey }),
   });
   return {
     ...m,
     start: (localUris: string[], splitOutfit = false) => m.mutateAsync({ requestId: ulid(), localUris, splitOutfit }),
+    /** "Elle gir" with a photo: no AI and no allowance, the drafts are ready at once with empty fields. */
+    startManual: (localUris: string[]) => m.mutateAsync({ requestId: ulid(), localUris, splitOutfit: false, manual: true }),
+    /** True when a photo-less manual entry cannot be saved (the API creates pieces from a photo or the library only). */
+    manualNeedsPhoto: DATA_SOURCE.wardrobe === 'api',
   };
 }
 
@@ -313,7 +439,10 @@ export function useRetryDraft() {
       fromSource<void>(
         'wardrobe',
         () => fixtureRetryDraft(draftId),
-        () => apiRequest<void>(`v1/tenant/item-draft/${draftId}/retry`, { method: 'POST' }),
+        // POST v1/tenant/item-draft/{id}/retry → 202 (same body as POST item-draft); the list is read again.
+        async () => {
+          await apiRequest<unknown>(`v1/tenant/item-draft/${draftId}/retry`, { method: 'POST' });
+        },
       ),
     onSettled: () => void client.invalidateQueries({ queryKey: wardrobeKeys.drafts }),
   });

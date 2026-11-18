@@ -65,7 +65,7 @@ export default function WardrobeItemsScreen() {
       actions={
         <>
           {items && items.length > 0 ? (
-            <IconButton icon={Search} active={false} onPress={toggleSearch} accessibilityLabel={t('items.searchToggle')} />
+            <IconButton icon={Search} active={false} onPress={toggleSearch} accessibilityLabel={t('items.searchToggle')} testID="wardrobe.searchToggle" />
           ) : null}
           <IconButton
             icon={Plus}
@@ -118,8 +118,8 @@ export default function WardrobeItemsScreen() {
   } else if (items.length === 0) {
     body = (
       <StatePanel icon={Shirt} title={t('items.emptyTitle')} body={t('items.emptyBody')}>
-        <Button label={t('items.emptyAction')} onPress={() => router.push('/item/add')} disabled={!online} />
-        <Button variant="secondary" label={t('items.emptyLibrary')} onPress={() => router.push('/item/library')} />
+        <Button label={t('items.emptyAction')} onPress={() => router.push('/item/add')} disabled={!online} testID="wardrobe.addItem" />
+        <Button variant="secondary" label={t('items.emptyLibrary')} onPress={() => router.push('/item/library')} testID="wardrobe.openLibrary" />
       </StatePanel>
     );
   } else {

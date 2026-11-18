@@ -12,6 +12,7 @@ import type { PreparedPhoto } from '@/features/photos/preparePhoto';
 import { usePhotoPicker } from '@/features/photos/usePhotoPicker';
 import { useStartItemDrafts } from '@/features/wardrobe/mutations';
 import { isRecognitionLimitReached, openRecognitionPaywall, useItemRecognition } from '@/features/wardrobe/recognition';
+import { useManualEntry } from '@/features/wardrobe/useManualEntry';
 import { useIsOnline } from '@/sync/network';
 import { placeholderTones } from '@/theme/tokens';
 
@@ -58,7 +59,9 @@ export default function ItemAddScreen() {
     void recognition.refresh();
     openRecognitionPaywall();
   };
-  const enterManually = () => router.push('/item/form');
+  // "Elle gir": the refused photo is already a manual draft; otherwise a photo is picked first (no AI, no allowance).
+  const manual = useManualEntry({ onError: () => setNotice('photoFailed') });
+  const enterManually = manual.enter;
 
   const onPicked = (photos: PreparedPhoto[]) => {
     const photo = photos[0];
@@ -72,7 +75,11 @@ export default function ItemAddScreen() {
         if (draftId) router.replace({ pathname: '/item/form', params: { draftId } });
         else setNotice('startFailed');
       })
-      .catch((error: unknown) => (isRecognitionLimitReached(error) ? limitReached() : setNotice('startFailed')))
+      .catch((error: unknown) => {
+        manual.adopt(error);
+        if (isRecognitionLimitReached(error)) limitReached();
+        else setNotice('startFailed');
+      })
       .finally(() => setBusy(false));
   };
 
@@ -193,6 +200,7 @@ export default function ItemAddScreen() {
         <Shortcut icon={LayoutGrid} label={t('itemAdd.library')} a11y={t('itemAdd.libraryA11y')} onPress={() => router.push('/item/library')} />
       </View>
       {picker.sheet}
+      {manual.sheet}
     </View>
   );
 }

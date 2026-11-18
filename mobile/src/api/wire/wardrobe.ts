@@ -7,13 +7,24 @@
  * has the name, image, brand and price, so `toLook` joins with the wardrobe (cached `GET
  * v1/tenant/item`) and the catalogue (`GET v1/catalog/product/{id}`).
  */
+import i18n from '@/i18n';
 import { getActiveQueryClient } from '@/sync/activeClient';
 
 import { apiRequest } from '../client';
 import type { Occasion } from '../contracts';
 import type { Look, LookSlot, LookSlotInput, LookSlotKind } from '../contracts/looks';
-import { ITEM_COLORS, type Item, type ItemCategory, type ItemColor, type ItemSeason } from '../contracts/wardrobe';
+import {
+  ITEM_COLORS,
+  type DraftField,
+  type Item,
+  type ItemCategory,
+  type ItemColor,
+  type ItemDetail,
+  type ItemDraft,
+  type ItemSeason,
+} from '../contracts/wardrobe';
 import { fetchProductWires, toMoney, type ProductWire } from './catalog';
+import type { JobWire, PresignedPostWire } from './core';
 
 // ---------- items ----------
 
@@ -114,7 +125,7 @@ export function toItem(wire: ItemWire): Item {
     size: wire.size,
     color: toItemColor(wire.colorIds[0]),
     colorIds: wire.colorIds,
-    fabric: wire.fabric,
+    fabric: toFabricLabel(wire.fabric),
     seasons: wire.seasons,
     imageUrl: wire.imageUrl,
     // The wire has one image URL (cleaned or original, by `useOriginalImage`); there is no second URL.
@@ -268,3 +279,217 @@ export async function toLooks(wires: LookWire[]): Promise<Look[]> {
 export async function toLookAsync(wire: LookWire): Promise<Look> {
   return toLook(wire, await loadLookContext([wire]));
 }
+
+// ---------- fabrics ----------
+
+/**
+ * Fabric ids of `GET v1/tenant/reference/wardrobe` with their names. The item form has a free-text
+ * fabric field: the text is matched to an id on the way out (an unknown fabric is not sent — the
+ * server only accepts reference ids) and the id is shown by name on the way in.
+ */
+const FABRICS: Record<string, { tr: string; en: string }> = {
+  cotton: { tr: 'Pamuk', en: 'Cotton' },
+  linen: { tr: 'Keten', en: 'Linen' },
+  wool: { tr: 'Yün', en: 'Wool' },
+  cashmere: { tr: 'Kaşmir', en: 'Cashmere' },
+  silk: { tr: 'İpek', en: 'Silk' },
+  satin: { tr: 'Saten', en: 'Satin' },
+  chiffon: { tr: 'Şifon', en: 'Chiffon' },
+  viscose: { tr: 'Viskon', en: 'Viscose' },
+  polyester: { tr: 'Polyester', en: 'Polyester' },
+  denim: { tr: 'Denim', en: 'Denim' },
+  leather: { tr: 'Deri', en: 'Leather' },
+  suede: { tr: 'Süet', en: 'Suede' },
+  knit: { tr: 'Triko', en: 'Knit' },
+  velvet: { tr: 'Kadife', en: 'Velvet' },
+  tweed: { tr: 'Tüvit', en: 'Tweed' },
+  nylon: { tr: 'Naylon', en: 'Nylon' },
+  fleece: { tr: 'Polar', en: 'Fleece' },
+  down: { tr: 'Kaz tüyü', en: 'Down' },
+};
+
+const foldText = (value: string) =>
+  value
+    .trim()
+    .toLocaleLowerCase('tr')
+    .replace(/ı/g, 'i')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '');
+
+/** Fabric id → name in the app language (an id the table does not know is shown as sent). */
+export function toFabricLabel(fabricId: string | null | undefined): string | null {
+  if (!fabricId) return null;
+  const names = FABRICS[fabricId];
+  if (!names) return fabricId;
+  return i18n.language?.startsWith('en') ? names.en : names.tr;
+}
+
+/** What the user typed (or a label / id) → fabric id; null when it is not a reference fabric. */
+export function toFabricId(text: string | null | undefined): string | null {
+  if (!text) return null;
+  const needle = foldText(text);
+  if (!needle) return null;
+  for (const [id, names] of Object.entries(FABRICS)) {
+    if (id === needle || foldText(names.tr) === needle || foldText(names.en) === needle) return id;
+  }
+  return null;
+}
+
+// ---------- item writes ----------
+
+/** PUT v1/tenant/item/{id} — every user field is replaced. 409 → the current `ItemWire`. */
+export type PutItemWire = {
+  name: string;
+  category: ItemCategory;
+  colorIds: string[];
+  fabric: string | null;
+  seasons: ItemSeason[];
+  size: string | null;
+  brand: string | null;
+  useOriginalImage: boolean;
+  baseVersion: number;
+};
+
+type ItemFieldsLike = Pick<Item, 'name' | 'category' | 'brand' | 'size' | 'color' | 'colorIds' | 'fabric' | 'seasons' | 'useOriginalImage'>;
+
+/** The user fields of an item as the server takes them (PUT body and confirm rows share them). */
+export function fromItemFields(fields: ItemFieldsLike, previousColorIds?: string[] | null): Omit<PutItemWire, 'baseVersion'> {
+  return {
+    name: fields.name,
+    category: fields.category,
+    colorIds: toColorIds(fields.color, fields.colorIds ?? previousColorIds),
+    fabric: toFabricId(fields.fabric),
+    seasons: fields.seasons,
+    size: fields.size,
+    brand: fields.brand,
+    useOriginalImage: fields.useOriginalImage,
+  };
+}
+
+/** GET v1/tenant/item/{id} */
+export type ItemDetailWire = { item: ItemWire; looks: LookWire[] };
+
+export function toItemDetail(wire: ItemDetailWire): ItemDetail {
+  return {
+    ...toItem(wire.item),
+    // Embedded looks carry ids only; the list row needs the name and the occasion.
+    looks: wire.looks.map((l) => ({ id: l.id, name: l.name, occasion: l.occasion ?? '', imageUrl: null })),
+  };
+}
+
+// ---------- uploads and drafts ----------
+
+/** POST v1/tenant/item/upload-url `{ count, contentType }` → one presigned POST per photo. */
+export type ItemUploadsWire = { uploads: PresignedPostWire[] };
+
+export type ItemDraftWire = {
+  /** = the `uploadId` of the photo. */
+  id: string;
+  kind: 'single' | 'outfit' | 'piece';
+  status: 'uploaded' | 'processing' | 'ready' | 'failed';
+  jobId: string | null;
+  parentDraftId: string | null;
+  /** Cleaned image, or the original while processing / failed. */
+  imageUrl: string | null;
+  originalImageUrl: string | null;
+  imageUrlExpiresAt: string | null;
+  name: string | null;
+  category: ItemCategory | null;
+  colorIds: string[] | null;
+  fabric: string | null;
+  seasons: ItemSeason[] | null;
+  /** ⊆ `category`, `colorIds`, `fabric`, `seasons`. */
+  flaggedFields: string[] | null;
+  /** "Kategoriyi kontrol et": the box starts unticked and "select all" skips it. */
+  needsReview: boolean;
+  language: string | null;
+  createdAt: string;
+};
+
+/** GET v1/tenant/item-draft */
+export type ItemDraftsWire = { drafts: ItemDraftWire[]; total: number; processed: number };
+
+/** POST v1/tenant/item-draft */
+export type CreateItemDraftsWire = { requestId: string; uploadIds: string[]; splitOutfit: boolean; manual: boolean };
+/** 202 of POST v1/tenant/item-draft (and of `…/{id}/retry`). */
+export type CreateItemDraftsResultWire = {
+  drafts: ItemDraftWire[];
+  jobs: JobWire[];
+  skippedCount: number;
+  skippedUploadIds: string[] | null;
+  itemRecognition: { limit: number | null; used: number; remaining: number | null } | null;
+};
+
+const FLAGGED: Record<string, DraftField> = { category: 'category', colorIds: 'color', fabric: 'fabric', seasons: 'seasons', name: 'name' };
+
+export function toItemDraft(wire: ItemDraftWire): ItemDraft {
+  const ready = wire.status === 'ready';
+  const lowConfidence = [...new Set((wire.flaggedFields ?? []).map((f) => FLAGGED[f]).filter((f): f is DraftField => Boolean(f)))];
+  if (wire.needsReview && !lowConfidence.includes('category')) lowConfidence.unshift('category');
+  const suggestion: ItemDraft['suggestion'] = ready
+    ? {
+        ...(wire.name ? { name: wire.name } : {}),
+        ...(wire.category ? { category: wire.category } : {}),
+        ...(wire.colorIds && wire.colorIds.length > 0 ? { color: toItemColor(wire.colorIds[0]), colorIds: wire.colorIds } : {}),
+        ...(wire.fabric ? { fabric: toFabricLabel(wire.fabric) } : {}),
+        ...(wire.seasons && wire.seasons.length > 0 ? { seasons: wire.seasons } : {}),
+      }
+    : null;
+  return {
+    id: wire.id,
+    status: ready ? 'ready' : wire.status === 'failed' ? 'failed' : 'processing',
+    requestId: wire.jobId ?? wire.parentDraftId ?? '',
+    imageUrl: wire.imageUrl ?? wire.originalImageUrl,
+    originalImageUrl: wire.originalImageUrl,
+    suggestion,
+    lowConfidence: ready ? lowConfidence : [],
+  };
+}
+
+/** The outfit photo of a split is only the source of its `piece` drafts — once split it is never confirmed itself. */
+export function toItemDrafts(wire: ItemDraftsWire): ItemDraft[] {
+  return wire.drafts.filter((d) => !(d.kind === 'outfit' && d.status === 'ready')).map(toItemDraft);
+}
+
+/** One row of POST v1/tenant/item-draft/confirm. The new item id is `itemId ?? clientMutationId`. */
+export type ConfirmDraftRowWire = Omit<PutItemWire, 'baseVersion'> & {
+  draftId: string;
+  clientMutationId: string;
+  reviewed: boolean;
+  itemId: string | null;
+};
+
+export type ItemCreateResultWire = {
+  /** draftId / libraryItemId / productId of the request row. */
+  refId: string;
+  outcome: 'created' | 'alreadyApplied' | 'rejected';
+  /** When rejected: `draft_not_found`, `draft_not_ready`, `draft_review_required`, `validation_failed`, `item_id_taken`, `library_item_not_found`, … */
+  code: string | null;
+  errors: unknown;
+  item: ItemWire | null;
+};
+export type ItemCreateResultsWire = { results: ItemCreateResultWire[]; createdCount: number };
+
+/** POST v1/tenant/item/from-library row. The new item id is `itemId ?? clientMutationId`. */
+export type FromLibraryRowWire = { clientMutationId: string; libraryItemId: string; size?: string | null; itemId?: string | null };
+
+// ---------- look writes ----------
+
+/** POST v1/tenant/look → 201 (200 when the same id is sent again). 422 slot rule codes, 400 validation. */
+export type CreateLookWire = {
+  id: string;
+  name: string;
+  occasion: OccasionWire | null;
+  slots: LookSlotInputWire[];
+  favorite: boolean;
+  source: LookSourceWire;
+};
+
+/** PUT v1/tenant/look/{id} → 409 with the current `LookWire`. */
+export type PutLookWire = {
+  name: string;
+  occasion: OccasionWire | null;
+  slots: LookSlotInputWire[];
+  favorite: boolean;
+  baseVersion: number;
+};

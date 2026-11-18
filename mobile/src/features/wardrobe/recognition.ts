@@ -5,16 +5,19 @@ import { apiRequest } from '@/api/client';
 import type { Entitlement } from '@/api/contracts';
 import { fromSource } from '@/api/dataSource';
 import { ApiError } from '@/api/errors';
+import { toEntitlement, type EntitlementWire } from '@/api/wire/core';
 import { clone, fixtureDb } from '@/fixtures/db';
 
 /**
  * AI recognition of garment photos (12, 13) — owner decision 2026-11-18: free for non-members up to
  * a server-configured limit, unlimited for members. The server is the only source of the numbers
  * (`GET v1/tenant/entitlement` → `itemRecognition`) and the authority: starting item processing
- * answers 402 `item_recognition_limit_reached` when the quota is used up. The app then shows the
- * paywall and ALWAYS keeps "Elle gir": the piece can be saved without AI through form 12c.
+ * answers 402 `item_recognition_limit_reached` when the quota is used up, or 403 `premium_required`
+ * when the limit is configured as 0 (members only). Both open the paywall and the app ALWAYS keeps
+ * "Elle gir": the photo becomes a manual draft (`manual: true`, no AI, no allowance) filled in on 12c.
  */
 export const ITEM_RECOGNITION_LIMIT_CODE = 'item_recognition_limit_reached';
+const MEMBERS_ONLY_CODE = 'premium_required';
 
 /** Separate from `queryKeys.entitlement` (the paywall's live query) so fixture data never lands in that cache entry. */
 export const itemRecognitionKey = ['tenant', 'entitlement', 'item-recognition'] as const;
@@ -31,7 +34,7 @@ export function recognitionRemaining(entitlement: Pick<Entitlement, 'itemRecogni
 }
 
 export function isRecognitionLimitReached(error: unknown): boolean {
-  return error instanceof ApiError && error.code === ITEM_RECOGNITION_LIMIT_CODE;
+  return error instanceof ApiError && (error.code === ITEM_RECOGNITION_LIMIT_CODE || error.code === MEMBERS_ONLY_CODE);
 }
 
 /** Bulk add: the photos that fit the remaining quota are processed, the rest are reported as skipped. */
@@ -54,7 +57,7 @@ export function useItemRecognition() {
       fromSource<Entitlement>(
         'wardrobe',
         () => clone(fixtureDb.entitlement),
-        () => apiRequest<Entitlement>('v1/tenant/entitlement'),
+        async () => toEntitlement(await apiRequest<EntitlementWire>('v1/tenant/entitlement')),
       ),
   });
   const remaining = recognitionRemaining(query.data);

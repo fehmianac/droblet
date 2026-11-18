@@ -1,6 +1,7 @@
 /**
- * E2 Gardırop — PROVISIONAL contract (BACKEND_ENGINEER §Uç nokta haritası, E2). Backend is being
- * written in parallel; adjust here when it settles. JSON camelCase, UTC ISO-8601 times.
+ * E2 Gardırop — the APP-side types the screens use. The real request / response shapes
+ * (docs/api/wardrobe-looks-plan-stylist.md §3) and the mappers live in `../wire/wardrobe.ts`; the
+ * hooks in `features/wardrobe` translate at the API boundary.
  */
 import type { JobAccepted } from './jobs';
 
@@ -20,7 +21,7 @@ export type Item = {
   id: string;
   name: string;
   category: ItemCategory;
-  /** Free-text type inside the category, e.g. "Gömlek". */
+  /** Free-text type inside the category, e.g. "Gömlek". Device-only: the server has no such field (always null from the API). */
   subcategory: string | null;
   brand: string | null;
   size: string | null;
@@ -49,29 +50,31 @@ export type ItemListResponse = Item[];
 /** A look as referenced from another record (item detail, plan day, trip day). */
 export type LookRef = { id: string; name: string; occasion: string; imageUrl: string | null };
 
-/** GET v1/tenant/item/{id} */
+/** GET v1/tenant/item/{id} → `{ item, looks }` on the wire, flattened here. */
 export type ItemDetail = Item & { looks: LookRef[] };
 
-export type ItemFields = Pick<Item, 'name' | 'category' | 'subcategory' | 'brand' | 'size' | 'color' | 'fabric' | 'seasons' | 'useOriginalImage'>;
+export type ItemFields = Pick<Item, 'name' | 'category' | 'subcategory' | 'brand' | 'size' | 'color' | 'colorIds' | 'fabric' | 'seasons' | 'useOriginalImage'>;
 
-/** PUT v1/tenant/item/{id} — versioned (409 + `current` on conflict). */
+/** PUT v1/tenant/item/{id} — versioned; 409 answers the current record. Sent as `PutItemWire` (colorIds, fabric id). */
 export type PutItemRequest = ItemFields & { baseVersion: number; clientMutationId: string };
 
 /** DELETE v1/tenant/item/{id} — no body; idempotent (404 = already gone). */
 
-/** POST v1/tenant/item/upload-url */
+/** POST v1/tenant/item/upload-url (count 1–30) → `{ uploads: PresignedPostWire[] }` (multipart POST: fields, then `file`). */
 export type ItemUploadUrlRequest = { count: number; contentType: 'image/jpeg' };
-export type ItemUploadUrlResponse = { uploads: { photoKey: string; uploadUrl: string; expiresAt: string }[] };
 
 /**
- * POST v1/tenant/item-draft → 202. One ItemProcessor job per photo.
- * `splitOutfit`: "Kombin fotoğrafından parçaları ayır" — one photo may yield several drafts.
+ * What a screen asks for: local photos to turn into drafts. On the API this is upload-url → S3 →
+ * `POST v1/tenant/item-draft { requestId, uploadIds, splitOutfit, manual }` → 202 (one draft and one
+ * job per photo). `splitOutfit`: "Kombin fotoğrafından parçaları ayır" — one photo may yield several drafts.
+ * `photoKeys` are the local URIs (fixtures use them as the draft picture).
  */
 export type CreateItemDraftsRequest = { requestId: string; photoKeys: string[]; splitOutfit?: boolean };
 /**
- * 402 `item_recognition_limit_reached` when the free recognition quota is used up (nothing is started).
- * ASSUMPTION: when only part of the batch fits the quota the server starts those and reports the rest
- * in `skippedCount` (the app also trims the batch to the known `itemRecognition.remaining` beforehand).
+ * 402 `item_recognition_limit_reached` when the free allowance is used up, 403 `premium_required` when
+ * the limit is 0 (nothing is started; the app turns the uploaded photos into manual drafts).
+ * When only part of the batch fits, the server starts those and reports the rest in `skippedCount`
+ * (`skippedUploadIds` on the wire — they become manual drafts too).
  */
 export type CreateItemDraftsResponse = JobAccepted & { draftIds: string[]; skippedCount?: number };
 
@@ -81,7 +84,7 @@ export type DraftField = 'name' | 'category' | 'color' | 'fabric' | 'seasons';
 export type ItemDraft = {
   id: string;
   status: 'processing' | 'ready' | 'failed';
-  /** Batch the draft belongs to (bulk add progress "8 / 12"). */
+  /** The draft's job id on the API (empty for a manual draft); the batch id in fixtures. */
   requestId: string;
   /** Local preview until the processed image exists. */
   imageUrl: string | null;
@@ -95,11 +98,15 @@ export type ItemDraft = {
 /** DELETE v1/tenant/item-draft/{id} — no body; discards the draft and its photo. */
 
 /**
- * POST v1/tenant/item-draft/{id}/retry → 202, no body. ASSUMED (not in the endpoint map): re-runs the
- * ItemProcessor for a failed draft without uploading the photo again.
+ * POST v1/tenant/item-draft/{id}/retry → 202, no body: re-runs the ItemProcessor for a failed draft
+ * without uploading the photo again (404 `draft_not_found`, 409 `draft_not_failed`, allowance rules as above).
  */
 
-/** POST v1/tenant/item-draft/confirm */
+/**
+ * "Gardıroba kaydet" as the screens build it. Rows with a `draftId` go to
+ * `POST v1/tenant/item-draft/confirm`, rows with a `libraryItemId` to `POST v1/tenant/item/from-library`;
+ * both answer per-row outcomes (`created` | `alreadyApplied` | `rejected` + code).
+ */
 export type ConfirmItemDraftsRequest = {
   items: (ItemFields & {
     /** Null for a piece added without AI (ready-made library / manual). */
@@ -112,6 +119,7 @@ export type ConfirmItemDraftsRequest = {
     clientMutationId: string;
   })[];
 };
+/** The items that exist after the call (rejected rows are absent). */
 export type ConfirmItemDraftsResponse = { items: Item[] };
 
 /** Bulk add limit (13). */
