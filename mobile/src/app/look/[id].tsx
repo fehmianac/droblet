@@ -1,6 +1,10 @@
-import { PlaceholderScreen } from '@/components/navigation/PlaceholderScreen';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 
-/** Not built in this slice — titled placeholder keeps navigation complete. */
-export default function LookIdScreen() {
-  return <PlaceholderScreen titleKey="lookDetail" />;
+/**
+ * A saved look opens in the builder's edit mode (15). A dedicated look detail is not part of this
+ * slice; deep links to `/look/{id}` keep working through this redirect.
+ */
+export default function LookScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  return <Redirect href={{ pathname: '/look/new', params: { id } }} />;
 }
