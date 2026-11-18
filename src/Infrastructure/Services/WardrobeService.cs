@@ -434,13 +434,8 @@ public sealed class WardrobeService(
         return (await storage.CreateReadUrlAsync(key, ttl, ct), Now.Add(ttl));
     }
 
-    private string? PublicUrl(string? globalKey)
-    {
-        var baseUrl = wardrobeOptions.CurrentValue.PublicAssetBaseUrl;
-        return string.IsNullOrWhiteSpace(globalKey) || string.IsNullOrWhiteSpace(baseUrl)
-            ? null
-            : $"{baseUrl.TrimEnd('/')}/{globalKey.TrimStart('/')}";
-    }
+    private string? PublicUrl(string? globalKey) =>
+        Integration.GlobalAssets.PublicUrl(globalKey, wardrobeOptions.CurrentValue.PublicAssetBaseUrl);
 
     private async Task<string> LanguageAsync(string tenantId, string? requestLanguage, CancellationToken ct) =>
         Localized.Language((await repository.GetAsync<TenantEntity>(TenantEntity.GetPk(), TenantEntity.GetSk(tenantId), ct))?.Language, requestLanguage);

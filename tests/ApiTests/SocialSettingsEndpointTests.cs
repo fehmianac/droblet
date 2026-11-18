@@ -19,7 +19,7 @@ public class SocialVisibilityEndpointTests(StoreSocialApiFactory factory) : ICla
         var owner = await factory.UserAsync(ClosetVisibility.Private);
         var viewer = await factory.UserAsync();
         var lookId = factory.Closet.AddLook(owner.TenantId);
-        factory.Closet.AddItem(owner.TenantId, "item-1", ProductCategory.Shirt, "white");
+        factory.Closet.AddItem(owner.TenantId, "item-1", ItemCategory.Top, "white");
 
         foreach (var path in new[] { "", "/look", "/item", "/trip" })
             Assert.Equal(HttpStatusCode.NotFound, await Status(viewer.Client, $"v1/tenant/people/{owner.Handle}{path}"));
@@ -40,7 +40,7 @@ public class SocialVisibilityEndpointTests(StoreSocialApiFactory factory) : ICla
         var owner = await factory.UserAsync(ClosetVisibility.FollowersOnly);
         var viewer = await factory.UserAsync();
         factory.Closet.AddLook(owner.TenantId);
-        factory.Closet.AddItem(owner.TenantId, "item-1", ProductCategory.Shirt, "white");
+        factory.Closet.AddItem(owner.TenantId, "item-1", ItemCategory.Top, "white");
 
         var locked = await (await viewer.Client.GetAsync($"v1/tenant/people/{owner.Handle}")).JsonAsync();
         var looksBefore = await Status(viewer.Client, $"v1/tenant/people/{owner.Handle}/look");

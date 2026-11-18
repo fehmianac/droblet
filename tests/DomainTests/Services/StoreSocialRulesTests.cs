@@ -152,7 +152,7 @@ public class WeeklyEditRulesTests
 
 public class WardrobeMatchRulesTests
 {
-    private static ClosetItem Item(string id, ProductCategory category, params string[] colors) => new(id, id, category, colors);
+    private static ClosetItem Item(string id, ProductCategory category, params string[] colors) => new(id, id, CatalogRules.ItemCategoryOf(category), colors);
 
     [Fact]
     public void Compatible_NeedsDifferentSlotAndHarmonisingColours()

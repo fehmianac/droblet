@@ -3,13 +3,16 @@ using Domain.Enum;
 
 namespace Domain.Services;
 
-// ── Seam to the wardrobe/look slice (E2–E5, built in a parallel branch) ─────────────────────────────────────────
-// Store and social code never read item/look/trip entities directly: they ask IClosetReader. The default
-// registration (EmptyClosetReader) returns nothing; the wardrobe engineer registers the real implementation.
+// ── Seam to the wardrobe/look slice (E2–E5) ─────────────────────────────────────────────────────────────────────
+// Store and social code never read item/look/trip entities directly: they ask IClosetReader (implemented by
+// Infrastructure.Services.Integration.WardrobeClosetReader on the real Item / Look / Trip partitions).
+// IClosetReader itself does no authorisation: every cross-tenant caller decides with PersonContext.CanView
+// (= VisibilityPolicy + block rules) first. Wardrobe pieces and look slots use the wardrobe enums
+// (ItemCategory / OutfitSlot); catalog products keep ProductCategory / ProductSlot.
 
-public sealed record ClosetItem(string Id, string Name, ProductCategory Category, IReadOnlyList<string> Colors, string? ImageUrl = null);
+public sealed record ClosetItem(string Id, string Name, ItemCategory Category, IReadOnlyList<string> Colors, string? ImageUrl = null);
 
-public sealed record ClosetLookPiece(ProductSlot Slot, string? ItemId, string? ProductId, string? Name = null, string? ImageUrl = null);
+public sealed record ClosetLookPiece(OutfitSlot Slot, string? ItemId, string? ProductId, string? Name = null, string? ImageUrl = null);
 
 public sealed record ClosetLook(string Id, string Name, string? Occasion, DateTime CreatedAt, IReadOnlyList<ClosetLookPiece> Pieces);
 
@@ -24,14 +27,6 @@ public interface IClosetReader
     Task<IReadOnlyList<ClosetLook>> GetLooksAsync(string tenantId, CancellationToken ct);
     Task<ClosetLook?> GetLookAsync(string tenantId, string lookId, CancellationToken ct);
     Task<IReadOnlyList<ClosetTrip>> GetCompletedTripsAsync(string tenantId, CancellationToken ct);
-}
-
-public sealed class EmptyClosetReader : IClosetReader
-{
-    public Task<IReadOnlyList<ClosetItem>> GetItemsAsync(string tenantId, CancellationToken ct) => Task.FromResult<IReadOnlyList<ClosetItem>>([]);
-    public Task<IReadOnlyList<ClosetLook>> GetLooksAsync(string tenantId, CancellationToken ct) => Task.FromResult<IReadOnlyList<ClosetLook>>([]);
-    public Task<ClosetLook?> GetLookAsync(string tenantId, string lookId, CancellationToken ct) => Task.FromResult<ClosetLook?>(null);
-    public Task<IReadOnlyList<ClosetTrip>> GetCompletedTripsAsync(string tenantId, CancellationToken ct) => Task.FromResult<IReadOnlyList<ClosetTrip>>([]);
 }
 
 public sealed record WardrobeMatchResult(IReadOnlyList<ClosetItem> CompatibleItems);
@@ -81,6 +76,8 @@ public static class WardrobeMatchRules
     public static readonly IReadOnlySet<string> Neutrals = new HashSet<string>(StringComparer.Ordinal)
     {
         "black", "white", "grey", "gray", "beige", "cream", "ecru", "navy", "camel", "brown", "denim", "khaki", "taupe",
+        // wardrobe colour ids (ColorCatalog) of the same neutral families
+        "charcoal", "silver", "ivory", "chocolate",
     };
 
     /// <summary>Slots a complete outfit needs (screen 23's five slots; a one-piece replaces top + bottom).</summary>

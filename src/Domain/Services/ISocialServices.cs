@@ -31,7 +31,7 @@ public record PersonProfileDto(
     int FollowerCount,
     int FollowingCount);
 
-public record SocialLookPieceDto(ProductSlot Slot, string? ItemId, string? ProductId, string? Name, string? ImageUrl, ProductDto? Product);
+public record SocialLookPieceDto(OutfitSlot Slot, string? ItemId, string? ProductId, string? Name, string? ImageUrl, ProductDto? Product);
 
 public record LookRatingDto(double? Average, long Count, int? MyScore);
 

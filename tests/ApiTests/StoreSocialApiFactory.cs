@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using Api;
 using Api.Contracts;
+using Domain.Entity;
 using Domain.Enum;
 using Domain.Manager;
 using Domain.Services;
@@ -19,8 +20,8 @@ using Tests.Shared;
 namespace ApiTests;
 
 /// <summary>
-/// Api host for the store / social / settings slices: in-memory repository, a fake wardrobe (IClosetReader — the real
-/// one belongs to the wardrobe slice), a fake weather provider, a configured admin and postback secrets.
+/// Api host for the store / social / settings slices: in-memory repository, real wardrobe rows seeded through
+/// <see cref="ClosetSeeder"/>, a fake weather provider, a configured admin and postback secrets.
 /// </summary>
 public sealed class StoreSocialApiFactory : WebApplicationFactory<Entrypoint>
 {
@@ -30,7 +31,8 @@ public sealed class StoreSocialApiFactory : WebApplicationFactory<Entrypoint>
     public const string Password = "Sifre1234";
 
     public InMemoryRepository Repository { get; } = new();
-    public FakeClosetReader Closet { get; } = new();
+    public ClosetSeeder Closet => _closet ??= new ClosetSeeder(Repository);
+    private ClosetSeeder? _closet;
     public FakeWeatherProvider Weather { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -53,8 +55,6 @@ public sealed class StoreSocialApiFactory : WebApplicationFactory<Entrypoint>
             services.AddSingleton<IEmailService>(new CapturingEmailService());
             services.RemoveAll<IPasswordHasher>();
             services.AddSingleton<IPasswordHasher>(new PasswordHasher(1_000));
-            services.RemoveAll<IClosetReader>();
-            services.AddSingleton<IClosetReader>(Closet);
             services.RemoveAll<IWeatherProvider>();
             services.AddSingleton<IWeatherProvider>(Weather);
         });
@@ -123,60 +123,53 @@ public sealed class StoreSocialApiFactory : WebApplicationFactory<Entrypoint>
 
 public sealed record TestUser(HttpClient Client, string TenantId, string UserId, string Handle);
 
-public sealed class FakeClosetReader : IClosetReader
+/// <summary>
+/// Seeds REAL wardrobe rows (Item / Look / Trip entities) into the repository, so social and store endpoints read
+/// them through the production IClosetReader (WardrobeClosetReader) — no fake closet.
+/// </summary>
+public sealed class ClosetSeeder(InMemoryRepository repository)
 {
-    private readonly Dictionary<string, List<ClosetItem>> _items = [];
-    private readonly Dictionary<string, List<ClosetLook>> _looks = [];
-    private readonly Dictionary<string, List<ClosetTrip>> _trips = [];
+    public const string SharedItemId = "item-1";
 
     public string AddLook(string tenantId, DateTime? createdAt = null, string? productId = null)
     {
-        var id = Domain.Extensions.Ulid.New(createdAt);
-        var pieces = new List<ClosetLookPiece> { new(ProductSlot.Top, "item-1", null, "Beyaz gömlek", "https://signed.example/item-1") };
+        var at = createdAt ?? DateTime.UtcNow;
+        var id = Domain.Extensions.Ulid.New(at);
+        AddItem(tenantId, SharedItemId, ItemCategory.Top, "white");
+        var slots = new List<LookSlotValue> { new() { Slot = OutfitSlot.Top, ItemId = SharedItemId } };
         if (productId is not null)
-            pieces.Add(new ClosetLookPiece(ProductSlot.Bag, null, productId));
-        lock (_looks)
+            slots.Add(new LookSlotValue { Slot = OutfitSlot.BagAccessory, ProductId = productId });
+        repository.SaveAsync(new LookEntity
         {
-            if (!_looks.TryGetValue(tenantId, out var list)) _looks[tenantId] = list = [];
-            list.Add(new ClosetLook(id, "Ofis", "office", createdAt ?? DateTime.UtcNow, pieces));
-        }
+            Id = id, TenantId = tenantId, Name = "Ofis", Occasion = Occasion.Office, Slots = slots, Source = LookSource.User,
+            CreatedAt = at, UpdatedAt = at, Version = 1,
+        }).GetAwaiter().GetResult();
         return id;
     }
 
-    public void AddItem(string tenantId, string id, ProductCategory category, params string[] colors)
+    public void AddItem(string tenantId, string id, ItemCategory category, params string[] colors)
     {
-        lock (_items)
+        var now = DateTime.UtcNow;
+        repository.SaveAsync(new ItemEntity
         {
-            if (!_items.TryGetValue(tenantId, out var list)) _items[tenantId] = list = [];
-            list.Add(new ClosetItem(id, id, category, colors, $"https://signed.example/{id}"));
-        }
+            Id = id, TenantId = tenantId, Name = id == SharedItemId ? "Beyaz gömlek" : id, Category = category, ColorIds = colors.ToList(),
+            Seasons = [Domain.Services.Ai.Season.Spring], Source = ItemSource.Photo,
+            ImageKey = $"{StorageKeys.TenantRoot(tenantId)}items/{id}/clean.webp",
+            OriginalImageKey = $"{StorageKeys.TenantRoot(tenantId)}items/{id}/original.jpg",
+            CreatedAt = now, UpdatedAt = now, Version = 1,
+        }).GetAwaiter().GetResult();
     }
 
-    public void AddTrip(string tenantId, string id)
+    /// <summary>A finished trip (ended yesterday or earlier).</summary>
+    public void AddTrip(string tenantId, string id, int endedDaysAgo = 10)
     {
-        lock (_trips)
+        var end = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-endedDaysAgo);
+        repository.SaveAsync(new TripEntity
         {
-            if (!_trips.TryGetValue(tenantId, out var list)) _trips[tenantId] = list = [];
-            list.Add(new ClosetTrip(id, "Paris", "2026-10"));
-        }
-    }
-
-    public Task<IReadOnlyList<ClosetItem>> GetItemsAsync(string tenantId, CancellationToken ct)
-    {
-        lock (_items) return Task.FromResult<IReadOnlyList<ClosetItem>>(_items.GetValueOrDefault(tenantId)?.ToList() ?? []);
-    }
-
-    public Task<IReadOnlyList<ClosetLook>> GetLooksAsync(string tenantId, CancellationToken ct)
-    {
-        lock (_looks) return Task.FromResult<IReadOnlyList<ClosetLook>>(_looks.GetValueOrDefault(tenantId)?.OrderByDescending(l => l.CreatedAt).ToList() ?? []);
-    }
-
-    public async Task<ClosetLook?> GetLookAsync(string tenantId, string lookId, CancellationToken ct) =>
-        (await GetLooksAsync(tenantId, ct)).FirstOrDefault(l => l.Id == lookId);
-
-    public Task<IReadOnlyList<ClosetTrip>> GetCompletedTripsAsync(string tenantId, CancellationToken ct)
-    {
-        lock (_trips) return Task.FromResult<IReadOnlyList<ClosetTrip>>(_trips.GetValueOrDefault(tenantId)?.ToList() ?? []);
+            Id = id, TenantId = tenantId, CityId = "2988507", CityName = "Paris",
+            StartDate = CalendarDay.ToText(end.AddDays(-3)), EndDate = CalendarDay.ToText(end),
+            CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, Version = 1,
+        }).GetAwaiter().GetResult();
     }
 }
 

@@ -47,7 +47,7 @@ public record ContentCollectionDto(string Id, ContentCollectionKind Kind, string
 
 public record ContentLookDto(string Id, string CollectionId, string Title, string? Note, string? ImageUrl, IReadOnlyList<ProductDto> Products, long TotalMinor, string Currency);
 
-public record ClosetItemDto(string Id, string Name, ProductCategory Category, IReadOnlyList<string> Colors, string? ImageUrl);
+public record ClosetItemDto(string Id, string Name, ItemCategory Category, IReadOnlyList<string> Colors, string? ImageUrl);
 
 public record ProductMatchDto(string ProductId, int CompatibleCount, IReadOnlyList<ClosetItemDto> Items);
 

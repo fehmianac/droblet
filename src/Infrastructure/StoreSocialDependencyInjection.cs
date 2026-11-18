@@ -49,8 +49,8 @@ public static class StoreSocialDependencyInjection
         services.TryAddSingleton<IValidator<ContentCollectionInput>, ContentCollectionInputValidator>();
         services.TryAddSingleton<IValidator<ContentLookInput>, ContentLookInputValidator>();
 
-        // Seams: replaced by the wardrobe / plan slices.
-        services.TryAddSingleton<IClosetReader, EmptyClosetReader>();
+        // Seams to the wardrobe / plan slices (real implementations: Infrastructure.Services.Integration).
+        services.TryAddSingleton<IClosetReader, Infrastructure.Services.Integration.WardrobeClosetReader>();
         services.TryAddSingleton<IWardrobeMatcher, RuleBasedWardrobeMatcher>();
         services.TryAddSingleton<IMorningOutfitCheck, NoMorningOutfitCheck>();
 

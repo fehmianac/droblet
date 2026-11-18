@@ -36,6 +36,32 @@ public static class CatalogRules
         _ => ProductSlot.Accessory,
     };
 
+    /// <summary>Outfit position of a wardrobe piece in the catalog's slot vocabulary (wardrobe match / "Parçamı tamamla").</summary>
+    public static ProductSlot SlotOf(ItemCategory category) => category switch
+    {
+        ItemCategory.Top => ProductSlot.Top,
+        ItemCategory.Bottom => ProductSlot.Bottom,
+        ItemCategory.Outerwear or ItemCategory.Skiwear => ProductSlot.Outerwear,
+        ItemCategory.Dress or ItemCategory.Beachwear => ProductSlot.OnePiece,
+        ItemCategory.Shoes => ProductSlot.Shoes,
+        ItemCategory.Bag => ProductSlot.Bag,
+        _ => ProductSlot.Accessory,
+    };
+
+    /// <summary>The wardrobe category a catalog product becomes when it enters a wardrobe or a look slot.</summary>
+    public static ItemCategory ItemCategoryOf(ProductCategory category) => category switch
+    {
+        ProductCategory.Trousers or ProductCategory.Jeans or ProductCategory.Skirt or ProductCategory.Shorts => ItemCategory.Bottom,
+        ProductCategory.Jacket or ProductCategory.Coat => ItemCategory.Outerwear,
+        ProductCategory.Dress => ItemCategory.Dress,
+        ProductCategory.Shoes => ItemCategory.Shoes,
+        ProductCategory.Bag => ItemCategory.Bag,
+        ProductCategory.Accessory => ItemCategory.Accessory,
+        ProductCategory.Swimwear => ItemCategory.Beachwear,
+        ProductCategory.Skiwear => ItemCategory.Skiwear,
+        _ => ItemCategory.Top,
+    };
+
     /// <summary>Lower-case, Turkish letters folded to ASCII, so "Gömlek", "gomlek" and "GÖMLEK" match.</summary>
     public static string NormalizeText(string? value)
     {

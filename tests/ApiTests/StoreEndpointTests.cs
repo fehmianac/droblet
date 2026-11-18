@@ -422,9 +422,9 @@ public class CartAndAffiliateEndpointTests(StoreSocialApiFactory factory) : ICla
         var redSkirt = await factory.SeedProductAsync(admin, brand, 200_000, ProductCategory.Skirt, ["red"], ["M"]);
         var shoes = await factory.SeedProductAsync(admin, brand, 300_000, ProductCategory.Shoes, ["white"], ["38"]);
         var (user, auth) = await factory.RegisterAsync();
-        factory.Closet.AddItem(auth.TenantId, "white-shirt", ProductCategory.Shirt, "white");
-        factory.Closet.AddItem(auth.TenantId, "green-top", ProductCategory.Blouse, "green");
-        factory.Closet.AddItem(auth.TenantId, "black-jeans", ProductCategory.Jeans, "black");
+        factory.Closet.AddItem(auth.TenantId, "white-shirt", ItemCategory.Top, "white");
+        factory.Closet.AddItem(auth.TenantId, "green-top", ItemCategory.Top, "green");
+        factory.Closet.AddItem(auth.TenantId, "black-jeans", ItemCategory.Bottom, "black");
 
         var match = await (await user.GetAsync($"v1/tenant/catalog/product/{redSkirt}/match")).JsonAsync();
         var complete = await (await user.PostJsonAsync("v1/tenant/catalog/complete", new { itemIds = new[] { "white-shirt" }, priceBand = "highStreet", size = "M" })).JsonAsync();
