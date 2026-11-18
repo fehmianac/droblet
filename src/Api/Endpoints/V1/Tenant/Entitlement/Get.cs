@@ -25,7 +25,7 @@ public class Get : IEndpoint
             .ProducesProblem(StatusCodes.Status500InternalServerError)
             .RequireAuthorization(ClaimNames.TenantUserPolicy)
             .WithSummary("Get tier and AI credits")
-            .WithDescription("Tier (free | premium), monthly allowance, remaining allowance + pack credits and when the allowance resets (subscription month).")
+            .WithDescription("Tier (free | premium), monthly allowance, remaining allowance + pack credits and when the allowance resets (subscription month). itemRecognition = AI garment recognitions of the account: { limit, used, remaining } — limit / remaining null = unlimited (members); for non-members the limit is lifetime (Entitlements:Free:ItemRecognitionLimit), 0 = members only.")
             .WithTags("Tenant Entitlement");
     }
 }

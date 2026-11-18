@@ -1,3 +1,5 @@
+using Domain.Constant;
+using Microsoft.Extensions.Time.Testing;
 using Domain.Entity;
 using Domain.Enum;
 using Domain.Options;
@@ -30,7 +32,9 @@ public class AccountDeletionServiceTests
         await storage.PutAsync("uploads/tmp/t1/u", [1], "image/jpeg", default);
         await storage.PutAsync("tenant/t2/body/p.jpg", [1], "image/jpeg", default);
 
-        await new AccountDeletionService(repository, storage, NullLogger<AccountDeletionService>.Instance).DeleteAccountAsync(user, tenant, default);
+        await new AccountDeletionService(repository, storage,
+            new Infrastructure.Services.Social.CrossTenantCleanup(repository, TimeProvider.System, NullLogger<Infrastructure.Services.Social.CrossTenantCleanup>.Instance),
+            NullLogger<AccountDeletionService>.Instance).DeleteAccountAsync(user, tenant, default);
 
         Assert.Equal([(HandleEntity.GetPk(), "someone")], repository.Keys.ToArray());
         Assert.Equal(["tenant/t2/body/p.jpg"], storage.Objects.Keys.ToArray());
@@ -47,7 +51,7 @@ public class JobLifecycleTests
         await repository.SaveAsync(Fixtures.Premium("t1", Fixtures.Now.AddDays(-1)));
         var credits = new CreditService(repository, Fixtures.Entitlements(), clock, NullLogger<CreditService>.Instance);
         var entitlement = new EntitlementService(repository, Fixtures.Entitlements(), clock);
-        var lifecycle = new JobLifecycle(repository, credits, clock, NullLogger<JobLifecycle>.Instance);
+        var lifecycle = new JobLifecycle(repository, credits, new ItemRecognitionQuotaService(repository, Fixtures.Entitlements(), clock), clock, NullLogger<JobLifecycle>.Instance);
 
         foreach (var (jobId, key) in new[] { ("j1", "k1"), ("j2", "k2") })
         {
@@ -138,5 +142,112 @@ public class RateLimiterTests
 
         clock.Advance(TimeSpan.FromMinutes(16));
         Assert.True(await limiter.TryAcquireAsync("login-email", "a@b.co", 3, TimeSpan.FromMinutes(15), default));
+    }
+}
+
+public class ItemRecognitionQuotaServiceTests
+{
+    private const string Tenant = "tenant-q";
+    private static readonly DateTime Now = new(2026, 11, 18, 9, 0, 0, DateTimeKind.Utc);
+
+    private static (ItemRecognitionQuotaService Quota, JobLifecycle Jobs, EntitlementService Entitlements, InMemoryRepository Repository, FakeTimeProvider Clock) Create(int limit = 3)
+    {
+        var repository = new InMemoryRepository();
+        var clock = new FakeTimeProvider(new DateTimeOffset(Now));
+        var options = Fixtures.Monitor(new EntitlementOptions { Premium = { TryOnCreditsPerMonth = 30 }, Free = { ItemRecognitionLimit = limit } });
+        var quota = new ItemRecognitionQuotaService(repository, options, clock);
+        var credits = new CreditService(repository, options, clock, NullLogger<CreditService>.Instance);
+        return (quota, new JobLifecycle(repository, credits, quota, clock, NullLogger<JobLifecycle>.Instance), new EntitlementService(repository, options, clock), repository, clock);
+    }
+
+    private static async Task<JobEntity> JobAsync(InMemoryRepository repository, string id, JobKind kind = JobKind.ItemProcess)
+    {
+        var job = new JobEntity { Id = id, TenantId = Tenant, Kind = kind, Status = JobStatus.Queued, CreatedAt = Now, UpdatedAt = Now };
+        await repository.SaveAsync(job);
+        return job;
+    }
+
+    private static Task PremiumAsync(InMemoryRepository repository) => repository.SaveAsync(new EntitlementEntity
+    {
+        Id = "tx", TenantId = Tenant, Tier = Tier.Premium, Source = EntitlementSource.Store, StartsAt = Now.AddDays(-1), ExpiresAt = Now.AddMonths(1), PeriodAnchor = Now.AddDays(-1),
+    });
+
+    [Fact]
+    public async Task CompletedJobs_ConsumeTheAllowance_FailedJobsDoNot()
+    {
+        var (quota, jobs, entitlements, repository, _) = Create(limit: 3);
+
+        Assert.Equal(new ItemRecognitionGrant(2, 0, null), await quota.ReserveAsync(Tenant, ["a", "b"], default));
+        Assert.Equal(new ItemRecognitionQuota(3, 2, 1), await quota.GetAsync(Tenant, default));           // in-flight counts as used
+        await jobs.CompleteAsync(await JobAsync(repository, "a"), "{}", default);
+        await jobs.FailAsync(await JobAsync(repository, "b", JobKind.ItemSplit), JobFailure.ProviderError, default);
+        Assert.Equal(new ItemRecognitionQuota(3, 1, 2), await quota.GetAsync(Tenant, default));           // the failed one came back
+
+        // Settling twice (SQS redelivery) changes nothing.
+        await quota.CommitAsync(Tenant, "a", default);
+        await quota.ReleaseAsync(Tenant, "b", default);
+        await quota.ReleaseAsync(Tenant, "a", default);
+        Assert.Equal(new ItemRecognitionQuota(3, 1, 2), (await entitlements.GetAsync(Tenant, default)).ItemRecognition);
+    }
+
+    [Fact]
+    public async Task Bulk_AboveWhatIsLeft_GrantsTheFirstOnes_ThenTheLimitIsReached()
+    {
+        var (quota, jobs, _, repository, _) = Create(limit: 3);
+
+        var bulk = await quota.ReserveAsync(Tenant, ["a", "b", "c", "d", "e"], default);
+        var after = await quota.ReserveAsync(Tenant, ["f"], default);
+        var usage = await repository.GetAsync<ItemRecognitionUsageEntity>(ItemRecognitionUsageEntity.GetPk(Tenant), ItemRecognitionUsageEntity.GetSk());
+        foreach (var id in new[] { "a", "b", "c" })
+            await jobs.CompleteAsync(await JobAsync(repository, id), "{}", default);
+        var exhausted = await quota.ReserveAsync(Tenant, ["g"], default);
+
+        Assert.Equal(new ItemRecognitionGrant(3, 2, null), bulk);
+        Assert.Equal(["a", "b", "c"], usage!.Pending.Select(p => p.JobId).ToArray());
+        Assert.Equal(new ItemRecognitionGrant(0, 1, ErrorCodes.ItemRecognitionLimitReached), after);
+        Assert.Equal(new ItemRecognitionGrant(0, 1, ErrorCodes.ItemRecognitionLimitReached), exhausted);
+        Assert.Equal(new ItemRecognitionQuota(3, 3, 0), await quota.GetAsync(Tenant, default));
+    }
+
+    [Fact]
+    public async Task ZeroLimit_IsMembersOnly_AndMembersAreNeverCounted()
+    {
+        var (quota, jobs, _, repository, _) = Create(limit: 0);
+
+        Assert.Equal(new ItemRecognitionGrant(0, 1, ErrorCodes.PremiumRequired), await quota.ReserveAsync(Tenant, ["a"], default));
+        await PremiumAsync(repository);
+        Assert.Equal(new ItemRecognitionGrant(30, 0, null), await quota.ReserveAsync(Tenant, Enumerable.Range(0, 30).Select(i => $"job-{i}").ToList(), default));
+        await jobs.CompleteAsync(await JobAsync(repository, "job-0"), "{}", default);
+
+        Assert.True((await quota.GetAsync(Tenant, default)).Unlimited);
+        Assert.Null(await repository.GetAsync<ItemRecognitionUsageEntity>(ItemRecognitionUsageEntity.GetPk(Tenant), ItemRecognitionUsageEntity.GetSk()));
+    }
+
+    [Fact]
+    public async Task AReservationWhoseJobDied_StopsCountingAfterADay_AndTheSameJobIdIsNeverCountedTwice()
+    {
+        var (quota, _, _, _, clock) = Create(limit: 1);
+
+        await quota.ReserveAsync(Tenant, ["lost"], default);
+        var retry = await quota.ReserveAsync(Tenant, ["lost"], default);            // the same request again
+        var blocked = await quota.ReserveAsync(Tenant, ["other"], default);
+        clock.Advance(ItemRecognitionQuotaService.PendingLifetime);
+        var freed = await quota.ReserveAsync(Tenant, ["other"], default);
+
+        Assert.Equal(new ItemRecognitionGrant(1, 0, null), retry);
+        Assert.Equal(ErrorCodes.ItemRecognitionLimitReached, blocked.DenyReason);
+        Assert.Equal(new ItemRecognitionGrant(1, 0, null), freed);
+        Assert.Equal(new ItemRecognitionQuota(1, 1, 0), await quota.GetAsync(Tenant, default));
+    }
+
+    [Fact]
+    public async Task OtherJobKinds_NeverTouchTheAllowance()
+    {
+        var (quota, jobs, _, repository, _) = Create(limit: 2);
+        await quota.ReserveAsync(Tenant, ["x"], default);
+
+        await jobs.CompleteAsync(await JobAsync(repository, "x", JobKind.Palette), "{}", default);
+
+        Assert.Equal(new ItemRecognitionQuota(2, 1, 1), await quota.GetAsync(Tenant, default)); // still only reserved
     }
 }

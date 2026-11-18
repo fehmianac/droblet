@@ -19,6 +19,8 @@ public class JobEntity : IEntity
     [JsonPropertyName("failure")] public JobFailure? Failure { get; set; }
     // Worker output (draft) as JSON; schema per JobKind (AI_ENGINEER.md).
     [JsonPropertyName("result")] public string? Result { get; set; }
+    // Request parameters captured by the Api (schema per JobKind); workers read their input only from here.
+    [JsonPropertyName("input")] public string? Input { get; set; }
     [JsonPropertyName("creditIdempotencyKey")] public string? CreditIdempotencyKey { get; set; }
     [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; }
     [JsonPropertyName("updatedAt")] public DateTime UpdatedAt { get; set; }

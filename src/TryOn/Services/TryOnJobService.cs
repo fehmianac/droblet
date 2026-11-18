@@ -5,6 +5,7 @@ using Domain.Extensions;
 using Domain.Manager;
 using Domain.Services;
 using Domain.Services.Ai;
+using Domain.Services.Styling;
 using Infrastructure.Workers;
 using Microsoft.Extensions.Logging;
 
@@ -24,6 +25,7 @@ public sealed class TryOnJobService(
     IRepository repository,
     IObjectStorage storage,
     ITryOnRenderer renderer,
+    ICatalogProductLookup products,
     TimeProvider timeProvider,
     ILogger<TryOnJobService> logger) : ITryOnJobService
 {
@@ -45,7 +47,15 @@ public sealed class TryOnJobService(
                 return;
             }
 
-            var output = await renderer.RenderAsync(new ImageInput(bytes, body.ContentType), [], ct);
+            // Garment images: the tenant's own item images or global catalog images — never another tenant's.
+            var garments = await GarmentsAsync(job, ct);
+            if (garments is null)
+            {
+                await jobs.FailAsync(job, JobFailure.SourceDeleted, ct);
+                return;
+            }
+
+            var output = await renderer.RenderAsync(new ImageInput(bytes, body.ContentType), garments, ct);
 
             // The user may have deleted/replaced the body photo while the provider was working.
             if (await ActiveBodyPhotoAsync(message.TenantId, message.BodyPhotoId, ct) is null)
@@ -76,6 +86,33 @@ public sealed class TryOnJobService(
             logger.LogWarning(ex, "Try-on job {JobId} failed for tenant {TenantId}", job.Id, job.TenantId);
             await jobs.FailAsync(job, JobFailure.ProviderError, ct);
         }
+    }
+
+    /// <summary>null = a piece of the outfit (or its image) no longer exists. A job without input renders the body photo alone.</summary>
+    private async Task<IReadOnlyList<ImageInput>?> GarmentsAsync(JobEntity job, CancellationToken ct)
+    {
+        var pieces = StylingJson.TryDeserialize<TryOnJobInput>(job.Input)?.Pieces ?? [];
+        var garments = new List<ImageInput>(pieces.Count);
+        foreach (var piece in pieces)
+        {
+            ImageInput? image = null;
+            if (piece.ItemId is not null)
+            {
+                var item = await repository.GetAsync<ItemEntity>(ItemEntity.GetPk(job.TenantId), ItemEntity.GetSk(piece.ItemId), ct);
+                var key = item is { UseOriginalImage: true, OriginalImageKey: not null } ? item.OriginalImageKey : item?.ImageKey ?? item?.OriginalImageKey;
+                if (key is not null && StorageKeys.BelongsToTenant(key, job.TenantId) && await storage.ReadAsync(key, MaxImageBytes, ct) is { } data)
+                    image = new ImageInput(data, key.EndsWith(".webp", StringComparison.Ordinal) ? "image/webp" : key.EndsWith(".png", StringComparison.Ordinal) ? "image/png" : "image/jpeg");
+            }
+            else if (piece.ProductId is not null && await products.GetAsync(piece.ProductId, ct) is { } product)
+            {
+                image = await products.ReadImageAsync(product, ct);
+            }
+
+            if (image is null)
+                return null;
+            garments.Add(image);
+        }
+        return garments;
     }
 
     private async Task<PhotoEntity?> ActiveBodyPhotoAsync(string tenantId, string photoId, CancellationToken ct)

@@ -77,6 +77,8 @@ public class PaletteResultEntity : IEntity
     [JsonPropertyName("avoidColorIds")] public List<string> AvoidColorIds { get; set; } = [];
     [JsonPropertyName("sourcePhotoId")] public string? SourcePhotoId { get; set; }
     [JsonPropertyName("modelVersion")] public string? ModelVersion { get; set; }
+    // Model confidence below the threshold: the client suggests retaking the photo (never raised by the server).
+    [JsonPropertyName("lowConfidence")] public bool LowConfidence { get; set; }
     [JsonPropertyName("analyzedAt")] public DateTime AnalyzedAt { get; set; }
 
     public static string GetPk(string tenantId) => $"tenant#{tenantId}#palette";

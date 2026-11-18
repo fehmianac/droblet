@@ -1,0 +1,32 @@
+using Api.Contracts;
+using Api.Infrastructure.Contract;
+using Api.Infrastructure.Extensions;
+using Domain.Constant;
+using Domain.Context;
+using Domain.Domain;
+using Domain.Enum;
+using Domain.Services;
+using FluentValidation;
+using Microsoft.AspNetCore.Mvc;
+
+namespace Api.Endpoints.V1.Tenant.Look;
+
+public class Delete : IEndpoint
+{
+    private static async Task<IResult> Handler(
+        [FromRoute] string id,
+        [FromServices] IApiContext apiContext,
+        [FromServices] ILookService looks,
+        CancellationToken cancellationToken)
+    {
+        return await looks.DeleteAsync(apiContext.TenantId, id, cancellationToken) ? Results.NoContent() : Results.NotFound();
+    }
+
+    public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints)
+    {
+        return endpoints.MapDelete("v1/tenant/look/{id}", Handler)
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status404NotFound)
+            .Tenant("Tenant Look", "Delete look", "Deletes the look. Plan days that pointed to it show no look.");
+    }
+}

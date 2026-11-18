@@ -1,0 +1,65 @@
+{
+  "_comment": "PLACEHOLDER DATA. Brand names come from the brief; URLs, sources, networks and commission terms are not real. No agreement exists yet (README 9.4).",
+  "brands": [
+    {
+      "id": "lululemon",
+      "name": "Lululemon",
+      "websiteUrl": "https://example.com/brands/lululemon",
+      "source": "network",
+      "network": "placeholder-network",
+      "checkoutUrl": "https://example.com/out/lululemon",
+      "clickIdParameter": "click_id",
+      "commissionRateBps": null
+    },
+    {
+      "id": "gap",
+      "name": "Gap",
+      "websiteUrl": "https://example.com/brands/gap",
+      "source": "network",
+      "network": "placeholder-network",
+      "checkoutUrl": "https://example.com/out/gap",
+      "clickIdParameter": "click_id",
+      "commissionRateBps": null
+    },
+    {
+      "id": "marks-and-spencer",
+      "name": "Marks & Spencer",
+      "websiteUrl": "https://example.com/brands/marks-and-spencer",
+      "source": "network",
+      "network": "placeholder-network",
+      "checkoutUrl": "https://example.com/out/marks-and-spencer",
+      "clickIdParameter": "click_id",
+      "commissionRateBps": null
+    },
+    {
+      "id": "vakko",
+      "name": "Vakko",
+      "websiteUrl": "https://example.com/brands/vakko",
+      "source": "direct",
+      "network": null,
+      "checkoutUrl": "https://example.com/out/vakko",
+      "clickIdParameter": "click_id",
+      "commissionRateBps": null
+    },
+    {
+      "id": "beymen",
+      "name": "Beymen",
+      "websiteUrl": "https://example.com/brands/beymen",
+      "source": "direct",
+      "network": null,
+      "checkoutUrl": "https://example.com/out/beymen",
+      "clickIdParameter": "click_id",
+      "commissionRateBps": null
+    },
+    {
+      "id": "communite",
+      "name": "Communité",
+      "websiteUrl": "https://example.com/brands/communite",
+      "source": "direct",
+      "network": null,
+      "checkoutUrl": "https://example.com/out/communite",
+      "clickIdParameter": "click_id",
+      "commissionRateBps": null
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Api.Contracts;
 using Domain.Domain;
 using Domain.Entity;
 using Domain.Enum;
@@ -322,5 +323,70 @@ public class JobAndEntitlementEndpointTests(ApiFactory factory) : IClassFixture<
         Assert.Equal(HttpStatusCode.NotImplemented, purchase.StatusCode);
         Assert.Equal("purchase_verification_unavailable", await purchase.CodeAsync());
         Assert.Equal(HttpStatusCode.NotImplemented, restore.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("en-US,en;q=0.9", "en")]
+    [InlineData("tr-TR,tr;q=0.9,en;q=0.8", "tr")]
+    [InlineData("de-DE,de;q=0.9,en;q=0.5", "en")]   // first SUPPORTED language
+    [InlineData("de-DE,fr;q=0.9", "tr")]            // nothing supported → default
+    [InlineData(null, "tr")]
+    public async Task Register_SetsTheProfileLanguage_FromAcceptLanguage(string? acceptLanguage, string expected)
+    {
+        var client = factory.CreateClient();
+        var request = new HttpRequestMessage(HttpMethod.Post, "v1/auth/register")
+        {
+            Content = JsonContent.Create(new { name = "Ayşe", email = $"{Guid.NewGuid():N}@example.com", password = "Sifre1234" }, options: ApiFactory.Json),
+        };
+        if (acceptLanguage is not null)
+            request.Headers.TryAddWithoutValidation("Accept-Language", acceptLanguage);
+
+        var response = await client.SendAsync(request);
+        var auth = (await response.Content.ReadFromJsonAsync<AuthResponse>(ApiFactory.Json))!;
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", auth.AccessToken);
+        var profile = await client.GetFromJsonAsync<ProfileDto>("v1/tenant/profile", ApiFactory.Json);
+
+        Assert.Equal(expected, profile!.Language);
+    }
+
+    [Theory]
+    [InlineData("apple", "en-GB", "en")]
+    [InlineData("google", "en;q=0.4,tr;q=0.9", "tr")]
+    [InlineData("google", "es-ES", "tr")]
+    public async Task SocialSignUp_SetsTheProfileLanguage_FromAcceptLanguage(string provider, string acceptLanguage, string expected)
+    {
+        var client = factory.CreateClient();
+        var token = $"valid:{Guid.NewGuid():N}:{Guid.NewGuid():N}@example.com";
+        object body = provider == "apple" ? new { identityToken = token, nonce = "nonce-1234567890", fullName = new { givenName = "Ayşe" } } : new { idToken = token, name = "Ayşe" };
+        var request = new HttpRequestMessage(HttpMethod.Post, $"v1/auth/{provider}") { Content = JsonContent.Create(body, options: ApiFactory.Json) };
+        request.Headers.TryAddWithoutValidation("Accept-Language", acceptLanguage);
+
+        var response = await client.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+        var auth = (await response.Content.ReadFromJsonAsync<AuthResponse>(ApiFactory.Json))!;
+        var tenant = await factory.Repository.GetAsync<Domain.Entity.TenantEntity>(Domain.Entity.TenantEntity.GetPk(), Domain.Entity.TenantEntity.GetSk(auth.TenantId));
+
+        Assert.Equal(expected, tenant!.Language);
+    }
+
+    [Fact]
+    public async Task PutProfile_AcceptsALanguageOnlyUpdate_AndLeavesTheRestUntouched()
+    {
+        var (client, _) = await factory.RegisterAsync();
+        (await client.PutJsonAsync("v1/tenant/profile", new { displayName = "Ayşe Y.", cityId = "745044", baseVersion = 1 })).EnsureSuccessStatusCode();
+
+        var languageOnly = await client.PutJsonAsync("v1/tenant/profile", new { language = "en", baseVersion = 2, clientMutationId = "01JD0000000000000000000000" });
+        var updated = await languageOnly.Content.ReadFromJsonAsync<ProfileDto>(ApiFactory.Json);
+        var unsupported = await client.PutJsonAsync("v1/tenant/profile", new { language = "de", baseVersion = 3 });
+        var blankName = await client.PutJsonAsync("v1/tenant/profile", new { displayName = "  ", baseVersion = 3 });
+        var stale = await client.PutJsonAsync("v1/tenant/profile", new { language = "tr", baseVersion = 2 });
+        var cleared = await (await client.PutJsonAsync("v1/tenant/profile", new { cityId = "", baseVersion = 3 })).Content.ReadFromJsonAsync<ProfileDto>(ApiFactory.Json);
+
+        Assert.Equal(HttpStatusCode.OK, languageOnly.StatusCode);
+        Assert.Equal(("en", "Ayşe Y.", "745044", 3L), (updated!.Language, updated.DisplayName, updated.CityId, updated.Version));
+        Assert.Equal(HttpStatusCode.BadRequest, unsupported.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, blankName.StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, stale.StatusCode);
+        Assert.Equal((null, "en", "Ayşe Y."), (cleared!.CityId, cleared.Language, cleared.DisplayName));
     }
 }

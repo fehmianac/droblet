@@ -25,6 +25,9 @@ public sealed class AppleAuthOptions
     public string? KeyId { get; set; }
     public string? PrivateKey { get; set; }
 
+    /// <summary>False while the SSM parameter still holds the CHANGE_ME placeholder (ConfigSecret).</summary>
+    public bool HasPrivateKey => ConfigSecret.IsSet(PrivateKey);
+
     public IReadOnlyList<string> Audiences() =>
         new[] { BundleId }.Concat(AdditionalAudiences).Where(a => !string.IsNullOrWhiteSpace(a)).Distinct().ToList();
 }
@@ -84,6 +87,17 @@ public sealed class EntitlementOptions
 {
     public const string Section = "Entitlements";
     public PremiumLimits Premium { get; set; } = new();
+    public FreeLimits Free { get; set; } = new();
+
+    public sealed class FreeLimits
+    {
+        /// <summary>
+        /// Owner decision 2026-11-18: AI garment recognitions a non-member gets, once, for the lifetime of the account
+        /// (each photo of a single / bulk / split request = 1). 0 = the feature is members-only (straight to the paywall).
+        /// Members are unlimited. Representative default; lives in SSM api/Entitlements and worker/Entitlements.
+        /// </summary>
+        public int ItemRecognitionLimit { get; set; } = 10;
+    }
 
     public sealed class PremiumLimits
     {
@@ -99,6 +113,9 @@ public sealed class StoreOptions
     /// <summary>Consumable product id -> number of try-on credits it adds.</summary>
     public Dictionary<string, int> CreditPacks { get; set; } = [];
     public string? NotificationKey { get; set; }
+
+    /// <summary>False while the SSM parameter still holds the CHANGE_ME placeholder (ConfigSecret).</summary>
+    public bool HasNotificationKey => ConfigSecret.IsSet(NotificationKey);
 
     public sealed class StoreProductIds
     {
@@ -126,7 +143,7 @@ public sealed class QueueOptions
 
     public string? UrlFor(JobKind kind) => kind switch
     {
-        JobKind.ItemProcess => ItemProcessRequest,
+        JobKind.ItemProcess or JobKind.ItemSplit => ItemProcessRequest,
         JobKind.TryOn => TryOnRequest,
         JobKind.Palette => PaletteRequest,
         _ => StylistRequest,
@@ -141,6 +158,21 @@ public sealed class AiOptions
     public string? Provider { get; set; }
     public string? TextModel { get; set; }
     public string? ImageModel { get; set; }
+    /// <summary>
+    /// SSM SecureString /droblet/{stage}/worker/Ai/ApiKey — a plain string parameter nested under the worker/Ai JSON
+    /// (Enabled, Provider, TextModel, ImageModel), so both bind to this section. Never logged. Workers only: the Api
+    /// Lambda reads /droblet/{stage}/api and never sees it.
+    /// </summary>
+    public string? ApiKey { get; set; }
+
+    /// <summary>False while the key is empty or still the CHANGE_ME placeholder (ConfigSecret).</summary>
+    public bool HasApiKey => ConfigSecret.IsSet(ApiKey);
+    public string BaseUrl { get; set; } = "https://api.openai.com";
+    public string ImageSize { get; set; } = "1024x1536";
+    public int TimeoutSeconds { get; set; } = 100;
+    /// <summary>Below this per-field confidence a draft field is flagged ("Kategoriyi kontrol et").</summary>
+    public double VisionConfidenceThreshold { get; set; } = 0.7;
+    public double PaletteConfidenceThreshold { get; set; } = 0.6;
 }
 
 public sealed class AuthRateLimitOptions

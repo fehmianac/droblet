@@ -20,7 +20,7 @@ public sealed class SendGridEmailService(HttpClient http, IOptionsMonitor<EmailO
         var email = options.CurrentValue;
         var sendGrid = email.SendGrid;
         // deploy-infra creates the parameter with the placeholder CHANGE_ME until the owner fills it in.
-        if (string.IsNullOrWhiteSpace(sendGrid.ApiKey) || sendGrid.ApiKey == "CHANGE_ME")
+        if (!ConfigSecret.IsSet(sendGrid.ApiKey))
             throw new InvalidOperationException("Email.SendGrid.ApiKey is not configured (SSM /droblet/{stage}/api/Email/SendGrid/ApiKey).");
 
         var from = new MailAddress(email.From);

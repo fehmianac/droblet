@@ -1,13 +1,14 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  Droblet backend — Api (HTTP API), AI workers (ItemProcessor, Stylist, TryOn, Palette; SQS + DLQ),
-  Notifier (EventBridge Scheduler), single DynamoDB table, private photo bucket. Region: eu-central-1.
-  Secrets are never template values. Fixed non-secret config is created here as SSM String parameters.
-  deploy-infra creates the rest once and never overwrites them, so the owner edits them in Parameter Store:
+  Droblet backend: Api (HTTP API), AI workers (ItemProcessor, Stylist, TryOn, Palette; SQS + DLQ), Notifier
+  (EventBridge Scheduler), one DynamoDB table, private photo bucket. Region eu-central-1.
+  Secrets are never template values. Fixed non-secret config is created here as SSM String parameters
+  (name = config section, value = JSON). deploy-infra creates the rest once and never overwrites it:
   SecureString api/Jwt, api/Email/SendGrid/ApiKey, api/AppleAuth/PrivateKey, api/Store/NotificationKey,
-  worker/Ai/ApiKey, notifier/Push/ServiceAccountJson and String api/Email, api/GoogleAuth, api/AppleAuth,
-  worker/Ai. E-mail goes through SendGrid (HTTPS), so there is no SES resource here.
+  worker/Ai/ApiKey, notifier/Push/ServiceAccountJson; String api/Email, api/GoogleAuth, api/AppleAuth,
+  worker/Ai. A secret still set to CHANGE_ME counts as not configured. SecureString api/AffiliatePostback
+  is created by hand. E-mail (SendGrid), weather, FCM and OpenAI are HTTPS calls: no SES resource.
 
 Parameters:
   Stage:
@@ -236,7 +237,8 @@ Resources:
     Properties:
       Name: !Sub /droblet/${Stage}/api/Entitlements
       Type: String
-      Value: '{"Premium":{"TryOnCreditsPerMonth":30}}'
+      Description: Premium try-on credits per month; Free.ItemRecognitionLimit = lifetime AI garment recognitions of a non-member (0 = members only).
+      Value: '{"Premium":{"TryOnCreditsPerMonth":30},"Free":{"ItemRecognitionLimit":10}}'
   SsmApiPhotos:
     Type: AWS::SSM::Parameter
     Properties:
@@ -268,13 +270,140 @@ Resources:
     Properties:
       Name: !Sub /droblet/${Stage}/worker/Entitlements
       Type: String
-      Value: '{"Premium":{"TryOnCreditsPerMonth":30}}'
+      Description: Same values as api/Entitlements (workers commit / release credits and the recognition allowance).
+      Value: '{"Premium":{"TryOnCreditsPerMonth":30},"Free":{"ItemRecognitionLimit":10}}'
   SsmNotifierNotifications:
     Type: AWS::SSM::Parameter
     Properties:
       Name: !Sub /droblet/${Stage}/notifier/Notifications
       Type: String
       Value: '{"DefaultMorningLocal":"07:30","DefaultWeeklyEditLocal":"Mon 09:00","DefaultFriendRatingsLocal":"19:00"}'
+  SsmApiLocalization:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/api/Localization
+      Type: String
+      Description: Supported languages and the default one. Adding a language is this list plus data (no code).
+      Value: '{"SupportedLanguages":["tr","en"],"DefaultLanguage":"tr"}'
+  SsmApiAdmin:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/api/Admin
+      Type: String
+      Description: Who may call v1/admin (user ids or e-mails). Empty = nobody.
+      Value: '{"UserIds":[],"Emails":[]}'
+  SsmApiWardrobe:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/api/Wardrobe
+      Type: String
+      Description: Bulk upload and split limits, public asset base URL, category to outfit-slot mapping.
+      Value: '{"MaxBatchUpload":30,"MaxSplitPieces":6,"PublicAssetBaseUrl":"","SlotMapping":{"Beachwear":["Top","Bottom"],"Skiwear":["Top","Bottom","Outerwear"]}}'
+  SsmApiWeather:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/api/Weather
+      Type: String
+      Description: Open-Meteo (keyless) forecast and geocoding endpoints, cache minutes.
+      Value: '{"Provider":"OpenMeteo","CacheMinutes":60,"ForecastBaseUrl":"https://api.open-meteo.com","GeocodingBaseUrl":"https://geocoding-api.open-meteo.com","TimeoutSeconds":5}'
+  SsmApiStylist:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/api/Stylist
+      Type: String
+      Description: Stylist limits and temperature thresholds.
+      Value: '{"SuggestionCount":3,"MaxCandidates":60,"MaxTitleLength":40,"MaxExplanationLength":280,"FreeTextMaxLength":200,"HotFromC":26,"ColdBelowC":12,"DislikeMemory":10}'
+  SsmApiPacking:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/api/Packing
+      Type: String
+      Description: CabinMaxItems = piece limit of a cabin-only trip (0 = not enforced); MaxTripDays.
+      Value: '{"CabinMaxItems":12,"MaxTripDays":21}'
+  SsmApiPalette:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/api/Palette
+      Type: String
+      Description: Palette compatibility rule. Empty NeutralColorIds = every colour outside the season lists is neutral.
+      Value: '{"NeutralsCountAsCompatible":true,"NeutralColorIds":[]}'
+  SsmApiCatalog:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/api/Catalog
+      Type: String
+      Description: Catalog paging, cache and cart limits. ImageHosts = hosts product images may be fetched from (empty = any https host).
+      Value: '{"PageSize":24,"MaxPageSize":60,"CacheSeconds":60,"MaxCartLines":100,"MaxWatchItems":200,"BulkUpsertMax":200,"ImageHosts":[],"MaxImageBytes":10485760}'
+  SsmApiSocial:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/api/Social
+      Type: String
+      Description: Social limits and the invite link base URL.
+      Value: '{"MaxFollowing":500,"FeedPageSize":20,"SuggestedPageSize":20,"SuggestedCandidateLimit":100,"SearchPageSize":20,"InviteUrl":"https://droplet.alatech.co/i","InviteAttributionWindowDays":30,"ReportsPerDay":20,"InviteResolvePerIpPerHour":60}'
+  SsmApiAffiliate:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/api/Affiliate
+      Type: String
+      Description: Default affiliate commission in basis points (per-brand overrides live on the brand record).
+      Value: '{"DefaultCommissionRateBps":0}'
+  SsmApiNotifications:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/api/Notifications
+      Type: String
+      Description: Defaults of a new notification preference and the device limit.
+      Value: '{"DefaultMorningLocal":"07:30","DefaultTimeZone":"Europe/Istanbul","MaxDevicesPerTenant":10}'
+  SsmWorkerLocalization:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/worker/Localization
+      Type: String
+      Description: Same list as api/Localization (language of AI text).
+      Value: '{"SupportedLanguages":["tr","en"],"DefaultLanguage":"tr"}'
+  SsmWorkerWardrobe:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/worker/Wardrobe
+      Type: String
+      Description: Same values as api/Wardrobe (split limit, slot mapping used by the worker guards).
+      Value: '{"MaxBatchUpload":30,"MaxSplitPieces":6,"PublicAssetBaseUrl":"","SlotMapping":{"Beachwear":["Top","Bottom"],"Skiwear":["Top","Bottom","Outerwear"]}}'
+  SsmWorkerWeather:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/worker/Weather
+      Type: String
+      Description: Same values as api/Weather (stylist and suitcase jobs read the forecast).
+      Value: '{"Provider":"OpenMeteo","CacheMinutes":60,"ForecastBaseUrl":"https://api.open-meteo.com","GeocodingBaseUrl":"https://geocoding-api.open-meteo.com","TimeoutSeconds":5}'
+  SsmWorkerStylist:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/worker/Stylist
+      Type: String
+      Description: Same values as api/Stylist.
+      Value: '{"SuggestionCount":3,"MaxCandidates":60,"MaxTitleLength":40,"MaxExplanationLength":280,"FreeTextMaxLength":200,"HotFromC":26,"ColdBelowC":12,"DislikeMemory":10}'
+  SsmWorkerPacking:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/worker/Packing
+      Type: String
+      Description: Same values as api/Packing (the suitcase job enforces the cabin limit).
+      Value: '{"CabinMaxItems":12,"MaxTripDays":21}'
+  SsmWorkerCatalog:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/worker/Catalog
+      Type: String
+      Description: Same values as api/Catalog (the try-on job downloads product images).
+      Value: '{"PageSize":24,"MaxPageSize":60,"CacheSeconds":60,"MaxCartLines":100,"MaxWatchItems":200,"BulkUpsertMax":200,"ImageHosts":[],"MaxImageBytes":10485760}'
+  SsmNotifierLocalization:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/notifier/Localization
+      Type: String
+      Description: Same list as api/Localization (language of push texts).
+      Value: '{"SupportedLanguages":["tr","en"],"DefaultLanguage":"tr"}'
 
   # ── IAM: one role per Lambda ───────────────────────────────────────────────
   ApiLambdaRole:
@@ -360,7 +489,8 @@ Resources:
                 Action: s3:GetObject
                 Resource: !Sub '${PhotoBucket.Arn}/uploads/tmp/*'
               - Effect: Allow
-                Action: s3:PutObject
+                # DeleteObject: images written for a draft the user deleted while it was being processed are removed again.
+                Action: [s3:PutObject, s3:DeleteObject]
                 Resource: !Sub '${PhotoBucket.Arn}/tenant/*/items/*'
               - Effect: Allow
                 Action: [ssm:GetParameter, ssm:GetParameters, ssm:GetParametersByPath]
@@ -390,7 +520,8 @@ Resources:
                 Action: [sqs:ReceiveMessage, sqs:DeleteMessage, sqs:GetQueueAttributes, sqs:ChangeMessageVisibility]
                 Resource: !GetAtt StylistRequestQueue.Arn
               - Effect: Allow
-                Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:DeleteItem, dynamodb:Query]
+                # BatchGetItem / BatchWriteItem: the shared weather forecast cache (stylist and suitcase jobs).
+                Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:DeleteItem, dynamodb:Query, dynamodb:BatchGetItem, dynamodb:BatchWriteItem]
                 Resource: !GetAtt DrobletTable.Arn
               # No S3: the stylist works on item attributes, never on photos.
               - Effect: Allow

@@ -10,9 +10,9 @@ public interface IJobRequestedEvent
     JobKind Kind { get; }
 }
 
-public sealed record ItemProcessRequestedEvent(string TenantId, string JobId, string DraftId) : IJobRequestedEvent
+public sealed record ItemProcessRequestedEvent(string TenantId, string JobId, string DraftId, bool Split = false) : IJobRequestedEvent
 {
-    public JobKind Kind => JobKind.ItemProcess;
+    public JobKind Kind => Split ? JobKind.ItemSplit : JobKind.ItemProcess;
 }
 
 public sealed record StylistRequestedEvent(string TenantId, string JobId, JobKind Kind) : IJobRequestedEvent;
