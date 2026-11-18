@@ -19,7 +19,16 @@ type Options<TVars extends Versioned, TRecord extends { baseVersion: number }> =
    * promise when the mapping needs other data. Omit when wire and app shapes are the same.
    */
   mapCurrent?: (wire: unknown) => TRecord | Promise<TRecord>;
+  /**
+   * A partial write of one field whose value the device decides (the profile language — owner decision
+   * 2026-11-18 —, the city): on 409 it is re-sent once on the server's current version instead of asking
+   * "which one should we keep?". A version that moved on again after that still asks.
+   */
+  rebaseOnConflict?: boolean;
 };
+
+/** Writes already re-sent once on a newer version (by their new client mutation id). */
+const rebased = new Set<string>();
 
 /**
  * A queued, versioned write for the feature modules: optimistic cache update, and on 409 / 404 the
@@ -29,7 +38,7 @@ type Options<TVars extends Versioned, TRecord extends { baseVersion: number }> =
  */
 export function registerVersionedWrite<TVars extends Versioned, TRecord extends { baseVersion: number }>(
   client: QueryClient,
-  { mutationKey, queryKey, send, optimistic, mapCurrent }: Options<TVars, TRecord>,
+  { mutationKey, queryKey, send, optimistic, mapCurrent, rebaseOnConflict = false }: Options<TVars, TRecord>,
 ): void {
   const execute = (vars: TVars) =>
     client.getMutationCache().build(client, { mutationKey, scope: TENANT_WRITE_SCOPE }).execute(vars);
@@ -51,6 +60,14 @@ export function registerVersionedWrite<TVars extends Versioned, TRecord extends 
           current = error.current ? (mapCurrent ? await mapCurrent(error.current) : (error.current as TRecord)) : undefined;
         } catch {
           current = undefined;
+        }
+        if (rebaseOnConflict && current && !rebased.has(vars.clientMutationId)) {
+          const clientMutationId = ulid();
+          rebased.add(clientMutationId);
+          client.setQueryData(queryKey, current);
+          // Its own failure goes through this same onError (a second conflict asks the user).
+          void execute({ ...vars, baseVersion: current.baseVersion, clientMutationId }).catch(() => undefined);
+          return;
         }
         conflictStore.push({
           id: vars.clientMutationId,

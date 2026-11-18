@@ -95,6 +95,8 @@ export function registerAccountMutations(client: QueryClient): void {
       ),
     optimistic: (prev, vars) => (prev ? { ...prev, language: vars.language } : prev),
     mapCurrent: (wire) => profileFromWire(client, wire as ProfileWire),
+    // The device language wins: a profile version that moved on (another field changed) is not a dispute.
+    rebaseOnConflict: true,
   });
 
   // Profile city (weather on Bugün, stylist): partial PUT with `cityId` only; `""` clears it.
@@ -115,6 +117,7 @@ export function registerAccountMutations(client: QueryClient): void {
       ),
     optimistic: (prev, vars) => (prev ? { ...prev, cityId: vars.cityId || null } : prev),
     mapCurrent: (wire) => profileFromWire(client, wire as ProfileWire),
+    rebaseOnConflict: true,
   });
 
   // Display name: partial PUT with `displayName` only. 400 `name_required` for a blank name.
