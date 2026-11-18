@@ -111,9 +111,11 @@ export default function TryOnScreen() {
               className="aspect-[4/5] w-full"
               accessibilityLabel={title ? t('tryOn.imageA11yNamed', { name: title }) : t('tryOn.imageA11y')}
             />
-            <View className="absolute left-2.5 top-2.5" pointerEvents="none">
-              <Badge tone="ink" icon={Sparkles} label={t('ai.previewBadge')} />
-            </View>
+            {job.result?.imageUrl ? (
+              <View className="absolute left-2.5 top-2.5" pointerEvents="none">
+                <Badge tone="ink" icon={Sparkles} label={t('ai.previewBadge')} />
+              </View>
+            ) : null}
           </View>
           <View className="gap-1.5" accessibilityLiveRegion="polite">
             <Text variant="eyebrow">{t('tryOn.readyEyebrow')}</Text>

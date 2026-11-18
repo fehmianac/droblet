@@ -60,6 +60,10 @@ describe('25 Arkadaş akışı', () => {
     await open('/friends/feed');
     await waitFor(() => expect(screen.getByText('What are your friends wearing?')).toBeTruthy(), TIMEOUT);
     await waitFor(() => expect(screen.getByText(/Wedding · 2 hours ago/)).toBeTruthy(), TIMEOUT);
+    // Nobody has a photo in the fixtures: initials for people, the piece collage for a post without a picture.
+    expect(screen.getAllByTestId('image-slot-avatar').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('S').length).toBeGreaterThan(0);
+    expect(screen.getAllByTestId('image-slot-collage').length).toBeGreaterThan(0);
     expect(screen.getByLabelText('Selin, new look')).toBeTruthy();
     expect(screen.getAllByText('Following').length).toBeGreaterThan(0);
     expect(screen.getAllByText('See the pieces').length).toBeGreaterThan(0);
@@ -120,6 +124,9 @@ describe('26 Kişi profili', () => {
   it('shows counters, both actions, the three sections and the look grid', async () => {
     await open('/u/elif');
     await waitFor(() => expect(screen.getByText('Elif')).toBeTruthy(), TIMEOUT);
+    // 26: initials for the person; the look grid draws the figure, one placeholder per tile.
+    expect(screen.getByText('E')).toBeTruthy();
+    await waitFor(() => expect(screen.getAllByTestId('image-slot-figure').length).toBe(6), TIMEOUT);
     expect(screen.getByLabelText('Pieces: 96')).toBeTruthy();
     expect(screen.getByLabelText('Looks: 21')).toBeTruthy();
     expect(screen.getByLabelText('Style match: 88%')).toBeTruthy();

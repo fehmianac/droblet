@@ -81,6 +81,8 @@ export type EditProduct = {
   price: Money;
   imageUrl: string | null;
   category: ItemCategory;
+  /** Main colour, when the catalogue gives one: ground of the placeholder while there is no picture. */
+  color?: string | null;
   /** Set when the user already owns an equivalent piece (WardrobeMatchRules) — hidden by default on 08. */
   ownedItemId: string | null;
   inWatchlist: boolean;

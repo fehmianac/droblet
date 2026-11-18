@@ -35,9 +35,56 @@ type LookRow = Omit<FeedLook, 'author' | 'postedAt'> & { handle: string; hoursAg
 
 function seedLooks(): LookRow[] {
   return [
-    { lookId: 'flook_1', handle: 'selin', occasion: 'wedding', hoursAgo: 2, imageUrl: null, myRating: null, averageRating: 4.7, ratingCount: 12, saved: false },
-    { lookId: 'flook_2', handle: 'ayse', occasion: 'weekend', hoursAgo: 9, imageUrl: null, myRating: 4, averageRating: 4.2, ratingCount: 5, saved: true },
-    { lookId: 'flook_3', handle: 'selin', occasion: 'office', hoursAgo: 30, imageUrl: null, myRating: null, averageRating: null, ratingCount: 0, saved: false },
+    {
+      lookId: 'flook_1',
+      handle: 'selin',
+      occasion: 'wedding',
+      hoursAgo: 2,
+      imageUrl: null,
+      pieces: [
+        { category: 'dress', color: 'navy' },
+        { category: 'outerwear', color: 'cream' },
+        { category: 'shoes', color: 'beige' },
+        { category: 'bag', color: 'black' },
+      ],
+      myRating: null,
+      averageRating: 4.7,
+      ratingCount: 12,
+      saved: false,
+    },
+    {
+      lookId: 'flook_2',
+      handle: 'ayse',
+      occasion: 'weekend',
+      hoursAgo: 9,
+      imageUrl: null,
+      pieces: [
+        { category: 'top', color: 'white' },
+        { category: 'bottom', color: 'blue' },
+        { category: 'shoes', color: 'brown' },
+      ],
+      myRating: 4,
+      averageRating: 4.2,
+      ratingCount: 5,
+      saved: true,
+    },
+    {
+      lookId: 'flook_3',
+      handle: 'selin',
+      occasion: 'office',
+      hoursAgo: 30,
+      imageUrl: null,
+      pieces: [
+        { category: 'outerwear', color: 'navy' },
+        { category: 'top', color: 'white' },
+        { category: 'bottom', color: 'black' },
+        { category: 'bag', color: 'brown' },
+      ],
+      myRating: null,
+      averageRating: null,
+      ratingCount: 0,
+      saved: false,
+    },
   ];
 }
 
@@ -49,6 +96,10 @@ export function resetSocialFixtures(): void {
   people = seedPeople();
   looks = seedLooks();
 }
+
+/** Category / colour of the placeholder closet tiles (26). */
+const TILE_CATEGORIES = ['top', 'bottom', 'outerwear', 'dress', 'shoes', 'bag'] as const;
+const TILE_COLORS = ['white', 'navy', 'beige', 'black', 'brown', 'cream', 'grey'] as const;
 
 function notFound(): never {
   throw new ApiError('http', 404, { status: 404, code: 'not_found' });
@@ -106,7 +157,13 @@ export const socialFixtures = {
   },
   items: (handle: string): PersonTile[] => {
     const p = visiblePerson(handle);
-    return Array.from({ length: Math.min(p.itemCount ?? 0, 9) }, (_, i) => ({ id: `${handle}_item_${i + 1}`, name: `Parça ${i + 1}`, imageUrl: null }));
+    return Array.from({ length: Math.min(p.itemCount ?? 0, 9) }, (_, i) => ({
+      id: `${handle}_item_${i + 1}`,
+      name: `Parça ${i + 1}`,
+      imageUrl: null,
+      category: TILE_CATEGORIES[i % TILE_CATEGORIES.length],
+      color: TILE_COLORS[i % TILE_COLORS.length],
+    }));
   },
   trips: (handle: string): PersonTrip[] => {
     visiblePerson(handle);

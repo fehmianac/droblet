@@ -4,9 +4,9 @@
  */
 import type { JobAccepted } from './jobs';
 
-export type TryOnTargetKind = 'look' | 'product' | 'suggestion' | 'plan-day' | 'trip-day';
+export type TryOnTargetKind = 'look' | 'product' | 'suggestion' | 'plan-day' | 'trip-day' | 'edit-look';
 
-/** `suggestion` ids are `{stylistJobId}:{index}`; `plan-day` ids are the ISO date. */
+/** `suggestion` ids are `{stylistJobId}:{index}`; `plan-day` ids are the ISO date; `edit-look` ids are a weekly edit's look (08; the server's `editLook`). */
 export type TryOnTarget = { kind: TryOnTargetKind; id: string };
 
 /**

@@ -4,12 +4,11 @@ import { View } from 'react-native';
 
 import type { StylistPiece, StylistSuggestion } from '@/api/contracts/stylist';
 import { AiDropPulse, AiFailure, AiProgressLines, AiShimmerImage } from '@/components/ui/ai';
-import { AiImage } from '@/components/ui/AiBadge';
 import { Badge, MissingTag } from '@/components/ui/Bits';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
-import { Silhouette } from '@/components/ui/Silhouette';
 import { Text } from '@/components/ui/Text';
+import { OnYouImage } from '@/features/today/OnYouImage';
 import { ItemThumb } from '@/features/wardrobe/ItemThumb';
 
 export type MediaMode = 'idle' | 'working' | 'done' | 'failed' | 'noCredits';
@@ -59,9 +58,10 @@ function PieceTile({ piece, className, glyphSize = 32 }: { piece: StylistPiece; 
 
 /**
  * Top of a suggestion (17): the "on you" slot (200 × 264 on the board) + three piece tiles. States:
- * idle ("Üzerimde gör", 1 credit), working (17c — shimmer, breathing drop, rotating lines), done (AI
- * image: "AI önizleme" top-left, "SENİN ÜZERİNDE" bottom-left), failed (the same slot says the credit
- * came back and offers "Tekrar dene") and 17b no credits (the piece collage; see `NoCreditsCard`).
+ * idle (the piece collage with "Üzerimde gör", 1 credit, on top), working (17c — shimmer, breathing drop,
+ * rotating lines), done (AI image: "AI önizleme" top-left, "SENİN ÜZERİNDE" bottom-left — only when an
+ * image came back, otherwise the collage), failed (the same slot says the credit came back and offers
+ * "Tekrar dene") and 17b no credits (the piece collage; see `NoCreditsCard`).
  */
 export function SuggestionMedia({ suggestion, mode, imageUrl, creditLine, onTryOn, tryOnDisabled, creditRefunded, onRetry, retrying }: Props) {
   const { t } = useTranslation();
@@ -86,6 +86,7 @@ export function SuggestionMedia({ suggestion, mode, imageUrl, creditLine, onTryO
 
   const lines = [t('ai.tryOnLines.pieces'), t('ai.tryOnLines.colors'), t('ai.tryOnLines.placing'), t('ai.tryOnLines.finishing')];
   const tiles = tilePieces(suggestion.pieces, 3);
+  const collage = tilePieces(suggestion.pieces, 4).map((p) => ({ category: p.category, color: p.color, imageUrl: p.imageUrl, missing: p.source === 'store' }));
 
   return (
     <View className="flex-row gap-2.5">
@@ -93,15 +94,20 @@ export function SuggestionMedia({ suggestion, mode, imageUrl, creditLine, onTryO
       <View className="aspect-[200/264] flex-[10]">
         {mode === 'done' ? (
           <View className="h-full w-full">
-            <AiImage kind="onYou" uri={imageUrl} className="h-full w-full" accessibilityLabel={t('tryOn.imageA11yNamed', { name: suggestion.name })} />
-            {imageUrl ? null : (
-              <View className="absolute inset-0 items-center justify-center" pointerEvents="none">
-                <Silhouette height={168} />
+            {/* The AI markers only sit on a generated image; a finished job without one falls back to the piece collage. */}
+            <OnYouImage
+              uri={imageUrl}
+              className="h-full w-full rounded-image-lg"
+              pieces={collage}
+              silhouetteHeight={168}
+              accessibilityLabel={t('tryOn.imageA11yNamed', { name: suggestion.name })}
+              collageLabel={t('aiBadge.collageA11y', { name: suggestion.name })}
+            />
+            {imageUrl ? (
+              <View className="absolute left-2.5 top-2.5" pointerEvents="none">
+                <Badge tone="ink" icon={Sparkles} label={t('ai.previewBadge')} />
               </View>
-            )}
-            <View className="absolute left-2.5 top-2.5" pointerEvents="none">
-              <Badge tone="ink" icon={Sparkles} label={t('ai.previewBadge')} />
-            </View>
+            ) : null}
           </View>
         ) : mode === 'working' ? (
           <AiShimmerImage className="h-full w-full gap-3 rounded-image-lg p-4">
@@ -118,12 +124,21 @@ export function SuggestionMedia({ suggestion, mode, imageUrl, creditLine, onTryO
             <AiFailure layout="inline" creditRefunded={creditRefunded} onRetry={onRetry} retrying={retrying} />
           </View>
         ) : (
-          <View className="h-full w-full items-center justify-center gap-2.5 rounded-image-lg bg-sand p-3">
-            <Button variant="secondary" icon={Sparkles} label={t('stylistResult.tryOn')} onPress={onTryOn} disabled={tryOnDisabled} />
-            <Text variant="caption" tone="muted" className="text-center">
-              {creditLine}
-            </Text>
-          </View>
+          // Nothing generated yet: the outfit as its piece collage, with "Üzerimde gör" and what it costs on top.
+          <OnYouImage
+            uri={null}
+            className="h-full w-full rounded-image-lg"
+            pieces={collage}
+            silhouetteHeight={168}
+            collageLabel={t('aiBadge.collageA11y', { name: suggestion.name })}
+          >
+            <View className="items-center gap-1.5 rounded-field bg-paper/95 p-2">
+              <Button variant="secondary" size="md" icon={Sparkles} label={t('stylistResult.tryOn')} onPress={onTryOn} disabled={tryOnDisabled} className="px-4" />
+              <Text variant="caption" tone="muted" className="text-center">
+                {creditLine}
+              </Text>
+            </View>
+          </OnYouImage>
         )}
       </View>
       <View className="flex-[7] gap-2">

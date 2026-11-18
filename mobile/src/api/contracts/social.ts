@@ -18,6 +18,11 @@ export type FeedLook = {
   occasion: Occasion | null;
   postedAt: string;
   imageUrl: string | null;
+  /**
+   * The look's pieces (category / main colour in the wardrobe vocabulary, piece picture), when the feed
+   * carries them: drawn as the piece collage while the post has no picture of its own.
+   */
+  pieces?: { category?: string | null; color?: string | null; imageUrl?: string | null }[];
   /** This user's rating (1–5), if any. */
   myRating: number | null;
   averageRating: number | null;
@@ -48,7 +53,14 @@ export type PersonProfile = PersonRef & {
 };
 
 /** GET v1/tenant/people/{handle}/look · /item — 404 when hidden. */
-export type PersonTile = { id: string; name: string; imageUrl: string | null };
+export type PersonTile = {
+  id: string;
+  name: string;
+  imageUrl: string | null;
+  /** Item tiles: category / main colour (wardrobe vocabulary), when sent — the placeholder while there is no picture. */
+  category?: string | null;
+  color?: string | null;
+};
 /** GET v1/tenant/people/{handle}/trip — finished trips only: city + month (`YYYY-MM`). */
 export type PersonTrip = { id: string; city: string; month: string };
 

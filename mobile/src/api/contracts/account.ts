@@ -125,7 +125,10 @@ export type Palette =
 export type AnalyzePaletteRequest = { requestId: string; clientMutationId: string };
 
 /** GET v1/tenant/palette/mismatch */
-export type PaletteMismatch = { items: { id: string; name: string; imageUrl: string | null }[] };
+export type PaletteMismatch = {
+  /** Wardrobe pieces; `category` / `color` (wardrobe vocabulary, optional) draw the placeholder while there is no picture. */
+  items: { id: string; name: string; imageUrl: string | null; category?: string | null; color?: string | null }[];
+};
 
 /** DELETE v1/auth/me — account deletion (29c). Online only. */
 export type DeleteAccountResponse = void;

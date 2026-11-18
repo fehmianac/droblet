@@ -88,6 +88,9 @@ describe('04b İlk 5 parça', () => {
     expect(screen.getByText('3 / 3')).toBeTruthy();
     await waitFor(() => expect(screen.getByText('Shoot your own piece')).toBeTruthy(), WAIT);
     expect(screen.getByText('See the full ready-made library')).toBeTruthy();
+    // The library sends no pictures (imageUrl: null): every tile draws its category glyph on the piece's colour.
+    expect(screen.getAllByTestId('image-slot-garment').length).toBeGreaterThanOrEqual(6);
+    expect(screen.queryByTestId('image-slot-figure')).toBeNull();
     expect(screen.getByText('0 / 5 selected')).toBeTruthy();
     expect(screen.getByText('At least 5 pieces recommended')).toBeTruthy();
 

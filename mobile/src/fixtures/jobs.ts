@@ -20,10 +20,14 @@ const jobs = new Map<string, FixtureJob>();
 
 const DEFAULT_DURATION_MS = 4500;
 
-/** Dev/test knobs: make the next started job fail, or change how long fixture jobs take. */
-export const fixtureJobOptions: { failNext: JobError | null; durationMs: number } = {
+/**
+ * Dev/test knobs: make the next started job fail, change how long fixture jobs take, or give fixture
+ * try-on jobs an image (`tryOnImageUrl`; null = the job finishes without a picture, as fixtures always did).
+ */
+export const fixtureJobOptions: { failNext: JobError | null; durationMs: number; tryOnImageUrl: string | null } = {
   failNext: null,
   durationMs: DEFAULT_DURATION_MS,
+  tryOnImageUrl: null,
 };
 
 /** Starts (or, for a known `id`, returns) a fixture job. Passing the request id as `id` makes the start idempotent. */
@@ -60,4 +64,5 @@ export function resetFixtureJobs(): void {
   jobs.clear();
   fixtureJobOptions.failNext = null;
   fixtureJobOptions.durationMs = DEFAULT_DURATION_MS;
+  fixtureJobOptions.tryOnImageUrl = null;
 }

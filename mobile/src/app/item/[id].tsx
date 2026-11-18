@@ -11,11 +11,10 @@ import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
-import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
+import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
-import { Silhouette } from '@/components/ui/Silhouette';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
@@ -25,7 +24,7 @@ import { DeleteConfirmSheet, itemImage, SeasonSheet } from '@/features/wardrobe/
 import { useItemDetail } from '@/features/wardrobe/queries';
 import { currentLanguage } from '@/i18n';
 import { toDisplayUpper } from '@/lib/upper';
-import { placeholderTones, type PlaceholderTone } from '@/theme/tokens';
+import type { PlaceholderTone } from '@/theme/tokens';
 
 /** Grounds of the look tiles on board 11, in order. */
 const LOOK_TONES: PlaceholderTone[] = ['taupe', 'dark', 'clay'];
@@ -163,17 +162,13 @@ export default function ItemDetailScreen() {
                           className="active:opacity-80"
                         >
                           {/* Canvas: 104 × 132 tile, radius 14 — the standing figure on a toned ground until the look has a picture — with the occasion tag. */}
-                          <View
-                            className="h-[132px] w-[104px] items-center justify-center overflow-hidden rounded-image-lg"
-                            style={{ backgroundColor: placeholderTones[tone] }}
+                          <ImageSlot
+                            uri={look.imageUrl}
+                            className="h-[132px] w-[104px] rounded-image-lg"
+                            placeholder={{ kind: 'figure', tone, figureHeight: 100 }}
                           >
-                            {look.imageUrl ? (
-                              <PlaceholderImage uri={look.imageUrl} className="h-full w-full" />
-                            ) : (
-                              <Silhouette height={100} tone={tone === 'dark' ? 'cream' : 'ink'} />
-                            )}
                             <ImageTag label={toDisplayUpper(occasionLabels[look.occasion] ?? look.occasion, currentLanguage())} className="absolute bottom-2 left-2" />
-                          </View>
+                          </ImageSlot>
                         </Pressable>
                       );
                     })}

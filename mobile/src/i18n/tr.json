@@ -49,6 +49,7 @@
   },
   "aiBadge": {
     "onYou": "SENİN ÜZERİNDE",
+    "collageA11y": "{{name}}, parça kolajı",
     "preview": "AI ÖNİZLEME"
   },
   "states": {

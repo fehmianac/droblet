@@ -10,14 +10,14 @@ import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
-import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
+import { ImageSlot } from '@/components/ui/ImageSlot';
 import { ListTabBar } from '@/components/navigation/TabBar';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
-import { Silhouette } from '@/components/ui/Silhouette';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
+import { coverPieces } from '@/features/looks/LookCover';
 import { useLooks } from '@/features/looks/queries';
 import { useCalendarMonth } from '@/features/today/api';
 import { combineQueries } from '@/features/today/combineQueries';
@@ -143,12 +143,11 @@ export default function CalendarScreen() {
                               <View className="h-[52px] w-full rounded-lg border border-dashed border-line" />
                             ) : (
                               <View className="h-[52px] w-full items-center justify-center overflow-hidden rounded-lg">
-                                <PlaceholderImage uri={image} className="h-full w-full" />
-                                {image ? null : (
-                                  <View className="absolute inset-0 items-center justify-center" pointerEvents="none">
-                                    <Silhouette height={33} opacity={0.3} />
-                                  </View>
-                                )}
+                                <ImageSlot
+                                  uri={image}
+                                  className="h-full w-full"
+                                  placeholder={{ kind: 'figure', seed: lookOf(status)?.id, figureHeight: 33 }}
+                                />
                               </View>
                             )}
                           </Pressable>
@@ -198,12 +197,16 @@ export default function CalendarScreen() {
                       <>
                         <View className="flex-row items-center gap-3.5">
                           <View className="h-[124px] w-24 items-center justify-center overflow-hidden rounded-image">
-                            <PlaceholderImage uri={selectedLook?.tryOnImageUrl} className="h-full w-full" />
-                            {selectedLook?.tryOnImageUrl ? null : (
-                              <View className="absolute inset-0 items-center justify-center" pointerEvents="none">
-                                <Silhouette height={73} />
-                              </View>
-                            )}
+                            <ImageSlot
+                              uri={selectedLook?.tryOnImageUrl}
+                              className="h-full w-full"
+                              placeholder={{
+                                kind: 'look',
+                                pieces: selectedLook ? coverPieces(selectedLook.slots, undefined, 73) : [],
+                                seed: selectedLook?.id,
+                                figureHeight: 73,
+                              }}
+                            />
                           </View>
                           <View className="flex-1 gap-1.5">
                             <Badge label={t(selectedStatus.kind === 'worn' ? 'calendarScreen.statusWorn' : 'calendarScreen.statusPlanned')} />

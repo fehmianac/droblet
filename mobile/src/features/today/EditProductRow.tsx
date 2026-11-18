@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Pressable, View } from 'react-native';
 
 import type { EditProduct } from '@/api/contracts/today';
-import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
+import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Text } from '@/components/ui/Text';
 import { formatMoney } from '@/lib/format';
 import { toBrandUpper } from '@/lib/upper';
@@ -28,7 +28,11 @@ export function EditProductRow({ product, onPress, trailing }: Props) {
         accessibilityLabel={[product.brand, product.name, price].join(', ')}
         className="flex-1 flex-row items-center gap-3 active:opacity-80"
       >
-        <PlaceholderImage uri={product.imageUrl} className="h-16 w-[52px] rounded-thumb" />
+        <ImageSlot
+          uri={product.imageUrl}
+          className="h-16 w-[52px] rounded-thumb"
+          placeholder={{ kind: 'garment', category: product.category, color: product.color, glyphSize: 22 }}
+        />
         <View className="flex-1 gap-0.5">
           <Text variant="brand" tone="muted" numberOfLines={1}>
             {toBrandUpper(product.brand)}

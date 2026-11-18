@@ -15,11 +15,10 @@ import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
-import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
+import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
-import { Silhouette } from '@/components/ui/Silhouette';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { profileShareUrl } from '@/features/social/feedMath';
@@ -69,7 +68,10 @@ function Stat({ value, label }: { value: string; label: string }) {
   );
 }
 
-/** Three columns, 4 apart and 4 from the screen edge, 170 high tiles (as drawn). Looks without a photo show the figure. */
+/**
+ * Three columns, 4 apart and 4 from the screen edge, 170 high tiles (as drawn). Without a picture a look
+ * shows the standing figure (ground picked by its id) and a piece its category glyph on its colour.
+ */
 function TileGrid({ tiles, figure = false }: { tiles: PersonTile[]; figure?: boolean }) {
   const rows: PersonTile[][] = [];
   for (let i = 0; i < tiles.length; i += 3) rows.push(tiles.slice(i, i + 3));
@@ -78,10 +80,17 @@ function TileGrid({ tiles, figure = false }: { tiles: PersonTile[]; figure?: boo
       {rows.map((row) => (
         <View key={row[0]?.id} className="flex-row gap-1">
           {row.map((tile) => (
-            <View key={tile.id} className="h-[170px] flex-1 items-center justify-center overflow-hidden rounded">
-              <PlaceholderImage uri={tile.imageUrl} className="absolute inset-0" accessibilityLabel={tile.name} />
-              {figure && !tile.imageUrl ? <Silhouette height={105} /> : null}
-            </View>
+            <ImageSlot
+              key={tile.id}
+              uri={tile.imageUrl}
+              className="h-[170px] flex-1 rounded"
+              accessibilityLabel={tile.name}
+              placeholder={
+                figure
+                  ? { kind: 'look', pieces: [], seed: tile.id, figureHeight: 105 }
+                  : { kind: 'garment', category: tile.category, color: tile.color, glyphSize: 48 }
+              }
+            />
           ))}
           {Array.from({ length: 3 - row.length }, (_, i) => (
             <View key={`pad-${i}`} className="flex-1" />

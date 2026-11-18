@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
 import { ImageTag } from './Bits';
-import { PlaceholderImage } from './PlaceholderImage';
+import { ImageSlot, type SlotPlaceholder } from './ImageSlot';
 
 export type AiBadgeKind = 'onYou' | 'preview';
 
@@ -20,19 +20,24 @@ type AiImageProps = {
   uri: string | null;
   className?: string;
   accessibilityLabel?: string;
+  /** What stands in while there is no generated image (e.g. the look's piece collage). Defaults to the figure. */
+  placeholder?: SlotPlaceholder;
 };
 
 /**
- * An AI-generated image. The label is part of the component and cannot be turned off:
+ * An AI-generated image. When there is one, the label is part of the component and cannot be turned off:
  * AI output is always marked (BRIEF §3 Görseller). It sits bottom-left, 8 in, as on 06 / 08 / 17 / 22.
+ * Without an image nothing was generated, so there is no AI marker — only the placeholder.
  */
-export function AiImage({ kind, uri, className, accessibilityLabel }: AiImageProps) {
+export function AiImage({ kind, uri, className, accessibilityLabel, placeholder }: AiImageProps) {
   return (
     <View className={className}>
-      <PlaceholderImage uri={uri} className="h-full w-full rounded-image-lg" accessibilityLabel={accessibilityLabel} />
-      <View className="absolute bottom-2 left-2" pointerEvents="none">
-        <AiBadge kind={kind} />
-      </View>
+      <ImageSlot uri={uri} className="h-full w-full rounded-image-lg" accessibilityLabel={accessibilityLabel} placeholder={placeholder} />
+      {uri ? (
+        <View className="absolute bottom-2 left-2" pointerEvents="none" testID="ai-image-tag">
+          <AiBadge kind={kind} />
+        </View>
+      ) : null}
     </View>
   );
 }

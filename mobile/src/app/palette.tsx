@@ -12,11 +12,10 @@ import { SectionState } from '@/components/blocks/SectionState';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
-import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
+import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
-import { Silhouette } from '@/components/ui/Silhouette';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { useAnalyzePalette } from '@/features/account/mutations';
@@ -30,7 +29,6 @@ import { currentLanguage } from '@/i18n';
 import { formatPercent } from '@/lib/format';
 import { suffixed } from '@/lib/trSuffix';
 import { mutationKeys } from '@/sync/queryKeys';
-import { placeholderTones } from '@/theme/tokens';
 
 type ReadyPalette = Extract<Palette, { status: 'ready' }>;
 
@@ -76,17 +74,7 @@ function ReadyView({ palette, faceUrl }: { palette: ReadyPalette; faceUrl: strin
     <>
       <ScrollView contentContainerClassName="gap-4 px-gutter pb-10 pt-1">
         <View className="flex-row items-center gap-3.5">
-          {faceUrl ? (
-            <PlaceholderImage uri={faceUrl} className="h-[110px] w-[88px] rounded-image-lg" />
-          ) : (
-            <View
-              className="h-[110px] w-[88px] items-center justify-center overflow-hidden rounded-image-lg"
-              style={{ backgroundColor: placeholderTones.stage }}
-              accessible={false}
-            >
-              <Silhouette height={68} />
-            </View>
-          )}
+          <ImageSlot uri={faceUrl} className="h-[110px] w-[88px] rounded-image-lg" placeholder={{ kind: 'figure', tone: 'stage', figureHeight: 68 }} />
           <View className="flex-1 gap-1">
             <Text variant="eyebrow">{t('palette.seasonEyebrow')}</Text>
             <Text variant="display" accessibilityRole="header">
@@ -160,7 +148,11 @@ function ReadyView({ palette, faceUrl }: { palette: ReadyPalette; faceUrl: strin
             <View className="flex-row flex-wrap gap-3">
               {data.items.map((item) => (
                 <View key={item.id} className="w-24 gap-1.5">
-                  <PlaceholderImage uri={item.imageUrl} className="aspect-[4/5] w-full rounded-image" />
+                  <ImageSlot
+                    uri={item.imageUrl}
+                    className="aspect-[4/5] w-full rounded-image"
+                    placeholder={{ kind: 'garment', category: item.category, color: item.color, glyphSize: 34 }}
+                  />
                   <Text variant="caption" numberOfLines={2}>
                     {item.name}
                   </Text>

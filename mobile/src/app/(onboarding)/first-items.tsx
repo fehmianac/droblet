@@ -18,6 +18,7 @@ import { ScreenState } from '@/components/ui/ScreenState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { libraryCategory } from '@/features/wardrobe/form';
+import { asGarmentColor } from '@/components/ui/ImageSlot';
 import { ItemThumb } from '@/features/wardrobe/ItemThumb';
 
 /** The board shows a 3 × 3 selection; the whole library is one tap away. */
@@ -44,7 +45,7 @@ function LibraryTile({ item, selected, onToggle }: { item: LibraryItem; selected
       <View>
         <ItemThumb
           category={libraryCategory(item.category)}
-          color="white"
+          color={asGarmentColor(item.color ?? 'white')}
           uri={item.imageUrl}
           glyphSize={36}
           className={`h-20 w-full rounded-image border-2 ${selected ? 'border-ink' : 'border-transparent'}`}

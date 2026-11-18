@@ -16,11 +16,10 @@ import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
-import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
+import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
-import { Silhouette } from '@/components/ui/Silhouette';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { useMyPhotos } from '@/features/account/queries';
@@ -163,6 +162,7 @@ function ProductBody({ product }: { product: ProductDetail }) {
     action(size);
   };
 
+  const garment = { category: product.category, color: product.colors[0], imageUrl: product.imageUrl };
   let onMe: ReactNode = null;
   if (view === 'onMe') {
     if (needsPhoto) {
@@ -182,18 +182,27 @@ function ProductBody({ product }: { product: ProductDetail }) {
       );
     } else if (job.isDone) {
       const uri = job.result?.imageUrl ?? null;
+      // The marker only sits on a generated image. A finished job without one shows the piece itself
+      // ("Parça kolajı"), never a bare figure under "SENİN ÜZERİNDE".
       onMe = (
-        <View
-          className="flex-1 items-center justify-center overflow-hidden bg-sand"
-          accessible
-          accessibilityRole="image"
-          accessibilityLabel={t('productDetail.onMeA11y', { name: product.name })}
+        <ImageSlot
+          uri={uri}
+          className="flex-1"
+          accessibilityLabel={uri ? t('productDetail.onMeA11y', { name: product.name }) : t('aiBadge.collageA11y', { name: product.name })}
+          placeholder={{ kind: 'look', pieces: [garment], figureHeight: 220 }}
         >
-          {uri ? <PlaceholderImage uri={uri} className="absolute inset-0" /> : <Silhouette height={220} />}
-          <View className="absolute bottom-2 left-2" pointerEvents="none">
-            <AiBadge kind="onYou" />
-          </View>
-        </View>
+          {uri ? (
+            <View className="absolute bottom-2 left-2" pointerEvents="none">
+              <AiBadge kind="onYou" />
+            </View>
+          ) : (
+            <View className="absolute left-2.5 h-badge justify-center rounded-pill border border-line bg-paper px-2" style={{ top: insets.top + 56 }} pointerEvents="none">
+              <Text variant="badge" numberOfLines={1}>
+                {t('stylistResult.collageBadge')}
+              </Text>
+            </View>
+          )}
+        </ImageSlot>
       );
     } else {
       // The shared AI wait (canvas `AiYukleniyor`): the try-on stage here, the progress sentences under the image.
@@ -207,7 +216,12 @@ function ProductBody({ product }: { product: ProductDetail }) {
       <ScrollView contentContainerClassName="gap-[11px] pb-6" bounces={false}>
         <View className={HERO_CLASS}>
           <View className="flex-1 flex-row gap-0.5">
-            <PlaceholderImage uri={product.imageUrl} className="flex-1" accessibilityLabel={product.name} />
+            <ImageSlot
+              uri={product.imageUrl}
+              className="flex-1"
+              accessibilityLabel={product.name}
+              placeholder={{ kind: 'garment', category: garment.category, color: garment.color, glyphSize: 96 }}
+            />
             {onMe}
           </View>
           <View className="absolute left-gutter right-gutter flex-row justify-between" style={{ top: insets.top + 4 }}>

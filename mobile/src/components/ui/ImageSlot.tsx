@@ -67,12 +67,35 @@ export function toneFromSeed(seed: string | undefined): SlotTone {
 const CATEGORY_SET = new Set<string>(Object.keys(GARMENT_GLYPHS));
 const COLOR_SET = new Set<string>(Object.keys(TONE_BY_COLOR));
 
+/** Catalogue (store / wire) categories that are finer than the wardrobe's: each draws its family's glyph. */
+const CATEGORY_ALIAS: Record<string, ItemCategory> = {
+  tshirt: 'top',
+  shirt: 'top',
+  blouse: 'top',
+  knit: 'top',
+  knitwear: 'top',
+  sweatshirt: 'top',
+  activewear: 'top',
+  jacket: 'outerwear',
+  coat: 'outerwear',
+  trousers: 'bottom',
+  jeans: 'bottom',
+  skirt: 'bottom',
+  shorts: 'bottom',
+  swimwear: 'beachwear',
+  onePiece: 'dress',
+};
+/** Catalogue colours outside the wardrobe's twelve. */
+const COLOR_ALIAS: Record<string, ItemColor> = { olive: 'green', burgundy: 'red', camel: 'beige', gray: 'grey' };
+
 /** Narrows free-form catalogue values (store products, library items) to the glyph / tint vocabulary. */
 export function asGarmentCategory(value: string | null | undefined): ItemCategory {
-  return value && CATEGORY_SET.has(value) ? (value as ItemCategory) : 'top';
+  if (!value) return 'top';
+  return CATEGORY_SET.has(value) ? (value as ItemCategory) : (CATEGORY_ALIAS[value] ?? 'top');
 }
 export function asGarmentColor(value: string | null | undefined): ItemColor {
-  return value && COLOR_SET.has(value) ? (value as ItemColor) : 'other';
+  if (!value) return 'other';
+  return COLOR_SET.has(value) ? (value as ItemColor) : (COLOR_ALIAS[value] ?? 'other');
 }
 
 /** Up to two initials of a display name or handle ("Selin Y." → "SY", "@ornek_stilist" → "O"). */

@@ -8,11 +8,10 @@ import type { MyProfile } from '@/api/contracts/account';
 import { ApiError, extractApiError } from '@/api/errors';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
-import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
+import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
-import { Silhouette } from '@/components/ui/Silhouette';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { TextField } from '@/components/ui/TextField';
@@ -22,7 +21,6 @@ import { useMyProfile } from '@/features/account/queries';
 import type { PreparedPhoto } from '@/features/photos/preparePhoto';
 import { usePhotoPicker } from '@/features/photos/usePhotoPicker';
 import { useIsOnline } from '@/sync/network';
-import { placeholderTones } from '@/theme/tokens';
 
 /** keep = the saved photo, new = a file picked on this screen, removed = no photo after saving. */
 type AvatarDraft = { kind: 'keep' } | { kind: 'new'; photo: PreparedPhoto } | { kind: 'removed' };
@@ -96,19 +94,12 @@ function Form({ profile }: { profile: MyProfile }) {
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
       <ScrollView contentContainerClassName="gap-5 px-gutter pb-6 pt-2" keyboardShouldPersistTaps="handled">
         <View className="items-center gap-1">
-          {avatarUri ? (
-            <PlaceholderImage uri={avatarUri} className="h-[88px] w-[88px] rounded-pill" accessibilityLabel={t('me.avatar')} />
-          ) : (
-            <View
-              className="h-[88px] w-[88px] items-center justify-center overflow-hidden rounded-pill"
-              style={{ backgroundColor: placeholderTones.stage }}
-              accessible
-              accessibilityRole="image"
-              accessibilityLabel={t('profileEdit.noPhoto')}
-            >
-              <Silhouette height={68} />
-            </View>
-          )}
+          <ImageSlot
+            uri={avatarUri}
+            className="h-[88px] w-[88px] rounded-pill"
+            accessibilityLabel={t(avatarUri ? 'me.avatar' : 'profileEdit.noPhoto')}
+            placeholder={{ kind: 'avatar', name: name.trim() || handle }}
+          />
           <Button variant="text" label={t(avatarUri ? 'profileEdit.changePhoto' : 'profileEdit.addPhoto')} onPress={() => setPhotoOpen(true)} />
           {photoFailed ? (
             <Text variant="caption" tone="danger" accessibilityLiveRegion="polite">

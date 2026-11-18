@@ -11,11 +11,10 @@ import { StarRating } from '@/components/blocks/rows';
 import { ListTabBar } from '@/components/navigation/TabBar';
 import { Chip } from '@/components/ui/Chip';
 import { IconButton } from '@/components/ui/IconButton';
-import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
+import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
-import { Silhouette } from '@/components/ui/Silhouette';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { lookShareUrl } from '@/features/social/feedMath';
@@ -116,14 +115,12 @@ function LookPost({ look, onShare }: { look: FeedLook; onShare: () => void }) {
       </View>
 
       {/* Another person's look is shown with its pieces — never a try-on image. */}
-      <View className="h-[290px] w-full items-center justify-center overflow-hidden rounded-tile">
-        <PlaceholderImage
-          uri={look.imageUrl}
-          className="absolute inset-0"
-          accessibilityLabel={t('feed.lookImage', { name: author.displayName })}
-        />
-        {look.imageUrl ? null : <Silhouette height={184} />}
-      </View>
+      <ImageSlot
+        uri={look.imageUrl}
+        className="h-[290px] w-full rounded-tile"
+        accessibilityLabel={t('feed.lookImage', { name: author.displayName })}
+        placeholder={{ kind: 'look', pieces: look.pieces ?? [], seed: look.lookId, figureHeight: 184 }}
+      />
 
       <View className="flex-row items-center justify-between">
         <StarRating value={look.myRating} onRate={(score) => rate(author.handle, look.lookId, score)} />

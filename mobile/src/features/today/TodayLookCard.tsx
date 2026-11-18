@@ -9,8 +9,9 @@ import { MissingTag } from '@/components/ui/Bits';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
-import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
+import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Text } from '@/components/ui/Text';
+import { OnYouCta } from '@/features/tryon/OnYouCta';
 import { currentLanguage } from '@/i18n';
 import { toDisplayUpper } from '@/lib/upper';
 
@@ -31,6 +32,9 @@ type Props = {
  * thumbnails beside it (the missing one dashed, with "EKSİK PARÇA"), then "BUGÜNÜN KOMBİNİ · OFİS" + the name
  * with "Look'u tamamla", and "Bunu giyiyorum" with refresh (another suggestion) and heart (lookbook).
  * While another suggestion is prepared the card uses the AI loading language, never a spinner.
+ *
+ * Without a generated image the area is the look's piece collage ("Parça kolajı") with the state's action
+ * (add a photo / add credits / "Üzerimde gör") — the "SENİN ÜZERİNDE" tag only ever sits on a real image.
  */
 export function TodayLookCard({ look, onWear, onRefresh, onToggleFavorite, refreshing }: Props) {
   const { t } = useTranslation();
@@ -47,17 +51,23 @@ export function TodayLookCard({ look, onWear, onRefresh, onToggleFavorite, refre
           <OnYouImage
             uri={look.tryOnImageUrl}
             className="flex-[23]"
+            pieces={look.pieces.map((p) => ({ category: p.category, color: p.color, imageUrl: p.imageUrl, missing: p.source === 'store' }))}
+            seed={look.id}
             silhouetteHeight={168}
             accessibilityLabel={t('todayHome.lookImageA11y', { name: look.name })}
-          />
+            collageLabel={t('aiBadge.collageA11y', { name: look.name })}
+          >
+            <OnYouCta target={{ kind: 'look', id: look.id }} title={look.name} feature="today_try_on" />
+          </OnYouImage>
         )}
         <View className="flex-[12] gap-1 p-1">
           {todayThumbs(look.pieces).map((p) => {
             const missing = p.source === 'store';
             return (
               <View key={p.id} className="flex-1">
-                <PlaceholderImage
+                <ImageSlot
                   uri={p.imageUrl}
+                  placeholder={{ kind: 'garment', category: p.category, color: p.color, glyphSize: 28 }}
                   accessibilityLabel={missing ? t('todayHome.pieceMissingA11y', { name: p.name }) : p.name}
                   className={`h-full w-full rounded-thumb ${missing ? 'border-[1.5px] border-dashed border-accent' : ''}`}
                 />

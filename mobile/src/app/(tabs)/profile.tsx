@@ -12,9 +12,8 @@ import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
 import { OfflineBanner } from '@/components/ui/OfflineBanner';
-import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
+import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Screen } from '@/components/ui/Screen';
-import { Silhouette } from '@/components/ui/Silhouette';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { useEntitlement } from '@/entitlement/useEntitlement';
@@ -27,7 +26,6 @@ import { currentLanguage } from '@/i18n';
 import { formatDayMonth, formatMonthName } from '@/lib/format';
 import { suffixed } from '@/lib/trSuffix';
 import { toDisplayUpper } from '@/lib/upper';
-import { placeholderTones } from '@/theme/tokens';
 import { useThemeColors } from '@/theme/useThemeColors';
 
 /**
@@ -172,17 +170,12 @@ export default function ProfileTab() {
         refreshControl={<RefreshControl refreshing={profile.isRefetching} onRefresh={refresh} tintColor={colors.muted} />}
       >
         <View className="flex-row items-center gap-3.5">
-          {profile.data?.avatarUrl ? (
-            <PlaceholderImage uri={profile.data.avatarUrl} className="h-16 w-16 rounded-pill" accessibilityLabel={t('me.avatar')} />
-          ) : (
-            <View
-              className="h-16 w-16 items-center justify-center overflow-hidden rounded-pill"
-              style={{ backgroundColor: placeholderTones.stage }}
-              accessible={false}
-            >
-              <Silhouette height={50} />
-            </View>
-          )}
+          <ImageSlot
+            uri={profile.data?.avatarUrl}
+            className="h-16 w-16 rounded-pill"
+            accessibilityLabel={profile.data?.avatarUrl ? t('me.avatar') : undefined}
+            placeholder={{ kind: 'avatar', name: name || profile.data?.handle }}
+          />
           <View className="flex-1">
             {name ? (
               <Text variant="h2" numberOfLines={1}>

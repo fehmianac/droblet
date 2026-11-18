@@ -13,11 +13,10 @@ import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { OfflineBanner } from '@/components/ui/OfflineBanner';
-import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
+import { ImageSlot } from '@/components/ui/ImageSlot';
 import { ListTabBar } from '@/components/navigation/TabBar';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
-import { Silhouette } from '@/components/ui/Silhouette';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { useFollow } from '@/features/social/mutations';
@@ -227,10 +226,11 @@ export default function FindFriendsScreen() {
                       className="flex-1 active:opacity-80"
                     >
                       <Card className="gap-1.5 p-2.5">
-                        <View className="h-[110px] w-full items-center justify-center overflow-hidden rounded-thumb">
-                          <PlaceholderImage uri={c.imageUrl} className="absolute inset-0" />
-                          {c.imageUrl ? null : <Silhouette height={74} />}
-                        </View>
+                        <ImageSlot
+                          uri={c.imageUrl}
+                          className="h-[110px] w-full rounded-thumb"
+                          placeholder={{ kind: 'look', pieces: [], seed: c.id, figureHeight: 74 }}
+                        />
                         <Text variant="segment" numberOfLines={1}>
                           {c.displayName}
                         </Text>

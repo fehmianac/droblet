@@ -15,10 +15,9 @@ import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { OfflineBanner } from '@/components/ui/OfflineBanner';
-import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
+import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
-import { Silhouette } from '@/components/ui/Silhouette';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { photoDeleteLines } from '@/features/account/logic';
@@ -37,7 +36,6 @@ import { currentLanguage, LANGUAGES, SUPPORTED_LANGUAGES, type AppLanguage } fro
 import { setAppLanguage } from '@/i18n/preference';
 import { localToUtcTime, REMINDER_TIMES, utcToLocalTime } from '@/notify/time';
 import { mutationKeys } from '@/sync/queryKeys';
-import { placeholderTones } from '@/theme/tokens';
 
 const MAX_BODY_PHOTOS = 3;
 
@@ -53,21 +51,21 @@ type ThumbProps = {
 function PhotoThumb({ uri, kind, tag, removeLabel, onRemove }: ThumbProps) {
   return (
     <View className="h-[66px] w-[52px]">
-      {uri ? (
-        <PlaceholderImage uri={uri} className="h-full w-full rounded-thumb" accessibilityLabel={tag} />
+      {uri || kind === 'body' ? (
+        <ImageSlot
+          uri={uri}
+          className="h-full w-full rounded-thumb"
+          accessibilityLabel={tag}
+          placeholder={{ kind: 'figure', tone: 'stage', figureHeight: 44 }}
+        />
       ) : (
         <View
-          className={`h-full w-full items-center justify-center overflow-hidden rounded-thumb ${kind === 'face' ? 'bg-sand' : ''}`}
-          style={kind === 'body' ? { backgroundColor: placeholderTones.stage } : undefined}
+          className="h-full w-full items-center justify-center overflow-hidden rounded-thumb bg-sand"
           accessible
           accessibilityRole="image"
           accessibilityLabel={tag}
         >
-          {kind === 'body' ? (
-            <Silhouette height={44} />
-          ) : (
-            <View className="h-[34px] w-[26px] rounded-pill border-[1.5px] border-dashed border-muted" />
-          )}
+          <View className="h-[34px] w-[26px] rounded-pill border-[1.5px] border-dashed border-muted" />
         </View>
       )}
       <ImageTag label={tag} className="absolute bottom-1 left-1 px-1 py-0.5" />

@@ -13,7 +13,7 @@ import { ulid } from '@/lib/ids';
 /** Every try-on image costs one credit (README §9.1). Shown before starting; the server is authoritative. */
 export const TRY_ON_CREDIT_COST = 1;
 
-const TARGET_KINDS: readonly TryOnTargetKind[] = ['look', 'product', 'suggestion', 'plan-day', 'trip-day'];
+const TARGET_KINDS: readonly TryOnTargetKind[] = ['look', 'product', 'suggestion', 'plan-day', 'trip-day', 'edit-look'];
 
 /** Narrows a route param to a try-on target kind (the try-on screen takes `kind` + `id` so it can retry). */
 export function isTryOnTargetKind(value: string | undefined): value is TryOnTargetKind {
@@ -32,7 +32,7 @@ function startFixtureTryOn(request: StartTryOnRequest): StartTryOnResponse {
     () => ({
       tryOnId: `tryon_${request.requestId}`,
       target: request.target,
-      imageUrl: null,
+      imageUrl: fixtureJobOptions.tryOnImageUrl,
       creditsRemaining: fixtureDb.entitlement.credits.remaining,
     }),
     { id: `job_${request.requestId}` },

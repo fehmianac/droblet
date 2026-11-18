@@ -1,0 +1,135 @@
+# Screen tour for design review: signs in and onboards (onboard-existing.yaml), then opens every screen and
+# takes one screenshot per canvas board. Screens are opened with app links (droplet://<route>), so the
+# tour does not depend on copy or layout.
+# Run: maestro test -e EMAIL="tour+$(date +%s)@example.com" -e WEEK="2026-11-16" .maestro/screens.yaml
+#      WEEK = Monday of the current week (ids of the weekly edit: edit_<WEEK>_<n>).
+appId: com.alatech.droplet
+env:
+  EMAIL: ${EMAIL}
+  WEEK: ${WEEK}
+  LANG: ${LANG}
+  LOCALE: ${LOCALE}
+---
+- runFlow: onboard-existing.yaml
+
+# 2 · Bugün
+- openLink: droplet://plan/week
+- waitForAnimationToEnd
+- takeScreenshot: 07-haftalik-plan
+- openLink: "droplet://edit/edit_${WEEK}_1"
+- waitForAnimationToEnd
+- takeScreenshot: 08-haftanin-editi
+- openLink: droplet://calendar
+- waitForAnimationToEnd
+- takeScreenshot: 09-takvim
+- openLink: droplet://plan/report
+- waitForAnimationToEnd
+- takeScreenshot: 09r-rapor
+
+# 3 · Gardırop
+- openLink: droplet://wardrobe
+- waitForAnimationToEnd
+- takeScreenshot: 10-gardirop
+- openLink: droplet://item/item_navy_blazer
+- waitForAnimationToEnd
+- takeScreenshot: 11-parca-detayi
+- openLink: droplet://item/add
+- waitForAnimationToEnd
+- takeScreenshot: 12-parca-ekle
+- openLink: droplet://item/library
+- waitForAnimationToEnd
+- takeScreenshot: 12b-kutuphane
+- openLink: "droplet://item/form?itemId=item_navy_blazer"
+- waitForAnimationToEnd
+- takeScreenshot: 12c-parca-bilgileri
+- openLink: droplet://item/bulk
+- waitForAnimationToEnd
+- takeScreenshot: 13-toplu-ekle
+- openLink: droplet://wardrobe/looks
+- waitForAnimationToEnd
+- takeScreenshot: 14-looklar
+- openLink: droplet://look/new
+- waitForAnimationToEnd
+- takeScreenshot: 15-look-olustur
+- openLink: droplet://look/look_lacivert_blazer
+- waitForAnimationToEnd
+- takeScreenshot: 14d-look-detayi
+
+# 4 · Stilist ve bavul
+- openLink: droplet://stylist
+- waitForAnimationToEnd
+- takeScreenshot: 16-stilist
+- tapOn:
+    id: "stylist-submit"
+- takeScreenshot: ai-kombin-onerisi-bekleme
+- extendedWaitUntil:
+    visible:
+      id: "suggestion-pager"
+    timeout: 30000
+- takeScreenshot: 17-kombin-onerisi
+- openLink: droplet://wardrobe/trips
+- waitForAnimationToEnd
+- takeScreenshot: 18-bavullar
+- openLink: droplet://trip/trip_londra
+- waitForAnimationToEnd
+- takeScreenshot: 19-bavul-detayi
+
+# 5 · Keşfet ve mağaza
+- openLink: droplet://discover
+- waitForAnimationToEnd
+- takeScreenshot: 20-kesfet
+- openLink: droplet://shop
+- waitForAnimationToEnd
+- takeScreenshot: 21-stil-magazasi
+- openLink: droplet://shop/product/prod_001
+- waitForAnimationToEnd
+- takeScreenshot: 22-urun
+- openLink: droplet://shop/builder
+- waitForAnimationToEnd
+- takeScreenshot: 23-kombin-olusturucu
+- openLink: droplet://cart
+- waitForAnimationToEnd
+- takeScreenshot: 24-sepet
+- openLink: droplet://watchlist
+- waitForAnimationToEnd
+- takeScreenshot: 24b-izleme-listem
+
+# 6 · Sosyal
+- openLink: droplet://friends/feed
+- waitForAnimationToEnd
+- takeScreenshot: 25-arkadas-akisi
+- openLink: droplet://u/selin
+- waitForAnimationToEnd
+- takeScreenshot: 26-kisi-profili
+- openLink: droplet://u/deniz
+- waitForAnimationToEnd
+- takeScreenshot: 26g-kisi-gizli-dolap
+- openLink: droplet://friends/find
+- waitForAnimationToEnd
+- takeScreenshot: 27-dolaplari-kesfet
+
+# 7 · Profil
+- openLink: droplet://profile
+- waitForAnimationToEnd
+- takeScreenshot: 28-profil
+- openLink: droplet://edit-profile
+- waitForAnimationToEnd
+- takeScreenshot: 28e-profili-duzenle
+- openLink: droplet://settings
+- waitForAnimationToEnd
+- takeScreenshot: 29-ayarlar
+- openLink: droplet://delete-account
+- waitForAnimationToEnd
+- takeScreenshot: 29c-hesap-sil
+- openLink: droplet://palette
+- waitForAnimationToEnd
+- takeScreenshot: 30-renk-paleti
+- openLink: droplet://notifications
+- waitForAnimationToEnd
+- takeScreenshot: bildirimler
+- openLink: droplet://subscription
+- waitForAnimationToEnd
+- takeScreenshot: uyelik-yonetimi
+- openLink: droplet://paywall
+- waitForAnimationToEnd
+- takeScreenshot: 05-uyelik

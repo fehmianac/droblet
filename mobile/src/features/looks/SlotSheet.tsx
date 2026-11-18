@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { Text } from '@/components/ui/Text';
+import { ImageSlot } from '@/components/ui/ImageSlot';
 import { ItemThumb } from '@/features/wardrobe/ItemThumb';
 import { useLookSlotProducts } from '@/features/store/queries';
 import { SectionState } from '@/components/blocks/SectionState';
@@ -184,7 +185,11 @@ export function SlotSheet({ slot, current, items, onPick, onRemove, onClose }: P
                             })
                           }
                         >
-                          <ItemThumb category={SLOT_FALLBACK_CATEGORY[slot]} uri={product.imageUrl} className="h-[92px] w-full rounded-field" glyphSize={30} />
+                          <ImageSlot
+                            uri={product.imageUrl}
+                            className="h-[92px] w-full rounded-field"
+                            placeholder={{ kind: 'garment', category: product.category ?? SLOT_FALLBACK_CATEGORY[slot], color: product.colors[0], glyphSize: 30 }}
+                          />
                         </Tile>
                       );
                     })}

@@ -19,10 +19,9 @@ import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { OfflineBanner } from '@/components/ui/OfflineBanner';
-import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
+import { ImageSlot, type Piece } from '@/components/ui/ImageSlot';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
-import { Silhouette } from '@/components/ui/Silhouette';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { useProfileStats } from '@/features/account/queries';
@@ -41,7 +40,6 @@ import {
 import { useAddToCart, useCreateLook } from '@/features/store/mutations';
 import { useProduct, useSlotProducts } from '@/features/store/queries';
 import { formatMoney } from '@/lib/format';
-import { placeholderTones } from '@/theme/tokens';
 
 type Source = 'store' | 'wardrobe';
 
@@ -84,10 +82,7 @@ function SlotCard({
         className="min-h-[60px] flex-1 flex-row items-center gap-2.5 px-2 py-1.5 active:opacity-70"
       >
         {fill ? (
-          <PlaceholderImage
-            uri={fill.source === 'store' ? fill.product.imageUrl : itemImage(fill.piece)}
-            className="h-12 w-10 rounded-lg"
-          />
+          <ImageSlot uri={fillPiece(fill).imageUrl} className="h-12 w-10 rounded-lg" placeholder={{ kind: 'garment', ...fillPiece(fill), glyphSize: 20 }} />
         ) : (
           <View className="h-12 w-10 items-center justify-center rounded-lg bg-sand">
             <Icon icon={Plus} size={16} tone="muted" />
@@ -140,6 +135,13 @@ function StripSkeleton() {
       ))}
     </View>
   );
+}
+
+/** A filled slot as a picture: the product's / the wardrobe piece's photo, category and colour (missing = to buy). */
+function fillPiece(fill: SlotFill): Piece {
+  return fill.source === 'store'
+    ? { category: fill.product.category, color: fill.product.colors[0], imageUrl: fill.product.imageUrl, missing: true }
+    : { category: fill.piece.category, color: fill.piece.color, imageUrl: itemImage(fill.piece) };
 }
 
 /**
@@ -210,16 +212,20 @@ export default function BuilderScreen() {
         </Text>
 
         <View className="flex-row gap-3 px-gutter">
-          <View
-            className="h-[300px] w-[140px] items-center justify-center overflow-hidden rounded-image-lg"
-            style={{ backgroundColor: placeholderTones.stage }}
-            accessible
-            accessibilityRole="image"
+          <ImageSlot
+            className="h-[300px] w-[140px] rounded-image-lg"
             accessibilityLabel={t('builder.previewA11y')}
+            placeholder={{
+              kind: 'look',
+              pieces: BUILDER_SLOTS.flatMap((slot) => {
+                const fill = slots[slot];
+                return fill ? [fillPiece(fill)] : [];
+              }),
+              figureHeight: 150,
+            }}
           >
-            <Silhouette height={150} />
             <ImageTag label={t('builder.previewTag')} className="absolute bottom-2 left-2" />
-          </View>
+          </ImageSlot>
           <View className="flex-1 gap-[7px]">
             {BUILDER_SLOTS.map((slot) => (
               <SlotCard
@@ -266,7 +272,11 @@ export default function BuilderScreen() {
                         .join(', ')}
                       className="w-24 gap-1 active:opacity-80"
                     >
-                      <PlaceholderImage uri={product.imageUrl} className="h-[104px] w-full rounded-thumb" />
+                      <ImageSlot
+                        uri={product.imageUrl}
+                        className="h-[104px] w-full rounded-thumb"
+                        placeholder={{ kind: 'garment', category: product.category, color: product.colors[0], glyphSize: 34 }}
+                      />
                       <BrandMark name={product.brandName} logoUrl={product.brandLogoUrl} className="text-[9.5px]" />
                       {product.price !== null ? (
                         <Text variant="price" className="text-[12px]">

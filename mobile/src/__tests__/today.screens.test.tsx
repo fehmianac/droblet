@@ -2,7 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 
 import { addDays, monthOf, weekDates, weekStartOf } from '@/features/today/dates';
-import { resetFixtureDb } from '@/fixtures/db';
+import { accountFixtures, resetAccountFixtures } from '@/fixtures/account';
+import { fixtureDb, resetFixtureDb } from '@/fixtures/db';
 import { todayFixtureOptions } from '@/fixtures/today';
 import { formatIsoDateRange, formatMoney, formatMonthYear, moneyFromMajor, parseLocalDate, toIsoDate, weekdayShort } from '@/lib/format';
 import { toDisplayUpper } from '@/lib/upper';
@@ -38,7 +39,13 @@ describe('06 Bugün', () => {
     expect(screen.getByLabelText('Notifications')).toBeTruthy();
     // One line above the name: "BUGÜNÜN KOMBİNİ · OFİS" (no separate badge).
     expect(screen.getByText("TODAY'S OUTFIT · OFFICE")).toBeTruthy();
-    expect(screen.getByText('ON YOU')).toBeTruthy();
+    // No generated image yet: the piece collage with its badge and the action — never the "ON YOU" tag on a placeholder.
+    expect(screen.queryByText('ON YOU')).toBeNull();
+    expect(screen.getByText('Piece collage')).toBeTruthy();
+    expect(screen.getByLabelText('Lacivert Blazer, piece collage')).toBeTruthy();
+    expect(screen.getByTestId('image-slot-collage')).toBeTruthy();
+    await waitFor(() => expect(screen.getByTestId('on-you-cta-try-on')).toBeTruthy(), WAIT);
+    expect(screen.getByText('Try it on me')).toBeTruthy();
     expect(screen.getByText('MISSING PIECE')).toBeTruthy();
     expect(screen.getByLabelText('Küçük taşlı küpe, missing piece')).toBeTruthy();
     expect(screen.getByLabelText('Complete the look')).toBeTruthy();
@@ -109,6 +116,33 @@ describe('07 Haftalık plan', () => {
   });
 });
 
+describe('06 Bugün — the "on you" area without a generated image', () => {
+  it('asks for a full-length photo when there is none', async () => {
+    resetAccountFixtures();
+    accountFixtures.removePhoto('body', 'photo_body_1');
+    await renderRouter('./src/app', { initialUrl: '/' });
+    await waitFor(() => expect(screen.getByText('Lacivert Blazer')).toBeTruthy(), WAIT);
+    await waitFor(() => expect(screen.getByTestId('on-you-cta-photo')).toBeTruthy(), WAIT);
+    expect(screen.getByText('Add photo')).toBeTruthy();
+    expect(screen.queryByText('ON YOU')).toBeNull();
+    await fireEvent.press(screen.getByText('Add photo'));
+    await waitFor(() => expect(screen).toHavePathname('/settings'), WAIT);
+    resetAccountFixtures();
+  });
+
+  it('offers "Add credits" when the month\'s credits are used up', async () => {
+    resetAccountFixtures();
+    fixtureDb.entitlement.credits.remaining = 0;
+    await renderRouter('./src/app', { initialUrl: '/' });
+    await waitFor(() => expect(screen.getByText('Lacivert Blazer')).toBeTruthy(), WAIT);
+    await waitFor(() => expect(screen.getByTestId('on-you-cta-credits')).toBeTruthy(), WAIT);
+    expect(screen.getByText('Add credits')).toBeTruthy();
+    expect(screen.getByText('Piece collage')).toBeTruthy();
+    expect(screen.queryByText('ON YOU')).toBeNull();
+    expect(screen.queryByText('Try it on me')).toBeNull();
+  });
+});
+
 describe("08 Haftanın edit'i", () => {
   const firstLook = `edit_${weekStartOf(today)}_1`;
 
@@ -120,7 +154,11 @@ describe("08 Haftanın edit'i", () => {
     expect(screen.getByLabelText('Go back')).toBeTruthy();
     expect(screen.getByLabelText('Share')).toBeTruthy();
     expect(screen.getByLabelText('Save to lookbook')).toBeTruthy();
-    expect(screen.getAllByText('ON YOU').length).toBe(7);
+    // No look has a generated image: each page is the piece collage with "Try it on me", without the AI marker.
+    expect(screen.queryByText('ON YOU')).toBeNull();
+    expect(screen.getAllByText('Piece collage').length).toBe(7);
+    expect(screen.getAllByTestId('image-slot-collage').length).toBe(7);
+    expect(screen.getAllByText('Try it on me').length).toBe(7);
     expect(screen.queryByText('SPONSORED')).toBeNull();
     expect(screen.queryByText('Beyaz Poplin Gömlek')).toBeNull();
     expect(screen.getByText('2 missing pieces')).toBeTruthy();

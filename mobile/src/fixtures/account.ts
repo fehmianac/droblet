@@ -142,9 +142,9 @@ export const accountFixtures = {
   },
   mismatch: (): PaletteMismatch => ({
     items: [
-      { id: 'item_fuchsia_knit', name: 'Fuşya triko', imageUrl: null },
-      { id: 'item_icy_shirt', name: 'Buz mavisi gömlek', imageUrl: null },
-      { id: 'item_grey_coat', name: 'Soğuk gri kaban', imageUrl: null },
+      { id: 'item_fuchsia_knit', name: 'Fuşya triko', imageUrl: null, category: 'top', color: 'pink' },
+      { id: 'item_icy_shirt', name: 'Buz mavisi gömlek', imageUrl: null, category: 'top', color: 'blue' },
+      { id: 'item_grey_coat', name: 'Soğuk gri kaban', imageUrl: null, category: 'outerwear', color: 'grey' },
     ],
   }),
 };

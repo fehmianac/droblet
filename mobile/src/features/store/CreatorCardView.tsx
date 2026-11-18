@@ -4,8 +4,7 @@ import { Pressable, View } from 'react-native';
 
 import type { CreatorCard } from '@/api/contracts/store';
 import { ImageTag } from '@/components/ui/Bits';
-import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
-import { Silhouette } from '@/components/ui/Silhouette';
+import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Text } from '@/components/ui/Text';
 
 /**
@@ -29,12 +28,15 @@ export function CreatorCardView({ creator, className }: { creator: CreatorCard; 
         .join(', ')}
       className={`gap-1.5 active:opacity-80 ${className ?? 'w-[132px]'}`}
     >
-      <View className="h-[170px] w-full items-center justify-center overflow-hidden rounded-image-lg bg-sand">
-        {creator.imageUrl ? <PlaceholderImage uri={creator.imageUrl} className="h-full w-full" /> : <Silhouette height={105} />}
+      <ImageSlot
+        uri={creator.imageUrl}
+        className="h-[170px] w-full rounded-image-lg"
+        placeholder={{ kind: 'look', pieces: [], seed: creator.id, figureHeight: 105 }}
+      >
         {creator.sponsored ? <ImageTag label={t('explore.sponsored')} className="absolute left-2 top-2" /> : null}
-      </View>
+      </ImageSlot>
       <View className="flex-row items-center gap-1.5">
-        <View className="h-5 w-5 rounded-pill bg-line" accessible={false} />
+        <ImageSlot className="h-5 w-5 rounded-pill" placeholder={{ kind: 'avatar', name: creator.handle ?? creator.displayName }} />
         <Text variant="label" numberOfLines={1} className="flex-1">
           {creator.displayName}
         </Text>

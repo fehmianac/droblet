@@ -10,10 +10,9 @@ import { ImageTag } from '@/components/ui/Bits';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
-import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
+import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenState } from '@/components/ui/ScreenState';
-import { Silhouette } from '@/components/ui/Silhouette';
 import { Text } from '@/components/ui/Text';
 import { useRefreshTodayLook, useSetLookFavorite } from '@/features/today/api';
 import { TodayLookCard } from '@/features/today/TodayLookCard';
@@ -154,12 +153,7 @@ export default function TodayScreen() {
                           accessibilityLabel={t('todayHome.editCardA11y', { weekday: weekdayShort(parseLocalDate(card.date)), name: card.name })}
                           className="h-[190px] w-[140px] overflow-hidden rounded-image-lg active:opacity-80"
                         >
-                          <PlaceholderImage uri={card.imageUrl} className="h-full w-full" />
-                          {card.imageUrl ? null : (
-                            <View className="absolute inset-0 items-center justify-center" pointerEvents="none">
-                              <Silhouette height={117} />
-                            </View>
-                          )}
+                          <ImageSlot uri={card.imageUrl} className="h-full w-full" placeholder={{ kind: 'look', pieces: [], seed: card.id, figureHeight: 117 }} />
                           <ImageTag label={tag} className="absolute bottom-2 left-2 max-w-[124px]" />
                         </Pressable>
                       );

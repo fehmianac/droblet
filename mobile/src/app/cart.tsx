@@ -14,7 +14,7 @@ import { InfoNote } from '@/components/ui/Bits';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
-import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
+import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
@@ -83,7 +83,12 @@ function BrandGroup({
       </View>
       {group.lines.map((line) => (
         <View key={line.lineId} className="flex-row items-center gap-3 py-2">
-          <PlaceholderImage uri={line.imageUrl} className="h-[68px] w-14 rounded-thumb" />
+          <ImageSlot
+            uri={line.imageUrl}
+            className="h-[68px] w-14 rounded-thumb"
+            accessibilityLabel={line.name}
+            placeholder={{ kind: 'garment', category: line.category, color: line.color, glyphSize: 24 }}
+          />
           <View className="flex-1">
             <Text variant="body" numberOfLines={2}>
               {line.name}

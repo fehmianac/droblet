@@ -120,6 +120,7 @@ describe('Keşfet and the style store (20–24b, fixtures, EN)', () => {
 
   it('22 Ürün: "Üzerimde" confirms the credit, starts the shared try-on job and shows the image on you', async () => {
     fixtureJobOptions.durationMs = 900;
+    fixtureJobOptions.tryOnImageUrl = 'https://example.com/tryon.jpg';
     const before = fixtureDb.entitlement.credits.remaining;
     await open('/shop/product/prod_001');
     await waitFor(() => expect(screen.getByText('Add to cart')).toBeTruthy(), WAIT);
@@ -146,8 +147,35 @@ describe('Keşfet and the style store (20–24b, fixtures, EN)', () => {
     expect(fixtureDb.entitlement.credits.remaining).toBe(before - 1);
   });
 
+  it('22 Ürün: a product without a picture shows its garment placeholder, and a try-on without an image the piece — never "ON YOU"', async () => {
+    fixtureJobOptions.durationMs = 300;
+    await open('/shop/product/prod_001');
+    await waitFor(() => expect(screen.getByText('Add to cart')).toBeTruthy(), WAIT);
+    // No product photo in the fixtures: the category glyph on the product's colour, labelled with its name.
+    expect(screen.getByLabelText('White Poplin Shirt')).toBeTruthy();
+    expect(screen.getAllByTestId('image-slot-garment')).toHaveLength(1);
+
+    await fireEvent.press(screen.getByLabelText('On me'));
+    await waitFor(() => expect(screen.getByTestId('credit-confirm')).toBeTruthy(), WAIT);
+    await fireEvent.press(screen.getByTestId('credit-confirm'));
+    // The job finishes without an image: the piece collage stands in, without the AI marker.
+    await waitFor(() => expect(screen.getByText('Piece collage')).toBeTruthy(), WAIT);
+    expect(screen.getByLabelText('White Poplin Shirt, piece collage')).toBeTruthy();
+    expect(screen.getByTestId('image-slot-collage')).toBeTruthy();
+    expect(screen.queryByText('ON YOU')).toBeNull();
+  });
+
+  it('21 / 24: product tiles and cart lines without a picture draw the garment placeholder', async () => {
+    await open('/shop');
+    await waitFor(() => expect(screen.getAllByTestId('image-slot-garment').length).toBeGreaterThan(0), WAIT);
+    expect(screen.queryByTestId('image-slot-figure')).toBeNull();
+    await open('/cart');
+    await waitFor(() => expect(screen.getAllByTestId('image-slot-garment')).toHaveLength(3), WAIT);
+  });
+
   it('22 Ürün: a failed try-on says the credit was refunded and offers "Tekrar dene"', async () => {
     fixtureJobOptions.durationMs = 300;
+    fixtureJobOptions.tryOnImageUrl = 'https://example.com/tryon.jpg';
     fixtureJobOptions.failNext = { code: 'generation_failed', creditRefunded: true };
     const before = fixtureDb.entitlement.credits.remaining;
     await open('/shop/product/prod_001');

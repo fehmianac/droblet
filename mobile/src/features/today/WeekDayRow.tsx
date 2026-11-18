@@ -7,9 +7,9 @@ import { AiFailure, AiInlineStatus } from '@/components/ui/ai';
 import { Badge } from '@/components/ui/Bits';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
-import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
-import { Silhouette } from '@/components/ui/Silhouette';
+import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Text } from '@/components/ui/Text';
+import { coverPieces } from '@/features/looks/LookCover';
 import { useTryOnJob } from '@/features/tryon/api';
 import { currentLanguage } from '@/i18n';
 import { formatDate, parseLocalDate } from '@/lib/format';
@@ -81,12 +81,11 @@ export function WeekDayRow({ row, onOpenMenu, onSuggest, tryOnJobId, focused, on
     <View className="gap-3 rounded-card border border-line bg-paper p-2.5">
       <View className="flex-row items-center gap-3">
         <View className="h-[72px] w-14 items-center justify-center overflow-hidden rounded-thumb">
-          <PlaceholderImage uri={image} className="h-full w-full" />
-          {image ? null : (
-            <View className="absolute inset-0 items-center justify-center" pointerEvents="none">
-              <Silhouette height={45} />
-            </View>
-          )}
+          <ImageSlot
+            uri={image}
+            className="h-full w-full"
+            placeholder={{ kind: 'look', pieces: coverPieces(row.look.slots, undefined, 45), seed: row.look.id, figureHeight: 45 }}
+          />
         </View>
         <View className="flex-1 gap-[3px]">
           <Text variant="eyebrow" numberOfLines={1}>

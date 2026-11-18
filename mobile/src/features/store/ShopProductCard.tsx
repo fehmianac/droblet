@@ -5,7 +5,7 @@ import { Pressable, View } from 'react-native';
 import type { ProductSummary } from '@/api/contracts/store';
 import { BrandMark } from '@/components/blocks/BrandMark';
 import { Icon } from '@/components/ui/Icon';
-import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
+import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Text } from '@/components/ui/Text';
 import { formatMoney } from '@/lib/format';
 
@@ -28,7 +28,11 @@ export function ShopProductCard({ product, favorite, onToggleFavorite, onPress }
         accessibilityLabel={[product.brandName, product.name, price].filter(Boolean).join(', ')}
         className="gap-[5px] active:opacity-80"
       >
-        <PlaceholderImage uri={product.imageUrl} className="h-[180px] w-full rounded-image" />
+        <ImageSlot
+          uri={product.imageUrl}
+          className="h-[180px] w-full rounded-image"
+          placeholder={{ kind: 'garment', category: product.category, color: product.colors[0], glyphSize: 56 }}
+        />
         <BrandMark name={product.brandName} logoUrl={product.brandLogoUrl} />
         <Text variant="chip" numberOfLines={1} className="-mt-0.5">
           {product.name}

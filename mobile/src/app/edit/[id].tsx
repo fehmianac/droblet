@@ -31,6 +31,7 @@ import { useAddToWatchlist, useSaveEditLook, useWeeklyEdit } from '@/features/to
 import { EditProductRow } from '@/features/today/EditProductRow';
 import { editSummary } from '@/features/today/logic';
 import { OnYouImage } from '@/features/today/OnYouImage';
+import { OnYouCta } from '@/features/tryon/OnYouCta';
 import { currentLanguage } from '@/i18n';
 import { formatDate, formatIsoDateRange, formatMoney, parseLocalDate, toIsoDate } from '@/lib/format';
 import { toDisplayUpper } from '@/lib/upper';
@@ -194,9 +195,16 @@ export default function WeeklyEditScreen() {
                           <OnYouImage
                             uri={l.tryOnImageUrl}
                             className="h-full w-full"
+                            pieces={l.products[band].map((p) => ({ category: p.category, color: p.color, imageUrl: p.imageUrl, missing: !p.ownedItemId }))}
+                            seed={l.id}
                             silhouetteHeight={217}
                             accessibilityLabel={t('weekEdit.imageA11y', { name: l.name })}
-                          />
+                            collageLabel={t('aiBadge.collageA11y', { name: l.name })}
+                            badgeClassName="bottom-11 left-3.5"
+                            ctaClassName="bottom-11 left-[140px] right-3.5"
+                          >
+                            <OnYouCta target={{ kind: 'edit-look', id: l.id }} title={l.name} feature="edit_try_on" hasBodyPhoto />
+                          </OnYouImage>
                         </View>
                       ))}
                     </ScrollView>

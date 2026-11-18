@@ -256,7 +256,16 @@ export function buildCart(rows: CartRow[], catalogue: ProductSummary[]): Cart {
       group = { brandId: p.brandId, brandName: p.brandName, brandLogoUrl: p.brandLogoUrl ?? null, subtotal: null, lines: [] };
       groups.push(group);
     }
-    group.lines.push({ lineId: row.lineId, productId: p.id, name: p.name, size: row.size, price: p.price, imageUrl: p.imageUrl });
+    group.lines.push({
+      lineId: row.lineId,
+      productId: p.id,
+      name: p.name,
+      size: row.size,
+      price: p.price,
+      imageUrl: p.imageUrl,
+      category: p.category,
+      color: p.colors[0] ?? null,
+    });
   }
   const priced = groups.map((g) => ({ ...g, subtotal: sumMoney(g.lines.map((l) => l.price)) }));
   return {
@@ -280,7 +289,10 @@ export const storeFixtures = {
     const own = slotOfCategory(p.category);
     // The user's real (fixture) wardrobe — the same pieces Gardırop shows.
     const items = fixtureDb.items.filter((w) => slotOfItemCategory(w.category) !== own);
-    return { count: items.length, items: items.map(({ id: itemId, name, imageUrl }) => ({ id: itemId, name, imageUrl })) };
+    return {
+      count: items.length,
+      items: items.map(({ id: itemId, name, imageUrl, category, color }) => ({ id: itemId, name, imageUrl, category, color })),
+    };
   },
   complete: (itemId: string): CompleteSuggestions => {
     const piece = fixtureDb.items.find((w) => w.id === itemId);

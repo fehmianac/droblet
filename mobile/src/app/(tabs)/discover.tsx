@@ -11,10 +11,9 @@ import { Logo } from '@/components/brand/Logo';
 import { Chip, ChipRow } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
-import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
+import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenState } from '@/components/ui/ScreenState';
-import { Silhouette } from '@/components/ui/Silhouette';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { CreatorCardView } from '@/features/store/CreatorCardView';
@@ -85,11 +84,7 @@ function EditCover({ edit }: { edit: WeeklyEditSummary }) {
       className="mx-gutter h-[290px] items-center justify-center overflow-hidden rounded-card active:opacity-90"
       style={{ backgroundColor: placeholderTones.dark }}
     >
-      {edit.imageUrl ? (
-        <PlaceholderImage uri={edit.imageUrl} className="absolute inset-0" />
-      ) : (
-        <Silhouette height={180} tone="cream" />
-      )}
+      <ImageSlot uri={edit.imageUrl} className="absolute inset-0" placeholder={{ kind: 'figure', tone: 'dark', figureHeight: 180 }} />
       <LinearGradient colors={[inkFade.clear, inkFade.deep]} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: 18 }}>
         <Text variant="eyebrow" tone="cream">
           {eyebrow}
@@ -235,7 +230,12 @@ export default function DiscoverTab() {
             <ScrollView contentContainerClassName="gap-5 px-gutter pb-8 pt-3">
               {list.map((outfit) => (
                 <View key={outfit.id} className="gap-2">
-                  <PlaceholderImage uri={outfit.imageUrl} className="aspect-[4/5] w-full rounded-image-lg" />
+                  <ImageSlot
+                    uri={outfit.imageUrl}
+                    className="aspect-[4/5] w-full rounded-image-lg"
+                    accessibilityLabel={outfit.title}
+                    placeholder={{ kind: 'look', pieces: [], seed: outfit.id }}
+                  />
                   <Text variant="caption" tone="muted">
                     {outfit.seriesName}
                   </Text>

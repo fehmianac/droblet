@@ -11,7 +11,7 @@ import { CartButton } from '@/components/blocks/SectionState';
 import { Badge } from '@/components/ui/Bits';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
-import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
+import { ImageSlot } from '@/components/ui/ImageSlot';
 import { ListTabBar } from '@/components/navigation/TabBar';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -77,7 +77,11 @@ function WatchCard({ entry, profileSize }: { entry: WatchlistEntry; profileSize:
             .join(', ')}
           className="flex-1 flex-row items-center gap-3 active:opacity-80"
         >
-          <PlaceholderImage uri={entry.imageUrl} className="h-[78px] w-16 rounded-thumb" />
+          <ImageSlot
+            uri={entry.imageUrl}
+            className="h-[78px] w-16 rounded-thumb"
+            placeholder={{ kind: 'garment', category: entry.category, color: entry.colors[0], glyphSize: 26 }}
+          />
           <View className="flex-1">
             <BrandMark name={entry.brandName} logoUrl={entry.brandLogoUrl} />
             <Text variant="body" numberOfLines={2} className="mt-0.5">

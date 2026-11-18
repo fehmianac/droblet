@@ -49,6 +49,7 @@
   },
   "aiBadge": {
     "onYou": "ON YOU",
+    "collageA11y": "{{name}}, piece collage",
     "preview": "AI PREVIEW"
   },
   "states": {

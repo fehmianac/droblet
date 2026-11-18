@@ -11,6 +11,7 @@ import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { Button } from '@/components/ui/Button';
 import { Chip, ChipRow } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
+import { asGarmentColor } from '@/components/ui/ImageSlot';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
@@ -118,7 +119,7 @@ export default function ItemLibraryScreen() {
                       item={{
                         name: item.name,
                         category: libraryCategory(item.category),
-                        color: 'other',
+                        color: asGarmentColor(item.color),
                         imageUrl: item.imageUrl,
                         originalImageUrl: null,
                         useOriginalImage: false,
