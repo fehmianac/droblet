@@ -30,3 +30,6 @@ Thumbs.db
 # Mobile (managed by the mobile engineer)
 mobile/node_modules/
 mobile/.expo/
+
+# Claude Code agent worktrees
+.claude/worktrees/
