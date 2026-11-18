@@ -1,0 +1,137 @@
+# Landing-page screenshots: signs in to the showcase build (fixture data, mock auth server) and opens
+# each screen through its app link. Run by capture-screens.sh — see README.md next to this file.
+#   maestro --device <udid> test -e LANG=tr -e LOCALE=tr_TR --test-output-dir=/abs/dir landing/scripts/capture/screens.yaml
+appId: com.alatech.droplet
+env:
+  LANG: ${LANG}
+  LOCALE: ${LOCALE}
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+    arguments:
+      AppleLanguages: "(${LANG})"
+      AppleLocale: ${LOCALE}
+- runFlow:
+    when:
+      visible: "Cancel"
+    commands:
+      - tapOn: "Cancel"
+- extendedWaitUntil:
+    visible:
+      id: "welcome.login"
+    timeout: 30000
+# The animated splash (2.6 s) lies over the first screen until it has faded.
+- extendedWaitUntil:
+    notVisible:
+      id: "animated-splash"
+    timeout: 10000
+- waitForAnimationToEnd
+- takeScreenshot: welcome
+
+# Sign in: the mock auth server accepts any address and password.
+- tapOn:
+    id: "welcome.login"
+- extendedWaitUntil:
+    visible:
+      id: "auth.email"
+    timeout: 10000
+- tapOn:
+    id: "auth.email"
+- inputText: "damla@example.com"
+- tapOn:
+    point: "50%,14%"
+- tapOn:
+    id: "auth.password.toggle"
+- tapOn:
+    id: "auth.password"
+- inputText: "showcase"
+- tapOn:
+    point: "50%,14%"
+- tapOn:
+    id: "auth.submit"
+- extendedWaitUntil:
+    visible: "Not Now"
+    timeout: 6000
+    optional: true
+- runFlow:
+    when:
+      visible: "Not Now"
+    commands:
+      - tapOn: "Not Now"
+- extendedWaitUntil:
+    visible:
+      id: "tab.today"
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 4000
+- takeScreenshot: today
+
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://wardrobe"
+- takeScreenshot: wardrobe
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://wardrobe/looks"
+- takeScreenshot: looks
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://trip/trip_londra"
+- takeScreenshot: trip
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://palette"
+- takeScreenshot: palette
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://shop"
+- takeScreenshot: shop
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://shop/product/prod_001"
+- takeScreenshot: product
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://friends/feed"
+- takeScreenshot: friends
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://profile"
+- takeScreenshot: profile
+
+# Stylist last: the suggestion is generated from it.
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://stylist"
+# Pick an occasion so the screen shows a chosen chip and the active "Kombin öner" button.
+- runFlow:
+    when:
+      visible: "Ofis"
+    commands:
+      - tapOn: "Ofis"
+- runFlow:
+    when:
+      visible: "Office"
+    commands:
+      - tapOn: "Office"
+- waitForAnimationToEnd
+- takeScreenshot: stylist
+- tapOn:
+    id: "stylist-submit"
+- extendedWaitUntil:
+    visible:
+      id: "suggestion-pager"
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 4000
+- takeScreenshot: suggestion
