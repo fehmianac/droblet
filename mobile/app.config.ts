@@ -1,11 +1,14 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 
-
 /**
  * App identity (owner decision 2026-11-18, closes A-10). Never changes after store registration.
  * Runtime endpoints come from the environment (see `.env.example`), never from source.
+ *
+ * The static values the release workflow reads and rewrites with jq live in `app.json` — name, slug,
+ * version, ios.bundleIdentifier / buildNumber / config.usesNonExemptEncryption, android.package /
+ * versionCode. Expo loads app.json first and passes it in as `config`; this file BUILDS ON it and
+ * never overrides those values.
  */
-const BUNDLE_ID = 'com.alatech.droplet';
 const SCHEME = 'droplet';
 const LINK_DOMAIN = 'droplet.alatech.co';
 
@@ -14,11 +17,15 @@ const CREAM = '#F4F1EC';
 /** = `ink` in src/theme/tokens.ts. */
 const INK = '#1C1A17';
 
+/** EAS project id (push registration, EAS services) — present only when the environment provides it. */
+const easProjectId = process.env.EAS_PROJECT_ID;
+
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: 'Droblet',
-  slug: 'droblet',
-  version: '0.1.0',
+  // From app.json; the fallbacks only satisfy the type when the file is evaluated without it.
+  name: config.name ?? 'Droblet',
+  slug: config.slug ?? 'droblet',
+  version: config.version,
   orientation: 'portrait',
   icon: './assets/images/icon.png',
   scheme: SCHEME,
@@ -30,7 +37,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     en: './locales/ios/en.json',
   },
   ios: {
-    bundleIdentifier: BUNDLE_ID,
+    // bundleIdentifier, buildNumber and config.usesNonExemptEncryption come from app.json.
+    ...config.ios,
     icon: './assets/expo.icon',
     usesAppleSignIn: true,
     associatedDomains: [`applinks:${LINK_DOMAIN}`],
@@ -40,7 +48,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
   },
   android: {
-    package: BUNDLE_ID,
+    // package and versionCode come from app.json.
+    ...config.android,
     adaptiveIcon: {
       // Default icon: cream drop on ink (canvas v2 `LogoIkon`). Regenerate with scripts/render-brand-assets.mjs.
       backgroundColor: INK,
@@ -94,6 +103,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     reactCompiler: true,
   },
   extra: {
+    ...config.extra,
+    ...(easProjectId ? { eas: { ...(config.extra?.eas as Record<string, unknown> | undefined), projectId: easProjectId } } : {}),
     apiBaseUrl: process.env.DROBLET_API_BASE_URL ?? null,
     linkDomain: LINK_DOMAIN,
     termsUrl: process.env.DROBLET_TERMS_URL ?? null,

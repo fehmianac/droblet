@@ -63,7 +63,8 @@
     "web": "expo start --web",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "jest"
+    "test": "jest",
+    "check": "tsc --noEmit && eslint . && jest"
   },
   "private": true,
   "jest": {

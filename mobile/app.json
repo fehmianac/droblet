@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "Droblet",
+    "slug": "droblet",
+    "version": "0.1.0",
+    "ios": {
+      "bundleIdentifier": "com.alatech.droplet",
+      "buildNumber": "1",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.alatech.droplet",
+      "versionCode": 1
+    }
+  }
+}
