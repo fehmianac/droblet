@@ -10,6 +10,7 @@ import { requestAppleCredential } from '@/auth/apple';
 import { AppleButton } from '@/components/auth/AppleButton';
 import { GoogleSignIn } from '@/components/auth/GoogleSignIn';
 import { Button } from '@/components/ui/Button';
+import { AgeCheckbox } from '@/features/consent/AgeCheckbox';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
@@ -18,7 +19,7 @@ import { TextField } from '@/components/ui/TextField';
 import { isValidEmail, isValidPassword } from '@/lib/validation';
 
 type Mode = 'register' | 'login';
-type Field = 'name' | 'email' | 'password';
+type Field = 'name' | 'email' | 'password' | 'age';
 type Errors = Partial<Record<Field | 'form', string>>;
 
 /**
@@ -32,6 +33,8 @@ export default function AuthStartScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  /** 18+ — required on sign-up, never pre-ticked. */
+  const [adult, setAdult] = useState(false);
   const session = useSession();
   // Signed out because the account was suspended (403 `account_suspended` on refresh): say so at once.
   const [errors, setErrors] = useState<Errors>(() =>
@@ -58,6 +61,7 @@ export default function AuthStartScreen() {
           name: fields.name ? t('errors.nameRequired') : undefined,
           email: fields.email ? t('errors.emailInvalid') : undefined,
           password: fields.password ? t('errors.passwordTooShort') : undefined,
+          age: fields.ageConfirmed ? t('age.required') : undefined,
         });
       } else setErrors({ form: t(`errors.${code}`) });
     },
@@ -69,6 +73,7 @@ export default function AuthStartScreen() {
     if (mode === 'register' && name.trim().length === 0) next.name = t('errors.nameRequired');
     if (!isValidEmail(email)) next.email = t('errors.emailInvalid');
     if (!isValidPassword(password)) next.password = t('errors.passwordTooShort');
+    if (mode === 'register' && !adult) next.age = t('age.required');
     return next;
   };
 
@@ -78,7 +83,7 @@ export default function AuthStartScreen() {
     if (Object.keys(next).length > 0) return;
     const trimmedEmail = email.trim();
     if (mode === 'register') {
-      register.mutate({ name: name.trim(), email: trimmedEmail, password }, { onError: showServerError });
+      register.mutate({ name: name.trim(), email: trimmedEmail, password, ageConfirmed: true }, { onError: showServerError });
     } else {
       login.mutate({ email: trimmedEmail, password }, { onError: showServerError });
     }
@@ -215,6 +220,16 @@ export default function AuthStartScreen() {
               >
                 <Text variant="label">{t('auth.forgot')}</Text>
               </Pressable>
+            ) : null}
+            {mode === 'register' ? (
+              <AgeCheckbox
+                checked={adult}
+                onToggle={() => {
+                  setAdult((a) => !a);
+                  clear('age');
+                }}
+                error={errors.age}
+              />
             ) : null}
           </View>
 

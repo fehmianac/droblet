@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, View } from 'react-native';
 
 import type { NotificationSettings } from '@/api/contracts/account';
+import { CONSENTS_FOR } from '@/api/contracts/consents';
 import { SectionState } from '@/components/blocks/SectionState';
 import { Badge } from '@/components/ui/Bits';
 import { BottomSheet } from '@/components/ui/BottomSheet';
@@ -11,6 +12,8 @@ import { Chip } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
+import { recordOf, useConsents } from '@/features/consent/api';
+import { ensureConsents } from '@/features/consent/store';
 import { syncPushRegistration } from '@/notify/push';
 import { REMINDER_TIMES } from '@/notify/time';
 
@@ -21,9 +24,10 @@ import { ChoiceRow, RowCard } from './rows';
 /**
  * BİLDİRİMLER (29 and the Bildirimler screen) — one check box per notification type, as drawn on the
  * canvas: morning outfit (+ its local time while on), weekly edit, friend ratings, price drops on the
- * watch list and follow requests. Defaults (owner decision 9): only the morning reminder and the weekly
- * edit start on. Saved through the versioned `PUT v1/tenant/user/me/notifications`; turning one on is
- * the moment to ask for push permission (and register the token).
+ * watch list and follow requests. Only the morning reminder (a service notification) starts on. The
+ * weekly edit and price drops are MARKETING notifications (explicit consent 5): switching one on shows
+ * the consent text first and records it; without it they stay off. Saved through the versioned
+ * `PUT v1/tenant/user/me/notifications`; turning one on is the moment to ask for push permission.
  */
 export function NotificationPrefsCard() {
   const { t } = useTranslation();
@@ -31,6 +35,8 @@ export function NotificationPrefsCard() {
   const save = useSaveNotificationSettings();
   const [timeOpen, setTimeOpen] = useState(false);
   const [pushOff, setPushOff] = useState(false);
+  const consents = useConsents();
+  const marketingGiven = recordOf(consents.data, 'marketingNotifications')?.valid === true;
 
   return (
     <RowCard>
@@ -41,9 +47,17 @@ export function NotificationPrefsCard() {
         skeleton={<Skeleton className="my-3.5 h-28 rounded-image" />}
       >
         {(data) => {
-          const change = (patch: Partial<NotificationSettings>) => {
+          const apply = (patch: Partial<NotificationSettings>) => {
             if (Object.values(patch).includes(true)) void syncPushRegistration({ ask: true }).then((on) => setPushOff(!on));
             save({ ...data, ...patch });
+          };
+          const change = (patch: Partial<NotificationSettings>) => {
+            const marketingOn = patch.weeklyEdit === true || patch.priceDrop === true;
+            if (!marketingOn || marketingGiven) {
+              apply(patch);
+              return;
+            }
+            void ensureConsents(CONSENTS_FOR.marketing, 'notifications').then((ok) => ok && apply(patch));
           };
           const localTime = data.morningTimeLocal;
           const box = (key: 'morningReminder' | 'weeklyEdit' | 'friendRatings' | 'priceDrop' | 'followRequests', label: string, first = false) => (
@@ -67,6 +81,11 @@ export function NotificationPrefsCard() {
                 </Pressable>
               ) : null}
               {box('weeklyEdit', t('settings.weeklyEdit'))}
+              {consents.data && !marketingGiven ? (
+                <Text variant="caption" tone="muted" className="pb-2" testID="notifications.marketingNote">
+                  {t('consent.marketingNote')}
+                </Text>
+              ) : null}
               {box('friendRatings', t('settings.friendRatings'))}
               {box('priceDrop', t('friends.priceDrop'))}
               {data.priceDrop ? (

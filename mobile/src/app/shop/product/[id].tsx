@@ -36,7 +36,7 @@ import {
   useProductTryOnJobId,
   useWatchlist,
 } from '@/features/store/queries';
-import { TRY_ON_CREDIT_COST, useStartTryOn, useTryOnJob } from '@/features/tryon/api';
+import { ensureTryOnConsent, isConsentDeclined, TRY_ON_CREDIT_COST, useStartTryOn, useTryOnJob } from '@/features/tryon/api';
 import { currentLanguage } from '@/i18n';
 import { formatMoney } from '@/lib/format';
 import { suffixed } from '@/lib/trSuffix';
@@ -119,7 +119,7 @@ function ProductBody({ product }: { product: ProductDetail }) {
       setView('onMe');
     } catch (error) {
       // Out of credits → the 05b sheet (never a silent failure); anything else → one calm sentence.
-      if (!openCreditSheetIfExhausted(error, 'product_try_on')) setTryOnNote('failed');
+      if (!isConsentDeclined(error) && !openCreditSheetIfExhausted(error, 'product_try_on')) setTryOnNote('failed');
     } finally {
       setConfirmOpen(false);
     }
@@ -137,7 +137,8 @@ function ProductBody({ product }: { product: ProductDetail }) {
       return;
     }
     setTryOnNote(null);
-    setConfirmOpen(true);
+    // Consent first (its own sheet), then the credit confirmation.
+    void ensureTryOnConsent().then((ok) => ok && setConfirmOpen(true));
   };
 
   const requireSize = (action: (chosen: ProductSize) => void) => {

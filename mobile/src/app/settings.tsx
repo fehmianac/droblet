@@ -7,6 +7,9 @@ import { Modal, Pressable, ScrollView, View } from 'react-native';
 
 import { logout } from '@/api/auth';
 import { CLOSET_VISIBILITIES, type MyPhotos } from '@/api/contracts/account';
+import { CONSENTS_FOR } from '@/api/contracts/consents';
+import { ConsentList } from '@/features/consent/ConsentList';
+import { ensureConsents } from '@/features/consent/store';
 import { useEnqueuePhotoUpload } from '@/api/photos';
 import { SectionState } from '@/components/blocks/SectionState';
 import { ImageTag } from '@/components/ui/Bits';
@@ -185,7 +188,8 @@ function PhotosSection({ onDeleteAll }: { onDeleteAll: () => void }) {
                   disabled={bodyCount(data) >= MAX_BODY_PHOTOS}
                   onPress={() => {
                     setAddOpen(false);
-                    bodyPicker.takePhoto();
+                    // Explicit consents 1 + 6 before the first body photo (their own sheet).
+                    void ensureConsents(CONSENTS_FOR.bodyPhoto, 'body_photo').then((ok) => ok && bodyPicker.takePhoto());
                   }}
                 />
                 <Button
@@ -194,7 +198,8 @@ function PhotosSection({ onDeleteAll }: { onDeleteAll: () => void }) {
                   label={t(data.face ? 'settings.replaceFace' : 'settings.addFace')}
                   onPress={() => {
                     setAddOpen(false);
-                    facePicker.chooseFromLibrary(1);
+                    // Explicit consents 2 + 6 before the face photo (their own sheet).
+                    void ensureConsents(CONSENTS_FOR.facePhoto, 'face_photo').then((ok) => ok && facePicker.chooseFromLibrary(1));
                   }}
                 />
               </View>
@@ -332,6 +337,10 @@ export default function SettingsScreen() {
 
         <Text variant="eyebrow">{t('settings.photosEyebrow')}</Text>
         <PhotosSection onDeleteAll={() => setDeletePhotos(true)} />
+
+        <Text variant="eyebrow">{t('consent.privacyEyebrow')}</Text>
+        {/* Every explicit consent with its date; on / off here is the in-app withdrawal (Consents §8). */}
+        <ConsentList />
 
         <Text variant="eyebrow">{t('settings.notificationsEyebrow')}</Text>
         {/* Every notification switch, the morning time and the push permission prompt (main's prefs card). */}

@@ -23,7 +23,7 @@ import { useLookWrites } from '@/features/looks/api';
 import { indexItems, LookCover, SlotThumb, type ItemsById } from '@/features/looks/LookCover';
 import { lookPieceNames, missingPieceCount } from '@/features/looks/logic';
 import { useLook } from '@/features/looks/queries';
-import { TRY_ON_CREDIT_COST, useStartTryOn } from '@/features/tryon/api';
+import { ensureTryOnConsent, isConsentDeclined, TRY_ON_CREDIT_COST, useStartTryOn } from '@/features/tryon/api';
 import { useItems } from '@/features/wardrobe/queries';
 import { currentLanguage } from '@/i18n';
 import { formatMoney, formatNumber } from '@/lib/format';
@@ -247,7 +247,8 @@ export default function LookScreen() {
       return;
     }
     setNotice(null);
-    setConfirm(true);
+    // Consent first (its own sheet), then the credit confirmation.
+    void ensureTryOnConsent().then((ok) => ok && setConfirm(true));
   };
 
   const startTryOn = () => {
@@ -257,9 +258,9 @@ export default function LookScreen() {
         const { jobId } = await tryOn.start({ kind: 'look', id: look.id });
         setConfirm(false);
         router.push({ pathname: '/tryon/[jobId]', params: { jobId, title: look.name, kind: 'look', id: look.id } });
-      } catch {
+      } catch (error) {
         setConfirm(false);
-        setNotice('tryOnFailed');
+        if (!isConsentDeclined(error)) setNotice('tryOnFailed');
       }
     })();
   };

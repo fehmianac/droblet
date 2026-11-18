@@ -56,6 +56,11 @@ export type ProfileWire = {
   cityId: string | null;
   version: number;
   updatedAt: string;
+  /** 18+ confirmation (sign-up box or the one-time screen after Apple / Google); null = not confirmed. Older servers omit it. */
+  ageConfirmedAt?: string | null;
+  /** Profile photo (presigned GET, short-lived); null = none. Older servers omit it. */
+  avatarUrl?: string | null;
+  avatarUrlExpiresAt?: string | null;
 };
 
 // ---------- style / body profile ----------

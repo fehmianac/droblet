@@ -46,6 +46,8 @@ export const sessionStore = {
       name: user?.name ?? previous?.name ?? '',
       email: user?.email ?? previous?.email ?? '',
     };
+    const ageConfirmed = user?.ageConfirmed ?? previous?.ageConfirmed;
+    if (ageConfirmed !== undefined) nextUser.ageConfirmed = ageConfirmed;
     current = {
       accessToken: res.accessToken,
       refreshToken: res.refreshToken,
@@ -61,7 +63,7 @@ export const sessionStore = {
   async updateUser(patch: Partial<Omit<AuthUser, 'id'>>): Promise<void> {
     if (!current) return;
     const nextUser: AuthUser = { ...current.user, ...patch };
-    if (nextUser.name === current.user.name && nextUser.email === current.user.email) return;
+    if (nextUser.name === current.user.name && nextUser.email === current.user.email && nextUser.ageConfirmed === current.user.ageConfirmed) return;
     current = { ...current, user: nextUser };
     await writeSession(current);
     emit({ status: 'signedIn', user: nextUser });

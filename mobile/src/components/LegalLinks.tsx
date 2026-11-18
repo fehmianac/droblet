@@ -1,7 +1,8 @@
 import * as WebBrowser from 'expo-web-browser';
 import { Trans } from 'react-i18next';
 
-import { legalUrls } from '@/api/config';
+import { legalUrls, linkDomain } from '@/api/config';
+import { currentLanguage } from '@/i18n';
 import { Text } from '@/components/ui/Text';
 
 function open(url: string | null) {
@@ -26,10 +27,15 @@ export function LegalConsent() {
   );
 }
 
+/** The site's own page when the build has no explicit URL (`/terms/`, English under `/en/`). */
+function sitePage(page: 'terms' | 'privacy'): string {
+  return `https://${linkDomain()}${currentLanguage() === 'en' ? '/en' : ''}/${page}/`;
+}
+
 export function openTerms() {
-  open(legalUrls().terms);
+  open(legalUrls().terms ?? sitePage('terms'));
 }
 
 export function openPrivacy() {
-  open(legalUrls().privacy);
+  open(legalUrls().privacy ?? sitePage('privacy'));
 }

@@ -63,9 +63,12 @@ export default function RootLayout() {
   if (!ready) return null;
 
   const signedIn = session.status === 'signedIn';
-  const onboarded = signedIn && onboarding === 'done';
+  /** 18+ not confirmed (Apple / Google account): the confirmation comes before anything else. */
+  const ageBlocked = signedIn && session.user.ageConfirmed === false;
+  const allowed = signedIn && !ageBlocked;
+  const onboarded = allowed && onboarding === 'done';
   /** Where a guarded route sends the user right now. */
-  const home = !signedIn ? '/welcome' : onboarded ? '/' : '/style';
+  const home = !signedIn ? '/welcome' : ageBlocked ? '/age-confirm' : onboarded ? '/' : '/style';
 
   return (
     <QueryProvider userId={userId}>
@@ -83,7 +86,11 @@ export default function RootLayout() {
           <Stack.Screen name="(auth)/forgot-password" />
         </Stack.Protected>
 
-        <Stack.Protected guard={signedIn && !onboarded} redirectTo={home}>
+        <Stack.Protected guard={ageBlocked} redirectTo={home}>
+          <Stack.Screen name="age-confirm" options={{ gestureEnabled: false }} />
+        </Stack.Protected>
+
+        <Stack.Protected guard={allowed && !onboarded} redirectTo={home}>
           <Stack.Screen name="(onboarding)/style" />
           <Stack.Screen name="(onboarding)/body" />
           <Stack.Screen name="(onboarding)/first-items" />
@@ -128,7 +135,7 @@ export default function RootLayout() {
           <Stack.Screen name="dev/components" />
         </Stack.Protected>
 
-        <Stack.Protected guard={signedIn} redirectTo={home}>
+        <Stack.Protected guard={allowed} redirectTo={home}>
           {/* 05 — after onboarding (04b) and from locked features. */}
           <Stack.Screen name="paywall" options={{ presentation: 'modal', gestureEnabled: false }} />
           {/* 12 Parça ekle — also the camera shortcut on onboarding 04b. */}

@@ -38,6 +38,15 @@ async function needsOnboarding(res: AuthResponse): Promise<boolean | null> {
   }
 }
 
+/**
+ * 18+ state of a profile: confirmed / not confirmed, or `undefined` when unknown (no profile, or a
+ * server without the field) — `AgeCheckHost` asks again later.
+ */
+export function ageConfirmedOf(profile: ProfileWire | null): boolean | undefined {
+  if (!profile || !('ageConfirmedAt' in profile)) return undefined;
+  return profile.ageConfirmedAt != null;
+}
+
 async function readProfile(res: AuthResponse): Promise<ProfileWire | null> {
   try {
     return await apiRequest<ProfileWire>('v1/tenant/profile', { accessToken: res.accessToken });
@@ -58,8 +67,12 @@ async function signIn(
 ): Promise<AuthResponse> {
   const res = await apiRequest<AuthResponse>(path, { method: 'POST', body, auth: false });
 
-  // Onboarding progress is decided before the session flips, so navigation guards pick the right stack.
-  const [pending, profile] = await Promise.all([needsOnboarding(res), res.isNewUser ? null : readProfile(res)]);
+  // Onboarding progress and the 18+ state are decided before the session flips, so navigation guards
+  // pick the right stack. A new e-mail account confirmed its age with the sign-up box; a new Apple /
+  // Google account has not (its profile says so).
+  const viaRegister = path === 'v1/auth/register';
+  const [pending, profile] = await Promise.all([needsOnboarding(res), viaRegister ? null : readProfile(res)]);
+  const ageConfirmed = viaRegister ? true : ageConfirmedOf(profile);
   if (pending === true) await onboardingStore.markPending(res.userId);
   else if (pending === false) await onboardingStore.markDone(res.userId);
   else await onboardingStore.load(res.userId);
@@ -69,6 +82,7 @@ async function signIn(
   await sessionStore.setFromAuthResponse(res, {
     name: known.name ?? profile?.displayName ?? undefined,
     email: known.email ?? profile?.email ?? undefined,
+    ...(ageConfirmed === undefined ? {} : { ageConfirmed }),
   });
   return res;
 }
