@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 
+import { track } from '@/analytics/track';
 import { onboardingStore } from '@/auth/onboarding';
 import { sessionStore } from '@/auth/session';
 
@@ -24,7 +25,10 @@ async function signIn(path: string, body: unknown, onboarding: 'pending' | 'done
   // Set onboarding progress before the session flips, so navigation guards pick the right stack.
   if (onboarding === 'done') await onboardingStore.markDone(res.user.id);
   else await onboardingStore.load(res.user.id);
-  if (onboarding === 'pending' && path === 'v1/auth/register') await onboardingStore.markPending(res.user.id);
+  if (onboarding === 'pending' && path === 'v1/auth/register') {
+    await onboardingStore.markPending(res.user.id);
+    track('signup_step', { step: 'account_created', method: 'email' });
+  }
   await sessionStore.setFromAuthResponse(res);
   return res;
 }

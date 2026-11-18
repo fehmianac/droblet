@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 
+import { track } from '@/analytics/track';
 import { SIZES, type Size } from '@/api/contracts';
 import { useEnqueuePhotoUpload } from '@/api/photos';
 import { useBodyProfile, useSaveBodyProfile } from '@/api/profile';
@@ -111,12 +112,14 @@ export default function BodyScreen() {
     });
     bodyPhotos.forEach((p) => enqueueUpload({ uploadId: p.uploadId, kind: 'body', localUri: p.localUri }));
     if (facePhoto) enqueueUpload({ uploadId: facePhoto.uploadId, kind: 'face', localUri: facePhoto.localUri });
+    track('signup_step', { step: 'body_profile', bodyPhotos: bodyPhotos.length, facePhoto: facePhoto !== null });
     router.push('/first-items');
   };
 
   const skip = () => {
     bodyPhotos.forEach((p) => deleteLocalPhoto(p.localUri));
     if (facePhoto) deleteLocalPhoto(facePhoto.localUri);
+    track('signup_step', { step: 'body_profile', skipped: true });
     router.push('/first-items');
   };
 
