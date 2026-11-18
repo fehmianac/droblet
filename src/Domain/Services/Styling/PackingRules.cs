@@ -6,12 +6,20 @@ public sealed record PackDayPlan(string Date, string? Label, Occasion? Occasion,
 
 public sealed record PackPlan(IReadOnlyList<string> ItemIds, IReadOnlyList<PackDayPlan> Days);
 
-/// <param name="CabinMaxItems">0 = not decided yet (owner decision) — the cabin limit is then not enforced.</param>
+/// <param name="CabinMaxItems">Packing:CabinMaxItems. 0 = the cabin limit is not enforced.</param>
 public sealed record PackingContext(
     IReadOnlyDictionary<string, CandidateItem> Candidates,
     IReadOnlyList<string> Dates,
     bool CabinOnly,
-    int CabinMaxItems);
+    int CabinMaxItems)
+{
+    /// <summary>The piece limit that applies to this trip; null = none (not cabin-only, or the limit is 0).</summary>
+    public int? CabinLimit => CabinOnly && CabinMaxItems > 0 ? CabinMaxItems : null;
+}
+
+/// <param name="Plan">The list within the cabin limit; null when it cannot be brought under the limit by dropping pieces.</param>
+/// <param name="DroppedItemIds">Pieces that were taken out (empty = the list already fitted).</param>
+public sealed record CabinTrim(PackPlan? Plan, IReadOnlyList<string> DroppedItemIds);
 
 /// <summary>
 /// Suitcase rules — the same class validates the model's list (worker) and the accepted draft (Api).
@@ -20,12 +28,16 @@ public sealed record PackingContext(
 ///  - EVERY PACKED PIECE IS WORN AT LEAST 2 TIMES across the daily looks ("Her parça en az 2 kez giyiliyor") —
 ///    hard-coded, not config. A 1-day trip cannot satisfy it, so there every packed piece must simply be worn (≥ 1)
 ///    and the "worn twice" claim is not made (EveryPieceWornTwice = false);
-///  - cabin-only: the list never exceeds CabinMaxItems.
-/// A list that fails is not repaired: RuleBasedPacking builds a greedy one instead.
+///  - cabin-only: the list never exceeds CabinMaxItems (every piece counts once, shoes and bags included; 0 = no limit).
+/// A list that is only too long for the cabin is trimmed by rule (TrimToCabinLimit keeps the pieces used in the most
+/// looks); any other failure is not repaired: RuleBasedPacking builds a greedy list instead.
 /// </summary>
 public static class PackingRules
 {
     public const int MinWearsPerPiece = 2;
+
+    /// <summary>Which slots keep their piece first when a cabin list has to shrink.</summary>
+    private static readonly OutfitSlot[] CabinSlotPriority = [OutfitSlot.Top, OutfitSlot.Bottom, OutfitSlot.Shoes, OutfitSlot.Outerwear, OutfitSlot.BagAccessory];
 
     public const string UnknownItem = "pack_unknown_item";
     public const string DuplicateItem = "pack_duplicate_item";
@@ -103,10 +115,81 @@ public static class PackingRules
             Add(PieceUnused);
         }
 
-        if (context is { CabinOnly: true, CabinMaxItems: > 0 } && plan.ItemIds.Count > context.CabinMaxItems)
+        if (context.CabinLimit is { } limit && plan.ItemIds.Distinct(StringComparer.Ordinal).Count() > limit)
             Add(CabinLimit);
 
         return errors;
+    }
+
+    /// <summary>
+    /// Brings a list that is too long for a cabin bag under the limit, by rule (never by the model):
+    /// first the most used piece of every slot the looks use stays (top, bottom, shoes, outer layer, bag — so no look
+    /// loses a whole slot while there is room), then the remaining places go to the pieces used in the most daily
+    /// looks (ties: the order of the list). Every dropped piece is replaced in its looks by the most used kept piece
+    /// that fits the same slot, or the slot is left empty.
+    /// The result is only returned when it still passes Validate — otherwise Plan is null and the caller falls back to
+    /// RuleBasedPacking. A list within the limit (or a trip without one) comes back unchanged.
+    /// </summary>
+    public static CabinTrim TrimToCabinLimit(PackPlan plan, PackingContext context)
+    {
+        var ids = plan.ItemIds.Distinct(StringComparer.Ordinal).ToList();
+        if (context.CabinLimit is not { } limit || ids.Count <= limit)
+            return new CabinTrim(plan, []);
+
+        var wears = PlannedWears(plan);
+        var ranked = ids
+            .Select((id, index) => (Id: id, Index: index, Wears: wears.GetValueOrDefault(id)))
+            .OrderByDescending(p => p.Wears).ThenBy(p => p.Index)
+            .Select(p => p.Id)
+            .ToList();
+        // The slot a piece is (mostly) worn in.
+        var slotOf = plan.Days.SelectMany(d => d.Slots).Where(s => s.ItemId is not null)
+            .GroupBy(s => s.ItemId!, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.GroupBy(s => s.Slot).OrderByDescending(x => x.Count()).First().Key, StringComparer.Ordinal);
+
+        var keptSet = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var slot in CabinSlotPriority)
+        {
+            if (keptSet.Count < limit && ranked.FirstOrDefault(id => slotOf.TryGetValue(id, out var s) && s == slot) is { } best)
+                keptSet.Add(best);
+        }
+        foreach (var id in ranked)
+        {
+            if (keptSet.Count >= limit)
+                break;
+            keptSet.Add(id);
+        }
+        var kept = ids.Where(keptSet.Contains).ToList();
+        var dropped = ids.Where(id => !keptSet.Contains(id)).ToList();
+
+        var days = new List<PackDayPlan>(plan.Days.Count);
+        foreach (var day in plan.Days)
+        {
+            var used = day.Slots.Where(s => s.ItemId is not null && keptSet.Contains(s.ItemId)).Select(s => s.ItemId!).ToHashSet(StringComparer.Ordinal);
+            var slots = new List<SlotRef>(day.Slots.Count);
+            foreach (var slot in day.Slots)
+            {
+                if (slot.ItemId is not null && keptSet.Contains(slot.ItemId))
+                {
+                    slots.Add(slot);
+                    continue;
+                }
+
+                // Most used kept piece that may sit in this slot and is not already in this look.
+                var replacement = kept
+                    .Where(id => !used.Contains(id) && context.Candidates.TryGetValue(id, out var c) && OutfitSlotRules.Accepts(slot.Slot, c.Category))
+                    .OrderByDescending(id => wears.GetValueOrDefault(id))
+                    .FirstOrDefault();
+                if (replacement is null)
+                    continue;
+                used.Add(replacement);
+                slots.Add(new SlotRef(slot.Slot, replacement));
+            }
+            days.Add(day with { Slots = slots });
+        }
+
+        var trimmed = new PackPlan(kept, days);
+        return new CabinTrim(Validate(trimmed, context).Count == 0 ? trimmed : null, dropped);
     }
 
     /// <summary>Model output -> plan. null when the structure itself is unusable (no list or no days).</summary>
@@ -160,7 +243,8 @@ public static class PackingRules
 /// Greedy rule-based suitcase used when the model's list fails PackingRules. With n days it packs
 /// ⌊n/2⌋ tops (or dresses) and ⌊n/3⌋ bottoms — at least one of each — one pair of shoes (two from 6 days on),
 /// one outer layer when the weather asks for it and one bag, then rotates them over the days, so every piece is worn
-/// at least twice whenever the trip has 2+ days. Cabin-only shrinks tops, then bottoms, then drops bag and outer layer.
+/// at least twice whenever the trip has 2+ days. Cabin-only (PackingContext.CabinLimit) shrinks tops, then bottoms, then
+/// drops the bag, the outer layer, the second pair of shoes and — for a very small limit — the shoes.
 /// Returns null when the wardrobe cannot dress a single day (fewer than 2 usable pieces).
 /// </summary>
 public static class RuleBasedPacking
@@ -187,15 +271,16 @@ public static class RuleBasedPacking
         var outer = withOuterwear ? Of(ItemCategory.Outerwear).Take(1).ToList() : [];
         var bags = Of(ItemCategory.Bag, ItemCategory.Accessory).Take(1).ToList();
 
-        if (context is { CabinOnly: true, CabinMaxItems: > 0 })
+        if (context.CabinLimit is { } limit)
         {
             int Total() => baseCount + bottomCount + shoes.Count + outer.Count + bags.Count;
-            while (Total() > context.CabinMaxItems && baseCount > 1) baseCount--;
-            while (Total() > context.CabinMaxItems && bottomCount > 1) bottomCount--;
-            if (Total() > context.CabinMaxItems) bags.Clear();
-            if (Total() > context.CabinMaxItems) outer.Clear();
-            if (Total() > context.CabinMaxItems && shoes.Count > 1) shoes.RemoveAt(1);
-            if (Total() > context.CabinMaxItems)
+            while (Total() > limit && baseCount > 1) baseCount--;
+            while (Total() > limit && bottomCount > 1) bottomCount--;
+            if (Total() > limit) bags.Clear();
+            if (Total() > limit) outer.Clear();
+            if (Total() > limit && shoes.Count > 1) shoes.RemoveAt(1);
+            if (Total() > limit) shoes.Clear();   // a very small limit: the look itself (top + bottom, or a dress) comes first
+            if (Total() > limit)
                 return null;
         }
 

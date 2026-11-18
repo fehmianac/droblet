@@ -4,7 +4,7 @@ using Domain.Services.Ai;
 
 namespace Domain.Services;
 
-public enum PaletteMatch { Compatible, Incompatible, Neutral }
+public enum PaletteMatch { Compatible, Incompatible, Neutral, Unmatched }
 
 public sealed record PaletteCompatibility(
     int? Percent,
@@ -12,53 +12,74 @@ public sealed record PaletteCompatibility(
     int CompatibleCount,
     int NeutralCount,
     int IncompatibleCount,
-    IReadOnlyList<string> IncompatibleItemIds);
+    IReadOnlyList<string> IncompatibleItemIds,
+    int UnmatchedCount = 0);
+
+/// <summary>Palette:NeutralsCountAsCompatible / Palette:NeutralColorIds. Default = the approved rule.</summary>
+public sealed record PaletteRuleSettings(bool NeutralsCountAsCompatible, IReadOnlySet<string> NeutralColorIds)
+{
+    public static readonly PaletteRuleSettings Default = new(true, new HashSet<string>(StringComparer.Ordinal));
+
+    public static PaletteRuleSettings From(Options.PaletteOptions options) => new(
+        options.NeutralsCountAsCompatible,
+        options.NeutralColorIds.Select(c => c.Trim().ToLowerInvariant()).Where(ColorCatalog.IsKnown).ToHashSet(StringComparer.Ordinal));
+}
 
 /// <summary>
 /// "Gardırobunun %64'ü paletinle uyumlu" — deterministic, never AI, computed on read and never stored.
 /// A piece is judged by its main colour (first colour id):
 ///   in the season's "avoid" tones      -> Incompatible (listed by "Uyumsuz parçaları gör")
 ///   in the season's "flattering" tones -> Compatible
-///   anything else                      -> Neutral
-/// Percent = round(100 × (Compatible + Neutral) / Total): everything that does not clash counts as compatible, so the
-/// percentage and the incompatible list always add up to the whole wardrobe. Pieces without a known colour are skipped.
+///   anything else                      -> Neutral (or, when Palette:NeutralColorIds is set and does not list the
+///                                         colour, Unmatched: counted in the total only)
+/// Percent = round(100 × (Compatible + Neutral) / Total) while Palette:NeutralsCountAsCompatible is true (the approved
+/// default): everything that does not clash counts as compatible, so the percentage and the incompatible list add up
+/// to the whole wardrobe. With the setting off only Compatible counts. Pieces without a known colour are skipped.
 /// An empty wardrobe has no percentage (null).
 /// </summary>
 public static class PaletteCompatibilityRules
 {
-    public static PaletteMatch Classify(string? mainColorId, IReadOnlyCollection<string> flattering, IReadOnlyCollection<string> avoid)
+    public static PaletteMatch Classify(string? mainColorId, IReadOnlyCollection<string> flattering, IReadOnlyCollection<string> avoid,
+        PaletteRuleSettings? settings = null)
     {
         if (mainColorId is null)
             return PaletteMatch.Neutral;
         if (avoid.Contains(mainColorId))
             return PaletteMatch.Incompatible;
-        return flattering.Contains(mainColorId) ? PaletteMatch.Compatible : PaletteMatch.Neutral;
+        if (flattering.Contains(mainColorId))
+            return PaletteMatch.Compatible;
+        var neutrals = (settings ?? PaletteRuleSettings.Default).NeutralColorIds;
+        return neutrals.Count == 0 || neutrals.Contains(mainColorId) ? PaletteMatch.Neutral : PaletteMatch.Unmatched;
     }
 
     public static PaletteCompatibility Evaluate(
         IEnumerable<(string ItemId, string? MainColorId)> items,
         IReadOnlyCollection<string> flattering,
-        IReadOnlyCollection<string> avoid)
+        IReadOnlyCollection<string> avoid,
+        PaletteRuleSettings? settings = null)
     {
-        int compatible = 0, neutral = 0;
+        settings ??= PaletteRuleSettings.Default;
+        int compatible = 0, neutral = 0, unmatched = 0;
         var incompatible = new List<string>();
         foreach (var (itemId, color) in items)
         {
             if (!ColorCatalog.IsKnown(color))
                 continue;
-            switch (Classify(color, flattering, avoid))
+            switch (Classify(color, flattering, avoid, settings))
             {
                 case PaletteMatch.Compatible: compatible++; break;
                 case PaletteMatch.Incompatible: incompatible.Add(itemId); break;
+                case PaletteMatch.Unmatched: unmatched++; break;
                 default: neutral++; break;
             }
         }
 
-        var total = compatible + neutral + incompatible.Count;
+        var total = compatible + neutral + unmatched + incompatible.Count;
+        var counted = compatible + (settings.NeutralsCountAsCompatible ? neutral : 0);
         int? percent = total == 0
             ? null
-            : (int)Math.Round(100d * (compatible + neutral) / total, MidpointRounding.AwayFromZero);
-        return new PaletteCompatibility(percent, total, compatible, neutral, incompatible.Count, incompatible);
+            : (int)Math.Round(100d * counted / total, MidpointRounding.AwayFromZero);
+        return new PaletteCompatibility(percent, total, compatible, neutral, incompatible.Count, incompatible, unmatched);
     }
 }
 

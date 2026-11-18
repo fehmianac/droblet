@@ -19,6 +19,13 @@ public static class WardrobeDependencyInjection
         services.Configure<WardrobeOptions>(configuration.GetSection(WardrobeOptions.Section));
         services.Configure<StylistOptions>(configuration.GetSection(StylistOptions.Section));
         services.Configure<PackingOptions>(configuration.GetSection(PackingOptions.Section));
+        services.Configure<PaletteOptions>(configuration.GetSection(PaletteOptions.Section));
+
+        // Static rule sets read their config once here and again whenever the configuration reloads (SSM: every 60 s).
+        void ApplyRuleConfig() => OutfitSlotRules.Configure(
+            (configuration.GetSection(WardrobeOptions.Section).Get<WardrobeOptions>() ?? new WardrobeOptions()).SlotMapping);
+        ApplyRuleConfig();
+        Microsoft.Extensions.Primitives.ChangeToken.OnChange(configuration.GetReloadToken, ApplyRuleConfig);
 
         services.TryAddSingleton<ICatalogProductLookup>(sp => new Services.Integration.CatalogProductLookup(
             sp.GetRequiredService<ICatalogService>(),

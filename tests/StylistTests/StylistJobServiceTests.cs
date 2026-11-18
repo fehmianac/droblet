@@ -440,4 +440,102 @@ public class StylistJobServiceTests
         var job = await QueuePackAsync(host);
         Assert.Equal(StylistRefusals.InsufficientWardrobe, StylingJson.TryDeserialize<PackResult>((await RunAsync(host, job)).Result)!.Refusal);
     }
+
+    // ── Cabin-only limit (Packing:CabinMaxItems) ──────────────────────────────────────────────────────────────────
+
+    private static WorkerTestHost CabinHost(FixedModel model, int limit) => new(s =>
+    {
+        s.AddSingleton<IStylistJobService, StylistJobService>();
+        s.RemoveAll<IStylistModel>();
+        s.AddSingleton<IStylistModel>(model);
+        s.Configure<Domain.Options.PackingOptions>(o => o.CabinMaxItems = limit);
+    });
+
+    private static readonly string SixPieceList = JsonSerializer.Serialize(new
+    {
+        itemIds = new[] { "top1", "top2", "bot1", "bot2", "shoe1", "bag1" },
+        days = new[] { "2026-12-01", "2026-12-02", "2026-12-03", "2026-12-04" }.Select((date, i) => new
+        {
+            date, title = "Gün", explanation = (string?)null, occasion = "office",
+            slots = new { top = i % 2 == 0 ? "top1" : "top2", bottom = i % 2 == 0 ? "bot1" : "bot2", outerwear = (string?)null, shoes = "shoe1", bagAccessory = "bag1" },
+        }),
+        refusal = (string?)null,
+    });
+
+    [Fact]
+    public async Task Pack_CabinOnly_ModelListAtTheLimit_IsKept_AndTheLimitIsReported()
+    {
+        var model = new FixedModel(SixPieceList);
+        var host = CabinHost(model, limit: 6);
+        await SeedWardrobeAsync(host);
+        var job = await QueuePackAsync(host, cabinOnly: true);
+
+        var result = StylingJson.TryDeserialize<PackResult>((await RunAsync(host, job)).Result)!;
+
+        Assert.Equal(("model", 6, false), (result.Source, result.CabinLimit, result.CabinTrimmed));
+        Assert.Equal(6, result.Items.Count);
+        Assert.Empty(result.DroppedItemIds!);
+        Assert.Contains("\"cabinMaxItems\":6", Assert.Single(model.Prompts).InputJson); // the model is asked for at most that many
+    }
+
+    [Fact]
+    public async Task Pack_CabinOnly_ModelListOverTheLimit_IsTrimmedByRule_AndReportsWhatWasDropped()
+    {
+        var host = CabinHost(new FixedModel(SixPieceList), limit: 4);
+        await SeedWardrobeAsync(host);
+        var job = await QueuePackAsync(host, cabinOnly: true);
+
+        var result = StylingJson.TryDeserialize<PackResult>((await RunAsync(host, job)).Result)!;
+
+        Assert.Equal(("model", 4, true), (result.Source, result.CabinLimit, result.CabinTrimmed));
+        Assert.Equal(["top1", "bot1", "shoe1", "bag1"], result.Items.Select(i => i.ItemId));
+        Assert.Equal(["top2", "bot2"], result.DroppedItemIds);
+        Assert.True(result.EveryPieceWornTwice);
+        Assert.All(result.Days, d => Assert.Equal(4, d.Slots.Count));
+    }
+
+    [Fact]
+    public async Task Pack_CabinOnly_ZeroLimit_IsNotEnforced_AndANormalTripHasNoLimit()
+    {
+        var unlimitedHost = CabinHost(new FixedModel(SixPieceList), limit: 0);
+        await SeedWardrobeAsync(unlimitedHost);
+        var unlimited = StylingJson.TryDeserialize<PackResult>((await RunAsync(unlimitedHost, await QueuePackAsync(unlimitedHost, cabinOnly: true))).Result)!;
+
+        var normalModel = new FixedModel(SixPieceList);
+        var normalHost = CabinHost(normalModel, limit: 2);
+        await SeedWardrobeAsync(normalHost);
+        var normal = StylingJson.TryDeserialize<PackResult>((await RunAsync(normalHost, await QueuePackAsync(normalHost, cabinOnly: false))).Result)!;
+
+        Assert.Equal(((int?)null, false, 6), (unlimited.CabinLimit, unlimited.CabinTrimmed, unlimited.Items.Count));
+        Assert.Equal(((int?)null, false, 6), (normal.CabinLimit, normal.CabinTrimmed, normal.Items.Count));
+        Assert.Contains("\"cabinMaxItems\":0", Assert.Single(normalModel.Prompts).InputJson);
+    }
+
+    [Fact]
+    public async Task Pack_CabinOnly_OneDayTrip_RuleBasedListStaysWithinTheLimit()
+    {
+        var host = CabinHost(new FixedModel("{}"), limit: 3);
+        await SeedWardrobeAsync(host);
+        var job = await QueuePackAsync(host, "2026-12-01", "2026-12-01", cabinOnly: true);
+
+        var result = StylingJson.TryDeserialize<PackResult>((await RunAsync(host, job)).Result)!;
+
+        Assert.Equal(("rule", 3), (result.Source, result.CabinLimit));
+        Assert.True(result.Items.Count <= 3);
+        Assert.True(result.CabinTrimmed);          // without the limit the rule would also have packed a bag
+        Assert.False(result.EveryPieceWornTwice);
+        Assert.Single(result.Days);
+    }
+
+    [Fact]
+    public async Task Pack_CabinOnly_DefaultLimitIs12()
+    {
+        var host = Host(new FixedModel(SixPieceList));
+        await SeedWardrobeAsync(host);
+        var job = await QueuePackAsync(host, cabinOnly: true);
+
+        var result = StylingJson.TryDeserialize<PackResult>((await RunAsync(host, job)).Result)!;
+
+        Assert.Equal((12, false, "model"), (result.CabinLimit, result.CabinTrimmed, result.Source));
+    }
 }

@@ -372,7 +372,7 @@ public static class OpenAiPrompts
             "You are Droblet's personal stylist packing a suitcase. The user message is a JSON object with the trip (dates, tripTypes, cabinOnly, cabinMaxItems, weather per day), " +
             "language and `candidates`: the ONLY wardrobe pieces you may pack. Return `itemIds` (the packing list) and one day entry per trip date. " +
             "Hard rules: daily looks use only packed pieces; when the trip has more than one day EVERY packed piece is worn on at least 2 days; " +
-            "pack as few pieces as possible; if cabinOnly is true never pack more than cabinMaxItems pieces (when it is greater than 0). " +
+            "pack as few pieces as possible; if cabinMaxItems is greater than 0 never pack more than cabinMaxItems pieces in total — every piece counts once, shoes, bags and accessories included. " +
             "Slot rules: top <- top|dress|beachwear|skiwear, bottom <- bottom|beachwear|skiwear, outerwear <- outerwear|skiwear, shoes <- shoes, bagAccessory <- bag|accessory. " +
             "A dress goes in `top` and leaves `bottom` null. `title` is a short day label (e.g. flight + dinner) in the given language; `explanation` may be null. " + Tone,
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "No stylist prompt for this job kind."),

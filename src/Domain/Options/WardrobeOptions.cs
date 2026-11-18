@@ -11,6 +11,13 @@ public sealed class WardrobeOptions
     public int MaxSplitPieces { get; set; } = 6;
     /// <summary>Public base URL of the global asset bucket/CDN (library and catalog images). Empty = imageUrl is null for those pieces.</summary>
     public string? PublicAssetBaseUrl { get; set; }
+    /// <summary>
+    /// Category → outfit slots it may fill (owner decision 2026-11-18: mapping approved, kept in config). Keys are
+    /// ItemCategory names, values OutfitSlot names; the first slot is where a rule puts the piece. Categories that are
+    /// not listed keep the built-in mapping (SlotMapping.Default), e.g. { "Beachwear": ["Top","Bottom"],
+    /// "Skiwear": ["Top","Bottom","Outerwear"] }. Unknown names are ignored.
+    /// </summary>
+    public Dictionary<string, List<string>> SlotMapping { get; set; } = [];
 }
 
 public sealed class StylistOptions
@@ -32,7 +39,29 @@ public sealed class StylistOptions
 public sealed class PackingOptions
 {
     public const string Section = "Packing";
-    /// <summary>Cabin-only piece limit. Owner decision — 0 means "not decided": the limit is not enforced.</summary>
-    public int CabinMaxItems { get; set; }
+    /// <summary>
+    /// Cabin-only piece limit (owner decision 2026-11-18: enforced; 12 is a representative value, changeable in SSM
+    /// api/Packing and worker/Packing without a deploy). Every packed piece counts once — shoes and bags included.
+    /// 0 = not enforced.
+    /// </summary>
+    public int CabinMaxItems { get; set; } = 12;
     public int MaxTripDays { get; set; } = 21;
+}
+
+/// <summary>Palette compatibility rule settings (owner decision 2026-11-18). SSM api/Palette.</summary>
+public sealed class PaletteOptions
+{
+    public const string Section = "Palette";
+    /// <summary>
+    /// "Gardırobunun %N'i paletinle uyumlu": true (approved) = neutral pieces count as compatible, so the percentage
+    /// and the "incompatible pieces" list add up to the whole wardrobe. false = only flattering tones count.
+    /// </summary>
+    public bool NeutralsCountAsCompatible { get; set; } = true;
+    /// <summary>
+    /// Colour ids (ColorCatalog) that are neutral whatever the season — unless the season lists them as flattering or
+    /// to avoid. Empty (default) = every colour outside the season's two lists is neutral. When the list is set, a
+    /// colour outside all three lists is "unmatched": it counts in the total but is neither compatible nor listed
+    /// as incompatible.
+    /// </summary>
+    public List<string> NeutralColorIds { get; set; } = [];
 }

@@ -571,3 +571,262 @@ public class AiSchemasTests
     [InlineData(JobKind.StylistPack, "packing")]
     public void NameFor(JobKind kind, string expected) => Assert.Equal(expected, AiSchemas.NameFor(kind));
 }
+
+/// <summary>Owner decision 2026-11-18: the cabin-only limit is enforced (Packing:CabinMaxItems, default 12, 0 = off).</summary>
+public class CabinLimitTests
+{
+    private static readonly string[] FourDays = ["2026-12-01", "2026-12-02", "2026-12-03", "2026-12-04"];
+
+    private static PackingContext Context(IReadOnlyList<string> dates, int cabinMax, bool cabinOnly = true) =>
+        new(Wardrobe.Basic().ToDictionary(c => c.Id), dates, cabinOnly, cabinMax);
+
+    private static PackDayPlan Day(string date, params (OutfitSlot Slot, string Id)[] slots) =>
+        new(date, null, null, slots.Select(s => new SlotRef(s.Slot, s.Id)).ToList());
+
+    /// <summary>6 pieces over 4 days: two tops and two bottoms alternate (2 wears each), shoes and bag every day (4 wears).</summary>
+    private static PackPlan SixPieces() => new(["top1", "top2", "bot1", "bot2", "shoe1", "bag1"], FourDays.Select((d, i) => Day(d,
+        (OutfitSlot.Top, i % 2 == 0 ? "top1" : "top2"), (OutfitSlot.Bottom, i % 2 == 0 ? "bot1" : "bot2"), (OutfitSlot.Shoes, "shoe1"), (OutfitSlot.BagAccessory, "bag1"))).ToList());
+
+    [Fact]
+    public void Default_Is12_AndEveryPieceCountsOnce()
+    {
+        Assert.Equal(12, new Domain.Options.PackingOptions().CabinMaxItems);
+        Assert.Equal(6, Context(FourDays, 6).CabinLimit);
+        Assert.Null(Context(FourDays, 6, cabinOnly: false).CabinLimit);
+        Assert.Null(Context(FourDays, 0).CabinLimit);
+    }
+
+    [Fact]
+    public void AtTheLimit_IsValid_AndNothingIsDropped()
+    {
+        var context = Context(FourDays, 6); // shoes and bag count: 2 tops + 2 bottoms + shoes + bag = 6
+
+        var trim = PackingRules.TrimToCabinLimit(SixPieces(), context);
+
+        Assert.Empty(PackingRules.Validate(SixPieces(), context));
+        Assert.Equal(SixPieces().ItemIds, trim.Plan!.ItemIds);
+        Assert.Empty(trim.DroppedItemIds);
+    }
+
+    [Fact]
+    public void OneOverTheLimit_IsRejectedByValidate()
+    {
+        Assert.Contains(PackingRules.CabinLimit, PackingRules.Validate(SixPieces(), Context(FourDays, 5)));
+    }
+
+    [Fact]
+    public void OverTheLimit_IsTrimmed_KeepingEverySlot_AndThePiecesUsedInTheMostLooks()
+    {
+        var context = Context(FourDays, 4);
+
+        var trim = PackingRules.TrimToCabinLimit(SixPieces(), context);
+
+        Assert.NotNull(trim.Plan);
+        Assert.Equal(["top1", "bot1", "shoe1", "bag1"], trim.Plan.ItemIds);       // one per slot; shoes and bag were the most worn
+        Assert.Equal(["top2", "bot2"], trim.DroppedItemIds);
+        Assert.Empty(PackingRules.Validate(trim.Plan, context));
+        Assert.All(trim.Plan.Days, d => Assert.Equal(["top1", "bot1", "shoe1", "bag1"], d.Slots.Select(s => s.ItemId)));   // dropped pieces were replaced in their looks
+        Assert.True(PackingRules.EveryPieceWornTwice(trim.Plan));
+    }
+
+    [Fact]
+    public void OverTheLimit_WithRoomLeft_TheMostWornExtraPieceStays()
+    {
+        // top1 is worn on three days, top2 (listed first) on one.
+        var plan = new PackPlan(["top2", "top1", "bot1", "shoe1", "bag1", "coat1"],
+        [
+            Day(FourDays[0], (OutfitSlot.Top, "top1"), (OutfitSlot.Bottom, "bot1"), (OutfitSlot.Shoes, "shoe1"), (OutfitSlot.BagAccessory, "bag1"), (OutfitSlot.Outerwear, "coat1")),
+            Day(FourDays[1], (OutfitSlot.Top, "top1"), (OutfitSlot.Bottom, "bot1"), (OutfitSlot.Shoes, "shoe1"), (OutfitSlot.BagAccessory, "bag1"), (OutfitSlot.Outerwear, "coat1")),
+            Day(FourDays[2], (OutfitSlot.Top, "top1"), (OutfitSlot.Bottom, "bot1"), (OutfitSlot.Shoes, "shoe1"), (OutfitSlot.BagAccessory, "bag1")),
+            Day(FourDays[3], (OutfitSlot.Top, "top2"), (OutfitSlot.Bottom, "bot1"), (OutfitSlot.Shoes, "shoe1"), (OutfitSlot.BagAccessory, "bag1")),
+        ]);
+        var context = Context(FourDays, 5);
+
+        var trim = PackingRules.TrimToCabinLimit(plan, context);
+
+        // Five slots are in use and five places exist: each slot keeps its most worn piece; the less worn top goes
+        // and the top worn in the most looks takes its day.
+        Assert.Equal(["top2"], trim.DroppedItemIds);
+        Assert.Equal(["top1", "bot1", "shoe1", "bag1", "coat1"], trim.Plan!.ItemIds);
+        Assert.Empty(PackingRules.Validate(trim.Plan, context));
+        Assert.Equal("top1", trim.Plan.Days[3].Slots.Single(s => s.Slot == OutfitSlot.Top).ItemId);
+    }
+
+    [Fact]
+    public void ZeroLimit_MeansUnlimited_AndSoDoesANonCabinTrip()
+    {
+        foreach (var context in new[] { Context(FourDays, 0), Context(FourDays, 2, cabinOnly: false) })
+        {
+            var trim = PackingRules.TrimToCabinLimit(SixPieces(), context);
+
+            Assert.Empty(PackingRules.Validate(SixPieces(), context));
+            Assert.Equal(6, trim.Plan!.ItemIds.Count);
+            Assert.Empty(trim.DroppedItemIds);
+        }
+    }
+
+    [Fact]
+    public void OneDayTrip_IsTrimmedToo_PiecesNeedOnlyOneWear()
+    {
+        string[] oneDay = ["2026-12-01"];
+        var plan = new PackPlan(["top1", "bot1", "coat1", "shoe1", "bag1"],
+            [Day(oneDay[0], (OutfitSlot.Top, "top1"), (OutfitSlot.Bottom, "bot1"), (OutfitSlot.Outerwear, "coat1"), (OutfitSlot.Shoes, "shoe1"), (OutfitSlot.BagAccessory, "bag1"))]);
+
+        var atLimit = PackingRules.TrimToCabinLimit(plan, Context(oneDay, 5));
+        var trimmed = PackingRules.TrimToCabinLimit(plan, Context(oneDay, 3));
+        var impossible = PackingRules.TrimToCabinLimit(plan, Context(oneDay, 1));   // a look needs two pieces
+
+        Assert.Empty(atLimit.DroppedItemIds);
+        Assert.Equal(["top1", "bot1", "shoe1"], trimmed.Plan!.ItemIds);            // slot priority: top, bottom, shoes
+        Assert.Equal(["coat1", "bag1"], trimmed.DroppedItemIds);
+        Assert.Empty(PackingRules.Validate(trimmed.Plan, Context(oneDay, 3)));
+        Assert.False(PackingRules.EveryPieceWornTwice(trimmed.Plan));
+        Assert.Null(impossible.Plan);
+        Assert.Equal(4, impossible.DroppedItemIds.Count);
+    }
+
+    [Theory]
+    [InlineData(1, 2)]
+    [InlineData(1, 12)]
+    [InlineData(4, 3)]
+    [InlineData(8, 4)]
+    [InlineData(8, 12)]
+    public void RuleBasedList_NeverExceedsTheLimit(int days, int limit)
+    {
+        var dates = CalendarDay.Range(new DateOnly(2026, 12, 1), new DateOnly(2026, 12, 1).AddDays(days - 1));
+        var context = Context(dates, limit);
+
+        var plan = RuleBasedPacking.Build(context, withOuterwear: true);
+
+        Assert.NotNull(plan);
+        Assert.True(plan.ItemIds.Distinct().Count() <= limit);
+        Assert.Empty(PackingRules.Validate(plan, context));
+    }
+
+    [Fact]
+    public void RuleBasedList_WithoutALimit_PacksMore()
+    {
+        var dates = CalendarDay.Range(new DateOnly(2026, 12, 1), new DateOnly(2026, 12, 8));
+
+        var limited = RuleBasedPacking.Build(Context(dates, 3), withOuterwear: true)!;
+        var unlimited = RuleBasedPacking.Build(Context(dates, 0), withOuterwear: true)!;
+
+        Assert.True(limited.ItemIds.Count <= 3);
+        Assert.True(unlimited.ItemIds.Count > limited.ItemIds.Count);
+    }
+}
+
+public class PaletteRuleSettingsTests
+{
+    private static readonly string[] Flattering = ["navy", "white"];
+    private static readonly string[] Avoid = ["orange"];
+
+    private static (string, string?)[] Wardrobe => [("a", "navy"), ("b", "orange"), ("c", "black"), ("d", "sage"), ("e", "white")];
+
+    private static PaletteRuleSettings Settings(bool neutralsCount = true, params string[] neutrals) =>
+        PaletteRuleSettings.From(new Domain.Options.PaletteOptions { NeutralsCountAsCompatible = neutralsCount, NeutralColorIds = neutrals.ToList() });
+
+    [Fact]
+    public void Defaults_AreTheApprovedRule_NeutralsCountAsCompatible()
+    {
+        var options = new Domain.Options.PaletteOptions();
+        var byDefault = PaletteCompatibilityRules.Evaluate(Wardrobe, Flattering, Avoid);
+        var explicitDefault = PaletteCompatibilityRules.Evaluate(Wardrobe, Flattering, Avoid, PaletteRuleSettings.From(options));
+
+        Assert.True(options.NeutralsCountAsCompatible);
+        Assert.Empty(options.NeutralColorIds);
+        Assert.Equal((80, 5, 2, 2, 1, 0), (byDefault.Percent, byDefault.TotalCount, byDefault.CompatibleCount, byDefault.NeutralCount, byDefault.IncompatibleCount, byDefault.UnmatchedCount));
+        Assert.Equal(byDefault.Percent, explicitDefault.Percent);
+        Assert.Equal(["b"], byDefault.IncompatibleItemIds);
+    }
+
+    [Fact]
+    public void NeutralsNotCounted_OnlyFlatteringTonesMakeThePercentage()
+    {
+        var result = PaletteCompatibilityRules.Evaluate(Wardrobe, Flattering, Avoid, Settings(neutralsCount: false));
+
+        Assert.Equal((40, 2, 2), (result.Percent, result.CompatibleCount, result.NeutralCount));
+        Assert.Equal(["b"], result.IncompatibleItemIds); // the "incompatible pieces" list never changes
+    }
+
+    [Fact]
+    public void ConfiguredNeutralList_OtherColoursAreUnmatched_NotCompatibleAndNotIncompatible()
+    {
+        var result = PaletteCompatibilityRules.Evaluate(Wardrobe, Flattering, Avoid, Settings(true, "black", "grey", "Not-A-Colour"));
+
+        Assert.Equal((60, 5, 2, 1, 1, 1), (result.Percent, result.TotalCount, result.CompatibleCount, result.NeutralCount, result.IncompatibleCount, result.UnmatchedCount));
+        Assert.Equal(PaletteMatch.Unmatched, PaletteCompatibilityRules.Classify("sage", Flattering, Avoid, Settings(true, "black")));
+        Assert.Equal(PaletteMatch.Neutral, PaletteCompatibilityRules.Classify("black", Flattering, Avoid, Settings(true, "black")));
+    }
+
+    [Fact]
+    public void TheSeasonsOwnLists_WinOverTheNeutralList()
+    {
+        var settings = Settings(true, "orange", "navy");
+
+        Assert.Equal(PaletteMatch.Incompatible, PaletteCompatibilityRules.Classify("orange", Flattering, Avoid, settings));
+        Assert.Equal(PaletteMatch.Compatible, PaletteCompatibilityRules.Classify("navy", Flattering, Avoid, settings));
+    }
+}
+
+public class SlotMappingTests
+{
+    [Fact]
+    public void Default_IsTheApprovedMapping()
+    {
+        var mapping = SlotMapping.Default;
+
+        Assert.Equal([OutfitSlot.Top, OutfitSlot.Bottom], mapping.SlotsOf(ItemCategory.Beachwear));
+        Assert.Equal([OutfitSlot.Top, OutfitSlot.Bottom, OutfitSlot.Outerwear], mapping.SlotsOf(ItemCategory.Skiwear));
+        Assert.Equal([OutfitSlot.Top], mapping.SlotsOf(ItemCategory.Dress));
+        Assert.Equal([OutfitSlot.BagAccessory], mapping.SlotsOf(ItemCategory.Accessory));
+        Assert.Same(SlotMapping.Default, SlotMapping.From(null));
+        Assert.Same(SlotMapping.Default, SlotMapping.From(new Dictionary<string, List<string>>()));
+        foreach (var category in Enum.GetValues<ItemCategory>())
+        {
+            Assert.NotEmpty(mapping.SlotsOf(category));
+            Assert.True(mapping.Accepts(mapping.DefaultSlot(category), category));
+        }
+    }
+
+    [Fact]
+    public void Config_ReplacesOnlyTheListedCategories()
+    {
+        var mapping = SlotMapping.From(new Dictionary<string, List<string>>
+        {
+            ["beachwear"] = ["Top"],                              // case-insensitive
+            ["Skiwear"] = ["outerwear", "Top", "outerwear"],     // order = default slot first; duplicates dropped
+        });
+
+        Assert.Equal([OutfitSlot.Top], mapping.SlotsOf(ItemCategory.Beachwear));
+        Assert.False(mapping.Accepts(OutfitSlot.Bottom, ItemCategory.Beachwear));
+        Assert.Equal([OutfitSlot.Outerwear, OutfitSlot.Top], mapping.SlotsOf(ItemCategory.Skiwear));
+        Assert.Equal(OutfitSlot.Outerwear, mapping.DefaultSlot(ItemCategory.Skiwear));
+        Assert.Equal([OutfitSlot.Shoes], mapping.SlotsOf(ItemCategory.Shoes));   // untouched
+        Assert.True(SlotMapping.Default.Accepts(OutfitSlot.Bottom, ItemCategory.Beachwear)); // the default object is never mutated
+    }
+
+    [Fact]
+    public void ATypoInConfig_NeverLeavesACategoryWithoutASlot()
+    {
+        var mapping = SlotMapping.From(new Dictionary<string, List<string>>
+        {
+            ["Swimwear"] = ["Top"],            // unknown category
+            ["Beachwear"] = ["Torso", ""],     // no known slot
+            ["Skiwear"] = [],
+            ["7"] = ["Top"],
+        });
+
+        Assert.Equal(SlotMapping.Default.SlotsOf(ItemCategory.Beachwear), mapping.SlotsOf(ItemCategory.Beachwear));
+        Assert.Equal(SlotMapping.Default.SlotsOf(ItemCategory.Skiwear), mapping.SlotsOf(ItemCategory.Skiwear));
+    }
+
+    [Fact]
+    public void OutfitSlotRules_UseTheConfiguredMapping_DefaultUntilConfigured()
+    {
+        Assert.True(OutfitSlotRules.Accepts(OutfitSlot.Outerwear, ItemCategory.Skiwear));
+        Assert.True(OutfitSlotRules.Accepts(OutfitSlot.Bottom, ItemCategory.Beachwear));
+        Assert.Equal(OutfitSlot.Top, OutfitSlotRules.DefaultSlot(ItemCategory.Beachwear));
+        Assert.Equal(SlotMapping.Default.SlotsOf(ItemCategory.Skiwear), OutfitSlotRules.Mapping.SlotsOf(ItemCategory.Skiwear));
+    }
+}

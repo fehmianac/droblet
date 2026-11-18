@@ -17,6 +17,7 @@ public sealed class PaletteService(
     IEventManager events,
     IEntitlementService entitlements,
     IWardrobeService wardrobe,
+    Microsoft.Extensions.Options.IOptionsMonitor<Domain.Options.PaletteOptions> paletteOptions,
     TimeProvider timeProvider) : IPaletteService
 {
     public async Task<ServiceResult<PaletteStartDto>> StartAsync(string tenantId, StartPaletteCommand command, string? requestLanguage, CancellationToken ct)
@@ -93,11 +94,13 @@ public sealed class PaletteService(
             palette.LowConfidence,
             palette.SourcePhotoId is not null && palette.SourcePhotoId == activeFacePhotoId,
             palette.AnalyzedAt,
-            new PaletteCompatibilityDto(compatibility.Percent, compatibility.TotalCount, compatibility.CompatibleCount, compatibility.NeutralCount, compatibility.IncompatibleCount));
+            new PaletteCompatibilityDto(compatibility.Percent, compatibility.TotalCount, compatibility.CompatibleCount, compatibility.NeutralCount, compatibility.IncompatibleCount,
+                compatibility.UnmatchedCount, paletteOptions.CurrentValue.NeutralsCountAsCompatible));
     }
 
-    private static PaletteCompatibility Evaluate(PaletteResultEntity palette, IEnumerable<ItemEntity> items) =>
-        PaletteCompatibilityRules.Evaluate(items.Select(i => (i.Id, i.ColorIds.FirstOrDefault())), palette.FlatteringColorIds, palette.AvoidColorIds);
+    private PaletteCompatibility Evaluate(PaletteResultEntity palette, IEnumerable<ItemEntity> items) =>
+        PaletteCompatibilityRules.Evaluate(items.Select(i => (i.Id, i.ColorIds.FirstOrDefault())), palette.FlatteringColorIds, palette.AvoidColorIds,
+            PaletteRuleSettings.From(paletteOptions.CurrentValue));
 
     private static List<PaletteColorDto> Colors(IEnumerable<string> ids, string language) =>
         ids.Select(ColorCatalog.Find).Where(c => c is not null).Select(c => c!.ToDto(language)).ToList();

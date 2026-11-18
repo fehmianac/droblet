@@ -214,18 +214,22 @@ public sealed class StylistJobService(
         var occasions = trip.TripTypes.Select(PackingRules.OccasionFor).ToList();
         var missing = PackingRules.MissingPieces(wardrobe, forecast, settings.ColdBelowC);
 
-        PackResult Result(PackPlan? plan, string source, string? refusal)
+        PackResult Result(PackPlan? plan, string source, string? refusal, bool trimmed = false, IReadOnlyList<string>? dropped = null)
         {
             var wears = plan is null ? new Dictionary<string, int>() : PackingRules.PlannedWears(plan);
             return new PackResult(trip.Id, trip.CabinOnly, plan is not null && PackingRules.EveryPieceWornTwice(plan), source, refusal,
                 (plan?.ItemIds ?? []).Select(id => new PackItem(id, wears[id])).ToList(),
                 (plan?.Days ?? []).OrderBy(d => d.Date, StringComparer.Ordinal).Select(d => new PackDay(d.Date, d.Label, d.Occasion, d.Slots)).ToList(),
-                missing, language);
+                missing, language, context.CabinLimit, trimmed, dropped ?? []);
         }
 
         var fallback = RuleBasedPacking.Build(context, wantsOuter, occasions);
         if (fallback is null)
             return new Outcome(StylingJson.Serialize(Result(null, StylistOutputGuard.SourceRule, StylistRefusals.InsufficientWardrobe)));
+        // Did the cabin limit make the rule-based list shorter than it would otherwise be?
+        var fallbackTrimmed = context.CabinLimit is not null
+            && RuleBasedPacking.Build(context with { CabinOnly = false }, wantsOuter, occasions) is { } unlimited
+            && unlimited.ItemIds.Count > fallback.ItemIds.Count;
 
         var byDate = forecast.GroupBy(f => f.Date, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
         var prompt = StylingJson.Serialize(new
@@ -236,7 +240,8 @@ public sealed class StylistJobService(
                 dates,
                 trip.TripTypes,
                 trip.CabinOnly,
-                cabinMaxItems = packing.CabinMaxItems,
+                // 0 when no limit applies. Every piece counts once: shoes, bags and accessories included.
+                cabinMaxItems = context.CabinLimit ?? 0,
                 weather = dates.Select(d => byDate.TryGetValue(d, out var f) ? new { date = d, MinTempC = WeatherRules.WholeDegrees(f.MinC), MaxTempC = WeatherRules.WholeDegrees(f.MaxC), f.Condition } : null).Where(w => w is not null),
             },
             minWearsPerPiece = PackingRules.RequiresMinWears(dates.Count) ? PackingRules.MinWearsPerPiece : 1,
@@ -249,9 +254,15 @@ public sealed class StylistJobService(
 
         var plan = PackingRules.FromModel(output);
         var labelsFit = plan is not null && plan.Days.All(d => (d.Label?.Length ?? 0) <= settings.MaxTitleLength);
-        return plan is not null && labelsFit && PackingRules.Validate(plan, context).Count == 0
-            ? new Outcome(StylingJson.Serialize(Result(plan, StylistOutputGuard.SourceModel, null)))
-            : new Outcome(StylingJson.Serialize(Result(fallback, StylistOutputGuard.SourceRule, null)));
+        if (plan is null || !labelsFit)
+            return new Outcome(StylingJson.Serialize(Result(fallback, StylistOutputGuard.SourceRule, null, fallbackTrimmed)));
+
+        // The model is told the cabin limit, but it is enforced here: a list that is only too long is trimmed by rule
+        // (the pieces used in the most looks stay); anything else that fails the rules is replaced by the rule-based list.
+        var trim = PackingRules.TrimToCabinLimit(plan, context);
+        return trim.Plan is not null && PackingRules.Validate(trim.Plan, context).Count == 0
+            ? new Outcome(StylingJson.Serialize(Result(trim.Plan, StylistOutputGuard.SourceModel, null, trim.DroppedItemIds.Count > 0, trim.DroppedItemIds)))
+            : new Outcome(StylingJson.Serialize(Result(fallback, StylistOutputGuard.SourceRule, null, fallbackTrimmed)));
     }
 
     // ── Context ───────────────────────────────────────────────────────────────────────────────────────────────────

@@ -204,7 +204,10 @@ public record TryOnBatchDto(int ChargedCredits, IReadOnlyList<TryOnBatchItemDto>
 
 public record PaletteColorDto(string Id, string Family, string Hex, string Name);
 
-public record PaletteCompatibilityDto(int? Percent, int TotalCount, int CompatibleCount, int NeutralCount, int IncompatibleCount);
+/// <param name="UnmatchedCount">Pieces whose colour is in none of the lists (only when Palette:NeutralColorIds is configured).</param>
+/// <param name="NeutralsCountAsCompatible">How Percent was computed: true = (compatible + neutral) / total.</param>
+public record PaletteCompatibilityDto(int? Percent, int TotalCount, int CompatibleCount, int NeutralCount, int IncompatibleCount,
+    int UnmatchedCount = 0, bool NeutralsCountAsCompatible = true);
 
 public record PaletteDto(
     string SeasonTypeId,

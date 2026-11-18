@@ -105,6 +105,9 @@ public sealed record PackItem(string ItemId, int PlannedWears);
 public sealed record PackDay(string Date, string? Label, Occasion? Occasion, IReadOnlyList<SlotRef> Slots);
 
 /// <param name="EveryPieceWornTwice">True only when the "Her parça en az 2 kez giyiliyor" claim holds (never on 1-day trips).</param>
+/// <param name="CabinLimit">The piece limit applied to a cabin-only trip (Packing:CabinMaxItems); null = no limit applied.</param>
+/// <param name="CabinTrimmed">True when pieces were left out to stay within CabinLimit (the list would have been longer).</param>
+/// <param name="DroppedItemIds">The pieces a rule removed from the stylist's list for the cabin limit (empty when the shorter list was built from scratch).</param>
 public sealed record PackResult(
     string TripId,
     bool CabinOnly,
@@ -114,7 +117,10 @@ public sealed record PackResult(
     IReadOnlyList<PackItem> Items,
     IReadOnlyList<PackDay> Days,
     IReadOnlyList<MissingPiece> Missing,
-    string Language = Localized.Default);
+    string Language = Localized.Default,
+    int? CabinLimit = null,
+    bool CabinTrimmed = false,
+    IReadOnlyList<string>? DroppedItemIds = null);
 
 public static class StylistRefusals
 {

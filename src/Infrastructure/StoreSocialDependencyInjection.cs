@@ -32,7 +32,10 @@ public static class StoreSocialDependencyInjection
         services.Configure<AdminOptions>(configuration.GetSection(AdminOptions.Section));
         services.Configure<LocalizationOptions>(configuration.GetSection(LocalizationOptions.Section));
         // The one language list: static helpers (Localized.*) used by rules, workers and prompts read the same config.
-        Localized.Configure(configuration.GetSection(LocalizationOptions.Section).Get<LocalizationOptions>() ?? new LocalizationOptions());
+        void ApplyLanguages() =>
+            Localized.Configure(configuration.GetSection(LocalizationOptions.Section).Get<LocalizationOptions>() ?? new LocalizationOptions());
+        ApplyLanguages();
+        Microsoft.Extensions.Primitives.ChangeToken.OnChange(configuration.GetReloadToken, ApplyLanguages);
         services.TryAddSingleton<IRequestLanguage, Infrastructure.Context.RequestLanguage>();
         services.Configure<FirebaseServiceAccountOptions>(o => FirebaseServiceAccountBinder.Bind(configuration, o));
 
