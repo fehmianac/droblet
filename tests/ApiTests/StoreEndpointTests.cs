@@ -406,6 +406,13 @@ public class CartAndAffiliateEndpointTests(StoreSocialApiFactory factory) : ICla
         Assert.Equal((250_000L, 20_000L, AffiliateConversionStatus.Approved), (conversion.AmountMinor, conversion.CommissionMinor, conversion.Status));
         Assert.Equal((LookRefKind.Edit, "edit-9"), (conversion.LookKind, conversion.LookId));
 
+        // Retention: a converted click is kept (no TTL); an unconverted one expires after 13 months.
+        var index = await factory.Repository.GetAsync<AffiliateClickIndexEntity>(AffiliateClickIndexEntity.GetPk(clickId), AffiliateClickIndexEntity.GetSk());
+        var ownClick = await factory.Repository.GetAsync<AffiliateClickEntity>(AffiliateClickEntity.GetPk(auth.TenantId), AffiliateClickEntity.GetSk(clickId));
+        Assert.Equal(((long?)null, (long?)null), (index!.Ttl, ownClick!.Ttl));
+        Assert.NotNull(index.ConvertedAt);
+        Assert.NotNull(ownClick.ConvertedAt);
+
         var report = await (await admin.GetAsync("v1/admin/report/revenue")).JsonAsync();
         var byBrand = report.GetProperty("byBrand").EnumerateArray().Single(b => b.GetProperty("key").GetString() == brand);
         Assert.Equal((1, 250_000L, 20_000L), (byBrand.GetProperty("conversions").GetInt32(), byBrand.GetProperty("gmvMinor").GetInt64(), byBrand.GetProperty("commissionMinor").GetInt64()));

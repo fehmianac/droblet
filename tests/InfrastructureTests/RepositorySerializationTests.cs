@@ -22,6 +22,28 @@ public class RepositorySerializationTests
     }
 
     [Fact]
+    public void Retention_UnconvertedClick13Months_ConvertedKept_ResolvedReport2Years_OpenReportKept()
+    {
+        var click = new AffiliateClickEntity { ClickId = "c1", TenantId = "t1", BrandId = "b1", CreatedAt = Fixtures.Now };
+        var index = new AffiliateClickIndexEntity { ClickId = "c1", TenantId = "t1", CreatedAt = Fixtures.Now };
+        var open = new ReportEntity { Id = "r1", Status = ReportStatus.Open, TargetTenantId = "t2", CreatedAt = Fixtures.Now };
+        var resolved = new ReportEntity { Id = "r1", Status = ReportStatus.Resolved, TargetTenantId = "t2", CreatedAt = Fixtures.Now, ResolvedAt = Fixtures.Now.AddDays(3) };
+        var pointer = new ReportReceivedEntity { TenantId = "t2", ReportId = "r1", CreatedAt = Fixtures.Now, ResolvedAt = resolved.ResolvedAt };
+
+        Assert.Equal(Domain.Extensions.DateTimeExtensions.ToUnixTimeSeconds(Fixtures.Now.AddMonths(13)).ToString(System.Globalization.CultureInfo.InvariantCulture), Repository.ToItem(click)["ttl"].N);
+        Assert.Equal(Repository.ToItem(click)["ttl"].N, Repository.ToItem(index)["ttl"].N);
+        click.ConvertedAt = index.ConvertedAt = Fixtures.Now.AddDays(1);
+        Assert.False(Repository.ToItem(click).ContainsKey("ttl"));
+        Assert.False(Repository.ToItem(index).ContainsKey("ttl"));
+
+        Assert.False(Repository.ToItem(open).ContainsKey("ttl"));
+        var expires = Domain.Extensions.DateTimeExtensions.ToUnixTimeSeconds(Fixtures.Now.AddDays(3).AddYears(2)).ToString(System.Globalization.CultureInfo.InvariantCulture);
+        Assert.Equal(expires, Repository.ToItem(resolved)["ttl"].N);
+        Assert.Equal(expires, Repository.ToItem(pointer)["ttl"].N);
+        Assert.False(Repository.ToItem(new ReportFiledEntity { TenantId = "t1", ReportId = "r1", CreatedAt = Fixtures.Now }).ContainsKey("ttl"));
+    }
+
+    [Fact]
     public void RoundTrip_PreservesVersionedEntity()
     {
         var style = new StyleProfileEntity
