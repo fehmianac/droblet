@@ -102,15 +102,10 @@ public interface IPushProvider
 }
 
 /// <summary>
-/// Seam to the plan/stylist slice: does the tenant have something to wear today (a planned look)?
-/// Default: false — the morning reminder sends nothing until the plan slice registers its implementation.
+/// Seam to the plan slice: does the tenant have something to wear today (a planned look that still exists)?
+/// Implemented by Infrastructure.Services.Integration.PlanMorningOutfitCheck on the PlanDay / Look partitions.
 /// </summary>
 public interface IMorningOutfitCheck
 {
     Task<bool> HasOutfitForTodayAsync(string tenantId, string localDay, CancellationToken ct);
-}
-
-public sealed class NoMorningOutfitCheck : IMorningOutfitCheck
-{
-    public Task<bool> HasOutfitForTodayAsync(string tenantId, string localDay, CancellationToken ct) => Task.FromResult(false);
 }

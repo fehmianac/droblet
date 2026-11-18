@@ -6,6 +6,7 @@ using Domain.Options;
 using Domain.Services;
 using Domain.Services.Ai;
 using Infrastructure.Services.Integration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Tests.Shared;
 
@@ -262,4 +263,106 @@ public class IntegrationSeamTests
         Assert.Null(await lookup.GetProductIdsAsync("nope/look-1", default));
         Assert.Null(await lookup.GetProductIdsAsync("", default));
     }
+
+    // ── IMorningOutfitCheck on plan days ────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task MorningOutfitCheck_NeedsAPlannedLookThatStillExists()
+    {
+        var host = new WorkerTestHost();
+        async Task Plan(string date, string? lookId, Occasion? occasion = null) => await host.Repository.SaveAsync(
+            new PlanDayEntity { TenantId = Tenant, Date = date, LookId = lookId, Occasion = occasion, UpdatedAt = Now, Version = 1 });
+        await host.Repository.SaveAsync(new LookEntity
+        {
+            Id = "look-1", TenantId = Tenant, Slots = [new LookSlotValue { Slot = OutfitSlot.Top, ItemId = "top" }], CreatedAt = Now, UpdatedAt = Now, Version = 1,
+        });
+        await Plan("2026-11-18", "look-1");
+        await Plan("2026-11-19", null, Occasion.Office);   // occasion only
+        await Plan("2026-11-20", "deleted-look");
+        var check = host.Get<IMorningOutfitCheck>();
+
+        Assert.True(await check.HasOutfitForTodayAsync(Tenant, "2026-11-18", default));
+        Assert.False(await check.HasOutfitForTodayAsync(Tenant, "2026-11-19", default));
+        Assert.False(await check.HasOutfitForTodayAsync(Tenant, "2026-11-20", default));
+        Assert.False(await check.HasOutfitForTodayAsync(Tenant, "2026-11-21", default));
+        Assert.False(await check.HasOutfitForTodayAsync("tenant-b", "2026-11-18", default));
+        Assert.False(await check.HasOutfitForTodayAsync(Tenant, "18.11.2026", default));
+    }
+
+    // ── Weather for Today / trips through the Open-Meteo backed service ─────────────────────────────────────────
+
+    private sealed class Provider : IWeatherProvider
+    {
+        public bool Down { get; set; }
+        public Task<IReadOnlyList<DailyForecast>> GetDailyAsync(double latitude, double longitude, int days, CancellationToken ct) => Down
+            ? throw new WeatherUnavailableException("down")
+            : Task.FromResult<IReadOnlyList<DailyForecast>>(Enumerable.Range(0, days)
+                .Select(i => new DailyForecast($"2026-11-{18 + i:00}", 7.4 + i, 14.5 + i, WeatherCondition.Showers, 80, 60)).ToList());
+        public Task<IReadOnlyList<CityDto>> SearchCitiesAsync(string query, string language, int count, CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<CityDto>>([]);
+    }
+
+    private sealed class NoEvents : Domain.Manager.IEventManager
+    {
+        public Task PublishAsync(Domain.Events.IJobRequestedEvent jobEvent, CancellationToken ct = default) => Task.CompletedTask;
+    }
+
+    private static WorkerTestHost WeatherHost(Provider provider) => new(s =>
+    {
+        s.AddSingleton<IWeatherProvider>(provider);
+        s.AddSingleton<Domain.Manager.IEventManager>(new NoEvents());
+    });
+
+    [Fact]
+    public async Task Today_ReturnsWeather_ByCoordinates_OrProfileCity_AndNullWhenUnknownOrDown()
+    {
+        var provider = new Provider();
+        var host = WeatherHost(provider);
+        await host.Repository.SaveAsync(new TenantEntity { Id = Tenant, CityId = "745044" });
+        await host.Repository.SaveAsync(new TenantEntity { Id = "no-city" });
+        await host.Repository.SaveAsync(new CityEntity { Id = "745044", Name = new() { ["tr"] = "İstanbul" }, Latitude = 41.01, Longitude = 28.95 });
+        var plan = host.Get<IPlanService>();
+        var today = new DateOnly(2026, 11, 18);
+
+        var byLocation = await plan.GetTodayAsync("no-city", today, 41.0, 29.0, default);
+        var byCity = await plan.GetTodayAsync(Tenant, today, null, null, default);
+        var unknown = await plan.GetTodayAsync("no-city", today, null, null, default);
+        var beyondHorizon = await plan.GetTodayAsync(Tenant, today.AddDays(30), null, null, default);
+        provider.Down = true;
+        var down = await plan.GetTodayAsync("no-city", today, 10.0, 10.0, default); // nothing cached for this location
+
+        Assert.Equal(new Domain.Domain.WeatherDto("2026-11-18", 7, 15, WeatherCondition.Showers, 60), byLocation.Weather);
+        Assert.Equal(byLocation.Weather, byCity.Weather);
+        Assert.Null(unknown.Weather);
+        Assert.Null(beyondHorizon.Weather);
+        Assert.Null(down.Weather);
+    }
+
+    [Fact]
+    public async Task TripDetail_CarriesTheForecastOfItsDays()
+    {
+        var host = WeatherHost(new Provider());
+        await host.Repository.SaveAsync(new CityEntity { Id = "745044", Name = new() { ["tr"] = "İstanbul" }, Latitude = 41.01, Longitude = 28.95 });
+        await host.Repository.SaveAsync(new TripEntity
+        {
+            Id = "trip-1", TenantId = Tenant, CityId = "745044", StartDate = "2026-11-19", EndDate = "2026-11-20", CreatedAt = Now, UpdatedAt = Now, Version = 1,
+        });
+        await host.Repository.SaveAsync(new TripDayEntity { TenantId = Tenant, TripId = "trip-1", Date = "2026-11-19" });
+        await host.Repository.SaveAsync(new TripDayEntity { TenantId = Tenant, TripId = "trip-1", Date = "2026-11-20" });
+
+        var detail = await host.Get<ITripService>().GetAsync(Tenant, "trip-1", default);
+
+        Assert.Equal([(8, WeatherCondition.Showers), (9, WeatherCondition.Showers)],
+            detail!.Days.Select(d => (d.Weather!.MinTempC, d.Weather.Condition)).ToArray());
+    }
+
+    [Theory]
+    [InlineData(WeatherCondition.Drizzle, true)]
+    [InlineData(WeatherCondition.Showers, true)]
+    [InlineData(WeatherCondition.Thunderstorm, true)]
+    [InlineData(WeatherCondition.Snow, true)]
+    [InlineData(WeatherCondition.Fog, false)]
+    [InlineData(WeatherCondition.PartlyCloudy, false)]
+    [InlineData(WeatherCondition.Unknown, false)]
+    public void WetConditions_WantAnOuterLayer(WeatherCondition condition, bool wet) => Assert.Equal(wet, WeatherRules.IsWet(condition));
 }

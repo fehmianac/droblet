@@ -31,6 +31,6 @@ public class Get : IEndpoint
         return endpoints.MapGet("v1/tenant/today", Handler)
             .Produces<TodayDto>(StatusCodes.Status200OK)
             .Problems(StatusCodes.Status400BadRequest)
-            .Tenant("Tenant Today", "Get the Today snapshot", "One call for screen 06: date, season, weather (null until a provider is configured), planned occasion, the look of the day with missing-piece flags, worn flag and the 7-day strip. date = the user local day (yyyy-MM-dd).");
+            .Tenant("Tenant Today", "Get the Today snapshot", "One call for screen 06: date, season, weather (coordinates when the user shared a location, else the profile city; null when neither is known or the provider is unavailable), planned occasion, the look of the day with missing-piece flags, worn flag and the 7-day strip. date = the user local day (yyyy-MM-dd).");
     }
 }

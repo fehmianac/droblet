@@ -52,7 +52,7 @@ public static class StoreSocialDependencyInjection
         // Seams to the wardrobe / plan slices (real implementations: Infrastructure.Services.Integration).
         services.TryAddSingleton<IClosetReader, Infrastructure.Services.Integration.WardrobeClosetReader>();
         services.TryAddSingleton<IWardrobeMatcher, RuleBasedWardrobeMatcher>();
-        services.TryAddSingleton<IMorningOutfitCheck, NoMorningOutfitCheck>();
+        services.TryAddSingleton<IMorningOutfitCheck, Infrastructure.Services.Integration.PlanMorningOutfitCheck>();
 
         services.TryAddSingleton<IAnalyticsService, AnalyticsService>();
         services.TryAddSingleton<ICatalogService, CatalogService>();

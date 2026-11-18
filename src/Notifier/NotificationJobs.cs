@@ -20,7 +20,7 @@ public interface INotificationJobs
 /// <summary>
 /// Scheduled notifications, driven by the preference / device records of E11:
 /// • Reminder (every 15 min): tenants whose LOCAL morning time is this slot and who have an outfit for today
-///   (IMorningOutfitCheck — the plan slice; until it is wired nobody qualifies).
+///   (IMorningOutfitCheck — the plan slice: a look planned for the user's local day).
 /// • WeeklyEdit (weekly): subscribers, once per published edit of the current week.
 /// • FriendRatings (daily): subscribers whose looks were rated today, one digest per day.
 /// • Lifecycle: subscription expiry belongs to the entitlement slice — nothing to send here yet.
