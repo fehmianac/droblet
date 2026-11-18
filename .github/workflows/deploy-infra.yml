@@ -129,6 +129,9 @@ jobs:
           case "$status" in
             ROLLBACK_COMPLETE|ROLLBACK_FAILED|CREATE_FAILED|DELETE_FAILED|UPDATE_ROLLBACK_FAILED)
               echo "::error::Stack $status durumunda. Retain'li kaynaklar oldugu icin otomatik silinmez; konsoldan incele."; exit 1 ;;
+            REVIEW_IN_PROGRESS)
+              # Yalniz onizleme change set'i olan, henuz hic kurulmamis stack: deploy edilebilir.
+              echo "Stack yalniz onizleme asamasinda; devam." ;;
             *_IN_PROGRESS)
               echo "::error::Stack uzerinde baska bir islem suruyor ($status)."; exit 1 ;;
           esac
