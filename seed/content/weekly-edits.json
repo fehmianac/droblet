@@ -1,0 +1,242 @@
+{
+  "_comment": "PLACEHOLDER DATA. A sample weekly edit (7 looks, two price-band variants each) that only references products in seed/catalog/products.json. Each entry has the same shape as PUT v1/admin/edit/{id}.",
+  "edits": [
+    {
+      "id": "edit-sample-2026-w47",
+      "segment": "women",
+      "weekStart": "2026-11-16",
+      "title": {
+        "tr": "Sonbahar katmanları",
+        "en": "Autumn layers"
+      },
+      "subtitle": {
+        "tr": "Yedi gün, yedi look.",
+        "en": "Seven days, seven looks."
+      },
+      "coverImageUrl": "https://example.com/placeholder/edit-sample-cover.jpg",
+      "looks": [
+        {
+          "day": 1,
+          "title": {
+            "tr": "Ofis",
+            "en": "Office"
+          },
+          "styleNote": {
+            "tr": "Net çizgiler, sakin renkler.",
+            "en": "Clean lines, calm colours."
+          },
+          "imageUrl": "https://example.com/placeholder/edit-sample-d1.jpg",
+          "variants": [
+            {
+              "priceBand": "highStreet",
+              "productIds": [
+                "hs-white-shirt",
+                "hs-trousers",
+                "hs-blazer",
+                "hs-tote"
+              ]
+            },
+            {
+              "priceBand": "luxuryTouch",
+              "productIds": [
+                "lx-silk-blouse",
+                "lx-wool-trousers",
+                "lx-coat",
+                "lx-bag"
+              ]
+            }
+          ]
+        },
+        {
+          "day": 2,
+          "title": {
+            "tr": "Toplantı",
+            "en": "Meeting"
+          },
+          "styleNote": {
+            "tr": "Blazer her şeyi toparlar.",
+            "en": "A blazer pulls it together."
+          },
+          "imageUrl": "https://example.com/placeholder/edit-sample-d2.jpg",
+          "variants": [
+            {
+              "priceBand": "highStreet",
+              "productIds": [
+                "hs-knit",
+                "hs-skirt",
+                "hs-blazer",
+                "hs-tote"
+              ]
+            },
+            {
+              "priceBand": "luxuryTouch",
+              "productIds": [
+                "lx-cashmere-knit",
+                "lx-wool-trousers",
+                "lx-loafers",
+                "lx-bag"
+              ]
+            }
+          ]
+        },
+        {
+          "day": 3,
+          "title": {
+            "tr": "Hafta içi rahat",
+            "en": "Easy weekday"
+          },
+          "styleNote": {
+            "tr": "Triko ve jean, rahat ama özenli.",
+            "en": "Knit and denim, relaxed but considered."
+          },
+          "imageUrl": "https://example.com/placeholder/edit-sample-d3.jpg",
+          "variants": [
+            {
+              "priceBand": "highStreet",
+              "productIds": [
+                "hs-knit",
+                "hs-jeans",
+                "hs-sneakers"
+              ]
+            },
+            {
+              "priceBand": "luxuryTouch",
+              "productIds": [
+                "lx-cashmere-knit",
+                "lx-wool-trousers",
+                "lx-loafers"
+              ]
+            }
+          ]
+        },
+        {
+          "day": 4,
+          "title": {
+            "tr": "Akşam yemeği",
+            "en": "Dinner"
+          },
+          "styleNote": {
+            "tr": "Tek parça, tek aksesuar.",
+            "en": "One piece, one accessory."
+          },
+          "imageUrl": "https://example.com/placeholder/edit-sample-d4.jpg",
+          "variants": [
+            {
+              "priceBand": "highStreet",
+              "productIds": [
+                "hs-white-shirt",
+                "hs-skirt",
+                "hs-tote"
+              ]
+            },
+            {
+              "priceBand": "luxuryTouch",
+              "productIds": [
+                "lx-dress",
+                "lx-bag",
+                "lx-scarf"
+              ]
+            }
+          ]
+        },
+        {
+          "day": 5,
+          "title": {
+            "tr": "Cuma",
+            "en": "Friday"
+          },
+          "styleNote": {
+            "tr": "Çizgili tişörtle blazer.",
+            "en": "Stripes under a blazer."
+          },
+          "imageUrl": "https://example.com/placeholder/edit-sample-d5.jpg",
+          "variants": [
+            {
+              "priceBand": "highStreet",
+              "productIds": [
+                "hs-striped-tee",
+                "hs-jeans",
+                "hs-blazer",
+                "hs-sneakers"
+              ]
+            },
+            {
+              "priceBand": "luxuryTouch",
+              "productIds": [
+                "lx-silk-blouse",
+                "lx-wool-trousers",
+                "lx-loafers"
+              ]
+            }
+          ]
+        },
+        {
+          "day": 6,
+          "title": {
+            "tr": "Hafta sonu",
+            "en": "Weekend"
+          },
+          "styleNote": {
+            "tr": "Hareket eden bir gün için.",
+            "en": "For a day on the move."
+          },
+          "imageUrl": "https://example.com/placeholder/edit-sample-d6.jpg",
+          "variants": [
+            {
+              "priceBand": "highStreet",
+              "productIds": [
+                "hs-striped-tee",
+                "hs-leggings",
+                "hs-sneakers"
+              ]
+            },
+            {
+              "priceBand": "luxuryTouch",
+              "productIds": [
+                "lx-cashmere-knit",
+                "lx-wool-trousers",
+                "lx-loafers",
+                "lx-scarf"
+              ]
+            }
+          ]
+        },
+        {
+          "day": 7,
+          "title": {
+            "tr": "Pazar",
+            "en": "Sunday"
+          },
+          "styleNote": {
+            "tr": "Katmanlı ve yumuşak.",
+            "en": "Layered and soft."
+          },
+          "imageUrl": "https://example.com/placeholder/edit-sample-d7.jpg",
+          "variants": [
+            {
+              "priceBand": "highStreet",
+              "productIds": [
+                "hs-knit",
+                "hs-trousers",
+                "hs-sneakers",
+                "hs-tote"
+              ]
+            },
+            {
+              "priceBand": "luxuryTouch",
+              "productIds": [
+                "lx-cashmere-knit",
+                "lx-coat",
+                "lx-loafers",
+                "lx-bag"
+              ]
+            }
+          ]
+        }
+      ],
+      "sponsorBrandId": null,
+      "sponsorName": null,
+      "published": true
+    }
+  ]
+}

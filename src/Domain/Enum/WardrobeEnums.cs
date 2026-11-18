@@ -25,7 +25,7 @@ public enum ItemListingStatus { None, ForSale, ForRent, Sold, Rented }
 
 public enum LookSource { User, Stylist, Edit, Builder }
 
-public enum WeatherCondition { Clear, Cloudy, Rain, Snow, Storm, Fog }
+// WeatherCondition: StoreSocialEnums.cs (the provider's condition set).
 
 /// <summary>Reasons a suggestion is disliked (screen 17 "Beğenmedim").</summary>
 public enum DislikeReason { NotMyStyle, WrongOccasion, WrongWeather, ColorMismatch, WornTooOften, Other }

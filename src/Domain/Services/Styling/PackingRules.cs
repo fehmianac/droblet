@@ -139,9 +139,9 @@ public static class PackingRules
 
         if (!categories.Contains(ItemCategory.Outerwear))
         {
-            if (days.Any(d => d.Condition is WeatherCondition.Rain or WeatherCondition.Storm or WeatherCondition.Snow))
+            if (days.Any(d => WeatherRules.IsWet(d.Condition)))
                 missing.Add(new MissingPiece(OutfitSlot.Outerwear, ItemCategory.Outerwear, MissingPieceReason.Rain));
-            else if (days.Any(d => d.MinTempC < coldBelowC))
+            else if (days.Any(d => d.MinC < coldBelowC))
                 missing.Add(new MissingPiece(OutfitSlot.Outerwear, ItemCategory.Outerwear, MissingPieceReason.Cold));
         }
 

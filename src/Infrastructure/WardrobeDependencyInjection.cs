@@ -21,7 +21,6 @@ public static class WardrobeDependencyInjection
         services.Configure<StylistOptions>(configuration.GetSection(StylistOptions.Section));
         services.Configure<PackingOptions>(configuration.GetSection(PackingOptions.Section));
 
-        services.TryAddSingleton<IWeatherService, NullWeatherService>();
         services.TryAddSingleton<ICatalogProductLookup, RepositoryCatalogProductLookup>();
         services.TryAddSingleton<IEditLookLookup, NullEditLookLookup>();
 

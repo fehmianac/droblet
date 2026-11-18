@@ -240,7 +240,7 @@ public static class WardrobeDtoMapper
         new(entity.Id, entity.Date, entity.LookId, entity.ItemIds, entity.OccurredAt);
 
     public static WeatherDto ToDto(this DailyForecast forecast) =>
-        new(forecast.Date, forecast.MinTempC, forecast.MaxTempC, forecast.Condition, forecast.PrecipitationChance);
+        new(forecast.Date, WeatherRules.WholeDegrees(forecast.MinC), WeatherRules.WholeDegrees(forecast.MaxC), forecast.Condition, forecast.PrecipitationProbability);
 
     public static MissingPieceDto ToDto(this MissingPieceValue value) => new(value.Slot, value.Category, value.Reason, value.ProductId);
 

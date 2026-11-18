@@ -30,8 +30,14 @@ public class StylistJobServiceTests
 
     private sealed class FixedWeather(params DailyForecast[] days) : IWeatherService
     {
-        public Task<IReadOnlyList<DailyForecast>> GetForecastAsync(WeatherQuery query, CancellationToken ct) =>
-            Task.FromResult<IReadOnlyList<DailyForecast>>(days);
+        private WeatherForecast Forecast(string key) => new(key, null, DateTime.UnixEpoch, days);
+
+        public Task<WeatherForecast?> GetForecastByCityAsync(string cityId, int days, CancellationToken ct) =>
+            Task.FromResult<WeatherForecast?>(Forecast(WeatherRules.CityKey(cityId)));
+        public Task<WeatherForecast> GetForecastByLocationAsync(double latitude, double longitude, int days, CancellationToken ct) =>
+            Task.FromResult(Forecast(WeatherRules.LocationKey(latitude, longitude)));
+        public Task<IReadOnlyList<CityDto>> SearchCitiesAsync(string query, CancellationToken ct) => Task.FromResult<IReadOnlyList<CityDto>>([]);
+        public Task<CityDto?> GetCityAsync(string cityId, CancellationToken ct) => Task.FromResult<CityDto?>(null);
     }
 
     private static WorkerTestHost Host(IStylistModel? model = null, IWeatherService? weather = null) => new(s =>

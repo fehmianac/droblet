@@ -86,7 +86,7 @@ public sealed class StylistJobService(
         var forecast = (await ForecastAsync(input.CityId, input.Latitude, input.Longitude, input.Date, input.Date, ct)).FirstOrDefault();
         var season = SeasonRules.For(date);
         var candidates = StylistCandidateSelector.Select(wardrobe, new CandidateCriteria(
-            new HashSet<Season> { season }, input.Occasion, forecast?.MaxTempC, false, settings.MaxCandidates, settings.HotFromC, input.PinnedItemId));
+            new HashSet<Season> { season }, input.Occasion, forecast is null ? null : WeatherRules.WholeDegrees(forecast.MaxC), false, settings.MaxCandidates, settings.HotFromC, input.PinnedItemId));
 
         OutfitResult Result(string? refusal, IReadOnlyList<SuggestedOutfit> suggestions) =>
             new(input.Date, input.Occasion, input.OnlyMyWardrobe, refusal, suggestions, language);
@@ -100,7 +100,7 @@ public sealed class StylistJobService(
             date = input.Date,
             season,
             occasion = input.Occasion,
-            weather = forecast is null ? null : new { forecast.MinTempC, forecast.MaxTempC, forecast.Condition },
+            weather = forecast is null ? null : new { MinTempC = WeatherRules.WholeDegrees(forecast.MinC), MaxTempC = WeatherRules.WholeDegrees(forecast.MaxC), forecast.Condition },
             freeText = input.FreeText,
             onlyMyWardrobe = input.OnlyMyWardrobe,
             pinnedItemId = input.PinnedItemId,
@@ -158,7 +158,7 @@ public sealed class StylistJobService(
             {
                 d.Date,
                 d.Occasion,
-                weather = forecast.TryGetValue(d.Date, out var f) ? new { f.MinTempC, f.MaxTempC, f.Condition } : null,
+                weather = forecast.TryGetValue(d.Date, out var f) ? new { MinTempC = WeatherRules.WholeDegrees(f.MinC), MaxTempC = WeatherRules.WholeDegrees(f.MaxC), f.Condition } : null,
             }),
             styleProfile = await StyleAsync(job.TenantId, ct),
             candidates = candidates.Select(Describe),
@@ -207,7 +207,7 @@ public sealed class StylistJobService(
         var wardrobe = await WardrobeAsync(job.TenantId, ct);
         var forecast = await ForecastAsync(trip.CityId, null, null, trip.StartDate, trip.EndDate, ct);
         var seasons = dates.Select(d => SeasonRules.For(CalendarDay.Parse(d))).ToHashSet();
-        var maxTemp = forecast.Count == 0 ? (int?)null : forecast.Min(f => f.MaxTempC); // outerwear stays unless every day is hot
+        var maxTemp = forecast.Count == 0 ? (int?)null : forecast.Min(f => WeatherRules.WholeDegrees(f.MaxC)); // outerwear stays unless every day is hot
         var candidates = StylistCandidateSelector.Select(wardrobe, new CandidateCriteria(seasons, null, maxTemp, true, settings.MaxCandidates, settings.HotFromC));
         var context = new PackingContext(candidates.ToDictionary(c => c.Id, StringComparer.Ordinal), dates, trip.CabinOnly, packing.CabinMaxItems);
         var wantsOuter = forecast.Any(f => WantsOuterLayer(f, settings));
@@ -237,7 +237,7 @@ public sealed class StylistJobService(
                 trip.TripTypes,
                 trip.CabinOnly,
                 cabinMaxItems = packing.CabinMaxItems,
-                weather = dates.Select(d => byDate.TryGetValue(d, out var f) ? new { date = d, f.MinTempC, f.MaxTempC, f.Condition } : null).Where(w => w is not null),
+                weather = dates.Select(d => byDate.TryGetValue(d, out var f) ? new { date = d, MinTempC = WeatherRules.WholeDegrees(f.MinC), MaxTempC = WeatherRules.WholeDegrees(f.MaxC), f.Condition } : null).Where(w => w is not null),
             },
             minWearsPerPiece = PackingRules.RequiresMinWears(dates.Count) ? PackingRules.MinWearsPerPiece : 1,
             candidates = candidates.Select(Describe),
@@ -259,8 +259,7 @@ public sealed class StylistJobService(
     private static object Describe(CandidateItem item) => new { item.Id, item.Category, item.ColorIds, item.Fabric, item.Seasons };
 
     private static bool WantsOuterLayer(DailyForecast? forecast, StylistOptions settings) =>
-        forecast is not null && (forecast.MinTempC < settings.ColdBelowC
-                                 || forecast.Condition is WeatherCondition.Rain or WeatherCondition.Storm or WeatherCondition.Snow);
+        forecast is not null && (forecast.MinC < settings.ColdBelowC || WeatherRules.IsWet(forecast.Condition));
 
     private async Task<List<CandidateItem>> WardrobeAsync(string tenantId, CancellationToken ct) =>
         (await repository.GetAllAsync<ItemEntity>(ItemEntity.GetPk(tenantId), ct)).Select(i => i.ToCandidate()).ToList();

@@ -79,22 +79,37 @@ public static class SeasonRules
     };
 }
 
-// ── Weather seam (E4). The weather provider (A-4) is implemented elsewhere; until then the null service answers "unknown".
+// ── Weather seam (E4). IWeatherService / DailyForecast live in ISettingsServices.cs (Open-Meteo provider + cache).
 
 public sealed record WeatherQuery(string? CityId, double? Latitude, double? Longitude, string From, string To);
 
-public sealed record DailyForecast(string Date, int MinTempC, int MaxTempC, WeatherCondition Condition, int? PrecipitationChance = null);
-
-public interface IWeatherService
+public static class WeatherServiceExtensions
 {
-    /// <summary>Daily forecast for the inclusive day range. Missing days are simply absent; an empty list = weather unknown.</summary>
-    Task<IReadOnlyList<DailyForecast>> GetForecastAsync(WeatherQuery query, CancellationToken ct);
-}
-
-public sealed class NullWeatherService : IWeatherService
-{
-    public Task<IReadOnlyList<DailyForecast>> GetForecastAsync(WeatherQuery query, CancellationToken ct) =>
-        Task.FromResult<IReadOnlyList<DailyForecast>>([]);
+    /// <summary>
+    /// Daily forecast for the inclusive day range, coordinates first (location permission), then the city.
+    /// Missing days are simply absent; an empty list = weather unknown (no location, unknown city, provider down,
+    /// or days beyond the provider's horizon). Never throws for a weather failure: weather is context, not a dependency.
+    /// </summary>
+    public static async Task<IReadOnlyList<DailyForecast>> GetForecastAsync(this IWeatherService weather, WeatherQuery query, CancellationToken ct)
+    {
+        try
+        {
+            WeatherForecast? forecast = null;
+            if (query.Latitude is { } lat && query.Longitude is { } lon && WeatherRules.IsValidCoordinate(lat, lon))
+                forecast = await weather.GetForecastByLocationAsync(lat, lon, IWeatherService.MaxDays, ct);
+            else if (!string.IsNullOrWhiteSpace(query.CityId))
+                forecast = await weather.GetForecastByCityAsync(query.CityId, IWeatherService.MaxDays, ct);
+            if (forecast is null)
+                return [];
+            return forecast.Days
+                .Where(d => string.CompareOrdinal(d.Date, query.From) >= 0 && string.CompareOrdinal(d.Date, query.To) <= 0)
+                .ToList();
+        }
+        catch (WeatherUnavailableException)
+        {
+            return [];
+        }
+    }
 }
 
 // ── Catalog seam (E8 is built elsewhere). Wardrobe, looks, stylist and try-on only need this read-only snapshot.
