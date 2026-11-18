@@ -1,25 +1,17 @@
-import { Image } from 'expo-image';
-import { View } from 'react-native';
+import { ImageSlot, type SlotPlaceholder } from './ImageSlot';
 
 type Props = {
   uri?: string | null;
   className?: string;
   accessibilityLabel?: string;
+  /** What stands in while there is no picture — see `ImageSlot`. Defaults to the canvas figure placeholder. */
+  placeholder?: SlotPlaceholder;
 };
 
 /**
- * Image slot. Without a URI it renders the design's sand placeholder box.
- * Size, aspect ratio and radius come from `className` (e.g. `aspect-[4/5] rounded-image-lg`).
+ * Image slot. Kept as the short name most screens use; it is `ImageSlot` — a missing or failed picture
+ * is never an empty box. Size, aspect ratio and radius come from `className`.
  */
-export function PlaceholderImage({ uri, className, accessibilityLabel }: Props) {
-  return (
-    <View
-      className={`overflow-hidden bg-sand ${className ?? ''}`}
-      accessible={Boolean(accessibilityLabel)}
-      accessibilityRole={accessibilityLabel ? 'image' : undefined}
-      accessibilityLabel={accessibilityLabel}
-    >
-      {uri ? <Image source={{ uri }} contentFit="cover" className="h-full w-full" transition={150} /> : null}
-    </View>
-  );
+export function PlaceholderImage({ uri, className, accessibilityLabel, placeholder }: Props) {
+  return <ImageSlot uri={uri} className={className} accessibilityLabel={accessibilityLabel} placeholder={placeholder} />;
 }
