@@ -42,6 +42,7 @@ public static class DeletionPlan
         // E8 / E9 / E11 (store, social, settings). Cross-tenant twins: ICrossTenantCleanup.
         typeof(CartLineEntity),
         typeof(WatchItemEntity),
+        typeof(FavoriteProductEntity),
         typeof(FollowingEntity),
         typeof(FollowerEntity),
         typeof(RatingEntity),

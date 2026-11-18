@@ -7,6 +7,7 @@ public static partial class ErrorCodes
     public const string DraftNotReady = "draft_not_ready";
     public const string DraftReviewRequired = "draft_review_required";
     public const string DraftNotFound = "draft_not_found";
+    public const string DraftNotFailed = "draft_not_failed";
     public const string DraftIsOutfitSource = "draft_is_outfit_source";
     public const string CategoryRequired = "category_required";
     public const string ColorRequired = "color_required";

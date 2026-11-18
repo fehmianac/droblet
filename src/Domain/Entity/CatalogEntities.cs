@@ -179,6 +179,20 @@ public class CartLineEntity : IEntity
     public static string GetSk(string brandId, string productId, string size) => $"{brandId}#{productId}#{size}";
 }
 
+/// <summary>The heart on a product card. Separate from the watch list: no price reference, no notification.</summary>
+public class FavoriteProductEntity : IEntity
+{
+    [JsonPropertyName("pk")] public string Pk => GetPk(TenantId);
+    [JsonPropertyName("sk")] public string Sk => GetSk(ProductId);
+
+    [JsonPropertyName("tenantId")] public string TenantId { get; set; } = null!;
+    [JsonPropertyName("productId")] public string ProductId { get; set; } = null!;
+    [JsonPropertyName("addedAt")] public DateTime AddedAt { get; set; }
+
+    public static string GetPk(string tenantId) => $"tenant#{tenantId}#favorite-product";
+    public static string GetSk(string productId) => productId;
+}
+
 /// <summary>"İzleme listem": separate from favourites; a price drop sets the pending flag (notification later).</summary>
 public class WatchItemEntity : IEntity
 {

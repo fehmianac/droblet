@@ -59,7 +59,7 @@ public interface IContentService
 
 public sealed record CartLineInput(string? ClientMutationId, string ProductId, string? Size, LookRefDto? Look);
 
-public enum CartOutcome { Ok, ProductNotFound, ProductRetired, SizeNotAvailable, CartFull, WatchListFull, NotFound }
+public enum CartOutcome { Ok, ProductNotFound, ProductRetired, SizeNotAvailable, CartFull, WatchListFull, FavoriteListFull, NotFound }
 
 public sealed record CartResult(CartOutcome Outcome, CartDto? Cart = null, int? FailedIndex = null);
 
@@ -73,6 +73,13 @@ public interface ICartService
     Task<IReadOnlyList<WatchItemDto>> GetWatchListAsync(string tenantId, CancellationToken ct);
     Task<(CartOutcome Outcome, WatchItemDto? Item)> WatchAsync(string tenantId, string productId, string? size, LookRefDto? look, CancellationToken ct);
     Task<bool> UnwatchAsync(string tenantId, string productId, CancellationToken ct);
+
+    /// <summary>Favourite product ids, newest first. Ids of products that no longer resolve are left out.</summary>
+    Task<FavoriteProductsDto> GetFavoriteProductsAsync(string tenantId, CancellationToken ct);
+    /// <summary>Idempotent: an existing favourite stays as it is (also for a product retired since).</summary>
+    Task<CartOutcome> AddFavoriteProductAsync(string tenantId, string productId, CancellationToken ct);
+    /// <summary>Idempotent: removing a product that is not a favourite succeeds.</summary>
+    Task RemoveFavoriteProductAsync(string tenantId, string productId, CancellationToken ct);
 }
 
 public enum CheckoutOutcome { Ok, CartEmpty, BrandNotFound, ProductNotFound, ProductRetired, AffiliateLinkMissing }

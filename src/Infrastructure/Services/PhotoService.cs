@@ -143,6 +143,34 @@ public sealed class PhotoService(
         logger.LogInformation("Deleted photos and generated images for tenant {TenantId}", tenantId);
     }
 
+    public async Task<bool> DeleteAsync(string tenantId, PhotoKind kind, string photoId, CancellationToken ct)
+    {
+        var photos = await repository.GetAllAsync<PhotoEntity>(PhotoEntity.GetPk(tenantId), PhotoEntity.KindPrefix(kind), SkOperator.BeginsWith, ct);
+        var photo = photos.FirstOrDefault(p => p.Active && string.Equals(p.Id, photoId, StringComparison.Ordinal));
+        if (photo is null)
+            return false;
+
+        await repository.DeleteAsync(photo.Pk, photo.Sk, ct);
+        if (StorageKeys.BelongsToTenant(photo.S3Key, tenantId))
+            await storage.DeleteAsync(photo.S3Key, ct);
+
+        if (kind == PhotoKind.Body)
+        {
+            // The try-on images rendered on this body photo go with it (same rule as replacing the photo).
+            await CleanupDerivedAsync(tenantId, kind, [photo.Id], ct);
+        }
+        else
+        {
+            // Same as "delete my photos": the palette result derived from the face photo is removed, not just detached.
+            var palette = await repository.GetAsync<PaletteResultEntity>(PaletteResultEntity.GetPk(tenantId), PaletteResultEntity.GetSk(), ct);
+            if (palette is not null)
+                await repository.DeleteAsync(palette.Pk, palette.Sk, ct);
+        }
+
+        logger.LogInformation("Deleted {Kind} photo {PhotoId} for tenant {TenantId}", kind, photo.Id, tenantId);
+        return true;
+    }
+
     private async Task<PhotoView?> GetActiveAsync(string tenantId, PhotoKind kind, CancellationToken ct) =>
         (await GetActiveAsync(tenantId, ct)).FirstOrDefault(p => p.Kind == kind);
 

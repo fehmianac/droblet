@@ -19,6 +19,7 @@ public sealed class CatalogOptions
     public int CacheSeconds { get; set; } = 60;
     public int MaxCartLines { get; set; } = 100;
     public int MaxWatchItems { get; set; } = 200;
+    public int MaxFavoriteProducts { get; set; } = 500;
     public int BulkUpsertMax { get; set; } = 200;
     /// <summary>
     /// Hosts a product image may be downloaded from for try-on (worker side). Empty = any https host.

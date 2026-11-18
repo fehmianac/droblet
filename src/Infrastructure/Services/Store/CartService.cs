@@ -184,6 +184,42 @@ public sealed class CartService(
         return true;
     }
 
+    // ── Favourite products ──────────────────────────────────────────────────────────────────────────────────────
+
+    public async Task<FavoriteProductsDto> GetFavoriteProductsAsync(string tenantId, CancellationToken ct)
+    {
+        var favorites = await repository.GetAllAsync<FavoriteProductEntity>(FavoriteProductEntity.GetPk(tenantId), ct);
+        var ids = new List<string>();
+        foreach (var favorite in favorites.OrderByDescending(f => f.AddedAt).ThenBy(f => f.ProductId, StringComparer.Ordinal))
+        {
+            if (await catalog.GetProductAsync(favorite.ProductId, ct) is not null)
+                ids.Add(favorite.ProductId);
+        }
+        return new FavoriteProductsDto(ids);
+    }
+
+    public async Task<CartOutcome> AddFavoriteProductAsync(string tenantId, string productId, CancellationToken ct)
+    {
+        var product = await catalog.GetProductAsync(productId, ct);
+        if (product is null)
+            return CartOutcome.ProductNotFound;
+
+        var pk = FavoriteProductEntity.GetPk(tenantId);
+        if (await repository.GetAsync<FavoriteProductEntity>(pk, FavoriteProductEntity.GetSk(productId), ct) is not null)
+            return CartOutcome.Ok;
+
+        if (product.Retired)
+            return CartOutcome.ProductRetired;
+        if ((await repository.GetKeysAsync(pk, ct)).Count >= options.CurrentValue.MaxFavoriteProducts)
+            return CartOutcome.FavoriteListFull;
+
+        await repository.SaveAsync(new FavoriteProductEntity { TenantId = tenantId, ProductId = productId, AddedAt = Now }, ct);
+        return CartOutcome.Ok;
+    }
+
+    public Task RemoveFavoriteProductAsync(string tenantId, string productId, CancellationToken ct) =>
+        repository.DeleteAsync(FavoriteProductEntity.GetPk(tenantId), FavoriteProductEntity.GetSk(productId), ct);
+
     private async Task<WatchItemDto?> ToDtoAsync(WatchItemEntity item, CancellationToken ct)
     {
         if (await catalog.GetProductAsync(item.ProductId, ct) is not { } product)

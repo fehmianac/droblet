@@ -60,6 +60,8 @@ public interface IWardrobeService
 
     Task<ItemUploadsDto> CreateUploadsAsync(string tenantId, ItemUploadsCommand command, CancellationToken ct);
     Task<ServiceResult<StartDraftsDto>> StartDraftsAsync(string tenantId, StartDraftsCommand command, string? requestLanguage, CancellationToken ct);
+    /// <summary>"Tekrar dene": queues a new ItemProcessor job for a failed draft, on the photo it already has.</summary>
+    Task<ServiceResult<StartDraftsDto>> RetryDraftAsync(string tenantId, string draftId, string? requestLanguage, CancellationToken ct);
     Task<ItemDraftsDto> GetDraftsAsync(string tenantId, CancellationToken ct);
     Task<bool> DeleteDraftAsync(string tenantId, string draftId, CancellationToken ct);
     Task<ItemCreateResultsDto> ConfirmDraftsAsync(string tenantId, IReadOnlyList<ConfirmDraftCommand> items, CancellationToken ct);

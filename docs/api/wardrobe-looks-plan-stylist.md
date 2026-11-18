@@ -166,6 +166,15 @@ Validation codes (400 `errors`): `category_required`, `color_required`, `color_u
    The new item id is `itemId ?? clientMutationId`. Per-row `code` when `outcome: "rejected"`: `draft_not_found`, `draft_not_ready`, `draft_review_required` (flagged draft sent with `reviewed: false`), `draft_is_outfit_source`, `validation_failed` (+ `errors`: the item codes above), `item_id_taken`.
    400 (whole request): `items_out_of_range`, `draft_duplicate`, `client_mutation_id_duplicate`, `draft_id_invalid`, `client_mutation_id_invalid`.
 
+   **Retry — POST `v1/tenant/item-draft/{id}/retry`** (no body) → **202**, same body as step 2 with one draft and one job.
+   "Tekrar dene" on a `failed` draft: a new job runs on the photo the draft already has — nothing is uploaded again (the
+   temporary upload expires after a day; the server restores it from the original kept with the draft). The draft keeps its
+   id, goes back to `uploaded` with the new `jobId`, and its earlier suggestions are cleared. An outfit source (`kind:
+   "outfit"`) is split again. The recognition allowance applies as for a new photo: the failed job used none, the retry
+   reserves one — 402 `item_recognition_limit_reached` when nothing is left, 403 `premium_required` when the limit is 0.
+   Errors: 404 `draft_not_found` · 409 `draft_not_failed` (the draft is not `failed`, or is a `piece`) · 422 `upload_missing`
+   (neither the upload nor the original photo exists any more) · 402 · 403.
+
 5. **DELETE `v1/tenant/item-draft/{id}`** → 204 · 404. Deleting a draft that is still being processed is final: the worker never writes it back, removes the images it produced and ends the job as `failed` / `sourceDeleted` (no allowance used).
 
 ### Without a photo

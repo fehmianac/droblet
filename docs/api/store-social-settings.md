@@ -135,6 +135,9 @@ wardrobe category (`top`, `bottom`, …), `itemIds` are wardrobe item ids, and `
 | GET | `v1/tenant/watch-list` | — | `WatchItemDto[]`, newest first |
 | PUT | `v1/tenant/watch-list/{productId}` | `{ "size"?, "look"?: LookRef }` or empty | `WatchItemDto`. `404 product_not_found`, `422 product_retired`, `422 watch_list_full`. |
 | DELETE | `v1/tenant/watch-list/{productId}` | — | `204`. `404 not_found`. |
+| GET | `v1/tenant/favorite/product` | — | `{ "productIds": ["hs-white-shirt"] }` — the hearts on product cards, newest first |
+| PUT | `v1/tenant/favorite/product/{productId}` | — | `204`. `404 product_not_found`, `422 product_retired`, `422 favorite_list_full` (500). |
+| DELETE | `v1/tenant/favorite/product/{productId}` | — | `204` (idempotent — also when it was not a favourite). |
 | GET | `v1/tenant/purchase-prompt` | — | `PurchasePromptDto[]` — pending "Gardıroba ekleyelim mi?" |
 | PUT | `v1/tenant/purchase-prompt/{id}` | `{ "accepted": true|false }` | `200 { "status": "accepted", "items": [{ "refId": productId, "outcome": "created", "code", "errors", "item": ItemDto }] }` — `status` is `accepted` or `dismissed`, `outcome` is `created` or `alreadyApplied` (`items` empty when dismissed). `404 not_found`. `403 premium_required` when the wardrobe refuses the add — the prompt stays pending. |
 
@@ -164,6 +167,10 @@ Rules the client can rely on:
 - **Re-adding** the same product + size keeps the existing line (same `lineId`) — safe to replay offline.
 - **No price on the line**: subtotals follow the catalog. A retired product stays in the cart with `available: false` and adds nothing.
 - **Checkout does not take payment** and does not empty the cart. It records a click (`click_id` → user, products, look, source) and returns the link. One product → that product's link; several products of a brand → the brand's landing link when the brand has one, else the first product's; `products[]` always lists per-product links. The query parameter name is per brand (default `click_id`).
+- **Favourites** are only a list of product ids (no size, no price reference, no notification); read the products with
+  `GET v1/catalog/product/{id}` or from the catalog page. `PUT` is idempotent: marking a favourite again changes nothing,
+  and a product retired after it was favourited stays in the list (a retired product cannot be added: `422 product_retired`).
+  Ids whose product no longer exists are left out. Account deletion removes the list.
 - **Watch list** is separate from favourites. `priceDropped` compares the current price with the price when it was added; when an admin/feed lowers a price, every watcher is flagged server side (the price-drop push itself is not sent yet).
 - **Purchase prompt**: created when a conversion postback arrives for the user's click. `PUT … { "accepted": true }` is the whole action: the **server** adds every purchased product to the wardrobe (`source: "purchase"`, same mapping as `POST v1/tenant/item/from-product`) and returns the created items. It is idempotent — answering twice, or retrying after a timeout, never adds a piece twice (`outcome: "alreadyApplied"`). The client must **not** also call `item/from-product` for these products.
 
@@ -275,6 +282,7 @@ sign-up. The code is 8 characters, case-insensitive. Phase 1 gives no reward.
 | PUT | `v1/tenant/user/me/notifications` | `{ "morningOutfit", "morningOutfitLocalTime": "07:30", "weeklyEdit", "friendRatings", "timeZone": "Europe/Istanbul", "baseVersion" }` | `NotificationPrefsDto`. `409` + current prefs. `400`: `local_time_invalid` (HH:mm, quarter hours only), `time_zone_invalid` (IANA id). |
 | PUT | `v1/tenant/user/me/device` | `{ "deviceId" (8–100 chars), "platform", "pushToken"?, "timeZone"? }` | `{ "deviceId", "platform", "pushEnabled", "updatedAt" }`. `422 device_limit_reached` (10). |
 | DELETE | `v1/tenant/user/me/device/{deviceId}` | — | `204` (idempotent) |
+| DELETE | `v1/tenant/photo/{kind}/{photoId}` | — | `204`. Deletes the active photo of one kind (`body` \| `face`; `photoId` = `GET v1/tenant/photo` → `body.id` / `face.id`) and what was made from it: **body** → the try-on images generated with that photo; **face** → the palette result. `404 not_found` when `photoId` is not the active photo of that kind (also after a replay — treat 404 as "already gone"). `DELETE v1/tenant/photo` (everything at once) is unchanged. |
 | PUT | `v1/tenant/profile` *(existing)* | `{ "displayName"?, "language"?, "cityId"?, "baseVersion" }` | **Partial update**: an omitted / `null` field keeps its value, so the app sends only `{ "language", "baseVersion" }` when its language changes (extra fields such as `clientMutationId` are ignored). `cityId: ""` clears the city. `language` must be in the supported list → else `400 language_unsupported`; a blank `displayName` → `400 name_required`. `cityId` = id from `GET v1/weather/city`. `409` + current `ProfileDto` when `baseVersion` is stale. |
 
 ```jsonc
@@ -430,7 +438,7 @@ TABLE_NAME=droblet-dev-table dotnet run --project tools/Seed -- apply     # writ
 | `Admin` | `UserIds[]`, `Emails[]` | empty → nobody is admin |
 | `AffiliatePostback` (SecureString) | `NetworkSecret`, `DirectSecret`, `DirectBrandSecrets{}`, `DefaultClickIdParameter` | no secrets → postbacks answer 503 |
 | `Localization` | `SupportedLanguages[]`, `DefaultLanguage` | `tr`, `en` / `tr` |
-| `Catalog` | `PageSize`, `MaxPageSize`, `CacheSeconds`, `MaxCartLines`, `MaxWatchItems`, `BulkUpsertMax`, `ImageHosts[]` (hosts product images may be downloaded from for try-on; empty = any https host), `MaxImageBytes` | 24, 60, 60, 100, 200, 200, empty, 10 MB |
+| `Catalog` | `PageSize`, `MaxPageSize`, `CacheSeconds`, `MaxCartLines`, `MaxWatchItems`, `MaxFavoriteProducts` (code default 500; not in the SSM default yet), `BulkUpsertMax`, `ImageHosts[]` (hosts product images may be downloaded from for try-on; empty = any https host), `MaxImageBytes` | 24, 60, 60, 100, 200, 200, empty, 10 MB |
 | `Social` | `MaxFollowing`, `FeedPageSize`, `SuggestedPageSize`, `SuggestedCandidateLimit`, `SearchPageSize`, `InviteUrl`, `InviteAttributionWindowDays`, `ReportsPerDay`, `InviteResolvePerIpPerHour` | 500, 20, 20, 100, 20, `https://droplet.alatech.co/i`, 30, 20, 60 |
 | `Weather` | `Provider`, `CacheMinutes`, `ForecastBaseUrl`, `GeocodingBaseUrl`, `TimeoutSeconds` | `OpenMeteo`, 60 |
 | `Notifications` | `DefaultMorningLocal`, `DefaultTimeZone`, `MaxDevicesPerTenant` | `07:30`, `Europe/Istanbul`, 10 |

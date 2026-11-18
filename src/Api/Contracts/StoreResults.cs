@@ -34,6 +34,7 @@ public static class StoreResults
         CartOutcome.SizeNotAvailable => ApiResults.Problem(StatusCodes.Status422UnprocessableEntity, StoreSocialErrorCodes.SizeNotAvailable),
         CartOutcome.CartFull => ApiResults.Problem(StatusCodes.Status422UnprocessableEntity, StoreSocialErrorCodes.CartFull),
         CartOutcome.WatchListFull => ApiResults.Problem(StatusCodes.Status422UnprocessableEntity, StoreSocialErrorCodes.WatchListFull),
+        CartOutcome.FavoriteListFull => ApiResults.Problem(StatusCodes.Status422UnprocessableEntity, StoreSocialErrorCodes.FavoriteListFull),
         _ => NotFound(),
     };
 

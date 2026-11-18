@@ -14,6 +14,7 @@ public static class StoreSocialErrorCodes
     public const string CartFull = "cart_full";
     public const string AffiliateLinkMissing = "affiliate_link_missing";
     public const string WatchListFull = "watch_list_full";
+    public const string FavoriteListFull = "favorite_list_full";
 
     // Affiliate postback
     public const string InvalidSignature = "invalid_signature";
