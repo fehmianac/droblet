@@ -451,3 +451,9 @@
     transition: none !important;
   }
 }
+
+/* Self-hosted fonts (see src/lib/fonts.ts). */
+.font-vars {
+  --font-cormorant: 'Cormorant Garamond', Georgia, serif;
+  --font-jost: 'Jost', system-ui, sans-serif;
+}
