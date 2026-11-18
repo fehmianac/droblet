@@ -57,7 +57,8 @@ import { lookSlotCategories, slotCategories } from './slots';
 
 /** Query keys for E8. Global catalogue/content data and tenant data are kept under separate roots. */
 export const storeKeys = {
-  edit: ['content', 'edit', 'current'] as const,
+  /** Keşfet cover (`WeeklyEditSummary`) — never under `planKeys.edits` (the 08 detail, another shape). */
+  edit: ['content', 'edit', 'summary', 'current'] as const,
   creators: ['content', 'creator'] as const,
   series: ['content', 'series-outfit'] as const,
   brands: ['catalog', 'brand'] as const,

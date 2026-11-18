@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { fireEvent, renderRouter, screen, waitFor, within } from 'expo-router/testing-library';
+import { router } from 'expo-router';
+import { act, fireEvent, renderRouter, screen, waitFor, within } from 'expo-router/testing-library';
 
 import { resetAccountFixtures } from '@/fixtures/account';
 import { fixtureDb, resetFixtureDb } from '@/fixtures/db';
@@ -62,6 +63,19 @@ describe('Keşfet and the style store (20–24b, fixtures, EN)', () => {
     // The tag is data-driven: only the card whose `sponsored` flag is set carries it.
     expect(screen.getAllByText('SPONSORED')).toHaveLength(1);
     expect(screen.getByLabelText('Sponsored content, Marka vitrini, Lüks dokunuş')).toBeTruthy();
+  });
+
+  it('20 Keşfet after the weekly edit (08): each screen keeps its own data — the owner\'s Keşfet crash', async () => {
+    // Bugün's "Haftanın editi" opens /edit/current. Its detail (`WeeklyEdit`) and the Keşfet cover
+    // (`WeeklyEditSummary`) once shared the query key ['content','edit','current']: whichever loaded
+    // first was read by the other as its own shape and the render threw (Release: the app closed).
+    await open('/edit/current');
+    await waitFor(() => expect(screen.getAllByText('Piece collage').length).toBeGreaterThan(0), WAIT);
+    await act(() => router.push('/discover'));
+    await waitFor(() => expect(screen.getByText('Net Ofis Klasikleri')).toBeTruthy(), WAIT);
+    expect(screen.getByText(/looks · on you · picked by the style editor/)).toBeTruthy();
+    await act(() => router.push('/edit/current'));
+    await waitFor(() => expect(screen.getAllByText('Piece collage').length).toBeGreaterThan(0), WAIT);
   });
 
   it('20 Keşfet: the Mağaza chip opens the store and the Arkadaşlar chip the friends feed', async () => {
