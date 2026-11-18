@@ -167,6 +167,26 @@ public class AdminAndCatalogEndpointTests(StoreSocialApiFactory factory) : IClas
         Assert.Equal(HttpStatusCode.NotFound, (await user.GetAsync("v1/content/creator/creator-missing/look")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await user.GetAsync($"v1/content/series-outfit/{collection}/look")).StatusCode); // other kind
     }
+
+    [Fact]
+    public async Task CreatorCollection_CarriesTheCreatorsHandle_OnlyWhileAnAccountHoldsIt()
+    {
+        var admin = await factory.AdminAsync();
+        var creator = await factory.UserAsync();
+        var (viewer, _) = await factory.RegisterAsync();
+        var linked = StoreSocialApiFactory.Unique("creator-");
+        var unclaimed = StoreSocialApiFactory.Unique("creator-");
+
+        var put = await admin.PutJsonAsync($"v1/admin/collection/creator/{linked}", new { title = StoreSocialApiFactory.Text("Editör"), handle = "@" + creator.Handle.ToUpperInvariant() });
+        (await admin.PutJsonAsync($"v1/admin/collection/creator/{unclaimed}", new { title = StoreSocialApiFactory.Text("Editör 2"), handle = "nobody.has.this" })).EnsureSuccessStatusCode();
+        var invalid = await admin.PutJsonAsync($"v1/admin/collection/creator/{StoreSocialApiFactory.Unique("creator-")}", new { title = StoreSocialApiFactory.Text("X"), handle = "no spaces!" });
+        var creators = (await (await viewer.GetAsync("v1/content/creator")).JsonAsync()).EnumerateArray().ToList();
+
+        Assert.Equal(creator.Handle, (await put.JsonAsync()).GetProperty("handle").GetString());
+        Assert.Equal(creator.Handle, creators.Single(c => c.GetProperty("id").GetString() == linked).GetProperty("handle").GetString());
+        Assert.Equal(JsonValueKind.Null, creators.Single(c => c.GetProperty("id").GetString() == unclaimed).GetProperty("handle").ValueKind);
+        Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
+    }
 }
 
 public class WeeklyEditEndpointTests(StoreSocialApiFactory factory) : IClassFixture<StoreSocialApiFactory>
