@@ -5,6 +5,7 @@ import type { Job } from '@/api/contracts/jobs';
 import type { AcceptSuggestionRequest, AcceptSuggestionResponse, StylistFeedbackRequest, StylistOutfitResult } from '@/api/contracts/stylist';
 import { jobQueryKey } from '@/api/jobs';
 import { fromSource } from '@/api/dataSource';
+import { fromAcceptSuggestion, fromDislikeReasons, toAcceptedSuggestion, type AcceptedSuggestionWire } from '@/api/wire/stylist';
 import { lookKeys } from '@/features/looks/queries';
 import { planKeys } from '@/features/today/keys';
 import { acceptFixtureSuggestion } from '@/fixtures/stylist';
@@ -44,7 +45,13 @@ export function registerStylistMutations(client: QueryClient): void {
       fromSource<AcceptSuggestionResponse>(
         'stylist',
         () => acceptFixtureSuggestion(jobId, index, body),
-        () => apiRequest<AcceptSuggestionResponse>(`v1/tenant/stylist/suggestion/${jobId}/${index}/accept`, { method: 'POST', body }),
+        async () =>
+          toAcceptedSuggestion(
+            await apiRequest<AcceptedSuggestionWire>(`v1/tenant/stylist/suggestion/${jobId}/${index}/accept`, {
+              method: 'POST',
+              body: fromAcceptSuggestion(body),
+            }),
+          ),
       ),
     onMutate: (vars: AcceptSuggestionVariables) => {
       patchSuggestion(vars, vars.lookId, vars.date);
@@ -62,14 +69,18 @@ export function registerStylistMutations(client: QueryClient): void {
     },
   });
 
-  // "Beğenmedim" feedback — an event; nothing to roll back.
+  // "Beğenmedim" — `POST …/dislike { reason }` (204); an event, nothing to roll back.
   client.setMutationDefaults(stylistMutationKeys.feedback, {
     scope: TENANT_WRITE_SCOPE,
     mutationFn: (body: StylistFeedbackRequest) =>
       fromSource<void>(
         'stylist',
         () => undefined,
-        () => apiRequest<void>('v1/tenant/feedback', { method: 'POST', body }),
+        () =>
+          apiRequest<void>(`v1/tenant/stylist/suggestion/${body.jobId}/${body.index}/dislike`, {
+            method: 'POST',
+            body: { reason: fromDislikeReasons(body.reasons) },
+          }),
       ),
   });
 }

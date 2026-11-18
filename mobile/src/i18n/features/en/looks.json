@@ -164,6 +164,13 @@
     "draftEyebrow": "DRAFT LIST",
     "draftBody": "Check the list; it's saved to your suitcase once you approve it.",
     "acceptDraft": "Approve the list",
-    "regenerate": "Prepare again"
+    "regenerate": "Prepare again",
+    "missingReason": {
+      "emptySlot": "nothing suitable in your wardrobe",
+      "rain": "rain is expected",
+      "cold": "it will be cold",
+      "noShoes": "no suitable shoes",
+      "suggested": "suggested by the stylist"
+    }
   }
 }

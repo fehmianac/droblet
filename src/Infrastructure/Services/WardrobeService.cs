@@ -254,6 +254,67 @@ public sealed class WardrobeService(
         return new StartDraftsDto(dtos, [], skipped.Count, skipped, (await itemRecognition.GetAsync(tenantId, ct)).ToDto());
     }
 
+    /// <summary>
+    /// Retry of a failed draft without a new upload. The worker reads the temporary upload object, which expires after a
+    /// day while the draft lives a week — so a missing upload is restored from the EXIF-stripped original kept with the
+    /// draft. Allowance rules are those of a new request: the failed job gave its recognition back, the retry reserves one.
+    /// </summary>
+    public async Task<ServiceResult<StartDraftsDto>> RetryDraftAsync(string tenantId, string draftId, string? requestLanguage, CancellationToken ct)
+    {
+        var decision = await entitlements.CheckAsync(tenantId, Capability.ItemProcessing, ct);
+        if (!decision.Allowed)
+            return ServiceResult.Forbidden<StartDraftsDto>(decision.Reason ?? ErrorCodes.PremiumRequired);
+
+        var draft = await GetDraftAsync(tenantId, draftId, ct);
+        if (draft is null)
+            return ServiceResult.NotFound<StartDraftsDto>(ErrorCodes.DraftNotFound);
+        // Pieces cut out of an outfit photo have no photo of their own; the outfit source is what gets retried.
+        if (draft.Status != ItemDraftStatus.Failed || draft.Kind == ItemDraftKind.Piece)
+            return ServiceResult.Conflict<StartDraftsDto>(null, ErrorCodes.DraftNotFailed);
+
+        var uploadKey = StorageKeys.Upload(tenantId, draft.Id);
+        if (await storage.HeadAsync(uploadKey, ct) is null)
+        {
+            var originalKey = Owned(draft.OriginalKey, tenantId);
+            var original = originalKey is null ? null : await storage.ReadAsync(originalKey, photoOptions.CurrentValue.MaxUploadBytes, ct);
+            var info = original is null ? null : await storage.HeadAsync(originalKey!, ct);
+            if (original is null || info is null)
+                return ServiceResult.Invalid<StartDraftsDto>(ErrorCodes.UploadMissing);
+            await storage.PutAsync(uploadKey, original, info.ContentType ?? "image/jpeg", ct);
+        }
+
+        var now = Now;
+        var jobId = Ulid.New(now);
+        var grant = await itemRecognition.ReserveAsync(tenantId, [jobId], ct);
+        if (grant.Granted == 0)
+        {
+            return grant.DenyReason == ErrorCodes.PremiumRequired
+                ? ServiceResult.Forbidden<StartDraftsDto>(ErrorCodes.PremiumRequired)
+                : ServiceResult.PaymentRequired<StartDraftsDto>(ErrorCodes.ItemRecognitionLimitReached);
+        }
+
+        var split = draft.Kind == ItemDraftKind.Outfit;
+        var job = new JobEntity { Id = jobId, TenantId = tenantId, Kind = split ? JobKind.ItemSplit : JobKind.ItemProcess, Status = JobStatus.Queued, CreatedAt = now, UpdatedAt = now };
+        draft.Status = ItemDraftStatus.Uploaded;
+        draft.JobId = jobId;
+        draft.Language = await LanguageAsync(tenantId, requestLanguage, ct);
+        draft.Name = null;
+        draft.Category = null;
+        draft.ColorIds = [];
+        draft.Fabric = null;
+        draft.Seasons = [];
+        draft.FlaggedFields = [];
+        draft.NeedsReview = false;
+        draft.UpdatedAt = now;
+
+        await repository.TransactWriteAsync([TransactWriteOperation.Put(draft), TransactWriteOperation.Put(job)], ct);
+        await events.PublishAsync(new ItemProcessRequestedEvent(tenantId, jobId, draft.Id, split), ct);
+        logger.LogInformation("Retry: queued item {Kind} job {JobId} for tenant {TenantId}", job.Kind, jobId, tenantId);
+
+        return ServiceResult.Accepted(new StartDraftsDto([await ToDtoAsync(draft, ct)], [job.ToDto()], 0, [],
+            (await itemRecognition.GetAsync(tenantId, ct)).ToDto()));
+    }
+
     public async Task<ItemDraftsDto> GetDraftsAsync(string tenantId, CancellationToken ct)
     {
         var drafts = await repository.GetAllAsync<ItemDraftEntity>(ItemDraftEntity.GetPk(tenantId), ct);

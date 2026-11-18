@@ -4,6 +4,13 @@ import { apiRequest } from '@/api/client';
 import type { Item, ItemDetail, ItemDraft } from '@/api/contracts/wardrobe';
 import { jobPollInterval } from '@/api/jobs';
 import { fromSource } from '@/api/dataSource';
+import {
+  requestItems,
+  toItemDetail,
+  toItemDrafts,
+  type ItemDetailWire,
+  type ItemDraftsWire,
+} from '@/api/wire/wardrobe';
 import { clone, fixtureDb, FixtureNotFound } from '@/fixtures/db';
 import { fixtureListDrafts } from '@/fixtures/wardrobe';
 
@@ -32,7 +39,8 @@ export function useItems(options: { enabled?: boolean } = {}) {
       fromSource<Item[]>(
         'wardrobe',
         () => clone(fixtureDb.items),
-        () => apiRequest<Item[]>('v1/tenant/item'),
+        // GET v1/tenant/item → ItemDto[], newest first.
+        () => requestItems(),
       ),
   });
 }
@@ -46,7 +54,8 @@ export function useItemDetail(id: string) {
       fromSource<ItemDetail>(
         'wardrobe',
         () => fixtureItemDetail(id),
-        () => apiRequest<ItemDetail>(`v1/tenant/item/${id}`),
+        // GET v1/tenant/item/{id} → { item, looks } · 404
+        async () => toItemDetail(await apiRequest<ItemDetailWire>(`v1/tenant/item/${id}`)),
       ),
   });
 }
@@ -64,7 +73,8 @@ export function useItemDrafts(options: { enabled?: boolean } = {}) {
       fromSource<ItemDraft[]>(
         'wardrobe',
         () => fixtureListDrafts(),
-        () => apiRequest<ItemDraft[]>('v1/tenant/item-draft'),
+        // GET v1/tenant/item-draft → { drafts, total, processed }
+        async () => toItemDrafts(await apiRequest<ItemDraftsWire>('v1/tenant/item-draft')),
       ),
     refetchInterval: (q) =>
       q.state.data?.some((d) => d.status === 'processing') ? jobPollInterval(Math.min(q.state.dataUpdateCount - 1, 1)) : false,

@@ -158,7 +158,7 @@ export type WeeklyEditCard = {
   imageUrl: string | null;
 };
 
-/** Candidate: GET v1/tenant/today */
+/** GET v1/tenant/today?date= as the Bugün card shows it (mapped in `./wire/today`; `weeklyEdit` from GET v1/content/edit/current). */
 export type TodayResponse = {
   date: string;
   weather: { temperatureC: number; city: string } | null;
@@ -169,7 +169,7 @@ export type TodayResponse = {
   weeklyEdit: WeeklyEditCard[];
 };
 
-/** Candidate: POST v1/tenant/wear-logs (event; idempotent on clientMutationId). */
+/** POST v1/tenant/wear-log (event; idempotent on clientMutationId, which is also the log id). */
 export type WearLogRequest = { lookId: string; date: string; occurredAt: string; clientMutationId: string };
 
 /** GET v1/tenant/library/item — ready-made piece library (04b / 12b); names in the profile language. */

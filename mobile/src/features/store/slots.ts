@@ -4,9 +4,9 @@ import type { ItemCategory } from '@/api/contracts/wardrobe';
 
 /** Which catalogue categories can fill each outfit-builder slot (23). */
 const SLOT_CATEGORIES: Record<BuilderSlot, ProductCategory[]> = {
-  top: ['tshirt', 'shirt', 'knit'],
-  bottom: ['trousers'],
-  outerwear: ['jacket'],
+  top: ['tshirt', 'shirt', 'blouse', 'knit', 'sweatshirt', 'activewear'],
+  bottom: ['trousers', 'jeans', 'skirt', 'shorts'],
+  outerwear: ['jacket', 'coat', 'skiwear'],
   shoes: ['shoes'],
   bag: ['bag'],
 };
@@ -26,9 +26,9 @@ export function slotOfItemCategory(category: ItemCategory): BuilderSlot | null {
 
 /** Which catalogue categories can fill each slot of a look (15 "Mağaza" tab; a dress fills "top"). */
 const LOOK_SLOT_CATEGORIES: Record<LookSlotKind, ProductCategory[]> = {
-  top: ['tshirt', 'shirt', 'knit', 'dress'],
-  bottom: ['trousers'],
-  outerwear: ['jacket'],
+  top: ['tshirt', 'shirt', 'blouse', 'knit', 'sweatshirt', 'activewear', 'dress', 'swimwear'],
+  bottom: ['trousers', 'jeans', 'skirt', 'shorts'],
+  outerwear: ['jacket', 'coat', 'skiwear'],
   shoes: ['shoes'],
   accessory: ['bag', 'accessory'],
 };

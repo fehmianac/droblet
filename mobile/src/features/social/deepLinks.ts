@@ -2,6 +2,9 @@
  * Incoming links → app routes (MOBILE_ENGINEER §Deep link).
  *
  *   droplet://invite/{code}  ·  https://droblet.alatech.co/invite/{code}   → 27 Dolapları keşfet
+ *   …/i/{code}[?t=look|profile|product|edit&id=…&u=handle]                → the server's share / invite link
+ *     (`GET v1/tenant/invite/link`, `POST v1/tenant/share`): look → 25, profile → 26, product → 22,
+ *     edit → 08, otherwise 27
  *   …/l/{lookId}[?invite=code]                                            → 25 Arkadaş akışı, that look first
  *   …/u/{handle}[?invite=code]                                            → 26 Kişi profili
  *   droplet://today                                                       → 06 Bugün
@@ -58,6 +61,21 @@ export function mapIncomingLink(input: string): MappedLink {
   if (first === 'invite' && second) {
     inviteCode = sanitizeCode(second) ?? inviteCode;
     return { path: withQuery('/friends/find'), inviteCode };
+  }
+  if (first === 'i' && second) {
+    inviteCode = sanitizeCode(second) ?? inviteCode;
+    const param = (key: string) => {
+      const value = params.find(([k]) => k === key)?.[1];
+      return value ? decode(value) : null;
+    };
+    const kind = param('t');
+    const targetId = param('id');
+    const owner = param('u');
+    if (kind === 'look' && targetId) return { path: `/friends/feed?look=${encodeURIComponent(targetId)}`, inviteCode };
+    if (kind === 'profile' && owner) return { path: `/u/${encodeURIComponent(owner)}`, inviteCode };
+    if (kind === 'product' && targetId) return { path: `/shop/product/${encodeURIComponent(targetId)}`, inviteCode };
+    if (kind === 'edit' && targetId) return { path: `/edit/${encodeURIComponent(targetId)}`, inviteCode };
+    return { path: '/friends/find', inviteCode };
   }
   if (first === 'l' && second) {
     return { path: withQuery('/friends/feed', [`look=${encodeURIComponent(decode(second))}`]), inviteCode };

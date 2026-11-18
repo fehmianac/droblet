@@ -33,7 +33,7 @@ import type { PreparedPhoto } from '@/features/photos/preparePhoto';
 import { usePhotoPicker } from '@/features/photos/usePhotoPicker';
 import { currentLanguage, LANGUAGES, SUPPORTED_LANGUAGES, type AppLanguage } from '@/i18n';
 import { setAppLanguage } from '@/i18n/preference';
-import { localToUtcTime, REMINDER_TIMES, utcToLocalTime } from '@/notify/time';
+import { REMINDER_TIMES } from '@/notify/time';
 import { mutationKeys } from '@/sync/queryKeys';
 
 const MAX_BODY_PHOTOS = 3;
@@ -259,7 +259,7 @@ function NotificationsSection() {
       >
         {(data) => {
           const change = (patch: Partial<NotificationSettings>) => save({ ...data, ...patch });
-          const localTime = utcToLocalTime(data.morningTimeUtc);
+          const localTime = data.morningTimeLocal;
           return (
             <>
               <ToggleRow first label={t('settings.morning')} value={data.morningReminder} onChange={(v) => change({ morningReminder: v })} />
@@ -276,8 +276,8 @@ function NotificationsSection() {
                       label={time}
                       selected={time === localTime}
                       onPress={() => {
-                        // Shown in local time, stored as UTC HH:mm.
-                        change({ morningTimeUtc: localToUtcTime(time) });
+                        // Local wall-clock time; the device time zone travels with the PUT.
+                        change({ morningTimeLocal: time });
                         setTimeOpen(false);
                       }}
                     />
@@ -362,6 +362,7 @@ export default function SettingsScreen() {
           <Button
             variant="secondary"
             label={t('settings.logout')}
+            testID="settings.logout"
             loading={signingOut}
             onPress={() => {
               setSigningOut(true);
@@ -372,6 +373,7 @@ export default function SettingsScreen() {
             onPress={() => router.push('/delete-account')}
             accessibilityRole="button"
             accessibilityLabel={t('settings.deleteAccount')}
+            testID="settings.deleteAccount"
             className="min-h-btn-secondary justify-center px-2 active:opacity-70"
           >
             <Text variant="button" tone="danger">

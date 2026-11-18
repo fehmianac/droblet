@@ -4,6 +4,7 @@ import { apiRequest } from '@/api/client';
 import type { AcceptPackRequest, CheckTripItemRequest, CreateTripRequest, PutTripRequest, Trip, TripDetail, TripPlan } from '@/api/contracts/trips';
 import { isConflict, isGone } from '@/api/errors';
 import { fromSource } from '@/api/dataSource';
+import { fromTripFields, mergeTrip, toTripDetailAsync, type TripDetailWire, type TripWire } from '@/api/wire/trips';
 import { fixtureAcceptPack, fixtureCheckTripItem, fixtureCreateTrip, fixtureDeleteTrip, fixturePutTrip } from '@/fixtures/trips';
 import { ulid } from '@/lib/ids';
 import { conflictStore } from '@/sync/conflicts';
@@ -13,6 +14,8 @@ import { TENANT_WRITE_SCOPE } from '@/sync/queryKeys';
 export const tripKeys = {
   trips: ['tenant', 'trip'] as const,
   trip: (id: string) => ['tenant', 'trip', id] as const,
+  /** The running / unaccepted pack job of a trip — device-side only, survives a refetch of the trip. */
+  packJob: (id: string) => ['tenant', 'trip-pack-job', id] as const,
 };
 
 export const tripMutationKeys = {
@@ -23,8 +26,9 @@ export const tripMutationKeys = {
   acceptPack: ['tenant', 'trip', 'pack', 'accept'] as const,
 };
 
-export type CreateTripVariables = { request: CreateTripRequest; optimistic: TripDetail };
-export type PutTripVariables = { id: string; request: PutTripRequest; optimistic: TripDetail };
+/** `cityName` goes on the wire next to `cityId` (the server stores the name the user picked). */
+export type CreateTripVariables = { request: CreateTripRequest; optimistic: TripDetail; cityName?: string };
+export type PutTripVariables = { id: string; request: PutTripRequest; optimistic: TripDetail; cityName?: string };
 export type DeleteTripVariables = { id: string; clientMutationId: string };
 export type CheckTripItemVariables = { tripId: string; itemId: string; request: CheckTripItemRequest };
 /** `plan` is the draft the user saw and accepted — shown optimistically until the server confirms. */
@@ -81,7 +85,13 @@ export function registerTripMutations(client: QueryClient): void {
       fromSource<TripDetail>(
         'wardrobe',
         () => fixtureCreateTrip(vars.request),
-        () => apiRequest<TripDetail>('v1/tenant/trip', { method: 'POST', body: vars.request }),
+        async () => {
+          // 201 (created) or 200 (the same id again) → the wire trip; a new trip has no list yet.
+          const { id, clientMutationId: _c, ...fields } = vars.request;
+          void _c;
+          const body = { id, ...fromTripFields(fields, vars.cityName ?? vars.optimistic.cityName) };
+          return mergeTrip(await apiRequest<TripWire>('v1/tenant/trip', { method: 'POST', body }), vars.optimistic);
+        },
       ),
     onMutate: async (vars: CreateTripVariables) => {
       await client.cancelQueries({ queryKey: tripKeys.trips });
@@ -101,7 +111,13 @@ export function registerTripMutations(client: QueryClient): void {
       return fromSource<TripDetail>(
         'wardrobe',
         () => fixturePutTrip(vars.id, request),
-        () => apiRequest<TripDetail>(`v1/tenant/trip/${vars.id}`, { method: 'PUT', body: request }),
+        async () => {
+          const { baseVersion, clientMutationId: _c, ...fields } = request;
+          void _c;
+          const body = { ...fromTripFields(fields, vars.cityName ?? vars.optimistic.cityName), baseVersion };
+          const saved = await apiRequest<TripWire>(`v1/tenant/trip/${vars.id}`, { method: 'PUT', body });
+          return mergeTrip(saved, client.getQueryData<TripDetail>(tripKeys.trip(vars.id)) ?? vars.optimistic);
+        },
       );
     },
     onMutate: async (vars: PutTripVariables) => {
@@ -113,7 +129,9 @@ export function registerTripMutations(client: QueryClient): void {
     },
     onError: (error: unknown, vars: PutTripVariables) => {
       if (isConflict(error)) {
-        const current = error.problem?.current as Trip | undefined;
+        // 409 answers the current wire trip (`version`), not a ProblemDetails.
+        const wire = error.current as TripWire | null;
+        const current = wire ? { baseVersion: wire.version } : undefined;
         conflictStore.push({
           id: vars.request.clientMutationId,
           kind: 'changed',
@@ -158,7 +176,9 @@ export function registerTripMutations(client: QueryClient): void {
       fromSource<void>(
         'wardrobe',
         () => fixtureCheckTripItem(vars.tripId, vars.itemId, vars.request),
-        () => apiRequest<void>(`v1/tenant/trip/${vars.tripId}/item/${vars.itemId}`, { method: 'PUT', body: vars.request }),
+        async () => {
+          await apiRequest<unknown>(`v1/tenant/trip/${vars.tripId}/item/${vars.itemId}`, { method: 'PUT', body: vars.request });
+        },
       ),
     onMutate: async (vars: CheckTripItemVariables) => {
       await client.cancelQueries({ queryKey: tripKeys.trip(vars.tripId) });
@@ -179,11 +199,18 @@ export function registerTripMutations(client: QueryClient): void {
       fromSource<TripDetail>(
         'wardrobe',
         () => fixtureAcceptPack(vars.tripId),
-        () => apiRequest<TripDetail>(`v1/tenant/trip/${vars.tripId}/pack/${vars.jobId}/accept`, { method: 'POST', body: vars.request }),
+        async () => {
+          const wire = await apiRequest<TripDetailWire>(`v1/tenant/trip/${vars.tripId}/pack/${vars.jobId}/accept`, {
+            method: 'POST',
+            body: vars.request,
+          });
+          return toTripDetailAsync(wire, { region: client.getQueryData<TripDetail>(tripKeys.trip(vars.tripId))?.region });
+        },
       ),
     onMutate: async (vars: AcceptPackVariables) => {
       await client.cancelQueries({ queryKey: tripKeys.trip(vars.tripId) });
       const detail = client.getQueryData<TripDetail>(tripKeys.trip(vars.tripId));
+      client.setQueryData<string | null>(tripKeys.packJob(vars.tripId), null);
       if (detail) writeTrip(client, { ...detail, ...vars.plan, status: 'packed', packJobId: null });
     },
     onSuccess: (saved: TripDetail | undefined) => {

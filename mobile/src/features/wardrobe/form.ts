@@ -19,6 +19,8 @@ export type ItemFormValues = {
   brand: string;
   size: string;
   color: ItemColor | null;
+  /** The server's colour ids behind `color` (kept so an unrelated edit does not coarsen `burgundy` to `red`). */
+  colorIds?: string[];
   fabric: string;
   seasons: ItemSeason[];
   useOriginalImage: boolean;
@@ -46,6 +48,7 @@ export function formFromItem(item: ItemFields): ItemFormValues {
     brand: item.brand ?? '',
     size: item.size ?? '',
     color: item.color,
+    ...(item.colorIds ? { colorIds: item.colorIds } : {}),
     fabric: item.fabric ?? '',
     seasons: [...item.seasons],
     useOriginalImage: item.useOriginalImage,
@@ -62,6 +65,7 @@ export function formFromDraft(draft: Pick<ItemDraft, 'suggestion'>): ItemFormVal
     brand: s.brand ?? '',
     size: s.size ?? '',
     color: s.color ?? null,
+    ...(s.colorIds ? { colorIds: s.colorIds } : {}),
     fabric: s.fabric ?? '',
     seasons: [...(s.seasons ?? [])],
     useOriginalImage: s.useOriginalImage ?? false,
@@ -99,6 +103,7 @@ export function toItemFields(values: ItemFormValues): ItemFields {
     brand: orNull(values.brand),
     size: orNull(values.size),
     color: values.color,
+    ...(values.colorIds ? { colorIds: values.colorIds } : {}),
     fabric: orNull(values.fabric),
     seasons: values.seasons,
     useOriginalImage: values.useOriginalImage,
@@ -114,6 +119,7 @@ export function fieldsOf(item: Item): ItemFields {
     brand: item.brand,
     size: item.size,
     color: item.color,
+    ...(item.colorIds ? { colorIds: item.colorIds } : {}),
     fabric: item.fabric,
     seasons: item.seasons,
     useOriginalImage: item.useOriginalImage,

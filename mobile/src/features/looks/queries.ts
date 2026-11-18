@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/api/client';
 import type { Look } from '@/api/contracts/looks';
 import { fromSource } from '@/api/dataSource';
+import { toLookAsync, toLooks, type LookWire } from '@/api/wire/wardrobe';
 import { clone, fixtureDb, FixtureNotFound } from '@/fixtures/db';
 
 /** Query keys of the looks feature (E3). */
@@ -19,7 +20,8 @@ export function useLooks() {
       fromSource<Look[]>(
         'wardrobe',
         () => clone(fixtureDb.looks),
-        () => apiRequest<Look[]>('v1/tenant/look'),
+        // GET v1/tenant/look → LookDto[], newest first (slots are ids; joined with the wardrobe / catalogue).
+        async () => toLooks(await apiRequest<LookWire[]>('v1/tenant/look')),
       ),
   });
 }
@@ -36,7 +38,7 @@ export function useLook(id: string | null | undefined) {
           if (!look) throw new FixtureNotFound(`look ${id}`);
           return clone(look);
         },
-        () => apiRequest<Look>(`v1/tenant/look/${id}`),
+        async () => toLookAsync(await apiRequest<LookWire>(`v1/tenant/look/${id}`)),
       ),
   });
 }

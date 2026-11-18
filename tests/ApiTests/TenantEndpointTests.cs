@@ -219,6 +219,35 @@ public class PhotoEndpointTests(ApiFactory factory) : IClassFixture<ApiFactory>
     }
 
     [Fact]
+    public async Task DeleteOne_RemovesOnlyThatKind_404ForAnotherIdOrTenant()
+    {
+        var (client, auth) = await factory.RegisterAsync();
+        var (other, _) = await factory.RegisterAsync();
+        var body = await UploadAsync(client, "body", TestImages.JpegWithExif());
+        var face = await UploadAsync(client, "face", TestImages.JpegWithExif());
+        (await client.PutJsonAsync("v1/tenant/photo/body", new { uploadId = body.UploadId, clientMutationId = Ulid.New() })).EnsureSuccessStatusCode();
+        (await client.PutJsonAsync("v1/tenant/photo/face", new { uploadId = face.UploadId, clientMutationId = Ulid.New() })).EnsureSuccessStatusCode();
+        var photos = (await client.GetFromJsonAsync<PhotosDto>("v1/tenant/photo", ApiFactory.Json))!;
+
+        var wrongKind = await client.DeleteAsync($"v1/tenant/photo/face/{photos.Body!.Id}");
+        var badKind = await client.DeleteAsync($"v1/tenant/photo/selfie/{photos.Body.Id}");
+        var otherTenant = await other.DeleteAsync($"v1/tenant/photo/body/{photos.Body.Id}");
+        var deleted = await client.DeleteAsync($"v1/tenant/photo/body/{photos.Body.Id}");
+        var again = await client.DeleteAsync($"v1/tenant/photo/body/{photos.Body.Id}");
+        var after = (await client.GetFromJsonAsync<PhotosDto>("v1/tenant/photo", ApiFactory.Json))!;
+
+        Assert.Equal((HttpStatusCode.NotFound, "not_found"), (wrongKind.StatusCode, await wrongKind.CodeAsync()));
+        Assert.Equal(HttpStatusCode.NotFound, badKind.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, otherTenant.StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, deleted.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, again.StatusCode);
+        Assert.Null(after.Body);
+        Assert.Equal(photos.Face!.Id, after.Face!.Id);
+        Assert.DoesNotContain(factory.Storage.Objects.Keys, k => k.StartsWith($"tenant/{auth.TenantId}/body/", StringComparison.Ordinal));
+        Assert.Contains(factory.Storage.Objects.Keys, k => k.StartsWith($"tenant/{auth.TenantId}/face/", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task Activate_AnotherTenantsUpload_404()
     {
         var (alice, _) = await factory.RegisterAsync();

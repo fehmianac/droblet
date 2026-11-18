@@ -96,7 +96,7 @@ export default function WardrobeLooksScreen() {
         current="looks"
         eyebrow={t('looks.eyebrow')}
         title={looks.data ? t('looks.count', { count: looks.data.length }) : undefined}
-        actions={<IconButton icon={Plus} onPress={createLook} accessibilityLabel={t('looks.create')} />}
+        actions={<IconButton icon={Plus} onPress={createLook} accessibilityLabel={t('looks.create')} testID="looks.create" />}
       />
       <ScreenState
         query={looks}

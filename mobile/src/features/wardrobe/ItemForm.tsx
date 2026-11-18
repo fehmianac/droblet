@@ -61,6 +61,11 @@ type Props = {
   /** Background-removed picture and the photo as taken; either may be missing. */
   imageUrl: string | null;
   originalImageUrl: string | null;
+  /**
+   * Edit mode on the API: the server keeps the photo as taken but sends one image URL (the one in
+   * use), so "Orijinale dön" / "Temizlenmişi kullan" is offered without a second preview.
+   */
+  hasOriginalImage?: boolean;
   /** Draft mode: fields the model was unsure about. */
   lowConfidence?: DraftField[];
   onSubmit: (fields: ItemFields) => void;
@@ -71,7 +76,7 @@ type Props = {
  * nothing is saved until "Gardıroba kaydet". Rules: name, category and colour are required and at
  * least one season must be selected (save stays disabled, with the reason, until then).
  */
-export function ItemForm({ mode, initial, imageUrl, originalImageUrl, lowConfidence = [], onSubmit }: Props) {
+export function ItemForm({ mode, initial, imageUrl, originalImageUrl, hasOriginalImage = false, lowConfidence = [], onSubmit }: Props) {
   const { t } = useTranslation();
   const [values, setValues] = useState<ItemFormValues>(initial);
   const [submitted, setSubmitted] = useState(false);
@@ -83,7 +88,7 @@ export function ItemForm({ mode, initial, imageUrl, originalImageUrl, lowConfide
   const errorText = (key: keyof typeof errors) => (shown[key] ? t(`itemForm.errors.${shown[key]}`) : null);
   const noSeason = values.seasons.length === 0;
 
-  const canToggleImage = Boolean(imageUrl && originalImageUrl && imageUrl !== originalImageUrl);
+  const canToggleImage = Boolean(imageUrl && originalImageUrl && imageUrl !== originalImageUrl) || (hasOriginalImage && Boolean(imageUrl));
   const picture = values.useOriginalImage ? (originalImageUrl ?? imageUrl) : (imageUrl ?? originalImageUrl);
   const categoryLabel = values.category
     ? values.subcategory.trim()

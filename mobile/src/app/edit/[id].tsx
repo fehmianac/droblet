@@ -113,7 +113,7 @@ export default function WeeklyEditScreen() {
                 active={look.isSaved}
                 accessibilityLabel={t(look.isSaved ? 'weekEdit.saved' : 'weekEdit.save')}
                 onPress={() => {
-                  if (!look.isSaved) saveLook.save(look.id, band);
+                  if (!look.isSaved) saveLook.save(look.id, band, edit?.id);
                 }}
               />
             </View>
@@ -244,7 +244,7 @@ export default function WeeklyEditScreen() {
                             accessibilityLabel={t(p.inWatchlist ? 'weekEdit.watching' : 'weekEdit.watch', { name: p.name })}
                             onPress={() => {
                               if (p.inWatchlist) return;
-                              watchlist.add(p.id);
+                              watchlist.add(p.id, current.id);
                               setJustWatched(true);
                             }}
                           />

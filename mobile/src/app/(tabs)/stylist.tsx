@@ -132,6 +132,7 @@ export default function StylistTab() {
               start.reset();
             }}
             accessibilityLabel={t('stylistHome.textLabel')}
+            testID="stylist.text"
             placeholder={t('stylistHome.textPlaceholder')}
             placeholderTextColor={colors.muted}
             selectionColor={colors.accent}
@@ -140,7 +141,7 @@ export default function StylistTab() {
             maxFontSizeMultiplier={1.6}
             className="max-h-28 min-h-icon-btn flex-1 py-2.5 font-sans text-body text-ink"
           />
-          <IconButton icon={ArrowUp} variant="plain" onPress={submit} disabled={start.isStarting} accessibilityLabel={t('stylistHome.send')} />
+          <IconButton icon={ArrowUp} variant="plain" onPress={submit} disabled={start.isStarting} accessibilityLabel={t('stylistHome.send')} testID="stylist.send" />
         </View>
 
         <View className="gap-2.5">

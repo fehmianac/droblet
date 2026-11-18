@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { track } from '@/analytics/track';
 import { onboardingStore } from '@/auth/onboarding';
 import { sessionStore } from '@/auth/session';
+import { peekDeviceId } from '@/features/account/device';
 
 import { apiRequest } from './client';
 import type {
@@ -120,6 +121,9 @@ export async function logout(): Promise<void> {
   const tokens = sessionStore.getTokens();
   if (tokens) {
     const body: LogoutRequest = { refreshToken: tokens.refreshToken };
+    // With the device id the server also removes this installation's push registration.
+    const deviceId = await peekDeviceId();
+    if (deviceId) body.deviceId = deviceId;
     try {
       await apiRequest<void>('v1/auth/logout', { method: 'POST', body });
     } catch {

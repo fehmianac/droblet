@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ulid } from '@/lib/ids';
 
 import { planKeys } from '@/features/today/keys';
+import { sessionStore } from '@/auth/session';
 import { buildTodayFixture, fixtureLogWear, libraryFixture, withLatency } from '@/fixtures/today';
 import { toIsoDate } from '@/lib/format';
 import { newClientMutation } from '@/sync/clientMutation';
@@ -11,9 +12,46 @@ import { mutationKeys, queryKeys } from '@/sync/queryKeys';
 import { apiRequest } from './client';
 import type { LibraryItem, TodayResponse, WearLogRequest } from './contracts';
 import { DATA_SOURCE, fromSource } from './dataSource';
-import { ITEMS_QUERY_KEY, type ItemWire } from './wire/wardrobe';
+import type { ProfileWire } from './wire/core';
+import { firstNameOf, toToday, toWeeklyEditCards, type EditWire, type TodayWire } from './wire/today';
+import { ITEMS_QUERY_KEY, loadLookContext, type ItemWire } from './wire/wardrobe';
 
-/** 06 Bugün — `GET v1/tenant/today?date=` (fixture-backed behind the `today` source switch). */
+/** A side read of the Bugün card: its failure never fails the card. */
+async function optional<T>(request: Promise<T>): Promise<T | null> {
+  try {
+    return await request;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * `GET v1/tenant/today?date=` (the device's local day; no coordinates → the forecast of the profile
+ * city, null when there is none) joined with what the card also shows: piece names / images (wardrobe
+ * cache + catalogue), the first name, the city name (`GET v1/tenant/settings`), an existing try-on
+ * image of the look (`GET v1/tenant/tryon?kind=look&id=`, 404 = none) and the weekly edit strip
+ * (`GET v1/content/edit/current`, 404 = none published).
+ */
+export async function requestToday(date: string): Promise<TodayResponse> {
+  const wire = await apiRequest<TodayWire>(`v1/tenant/today?date=${date}`);
+  const sessionName = sessionStore.getTokens()?.user.name ?? '';
+  const [ctx, edit, settings, tryOn, profile] = await Promise.all([
+    loadLookContext([wire.look]),
+    optional(apiRequest<EditWire>('v1/content/edit/current')),
+    wire.weather ? optional(apiRequest<{ city: { name: string } | null }>('v1/tenant/settings')) : null,
+    wire.look ? optional(apiRequest<{ url: string }>(`v1/tenant/tryon?kind=look&id=${wire.look.id}`)) : null,
+    sessionName ? null : optional(apiRequest<ProfileWire>('v1/tenant/profile')),
+  ]);
+  return toToday(wire, {
+    ctx,
+    firstName: firstNameOf(sessionName || profile?.displayName),
+    cityName: settings?.city?.name ?? '',
+    tryOnImageUrl: tryOn?.url ?? null,
+    weeklyEdit: edit ? toWeeklyEditCards(edit) : [],
+  });
+}
+
+/** 06 Bugün. */
 export function useToday() {
   return useQuery({
     queryKey: queryKeys.today,
@@ -21,7 +59,7 @@ export function useToday() {
       fromSource<TodayResponse>(
         'today',
         () => buildTodayFixture(),
-        () => apiRequest<TodayResponse>(`v1/tenant/today?date=${toIsoDate(new Date())}`),
+        () => requestToday(toIsoDate(new Date())),
       ),
   });
 }
@@ -41,9 +79,15 @@ export function useWearToday() {
     ...m,
     wear: (lookId: string) => {
       const vars: WearLogRequest = { lookId, date: toIsoDate(new Date()), ...newClientMutation() };
-      // The queued write is registered in src/sync (fixture no-op there); keep the fixture calendar in step.
+      // The queued write (`POST v1/tenant/wear-log`) is registered in src/sync; in fixture mode keep the fixture calendar in step.
       if (DATA_SOURCE.today === 'fixtures') fixtureLogWear(vars.lookId, vars.date, vars.occurredAt);
-      m.mutate(vars, { onSuccess: () => void client.invalidateQueries({ queryKey: planKeys.planDays }) });
+      m.mutate(vars, {
+        onSuccess: () => {
+          void client.invalidateQueries({ queryKey: planKeys.planDays });
+          // Wear counts of the look's pieces went up (once per calendar day).
+          void client.invalidateQueries({ queryKey: ITEMS_QUERY_KEY });
+        },
+      });
     },
   };
 }

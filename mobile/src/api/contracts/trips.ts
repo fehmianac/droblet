@@ -1,28 +1,28 @@
 /**
- * E5 Bavullar — PROVISIONAL contract (BACKEND_ENGINEER §Uç nokta haritası, E5).
+ * E5 Bavullar — the app-side shapes. Wire shapes (docs/api/wardrobe-looks-plan-stylist.md §6:
+ * `TripDto`, `TripDetailDto`, `PackResult`) and the mapping live in `../wire/trips`.
  * Calendar dates are `YYYY-MM-DD`; wire times are UTC ISO-8601.
  */
 import type { JobAccepted } from './jobs';
 import type { ItemCategory, ItemColor, LookRef } from './wardrobe';
 
-export const TRIP_TYPES = ['business', 'dinner', 'sightseeing', 'beach', 'ski'] as const;
+/** The wire `TripType` enum. (Beach / ski trips have no server value yet, so the form does not offer them.) */
+export const TRIP_TYPES = ['business', 'dinner', 'sightseeing'] as const;
 export type TripType = (typeof TRIP_TYPES)[number];
 
-/** Longest trip the planner accepts (18). */
-export const TRIP_MAX_DAYS = 30;
+/** Longest trip the server accepts (400 `date_range_invalid` above it). */
+export const TRIP_MAX_DAYS = 21;
 
-/**
- * Candidate: GET v1/weather/city?q= → `City[]` (prefix search, max ~8). Not in the endpoint map yet —
- * the map only has `GET v1/weather?cityId=&from=&to=`; the city directory needs an endpoint.
- */
+/** GET v1/weather/city?q= (2–60 chars) → up to 8 cities, names in the request language. 503 `weather_unavailable`. */
 export type City = {
   id: string;
   /** Localised city name, e.g. "Londra". */
   name: string;
-  /** Country / region line under the name, e.g. "Birleşik Krallık". */
+  /** Country / region line under the name, e.g. "Birleşik Krallık" (wire `region` + `country`). */
   region: string;
 };
 
+/** The four glyphs of the forecast strip; the wire's 10 conditions are folded into them. */
 export type WeatherCondition = 'sun' | 'cloud' | 'rain' | 'snow';
 
 export type ForecastDay = { date: string; temperatureC: number; condition: WeatherCondition };
@@ -33,15 +33,23 @@ export type Trip = {
   id: string;
   cityId: string;
   cityName: string;
+  /** Not on the wire trip (only the city search has it); empty unless known from the form. */
   region: string;
   startDate: string;
   endDate: string;
   tripTypes: TripType[];
   /** "Tek kabin bavulu": the list is limited to a cabin bag. */
   cabinOnly: boolean;
-  /** 'new' = no accepted list yet; 'packed' = the user accepted a list. */
+  /** 'new' = no accepted list yet; 'packed' = the user accepted a list (wire `itemCount > 0`). */
   status: 'new' | 'packed';
-  /** A running / finished-but-unaccepted pack job, so a restarted app resumes it instead of starting another. */
+  /** Wire `status`: where the trip is in time. */
+  timeStatus?: 'upcoming' | 'active' | 'past';
+  /** Archived by the user or already over. */
+  archived?: boolean;
+  /**
+   * A running / finished-but-unaccepted pack job, so a reopened screen resumes it instead of starting
+   * another. Kept on the device (persisted query cache) — the server does not list a trip's jobs.
+   */
   packJobId: string | null;
   itemCount: number;
   packedCount: number;
@@ -60,13 +68,17 @@ export type TripItem = {
   packed: boolean;
 };
 
-export type TripDay = { date: string; look: LookRef | null };
+/**
+ * A trip day. The wire day is `{ date, label, occasion, slots, weather }` — not a saved look: `look`
+ * is a reference built from it (`id` = `{tripId}:{date}`, name = the day label, image = first piece).
+ */
+export type TripDay = { date: string; look: LookRef | null; itemIds?: string[] };
 
 export type TripMissingPiece = {
   id: string;
   /** e.g. "Yağmur botu". */
   name: string;
-  /** Server-written, localised reason, e.g. "3 gün yağmur var". */
+  /** Localised in the app from the wire `MissingPieceReason` (`emptySlot | rain | cold | noShoes | suggested`). */
   reason: string;
   /** Category of the missing piece (placeholder glyph, shop filter); null when unknown. */
   category: ItemCategory | null;
@@ -79,7 +91,7 @@ export type TripPlan = {
   items: TripItem[];
   days: TripDay[];
   missing: TripMissingPiece[];
-  /** "Her parça en az N kez giyiliyor"; null when the planner gives no such guarantee. */
+  /** "Her parça en az N kez giyiliyor": 2 when the wire says `everyPieceWornTwice`, else null. */
   minWearsPerItem: number | null;
 };
 
@@ -92,20 +104,20 @@ export type TripDetail = Trip &
 
 export type TripFields = Pick<Trip, 'cityId' | 'startDate' | 'endDate' | 'tripTypes' | 'cabinOnly'>;
 
-/** POST v1/tenant/trip — idempotent on `id` + `clientMutationId`. */
+/** POST v1/tenant/trip `{ id, cityId, cityName, startDate, endDate, tripTypes, cabinOnly }` → 201 (200 for the same id again). */
 export type CreateTripRequest = TripFields & { id: string; clientMutationId: string };
 
-/** PUT v1/tenant/trip/{id} — versioned (409 + `current` on conflict). */
+/** PUT v1/tenant/trip/{id} — same fields + `baseVersion`; 409 answers the current wire trip. */
 export type PutTripRequest = TripFields & { baseVersion: number; clientMutationId: string };
 
 /** DELETE v1/tenant/trip/{id} — no body. */
 
-/** POST v1/tenant/trip/{id}/pack → 202. Result of the `trip-pack` job: `TripPlan` (a draft, nothing is saved). */
+/** POST v1/tenant/trip/{id}/pack → 202 job (`stylistPack`; 403 `premium_required`). Its `PackResult` maps to a draft `TripPlan`. */
 export type PackTripRequest = { requestId: string };
 export type PackTripResponse = JobAccepted;
 
-/** POST v1/tenant/trip/{id}/pack/{jobId}/accept → `TripDetail` (the draft becomes TripItem + TripDay). */
+/** POST v1/tenant/trip/{id}/pack/{jobId}/accept → trip detail. 409 `job_not_completed` / `suggestion_stale`. */
 export type AcceptPackRequest = { clientMutationId: string };
 
-/** PUT v1/tenant/trip/{id}/item/{itemId} — packing check mark (event-like; last write wins). */
+/** PUT v1/tenant/trip/{id}/item/{itemId} — packing tick; idempotent, a late older event never overrides a newer one. */
 export type CheckTripItemRequest = { packed: boolean; clientMutationId: string; occurredAt: string };

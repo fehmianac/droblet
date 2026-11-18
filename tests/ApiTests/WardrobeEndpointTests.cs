@@ -1029,6 +1029,92 @@ public class ItemRecognitionQuotaEndpointTests : IClassFixture<ItemRecognitionQu
         Assert.Equal(3, (await _factory.Api.Repository.GetAllAsync<JobEntity>(JobEntity.GetPk(tenantId))).Count); // refused requests create no job
     }
 
+    private async Task<ItemDraftEntity> FailDraftAsync(string tenantId, string draftId)
+    {
+        await SettleAsync(tenantId, succeed: false);
+        var draft = (await _factory.Api.Repository.GetAsync<ItemDraftEntity>(ItemDraftEntity.GetPk(tenantId), ItemDraftEntity.GetSk(draftId)))!;
+        draft.Status = ItemDraftStatus.Failed;
+        draft.OriginalKey = StorageKeys.ItemOriginal(tenantId, draftId, "jpg");
+        await _factory.Api.Storage.PutAsync(draft.OriginalKey, Tests.Shared.TestImages.JpegWithExif(), "image/jpeg", default);
+        await _factory.Api.Repository.SaveAsync(draft);
+        return draft;
+    }
+
+    [Fact]
+    public async Task Retry_FailedDraft_QueuesANewJobOnTheSamePhoto_AndUsesOneRecognition()
+    {
+        var (client, tenantId) = await UserAsync(limit: 2);
+        var uploadId = (await UploadAsync(client, 1)).Single();
+        var started = await (await StartAsync(client, [uploadId])).ReadAsync<StartDraftsDto>();
+
+        var tooEarly = await client.PostAsync($"v1/tenant/item-draft/{uploadId}/retry", null);
+        await FailDraftAsync(tenantId, uploadId);
+        // The temporary upload expires after a day: the retry restores it from the original kept with the draft.
+        await _factory.Api.Storage.DeleteAsync(StorageKeys.Upload(tenantId, uploadId), default);
+        var afterFailure = await QuotaAsync(client);
+
+        var retry = await client.PostAsync($"v1/tenant/item-draft/{uploadId}/retry", null);
+        var body = await retry.ReadAsync<StartDraftsDto>();
+        var second = await client.PostAsync($"v1/tenant/item-draft/{uploadId}/retry", null);
+        var unknown = await client.PostAsync($"v1/tenant/item-draft/{Ulid.New()}/retry", null);
+        var events = _factory.Api.Events.Of<ItemProcessRequestedEvent>(tenantId);
+
+        Assert.Equal((HttpStatusCode.Conflict, "draft_not_failed"), (tooEarly.StatusCode, await tooEarly.CodeAsync()));
+        Assert.Equal((2, 0, 2), afterFailure);
+        Assert.Equal(HttpStatusCode.Accepted, retry.StatusCode);
+        Assert.Equal((1, 1, 0), (body.Drafts.Count, body.Jobs.Count, body.SkippedCount));
+        Assert.Equal((uploadId, ItemDraftStatus.Uploaded), (body.Drafts[0].Id, body.Drafts[0].Status));
+        Assert.NotEqual(started.Jobs[0].Id, body.Jobs[0].Id);
+        Assert.Equal(body.Jobs[0].Id, body.Drafts[0].JobId);
+        Assert.Equal((JobKind.ItemProcess, JobStatus.Queued), (body.Jobs[0].Kind, body.Jobs[0].Status));
+        Assert.Equal((2, 1, 1), (body.ItemRecognition!.Limit, body.ItemRecognition.Used, body.ItemRecognition.Remaining));
+        Assert.Equal(2, events.Count);
+        Assert.Equal((body.Jobs[0].Id, uploadId, false), (events[^1].JobId, events[^1].DraftId, events[^1].Split));
+        Assert.True(_factory.Api.Storage.Objects.ContainsKey(StorageKeys.Upload(tenantId, uploadId)));
+        Assert.Equal((HttpStatusCode.Conflict, "draft_not_failed"), (second.StatusCode, await second.CodeAsync())); // already queued again
+        Assert.Equal((HttpStatusCode.NotFound, "draft_not_found"), (unknown.StatusCode, await unknown.CodeAsync()));
+    }
+
+    [Fact]
+    public async Task Retry_FollowsTheAllowance_AndNeedsThePhoto()
+    {
+        var (client, tenantId) = await UserAsync(limit: 1);
+        var uploadId = (await UploadAsync(client, 1)).Single();
+        (await StartAsync(client, [uploadId])).EnsureSuccessStatusCode();
+        var draft = await FailDraftAsync(tenantId, uploadId);
+
+        // The only recognition is taken by another photo that completed.
+        (await StartAsync(client, await UploadAsync(client, 1))).EnsureSuccessStatusCode();
+        await SettleAsync(tenantId, succeed: true);
+        var exhausted = await client.PostAsync($"v1/tenant/item-draft/{uploadId}/retry", null);
+
+        // Members are unlimited; with both the upload and the original gone there is nothing to process.
+        await _factory.Api.PremiumAsync(tenantId);
+        await _factory.Api.Storage.DeleteAsync(StorageKeys.Upload(tenantId, uploadId), default);
+        await _factory.Api.Storage.DeleteAsync(draft.OriginalKey!, default);
+        var gone = await client.PostAsync($"v1/tenant/item-draft/{uploadId}/retry", null);
+
+        Assert.Equal((HttpStatusCode.PaymentRequired, "item_recognition_limit_reached"), (exhausted.StatusCode, await exhausted.CodeAsync()));
+        Assert.Equal((HttpStatusCode.UnprocessableEntity, "upload_missing"), (gone.StatusCode, await gone.CodeAsync()));
+        Assert.Equal(ItemDraftStatus.Failed, (await _factory.Api.Repository.GetAsync<ItemDraftEntity>(draft.Pk, draft.Sk))!.Status);
+    }
+
+    [Fact]
+    public async Task Retry_LimitZero_IsMembersOnly()
+    {
+        var (client, tenantId) = await UserAsync(limit: 0);
+        var draftId = Ulid.New();
+        await _factory.Api.Repository.SaveAsync(new ItemDraftEntity
+        {
+            Id = draftId, TenantId = tenantId, Kind = ItemDraftKind.Single, Status = ItemDraftStatus.Failed, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+        });
+        await _factory.Api.Storage.PutAsync(StorageKeys.Upload(tenantId, draftId), Tests.Shared.TestImages.JpegWithExif(), "image/jpeg", default);
+
+        var retry = await client.PostAsync($"v1/tenant/item-draft/{draftId}/retry", null);
+
+        Assert.Equal((HttpStatusCode.Forbidden, "premium_required"), (retry.StatusCode, await retry.CodeAsync()));
+    }
+
     [Fact]
     public async Task FailedJobs_GiveTheRecognitionBack()
     {

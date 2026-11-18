@@ -12,7 +12,7 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 
 **Auth** column: `user` = signed-in user (tenant from the token) · `admin` = signed-in user listed in `Admin:UserIds` / `Admin:Emails` · `anonymous` = no token (postbacks are authenticated by signature).
 
-152 endpoints.
+157 endpoints.
 
 ## Auth and account (foundation)
 
@@ -38,6 +38,7 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | DELETE | `v1/tenant/photo` | user | — | Delete my photos and generated images |
 | POST | `v1/tenant/photo/upload-url` | user | — | Get a presigned upload for a body/face photo |
 | PUT | `v1/tenant/photo/{kind}` | user | — | Make an uploaded photo the active body/face photo |
+| DELETE | `v1/tenant/photo/{kind}/{photoId}` | user | [S](store-social-settings.md) | Delete my body or face photo |
 | GET | `v1/tenant/profile` | user | — | Get profile |
 | PUT | `v1/tenant/profile` | user | [S](store-social-settings.md) | Update profile |
 | PUT | `v1/tenant/profile/handle` | user | — | Claim or change @handle |
@@ -64,6 +65,7 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | POST | `v1/tenant/item-draft` | user | [W](wardrobe-looks-plan-stylist.md) | Start AI processing of uploaded garment photos |
 | POST | `v1/tenant/item-draft/confirm` | user | [W](wardrobe-looks-plan-stylist.md) | Confirm drafts into wardrobe items |
 | DELETE | `v1/tenant/item-draft/{id}` | user | [W](wardrobe-looks-plan-stylist.md) | Discard an item draft |
+| POST | `v1/tenant/item-draft/{id}/retry` | user | [W](wardrobe-looks-plan-stylist.md) | Retry AI processing of a failed draft |
 | POST | `v1/tenant/item/from-library` | user | [W](wardrobe-looks-plan-stylist.md) | Add pieces from the ready library |
 | POST | `v1/tenant/item/from-product` | user | [W](wardrobe-looks-plan-stylist.md) | Add a catalog product to the wardrobe |
 | POST | `v1/tenant/item/upload-url` | user | [W](wardrobe-looks-plan-stylist.md) | Get presigned uploads for garment photos |
@@ -158,7 +160,7 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | POST | `v1/tenant/catalog/product/{id}/checkout` | user | [S](store-social-settings.md) | Open one product on the brand site |
 | GET | `v1/tenant/catalog/product/{id}/match` | user | [S](store-social-settings.md) | Wardrobe pieces compatible with a product |
 
-## Cart, watch list, purchase prompt
+## Cart, watch list, favourites, purchase prompt
 
 | Method | Path | Auth | Doc | What |
 |---|---|---|---|---|
@@ -166,6 +168,9 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | POST | `v1/tenant/cart/checkout/{brandId}` | user | [S](store-social-settings.md) | Check out a brand group |
 | POST | `v1/tenant/cart/line` | user | [S](store-social-settings.md) | Add cart lines |
 | DELETE | `v1/tenant/cart/line/{lineId}` | user | [S](store-social-settings.md) | Remove a cart line |
+| GET | `v1/tenant/favorite/product` | user | [S](store-social-settings.md) | Favourite products |
+| PUT | `v1/tenant/favorite/product/{productId}` | user | [S](store-social-settings.md) | Favourite a product |
+| DELETE | `v1/tenant/favorite/product/{productId}` | user | [S](store-social-settings.md) | Remove a favourite product |
 | GET | `v1/tenant/purchase-prompt` | user | [S](store-social-settings.md) | Pending "add to wardrobe?" prompts |
 | PUT | `v1/tenant/purchase-prompt/{id}` | user | [S](store-social-settings.md) | Answer a purchase prompt |
 | GET | `v1/tenant/watch-list` | user | [S](store-social-settings.md) | Watch list |

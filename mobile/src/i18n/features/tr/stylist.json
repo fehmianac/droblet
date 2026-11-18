@@ -75,7 +75,9 @@
     "dayA11y": "{{weekday}} {{date}}",
     "calendarConfirm": "Takvime ekle",
     "empty": "Bu istek için öneri çıkmadı.",
-    "expired": "Bu öneri artık hazır değil. Yeniden iste."
+    "expired": "Bu öneri artık hazır değil. Yeniden iste.",
+    "ruleTitle": "Öneri {{number}}",
+    "ruleNote": "Gardırobundaki parçalardan, güne ve havaya göre seçildi."
   },
   "stylistFeedback": {
     "title": "Neyi beğenmedin?",
@@ -105,5 +107,16 @@
     "creditCostOnly_other": "{{count}} kredi",
     "imageA11y": "Senin üzerinde AI görseli",
     "imageA11yNamed": "{{name}}, senin üzerinde AI görseli"
+  },
+  "weatherCondition": {
+    "clear": "açık",
+    "partlyCloudy": "parçalı bulutlu",
+    "cloudy": "bulutlu",
+    "fog": "sisli",
+    "drizzle": "çiseleme",
+    "rain": "yağmurlu",
+    "snow": "karlı",
+    "showers": "sağanak",
+    "thunderstorm": "gök gürültülü"
   }
 }

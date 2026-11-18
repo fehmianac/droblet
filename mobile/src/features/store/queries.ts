@@ -14,15 +14,47 @@ import type {
   ProductCategory,
   ProductPage,
   ProductQuery,
+  ProductSummary,
+  PurchasePrompt,
   SeriesOutfit,
   TryOnState,
   Watchlist,
   WeeklyEditSummary,
 } from '@/api/contracts/store';
 import { fromSource, queryString } from '@/api/dataSource';
-import { isGone } from '@/api/errors';
+import { ApiError, isGone } from '@/api/errors';
+import { toJob, type JobWire } from '@/api/wire/core';
+import type { ProductWire } from '@/api/wire/catalog';
+import {
+  fromProductCategory,
+  fromProductSort,
+  splitProductQuery,
+  toBrand,
+  toCart,
+  toCompleteSuggestions,
+  toCreatorCard,
+  toProductMatch,
+  toProductPage,
+  toProductSummary,
+  toPurchasePrompt,
+  toSeriesOutfit,
+  toTryOnState,
+  toWatchlist,
+  toWeeklyEditSummary,
+  type BrandWire,
+  type CartWire,
+  type CompleteWire,
+  type ContentCollectionWire,
+  type EditWire,
+  type ProductMatchWire,
+  type ProductPageWire,
+  type PurchasePromptWire,
+  type TryOnImageWire,
+  type WatchItemWire,
+} from '@/api/wire/store';
 import { storeFixtures } from '@/fixtures/store';
 
+import { localFavorites, mutedWatchAlerts, pendingProductTryOns } from './localState';
 import { lookSlotCategories, slotCategories } from './slots';
 
 /** Query keys for E8. Global catalogue/content data and tenant data are kept under separate roots. */
@@ -39,6 +71,7 @@ export const storeKeys = {
   tryOn: (productId: string) => ['tenant', 'tryon', 'product', productId] as const,
   cart: ['tenant', 'cart', 'current'] as const,
   watchlist: ['tenant', 'watchlist', 'current'] as const,
+  purchasePrompts: ['tenant', 'purchase-prompt'] as const,
 };
 
 export const EMPTY_PRODUCT_QUERY: ProductQuery = { categories: [], brandIds: [], colors: [], sizes: [], q: '', sort: 'newest' };
@@ -52,7 +85,7 @@ export function useCurrentEdit() {
     queryFn: () =>
       fromSource<WeeklyEditSummary | null>('content', storeFixtures.edit, async () => {
         try {
-          return await apiRequest<WeeklyEditSummary>('v1/content/edit/current', { auth: false });
+          return toWeeklyEditSummary(await apiRequest<EditWire>('v1/content/edit/current'));
         } catch (e) {
           if (isGone(e)) return null;
           throw e;
@@ -65,7 +98,10 @@ export function useCurrentEdit() {
 export function useCreators() {
   return useQuery({
     queryKey: storeKeys.creators,
-    queryFn: () => fromSource('content', storeFixtures.creators, () => apiRequest<CreatorCard[]>('v1/content/creator', { auth: false })),
+    queryFn: () =>
+      fromSource<CreatorCard[]>('content', storeFixtures.creators, async () =>
+        (await apiRequest<ContentCollectionWire[]>('v1/content/creator')).map(toCreatorCard),
+      ),
   });
 }
 
@@ -73,7 +109,10 @@ export function useSeriesOutfits(enabled: boolean) {
   return useQuery({
     queryKey: storeKeys.series,
     enabled,
-    queryFn: () => fromSource('content', storeFixtures.series, () => apiRequest<SeriesOutfit[]>('v1/content/series-outfit', { auth: false })),
+    queryFn: () =>
+      fromSource<SeriesOutfit[]>('content', storeFixtures.series, async () =>
+        (await apiRequest<ContentCollectionWire[]>('v1/content/series-outfit')).map(toSeriesOutfit),
+      ),
   });
 }
 
@@ -83,28 +122,22 @@ export function useBrands() {
   return useQuery({
     queryKey: storeKeys.brands,
     staleTime: 60 * 60_000,
-    queryFn: () => fromSource('catalog', storeFixtures.brands, () => apiRequest<Brand[]>('v1/catalog/brand', { auth: false })),
+    queryFn: () =>
+      fromSource<Brand[]>('catalog', storeFixtures.brands, async () => (await apiRequest<BrandWire[]>('v1/catalog/brand')).map(toBrand)),
   });
 }
 
-function fetchProducts(query: ProductQuery, pageToken: string | null): Promise<ProductPage> {
-  return fromSource(
-    'catalog',
-    () => storeFixtures.products(query, pageToken),
-    () =>
-      apiRequest<ProductPage>(
-        `v1/catalog/product${queryString({
-          category: query.categories,
-          brand: query.brandIds,
-          color: query.colors,
-          size: query.sizes,
-          q: query.q.trim(),
-          sort: query.sort,
-          pageToken,
-        })}`,
-        { auth: false },
-      ),
+/** One catalogue page. Single-valued filters go to the server, multi-valued ones are applied here (see `ProductQuery`). */
+async function requestProducts(query: ProductQuery, pageToken: string | null, limit?: number): Promise<ProductPage> {
+  const { server, local } = splitProductQuery(query);
+  const wire = await apiRequest<ProductPageWire>(
+    `v1/catalog/product${queryString({ ...server, q: query.q.trim().slice(0, 80), sort: fromProductSort(query.sort), pageToken, limit })}`,
   );
+  return toProductPage(wire, local);
+}
+
+function fetchProducts(query: ProductQuery, pageToken: string | null): Promise<ProductPage> {
+  return fromSource('catalog', () => storeFixtures.products(query, pageToken), () => requestProducts(query, pageToken));
 }
 
 /** 21 — paged catalogue (infinite scroll). The previous result stays visible while a new filter loads. */
@@ -125,7 +158,20 @@ function useCategoryProducts(categories: ProductCategory[] | null) {
   return useQuery({
     queryKey: [...storeKeys.products(query), 'first-page'] as const,
     enabled: categories !== null,
-    queryFn: async () => (await fetchProducts(query, null)).items,
+    queryFn: () =>
+      fromSource<ProductSummary[]>(
+        'catalog',
+        () => storeFixtures.products(query, null).items,
+        async () => {
+          // The server filters one category per request: one first page per category, merged in slot order.
+          const pages = await Promise.all(
+            (categories ?? []).map((category) =>
+              apiRequest<ProductPageWire>(`v1/catalog/product${queryString({ category: fromProductCategory(category), limit: 24 })}`),
+            ),
+          );
+          return pages.flatMap((page) => page.items.map(toProductSummary));
+        },
+      ),
   });
 }
 
@@ -146,7 +192,11 @@ export function useProduct(id: string, enabled = true) {
     enabled,
     queryFn: async (): Promise<ProductDetail | null> => {
       try {
-        return await fromSource('catalog', () => storeFixtures.product(id), () => apiRequest<ProductDetail>(`v1/catalog/product/${id}`, { auth: false }));
+        return await fromSource<ProductDetail>(
+          'catalog',
+          () => storeFixtures.product(id),
+          async () => toProductSummary(await apiRequest<ProductWire>(`v1/catalog/product/${encodeURIComponent(id)}`)),
+        );
       } catch (e) {
         if (isGone(e)) return null;
         throw e;
@@ -159,7 +209,12 @@ export function useProduct(id: string, enabled = true) {
 export function useProductMatch(id: string) {
   return useQuery({
     queryKey: storeKeys.match(id),
-    queryFn: () => fromSource('catalog', () => storeFixtures.match(id), () => apiRequest<ProductMatch>(`v1/tenant/catalog/product/${id}/match`)),
+    queryFn: () =>
+      fromSource<ProductMatch>(
+        'catalog',
+        () => storeFixtures.match(id),
+        async () => toProductMatch(await apiRequest<ProductMatchWire>(`v1/tenant/catalog/product/${encodeURIComponent(id)}/match`)),
+      ),
   });
 }
 
@@ -169,10 +224,12 @@ export function useCompleteSuggestions(itemId: string | null) {
     queryKey: storeKeys.complete(itemId ?? ''),
     enabled: itemId !== null,
     queryFn: () =>
-      fromSource(
+      fromSource<CompleteSuggestions>(
         'catalog',
         () => storeFixtures.complete(itemId ?? ''),
-        () => apiRequest<CompleteSuggestions>('v1/tenant/stylist/complete', { method: 'POST', body: { requestId: itemId, itemIds: [itemId] } }),
+        // Synchronous and rule based (`POST v1/tenant/catalog/complete`) — not an AI job, no credit.
+        async () =>
+          toCompleteSuggestions(await apiRequest<CompleteWire>('v1/tenant/catalog/complete', { method: 'POST', body: { itemIds: [itemId] } })),
       ),
   });
 }
@@ -180,24 +237,62 @@ export function useCompleteSuggestions(itemId: string | null) {
 export function useFavoriteProducts() {
   return useQuery({
     queryKey: storeKeys.favorites,
-    queryFn: () => fromSource('catalog', storeFixtures.favorites, () => apiRequest<FavoriteProducts>('v1/tenant/favorite/product')),
+    queryFn: () =>
+      fromSource<FavoriteProducts>('catalog', storeFixtures.favorites, async () => {
+        try {
+          return await apiRequest<FavoriteProducts>('v1/tenant/favorite/product');
+        } catch (e) {
+          // The endpoint is newer than some deployed backends: until it exists the hearts live on the device.
+          if (isGone(e)) return { productIds: [...localFavorites] };
+          throw e;
+        }
+      }),
   });
 }
 
+/** The owner's existing image for the product with the current body photo; `none` when there is none (404). */
+async function findProductTryOn(productId: string): Promise<TryOnState> {
+  try {
+    return toTryOnState(await apiRequest<TryOnImageWire>(`v1/tenant/tryon${queryString({ kind: 'product', id: productId })}`));
+  } catch (e) {
+    if (isGone(e)) return { status: 'none', imageUrl: null };
+    throw e;
+  }
+}
+
+/** While a job runs for the product: poll it, then read the image it produced. A failed job refunds its credit. */
+async function readProductTryOn(productId: string): Promise<TryOnState> {
+  const jobId = pendingProductTryOns.get(productId);
+  if (!jobId) return findProductTryOn(productId);
+  let job;
+  try {
+    job = await toJob<{ tryOnImageId: string }>(await apiRequest<JobWire>(`v1/tenant/job/${jobId}`));
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) {
+      pendingProductTryOns.delete(productId);
+      return { status: 'failed', imageUrl: null };
+    }
+    throw e;
+  }
+  if (job.status === 'failed') {
+    pendingProductTryOns.delete(productId);
+    return { status: 'failed', imageUrl: null };
+  }
+  if (job.status !== 'done' || !job.result) return { status: 'pending', imageUrl: null };
+  pendingProductTryOns.delete(productId);
+  return toTryOnState(await apiRequest<TryOnImageWire>(`v1/tenant/tryon/${job.result.tryOnImageId}`));
+}
+
 /**
- * 22 "Üzerimde" — the owner's try-on image of a product. Polls while the TryOn worker runs.
- * The signed image URL is short-lived, so this query is never persisted.
+ * 22 "Üzerimde" — the owner's try-on image of a product (`GET v1/tenant/tryon?kind=product&id=`).
+ * Polls the job while the TryOn worker runs. The signed image URL is short-lived, so this query is
+ * never persisted.
  */
 export function productTryOnOptions(productId: string) {
   return queryOptions({
     queryKey: storeKeys.tryOn(productId),
     meta: { persist: false },
-    queryFn: () =>
-      fromSource(
-        'jobs',
-        () => storeFixtures.tryOn(productId),
-        () => apiRequest<TryOnState>(`v1/tenant/tryon${queryString({ kind: 'product', id: productId })}`),
-      ),
+    queryFn: () => fromSource<TryOnState>('jobs', () => storeFixtures.tryOn(productId), () => readProductTryOn(productId)),
     refetchInterval: (query) => (query.state.data?.status === 'pending' ? 1500 : false),
   });
 }
@@ -209,7 +304,7 @@ export function useProductTryOn(productId: string, enabled: boolean) {
 // ---------- Cart (24) and watchlist (24b) ----------
 
 function fetchCart(): Promise<Cart> {
-  return fromSource('cart', storeFixtures.cart, () => apiRequest<Cart>('v1/tenant/cart'));
+  return fromSource<Cart>('cart', storeFixtures.cart, async () => toCart(await apiRequest<CartWire>('v1/tenant/cart')));
 }
 
 export function useCart() {
@@ -224,6 +319,21 @@ export function useCartLineCount() {
 export function useWatchlist() {
   return useQuery({
     queryKey: storeKeys.watchlist,
-    queryFn: () => fromSource('watchlist', storeFixtures.watchlist, () => apiRequest<Watchlist>('v1/tenant/watchlist')),
+    queryFn: () =>
+      fromSource<Watchlist>('watchlist', storeFixtures.watchlist, async () =>
+        toWatchlist(await apiRequest<WatchItemWire[]>('v1/tenant/watch-list'), mutedWatchAlerts),
+      ),
+  });
+}
+
+/** Pending "Gardıroba ekleyelim mi?" prompts (`GET v1/tenant/purchase-prompt`), created when a purchase is confirmed. */
+export function usePurchasePrompts(enabled = true) {
+  return useQuery({
+    queryKey: storeKeys.purchasePrompts,
+    enabled,
+    queryFn: () =>
+      fromSource<PurchasePrompt[]>('cart', () => [], async () =>
+        (await apiRequest<PurchasePromptWire[]>('v1/tenant/purchase-prompt')).map(toPurchasePrompt),
+      ),
   });
 }

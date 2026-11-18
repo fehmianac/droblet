@@ -4,6 +4,7 @@ import { apiRequest } from '@/api/client';
 import type {
   AcceptInviteRequest,
   BlockRequest,
+  FeedLook,
   FeedPage,
   FollowRequest,
   PersonProfile,
@@ -14,12 +15,14 @@ import type {
   SaveLookRequest,
 } from '@/api/contracts/social';
 import { fromSource } from '@/api/dataSource';
+import { ApiError } from '@/api/errors';
+import { fromReportReason, type RatingWire, type ReportRequestWire } from '@/api/wire/social';
 import { socialFixtures } from '@/fixtures/social';
 import { newClientMutation } from '@/sync/clientMutation';
 import { TENANT_WRITE_SCOPE } from '@/sync/queryKeys';
 
 import { applyRating, updateFeedLooks } from './feedMath';
-import { socialKeys } from './queries';
+import { handlePath, socialKeys } from './queries';
 
 export const socialMutationKeys = {
   rateLook: ['tenant', 'social', 'look', 'rate'] as const,
@@ -27,21 +30,36 @@ export const socialMutationKeys = {
   follow: ['tenant', 'social', 'follow', 'set'] as const,
   report: ['tenant', 'social', 'person', 'report'] as const,
   block: ['tenant', 'social', 'person', 'block'] as const,
+  unblock: ['tenant', 'social', 'person', 'unblock'] as const,
   acceptInvite: ['tenant', 'invite', 'accept'] as const,
 };
 
 type Feed = InfiniteData<FeedPage>;
 
+const lookPath = (handle: string, lookId: string) => `v1/tenant/people/${handlePath(handle)}/look/${encodeURIComponent(lookId)}`;
+
+/**
+ * Invite attribution answers that will never change on a retry: the code is unknown (404), the
+ * install is already attributed (409), it is the user's own code or the account is too old (422).
+ */
+export function isFinalInviteAnswer(error: unknown): boolean {
+  return error instanceof ApiError && (error.status === 404 || error.status === 409 || error.status === 422);
+}
+
 /** Registers the function + optimistic update of every queued E9 write (see `sync/mutationFns`). */
 export function registerSocialMutations(client: QueryClient): void {
+  // PUT v1/tenant/people/{handle}/look/{lookId}/rating { score, clientMutationId } → { average, count, myScore }
   client.setMutationDefaults(socialMutationKeys.rateLook, {
     scope: TENANT_WRITE_SCOPE,
     mutationFn: (vars: RateLookRequest) =>
-      fromSource(
+      fromSource<RatingWire | null>(
         'social',
-        () => socialFixtures.rate(vars.lookId, vars.score),
+        () => {
+          socialFixtures.rate(vars.lookId, vars.score);
+          return null;
+        },
         () =>
-          apiRequest<void>(`v1/tenant/people/${vars.handle}/look/${vars.lookId}/rating`, {
+          apiRequest<RatingWire>(`${lookPath(vars.handle, vars.lookId)}/rating`, {
             method: 'PUT',
             body: { score: vars.score, clientMutationId: vars.clientMutationId },
           }),
@@ -52,20 +70,27 @@ export function registerSocialMutations(client: QueryClient): void {
         updateFeedLooks(prev, (l) => l.lookId === vars.lookId, (l) => ({ ...l, ...applyRating(l, vars.score) })),
       );
     },
+    // The server's summary replaces the optimistic numbers.
+    onSuccess: (rating: RatingWire | null, vars: RateLookRequest) => {
+      if (!rating) return;
+      const summary: Pick<FeedLook, 'myRating' | 'averageRating' | 'ratingCount'> = {
+        myRating: rating.myScore,
+        averageRating: rating.count > 0 ? rating.average : null,
+        ratingCount: rating.count,
+      };
+      client.setQueryData<Feed>(socialKeys.feed, (prev) => updateFeedLooks(prev, (l) => l.lookId === vars.lookId, (l) => ({ ...l, ...summary })));
+    },
     onError: () => void client.invalidateQueries({ queryKey: socialKeys.feed }),
   });
 
+  // PUT (save) / DELETE (remove) v1/tenant/people/{handle}/look/{lookId}/save → 204, no body
   client.setMutationDefaults(socialMutationKeys.saveLook, {
     scope: TENANT_WRITE_SCOPE,
     mutationFn: (vars: SaveLookRequest) =>
       fromSource(
         'social',
         () => socialFixtures.save(vars.lookId, vars.saved),
-        () =>
-          apiRequest<void>(`v1/tenant/people/${vars.handle}/look/${vars.lookId}/save`, {
-            method: 'PUT',
-            body: { saved: vars.saved, clientMutationId: vars.clientMutationId },
-          }),
+        () => apiRequest<void>(`${lookPath(vars.handle, vars.lookId)}/save`, { method: vars.saved ? 'PUT' : 'DELETE' }),
       ),
     onMutate: async (vars: SaveLookRequest) => {
       await client.cancelQueries({ queryKey: socialKeys.feed });
@@ -73,20 +98,18 @@ export function registerSocialMutations(client: QueryClient): void {
         updateFeedLooks(prev, (l) => l.lookId === vars.lookId, (l) => ({ ...l, saved: vars.saved })),
       );
     },
+    onSuccess: () => void client.invalidateQueries({ queryKey: socialKeys.savedLooks }),
     onError: () => void client.invalidateQueries({ queryKey: socialKeys.feed }),
   });
 
+  // POST (follow) / DELETE (unfollow) v1/tenant/follow/{handle} → 204, no body
   client.setMutationDefaults(socialMutationKeys.follow, {
     scope: TENANT_WRITE_SCOPE,
     mutationFn: (vars: FollowRequest) =>
       fromSource(
         'social',
         () => socialFixtures.follow(vars.handle, vars.follow),
-        () =>
-          apiRequest<void>(`v1/tenant/follow/${vars.handle}`, {
-            method: vars.follow ? 'POST' : 'DELETE',
-            body: vars.follow ? { clientMutationId: vars.clientMutationId } : undefined,
-          }),
+        () => apiRequest<void>(`v1/tenant/follow/${handlePath(vars.handle)}`, { method: vars.follow ? 'POST' : 'DELETE' }),
       ),
     onMutate: async (vars: FollowRequest) => {
       await client.cancelQueries({ queryKey: socialKeys.root });
@@ -99,34 +122,40 @@ export function registerSocialMutations(client: QueryClient): void {
       client.setQueryData<PersonSuggestion[]>(socialKeys.suggested, inLists);
       client.setQueriesData<PersonSuggestion[]>({ queryKey: ['tenant', 'social', 'search'] }, inLists);
     },
+    // A new follow changes the feed, the lists and what a followers-only closet shows.
+    onSuccess: (_data: unknown, vars: FollowRequest) => {
+      void client.invalidateQueries({ queryKey: socialKeys.feed });
+      void client.invalidateQueries({ queryKey: socialKeys.following });
+      void client.invalidateQueries({ queryKey: socialKeys.person(vars.handle) });
+    },
     onError: () => void client.invalidateQueries({ queryKey: socialKeys.root }),
   });
 
+  // POST v1/tenant/people/{handle}/report { targetKind, targetId?, reason, note? } → 201 { reportId }
   client.setMutationDefaults(socialMutationKeys.report, {
     scope: TENANT_WRITE_SCOPE,
     mutationFn: (vars: ReportRequest) =>
       fromSource(
         'social',
         () => undefined,
-        () =>
-          apiRequest<void>(`v1/tenant/people/${vars.handle}/report`, {
-            method: 'POST',
-            body: { reason: vars.reason, clientMutationId: vars.clientMutationId },
-          }),
+        async () => {
+          const target = vars.target ?? { kind: 'profile' as const };
+          const body: ReportRequestWire = { targetKind: target.kind, reason: fromReportReason(vars.reason) };
+          if (target.kind !== 'profile') body.targetId = target.id;
+          if (vars.note) body.note = vars.note.slice(0, 500);
+          await apiRequest<{ reportId: string }>(`v1/tenant/people/${handlePath(vars.handle)}/report`, { method: 'POST', body });
+        },
       ),
   });
 
+  // PUT v1/tenant/block/{handle} → 204 (removes follows in both directions)
   client.setMutationDefaults(socialMutationKeys.block, {
     scope: TENANT_WRITE_SCOPE,
     mutationFn: (vars: BlockRequest) =>
       fromSource(
         'social',
         () => socialFixtures.block(vars.handle),
-        () =>
-          apiRequest<void>(`v1/tenant/people/${vars.handle}/block`, {
-            method: 'POST',
-            body: { clientMutationId: vars.clientMutationId },
-          }),
+        () => apiRequest<void>(`v1/tenant/block/${handlePath(vars.handle)}`, { method: 'PUT' }),
       ),
     onMutate: async (vars: BlockRequest) => {
       // The blocked person's content disappears at once, everywhere it is cached.
@@ -151,10 +180,38 @@ export function registerSocialMutations(client: QueryClient): void {
     onSettled: () => void client.invalidateQueries({ queryKey: socialKeys.root }),
   });
 
+  // DELETE v1/tenant/block/{handle} → 204 (follows are not restored)
+  client.setMutationDefaults(socialMutationKeys.unblock, {
+    scope: TENANT_WRITE_SCOPE,
+    mutationFn: (vars: BlockRequest) =>
+      fromSource(
+        'social',
+        () => socialFixtures.unblock(vars.handle),
+        () => apiRequest<void>(`v1/tenant/block/${handlePath(vars.handle)}`, { method: 'DELETE' }),
+      ),
+    onMutate: async (vars: BlockRequest) => {
+      await client.cancelQueries({ queryKey: socialKeys.blocked });
+      client.setQueryData<PersonSuggestion[]>(socialKeys.blocked, (prev) => prev?.filter((p) => p.handle !== vars.handle));
+    },
+    onSettled: () => void client.invalidateQueries({ queryKey: socialKeys.root }),
+  });
+
+  // POST v1/tenant/invite/attribution { code } → 204
   client.setMutationDefaults(socialMutationKeys.acceptInvite, {
     scope: TENANT_WRITE_SCOPE,
     mutationFn: (vars: AcceptInviteRequest) =>
-      fromSource('social', () => undefined, () => apiRequest<void>('v1/tenant/invite/accept', { method: 'POST', body: vars })),
+      fromSource(
+        'social',
+        () => undefined,
+        async () => {
+          try {
+            await apiRequest<void>('v1/tenant/invite/attribution', { method: 'POST', body: { code: vars.code } });
+          } catch (e) {
+            // Unknown code, already attributed, own code, window closed: nothing to do and nothing to show.
+            if (!isFinalInviteAnswer(e)) throw e;
+          }
+        },
+      ),
   });
 }
 
@@ -163,7 +220,7 @@ export function registerSocialMutations(client: QueryClient): void {
 const id = () => newClientMutation().clientMutationId;
 
 export function useRateLook() {
-  const m = useMutation<void, unknown, RateLookRequest>({ mutationKey: socialMutationKeys.rateLook });
+  const m = useMutation<unknown, unknown, RateLookRequest>({ mutationKey: socialMutationKeys.rateLook });
   return (handle: string, lookId: string, score: number) => m.mutate({ handle, lookId, score, clientMutationId: id() });
 }
 
@@ -177,13 +234,20 @@ export function useFollow() {
   return (handle: string, follow: boolean) => m.mutate({ handle, follow, clientMutationId: id() });
 }
 
+/** Reports the profile by default; pass `target` to report one look / item of that person. */
 export function useReportPerson() {
   const m = useMutation<void, unknown, ReportRequest>({ mutationKey: socialMutationKeys.report });
-  return (handle: string, reason: ReportReason) => m.mutate({ handle, reason, clientMutationId: id() });
+  return (handle: string, reason: ReportReason, target?: ReportRequest['target'], note?: string) =>
+    m.mutate({ handle, reason, target, note, clientMutationId: id() });
 }
 
 export function useBlockPerson() {
   const m = useMutation<void, unknown, BlockRequest>({ mutationKey: socialMutationKeys.block });
+  return (handle: string) => m.mutate({ handle, clientMutationId: id() });
+}
+
+export function useUnblockPerson() {
+  const m = useMutation<void, unknown, BlockRequest>({ mutationKey: socialMutationKeys.unblock });
   return (handle: string) => m.mutate({ handle, clientMutationId: id() });
 }
 

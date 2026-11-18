@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
+import { router } from 'expo-router';
 
 import { apiRequest } from '@/api/client';
 import type {
@@ -12,11 +13,25 @@ import type {
   NotificationSettings,
   Palette,
   PutNotificationSettingsRequest,
+  PutProfileCityRequest,
   PutProfileLanguageRequest,
   PutVisibilityRequest,
   RemovePhotoRequest,
 } from '@/api/contracts/account';
 import { fromSource } from '@/api/dataSource';
+import { apiErrorCode, isPaywallError } from '@/api/errors';
+import {
+  fromNotificationSettings,
+  fromVisibility,
+  toNotificationSettings,
+  type NotificationPrefsWire,
+  type PutHandleWire,
+  type PutProfileWire,
+  type PutVisibilityWire,
+} from '@/api/wire/account';
+import type { ProfileWire } from '@/api/wire/core';
+import { toPalette, type AnalyzePaletteResponseWire, type AnalyzePaletteWire } from '@/api/wire/palette';
+import { deviceTimeZone, toQuarterHour } from '@/notify/time';
 import { sessionStore } from '@/auth/session';
 import type { AppLanguage } from '@/i18n';
 import { openCreditSheetIfExhausted } from '@/features/credits/creditSheetStore';
@@ -26,11 +41,13 @@ import { newClientMutation } from '@/sync/clientMutation';
 import { TENANT_WRITE_SCOPE } from '@/sync/queryKeys';
 import { registerVersionedWrite } from '@/sync/versionedWrite';
 
-import { accountKeys } from './queries';
+import { DEVICE_ID_KEY } from './device';
+import { accountKeys, profileFromWire } from './queries';
 
 export const accountMutationKeys = {
   putVisibility: ['tenant', 'profile', 'visibility', 'put'] as const,
   putLanguage: ['tenant', 'profile', 'language', 'put'] as const,
+  putCity: ['tenant', 'profile', 'city', 'put'] as const,
   removePhoto: ['tenant', 'photo', 'remove-one'] as const,
   deleteAllPhotos: ['tenant', 'photo', 'delete-all'] as const,
   putNotifications: ['tenant', 'user', 'notifications', 'put'] as const,
@@ -52,9 +69,13 @@ export function registerAccountMutations(client: QueryClient): void {
       fromSource(
         'account',
         () => accountFixtures.setVisibility(vars.closetVisibility),
-        () => apiRequest<MyProfile>('v1/tenant/profile/visibility', { method: 'PUT', body: vars }),
+        async () => {
+          const body: PutVisibilityWire = { closetVisibility: fromVisibility(vars.closetVisibility), baseVersion: vars.baseVersion };
+          return profileFromWire(client, await apiRequest<ProfileWire>('v1/tenant/profile/visibility', { method: 'PUT', body }));
+        },
       ),
     optimistic: (prev, vars) => (prev ? { ...prev, closetVisibility: vars.closetVisibility } : prev),
+    mapCurrent: (wire) => profileFromWire(client, wire as ProfileWire),
   });
 
   registerVersionedWrite<PutProfileLanguageRequest, MyProfile>(client, {
@@ -64,9 +85,34 @@ export function registerAccountMutations(client: QueryClient): void {
       fromSource(
         'account',
         () => accountFixtures.setLanguage(vars.language),
-        () => apiRequest<MyProfile>('v1/tenant/profile', { method: 'PUT', body: vars }),
+        async () => {
+          // Partial update: only `language` travels, every other profile field keeps its value.
+          const body: PutProfileWire = { language: vars.language, baseVersion: vars.baseVersion };
+          return profileFromWire(client, await apiRequest<ProfileWire>('v1/tenant/profile', { method: 'PUT', body }));
+        },
       ),
     optimistic: (prev, vars) => (prev ? { ...prev, language: vars.language } : prev),
+    mapCurrent: (wire) => profileFromWire(client, wire as ProfileWire),
+  });
+
+  // Profile city (weather on Bugün, stylist): partial PUT with `cityId` only; `""` clears it.
+  registerVersionedWrite<PutProfileCityRequest, MyProfile>(client, {
+    mutationKey: accountMutationKeys.putCity,
+    queryKey: accountKeys.profile,
+    send: (vars) =>
+      fromSource(
+        'account',
+        () => ({ ...accountFixtures.profile(), cityId: vars.cityId || null }),
+        async () => {
+          const body: PutProfileWire = { cityId: vars.cityId, baseVersion: vars.baseVersion };
+          const saved = profileFromWire(client, await apiRequest<ProfileWire>('v1/tenant/profile', { method: 'PUT', body }));
+          void client.invalidateQueries({ queryKey: accountKeys.settings });
+          void client.invalidateQueries({ queryKey: ['tenant', 'today'] });
+          return saved;
+        },
+      ),
+    optimistic: (prev, vars) => (prev ? { ...prev, cityId: vars.cityId || null } : prev),
+    mapCurrent: (wire) => profileFromWire(client, wire as ProfileWire),
   });
 
   registerVersionedWrite<PutNotificationSettingsRequest, NotificationSettings>(client, {
@@ -76,8 +122,13 @@ export function registerAccountMutations(client: QueryClient): void {
       fromSource(
         'account',
         () => accountFixtures.setNotifications(vars),
-        () => apiRequest<NotificationSettings>('v1/tenant/user/me/notifications', { method: 'PUT', body: vars }),
+        async () => {
+          // Local wall-clock time (quarter hours) + the device's IANA zone; the server handles DST.
+          const body = fromNotificationSettings({ ...vars, morningTimeLocal: toQuarterHour(vars.morningTimeLocal) }, deviceTimeZone());
+          return toNotificationSettings(await apiRequest<NotificationPrefsWire>('v1/tenant/user/me/notifications', { method: 'PUT', body }));
+        },
       ),
+    mapCurrent: (wire) => toNotificationSettings(wire as NotificationPrefsWire),
     optimistic: (_prev, { clientMutationId: _id, ...settings }) => {
       void _id;
       return settings;
@@ -90,7 +141,8 @@ export function registerAccountMutations(client: QueryClient): void {
       fromSource(
         'account',
         () => accountFixtures.removePhoto(vars.kind, vars.photoId),
-        () => apiRequest<void>(`v1/tenant/photo/${vars.kind}/${vars.photoId}`, { method: 'DELETE' }),
+        // 404 = that photo is no longer the active one (already replaced / removed): the list is re-read below.
+        () => apiRequest<void>(`v1/tenant/photo/${vars.kind}/${encodeURIComponent(vars.photoId)}`, { method: 'DELETE' }),
       ),
     onMutate: async (vars: RemovePhotoRequest) => {
       await client.cancelQueries({ queryKey: accountKeys.photos });
@@ -113,6 +165,7 @@ export function registerAccountMutations(client: QueryClient): void {
       await client.cancelQueries({ queryKey: accountKeys.photos });
       client.setQueryData<MyPhotos>(accountKeys.photos, { body: [], face: null, generatedImageCount: 0 });
       client.setQueryData<Palette | null>(accountKeys.palette, null);
+      client.setQueryData<string | null>(accountKeys.paletteJob, null);
       client.removeQueries({ queryKey: ['tenant', 'tryon'] });
       clearImageCaches();
     },
@@ -125,13 +178,35 @@ export function registerAccountMutations(client: QueryClient): void {
   client.setMutationDefaults(accountMutationKeys.analyzePalette, {
     scope: TENANT_WRITE_SCOPE,
     mutationFn: (vars: AnalyzePaletteRequest) =>
-      fromSource('palette', accountFixtures.analyzePalette, () => apiRequest<void>('v1/tenant/palette/analyze', { method: 'POST', body: vars })),
+      fromSource<void>('palette', accountFixtures.analyzePalette, async () => {
+        const body: AnalyzePaletteWire = { requestId: vars.requestId };
+        const res = await apiRequest<AnalyzePaletteResponseWire>('v1/tenant/palette/analyze', { method: 'POST', body });
+        if (res.status === 'cached') {
+          // 200: the current face photo was already analysed — no job.
+          client.setQueryData<string | null>(accountKeys.paletteJob, null);
+          client.setQueryData<Palette | null>(accountKeys.palette, toPalette(res.palette));
+        } else {
+          // 202: `usePalette` polls this job until it settles.
+          client.setQueryData<string | null>(accountKeys.paletteJob, res.job.id);
+        }
+      }),
     onMutate: async () => {
       await client.cancelQueries({ queryKey: accountKeys.palette });
       client.setQueryData<Palette | null>(accountKeys.palette, (): Palette => ({ status: 'pending' }));
     },
     onSuccess: () => void client.invalidateQueries({ queryKey: accountKeys.palette }),
     onError: (error: unknown) => {
+      // 403 premium_required → paywall; 422 face_photo_required → back to "upload a face photo".
+      if (isPaywallError(error)) {
+        client.setQueryData<Palette | null>(accountKeys.palette, null);
+        router.push({ pathname: '/paywall', params: { from: 'palette' } });
+        return;
+      }
+      if (apiErrorCode(error) === 'face_photo_required') {
+        client.setQueryData<Palette | null>(accountKeys.palette, null);
+        void client.invalidateQueries({ queryKey: accountKeys.photos });
+        return;
+      }
       const exhausted = openCreditSheetIfExhausted(error, 'palette');
       client.setQueryData<Palette | null>(accountKeys.palette, (): Palette | null => (exhausted ? null : { status: 'failed' }));
     },
@@ -151,6 +226,48 @@ export function useSaveProfileLanguage() {
   const m = useMutation<MyProfile, unknown, PutProfileLanguageRequest>({ mutationKey: accountMutationKeys.putLanguage });
   return (language: AppLanguage, baseVersion: number) =>
     m.mutate({ language, baseVersion, clientMutationId: newClientMutation().clientMutationId });
+}
+
+/** Sets (or, with `""`, clears) the profile city — an id from `useCitySearch`. */
+export function useSaveProfileCity() {
+  const m = useMutation<MyProfile, unknown, PutProfileCityRequest>({ mutationKey: accountMutationKeys.putCity });
+  return (cityId: string, baseVersion: number) =>
+    m.mutate({ cityId, baseVersion, clientMutationId: newClientMutation().clientMutationId });
+}
+
+/**
+ * Claims or changes the @handle (`PUT v1/tenant/profile/handle`). Interactive and online: the caller
+ * shows the outcome — 400 `validation_failed` (`handle_invalid`), 409 `handle_taken`, 422 `handle_reserved`.
+ * A handle is what makes the account findable (people search, follow, share links).
+ */
+export function useClaimHandle() {
+  const client = useQueryClient();
+  return useMutation({
+    networkMode: 'always',
+    retry: false,
+    mutationFn: (handle: string) =>
+      fromSource<MyProfile>(
+        'account',
+        () => ({ ...accountFixtures.profile(), handle }),
+        async () => {
+          const body: PutHandleWire = { handle: handle.trim().replace(/^@/, '') };
+          return profileFromWire(client, await apiRequest<ProfileWire>('v1/tenant/profile/handle', { method: 'PUT', body }));
+        },
+      ),
+    onSuccess: (profile) => client.setQueryData<MyProfile>(accountKeys.profile, profile),
+  });
+}
+
+/** Removes the palette result (`DELETE v1/tenant/palette` → 204); the face photo stays. */
+export function useDeletePalette() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => fromSource<void>('palette', () => undefined, () => apiRequest<void>('v1/tenant/palette', { method: 'DELETE' })),
+    onSuccess: () => {
+      client.setQueryData<string | null>(accountKeys.paletteJob, null);
+      client.setQueryData<Palette | null>(accountKeys.palette, null);
+    },
+  });
 }
 
 export function useSaveNotificationSettings() {
@@ -198,6 +315,7 @@ export function useDeleteAccount() {
       clearImageCaches();
       if (userId) {
         await AsyncStorage.multiRemove([
+          DEVICE_ID_KEY,
           `droblet.query.${userId}`,
           `droblet.onboarding.${userId}`,
           `droblet.firstItems.${userId}`,

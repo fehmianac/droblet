@@ -16,6 +16,10 @@ import {
 } from '@/api/contracts/stylist';
 import { useJob, type JobView } from '@/api/jobs';
 import { fromSource } from '@/api/dataSource';
+import type { JobWire } from '@/api/wire/core';
+import { fromStylistRequest, mapStylistResult } from '@/api/wire/stylist';
+import { fetchProfileForecast } from '@/api/wire/weather';
+import { routeAiStartError } from '@/features/credits/aiErrors';
 import { fixtureWeather, startFixtureStylistOutfit } from '@/fixtures/stylist';
 import { toIsoDate } from '@/lib/format';
 import { ulid } from '@/lib/ids';
@@ -69,7 +73,10 @@ export function dateParamOrToday(value: string | undefined, today: Date = new Da
   return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : toIsoDate(today);
 }
 
-/** Weather badge on 16. A failed read is a normal state ("hava alınamadı"), not a screen error. */
+/**
+ * Weather badge on 16 — `GET v1/weather?cityId=` for the profile city (no city → no forecast, no
+ * request). A failed read is a normal state ("hava alınamadı"), not a screen error.
+ */
 export function useStylistWeather(date: string) {
   return useQuery({
     queryKey: stylistKeys.weather(date),
@@ -78,18 +85,20 @@ export function useStylistWeather(date: string) {
       fromSource<WeatherForecastResponse>(
         'stylist',
         () => fixtureWeather(date),
-        () => apiRequest<WeatherForecastResponse>(`v1/weather?from=${date}&to=${date}`),
+        () => fetchProfileForecast(),
       ),
     select: (data): StylistWeather | null => {
-      const day = data.days.find((d) => d.date === date) ?? data.days[0];
+      // The forecast covers 7 days from today; a later day has none (fixtures answer the asked day only).
+      const day = data.days.find((d) => d.date === date) ?? (data.days.length === 1 ? data.days[0] : undefined);
       return day ? { temperatureC: day.temperatureC, summary: day.summary, city: data.city } : null;
     },
   });
 }
 
 /**
- * Starts a "Kombin öner" job. Not queued offline — AI needs a connection. The request is remembered
- * under the job id so the result screen can retry a failed job with a fresh `requestId`.
+ * Starts a "Kombin öner" job (`POST v1/tenant/stylist/outfit` → 202 job). Not queued offline — AI
+ * needs a connection. The request is remembered under the job id so the result screen can retry a
+ * failed job with a fresh `requestId`. 403 `premium_required` opens the paywall.
  */
 export function useStartStylistOutfit() {
   const client = useQueryClient();
@@ -98,11 +107,15 @@ export function useStartStylistOutfit() {
       fromSource<StylistOutfitResponse>(
         'stylist',
         () => startFixtureStylistOutfit(request),
-        () => apiRequest<StylistOutfitResponse>('v1/tenant/stylist/outfit', { method: 'POST', body: request }),
+        async () => {
+          const job = await apiRequest<JobWire>('v1/tenant/stylist/outfit', { method: 'POST', body: fromStylistRequest(request) });
+          return { jobId: job.id };
+        },
       ),
     onSuccess: (accepted, request) => {
       client.setQueryData(stylistKeys.request(accepted.jobId), request);
     },
+    onError: (error) => void routeAiStartError(error, 'stylist'),
   });
   return {
     isStarting: mutation.isPending,
@@ -118,7 +131,7 @@ export function useStartStylistOutfit() {
 }
 
 export function useStylistJob(jobId: string | null | undefined, options: { enabled?: boolean } = {}): JobView<StylistOutfitResult> {
-  return useJob<StylistOutfitResult>('stylist-outfit', jobId, options);
+  return useJob<StylistOutfitResult>('stylist-outfit', jobId, { ...options, mapResult: mapStylistResult });
 }
 
 /** "Takvime ekle" (date) / heart (no date) — queued, optimistic (see mutations.ts). */
@@ -133,7 +146,7 @@ export function useAcceptSuggestion(jobId: string) {
   };
 }
 
-/** "Beğenmedim" — queued feedback event. */
+/** "Beğenmedim" — queued `POST …/suggestion/{jobId}/{index}/dislike`; later jobs avoid the combination. */
 export function useSuggestionFeedback(jobId: string) {
   const m = useMutation<void, unknown, StylistFeedbackRequest>({ mutationKey: stylistMutationKeys.feedback });
   return {

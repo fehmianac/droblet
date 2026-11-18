@@ -446,4 +446,69 @@ public class CartAndAffiliateEndpointTests(StoreSocialApiFactory factory) : ICla
         Assert.False(slots.ContainsKey("top"));
         Assert.Equal(HttpStatusCode.NotFound, (await user.GetAsync("v1/tenant/catalog/product/prod-unknown/match")).StatusCode);
     }
+
+    [Fact]
+    public async Task FavoriteProducts_AreIdempotent_NewestFirst_AndSeparateFromTheWatchList()
+    {
+        var admin = await factory.AdminAsync();
+        var brand = await factory.SeedBrandAsync(admin);
+        var first = await factory.SeedProductAsync(admin, brand);
+        var second = await factory.SeedProductAsync(admin, brand);
+        var retired = await factory.SeedProductAsync(admin, brand);
+        (await admin.DeleteAsync($"v1/admin/product/{retired}")).EnsureSuccessStatusCode();
+        var (user, auth) = await factory.RegisterAsync();
+        var (other, _) = await factory.RegisterAsync();
+
+        async Task<List<string>> IdsAsync(HttpClient client) =>
+            (await (await client.GetAsync("v1/tenant/favorite/product")).JsonAsync()).GetProperty("productIds").EnumerateArray().Select(e => e.GetString()!).ToList();
+
+        var empty = await IdsAsync(user);
+        var put = await user.PutAsync($"v1/tenant/favorite/product/{first}", null);
+        await Task.Delay(5);
+        var putSecond = await user.PutAsync($"v1/tenant/favorite/product/{second}", null);
+        var again = await user.PutAsync($"v1/tenant/favorite/product/{first}", null);
+        var unknown = await user.PutAsync("v1/tenant/favorite/product/prod-unknown", null);
+        var onRetired = await user.PutAsync($"v1/tenant/favorite/product/{retired}", null);
+        var ids = await IdsAsync(user);
+
+        Assert.Empty(empty);
+        Assert.Equal(HttpStatusCode.NoContent, put.StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, putSecond.StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, again.StatusCode);
+        Assert.Equal((HttpStatusCode.NotFound, "product_not_found"), (unknown.StatusCode, await unknown.CodeAsync()));
+        Assert.Equal((HttpStatusCode.UnprocessableEntity, "product_retired"), (onRetired.StatusCode, await onRetired.CodeAsync()));
+        Assert.Equal([second, first], ids);
+        Assert.Empty(await IdsAsync(other)); // another user's list is untouched
+        Assert.Empty((await (await user.GetAsync("v1/tenant/watch-list")).JsonAsync()).EnumerateArray()); // not the watch list
+        Assert.Equal(2, (await factory.Repository.GetKeysAsync(FavoriteProductEntity.GetPk(auth.TenantId))).Count);
+
+        Assert.Equal(HttpStatusCode.NoContent, (await user.DeleteAsync($"v1/tenant/favorite/product/{first}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await user.DeleteAsync($"v1/tenant/favorite/product/{first}")).StatusCode); // idempotent
+        Assert.Equal([second], await IdsAsync(user));
+        Assert.Equal(HttpStatusCode.Unauthorized, (await factory.CreateClient().GetAsync("v1/tenant/favorite/product")).StatusCode);
+    }
+
+    [Fact]
+    public async Task FavoriteProducts_AFavouriteStaysWhenTheProductIsRetired_AndTheListHasALimit()
+    {
+        var admin = await factory.AdminAsync();
+        var brand = await factory.SeedBrandAsync(admin);
+        var product = await factory.SeedProductAsync(admin, brand);
+        var extra = await factory.SeedProductAsync(admin, brand);
+        var (user, auth) = await factory.RegisterAsync();
+
+        (await user.PutAsync($"v1/tenant/favorite/product/{product}", null)).EnsureSuccessStatusCode();
+        (await admin.DeleteAsync($"v1/admin/product/{product}")).EnsureSuccessStatusCode();
+        var replay = await user.PutAsync($"v1/tenant/favorite/product/{product}", null);
+        var listed = (await (await user.GetAsync("v1/tenant/favorite/product")).JsonAsync()).GetProperty("productIds");
+
+        var max = new Domain.Options.CatalogOptions().MaxFavoriteProducts;
+        for (var i = 1; i < max; i++)
+            await factory.Repository.SaveAsync(new FavoriteProductEntity { TenantId = auth.TenantId, ProductId = $"filler-{i}", AddedAt = DateTime.UtcNow });
+        var full = await user.PutAsync($"v1/tenant/favorite/product/{extra}", null);
+
+        Assert.Equal(HttpStatusCode.NoContent, replay.StatusCode);
+        Assert.Equal(product, listed[0].GetString());
+        Assert.Equal((HttpStatusCode.UnprocessableEntity, "favorite_list_full"), (full.StatusCode, await full.CodeAsync()));
+    }
 }

@@ -61,6 +61,9 @@ public record CartGroupDto(string BrandId, string BrandName, IReadOnlyList<CartL
 
 public record CartDto(IReadOnlyList<CartGroupDto> Groups, int LineCount, long TotalMinor, string Currency);
 
+/// <summary>GET v1/tenant/favorite/product: the hearts on product cards, newest first.</summary>
+public record FavoriteProductsDto(IReadOnlyList<string> ProductIds);
+
 public record WatchItemDto(
     ProductDto Product,
     string? Size,

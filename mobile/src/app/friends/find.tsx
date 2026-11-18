@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, Share, View } from 'react-native';
 
 import { track } from '@/analytics/track';
-import type { PersonSuggestion } from '@/api/contracts/social';
+import { PEOPLE_SEARCH_MIN, type PersonSuggestion } from '@/api/contracts/social';
 import { Avatar, Badge, Card, SearchField } from '@/components/blocks/basics';
 import { SectionState } from '@/components/blocks/SectionState';
 import { Button } from '@/components/ui/Button';
@@ -83,7 +83,8 @@ export default function FindFriendsScreen() {
   const suggested = useSuggestedPeople();
   const creators = useCreators();
   const invite = useInviteLink();
-  const searching = query.trim() !== '';
+  // The server searches from 2 characters on (the leading @ does not count).
+  const searching = query.trim().replace(/^@/, '').length >= PEOPLE_SEARCH_MIN;
 
   const shareInvite = async () => {
     setInviteError(false);

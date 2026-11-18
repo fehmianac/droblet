@@ -18,7 +18,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { CreditConfirmSheet } from '@/features/credits/CreditConfirmSheet';
 import { useLooks } from '@/features/looks/queries';
-import { usePlanDays, usePlanWeekJob, usePutPlanDay, useStartPlanWeek } from '@/features/today/api';
+import { useAcceptPlanWeek, usePlanDays, usePlanWeekJob, usePutPlanDay, useStartPlanWeek } from '@/features/today/api';
 import { combineQueries } from '@/features/today/combineQueries';
 import { weekDates } from '@/features/today/dates';
 import { buildWeekRows, daysToPlan, occasionCounts, weekTryOnTargets, type WeekRow } from '@/features/today/logic';
@@ -68,6 +68,7 @@ export default function PlanWeekScreen() {
   const putPlanDay = usePutPlanDay();
   const tryOn = useStartTryOn();
   const startPlanWeek = useStartPlanWeek();
+  const acceptPlanWeek = useAcceptPlanWeek();
 
   const [menu, setMenu] = useState<{ date: string; top: number } | null>(null);
   const [creditSheet, setCreditSheet] = useState(false);
@@ -280,9 +281,8 @@ export default function PlanWeekScreen() {
                       <Button
                         label={t('weekPlan.proposalAccept')}
                         onPress={() => {
-                          proposal.forEach((p) =>
-                            putPlanDay.put(planDays.find((d) => d.date === p.date) ?? null, p.date, { occasion: p.occasion, lookId: p.lookId }),
-                          );
+                          // The draft becomes looks + plan days on the server in one call (nothing existed before).
+                          if (planJob.result) acceptPlanWeek.mutate(planJob.result);
                           closeProposal();
                         }}
                       />

@@ -121,6 +121,52 @@ public class PhotoServiceTests
     }
 
     [Fact]
+    public async Task Delete_BodyPhoto_RemovesItsTryOns_KeepsFaceAndPalette()
+    {
+        var service = Service();
+        var body = (await service.ActivateAsync(Tenant, PhotoKind.Body, await UploadAsync(service, PhotoKind.Body, TestImages.JpegWithExif()), Domain.Extensions.Ulid.New(), default)).Photo!;
+        var face = (await service.ActivateAsync(Tenant, PhotoKind.Face, await UploadAsync(service, PhotoKind.Face, TestImages.JpegWithExif()), Domain.Extensions.Ulid.New(), default)).Photo!;
+        var tryOnKey = $"{StorageKeys.TryOnPrefix(Tenant)}t.webp";
+        await _storage.PutAsync(tryOnKey, [1], "image/webp", default);
+        await _repository.SaveAsync(new TryOnImageEntity { Id = "t", TenantId = Tenant, BodyPhotoId = body.Id, TargetId = "i", S3Key = tryOnKey });
+        await _repository.SaveAsync(new PaletteResultEntity { TenantId = Tenant, SeasonTypeId = "warm-autumn", SourcePhotoId = face.Id });
+
+        var wrongId = await service.DeleteAsync(Tenant, PhotoKind.Body, face.Id, default);
+        var deleted = await service.DeleteAsync(Tenant, PhotoKind.Body, body.Id, default);
+        var again = await service.DeleteAsync(Tenant, PhotoKind.Body, body.Id, default);
+        var active = await service.GetActiveAsync(Tenant, default);
+
+        Assert.False(wrongId);
+        Assert.True(deleted);
+        Assert.False(again);
+        Assert.Equal([face.Id], active.Select(p => p.Id));
+        Assert.False(_storage.Objects.ContainsKey(tryOnKey));
+        Assert.Empty(await _repository.GetKeysAsync(TryOnImageEntity.GetPk(Tenant)));
+        Assert.Single(await _repository.GetKeysAsync(PaletteResultEntity.GetPk(Tenant)));
+    }
+
+    [Fact]
+    public async Task Delete_FacePhoto_RemovesThePaletteResult_KeepsBodyAndTryOns()
+    {
+        var service = Service();
+        var body = (await service.ActivateAsync(Tenant, PhotoKind.Body, await UploadAsync(service, PhotoKind.Body, TestImages.JpegWithExif()), Domain.Extensions.Ulid.New(), default)).Photo!;
+        var face = (await service.ActivateAsync(Tenant, PhotoKind.Face, await UploadAsync(service, PhotoKind.Face, TestImages.JpegWithExif()), Domain.Extensions.Ulid.New(), default)).Photo!;
+        var tryOnKey = $"{StorageKeys.TryOnPrefix(Tenant)}t.webp";
+        await _storage.PutAsync(tryOnKey, [1], "image/webp", default);
+        await _repository.SaveAsync(new TryOnImageEntity { Id = "t", TenantId = Tenant, BodyPhotoId = body.Id, TargetId = "i", S3Key = tryOnKey });
+        await _repository.SaveAsync(new PaletteResultEntity { TenantId = Tenant, SeasonTypeId = "warm-autumn", SourcePhotoId = face.Id });
+
+        var deleted = await service.DeleteAsync(Tenant, PhotoKind.Face, face.Id, default);
+        var active = await service.GetActiveAsync(Tenant, default);
+
+        Assert.True(deleted);
+        Assert.Equal([body.Id], active.Select(p => p.Id));
+        Assert.Empty(await _repository.GetKeysAsync(PaletteResultEntity.GetPk(Tenant)));
+        Assert.True(_storage.Objects.ContainsKey(tryOnKey));
+        Assert.Single(await _repository.GetKeysAsync(TryOnImageEntity.GetPk(Tenant)));
+    }
+
+    [Fact]
     public async Task DeleteAll_RemovesPhotosTryOnsPaletteAndPendingUploads_KeepsItems()
     {
         var service = Service();

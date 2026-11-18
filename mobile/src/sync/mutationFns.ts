@@ -8,6 +8,7 @@ import type {
   StyleProfile,
   WearLogRequest,
 } from '@/api/contracts';
+import { fromSource } from '@/api/dataSource';
 import { isConflict, isGone } from '@/api/errors';
 import {
   fromBodyProfile,
@@ -119,10 +120,27 @@ export function registerMutationDefaults(client: QueryClient): void {
   registerLooksMutations(client);
   registerStylistMutations(client);
 
-  // Fixture-backed until the E4 wear-log contract exists (candidate: POST v1/tenant/wear-logs).
+  // "Bunu giyiyorum" — POST v1/tenant/wear-log { clientMutationId, date, occurredAt, lookId } → 200 { log, items }.
+  // Idempotent on clientMutationId (= the log id). A 404 on replay means the log was undone meanwhile.
   client.setMutationDefaults(mutationKeys.createWearLog, {
     scope: TENANT_WRITE_SCOPE,
-    mutationFn: (vars: WearLogRequest) => withLatency(vars, 200),
+    mutationFn: (vars: WearLogRequest) =>
+      fromSource<WearLogRequest>(
+        'today',
+        () => withLatency(vars, 200),
+        async () => {
+          try {
+            await apiRequest<unknown>('v1/tenant/wear-log', {
+              method: 'POST',
+              body: { clientMutationId: vars.clientMutationId, date: vars.date, occurredAt: vars.occurredAt, lookId: vars.lookId },
+            });
+          } catch (e) {
+            if (!isGone(e)) throw e;
+          }
+          return vars;
+        },
+      ),
+    onError: () => void client.invalidateQueries({ queryKey: queryKeys.today }),
   });
 
   // Keşfet/mağaza/sepet, sosyal, profil/ayarlar/palet and analytics register their own writes.

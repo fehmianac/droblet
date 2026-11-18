@@ -56,6 +56,7 @@ function EditForm({ itemId }: { itemId: string }) {
           initial={formFromItem(item)}
           imageUrl={item.imageUrl}
           originalImageUrl={item.originalImageUrl}
+          hasOriginalImage={item.hasOriginalImage}
           onSubmit={(fields: ItemFields) => {
             update.update(item, fields);
             if (router.canGoBack()) router.back();

@@ -2,9 +2,19 @@ import type { QueryClient } from '@tanstack/react-query';
 
 import { apiRequest } from '@/api/client';
 import type { CreateLookRequest, Look, PutLookRequest } from '@/api/contracts/looks';
-import { isConflict, isGone } from '@/api/errors';
+import { ApiError, isConflict, isGone } from '@/api/errors';
+import {
+  fromOccasion,
+  fromSlotInput,
+  toLookAsync,
+  type CreateLookWire,
+  type LookSourceWire,
+  type LookWire,
+  type PutLookWire,
+} from '@/api/wire/wardrobe';
 import { fromSource } from '@/api/dataSource';
 import { registerTripMutations } from '@/features/trips/mutations';
+import { clone, fixtureDb } from '@/fixtures/db';
 import { fixtureCreateLook, fixtureDeleteLook, fixturePutLook } from '@/fixtures/looks';
 import { ulid } from '@/lib/ids';
 import { conflictStore } from '@/sync/conflicts';
@@ -20,9 +30,22 @@ export const lookMutationKeys = {
 };
 
 /** `optimistic` is what the cache shows until the server answers; only `request` goes over the wire. */
-export type CreateLookVariables = { request: CreateLookRequest; optimistic: Look };
+/** `source` (default `user`) says where the look came from: `builder` (23), `edit` (08). `stylist` is set by the server. */
+export type CreateLookVariables = { request: CreateLookRequest; optimistic: Look; source?: LookSourceWire };
 export type PutLookVariables = { id: string; request: PutLookRequest; optimistic: Look };
 export type DeleteLookVariables = { id: string; clientMutationId: string };
+
+/** Fixtures answer `{ current }` in the app shape; the API answers the current LookDto itself. */
+async function currentLook(error: ApiError): Promise<Look | undefined> {
+  const current = error.current as (LookWire & Partial<Look>) | null;
+  if (!current) return undefined;
+  if (!('version' in current)) return current as unknown as Look;
+  try {
+    return await toLookAsync(current);
+  } catch {
+    return undefined;
+  }
+}
 
 function upsert(list: Look[] | undefined, look: Look): Look[] | undefined {
   if (!list) return list;
@@ -49,7 +72,18 @@ export function registerLooksMutations(client: QueryClient): void {
       fromSource<Look>(
         'wardrobe',
         () => fixtureCreateLook(vars.request),
-        () => apiRequest<Look>('v1/tenant/look', { method: 'POST', body: vars.request }),
+        async () => {
+          // POST v1/tenant/look → 201, or 200 when the same id was sent before (replay-safe).
+          const body: CreateLookWire = {
+            id: vars.request.id,
+            name: vars.request.name,
+            occasion: fromOccasion(vars.request.occasion),
+            slots: vars.request.slots.map(fromSlotInput),
+            favorite: vars.optimistic.isFavorite,
+            source: vars.source ?? 'user',
+          };
+          return toLookAsync(await apiRequest<LookWire>('v1/tenant/look', { method: 'POST', body }));
+        },
       ),
     onMutate: async (vars: CreateLookVariables) => {
       await client.cancelQueries({ queryKey: lookKeys.looks });
@@ -70,7 +104,17 @@ export function registerLooksMutations(client: QueryClient): void {
       return fromSource<Look>(
         'wardrobe',
         () => fixturePutLook(vars.id, request),
-        () => apiRequest<Look>(`v1/tenant/look/${vars.id}`, { method: 'PUT', body: request }),
+        async () => {
+          // PUT v1/tenant/look/{id} → 409 with the current LookDto · 422 slot rule codes.
+          const body: PutLookWire = {
+            name: request.name,
+            occasion: fromOccasion(request.occasion),
+            slots: request.slots.map(fromSlotInput),
+            favorite: request.isFavorite,
+            baseVersion: request.baseVersion,
+          };
+          return toLookAsync(await apiRequest<LookWire>(`v1/tenant/look/${vars.id}`, { method: 'PUT', body }));
+        },
       );
     },
     onMutate: async (vars: PutLookVariables) => {
@@ -81,9 +125,9 @@ export function registerLooksMutations(client: QueryClient): void {
     onSuccess: (saved: Look | undefined) => {
       if (saved) writeLook(client, saved);
     },
-    onError: (error: unknown, vars: PutLookVariables) => {
+    onError: async (error: unknown, vars: PutLookVariables) => {
       if (isConflict(error)) {
-        const current = error.problem?.current as Look | undefined;
+        const current = await currentLook(error);
         conflictStore.push({
           id: vars.request.clientMutationId,
           kind: 'changed',
@@ -147,4 +191,48 @@ export function registerLooksMutations(client: QueryClient): void {
   });
 
   registerTripMutations(client);
+}
+
+/**
+ * Heart on a look from anywhere (06 Bugün, 14, 15): the favourite flag is part of the versioned look,
+ * so this is `PUT v1/tenant/look/{id}` with the look's current fields and `favorite` changed. Goes
+ * through the same queued, optimistic write as every other look edit. Resolves false when the look
+ * is not known on this device and cannot be read.
+ */
+export async function setLookFavorite(client: QueryClient, lookId: string, favorite: boolean): Promise<boolean> {
+  let look = client.getQueryData<Look>(lookKeys.look(lookId)) ?? client.getQueryData<Look[]>(lookKeys.looks)?.find((l) => l.id === lookId);
+  if (!look) {
+    try {
+      look = await fromSource<Look>(
+        'wardrobe',
+        () => {
+          const found = fixtureDb.looks.find((l) => l.id === lookId);
+          if (!found) throw new ApiError('http', 404, null);
+          return clone(found);
+        },
+        async () => toLookAsync(await apiRequest<LookWire>(`v1/tenant/look/${lookId}`)),
+      );
+    } catch {
+      return false;
+    }
+  }
+  if (look.isFavorite === favorite) return true;
+  const vars: PutLookVariables = {
+    id: look.id,
+    request: {
+      name: look.name,
+      occasion: look.occasion,
+      slots: look.slots.filter((s) => !s.deleted).map(({ slot, source, refId }) => ({ slot, source, refId })),
+      isFavorite: favorite,
+      baseVersion: look.baseVersion,
+      clientMutationId: ulid(),
+    },
+    optimistic: { ...look, isFavorite: favorite },
+  };
+  void client
+    .getMutationCache()
+    .build(client, { mutationKey: lookMutationKeys.put, scope: TENANT_WRITE_SCOPE })
+    .execute(vars)
+    .catch(() => undefined);
+  return true;
 }

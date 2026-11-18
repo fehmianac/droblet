@@ -34,4 +34,9 @@ public interface IPhotoService
     Task<IReadOnlyList<PhotoView>> GetActiveAsync(string tenantId, CancellationToken ct);
     /// <summary>"Fotoğraflarımı ve üretilen görselleri sil": body + face photos, all try-on images, palette result.</summary>
     Task DeleteAllAsync(string tenantId, CancellationToken ct);
+    /// <summary>
+    /// Deletes the active photo of one kind (screen 29 list) and what was derived from it: body → the try-on images
+    /// generated with it; face → the palette result. False when <paramref name="photoId"/> is not that kind's active photo.
+    /// </summary>
+    Task<bool> DeleteAsync(string tenantId, PhotoKind kind, string photoId, CancellationToken ct);
 }
