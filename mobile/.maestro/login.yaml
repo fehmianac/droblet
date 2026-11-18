@@ -1,0 +1,62 @@
+# Signs in with an existing, already onboarded account and waits for the tabs.
+# Credentials are never committed: pass them with -e EMAIL=… -e PASSWORD=… (LANG / LOCALE pick the UI language,
+# e.g. -e LANG=tr -e LOCALE=tr_TR).
+appId: com.alatech.droplet
+env:
+  EMAIL: ${EMAIL}
+  PASSWORD: ${PASSWORD}
+  LANG: ${LANG}
+  LOCALE: ${LOCALE}
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+    arguments:
+      AppleLanguages: "(${LANG})"
+      AppleLocale: ${LOCALE}
+# A link prompt left over from an earlier run would cover the first screen.
+- runFlow:
+    when:
+      visible: "Cancel"
+    commands:
+      - tapOn: "Cancel"
+- extendedWaitUntil:
+    visible:
+      id: "welcome.login"
+    timeout: 20000
+# The animated splash (2.6 s) lies over the first screen and takes the touches until it has faded.
+- extendedWaitUntil:
+    notVisible:
+      id: "animated-splash"
+    timeout: 10000
+- takeScreenshot: 01-hos-geldin
+- tapOn:
+    id: "welcome.login"
+- extendedWaitUntil:
+    visible:
+      id: "auth.email"
+    timeout: 10000
+- takeScreenshot: 02-giris
+- tapOn:
+    id: "auth.email"
+- inputText: ${EMAIL}
+# Close the keyboard (tap on the title), show the password as plain text (the simulator loses characters
+# typed into a secure field), type it and submit.
+- tapOn:
+    point: "50%,14%"
+- tapOn:
+    point: "89%,63%"
+- tapOn:
+    id: "auth.password"
+- inputText: ${PASSWORD}
+- tapOn:
+    point: "50%,14%"
+- takeScreenshot: 02-giris-dolu
+- tapOn:
+    id: "auth.submit"
+- extendedWaitUntil:
+    visible:
+      id: "tab.today"
+    timeout: 30000
+- waitForAnimationToEnd
+- takeScreenshot: 06-bugun

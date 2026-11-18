@@ -46,6 +46,7 @@ export function TextField({ label, error, hint, password = false, ref, ...input 
         {password ? (
           <Pressable
             onPress={() => setHidden((h) => !h)}
+            testID={input.testID ? `${input.testID}.toggle` : undefined}
             accessibilityRole="button"
             accessibilityLabel={t(hidden ? 'a11y.showPassword' : 'a11y.hidePassword')}
             className="h-icon-btn w-icon-btn items-center justify-center"

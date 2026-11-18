@@ -3,10 +3,11 @@
 # for the sign-up field and swallows typed text, so the tour signs in instead of signing up.
 # Create the account first:
 #   curl -s -X POST "$API/v1/auth/register" -H 'content-type: application/json' \
-#     -d "{\"name\":\"Damla\",\"email\":\"$EMAIL\",\"password\":\"Sm0keTest2026\"}"
+#     -d "{\"name\":\"Damla\",\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\"}"
 appId: com.alatech.droplet
 env:
   EMAIL: ${EMAIL}
+  PASSWORD: ${PASSWORD}
   LANG: ${LANG}
   LOCALE: ${LOCALE}
 ---
@@ -16,6 +17,12 @@ env:
     arguments:
       AppleLanguages: "(${LANG})"
       AppleLocale: ${LOCALE}
+# A link prompt left over from an earlier run would cover the first screen.
+- runFlow:
+    when:
+      visible: "Cancel"
+    commands:
+      - tapOn: "Cancel"
 - extendedWaitUntil:
     visible:
       id: "welcome.login"
@@ -37,7 +44,7 @@ env:
 - inputText: ${EMAIL}
 - pressKey: Enter
 - waitForAnimationToEnd
-- inputText: "Sm0keTest2026"
+- inputText: ${PASSWORD}
 - pressKey: Enter
 
 - extendedWaitUntil:
