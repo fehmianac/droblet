@@ -819,6 +819,31 @@ public class TryOnAndPaletteEndpointTests(ApiFactory factory) : IClassFixture<Ap
     }
 
     [Fact]
+    public async Task TripDay_RendersTheDaysLook_SharesTheLooksJob_AndCache_UnknownDay404()
+    {
+        var (client, tenant, look, _) = await ArrangeAsync();
+        var tripId = Ulid.New();
+        await factory.Repository.SaveAsync(new TripDayEntity
+        {
+            TenantId = tenant, TripId = tripId, Date = "2027-03-01", Occasion = Occasion.Dinner,
+            Slots = look.Slots.Select(s => new LookSlotValue { Slot = s.Slot, ItemId = s.ItemId }).ToList(),
+        });
+
+        var day = await client.PostJsonAsync("v1/tenant/tryon", TryOn($"{tripId}/2027-03-01", "tripDay"));
+        var sameOutfit = await client.PostJsonAsync("v1/tenant/tryon", TryOn(look.Id));
+        var unknownDay = await client.PostJsonAsync("v1/tenant/tryon", TryOn($"{tripId}/2027-03-09", "tripDay"));
+        var malformed = await client.PostJsonAsync("v1/tenant/tryon", TryOn(tripId, "tripDay"));
+        var findBefore = await client.GetAsync($"v1/tenant/tryon?kind=tripDay&id={tripId}/2027-03-01");
+
+        Assert.Equal(HttpStatusCode.Accepted, day.StatusCode);
+        Assert.Equal((await day.ReadAsync<TryOnStartDto>()).Job!.Id, (await sameOutfit.ReadAsync<TryOnStartDto>()).Job!.Id); // one outfit, one job
+        Assert.Equal(29, await factory.CreditsAsync(tenant));
+        Assert.Equal((HttpStatusCode.NotFound, "target_not_found"), (unknownDay.StatusCode, await unknownDay.CodeAsync()));
+        Assert.Equal(HttpStatusCode.NotFound, malformed.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, findBefore.StatusCode); // nothing rendered yet
+    }
+
+    [Fact]
     public async Task Start_Gates_BodyPhoto_Membership_Credits_Target()
     {
         var (noPhoto, _, lookA, _) = await ArrangeAsync(bodyPhoto: false);

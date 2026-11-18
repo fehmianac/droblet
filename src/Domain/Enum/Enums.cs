@@ -18,7 +18,8 @@ public enum JobStatus { Queued, Processing, Completed, Failed }
 
 public enum JobFailure { ProviderError, Timeout, GuardRejected, SourceDeleted, NoFaceDetected }
 
-public enum TryOnTargetKind { Item, Look, Product, EditLook, Suggestion }
+/// <summary>TripDay id = "{tripId}/{yyyy-MM-dd}": the look of one trip day (BavulDetay).</summary>
+public enum TryOnTargetKind { Item, Look, Product, EditLook, Suggestion, TripDay }
 
 public enum Tier { Free, Premium }
 

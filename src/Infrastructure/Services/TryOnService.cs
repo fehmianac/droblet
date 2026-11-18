@@ -254,6 +254,18 @@ public sealed class TryOnService(
                     ? (null, ErrorCodes.TargetNotFound)
                     : await OutfitAsync(tenantId, productIds.Select(id => new OutfitPiece(null, id)), ct);
             }
+            case TryOnTargetKind.TripDay:
+            {
+                // "{tripId}/{date}": the day's look on the trip detail. Same outfit rule as a look, so the image is shared.
+                var separator = target.Id.IndexOf('/');
+                if (separator <= 0 || separator == target.Id.Length - 1)
+                    return (null, ErrorCodes.TargetNotFound);
+                var day = await repository.GetAsync<TripDayEntity>(TripDayEntity.GetPk(tenantId),
+                    TripDayEntity.GetSk(target.Id[..separator], target.Id[(separator + 1)..]), ct);
+                return day is null
+                    ? (null, ErrorCodes.TargetNotFound)
+                    : await OutfitAsync(tenantId, day.Slots.Select(s => new OutfitPiece(s.ItemId, s.ProductId)), ct);
+            }
             default:
                 return (null, ErrorCodes.TargetNotFound);
         }
