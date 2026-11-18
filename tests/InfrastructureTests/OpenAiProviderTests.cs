@@ -217,6 +217,45 @@ public class OpenAiProviderTests
     // ── Images ────────────────────────────────────────────────────────────────────────────────────────────────────
 
     [Fact]
+    public async Task GenerateImage_PostsJsonGeneration_WithImageModelSizeFormatAndQuality()
+    {
+        var (provider, handler) = Create(Image(Webp));
+
+        var result = await provider.GenerateImageAsync(new ImageGenerationRequest("a navy blazer", "1024x1024", "webp", 80, "high"), default);
+
+        var call = Assert.Single(handler.Calls);
+        Assert.Equal("https://ai.test/v1/images/generations", call.Request.RequestUri!.ToString());
+        Assert.Equal("application/json", call.ContentType);
+        var body = JsonNode.Parse(call.Body)!;
+        Assert.Equal(ImageModel, body["model"]!.GetValue<string>());
+        Assert.Equal("a navy blazer", body["prompt"]!.GetValue<string>());
+        Assert.Equal("1024x1024", body["size"]!.GetValue<string>());
+        Assert.Equal("webp", body["output_format"]!.GetValue<string>());
+        Assert.Equal(80, body["output_compression"]!.GetValue<int>());
+        Assert.Equal("high", body["quality"]!.GetValue<string>());
+        Assert.Equal(Webp, result.Data);
+    }
+
+    [Fact]
+    public void GenerationPayload_LeavesOutCompressionForPng_AndQualityWhenNotGiven()
+    {
+        var body = OpenAiPayloads.ImageGenerationRequest("m", new ImageGenerationRequest("p", OutputFormat: "png", OutputCompression: 50));
+
+        Assert.Null(body["output_compression"]);
+        Assert.Null(body["quality"]);
+    }
+
+    [Fact]
+    public void ResponseModel_And_ErrorParam_ReadOnlyIdsAndFieldNames()
+    {
+        Assert.Equal("gpt-x-2026", OpenAiPayloads.ResponseModel("""{"model":"gpt-x-2026","choices":[]}"""));
+        Assert.Null(OpenAiPayloads.ResponseModel("""{"data":[]}"""));
+        Assert.Null(OpenAiPayloads.ResponseModel("not json"));
+        Assert.Equal("response_format", OpenAiPayloads.ErrorParam("""{"error":{"message":"…","type":"invalid_request_error","param":"response_format","code":null}}"""));
+        Assert.Null(OpenAiPayloads.ErrorParam("""{"error":{"param":null}}"""));
+    }
+
+    [Fact]
     public async Task Render_PostsMultipartEdit_WithBodyPhotoFirstThenGarments_AndDecodesTheImage()
     {
         var (provider, handler) = Create(Image(Webp));

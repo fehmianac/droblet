@@ -20,7 +20,7 @@ Turkish is the default language at the root; English lives under `/en/`. Every p
 | Route (TR · EN) | What |
 |---|---|
 | `/` · `/en/` | Landing page — canvas `Landing` / `LandingMobil` |
-| `/terms/`, `/privacy/`, `/kvkk/`, `/subscription-terms/`, `/cookies/` (and `/en/…`) | Legal pages — **DRAFT placeholders**, `noindex` |
+| `/terms/`, `/privacy/`, `/kvkk/`, `/consents/`, `/subscription-terms/`, `/cookies/`, `/community-guidelines/` (and `/en/…`) | Legal pages — **comprehensive drafts pending legal review**, `noindex` |
 | `/delete-account/` | Web account deletion (store requirement) |
 | `/reset-password/?token=…` | Password reset fallback: "Uygulamada aç" + web form |
 | `/invite/?c=CODE` | Friend invite fallback |
@@ -78,13 +78,17 @@ a static export); only the hero image loads eagerly.
 
 ## Legal pages are drafts
 
-`/terms`, `/privacy`, `/kvkk`, `/subscription-terms`, `/cookies` carry a "Taslak — hukuk onayı bekliyor" banner,
-are `noindex` and are left out of the sitemap. They state only what the product handoff states (photos and
-generated images are private to the user and deletable; payment happens in the brand's own store; 30 AI images
-a month; controller Droblet Ltd, London; KVKK + UK GDPR). Everything else is a heading with "pending legal
-review". When the reviewed text arrives: replace the `legal.docs.*` sections in both dictionaries, set
-`index: true` in `legalMetadata` (`src/components/LegalPage.tsx`), add the routes to `src/app/sitemap.ts`, and
-relax the `noindex` assertion in `scripts/check.mjs`.
+`/terms`, `/privacy`, `/kvkk`, `/consents`, `/subscription-terms`, `/cookies` and `/community-guidelines` hold
+comprehensive drafts (TR + EN; KVKK is Turkish with an English courtesy translation). They carry a
+"Taslak — hukuk onayı bekliyor" banner, a summary box, are `noindex` and are left out of the sitemap. Facts that are
+not decided yet are `[PLACEHOLDERS]`; questions for the lawyer are `[HUKUK ONAYI: …]` / `[LEGAL REVIEW: …]`.
+Review checklist: [`docs/legal/REVIEW.md`](../docs/legal/REVIEW.md).
+
+The text lives in `legal.docs.*` of both dictionaries (a paragraph starting with `- ` renders as a list item).
+`npm run legal:md` writes the same text as Markdown to `docs/legal/{tr,en}/` for review; `npm run check` fails if the
+Markdown is out of date. When the reviewed text is approved: replace the placeholders, remove the banner, set
+`index: true` in `legalMetadata` (`src/components/LegalPage.tsx`), add the routes to `src/app/sitemap.ts`, and relax
+the draft / `noindex` assertions in `scripts/check.mjs` (steps in `docs/legal/REVIEW.md` §6).
 
 ## Account deletion (`/delete-account`)
 
@@ -156,7 +160,7 @@ no HTML challenge, no "Always Online" page on `/.well-known/*` (Apple and Google
       requests (backend/infra change, outside this package). The invite preview is a simple `GET` and works.
 - [ ] Add `NEXT_PUBLIC_APP_STORE_URL`, `NEXT_PUBLIC_PLAY_STORE_URL` and `NEXT_PUBLIC_CONTACT_EMAIL` to the
       deploy workflow once the listings and the address exist.
-- [ ] Legal texts from counsel (see "Legal pages are drafts").
+- [ ] Legal review of the drafts and the placeholders (see `docs/legal/REVIEW.md`).
 - [ ] The two Cloudflare rewrite rules and the response-header rule above.
 - [ ] Official App Store / Google Play badges, if wanted, come from the stores' own kits; the buttons here
       are generic styled links on purpose.
@@ -165,7 +169,8 @@ no HTML challenge, no "Always Online" page on `/.well-known/*` (Apple and Google
 
 - `out/index.html`, `out/en/index.html`, every legal page, `/delete-account`, `/reset-password`, `/invite`,
   `/l` exist in every language with the right `<html lang>`, hreflang alternates, a title and a description;
-- legal drafts carry the draft banner and `noindex`;
+- legal drafts carry the draft banner, the summary box and `noindex`, and every page's footer links to them;
+- `docs/legal/{tr,en}/*.md` match the dictionaries (`npm run legal:md`);
 - `out/404.html`, `robots.txt`, `sitemap.xml`, `og.png` exist;
 - both `.well-known` files exist, parse as JSON, and list the expected app and paths;
 - no `text-transform: uppercase` / `uppercase` class in the output; no runtime Google Fonts request;

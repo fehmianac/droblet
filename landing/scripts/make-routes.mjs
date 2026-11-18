@@ -45,8 +45,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   'terms/page.tsx': legal('terms'),
   'privacy/page.tsx': legal('privacy'),
   'kvkk/page.tsx': legal('kvkk'),
+  'consents/page.tsx': legal('consents'),
   'subscription-terms/page.tsx': legal('subscriptionTerms'),
   'cookies/page.tsx': legal('cookies'),
+  'community-guidelines/page.tsx': legal('communityGuidelines'),
   'delete-account/page.tsx': page(
     "import { DeleteAccountPage, deleteAccountMetadata } from '@/components/DeleteAccountPage';",
     `deleteAccountMetadata('${locale}')`,

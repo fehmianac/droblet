@@ -204,8 +204,10 @@
     "terms": "Kullanım Koşulları",
     "privacy": "Gizlilik Politikası",
     "kvkk": "KVKK Aydınlatma Metni",
+    "consents": "Açık Rıza Metinleri",
     "subscription": "Abonelik Koşulları",
     "cookies": "Çerez Bildirimi",
+    "communityGuidelines": "Topluluk Kuralları",
     "deleteAccount": "Hesabımı sil",
     "contact": "İletişim",
     "langAria": "Dil"
@@ -220,69 +222,195 @@
   "legal": {
     "draftBadge": "TASLAK",
     "draftTitle": "Taslak — hukuk onayı bekliyor",
-    "draftBody": "Bu sayfa yapı ve başlık taslağıdır; bağlayıcı bir metin değildir. Nihai metin hukuk onayından sonra yayınlanacak.",
+    "draftBody": "Bu metin kapsamlı bir taslaktır ve hukuk onayından önce bağlayıcı değildir. Köşeli parantez içindeki yerler (ör. [ŞİRKET ADRESİ]) henüz belirlenmemiş bilgilerdir.",
     "tocLabel": "İÇİNDEKİLER",
+    "summaryLabel": "KISACA",
+    "versionLabel": "Taslak tarihi",
+    "version": "19 Kasım 2026 · Yürürlük: [YÜRÜRLÜK TARİHİ]",
     "controllerLabel": "Veri sorumlusu",
-    "controller": "Droblet Ltd (Londra, Birleşik Krallık)",
+    "controller": "Droblet Ltd, [ŞİRKET ADRESİ], Londra, Birleşik Krallık · Şirket no. [ŞİRKET NUMARASI] · [İLETİŞİM E-POSTASI]",
     "docs": {
       "terms": {
         "eyebrow": "YASAL",
         "title": "Kullanım Koşulları",
-        "description": "Droblet Kullanım Koşulları — taslak, hukuk onayı bekliyor.",
-        "intro": "Bu koşullar, Droblet mobil uygulamasının ve bu web sitesinin kullanımını düzenler. Hizmeti Droblet Ltd (Londra, Birleşik Krallık) sunar.",
+        "description": "Droblet mobil uygulamasının ve droblet.alatech.co web sitesinin kullanım koşulları — taslak, hukuk onayı bekliyor.",
+        "intro": "Bu koşullar, Droblet mobil uygulamasını ve droblet.alatech.co web sitesini (birlikte “Hizmet”) kullanman için seninle Droblet Ltd (“Droblet”, “biz”) arasındaki sözleşmedir. Hesap oluşturarak ya da Hizmet'i kullanarak bu koşulları, Gizlilik Politikası'nı, Abonelik Koşulları'nı ve Topluluk Kuralları'nı kabul etmiş olursun.",
+        "summary": [
+          "Droblet'i kullanmak için 18 yaşını doldurmuş olmalısın.",
+          "Yüklediğin fotoğraflar ve senin için üretilen görseller senindir ve yalnızca sana açıktır; istediğin an silebilirsin.",
+          "Yapay zekâ önerileri ve “Senin üzerinde” görselleri fikir vermek içindir; bedenin, rengin ya da ürünün gerçekte nasıl duracağını garanti etmez.",
+          "Droblet ürün satmaz ve ödeme almaz. Satın alma markanın kendi mağazasında olur; markadan komisyon alabiliriz, bu senin ödediğin fiyatı değiştirmez.",
+          "Droblet Üyelik App Store ya da Google Play üzerinden alınır, yönetilir ve iptal edilir.",
+          "Başkalarına saygılı ol: Topluluk Kuralları'na uymayan içerik kaldırılabilir, hesap askıya alınabilir.",
+          "Hesabını dilediğin an uygulamadan ya da droblet.alatech.co/delete-account adresinden silebilirsin."
+        ],
         "sections": [
           {
-            "heading": "Hizmetin kapsamı",
+            "heading": "Taraflar ve sözleşmenin kapsamı",
             "paragraphs": [
-              "Droblet; kıyafetlerini dijitalleştirdiğin, kombin önerileri aldığın ve seyahat bavulunu planladığın kişisel bir gardırop uygulamasıdır.",
-              "Taslak — hukuk onayı bekliyor: hizmetin tam tanımı ve sınırları."
+              "Hizmet'i, İngiltere ve Galler'de kurulu Droblet Ltd (şirket no. [ŞİRKET NUMARASI], adres: [ŞİRKET ADRESİ], Londra, Birleşik Krallık) sunar. Bize [İLETİŞİM E-POSTASI] adresinden ulaşabilirsin.",
+              "Bu sözleşme şu belgelerden oluşur: bu Kullanım Koşulları, Abonelik Koşulları (Droblet Üyelik ve ek kredi paketleri için) ve Topluluk Kuralları. Kişisel verilerinin nasıl işlendiğini Gizlilik Politikası ve KVKK Aydınlatma Metni anlatır; bunlar sözleşme değil, bilgilendirme metnidir.",
+              "Bu koşullar ile mağaza (App Store, Google Play) koşulları arasında ödeme, faturalama ve iade konusunda bir fark olursa o konuda mağazanın koşulları geçerlidir."
             ]
           },
           {
-            "heading": "Hesap",
+            "heading": "Hizmet nedir",
             "paragraphs": [
-              "Uygulamayı kullanmak için bir hesap oluşturursun. Hesabını istediğin an uygulamadan (Profil › Ayarlar › Hesabımı sil) ya da bu sitedeki Hesabımı sil sayfasından silebilirsin.",
-              "Taslak — hukuk onayı bekliyor: yaş koşulu, hesap güvenliği ve kullanıcı yükümlülükleri."
+              "Droblet kişisel bir gardırop ve stil uygulamasıdır. Hizmet'le şunları yapabilirsin:",
+              "- kıyafetlerini fotoğraflayıp ya da elle girip dijital gardırobunu oluşturmak (yapay zekâ türü, rengi ve kumaşı önerir; kaydetmeden önce sen onaylarsın);",
+              "- look (kombin) oluşturmak, takvimine plan yapmak, ne giydiğini kaydetmek;",
+              "- stilistten günlük kombin, haftalık plan ve seyahat bavulu önerisi almak;",
+              "- kombinleri ve mağaza ürünlerini kendi boy fotoğrafın üzerinde görmek (“Üzerimde gör”) ve yüz fotoğrafından renk paleti analizi almak;",
+              "- haftanın edit'ini ve mağaza kataloğunu keşfetmek, ürünleri markanın kendi mağazasında satın almak için yönlendirilmek;",
+              "- arkadaşlarını takip etmek, görünürlük ayarının izin verdiği ölçüde dolaplarını ve look'larını görmek ve look'ları puanlamak.",
+              "Gardırop, look, takvim, mağaza ve sosyal özellikler ücretsizdir. Yapay zekâ özellikleri Droblet Üyelik gerektirir; üye olmayanlar ilk 10 parça fotoğrafında yapay zekâ ile parça tanımayı ücretsiz kullanabilir. Ayrıntılar Abonelik Koşulları'ndadır.",
+              "Hizmet'i geliştirmeye devam ediyoruz; özellikler eklenebilir, değişebilir ya da kaldırılabilir. Ücretli bir özelliği önemli ölçüde kısıtlarsak bunu önceden bildiririz (bkz. madde 16)."
             ]
           },
           {
-            "heading": "İçeriğin ve fotoğrafların",
+            "heading": "Kimler kullanabilir",
             "paragraphs": [
-              "Fotoğrafların ve senin üzerinde üretilen görseller yalnızca sana açıktır. İstediğin an Profil › Gizlilik'ten silebilirsin.",
-              "Taslak — hukuk onayı bekliyor: içerik lisansı, yasak kullanımlar ve şikayet süreci."
+              "Hizmet'i kullanmak için 18 yaşını doldurmuş olmalısın. Hesap oluşturarak 18 yaşından büyük olduğunu beyan edersin. 18 yaşından küçük olduğunu öğrendiğimiz bir hesabı kapatır ve verilerini sileriz.",
+              "13–18 yaş arası kullanıcılar için ebeveyn onaylı bir kullanım ileride sunulabilir; sunulduğunda bu koşullar güncellenir.",
+              "Her kişi yalnızca kendi adına bir hesap açabilir. Daha önce bu koşulları ihlal ettiği için hesabı kapatılan kişi bizim yazılı onayımız olmadan yeni hesap açamaz."
             ]
           },
           {
-            "heading": "AI ile üretilen içerik",
+            "heading": "Hesabın ve güvenliği",
             "paragraphs": [
-              "Kombin önerileri ve \"Senin üzerinde\" etiketli görseller yapay zekâ ile üretilir ve bir fikir vermek içindir.",
-              "Taslak — hukuk onayı bekliyor: AI çıktılarına ilişkin sorumluluk sınırları."
+              "Hesabını e-posta ve şifreyle, Apple ile ya da Google ile oluşturabilirsin. Verdiğin bilgilerin doğru ve güncel olmasından sen sorumlusun.",
+              "Şifreni kimseyle paylaşma ve başka bir hizmette kullandığın şifreyi kullanma. Hesabının izinsiz kullanıldığını düşünürsen şifreni değiştir ve bize [İLETİŞİM E-POSTASI] adresinden haber ver.",
+              "Kullanıcı adın (@handle) ve görünen adın diğer kullanıcılara görünür. Başkasını taklit eden, yanıltıcı ya da Topluluk Kuralları'na aykırı bir kullanıcı adını değiştirebilir ya da kaldırabiliriz."
             ]
           },
           {
-            "heading": "Mağaza ve üçüncü taraf markalar",
+            "heading": "Senin içeriğin",
             "paragraphs": [
-              "Droblet ödeme almaz. Bir ürünü satın almak istediğinde markanın kendi mağazasına yönlendirilirsin; ödeme ve teslimat orada tamamlanır.",
-              "Taslak — hukuk onayı bekliyor: üçüncü taraf mağazalara ilişkin sorumluluk ve komisyon bilgilendirmesi."
+              "Uygulamaya yüklediğin fotoğraflar, girdiğin bilgiler, oluşturduğun look'lar ve puanların (“İçeriğin”) senindir. Droblet İçeriğin üzerinde mülkiyet iddia etmez.",
+              "Hizmet'i sana sunabilmemiz için bize İçeriğini yalnızca Hizmet'i çalıştırmak, sana göstermek, görünürlük ayarına göre seçtiğin kişilere göstermek ve senin başlattığın yapay zekâ işlemlerini yapmak amacıyla saklama, kopyalama, işleme ve biçimini değiştirme (ör. arka planı temizleme) konusunda dünya çapında, ücretsiz, devredilemez ve münhasır olmayan bir izin verirsin. Bu izin, işlemleri bizim adımıza yapan hizmet sağlayıcılarımızı (ör. barındırma ve yapay zekâ sağlayıcısı) da kapsar.",
+              "Bu izin, ilgili içeriği ya da hesabını sildiğinde sona erer. Silinen veriler yedeklerden en geç 30 gün içinde çıkar (bkz. Gizlilik Politikası). İçeriğini reklamda ya da pazarlamada senin ayrıca izin vermen olmadan kullanmayız ve yapay zekâ modellerini eğitmek için kullanmayız.",
+              "Yüklediğin içerik üzerinde gerekli haklara sahip olduğunu ve içeriğin bu koşullara, Topluluk Kuralları'na ve hukuka uygun olduğunu kabul edersin. Özellikle başka bir kişinin fotoğrafını boy ya da yüz fotoğrafı olarak yükleyemezsin."
             ]
           },
           {
-            "heading": "Üyelik",
+            "heading": "Fotoğrafların ve yapay zekâ ile üretilen içerik",
             "paragraphs": [
-              "Droblet Üyelik'in koşulları Abonelik Koşulları sayfasında yer alır.",
-              "Taslak — hukuk onayı bekliyor."
+              "Boy fotoğrafın, yüz fotoğrafın ve senin üzerinde üretilen görseller yalnızca sana açıktır; hiçbir görünürlük ayarında başka bir kullanıcıya gösterilmez. Bunları uygulamada Profil › Gizlilik'ten, hesabını silmeden de silebilirsin.",
+              "Kombin önerileri, bavul listeleri, parça etiketleri, renk paleti ve “Senin üzerinde” görselleri yapay zekâ ile üretilir. Bu çıktılar fikir vermek içindir ve hatalı olabilir: bir ürünün bedenini, kalıbını, rengini ya da üzerinde nasıl duracağını garanti etmez. Satın alma kararından önce markanın verdiği ürün bilgilerini ve beden tablosunu kontrol et.",
+              "Yapay zekâ özelliklerini yalnızca kendi fotoğrafınla ve kişisel, ticari olmayan amaçla kullanabilirsin. Üretilen görselleri başka birini yanıltmak, taklit etmek ya da onun rızası olmadan onu tasvir etmek için kullanamazsın.",
+              "Yapay zekâ sonuçları senin hakkında hukuki ya da benzeri önemli bir karar doğurmaz; yalnızca öneridir ve kabul edip etmemek sana kalmıştır."
             ]
           },
           {
-            "heading": "Sorumluluk, değişiklikler ve uygulanacak hukuk",
+            "heading": "Sosyal özellikler",
             "paragraphs": [
-              "Taslak — hukuk onayı bekliyor: sorumluluğun sınırlandırılması, koşullardaki değişikliklerin bildirimi, uygulanacak hukuk ve yetkili merciler."
+              "Dolabını kimin göreceğini sen seçersin: Herkese açık, Yalnızca takipçiler (varsayılan) ya da Gizli. Bu ayar yalnızca işlenmiş parça görsellerini, look'larını ve bunlara verilen puanları etkiler. Profil kartın (kullanıcı adı, görünen ad, stil etiketleri, takipçi sayıları) aramada görünür.",
+              "Herkese açık hesaplar anında takip edilir; Yalnızca takipçiler ya da Gizli hesaplar için takip isteği gönderilir ve hesap sahibi onaylar ya da reddeder.",
+              "Look'ları 1–5 yıldızla puanlayabilirsin. Puanlar look sahibine ortalama ve adet olarak, puanlayanın adı olmadan gösterilir.",
+              "Bir kişiyi ya da içeriğini şikâyet edebilir ve engelleyebilirsin. Engellediğin kişi ile birbirinizi hiçbir yerde göremezsiniz. Ayrıntılar Topluluk Kuralları'ndadır."
+            ]
+          },
+          {
+            "heading": "Yasak kullanımlar",
+            "paragraphs": [
+              "Hizmet'i kullanırken şunları yapamazsın:",
+              "- hukuka, bu koşullara ya da Topluluk Kuralları'na aykırı içerik yüklemek; çıplaklık ya da cinsel içerik, nefret söylemi, taciz veya şiddet içeren içerik paylaşmak;",
+              "- başka bir kişinin fotoğrafını onun rızası olmadan yüklemek ya da 18 yaşından küçük birinin fotoğrafını yüklemek;",
+              "- başka bir kişiyi ya da markayı taklit etmek, yanıltıcı hesap açmak;",
+              "- spam yapmak, toplu ya da otomatik takip, puanlama, şikâyet veya davet göndermek;",
+              "- Hizmet'e otomatik araçlarla (bot, kazıyıcı) erişmek, başka kullanıcıların verisini toplamak, güvenlik önlemlerini aşmaya çalışmak;",
+              "- Hizmet'i tersine mühendislikle çözmek, kopyalamak ya da bizim iznimiz olmadan ticari amaçla kullanmak;",
+              "- yapay zekâ özelliklerini kötüye kullanmak, kota ya da kredi sınırlarını hileli yollarla aşmaya çalışmak;",
+              "- Hizmet'in işleyişine zarar verecek ya da aşırı yük bindirecek eylemlerde bulunmak."
+            ]
+          },
+          {
+            "heading": "Mağaza, markalar ve komisyon",
+            "paragraphs": [
+              "Mağaza ve haftanın edit'indeki ürünleri markalar satar, Droblet satmaz. ürünü satın almak için ilgili düğmeye dokunduğunda markanın kendi web sitesine yönlendirilirsin; sipariş, ödeme, teslimat, iade ve garanti seninle marka arasındadır ve markanın koşullarına tabidir. Droblet ödeme ya da kart bilgisi almaz.",
+              "Droblet'in gelirinin bir kısmı satış ortaklığından (affiliate) gelir: Droblet üzerinden gittiğin bir markadan alışveriş yaptığında marka ya da aracı ağ (ör. Admitad, Gelir Ortakları / ReklamAction) bize komisyon ödeyebilir. Bu komisyon senin ödediğin fiyatı değiştirmez. Komisyonun hangi siparişe ait olduğunu anlamak için bağlantıya senin adını ya da e-postanı içermeyen bir tıklama kimliği (click id) eklenir.",
+              "Ürün bilgileri, fiyatlar ve stok durumu markalardan gelir ya da elle girilir; güncel olmayabilir. Geçerli olan, markanın sitesinde sipariş anında gösterilen bilgidir. Sponsorlu içerik yayınlarsak bunu açıkça “Sponsorlu” olarak işaretleriz.",
+              "Bir markadan alışveriş yaptığında uygulama, satın aldığın ürünleri gardırobuna eklemeyi önerebilir; eklemek senin onayına bağlıdır. Markaya gidip 48 saat içinde alışveriş yapmazsan ürün izleme listene bildirimsiz olarak eklenebilir; dilediğin an çıkarabilirsin."
+            ]
+          },
+          {
+            "heading": "Droblet Üyelik ve ödemeler",
+            "paragraphs": [
+              "Droblet Üyelik (aylık ya da yıllık) ve ek AI görseli paketleri yalnızca App Store ya da Google Play uygulama içi satın alma ile alınır. Fiyatlar, deneme süresi, otomatik yenileme, iptal ve iade Abonelik Koşulları'nda anlatılır ve ödeme ilgili mağazanın koşullarına tabidir."
+            ]
+          },
+          {
+            "heading": "Droblet'in fikri mülkiyeti",
+            "paragraphs": [
+              "Uygulama, web sitesi, Droblet adı ve logosu, tasarım, yazılım, haftanın edit'i, hazır parça kütüphanesi ve editoryal içerik Droblet'e ya da lisans verenlerine aittir. Marka adları ve ürün görselleri ilgili markalara aittir.",
+              "Bu koşullara uyduğun sürece sana Hizmet'i kişisel ve ticari olmayan amaçla, kendi cihazında kullanman için kişisel, devredilemez, münhasır olmayan ve geri alınabilir bir kullanım izni veririz. Bu izin sana kaynak koda ya da içeriğe ilişkin bir mülkiyet hakkı vermez.",
+              "Hizmet hakkında bize ilettiğin önerileri ve geri bildirimleri sana herhangi bir yükümlülüğümüz olmadan kullanabiliriz."
+            ]
+          },
+          {
+            "heading": "Üçüncü taraf hizmetleri",
+            "paragraphs": [
+              "Hizmet; Apple ve Google ile giriş, App Store ve Google Play ödemeleri, markaların web siteleri ve hava durumu gibi üçüncü taraf hizmetlerle birlikte çalışır. Bu hizmetler kendi koşullarına ve gizlilik politikalarına tabidir; onların içeriğinden ve işleyişinden Droblet sorumlu değildir.",
+              "Hava durumu tahmini bir üçüncü taraf hava servisinden alınır ve yaklaşık bilgidir."
+            ]
+          },
+          {
+            "heading": "Hizmetin sürekliliği",
+            "paragraphs": [
+              "Hizmet'i kesintisiz ve hatasız sunmak için makul çabayı gösteririz; ancak bakım, güncelleme, güvenlik ya da hizmet sağlayıcılarımızdan kaynaklanan kesintiler olabilir. Bir yapay zekâ işlemi başarısız olursa harcanan AI görseli kredisi iade edilir."
+            ]
+          },
+          {
+            "heading": "Askıya alma ve sona erme",
+            "paragraphs": [
+              "Hesabını dilediğin an uygulamadan (Profil › Ayarlar › Hesabımı sil) ya da droblet.alatech.co/delete-account adresinden silebilirsin. Hesap silme aktif aboneliğini iptal etmez; aboneliğini App Store ya da Google Play'den ayrıca iptal etmelisin.",
+              "Bu koşulları, Topluluk Kuralları'nı ya da hukuku ciddi biçimde veya tekrar tekrar ihlal edersen içeriğini kaldırabilir, hesabını uyararak ya da uyarmadan askıya alabilir veya kapatabiliriz. Mümkün olduğunda sana nedenini bildiririz ve itiraz etmene imkân tanırız (bkz. Topluluk Kuralları).",
+              "Sözleşme sona erdiğinde Hizmet'i kullanma iznin biter ve verilerin Gizlilik Politikası'nda yazılı sürelerde silinir. Doğası gereği sona ermeden sonra da geçerli olması gereken hükümler (ör. sorumluluk, uygulanacak hukuk) geçerliliğini korur."
+            ]
+          },
+          {
+            "heading": "Sorumluluk",
+            "paragraphs": [
+              "Hizmet'i “olduğu gibi” sunarız. Yapay zekâ çıktılarının doğruluğunu, bir ürünün sana uyacağını ya da bir markanın siparişini zamanında ve doğru teslim edeceğini garanti etmeyiz. Markadan yaptığın alışverişle ilgili talepler için muhatabın markadır.",
+              "Hukukun izin verdiği ölçüde, Droblet'in bu sözleşmeden doğan toplam sorumluluğu, talebe yol açan olaydan önceki 12 ayda Droblet için ödediğin tutarla sınırlıdır. Dolaylı zararlardan, kâr ya da veri kaybından (bizim kusurumuzla silinen veriler hariç) sorumlu değiliz.",
+              "Bu madde; kasıt ya da ağır ihmalden, ölüm veya yaralanmaya yol açan ihmalden, hileden doğan sorumluluğumuzu ve tüketici olarak sahip olduğun ve sözleşmeyle sınırlandırılamayan yasal haklarını (ör. 6502 sayılı Tüketicinin Korunması Hakkında Kanun ve Birleşik Krallık Consumer Rights Act 2015 kapsamındaki haklar) sınırlamaz."
+            ]
+          },
+          {
+            "heading": "Koşullardaki değişiklikler",
+            "paragraphs": [
+              "Bu koşulları değiştirebiliriz. Önemli değişiklikleri yürürlüğe girmeden en az [DEĞİŞİKLİK BİLDİRİM SÜRESİ] önce uygulama içinde ya da e-postayla bildiririz. Değişiklikleri kabul etmezsen yürürlük tarihinden önce hesabını silebilirsin; yürürlükten sonra Hizmet'i kullanmaya devam etmen yeni koşulları kabul ettiğin anlamına gelir.",
+              "Güvenlik ya da yasal zorunluluk nedeniyle yapılan değişiklikler hemen yürürlüğe girebilir."
+            ]
+          },
+          {
+            "heading": "Uygulanacak hukuk ve uyuşmazlıklar",
+            "paragraphs": [
+              "Bu sözleşmeye [UYGULANACAK HUKUK VE YETKİLİ MAHKEME] uygulanır. Bu seçim, yaşadığın ülkenin tüketiciyi koruyan ve sözleşmeyle vazgeçilemeyen kurallarından yararlanma hakkını ortadan kaldırmaz.",
+              "Türkiye'de yaşıyorsan, parasal sınırlar içinde yerleşim yerindeki ya da işlemin yapıldığı yerdeki Tüketici Hakem Heyeti'ne, sınırı aşan uyuşmazlıklarda Tüketici Mahkemesi'ne başvurabilirsin. Birleşik Krallık'ta yaşıyorsan yaşadığın bölgenin mahkemelerine başvurabilirsin.",
+              "Bir sorun yaşarsan önce bize [İLETİŞİM E-POSTASI] adresinden yaz; çoğu sorunu böyle çözebiliriz."
+            ]
+          },
+          {
+            "heading": "App Store ve Google Play'e ilişkin ek koşullar",
+            "paragraphs": [
+              "Uygulamayı Apple App Store'dan indirdiysen ayrıca şunlar geçerlidir:",
+              "- Bu sözleşme Apple ile değil, seninle Droblet arasındadır; uygulamadan ve içeriğinden Apple değil Droblet sorumludur.",
+              "- Kullanım iznin, uygulamayı App Store Kullanım Kuralları'na uygun olarak sahibi olduğun ya da kontrol ettiğin Apple cihazlarında kullanmakla sınırlıdır.",
+              "- Uygulamanın bakımı ve desteği için Apple'ın hiçbir yükümlülüğü yoktur.",
+              "- Uygulama geçerli bir garantiye uymazsa Apple'a bildirebilirsin; Apple ödediğin satın alma bedelini (varsa) iade edebilir. Hukukun izin verdiği ölçüde Apple'ın başka bir garanti yükümlülüğü yoktur.",
+              "- Uygulamayla ilgili ürün sorumluluğu, mevzuata uygunluk ya da tüketici mevzuatından doğan talepleri Apple değil Droblet karşılar.",
+              "- Uygulamanın üçüncü kişinin fikri mülkiyet hakkını ihlal ettiği iddiasında bu iddianın incelenmesi, savunulması ve çözülmesinden Apple değil Droblet sorumludur.",
+              "- ABD hükümetinin ambargo uyguladığı ya da “terörü destekleyen” olarak tanımladığı bir ülkede bulunmadığını ve ABD hükümetinin yasaklı kişi listelerinde yer almadığını beyan edersin.",
+              "- Apple ve bağlı şirketleri bu sözleşmenin üçüncü taraf lehtarıdır ve sözleşmeyi kabul etmenle birlikte bu sözleşmeyi sana karşı uygulama hakkına sahip olur.",
+              "Uygulamayı Google Play'den indirdiysen Google Play Hizmet Şartları da geçerlidir; uygulamadan Google değil Droblet sorumludur."
             ]
           },
           {
             "heading": "İletişim",
             "paragraphs": [
-              "Taslak — hukuk onayı bekliyor: iletişim adresi ve başvuru kanalları."
+              "Sorular, şikâyetler ve bildirimler için: [İLETİŞİM E-POSTASI] · Droblet Ltd, [ŞİRKET ADRESİ], Londra, Birleşik Krallık.",
+              "Hesabını silmek için: uygulamada Profil › Ayarlar › Hesabımı sil ya da droblet.alatech.co/delete-account."
             ]
           }
         ]
@@ -290,63 +418,239 @@
       "privacy": {
         "eyebrow": "YASAL",
         "title": "Gizlilik Politikası",
-        "description": "Droblet Gizlilik Politikası — taslak, hukuk onayı bekliyor.",
-        "intro": "Bu politika, Droblet'in kişisel verileri nasıl işlediğini anlatır. Veri sorumlusu Droblet Ltd'dir (Londra, Birleşik Krallık). Türkiye'deki kullanıcılar için KVKK, ayrıca UK GDPR uygulanır.",
+        "description": "Droblet'in kişisel verileri nasıl işlediği: hangi veriler, ne amaçla, kimlerle, ne kadar süre ve hakların — taslak, hukuk onayı bekliyor.",
+        "intro": "Bu politika, Droblet mobil uygulamasını ve droblet.alatech.co web sitesini kullandığında kişisel verilerinin nasıl işlendiğini anlatır. Veri sorumlusu Droblet Ltd'dir (Londra, Birleşik Krallık). Politika Birleşik Krallık Genel Veri Koruma Tüzüğü (UK GDPR) ve 2018 Veri Koruma Kanunu'na göre hazırlanmıştır; Türkiye'deki kullanıcılar için 6698 sayılı KVKK kapsamındaki ayrıntılar ayrıca KVKK Aydınlatma Metni'nde yer alır.",
+        "summary": [
+          "Boy fotoğrafın, yüz fotoğrafın ve senin üzerinde üretilen görseller yalnızca sana açıktır ve hiçbir ayarda başkasına gösterilmez.",
+          "Bu fotoğrafları ve üretilen görselleri Profil › Gizlilik'ten, hesabını silmeden de istediğin an silebilirsin.",
+          "Yüz fotoğrafını yalnızca renk paleti analizi için kullanırız; kimlik tespiti ya da yüz tanıma yapmayız, yüz şablonu çıkarmayız.",
+          "Yapay zekâ işlemleri için fotoğrafların ve gerekli bilgiler OpenAI'ye gönderilir; verilerimiz AWS Frankfurt'ta saklanır. Bu, Türkiye ve Birleşik Krallık dışına aktarım demektir.",
+          "Rehberinden arkadaş bulmak istersen rehberin telefonundan çıkmaz; yalnızca tek kullanımlık karmalar gönderilir ve saklanmaz.",
+          "Reklam izleme, üçüncü taraf analitik ya da reklam SDK'sı kullanmayız ve verini satmayız. Markaya yönlendirdiğimizde komisyon için yalnızca bir tıklama kimliği ekleriz.",
+          "Hesabını sildiğinde verilerin hemen silinir; yedeklerden en geç 30 gün içinde çıkar.",
+          "Verine erişme, düzeltme, silme, itiraz ve taşıma hakların var: [İLETİŞİM E-POSTASI]."
+        ],
         "sections": [
           {
-            "heading": "Temel gizlilik vaatlerimiz",
+            "heading": "Biz kimiz",
             "paragraphs": [
-              "Fotoğrafların ve senin üzerinde üretilen görseller yalnızca sana açıktır.",
-              "Yüz ve boy fotoğrafların hiçbir görünürlük ayarında başkasına gösterilmez.",
-              "Fotoğraflarını ve üretilen görselleri istediğin an Profil › Gizlilik'ten silebilirsin; bu, hesabını silmeden de çalışır.",
-              "Dolabını kimin göreceğini sen seçersin: herkese açık, yalnızca takipçiler ya da gizli."
+              "Veri sorumlusu: Droblet Ltd, [ŞİRKET ADRESİ], Londra, Birleşik Krallık; şirket no. [ŞİRKET NUMARASI]; Bilgi Komiserliği (ICO) kayıt no. [ICO KAYIT NUMARASI].",
+              "Gizlilikle ilgili tüm sorular ve hak başvuruları için: [İLETİŞİM E-POSTASI]. Türkiye'deki veri sorumlusu temsilcimiz: [TÜRKİYE TEMSİLCİSİ]."
             ]
           },
           {
-            "heading": "İşlediğimiz veriler",
+            "heading": "Bu politika neyi kapsar",
             "paragraphs": [
-              "Hesap bilgilerin (e-posta adresi gibi), gardırobuna eklediğin parçalar ve fotoğrafları, boy ve yüz fotoğrafların, oluşturduğun look'lar, takvim ve bavul planların.",
-              "Taslak — hukuk onayı bekliyor: veri kategorilerinin tam listesi ve her birinin hukuki sebebi."
+              "Bu politika Droblet mobil uygulamasını (iOS ve Android) ve droblet.alatech.co web sitesini kapsar. Uygulamadan gittiğin marka siteleri, App Store, Google Play, Apple ve Google hesapların kendi gizlilik politikalarına tabidir.",
+              "Droblet şu an 18 yaşından büyük kullanıcılara yöneliktir ve öncelikle Türkiye'de sunulmaktadır."
             ]
           },
           {
-            "heading": "Verileri ne için kullanırız",
+            "heading": "Hangi verileri işliyoruz",
             "paragraphs": [
-              "Gardırobunu düzenlemek, kombin ve bavul önerileri hazırlamak, renk paleti analizini yapmak ve \"Senin üzerinde\" görsellerini üretmek için.",
-              "Taslak — hukuk onayı bekliyor: işleme amaçları ve hukuki dayanaklar."
+              "Bize verdiğin bilgiler:",
+              "- Hesap: adın, e-posta adresin, şifrenin geri döndürülemez karması (şifrenin kendisi saklanmaz). Apple ya da Google ile girersen bu hizmetlerin verdiği hesap kimliği, e-posta adresi (Apple'ın gizli yönlendirme adresi olabilir) ve adın; Apple ile girişte hesap silmede Apple'daki bağlantıyı iptal edebilmek için şifreli olarak saklanan bir Apple yenileme anahtarı.",
+              "- Profil: kullanıcı adın (@handle), görünen adın, dil tercihin, hava durumu için seçtiğin şehir, dolap görünürlüğü ayarın.",
+              "- Stil profili: kimin için (şu an Kadın), seçtiğin üç stil etiketi ve bütçe aralığın.",
+              "- Beden profili: boyun, bedenin ve isteğe bağlı olarak kilon.",
+              "- Fotoğraflar: boy (tam boy) fotoğrafın ve yüz fotoğrafın; gardırobun için çektiğin ya da yüklediğin parça ve kombin fotoğrafları.",
+              "- Gardırop ve planlama: parçaların ve bilgileri (tür, renk, kumaş, sezon, marka, beden), look'ların, takvim planların, giydiklerin kaydı, bavulların (şehir ve tarihler), stilistten istediğin ortam ve serbest metin istekleri, “Beğenmedim” geri bildirimlerin.",
+              "- Sosyal: takip ettiklerin ve takipçilerin, takip isteklerin, verdiğin puanlar, kaydettiğin look'lar, engellediğin kişiler, gönderdiğin şikâyetler ve şikâyet notun.",
+              "- Alışveriş: sepetin, izleme listen, favori ürünlerin, markaya gittiğin tıklamalar ve “Gardıroba ekleyelim mi?” yanıtların.",
+              "- Bildirim tercihlerin, saat dilimin ve bize yazdığın destek iletileri.",
+              "Hizmeti kullanırken oluşan veriler:",
+              "- Üretilen veriler: senin üzerinde üretilen görseller, renk paleti sonucun (sezon tipi ve tonlar), işlenmiş (arka planı temizlenmiş) parça görselleri, yapay zekâ önerileri.",
+              "- Üyelik ve krediler: abonelik durumun, mağaza işlem kimlikleri, AI görseli kredi bakiyen ve hareketleri. Kart ya da ödeme bilgin bize gelmez.",
+              "- Cihaz: cihaz kimliği (uygulamanın oluşturduğu), platform, bildirim (push) anahtarı.",
+              "- Kullanım olayları: uygulamadaki belirli adımlar (ör. kayıt tamamlandı, ilk parça eklendi, üyelik ekranı görüldü). Bunlar ad, e-posta ya da serbest metin içermez (bkz. madde 9).",
+              "- Teknik ve güvenlik verileri: IP adresi, istek zamanı, hata kayıtları; kötüye kullanımı önlemek için giriş denemesi sayaçları.",
+              "Başkalarından gelen veriler:",
+              "- Apple ve Google: giriş bilgilerin; App Store ve Google Play: satın alma, yenileme, iptal ve iade bildirimleri.",
+              "- Satış ortaklığı ağları ve markalar: Droblet üzerinden gittiğin bir markadan sipariş verirsen sipariş numarası, tutar, para birimi ve sipariş durumu (adın, adresin ya da ödeme bilgin gelmez).",
+              "- Diğer kullanıcılar: sana gönderilen takip istekleri, look'larına verilen puanlar, seninle ilgili şikâyetler."
+            ]
+          },
+          {
+            "heading": "Fotoğraflar, yüz fotoğrafı ve kilo",
+            "paragraphs": [
+              "Boy ve yüz fotoğrafı yüklemek isteğe bağlıdır; uygulamayı bunlar olmadan da kullanabilirsin. Yüklersen fotoğrafın konum ve cihaz bilgisi (EXIF/XMP meta verisi) ilk işlemde silinir, temiz kopya şifreli ve herkese kapalı bir depolama alanında saklanır ve yalnızca sana, kısa süre geçerli özel bağlantılarla gösterilir.",
+              "Yüz fotoğrafını yalnızca renk paleti analizi için kullanırız: yapay zekâ fotoğraftaki ten, saç ve göz renklerine bakarak sana uyan sezon tipini seçer. Kimlik tespiti, doğrulama ya da yüz tanıma yapmayız; yüzünden kişiyi benzersiz biçimde tanımlayan bir şablon (biyometrik şablon) çıkarmaz ve saklamayız. Yapay zekâya kişiyi tanımlamaması ve tarif etmemesi açıkça söylenir. Bu nedenle bu işlemenin biyometrik veri işleme sayılmadığını düşünüyoruz; buna rağmen yüz ve boy fotoğrafını yalnızca açık rızanla işliyoruz. [HUKUK ONAYI: biyometrik veri değerlendirmesi]",
+              "Boy fotoğrafını yalnızca “Üzerimde gör” görsellerini üretmek için kullanırız. Fotoğraflar bedenini gösterebilir; bu nedenle hiçbir görünürlük ayarında başka kullanıcılara, destek ya da moderasyon ekibimize gösterilmez ve paylaşılan bir önbelleğe girmez.",
+              "Kilo bilgisi isteğe bağlıdır ve sağlık verisine yakın sayılabileceği için yalnızca açık rızanla saklanır. Boy ve kilo yapay zekâ sağlayıcısına gönderilmez; yapay zekâya bedenin, kilon ya da sağlığın hakkında yorum yapmaması söylenir.",
+              "Fotoğraflarından ya da diğer verilerinden etnik köken, sağlık, din gibi özel nitelikli bilgiler çıkarmayız."
+            ]
+          },
+          {
+            "heading": "Verilerini ne için ve hangi hukuki dayanakla kullanıyoruz",
+            "paragraphs": [
+              "- Hesabını açmak, girişini sağlamak, şifre sıfırlama e-postası göndermek ve Hizmet'i sunmak (gardırop, look, takvim, bavul, mağaza, sosyal özellikler): seninle yaptığımız sözleşmenin ifası (UK GDPR m. 6(1)(b)).",
+              "- Boy fotoğrafıyla “Üzerimde gör” görselleri üretmek, yüz fotoğrafıyla renk paleti analizi yapmak ve kiloyu saklamak: açık rızan (m. 6(1)(a) ve gerekirse m. 9(2)(a)). Rızanı istediğin an geri alabilirsin.",
+              "- Parça fotoğraflarından yapay zekâ ile tür, renk ve kumaş önermek, arka planı temizlemek; stilist, haftalık plan ve bavul önerileri hazırlamak: sözleşmenin ifası.",
+              "- Rehberden arkadaş bulma: açık rızan; rehberindeki kişiler için, verileri cihazdan okunabilir biçimde çıkmadığından ve saklanmadığından meşru menfaat (m. 6(1)(f)).",
+              "- Profil kartını aramada ve dolabını görünürlük ayarına göre diğer kullanıcılara göstermek: sözleşmenin ifası (ayarı sen seçersin).",
+              "- Üyelik ve kredi satın alımlarını doğrulamak, üyeliğini ve kredilerini yönetmek: sözleşmenin ifası; kayıtların saklanması için yasal yükümlülük (m. 6(1)(c)).",
+              "- Takip isteği ve arkadaş puanları gibi hizmet bildirimleri: sözleşmenin ifası; bunları ayarlardan kapatabilirsin.",
+              "- Haftanın edit'i ve fiyat düşüşü gibi pazarlama niteliğindeki bildirimler: rızan (bkz. madde 16).",
+              "- Markaya gittiğin tıklamayı ve gelen siparişi eşleştirmek (komisyon, satın alınan ürünleri gardıroba ekleme önerisi, 48 saat sonra izleme listesine ekleme): Hizmet'in gelir modelini sürdürmek ve sana alışverişinle ilgili kolaylık sunmak konusundaki meşru menfaatimiz; gardıroba ekleme senin onayına bağlıdır.",
+              "- Kullanım olaylarıyla ürünü geliştirmek ve ölçmek: meşru menfaat (takma adlı ve sınırlı veriyle).",
+              "- Güvenlik, dolandırıcılık ve kötüye kullanımın önlenmesi, hız sınırları, şikâyetlerin incelenmesi ve moderasyon: meşru menfaat ve gerektiğinde yasal yükümlülük.",
+              "- Yasal taleplerin kurulması, kullanılması ve savunulması, resmi makamların talepleri: yasal yükümlülük ve meşru menfaat.",
+              "Meşru menfaate dayandığımız işlemlerde senin hak ve özgürlüklerinle dengeyi değerlendirdik; bu değerlendirmeyi talep edebilir ve işlemeye itiraz edebilirsin."
             ]
           },
           {
             "heading": "Yapay zekâ ile işleme",
             "paragraphs": [
-              "\"Senin üzerinde\" görselleri ve renk paleti analizi, yüklediğin fotoğraflardan yapay zekâ ile üretilir.",
-              "Taslak — hukuk onayı bekliyor: hizmet sağlayıcılar, yurt dışına aktarım ve açık rıza kapsamı."
+              "Yapay zekâ özelliklerini OpenAI (OpenAI, L.L.C. / OpenAI Ireland Ltd [HUKUK ONAYI: sözleşme tarafı]) sağlar. Yapay zekâ çağrıları yalnızca sunucularımızdan yapılır; uygulama OpenAI'ye doğrudan bağlanmaz. Her özellik için gönderilenler:",
+              "- Parça tanıma ve arka plan temizleme: meta verisi silinmiş parça ya da kombin fotoğrafı.",
+              "- “Üzerimde gör”: boy fotoğrafın ve seçilen parçaların görselleri.",
+              "- Renk paleti: yüz fotoğrafın.",
+              "- Stilist, haftalık plan, bavul: tarih, sezon, ortam, hava durumu, stil profilin, palet sonucun, gardırobundaki parçaların türü, rengi, kumaşı ve sezonu, yazdığın serbest metin ve dil. Adın, e-postan, boyun ve kilon gönderilmez.",
+              "OpenAI bu verileri bizim adımıza ve talimatımızla işleyen bir veri işleyendir. OpenAI'nin API koşullarına göre API üzerinden gönderilen veriler modellerin eğitiminde kullanılmaz; kötüye kullanımı izlemek için [OPENAI SAKLAMA SÜRESİ] süreyle saklanabilir. [HUKUK ONAYI: veri işleme sözleşmesi ve sıfır saklama seçeneği]",
+              "Yapay zekâ çıktıları yalnızca öneridir; senin hakkında hukuki ya da benzeri önemli sonuç doğuran otomatik karar vermeyiz (UK GDPR m. 22). Yapay zekâ önerileri kalıcı verine yalnızca sen onayladıktan sonra girer."
             ]
           },
           {
-            "heading": "Paylaşım ve aktarım",
+            "heading": "Rehberden arkadaş bulma",
             "paragraphs": [
-              "Bir ürünü satın almak için markanın mağazasına geçtiğinde ödeme ve teslimat orada tamamlanır; Droblet ödeme bilgisi almaz.",
-              "Taslak — hukuk onayı bekliyor: veri işleyenler, alıcı grupları ve yurt dışına aktarım güvenceleri."
+              "Bu özellik isteğe bağlıdır. Önce uygulama ne olacağını anlatır ve onayını ister; ancak onaylarsan telefonun rehber izni sorulur.",
+              "Rehberindeki e-posta adresleri telefonunda, her istekte değişen tek kullanımlık bir tuzla (salt) SHA-256 karmasına dönüştürülür. Bize yalnızca bu karmalar gönderilir; adlar, telefon numaraları ve e-posta adreslerinin kendisi telefonundan çıkmaz.",
+              "Karmaları, üyelerimizin doğrulanmış e-posta adreslerinden aynı yöntemle üretilen değerlerle karşılaştırırız ve eşleşen üyelerin profil kartlarını (görünürlük ayarlarının izin verdiği ölçüde) gösteririz. Yüklenen karmalar kaydedilmez ve loglanmaz; tuz kullanıldıktan sonra silinir, en geç 10 dakikada geçersiz olur. Günde en fazla 10 eşleştirme yapılabilir.",
+              "Telefon numaraları bu özellikte kullanılmaz. İzni istediğin an telefonunun ayarlarından geri alabilirsin; saklanan bir rehber verisi olmadığı için silinecek bir şey de yoktur. Başkalarının rehberinden bulunmak istemiyorsan şu an tek yol hesabını silmektir; ayrı bir “beni eşleştirme” seçeneği ileride eklenebilir."
             ]
           },
           {
-            "heading": "Saklama ve silme",
+            "heading": "Alışveriş bağlantıları ve komisyon",
             "paragraphs": [
-              "Fotoğraflarını ve üretilen görselleri Profil › Gizlilik'ten, hesabının tamamını uygulamadan ya da bu sitedeki Hesabımı sil sayfasından silebilirsin.",
-              "Taslak — hukuk onayı bekliyor: saklama süreleri."
+              "Bir ürünü satın almak için markaya gittiğinde bağlantıya bir tıklama kimliği (click id) ekleriz ve tıklamayı hesabın, ürünler ve varsa look ile birlikte kaydederiz. Markaya ya da satış ortaklığı ağına (Admitad, Gelir Ortakları / ReklamAction ya da doğrudan anlaşmalı marka) adın, e-postan veya başka bir kimlik bilgin gönderilmez.",
+              "Sipariş verirsen ağ ya da marka bize bu tıklama kimliğiyle sipariş numarasını, tutarı, para birimini ve durumunu bildirir. Bunu komisyonu hesaplamak, sana satın aldığın ürünleri gardırobuna eklemeyi önermek ve satın aldığın ürünü izleme listene eklememek için kullanırız. 48 saat içinde sipariş gelmezse ürünler bildirimi kapalı olarak izleme listene eklenir.",
+              "Marka sitesinde verdiğin bilgiler (ad, adres, ödeme) markanın sorumluluğundadır ve markanın gizlilik politikasına tabidir. Ağların ve markaların kendi sitelerinde kullandığı çerezler de onların sorumluluğundadır."
+            ]
+          },
+          {
+            "heading": "Kullanım olayları (kendi analitiğimiz)",
+            "paragraphs": [
+              "Üçüncü taraf analitik, reklam ya da izleme SDK'sı kullanmayız ve reklam kimliğini (IDFA/AAID) okumayız. Ürünü geliştirmek için uygulama sınırlı bir listedeki olayları (ör. “kayıt tamamlandı”, “üyelik ekranı görüldü”, “kredi harcandı”) kendi sunucularımıza gönderir.",
+              "Olaylar kaydedilirken hesap kimliğin yerine geri döndürülemez bir karma kullanılır; olaylar ad, e-posta ya da serbest metin içeremez, yalnızca önceden tanımlı kısa değerler (ör. ekran adı, ürün kimliği, sayı) taşır. Olay kayıtları 400 gün sonra kendiliğinden silinir."
+            ]
+          },
+          {
+            "heading": "Diğer kullanıcıların görebildikleri",
+            "paragraphs": [
+              "- Herkes (aramada): kullanıcı adın, görünen adın, stil etiketlerin, stil uyumu yüzdesi, takipçi ve takip sayıların. Gizli hesaplar yalnızca aralarında takip ilişkisi olan kişilere görünür.",
+              "- Görünürlük ayarına göre (Herkese açık: herkes; Yalnızca takipçiler: onayladığın takipçiler; Gizli: kimse): işlenmiş parça görsellerin ve adları, look'ların, look'larının puan ortalaması.",
+              "- Hiçbir ayarda kimse: boy ve yüz fotoğrafın, senin üzerinde üretilen görseller, renk paletin, boyun, kilon, bedenin, takvimin ve giyim kaydın, bavulların, sepetin, izleme listen, bildirim ayarların ve e-postan.",
+              "Arkadaşlarına görünen look görselleri parça görsellerinden oluşur; asla “Üzerimde gör” görselin değildir. Parça görselleri arka planı temizlenmiş görsellerdir, çektiğin orijinal fotoğraf değildir.",
+              "Davet bağlantını açan kişi web sayfasında yalnızca ilk adını görür."
+            ]
+          },
+          {
+            "heading": "Verileri kimlerle paylaşıyoruz",
+            "paragraphs": [
+              "Verini satmayız ve reklam amacıyla paylaşmayız. Hizmeti sunmak için şu taraflarla, yalnızca gerektiği kadar paylaşırız:",
+              "- Amazon Web Services (AWS): sunucu, veritabanı ve fotoğraf depolama; veriler AB'de, Frankfurt bölgesinde (eu-central-1) saklanır. Veri işleyen.",
+              "- OpenAI: yapay zekâ işlemleri (madde 6). Veri işleyen.",
+              "- Twilio SendGrid: şifre sıfırlama e-postaları; e-posta adresin ve e-posta içeriği. Veri işleyen.",
+              "- Cloudflare: web sitesinin sunulması ve korunması; siteyi ziyaret edenlerin IP adresi ve istek bilgileri. Veri işleyen.",
+              "- Apple (Apple Push Notification service) ve Google (Firebase Cloud Messaging): bildirimlerin cihazına iletilmesi; cihazın bildirim anahtarı ve bildirim metni.",
+              "- Apple ve Google: “Apple ile giriş” / “Google ile giriş” ve App Store / Google Play ödemeleri. Bu şirketler kendi hizmetleri için ayrı veri sorumlusudur.",
+              "- Open-Meteo: hava durumu. Sunucumuzdan yalnızca seçtiğin şehrin koordinatları gönderilir; senin kimliğin ya da IP adresin gönderilmez.",
+              "- Admitad, Gelir Ortakları (ReklamAction) ve doğrudan anlaşmalı markalar: yalnızca tıklama kimliği (madde 8).",
+              "- Diğer kullanıcılar: madde 10'da anlatılan ölçüde.",
+              "- Mahkemeler, kolluk ve düzenleyici kurumlar: hukuken zorunlu olduğunda ya da birinin hayati çıkarlarını korumak için.",
+              "- Hukuk, muhasebe ve denetim danışmanlarımız; şirketimizin birleşmesi, devri ya da satışı hâlinde, bu politikaya bağlı kalmak koşuluyla alıcı ya da halef.",
+              "Güncel veri işleyen listesini [İLETİŞİM E-POSTASI] adresinden isteyebilirsin."
+            ]
+          },
+          {
+            "heading": "Yurt dışına aktarım",
+            "paragraphs": [
+              "Droblet Birleşik Krallık'ta kurulu bir şirkettir ve hizmet sağlayıcılarımız farklı ülkelerdedir. Bu nedenle verilerin Türkiye ve Birleşik Krallık dışına, özellikle AB'ye (Almanya — AWS) ve ABD'ye (OpenAI, Twilio SendGrid, Google, Apple, Cloudflare) aktarılır.",
+              "Birleşik Krallık'tan AB'ye aktarım, Birleşik Krallık'ın AB/AEA için verdiği yeterlilik düzenlemesine dayanır. ABD'ye ve diğer ülkelere aktarımda [YURT DIŞI AKTARIM MEKANİZMASI] (ör. UK–ABD veri köprüsü kapsamında sertifikalı alıcılar, ICO Uluslararası Veri Aktarım Sözleşmesi ya da AB Standart Sözleşme Hükümlerine Birleşik Krallık eki) kullanılır.",
+              "Türkiye'den yurt dışına aktarım KVKK m. 9'a tabidir; dayanaklar KVKK Aydınlatma Metni'nde yer alır. [HUKUK ONAYI: KVKK standart sözleşme ve Kurul'a bildirim]",
+              "Aktarım güvencelerinin bir kopyasını [İLETİŞİM E-POSTASI] adresinden isteyebilirsin."
+            ]
+          },
+          {
+            "heading": "Ne kadar saklıyoruz",
+            "paragraphs": [
+              "- Hesap, profil, stil ve beden profili, gardırop, look'lar, planlar, bavullar, sepet, izleme listesi, favoriler, takip ilişkileri, verdiğin puanlar, palet sonucu ve üretilen görseller: sen silene ya da hesabını silene kadar.",
+              "- Boy ve yüz fotoğrafları: sen silene, yenisiyle değiştirene ya da hesabını silene kadar.",
+              "- İşlenmemiş yüklemeler (işlemeden önceki ham fotoğraf): en fazla 1 gün.",
+              "- Onay bekleyen parça taslakları ve yapay zekâ iş kayıtları: 7 gün.",
+              "- “Beğenmedim” geri bildirimleri, kredi hareketleri ve kredi rezervasyonları: 400 gün ya da hesabını silene kadar (hangisi önce gelirse).",
+              "- Kullanım olayları: 400 gün (takma adlı).",
+              "- Şifre sıfırlama bağlantısı: 30 dakika. Oturum: erişim anahtarı 60 dakika, yenileme anahtarı 60 gün.",
+              "- Rehber eşleştirme tuzu: en fazla 10 dakika; yüklenen karmalar: hiç saklanmaz.",
+              "- Bildirim gönderim kayıtları: 14 gün; mağaza bildirim kayıtları: 90 gün.",
+              "- Markaya gidiş tıklamaları ve sipariş bildirimleri: [AFFILIATE KAYIT SAKLAMA SÜRESİ]; hesabını sildiğinde bu kayıtlarla hesabın arasındaki bağ silinir, kalan gelir kaydı anonimdir.",
+              "- Şikâyet kayıtları: [ŞİKAYET KAYDI SAKLAMA SÜRESİ]; hesabını sildiğinde hakkındaki şikâyetler silinir, gönderdiğin şikâyetler kimliğin olmadan kalır.",
+              "- Sunucu ve güvenlik kayıtları (log): [LOG SAKLAMA SÜRESİ]. Loglara e-posta, şifre, fotoğraf, yazdığın serbest metin ya da yapay zekâ yanıtı yazılmaz.",
+              "- Yedekler: canlı veritabanı 30 günlük zamana göre geri yükleme yedeğiyle korunur; silinen veriler yedeklerden en geç 30 gün içinde çıkar. Fotoğraf depolama alanında sürüm saklama kapalıdır, silinen fotoğrafın eski bir kopyası tutulmaz.",
+              "Yasal bir yükümlülük ya da süren bir uyuşmazlık nedeniyle daha uzun saklamamız gereken veriler yalnızca o amaçla ve gerektiği süre boyunca saklanır."
+            ]
+          },
+          {
+            "heading": "Fotoğraf silme ve hesap silme",
+            "paragraphs": [
+              "Profil › Gizlilik › “Fotoğraflarımı ve üretilen görselleri sil” boy ve yüz fotoğraflarını, senin üzerinde üretilen tüm görselleri ve yüz fotoğrafından çıkarılan renk paleti sonucunu siler; bu fotoğraflarla bekleyen yapay zekâ işleri iptal edilir. Yalnızca boy fotoğrafını silersen onunla üretilen görseller, yalnızca yüz fotoğrafını silersen palet sonucu da silinir. Gardırop parçaların bu işlemden etkilenmez; onları tek tek silebilirsin.",
+              "Hesabını uygulamadan (Profil › Ayarlar › Hesabımı sil) ya da droblet.alatech.co/delete-account adresinden silebilirsin. Silme; hesabın, giriş kimliklerin, profilin, tüm fotoğrafların ve üretilen görseller, gardırobun, look'ların, planların, bavulların, sepetin, izleme listen, cihaz ve bildirim kayıtların, takip ilişkilerin ve takip isteklerin (her iki taraftan), verdiğin ve aldığın puanlar, kaydedilen look'lar, engellemeler, hakkındaki şikâyetler, davet kodun ve rehber eşleştirme dizinindeki kaydını kapsar. Apple ile giriş yaptıysan Apple'daki bağlantı da iptal edilir.",
+              "Silme işleminden sonra kalanlar: gönderdiğin şikâyetler (kimliğin olmadan), hesabınla bağı kesilmiş anonim gelir kayıtları, takma adlı kullanım olayları (400 güne kadar) ve en fazla 30 gün boyunca yedekler.",
+              "Hesap silme App Store ya da Google Play aboneliğini iptal etmez; aboneliğini mağaza ayarlarından ayrıca iptal etmelisin."
             ]
           },
           {
             "heading": "Hakların",
             "paragraphs": [
-              "Taslak — hukuk onayı bekliyor: KVKK madde 11 ve UK GDPR kapsamındaki hakların ve başvuru yolu."
+              "UK GDPR kapsamında şu haklara sahipsin:",
+              "- verilerine erişme ve bir kopyasını alma;",
+              "- yanlış ya da eksik verilerin düzeltilmesini isteme;",
+              "- verilerinin silinmesini isteme;",
+              "- işlemenin kısıtlanmasını isteme;",
+              "- meşru menfaate dayanan işlemeye itiraz etme; doğrudan pazarlamaya her zaman itiraz edebilirsin;",
+              "- sözleşme ya da rızaya dayanan ve otomatik işlenen verilerini yapılandırılmış, makinece okunabilir biçimde alma ve başka bir hizmete aktarılmasını isteme (veri taşınabilirliği);",
+              "- rızanı istediğin an geri alma (geri alma, önceki işlemenin hukuka uygunluğunu etkilemez);",
+              "- yalnızca otomatik işlemeye dayanan ve seni önemli ölçüde etkileyen kararlara tabi olmama.",
+              "Türkiye'de yaşıyorsan KVKK m. 11'deki hakların KVKK Aydınlatma Metni'nde anlatılır.",
+              "Başvurunu [İLETİŞİM E-POSTASI] adresine, hesabına kayıtlı e-posta adresinden gönder. Kimliğini doğrulamak için ek bilgi isteyebiliriz. Başvurulara en geç bir ay içinde yanıt veririz (karmaşık başvurularda bu süre iki ay daha uzatılabilir; bunu sana bildiririz). Başvuru ücretsizdir.",
+              "Verilerinin büyük bölümünü uygulamada kendin görebilir, düzeltebilir ve silebilirsin.",
+              "Bize yazdıktan sonra memnun kalmazsan Birleşik Krallık Bilgi Komiserliği'ne (ICO, ico.org.uk) ya da Türkiye'de Kişisel Verileri Koruma Kurulu'na şikâyette bulunabilirsin."
             ]
           },
           {
-            "heading": "İletişim",
+            "heading": "Bildirimler ve pazarlama",
             "paragraphs": [
-              "Taslak — hukuk onayı bekliyor: veri sorumlusu iletişim bilgileri ve başvuru kanalları."
+              "Push bildirimleri yalnızca telefonunun bildirim iznini verirsen gönderilir. Bildirim türlerini Profil › Ayarlar › Bildirimler'den tek tek açıp kapatabilirsin:",
+              "- Sabah kombin hatırlatması (o gün için planladığın bir look varsa) ve takip istekleri, arkadaş puanları: hizmet bildirimleri.",
+              "- Haftanın edit'i ve izleme listendeki ürünlerde fiyat düşüşü: ürün ve kampanya içerebildiği için pazarlama niteliğinde sayılabilir; bunlar için ayrı rızanı isteriz. [HUKUK ONAYI: varsayılan ayar]",
+              "Şu an pazarlama e-postası ya da SMS göndermiyoruz. Gönderirsek önce açık onayını alırız ve her iletide vazgeçme yolu sunarız."
+            ]
+          },
+          {
+            "heading": "Çocuklar",
+            "paragraphs": [
+              "Droblet 18 yaşından küçükler için değildir ve 18 yaşından küçüklerden bilerek veri toplamayız. 18 yaşından küçük birinin hesap açtığını öğrenirsek hesabı ve verileri sileriz. Bunu fark edersen [İLETİŞİM E-POSTASI] adresine yaz.",
+              "İleride 13–18 yaş arası kullanıcılar için ebeveyn onaylı bir sürüm sunulursa bu politika önceden güncellenir."
+            ]
+          },
+          {
+            "heading": "Güvenlik",
+            "paragraphs": [
+              "Verilerini korumak için şu önlemleri alırız: tüm bağlantılarda şifreleme (TLS); veritabanı ve fotoğraf depolamada şifreleme; herkese kapalı fotoğraf depolama ve kısa ömürlü özel bağlantılar; şifrelerin güçlü bir karma algoritmasıyla saklanması; her kullanıcının verisinin ayrı anahtarla tutulması ve başka kullanıcıya yalnızca görünürlük kuralından geçerek açılması; giriş ve hassas işlemlerde hız sınırları; yönetici erişiminin rol bazlı sınırlanması ve kaydının tutulması; yönetim panelinde kullanıcı fotoğraflarının gösterilmemesi.",
+              "Hiçbir sistem tamamen güvenli değildir. Verilerini etkileyen bir ihlal olursa yasal süreler içinde yetkili kuruma ve gerektiğinde sana bildiririz."
+            ]
+          },
+          {
+            "heading": "Çerezler",
+            "paragraphs": [
+              "Web sitemiz kendi kodu ile çerez yazmaz, tarayıcıda veri saklamaz ve analitik ya da reklam aracı içermez. Uygulama çerez kullanmaz. Ayrıntılar Çerez Bildirimi'ndedir."
+            ]
+          },
+          {
+            "heading": "Değişiklikler ve iletişim",
+            "paragraphs": [
+              "Bu politikayı güncelleyebiliriz. Önemli değişiklikleri yürürlükten önce uygulamada ya da e-postayla bildiririz; yeni bir işleme amacı rızanı gerektiriyorsa önce rızanı isteriz.",
+              "Sorular ve başvurular: [İLETİŞİM E-POSTASI] · Droblet Ltd, [ŞİRKET ADRESİ], Londra, Birleşik Krallık."
             ]
           }
         ]
@@ -354,51 +658,226 @@
       "kvkk": {
         "eyebrow": "YASAL",
         "title": "KVKK Aydınlatma Metni",
-        "description": "Droblet KVKK Aydınlatma Metni — taslak, hukuk onayı bekliyor.",
-        "intro": "6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) madde 10 uyarınca hazırlanan aydınlatma metninin taslağıdır. Bu metnin aslı Türkçedir.",
+        "description": "6698 sayılı Kişisel Verilerin Korunması Kanunu m. 10 uyarınca Droblet kullanıcılarına yönelik aydınlatma metni — taslak, hukuk onayı bekliyor.",
+        "intro": "Bu metin, 6698 sayılı Kişisel Verilerin Korunması Kanunu (“KVKK”) m. 10 ve Aydınlatma Yükümlülüğünün Yerine Getirilmesinde Uyulacak Usul ve Esaslar Hakkında Tebliğ uyarınca, Droblet mobil uygulamasını ve droblet.alatech.co web sitesini kullananları bilgilendirmek için hazırlanmıştır. Bu metnin aslı Türkçedir. Açık rızanı gerektiren işlemler için ayrı açık rıza metinleri kullanılır; bu aydınlatma metni bir rıza beyanı değildir.",
+        "summary": [
+          "Veri sorumlusu Londra'da kurulu Droblet Ltd'dir; Türkiye'deki temsilcisi [TÜRKİYE TEMSİLCİSİ].",
+          "Hesap, profil, gardırop, fotoğraf, beden, sosyal, alışveriş, üyelik ve güvenlik verilerini Hizmet'i sunmak için işleriz.",
+          "Boy ve yüz fotoğrafının yapay zekâ ile işlenmesi, kilo, rehberden arkadaş bulma ve pazarlama bildirimleri için açık rızana dayanırız.",
+          "Veriler AWS (Almanya) sunucularında saklanır; yapay zekâ işlemleri için OpenAI'ye (ABD) aktarılır.",
+          "KVKK m. 11'deki haklarını [İLETİŞİM E-POSTASI] adresine başvurarak kullanabilirsin; en geç 30 gün içinde yanıt veririz."
+        ],
         "sections": [
           {
-            "heading": "Veri sorumlusu",
+            "heading": "Veri sorumlusu ve temsilcisi",
             "paragraphs": [
-              "Droblet Ltd (Londra, Birleşik Krallık).",
-              "Taslak — hukuk onayı bekliyor: sicil ve adres bilgileri, varsa Türkiye'deki temsilci."
+              "Veri sorumlusu: Droblet Ltd, [ŞİRKET ADRESİ], Londra, Birleşik Krallık (şirket no. [ŞİRKET NUMARASI]). E-posta: [İLETİŞİM E-POSTASI]. KEP adresi: [KEP ADRESİ].",
+              "Veri sorumlusu temsilcisi (Türkiye): [TÜRKİYE TEMSİLCİSİ].",
+              "Veri Sorumluları Sicili (VERBİS) kaydı: [VERBİS KAYIT DURUMU]."
             ]
           },
           {
-            "heading": "İşlenen kişisel veriler",
+            "heading": "İşlenen kişisel veri kategorileri",
             "paragraphs": [
-              "Kimlik ve iletişim verileri (e-posta adresi gibi), görsel veriler (parça fotoğrafları, boy ve yüz fotoğrafı, senin üzerinde üretilen görseller), kullanım verileri (gardırop, look, takvim ve bavul kayıtları).",
-              "Taslak — hukuk onayı bekliyor: yüz fotoğrafı ve renk paleti analizinin veri kategorisi ve kapsamı."
+              "- Kimlik: ad, kullanıcı adı (@handle), görünen ad.",
+              "- İletişim: e-posta adresi.",
+              "- Görsel kayıtlar: boy (tam boy) fotoğrafı, yüz fotoğrafı, parça ve kombin fotoğrafları, işlenmiş parça görselleri, senin üzerinde üretilen görseller.",
+              "- Fiziksel özellik ve beden bilgisi: boy, beden, isteğe bağlı kilo; yüz fotoğrafından çıkarılan renk paleti sonucu (sezon tipi, tonlar).",
+              "- Müşteri işlem: stil profili (stil etiketleri, bütçe), gardırop kayıtları, look'lar, takvim ve giyim kaydı, bavullar (şehir, tarih), stilist istekleri ve geri bildirimler, sepet, izleme listesi, favoriler, markaya gidiş tıklamaları ve sipariş bildirimleri (sipariş no., tutar, durum), abonelik durumu, mağaza işlem kimlikleri, AI kredi bakiyesi ve hareketleri, destek yazışmaları.",
+              "- Sosyal etkileşim: takip ilişkileri ve istekleri, verilen ve alınan puanlar, kaydedilen look'lar, engellemeler, şikâyetler ve şikâyet notları, dolap görünürlüğü ayarı.",
+              "- Konum: hava durumu için seçtiğin şehir (cihaz konumu okunmaz).",
+              "- Pazarlama: bildirim tercihleri ve pazarlama bildirimi rızası.",
+              "- İşlem güvenliği: şifre karması, oturum anahtarları, Apple/Google hesap kimlikleri, şifreli Apple yenileme anahtarı, cihaz kimliği, bildirim (push) anahtarı, IP adresi, sunucu kayıtları, giriş denemesi sayaçları, hesap askıya alma kayıtları.",
+              "- Rehber: rehberindeki e-posta adreslerinden telefonunda üretilen tek kullanımlık karmalar (saklanmaz; adlar, numaralar ve adreslerin kendisi telefonundan çıkmaz).",
+              "- Kullanım olayları: hesap kimliği yerine karma kullanılan, serbest metin içermeyen uygulama olayları.",
+              "Özel nitelikli kişisel veriler: Yüz fotoğrafını yalnızca renk paleti analizi için kullanırız; kimlik tespiti, doğrulama ya da yüz tanıma yapmaz, kişiyi benzersiz biçimde tanımlayan biyometrik şablon çıkarmaz ve saklamayız. Bu nedenle yüz fotoğrafının biyometrik veri olarak işlenmediğini değerlendiriyoruz. Kilo bilgisi sağlıkla ilgili veri olarak değerlendirilebilir. Her iki durumda da bu verileri yalnızca açık rızanla işleriz. [HUKUK ONAYI: KVKK m. 6 değerlendirmesi]"
             ]
           },
           {
             "heading": "İşleme amaçları",
             "paragraphs": [
-              "Taslak — hukuk onayı bekliyor: her veri kategorisi için işleme amaçları."
+              "- Üyelik kaydının oluşturulması, kimlik doğrulama ve oturum yönetimi, şifre sıfırlama;",
+              "- dijital gardırobun, look'ların, takvim, giyim kaydı ve bavul planlarının tutulması;",
+              "- yapay zekâ ile parça tanıma, arka plan temizleme, kombin, haftalık plan ve bavul önerisi hazırlanması;",
+              "- açık rızan varsa boy fotoğrafınla “Üzerimde gör” görsellerinin üretilmesi ve yüz fotoğrafınla renk paleti analizi yapılması;",
+              "- hava durumuna göre öneri yapılması;",
+              "- görünürlük ayarına göre sosyal özelliklerin (arama, takip, puanlama, kaydetme, davet, paylaşım) sunulması;",
+              "- açık rızan varsa rehberden arkadaş bulma;",
+              "- mağaza kataloğunun sunulması, markaya yönlendirme, satış ortaklığı komisyonunun takibi, satın alınan ürünlerin gardıroba eklenmesinin önerilmesi, izleme listesi ve fiyat takibi;",
+              "- Droblet Üyelik ve ek kredi satın alımlarının doğrulanması, üyelik ve kredi yönetimi;",
+              "- hizmet bildirimlerinin ve açık rızan varsa pazarlama bildirimlerinin gönderilmesi;",
+              "- ürünün geliştirilmesi ve ölçülmesi;",
+              "- bilgi ve işlem güvenliğinin sağlanması, kötüye kullanım ve dolandırıcılığın önlenmesi, şikâyetlerin incelenmesi ve topluluk kurallarının uygulanması;",
+              "- talep ve şikâyetlerin yanıtlanması, ilgili kişi başvurularının sonuçlandırılması;",
+              "- hukuki yükümlülüklerin yerine getirilmesi, yetkili kurumlara bilgi verilmesi ve hukuki uyuşmazlıklarda hakların korunması."
             ]
           },
           {
-            "heading": "Hukuki sebepler ve toplama yöntemi",
+            "heading": "Hukuki sebepler",
             "paragraphs": [
-              "Taslak — hukuk onayı bekliyor: KVKK madde 5 ve 6 kapsamındaki hukuki sebepler; verilerin uygulama üzerinden elektronik ortamda toplanması."
+              "- Bir sözleşmenin kurulması veya ifasıyla doğrudan ilgili olması (KVKK m. 5/2-c): hesap, profil, gardırop, look, plan, bavul, yapay zekâ ile parça tanıma ve stil önerileri, sosyal özellikler, mağaza ve sepet, üyelik ve kredi, hizmet bildirimleri, destek.",
+              "- Veri sorumlusunun hukuki yükümlülüğünü yerine getirmesi (m. 5/2-ç): yetkili kurumların talepleri, ilgili kişi başvuruları, gerekli kayıtların saklanması.",
+              "- Bir hakkın tesisi, kullanılması veya korunması (m. 5/2-e): uyuşmazlık ve şikâyet süreçleri.",
+              "- İlgili kişinin temel hak ve özgürlüklerine zarar vermemek kaydıyla veri sorumlusunun meşru menfaati (m. 5/2-f): güvenlik ve kötüye kullanımın önlenmesi, moderasyon, satış ortaklığı tıklama ve sipariş eşleştirmesi, takma adlı kullanım olaylarıyla ürün geliştirme.",
+              "- Açık rıza (m. 5/1 ve gerektiğinde m. 6): boy ve yüz fotoğrafının yapay zekâ ile işlenmesi (“Üzerimde gör”, renk paleti), kilo bilgisinin saklanması, rehberden arkadaş bulma, pazarlama niteliğindeki bildirimler ve gerektiğinde yurt dışına arızi aktarım. Açık rızanı istediğin an geri alabilirsin; bu durumda ilgili özellik kullanılamaz, ancak Droblet'in diğer özelliklerini kullanmaya devam edersin."
             ]
           },
           {
-            "heading": "Açık rıza",
+            "heading": "Toplama yöntemi",
             "paragraphs": [
-              "Taslak — hukuk onayı bekliyor: boy ve yüz fotoğrafının işlenmesi, renk paleti analizi ve yurt dışına aktarım için açık rıza metni ve rızanın geri alınması."
+              "Kişisel verilerin; uygulamaya ve web sitesine girdiğin bilgiler, yüklediğin fotoğraflar ve uygulama kullanımın sırasında otomatik yollarla, elektronik ortamda toplanır. Ayrıca Apple ve Google'dan (giriş), App Store ve Google Play'den (satın alma ve abonelik bildirimleri), satış ortaklığı ağlarından ve markalardan (sipariş bildirimleri) ve diğer kullanıcılardan (takip isteği, puan, şikâyet) elektronik ortamda veri alınır."
             ]
           },
           {
-            "heading": "Aktarım",
+            "heading": "Kişisel verilerin aktarılması",
             "paragraphs": [
-              "Taslak — hukuk onayı bekliyor: verilerin aktarıldığı alıcı grupları ve yurt dışına aktarımın dayanağı."
+              "Yurt içi: Markaya gittiğinde satış ortaklığı ağı Gelir Ortakları (ReklamAction) ve doğrudan anlaşmalı markalarla yalnızca adını ve e-postanı içermeyen tıklama kimliği paylaşılır. Hukuken zorunlu olduğunda yetkili kamu kurum ve kuruluşlarına ve yargı mercilerine aktarım yapılabilir.",
+              "Yurt dışı: Hizmet'in sunulması için kişisel verilerin şu alıcılara aktarılır:",
+              "- Droblet Ltd (Birleşik Krallık): veri sorumlusu olarak Hizmet'in sunulması.",
+              "- Amazon Web Services (Almanya, Frankfurt): sunucu, veritabanı ve fotoğraf depolama.",
+              "- OpenAI (ABD): yapay zekâ işlemleri — parça ve kombin fotoğrafları, açık rızan varsa boy ve yüz fotoğrafı, stil profili ve gardırop özellikleri.",
+              "- Twilio SendGrid (ABD): şifre sıfırlama e-postaları — e-posta adresi.",
+              "- Cloudflare (ABD ve küresel): web sitesinin sunulması ve korunması — IP adresi.",
+              "- Apple ve Google (ABD): giriş, uygulama içi satın alma doğrulaması ve bildirimlerin iletilmesi.",
+              "- Admitad (yurt dışı satış ortaklığı ağı [HUKUK ONAYI: ülke]): yalnızca tıklama kimliği.",
+              "- Open-Meteo ([HUKUK ONAYI: ülke]): yalnızca seçtiğin şehrin koordinatları; kimlik bilgisi aktarılmaz.",
+              "Yurt dışına aktarım KVKK m. 9 kapsamında [YURT DIŞI AKTARIM MEKANİZMASI] dayanağıyla yapılır (ör. Kurul'un ilan ettiği standart sözleşmelerin alıcılarla imzalanıp Kurum'a süresi içinde bildirilmesi). Bu güvencelerin bulunmadığı arızi aktarımlar için m. 9/6-a uyarınca açık rızana başvurulabilir. [HUKUK ONAYI: aktarım mekanizması]"
             ]
           },
           {
-            "heading": "KVKK madde 11 kapsamındaki hakların",
+            "heading": "Saklama süreleri",
             "paragraphs": [
-              "Taslak — hukuk onayı bekliyor: hakların listesi ve başvuru yöntemi."
+              "Kişisel verilerin, işleme amacı için gerekli süre boyunca saklanır: hesap ve içerik verileri sen silene ya da hesabını silene kadar; işlenmemiş yüklemeler en fazla 1 gün; parça taslakları ve yapay zekâ iş kayıtları 7 gün; kullanım olayları, kredi hareketleri ve stilist geri bildirimleri 400 gün; şifre sıfırlama bağlantısı 30 dakika; yenileme anahtarı 60 gün. Satış ortaklığı kayıtları [AFFILIATE KAYIT SAKLAMA SÜRESİ], şikâyet kayıtları [ŞİKAYET KAYDI SAKLAMA SÜRESİ], sunucu kayıtları [LOG SAKLAMA SÜRESİ] saklanır. Silinen veriler yedeklerden en geç 30 gün içinde çıkar. Ayrıntılı tablo Gizlilik Politikası'ndadır.",
+              "Süresi dolan veriler silinir, yok edilir ya da anonim hâle getirilir. [HUKUK ONAYI: kişisel veri saklama ve imha politikası]"
+            ]
+          },
+          {
+            "heading": "KVKK m. 11 kapsamındaki hakların",
+            "paragraphs": [
+              "Veri sorumlusuna başvurarak şu haklarını kullanabilirsin:",
+              "- kişisel verilerinin işlenip işlenmediğini öğrenme;",
+              "- işlenmişse buna ilişkin bilgi talep etme;",
+              "- işlenme amacını ve amacına uygun kullanılıp kullanılmadığını öğrenme;",
+              "- yurt içinde veya yurt dışında aktarıldığı üçüncü kişileri bilme;",
+              "- eksik veya yanlış işlenmişse düzeltilmesini isteme;",
+              "- KVKK m. 7'deki şartlar çerçevesinde silinmesini veya yok edilmesini isteme;",
+              "- düzeltme, silme ve yok etme işlemlerinin verilerin aktarıldığı üçüncü kişilere bildirilmesini isteme;",
+              "- işlenen verilerin münhasıran otomatik sistemler vasıtasıyla analiz edilmesi suretiyle aleyhine bir sonucun ortaya çıkmasına itiraz etme;",
+              "- kanuna aykırı işleme sebebiyle zarara uğraman hâlinde zararın giderilmesini talep etme."
+            ]
+          },
+          {
+            "heading": "Başvuru yöntemi",
+            "paragraphs": [
+              "Başvurunu Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ'e uygun olarak; Droblet'e kayıtlı e-posta adresinden [İLETİŞİM E-POSTASI] adresine, güvenli elektronik imza veya mobil imzayla, kayıtlı elektronik posta (KEP) yoluyla [KEP ADRESİ] adresine ya da yazılı olarak [ŞİRKET ADRESİ] adresine iletebilirsin. Başvuruda adını, soyadını, (Türk vatandaşıysan) T.C. kimlik numaranı ya da (yabancıysan) uyruğunu ve pasaport veya kimlik numaranı, tebligata esas adresini, varsa e-posta adresini ve talebinin konusunu belirtmelisin.",
+              "Başvurunu niteliğine göre en kısa sürede ve en geç 30 gün içinde ücretsiz olarak sonuçlandırırız. İşlemin ayrıca bir maliyet gerektirmesi hâlinde Kurul'ca belirlenen tarifedeki ücret alınabilir. Başvurun reddedilirse, yanıtı yetersiz bulursan ya da süresinde yanıt verilmezse, yanıtı öğrendiğin tarihten itibaren 30 gün ve her hâlükârda başvuru tarihinden itibaren 60 gün içinde Kişisel Verileri Koruma Kurulu'na şikâyette bulunabilirsin.",
+              "Verilerinin büyük bölümünü uygulamada kendin görebilir, düzeltebilir ve silebilirsin: fotoğraflar için Profil › Gizlilik, hesabın için Profil › Ayarlar › Hesabımı sil ya da droblet.alatech.co/delete-account."
+            ]
+          },
+          {
+            "heading": "Güncellemeler",
+            "paragraphs": [
+              "Bu aydınlatma metnini işleme faaliyetlerimiz değiştikçe güncelleriz. Güncel metin her zaman droblet.alatech.co/kvkk adresindedir; önemli değişiklikleri uygulama içinde bildiririz."
+            ]
+          }
+        ]
+      },
+      "consents": {
+        "eyebrow": "YASAL",
+        "title": "Açık Rıza Metinleri",
+        "description": "Droblet uygulamasının ilgili ekranlarda gösterdiği ayrı açık rıza metinleri: fotoğraf ve yapay zekâ, kilo, rehber, pazarlama bildirimleri, yurt dışına aktarım — taslak, hukuk onayı bekliyor.",
+        "intro": "Aşağıdaki metinler, uygulamada ilgili özelliği ilk kullandığında ayrı ayrı gösterilir. Her biri isteğe bağlıdır ve yalnızca kendi konusunu kapsar. Bu sayfa, verdiğin ya da vermediğin rızaları sonradan okuyabilmen için hepsini bir arada sunar. Kişisel verilerinin işlenmesine ilişkin genel bilgiler KVKK Aydınlatma Metni'nde ve Gizlilik Politikası'ndadır.",
+        "summary": [
+          "Rıza vermek zorunda değilsin; vermezsen yalnızca ilgili özellik çalışmaz, Droblet'in geri kalanını aynen kullanırsın.",
+          "Her rıza ayrıdır ve yalnızca kendi konusunu kapsar; hepsini tek bir onayla vermezsin.",
+          "Verdiğin rızayı istediğin an uygulamadan geri alabilirsin.",
+          "Rızanı hangi metin sürümüyle ve ne zaman verdiğini kaydederiz."
+        ],
+        "sections": [
+          {
+            "heading": "Bu metinler nasıl çalışır",
+            "paragraphs": [
+              "Her metin, ilgili ekranda işaretlenmemiş bir onay kutusu ya da “Onaylıyorum” düğmesiyle sunulur. Onay vermeden önce metnin tamamını okuyabilirsin. Rızan, KVKK m. 3 ve UK GDPR m. 4(11) anlamında belirli bir konuya ilişkin, bilgilendirilmeye dayanan ve özgür iradeyle açıklanan rızadır.",
+              "Rıza verdiğinde tarih, saat, metin sürümü ve hangi rızayı verdiğin hesabınla birlikte kaydedilir; bu kayıt hesabını silene kadar saklanır. [HUKUK ONAYI: rıza kaydının saklama süresi]",
+              "Hiçbir rıza, Droblet'in rızaya bağlı olmayan özelliklerini kullanmanın şartı değildir."
+            ]
+          },
+          {
+            "heading": "Açık rıza 1 — Boy fotoğrafı ve “Üzerimde gör”",
+            "paragraphs": [
+              "Ne için: Kombinleri ve mağaza ürünlerini senin üzerinde gösteren görselleri (“Üzerimde gör”) üretmek.",
+              "Hangi veriler: Yüklediğin boy (tam boy) fotoğrafı ve bu fotoğraftan üretilen görseller. Fotoğrafın konum ve cihaz bilgisi yüklemeden sonraki ilk işlemde silinir.",
+              "Kim işler ve nerede: Droblet Ltd; fotoğraf AWS'nin Frankfurt (Almanya) sunucularında saklanır ve görsel üretmek için OpenAI'ye (ABD) gönderilir.",
+              "Ne kadar: Fotoğrafı ya da üretilen görselleri silene veya hesabını silene kadar. Fotoğraf ve görseller hiçbir ayarda başka kullanıcılara gösterilmez.",
+              "Vermezsen: “Üzerimde gör” özelliğini kullanamazsın; gardırop, look, stilist ve diğer özellikler çalışmaya devam eder.",
+              "Onay metni: “Boy fotoğrafımın, ‘Üzerimde gör’ görsellerini üretmek amacıyla Droblet Ltd tarafından işlenmesine ve bu amaçla AWS (Almanya) ile OpenAI'ye (ABD) aktarılmasına açık rıza veriyorum.”"
+            ]
+          },
+          {
+            "heading": "Açık rıza 2 — Yüz fotoğrafı ve renk paleti analizi",
+            "paragraphs": [
+              "Ne için: Yüz fotoğrafındaki ten, saç ve göz renklerine bakarak sana uyan renk sezonunu ve tonları belirlemek (renk paleti analizi).",
+              "Hangi veriler: Yüklediğin yüz fotoğrafı ve ondan çıkarılan palet sonucu (sezon tipi, uyan ve kaçınılacak tonlar). Kimlik tespiti, doğrulama ya da yüz tanıma yapılmaz; seni benzersiz biçimde tanımlayan bir yüz şablonu çıkarılmaz ve saklanmaz.",
+              "Kim işler ve nerede: Droblet Ltd; fotoğraf AWS'nin Frankfurt (Almanya) sunucularında saklanır ve analiz için OpenAI'ye (ABD) gönderilir.",
+              "Ne kadar: Fotoğrafı silene veya hesabını silene kadar. Yüz fotoğrafını sildiğinde palet sonucu da silinir. Fotoğraf ve palet hiçbir ayarda başka kullanıcılara gösterilmez.",
+              "Vermezsen: Renk paleti analizini kullanamazsın; diğer özellikler çalışmaya devam eder.",
+              "Onay metni: “Yüz fotoğrafımın, yalnızca renk paleti analizi amacıyla ve kimlik tespiti yapılmaksızın Droblet Ltd tarafından işlenmesine ve bu amaçla AWS (Almanya) ile OpenAI'ye (ABD) aktarılmasına açık rıza veriyorum.”"
+            ]
+          },
+          {
+            "heading": "Açık rıza 3 — Kilo bilgisi",
+            "paragraphs": [
+              "Ne için: Beden profilini tamamlamak. Kilo bilgisi isteğe bağlıdır.",
+              "Hangi veriler: Girdiğin kilo. Kilo bilgisi yapay zekâ sağlayıcısına gönderilmez ve başka kullanıcılara gösterilmez.",
+              "Kim işler ve nerede: Droblet Ltd; AWS'nin Frankfurt (Almanya) sunucularında saklanır.",
+              "Ne kadar: Bilgiyi silene ya da hesabını silene kadar.",
+              "Vermezsen: Kilo alanını boş bırakırsın; hiçbir özellik etkilenmez.",
+              "Onay metni: “Kilo bilgimin, beden profilimin bir parçası olarak Droblet Ltd tarafından saklanmasına açık rıza veriyorum.”"
+            ]
+          },
+          {
+            "heading": "Açık rıza 4 — Rehberden arkadaş bulma",
+            "paragraphs": [
+              "Ne için: Rehberindeki kişilerden Droblet kullananları bulmak.",
+              "Hangi veriler: Rehberindeki e-posta adresleri telefonunda, her istekte değişen tek kullanımlık bir tuzla SHA-256 karmasına dönüştürülür; yalnızca bu karmalar gönderilir. Adlar, telefon numaraları ve e-posta adreslerinin kendisi telefonundan çıkmaz.",
+              "Kim işler ve nerede: Droblet Ltd; karmalar AWS'nin Frankfurt (Almanya) sunucularında yalnızca eşleştirme süresince bellekte tutulur.",
+              "Ne kadar: Karmalar kaydedilmez ve loglanmaz; tuz kullanıldıktan sonra silinir ve en geç 10 dakikada geçersiz olur.",
+              "Vermezsen: Telefonun rehber izni hiç sorulmaz; arkadaşlarını kullanıcı adıyla arayarak ya da davet bağlantısıyla bulabilirsin.",
+              "Onay metni: “Rehberimdeki e-posta adreslerinin telefonumda karma değerlere dönüştürülerek, Droblet'teki arkadaşlarımı bulmak amacıyla Droblet Ltd'ye gönderilmesine açık rıza veriyorum.”"
+            ]
+          },
+          {
+            "heading": "Açık rıza 5 — Pazarlama bildirimleri",
+            "paragraphs": [
+              "Ne için: Haftanın edit'i (editörün seçtiği look'lar ve ürünler) ve izleme listendeki ürünlerde fiyat düşüşü gibi ürün ve kampanya içerebilen bildirimleri göndermek.",
+              "Hangi veriler: Bildirim tercihlerin, cihazının bildirim anahtarı, dil ve saat dilimin, izleme listen.",
+              "Kim işler ve nerede: Droblet Ltd; bildirimler iOS'ta Apple Push Notification service, Android'de Google Firebase Cloud Messaging (ABD) üzerinden iletilir.",
+              "Ne kadar: Rızanı geri alana ya da hesabını silene kadar.",
+              "Vermezsen: Bu bildirimler gönderilmez. Sabah kombin hatırlatması ve takip isteği gibi hizmet bildirimleri bu rızadan bağımsızdır ve ayrı ayrı kapatılabilir.",
+              "Onay metni: “Haftanın edit'i ve fiyat düşüşü gibi ürün ve kampanya içerebilen bildirimlerin tarafıma gönderilmesine onay veriyorum.” [HUKUK ONAYI: 6563 sayılı Kanun ve İYS kapsamı]"
+            ]
+          },
+          {
+            "heading": "Açık rıza 6 — Yurt dışına aktarım",
+            "paragraphs": [
+              "Ne için: Droblet'in Birleşik Krallık'ta kurulu olması ve hizmet sağlayıcılarının yurt dışında bulunması nedeniyle, Hizmet'in sunulması için kişisel verilerinin Türkiye dışına aktarılması.",
+              "Hangi veriler ve alıcılar: Hesap, profil, gardırop ve kullanım verilerin Droblet Ltd'ye (Birleşik Krallık) ve AWS'ye (Almanya); yapay zekâ işlemleri için fotoğrafların ve gardırop özelliklerin OpenAI'ye (ABD); e-posta adresin Twilio SendGrid'e (ABD); bildirim anahtarın Apple ve Google'a (ABD).",
+              "Dayanak: Bu aktarımlar öncelikle KVKK m. 9'daki uygun güvencelere (ör. standart sözleşme) dayanır. Bu rıza, söz konusu güvencelerin bulunmadığı arızi aktarımlar için KVKK m. 9/6-a kapsamında istenir. [HUKUK ONAYI: bu rızanın gerekliliği ve kapsamı]",
+              "Ne kadar: Rızanı geri alana ya da hesabını silene kadar.",
+              "Vermezsen ya da geri alırsan: Uygun güvencesi olmayan aktarımlar yapılmaz; buna bağlı özellikler (ör. yapay zekâ) kullanılamayabilir.",
+              "Onay metni: “Kişisel verilerimin, yukarıda belirtilen alıcılara ve amaçlarla, KVKK m. 9'daki güvencelerin bulunmadığı arızi hâllerde yurt dışına aktarılmasına açık rıza veriyorum.”"
+            ]
+          },
+          {
+            "heading": "Rızanı geri alma",
+            "paragraphs": [
+              "Rızalarını dilediğin an geri alabilirsin:",
+              "- Boy ve yüz fotoğrafı: Profil › Gizlilik'ten fotoğrafı sil; ilgili rıza geri alınmış sayılır ve üretilen görseller ya da palet sonucu silinir.",
+              "- Kilo: uygulamadaki beden profilinde kilo alanını temizle.",
+              "- Rehber: telefonunun ayarlarından Droblet'in rehber iznini kapat.",
+              "- Pazarlama bildirimleri: Profil › Ayarlar › Bildirimler'den ilgili bildirimi kapat.",
+              "- Diğer her durumda ya da yukarıdakilere ek olarak: [İLETİŞİM E-POSTASI] adresine yaz.",
+              "Rızanın geri alınması, geri almadan önce yapılan işlemlerin hukuka uygunluğunu etkilemez. [HUKUK ONAYI: uygulamada rıza geri alma ekranı]"
             ]
           }
         ]
@@ -406,47 +885,128 @@
       "subscriptionTerms": {
         "eyebrow": "YASAL",
         "title": "Abonelik Koşulları",
-        "description": "Droblet Üyelik abonelik koşulları — taslak, hukuk onayı bekliyor.",
-        "intro": "Bu sayfa, Droblet Üyelik aboneliğinin koşullarını özetler.",
+        "description": "Droblet Üyelik ve ek AI görseli paketleri: kapsam, fiyat, ücretsiz deneme, otomatik yenileme, iptal, iade ve cayma hakkı — taslak, hukuk onayı bekliyor.",
+        "intro": "Bu koşullar Droblet Üyelik aboneliğini ve ek AI görseli paketlerini düzenler ve Kullanım Koşulları'nın bir parçasıdır. Satın almalar App Store ya da Google Play üzerinden yapılır; ödeme, faturalama ve iade ilgili mağazanın koşullarına da tabidir.",
+        "summary": [
+          "Droblet Üyelik aylık ya da yıllıktır; güncel fiyat ve varsa ücretsiz deneme süresi satın almadan önce mağazada gösterilir.",
+          "Üyelik her ay 30 AI görseli içerir. Kullanılmayan görseller sonraki aya devretmez.",
+          "Üyelik, dönem bitmeden en az 24 saat önce iptal etmezsen otomatik olarak yenilenir ve mağaza hesabından ücret alınır.",
+          "İptal App Store ya da Google Play abonelik ayarlarından yapılır. Uygulamayı ya da hesabını silmek aboneliği iptal etmez.",
+          "İade talepleri Apple'a ya da Google'a yapılır; Droblet ödeme almadığı için doğrudan iade yapamaz.",
+          "Üyelik bittiğinde verilerin silinmez; yalnızca üyelik özellikleri kapanır."
+        ],
         "sections": [
           {
             "heading": "Droblet Üyelik neleri kapsar",
             "paragraphs": [
-              "Ayda 30 AI görseli, kişisel stil danışmanı, akıllı bavul ve renk paleti analizi.",
-              "Gardırop, look'lar, takvim, mağaza ve arkadaşlar üyeliksiz de açıktır."
+              "- Her abonelik ayında 30 AI görseli (“Üzerimde gör”);",
+              "- kişisel stil danışmanı: günlük kombin önerisi ve haftalık plan;",
+              "- akıllı bavul: seyahat için bavul listesi ve günlük look'lar;",
+              "- yüz fotoğrafından renk paleti analizi;",
+              "- yapay zekâ ile sınırsız parça tanıma.",
+              "Stil danışmanı, bavul ve palet gibi metin tabanlı yapay zekâ özellikleri AI görseli kredisinden düşmez."
+            ]
+          },
+          {
+            "heading": "Üyeliksiz neler açık",
+            "paragraphs": [
+              "Gardırop (elle parça ekleme dahil), look'lar, takvim, mağaza, sepet, izleme listesi ve arkadaşlar üyelik olmadan da ücretsizdir. Üye olmayanlar ilk 10 parça fotoğrafı için yapay zekâ ile parça tanımayı ücretsiz kullanabilir; sonrasında parçaları elle eklemeye her zaman devam edebilirler.",
+              "Üye olmayan bir kullanıcı bir yapay zekâ özelliğine dokunduğunda üyelik ekranı gösterilir."
+            ]
+          },
+          {
+            "heading": "Planlar ve fiyatlar",
+            "paragraphs": [
+              "Droblet Üyelik iki planla sunulur: aylık ve yıllık. Fiyatlar Türk lirası olarak ve vergiler dahil App Store ya da Google Play'de, satın almadan önce gösterilir; uygulamada gösterilen fiyat mağazadan okunur.",
+              "Fiyatı mağaza belirlediği para birimi ve vergilerle hesaplar. Bulunduğun ülkeye göre fiyat ve para birimi farklı olabilir."
+            ]
+          },
+          {
+            "heading": "Ücretsiz deneme",
+            "paragraphs": [
+              "Yeni abonelere mağaza üzerinden ücretsiz deneme sunulabilir. Deneme süresi ve deneme sonunda alınacak ücret, onay vermeden önce mağazanın satın alma ekranında gösterilir.",
+              "Deneme süresi bitmeden en az 24 saat önce iptal etmezsen deneme ücretli aboneliğe dönüşür ve seçtiğin planın ücreti alınır. Deneme sırasında iptal edersen deneme sonuna kadar üyelik özelliklerini kullanmaya devam edersin.",
+              "Ücretsiz deneme, mağazanın uygunluk kurallarına göre her Apple kimliği ya da Google hesabı için bir kez kullanılabilir. Deneme sırasında ücretli bir plan satın alırsan kalan deneme süresi kullanılmaz."
+            ]
+          },
+          {
+            "heading": "Ödeme ve otomatik yenileme",
+            "paragraphs": [
+              "Ücret, satın almayı onayladığında Apple kimliğine ya da Google hesabına tanımlı ödeme yönteminden alınır.",
+              "Abonelik, dönem bitmeden en az 24 saat önce iptal edilmedikçe aynı süre ve o andaki fiyatla otomatik olarak yenilenir; yenileme ücreti dönem bitmeden önceki 24 saat içinde alınır.",
+              "Yenileme ödemesi alınamazsa mağaza bir süre ödemeyi yeniden dener; bu süre boyunca (ek süre) üyelik özelliklerine erişimin mağazanın bildirdiği şekilde devam edebilir. Ödeme alınamazsa üyelik sona erer."
+            ]
+          },
+          {
+            "heading": "İptal",
+            "paragraphs": [
+              "Aboneliğini istediğin an iptal edebilirsin:",
+              "- iPhone: Ayarlar › adın › Abonelikler › Droblet Üyelik › Aboneliği İptal Et;",
+              "- Android: Google Play › Profil › Ödemeler ve abonelikler › Abonelikler › Droblet Üyelik › Aboneliği iptal et.",
+              "İptal, içinde bulunduğun dönemin sonunda geçerli olur; dönem sonuna kadar üyelik özelliklerini kullanmaya devam edersin. Kısmen kullanılan dönem için mağaza kuralları dışında ücret iadesi yapılmaz.",
+              "Uygulamayı silmek ya da Droblet hesabını silmek aboneliği iptal etmez. Hesabını silmeden önce aboneliğini mağazadan iptal et."
             ]
           },
           {
             "heading": "AI görseli hakkı",
             "paragraphs": [
-              "Üyelik ayda 30 AI görseli içerir. Hak her ay yenilenir; kullanılmayan görseller sonraki aya devretmez.",
-              "Fazlası için uygulama içinden ek AI görseli paketi alınabilir."
+              "Üyelik her abonelik ayında 30 AI görseli içerir. Bir “Üzerimde gör” görseli 1 krediye karşılık gelir. Hak, abonelik ayının başında 30'a tamamlanır; kullanılmayan görseller sonraki aya devretmez. Yıllık planda da hak aylık olarak yenilenir.",
+              "Birden fazla görsel üretecek bir işlemden (ör. haftalık planın tüm günleri) önce kaç kredi harcanacağı gösterilir ve onayın istenir. Aynı kombinin görseli tekrar istenirse önbellekten gelir ve ikinci kez kredi düşmez. Bir görsel üretilemezse harcanan kredi iade edilir.",
+              "Kalan kredini Profil ekranında görebilirsin."
             ]
           },
           {
-            "heading": "Fiyat ve ücretsiz deneme",
+            "heading": "Ek AI görseli paketleri",
             "paragraphs": [
-              "Üyelik aylık ya da yıllıktır. Güncel fiyat ve deneme süresi App Store ve Google Play'de gösterilir.",
-              "Taslak — hukuk onayı bekliyor: deneme sonunda ücretlendirme ve vergiler."
+              "Aylık hakkın bittiğinde uygulama içinden ek AI görseli paketi (ör. 20 görsel) satın alabilirsin. Paketler tüketilebilir uygulama içi satın almadır ve tekrar alınabilir; fiyat satın almadan önce mağazada gösterilir.",
+              "Paket kredileri, aylık hakkın bittikten sonra kullanılır ve ay sonunda silinmez. Paket kredileri “Üzerimde gör” özelliğinde kullanıldığından yalnızca üyeliğin aktifken harcanabilir; üyeliğin biterse kalan paket kredilerin saklanır ve yeniden üye olduğunda kullanılabilir. [HUKUK ONAYI: paket kredilerinin üyeliğe bağlı olması ve süresi]",
+              "Bir paket mağaza tarafından iade edilirse, o paketten kalan krediler bakiyenden düşülür (bakiye sıfırın altına inmez); iade öncesinde üretilen görseller silinmez."
             ]
           },
           {
-            "heading": "Yenileme ve iptal",
+            "heading": "Plan değişikliği ve geri yükleme",
             "paragraphs": [
-              "Üyeliğin App Store / Google Play üzerinden yönetilir ve oradan iptal edilir. Hesabı silmek aboneliği iptal etmez; önce mağaza ayarlarından iptal et.",
-              "Taslak — hukuk onayı bekliyor: otomatik yenileme koşulları."
+              "Aylık ile yıllık plan arasında mağazanın abonelik ayarlarından geçiş yapabilirsin. Geçişin ne zaman geçerli olacağını ve ücret farkını mağaza belirler (genellikle üst plana geçiş hemen, alt plana geçiş dönem sonunda geçerli olur). Geçişte AI görseli ayın korunur.",
+              "Yeni bir cihazda ya da yeniden kurulumdan sonra üyelik ekranındaki “Satın alımları geri yükle” ile aboneliğini hesabına yeniden bağlayabilirsin.",
+              "Bir satın alma yalnızca bir Droblet hesabına bağlanabilir. Başka bir Droblet hesabına bağlı bir satın alma geri yüklenemez; bu hesap silinmişse satın alma yeni hesaba bağlanabilir."
             ]
           },
           {
-            "heading": "İade ve cayma hakkı",
+            "heading": "İadeler",
             "paragraphs": [
-              "Taslak — hukuk onayı bekliyor: iade koşulları ve cayma hakkı."
+              "Ödemeyi Droblet değil, Apple ya da Google alır; bu nedenle iade taleplerini doğrudan mağazaya yapmalısın:",
+              "- App Store: reportaproblem.apple.com ya da Apple Destek;",
+              "- Google Play: Google Play'deki sipariş geçmişin ya da Google Play iade talebi sayfası.",
+              "İade kararı mağazanın iade politikasına göre mağaza tarafından verilir. Bir abonelik iade edildiğinde üyelik erişimi iade tarihinde sona erer.",
+              "Bu madde, aşağıdaki cayma hakkı ve tüketici mevzuatından doğan diğer haklarını sınırlamaz."
             ]
           },
           {
-            "heading": "Değişiklikler",
+            "heading": "Cayma hakkı",
             "paragraphs": [
-              "Taslak — hukuk onayı bekliyor: fiyat ve kapsam değişikliklerinin bildirimi."
+              "Türkiye'deki tüketiciler için: Mesafeli Sözleşmeler Yönetmeliği m. 15/1-ğ uyarınca, elektronik ortamda anında ifa edilen hizmetlerde ve tüketiciye anında teslim edilen gayrimaddi mallarda cayma hakkı bulunmaz. Satın alma sırasında üyelik özelliklerinin hemen kullanıma açılmasını onaylayarak bu nedenle cayma hakkını kaybettiğini kabul edersin. Ücretsiz deneme süresince istediğin an ücretsiz iptal edebilirsin. [HUKUK ONAYI: abonelik ve ek paketlere uygulanabilirlik]",
+              "Birleşik Krallık'taki tüketiciler için: Consumer Contracts Regulations 2013 uyarınca dijital içerik ve hizmetler için 14 günlük cayma hakkın vardır. Dijital içeriğin (ör. ek AI görseli paketi) cayma süresi içinde hemen sağlanmasını açıkça isteyip bununla cayma hakkını kaybettiğini kabul edersen, içerik sağlandığında cayma hakkın sona erer. Abonelik hizmeti için cayma süresi içinde hizmetin başlamasını istersen, cayarsan o güne kadar sağlanan hizmetin orantılı bedelini ödemen gerekebilir. [HUKUK ONAYI: 2024 tarihli DMCC Kanunu abonelik kuralları]",
+              "Cayma bildirimini mağazanın iade kanalından ya da [İLETİŞİM E-POSTASI] adresinden iletebilirsin; bize gelen bildirimlerde mağaza üzerinden iade sürecinde sana yardımcı oluruz."
+            ]
+          },
+          {
+            "heading": "Fiyat ve kapsam değişiklikleri",
+            "paragraphs": [
+              "Abonelik fiyatını değiştirebiliriz. Fiyat artışlarını yürürlüğe girmeden önce uygulama içinde ve mağazanın kuralları gereği mağaza aracılığıyla bildiririz; mağaza gerekli gördüğü hâllerde artışı kabul etmeni ister. Kabul etmezsen abonelik mevcut dönemin sonunda sona erer.",
+              "Aylık AI görseli sayısını ya da üyeliğin kapsamını senin aleyhine değiştirirsek bunu en az [DEĞİŞİKLİK BİLDİRİM SÜRESİ] önce bildiririz; değişiklik bir sonraki yenileme döneminden itibaren uygulanır ve o tarihten önce iptal edebilirsin."
+            ]
+          },
+          {
+            "heading": "Üyelik bittiğinde",
+            "paragraphs": [
+              "Üyeliğin sona erdiğinde hiçbir verin silinmez. Gardırobun, look'ların, takvimin, bavulların, mevcut renk paleti sonucun ve daha önce üretilmiş görsellerin erişilebilir kalır; yalnızca yeni yapay zekâ işlemleri (yeni görsel, yeni öneri, yeni analiz) kapanır. Kullanılmamış aylık AI görselleri sona erer.",
+              "Fotoğraflarını silme, hesabını silme, dolap görünürlüğünü değiştirme ve satın alımları geri yükleme hakların hiçbir planda kısıtlanmaz."
+            ]
+          },
+          {
+            "heading": "İletişim",
+            "paragraphs": [
+              "Üyelik, kredi ya da satın alma ile ilgili sorular için: [İLETİŞİM E-POSTASI]. Ödeme ve iade için ilgili mağazanın destek kanallarını kullan."
             ]
           }
         ]
@@ -454,33 +1014,178 @@
       "cookies": {
         "eyebrow": "YASAL",
         "title": "Çerez Bildirimi",
-        "description": "Droblet Çerez Bildirimi — taslak, hukuk onayı bekliyor.",
-        "intro": "Bu bildirim, bu web sitesinde çerezlerin ve benzeri teknolojilerin kullanımını anlatır.",
+        "description": "droblet.alatech.co web sitesinde ve Droblet uygulamasında çerez ve benzeri teknolojilerin kullanımı — taslak, hukuk onayı bekliyor.",
+        "intro": "Bu bildirim, droblet.alatech.co web sitesinde ve Droblet mobil uygulamasında çerezlerin ve benzeri teknolojilerin (tarayıcı depolama alanı, cihaz depolama alanı, izleme pikselleri) kullanımını anlatır.",
+        "summary": [
+          "Web sitemizin kendi kodu çerez yazmaz ve tarayıcına hiçbir veri kaydetmez.",
+          "Analitik, reklam, sosyal medya ya da izleme aracı kullanmayız; bu yüzden çerez onayı istemiyoruz.",
+          "Yazı tipleri kendi sunucumuzdan gelir; sayfayı açtığında Google'a ya da başka bir üçüncü tarafa istek gitmez.",
+          "Siteyi sunan ve koruyan Cloudflare, güvenlik amacıyla zorunlu bir çerez kullanabilir: [CLOUDFLARE ÇEREZLERİ].",
+          "Zorunlu olmayan bir çerez eklersek önce onayını isteriz."
+        ],
         "sections": [
           {
-            "heading": "Bu sitede çerez kullanımı",
+            "heading": "Çerez nedir",
             "paragraphs": [
-              "Bu sitenin kendi kodu çerez yazmaz, tarayıcı deposuna veri kaydetmez ve analitik ya da reklam aracı içermez.",
-              "Taslak — hukuk onayı bekliyor: altyapı sağlayıcısının güvenlik amacıyla kullanabileceği zorunlu çerezlerin listesi."
+              "Çerezler, bir web sitesini ziyaret ettiğinde tarayıcına kaydedilen küçük metin dosyalarıdır. Benzer teknolojiler arasında tarayıcının yerel depolama alanı (localStorage, sessionStorage), uygulamaların cihazda veri saklaması ve sayfalara gömülen izleme pikselleri sayılır. Bu bildirimde “çerez” hepsini kapsar."
             ]
           },
           {
-            "heading": "Çerez türleri",
+            "heading": "Web sitemizde neler kullanılır",
             "paragraphs": [
-              "Taslak — hukuk onayı bekliyor: zorunlu, işlevsel, analitik ve pazarlama çerezlerinin tanımı ve bu sitedeki durumu."
+              "droblet.alatech.co durağan (statik) bir sitedir. Sitenin kendi kodu:",
+              "- çerez yazmaz ve okumaz;",
+              "- localStorage, sessionStorage ya da IndexedDB'ye veri kaydetmez;",
+              "- analitik, reklam, yeniden hedefleme, sosyal medya eklentisi ya da izleme pikseli içermez;",
+              "- yazı tiplerini ve görselleri kendi alan adından sunar; sayfayı açtığında Google Fonts ya da başka bir üçüncü tarafa istek göndermez.",
+              "“Hesabımı sil” ve “Şifremi sıfırla” sayfaları, girdiğin bilgileri yalnızca işlemi yapmak için Droblet API'sine gönderir. Hesap silme sırasında oturum anahtarı yalnızca sayfanın belleğinde tutulur; çerezde ya da tarayıcı deposunda saklanmaz ve sayfayı kapattığında silinir.",
+              "Bağlantı sayfalarında (davet, look, şifre sıfırlama) tarayıcının dil ayarı yalnızca seni doğru dil sayfasına yönlendirmek için okunur; hiçbir yere kaydedilmez."
+            ]
+          },
+          {
+            "heading": "Cloudflare",
+            "paragraphs": [
+              "Web sitemiz Cloudflare üzerinden sunulur. Cloudflare, siteyi hızlı ve güvenli tutmak için ziyaretçilerin IP adresini ve istek bilgilerini işler ve kötü niyetli trafiği (bot) ayırt etmek için zorunlu bir güvenlik çerezi yazabilir: [CLOUDFLARE ÇEREZLERİ].",
+              "Bu tür çerezler sitenin güvenli çalışması için kesinlikle gereklidir; KVKK Çerez Uygulamaları Rehberi ve Birleşik Krallık PECR m. 6 uyarınca onay gerektirmez. Cloudflare bu bilgileri reklam için kullanmaz. [HUKUK ONAYI: Cloudflare ayarlarının teyidi]"
+            ]
+          },
+          {
+            "heading": "Mobil uygulama",
+            "paragraphs": [
+              "Droblet uygulaması çerez kullanmaz ve üçüncü taraf analitik, reklam ya da izleme SDK'sı içermez; reklam kimliğini (IDFA/AAID) okumaz ve uygulamalar arası izleme yapmaz.",
+              "Uygulama cihazında yalnızca çalışması için gereken bilgileri saklar: oturum anahtarları cihazın güvenli deposunda (iOS Keychain / Android Keystore), dil tercihin ve kısa süreli görsel önbelleği uygulamanın kendi alanında. Çıkış yaptığında ve fotoğraflarını sildiğinde ilgili önbellek temizlenir.",
+              "Uygulamanın kendi sunucularımıza gönderdiği kullanım olayları Gizlilik Politikası'nda anlatılır."
+            ]
+          },
+          {
+            "heading": "Dış bağlantılar",
+            "paragraphs": [
+              "Web sitemizden ya da uygulamadan App Store'a, Google Play'e ya da bir markanın mağazasına gittiğinde, o siteler kendi çerezlerini kullanabilir. Markaya uygulama içi tarayıcıda gidildiğinde markanın ve satış ortaklığı ağının (ör. Admitad, Gelir Ortakları / ReklamAction) siparişi tıklamayla eşleştirmek için kullandığı çerezler de onların sorumluluğundadır ve onların çerez politikalarına tabidir."
             ]
           },
           {
             "heading": "Tercihlerini yönetme",
             "paragraphs": [
-              "Çerezleri tarayıcının ayarlarından silebilir ya da engelleyebilirsin.",
-              "Taslak — hukuk onayı bekliyor: rıza gerektiren çerez eklenirse tercih yönetimi."
+              "Tarayıcının ayarlarından çerezleri görebilir, silebilir ve engelleyebilirsin. Cloudflare'in güvenlik çerezini engellemek, sitenin bazı durumlarda doğrulama ekranı göstermesine yol açabilir.",
+              "Uygulamada önbelleği temizlemek için çıkış yapabilir ya da uygulamayı silebilirsin."
             ]
           },
           {
             "heading": "Değişiklikler ve iletişim",
             "paragraphs": [
-              "Taslak — hukuk onayı bekliyor."
+              "Sitemize analitik ya da başka bir zorunlu olmayan çerez eklersek, bu bildirimi güncelleriz ve çerez yerleştirilmeden önce açık onayını alırız; onay vermeden de siteyi kullanabilirsin.",
+              "Sorular için: [İLETİŞİM E-POSTASI]."
+            ]
+          }
+        ]
+      },
+      "communityGuidelines": {
+        "eyebrow": "YASAL",
+        "title": "Topluluk Kuralları",
+        "description": "Droblet'te parça, look, profil ve puanlar için topluluk kuralları; şikâyet, engelleme ve moderasyon — taslak, hukuk onayı bekliyor.",
+        "intro": "Droblet'te arkadaşlarının dolaplarına göz atabilir, look'larını puanlayabilir, onlardan ilham alabilirsin. Bu kurallar, herkesin kendini güvende ve rahat hissettiği bir topluluk için var. Kullanım Koşulları'nın bir parçasıdır.",
+        "summary": [
+          "Yalnızca kendi kıyafetlerini ve kendi look'larını paylaş; başkalarının fotoğrafını yükleme.",
+          "Çıplaklık, cinsel içerik, nefret, taciz, şiddet ve yanıltıcı hesaplar yasaktır.",
+          "Look'u puanla, kişiyi değil. Puanlar anonimdir; bunu kötüye kullanma.",
+          "Rahatsız olduğun bir kişiyi ya da içeriği profilindeki ⋯ menüsünden şikâyet edebilir ve engelleyebilirsin.",
+          "Şikâyetleri [MODERASYON YANIT SÜRESİ] içinde inceleriz; kuralları çiğneyen içeriği kaldırır, hesabı askıya alabiliriz."
+        ],
+        "sections": [
+          {
+            "heading": "Topluluk neyi paylaşır",
+            "paragraphs": [
+              "Droblet'te diğer kullanıcılar şunları görebilir (dolap görünürlüğü ayarına göre):",
+              "- profil kartın: kullanıcı adın, görünen adın, stil etiketlerin, takipçi sayıların;",
+              "- gardırop parçaların: arka planı temizlenmiş parça görseli ve parçanın adı;",
+              "- look'ların ve aldıkları puan ortalaması.",
+              "Boy ve yüz fotoğrafın, senin üzerinde üretilen görseller ve renk paletin hiçbir zaman paylaşılmaz. Droblet'te yorum ya da özel mesaj yoktur."
+            ]
+          },
+          {
+            "heading": "Ne paylaşabilirsin",
+            "paragraphs": [
+              "- Sahip olduğun ya da giydiğin kıyafetlerin, ayakkabıların, çantaların ve aksesuarların fotoğrafları.",
+              "- Kendi oluşturduğun look'lar ve onlara verdiğin adlar.",
+              "- Seni yansıtan, başkasını taklit etmeyen bir kullanıcı adı ve görünen ad.",
+              "Parça fotoğrafı çekerken arka planda başka insanların, belgelerin ya da kişisel bilgilerin görünmemesine dikkat et. Uygulama parça görselinin arka planını temizler; başkalarına yalnızca bu temizlenmiş görsel gösterilir."
+            ]
+          },
+          {
+            "heading": "Ne paylaşamazsın",
+            "paragraphs": [
+              "- Çıplaklık, cinsel içerik, iç çamaşırı ya da mayo fotoğraflarının cinsel çağrışımlı kullanımı;",
+              "- 18 yaşından küçüklerin fotoğrafları ya da çocukların cinsel istismarına ilişkin her türlü içerik (bu tür içeriği yetkili makamlara bildiririz);",
+              "- başka bir kişinin onun rızası olmadan çekilmiş ya da yüklenmiş fotoğrafı;",
+              "- ırk, etnik köken, din, cinsiyet, cinsel yönelim, engellilik, beden ya da görünüş üzerinden aşağılayan, nefret içeren ya da ayrımcı içerik — kullanıcı adları ve look adları dahil;",
+              "- tehdit, taciz, zorbalık ya da şiddeti öven içerik;",
+              "- başka bir kişiyi, influencer'ı ya da markayı taklit eden hesaplar;",
+              "- spam, reklam, yönlendirme bağlantıları ya da kişisel iletişim bilgisi (telefon, adres, e-posta) içeren adlar;",
+              "- sahte, kaçak ya da yasa dışı ürünler, silahlar, uyuşturucular;",
+              "- başkasının telif hakkıyla korunan görselleri (ör. bir markanın kampanya fotoğrafını kendi parçanmış gibi yüklemek). Mağaza ürünlerini look'una eklemek için uygulamadaki mağaza seçeneğini kullan."
+            ]
+          },
+          {
+            "heading": "Puanlama",
+            "paragraphs": [
+              "Look'ları 1 ile 5 yıldız arasında puanlayabilirsin. Puanlar anonimdir: look sahibi yalnızca ortalamayı ve kaç kişinin puan verdiğini görür, kimin ne verdiğini görmez.",
+              "Puanlama bir look'un stiline dair bir fikirdir, kişinin bedeni ya da görünüşü hakkında bir yargı değildir. Birini hedef almak için toplu ya da organize düşük puan vermek, sahte hesaplarla puanlamak ve puanları bir pazarlığa dönüştürmek yasaktır."
+            ]
+          },
+          {
+            "heading": "Saygı ve gizlilik",
+            "paragraphs": [
+              "Bir hesap Gizli ya da Yalnızca takipçiler ise takip isteğin onaylanana kadar dolabını göremezsin; reddedilen isteği ısrarla tekrarlama.",
+              "Başkalarının dolabından ya da look'larından aldığın görüntüleri onları küçük düşürmek, ifşa etmek ya da izinsiz ticari amaçla kullanmak için kullanma."
+            ]
+          },
+          {
+            "heading": "Şikâyet etme",
+            "paragraphs": [
+              "Kurallara aykırı bir profil, parça ya da look gördüğünde kişinin profilinde ⋯ › Şikâyet et'e dokun. Bir neden seç: spam, uygunsuz içerik, taciz, taklit hesap, reşit olmayanın güvenliği ya da diğer. İstersen 500 karaktere kadar not ekleyebilirsin.",
+              "Şikâyet ettiğin kişiye senin kim olduğun söylenmez. Kötüye kullanımı önlemek için bir hesaptan günde en fazla 20 şikâyet gönderilebilir; bilerek asılsız şikâyette bulunmak da bu kuralların ihlalidir.",
+              "Şikâyetleri moderasyon ekibimiz [MODERASYON YANIT SÜRESİ] içinde inceler. Reşit olmayanın güvenliğine ilişkin şikâyetlere öncelik veririz.",
+              "Uygulamaya erişemiyorsan ya da bir şeyi uygulama dışından bildirmek istiyorsan [İLETİŞİM E-POSTASI] adresine yaz."
+            ]
+          },
+          {
+            "heading": "Engelleme",
+            "paragraphs": [
+              "Bir kişiyi profilinde ⋯ › Engelle ile engelleyebilirsin. Engellediğinde:",
+              "- birbirinizi aramada, profillerde, akışta, önerilerde ve rehber eşleştirmesinde göremezsiniz;",
+              "- aranızdaki takip ilişkileri ve bekleyen takip istekleri her iki yönde kaldırılır;",
+              "- birbirinizin look'larını puanlayamaz, şikâyet edemez ve takip edemezsiniz.",
+              "Engellenen kişiye bildirim gönderilmez. Engellediklerini Profil › Ayarlar'da görebilir ve engeli kaldırabilirsin; engel kaldırılınca takip ilişkileri kendiliğinden geri gelmez."
+            ]
+          },
+          {
+            "heading": "Moderasyon ve yaptırımlar",
+            "paragraphs": [
+              "Her şikâyeti bir moderatör inceler ve şu sonuçlardan birine karar verir:",
+              "- şikâyeti kapatmak (kural ihlali yoksa);",
+              "- içeriği kaldırmak;",
+              "- hesap sahibini uyarmak;",
+              "- hesabı askıya almak — askıdaki hesap giriş yapamaz.",
+              "Ağır ihlallerde (ör. çocukların istismarı, ciddi tehdit) hesabı uyarı olmadan kapatabilir ve gerekli hâllerde yetkili makamlara bildirebiliriz. Moderatörler kullanıcıların boy ve yüz fotoğraflarını ya da üretilen görsellerini göremez; inceleme yalnızca başkalarına görünen içerik üzerinden yapılır.",
+              "Tekrarlanan ihlaller daha ağır yaptırımlara yol açar."
+            ]
+          },
+          {
+            "heading": "İtiraz",
+            "paragraphs": [
+              "İçeriğinin kaldırılmasının ya da hesabının askıya alınmasının hatalı olduğunu düşünüyorsan, kararı öğrendiğin tarihten itibaren 30 gün içinde [İLETİŞİM E-POSTASI] adresine kullanıcı adınla birlikte yaz. İtirazını ilk kararı vermeyen biri inceler ve sonucunu sana bildiririz. [HUKUK ONAYI: itiraz süresi]"
+            ]
+          },
+          {
+            "heading": "Acil durumlar",
+            "paragraphs": [
+              "Birinin hayatının ya da güvenliğinin tehlikede olduğunu düşünüyorsan önce acil yardım hattını ara: Türkiye'de 112, Birleşik Krallık'ta 999. Droblet bir acil durum hizmeti değildir."
+            ]
+          },
+          {
+            "heading": "Değişiklikler",
+            "paragraphs": [
+              "Bu kuralları topluluk büyüdükçe güncelleyebiliriz. Önemli değişiklikleri uygulama içinde duyururuz."
             ]
           }
         ]

@@ -102,6 +102,11 @@ public sealed class TryOnJobService(
                 var key = item is { UseOriginalImage: true, OriginalImageKey: not null } ? item.OriginalImageKey : item?.ImageKey ?? item?.OriginalImageKey;
                 if (key is not null && StorageKeys.BelongsToTenant(key, job.TenantId) && await storage.ReadAsync(key, MaxImageBytes, ct) is { } data)
                     image = new ImageInput(data, key.EndsWith(".webp", StringComparison.Ordinal) ? "image/webp" : key.EndsWith(".png", StringComparison.Ordinal) ? "image/png" : "image/jpeg");
+                // A piece added from the ready library or the catalog has no own photo: its image is the global
+                // https asset (GlobalImageKey), fetched with the same allow-listed downloader as catalog products.
+                else if (key is null && item?.GlobalImageKey is { } global && global.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                    image = await products.ReadImageAsync(
+                        new ProductSnapshot(item.Id, item.Name ?? "", null, null, item.Category, item.ColorIds, item.Fabric, item.Seasons, global, false), ct);
             }
             else if (piece.ProductId is not null && await products.GetAsync(piece.ProductId, ct) is { } product)
             {
