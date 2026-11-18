@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { apiRequest } from '@/api/client';
 import type { Look } from '@/api/contracts/looks';
-import { fromSource } from '@/api/source';
+import { fromSource } from '@/api/dataSource';
 import { clone, fixtureDb, FixtureNotFound } from '@/fixtures/db';
 
 /** Query keys of the looks feature (E3). */

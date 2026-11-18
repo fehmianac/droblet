@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/api/client';
 import type { Item, ItemDetail, ItemDraft } from '@/api/contracts/wardrobe';
 import { jobPollInterval } from '@/api/jobs';
-import { fromSource } from '@/api/source';
+import { fromSource } from '@/api/dataSource';
 import { clone, fixtureDb, FixtureNotFound } from '@/fixtures/db';
 import { fixtureListDrafts } from '@/fixtures/wardrobe';
 

@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 
 import { apiRequest } from '@/api/client';
 import type { Entitlement } from '@/api/contracts';
-import { fromSource } from '@/api/source';
+import { fromSource } from '@/api/dataSource';
 import { clone, fixtureDb } from '@/fixtures/db';
 
 /** Separate from `queryKeys.entitlement` (the paywall's live query) so fixture data never lands in that cache entry. */

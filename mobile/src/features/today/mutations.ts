@@ -13,7 +13,7 @@ import type {
   WeeklyEdit,
 } from '@/api/contracts/today';
 import { isConflict } from '@/api/errors';
-import { fromSource } from '@/api/source';
+import { fromSource } from '@/api/dataSource';
 import { lookKeys } from '@/features/looks/queries';
 import { fixtureAddToWatchlist, fixturePutPlanDay, fixtureSaveEditLook, fixtureSetLookFavorite } from '@/fixtures/today';
 import { ulid } from '@/lib/ids';

@@ -15,7 +15,7 @@ import {
   type WeatherForecastResponse,
 } from '@/api/contracts/stylist';
 import { useJob, type JobView } from '@/api/jobs';
-import { fromSource } from '@/api/source';
+import { fromSource } from '@/api/dataSource';
 import { fixtureWeather, startFixtureStylistOutfit } from '@/fixtures/stylist';
 import { toIsoDate } from '@/lib/format';
 import { ulid } from '@/lib/ids';

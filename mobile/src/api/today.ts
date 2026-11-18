@@ -8,7 +8,7 @@ import { mutationKeys, queryKeys } from '@/sync/queryKeys';
 
 import { apiRequest } from './client';
 import type { LibraryItem, TodayResponse, WearLogRequest } from './contracts';
-import { DATA_SOURCE, fromSource } from './source';
+import { DATA_SOURCE, fromSource } from './dataSource';
 
 /** 06 Bugün — `GET v1/tenant/today?date=` (fixture-backed behind the `today` source switch). */
 export function useToday() {

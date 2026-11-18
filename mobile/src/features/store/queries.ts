@@ -193,7 +193,7 @@ export function productTryOnOptions(productId: string) {
     meta: { persist: false },
     queryFn: () =>
       fromSource(
-        'tryOn',
+        'jobs',
         () => storeFixtures.tryOn(productId),
         () => apiRequest<TryOnState>(`v1/tenant/tryon${queryString({ kind: 'product', id: productId })}`),
       ),

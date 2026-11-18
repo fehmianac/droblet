@@ -4,7 +4,7 @@ import { apiRequest } from '@/api/client';
 import type { Job } from '@/api/contracts/jobs';
 import type { AcceptSuggestionRequest, AcceptSuggestionResponse, StylistFeedbackRequest, StylistOutfitResult } from '@/api/contracts/stylist';
 import { jobQueryKey } from '@/api/jobs';
-import { fromSource } from '@/api/source';
+import { fromSource } from '@/api/dataSource';
 import { lookKeys } from '@/features/looks/queries';
 import { planKeys } from '@/features/today/keys';
 import { acceptFixtureSuggestion } from '@/fixtures/stylist';

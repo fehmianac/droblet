@@ -17,7 +17,7 @@ import type {
   PutItemRequest,
 } from '@/api/contracts/wardrobe';
 import { ApiError, isConflict, isGone } from '@/api/errors';
-import { DATA_SOURCE, fromSource } from '@/api/source';
+import { DATA_SOURCE, fromSource } from '@/api/dataSource';
 import { lookKeys } from '@/features/looks/queries';
 import {
   fixtureConfirmDrafts,

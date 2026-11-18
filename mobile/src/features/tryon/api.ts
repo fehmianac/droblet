@@ -4,7 +4,7 @@ import { apiRequest } from '@/api/client';
 import type { StartTryOnRequest, StartTryOnResponse, TryOnResult, TryOnTarget, TryOnTargetKind } from '@/api/contracts/tryon';
 import { ApiError } from '@/api/errors';
 import { useJob, type JobView } from '@/api/jobs';
-import { fromSource } from '@/api/source';
+import { fromSource } from '@/api/dataSource';
 import { aiCreditsKey } from '@/features/credits/useAiCredits';
 import { fixtureDb } from '@/fixtures/db';
 import { fixtureJobOptions, startFixtureJob } from '@/fixtures/jobs';

@@ -5,7 +5,7 @@ import { getFixtureJob } from '@/fixtures/jobs';
 
 import { apiRequest } from './client';
 import type { Job, JobKind } from './contracts/jobs';
-import { fromSource } from './source';
+import { fromSource } from './dataSource';
 
 /** Poll back-off: 1 s → 2 → 4 → 8 → 10 s cap (MOBILE_ENGINEER §Uzun süren sunucu işleri). */
 export function jobPollInterval(attempt: number): number {

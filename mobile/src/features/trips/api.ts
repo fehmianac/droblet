@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/api/client';
 import type { City, PackTripRequest, PackTripResponse, Trip, TripDetail, TripFields, TripPlan } from '@/api/contracts/trips';
 import { useJob } from '@/api/jobs';
-import { fromSource } from '@/api/source';
+import { fromSource } from '@/api/dataSource';
 import { fixtureGetTrip, fixtureListTrips, fixtureSearchCities, fixtureStartPack } from '@/fixtures/trips';
 import { ulid } from '@/lib/ids';
 import { newClientMutation } from '@/sync/clientMutation';

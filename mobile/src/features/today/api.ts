@@ -15,7 +15,7 @@ import type {
   WeeklyEdit,
 } from '@/api/contracts/today';
 import { useJob } from '@/api/jobs';
-import { fromSource } from '@/api/source';
+import { fromSource } from '@/api/dataSource';
 import { startFixtureJob } from '@/fixtures/jobs';
 import { fixtureCalendarMonth, fixtureListPlanDays, fixturePlanWeek, fixtureRefreshToday, fixtureWeeklyEdit } from '@/fixtures/today';
 import { ulid } from '@/lib/ids';

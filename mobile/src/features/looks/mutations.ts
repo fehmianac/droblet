@@ -3,7 +3,7 @@ import type { QueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/api/client';
 import type { CreateLookRequest, Look, PutLookRequest } from '@/api/contracts/looks';
 import { isConflict, isGone } from '@/api/errors';
-import { fromSource } from '@/api/source';
+import { fromSource } from '@/api/dataSource';
 import { registerTripMutations } from '@/features/trips/mutations';
 import { fixtureCreateLook, fixtureDeleteLook, fixturePutLook } from '@/fixtures/looks';
 import { ulid } from '@/lib/ids';

@@ -3,7 +3,7 @@ import type { QueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/api/client';
 import type { AcceptPackRequest, CheckTripItemRequest, CreateTripRequest, PutTripRequest, Trip, TripDetail, TripPlan } from '@/api/contracts/trips';
 import { isConflict, isGone } from '@/api/errors';
-import { fromSource } from '@/api/source';
+import { fromSource } from '@/api/dataSource';
 import { fixtureAcceptPack, fixtureCheckTripItem, fixtureCreateTrip, fixtureDeleteTrip, fixturePutTrip } from '@/fixtures/trips';
 import { ulid } from '@/lib/ids';
 import { conflictStore } from '@/sync/conflicts';

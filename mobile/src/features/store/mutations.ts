@@ -79,7 +79,7 @@ export function registerStoreMutations(client: QueryClient): void {
     scope: TENANT_WRITE_SCOPE,
     mutationFn: (vars: TryOnRequest) =>
       fromSource(
-        'tryOn',
+        'jobs',
         () => storeFixtures.requestTryOn(vars.target.id),
         () => apiRequest<void>('v1/tenant/tryon', { method: 'POST', body: vars }),
       ),
