@@ -17,6 +17,7 @@ import { withLatency } from '@/fixtures/today';
 import { ulid } from '@/lib/ids';
 
 import { conflictStore } from './conflicts';
+import { registerFeatureMutations } from './featureMutations';
 import { mutationKeys, queryKeys, TENANT_WRITE_SCOPE } from './queryKeys';
 import { uploadPhoto } from './photoUpload';
 
@@ -108,4 +109,7 @@ export function registerMutationDefaults(client: QueryClient): void {
     scope: TENANT_WRITE_SCOPE,
     mutationFn: (vars: WearLogRequest) => withLatency(vars, 200),
   });
+
+  // Keşfet/mağaza/sepet, sosyal, profil/ayarlar/palet and analytics register their own writes.
+  registerFeatureMutations(client);
 }

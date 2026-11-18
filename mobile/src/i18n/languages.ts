@@ -19,13 +19,15 @@ import tr from './tr.json';
 export type LanguageDefinition = {
   /** BCP-47 tag for Intl (dates, numbers, currency) and the `Accept-Language` header. */
   localeTag: string;
+  /** The language's own name, shown in the language switch (29). */
+  name: string;
   /** All translations of the language, in the default namespace. */
   resources: Record<string, unknown>;
 };
 
 export const LANGUAGES = {
-  tr: { localeTag: 'tr-TR', resources: { ...tr, ...featuresTr } },
-  en: { localeTag: 'en-GB', resources: { ...en, ...featuresEn } },
+  tr: { localeTag: 'tr-TR', name: 'Türkçe', resources: { ...tr, ...featuresTr } },
+  en: { localeTag: 'en-GB', name: 'English', resources: { ...en, ...featuresEn } },
 } satisfies Record<string, LanguageDefinition>;
 
 export type AppLanguage = keyof typeof LANGUAGES;

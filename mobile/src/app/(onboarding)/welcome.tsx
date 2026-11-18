@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, View } from 'react-native';
 
+import { track } from '@/analytics/track';
 import { LegalConsent } from '@/components/LegalLinks';
 import { Button } from '@/components/ui/Button';
 import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
@@ -54,7 +55,10 @@ export default function WelcomeScreen() {
             {t('welcome.promise')}
           </Text>
           <View className="mt-4 gap-2">
-            <Button label={t('welcome.start')} onPress={() => router.push({ pathname: '/start', params: { mode: 'register' } })} />
+            <Button label={t('welcome.start')} onPress={() => {
+                track('signup_step', { step: 'welcome' });
+                router.push({ pathname: '/start', params: { mode: 'register' } });
+              }} />
             <Button
               variant="text"
               label={t('welcome.haveAccount')}

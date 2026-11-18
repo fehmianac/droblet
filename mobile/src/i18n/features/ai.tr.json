@@ -37,7 +37,7 @@
     "leaveHint": "Ekrandan çıkabilirsin; görsel hazır olunca bildirim göndeririz.",
     "progressCount": "{{done}} / {{total}}"
   },
-  "credits": {
+  "creditConfirm": {
     "eyebrow": "ÜZERİMDE GÖR",
     "eyebrowScoped": "ÜZERİMDE GÖR · {{scope}}",
     "willSpend_one": "{{count}} kredi harcanacak",

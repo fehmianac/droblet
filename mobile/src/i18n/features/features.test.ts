@@ -47,4 +47,35 @@ describe('feature translation files', () => {
       [...values(f.tr as Json), ...values(f.en as Json)].forEach((v) => expect(v).not.toMatch(/\[[A-ZİĞÜŞÖÇ ]+\]/)),
     );
   });
+
+  it('upper-case labels are typed upper-case per language (Turkish with dotted İ)', () => {
+    const commerce = featureFiles.commerce.tr;
+    const account = featureFiles.account.tr;
+    const strip = (label: string) => label.replace(/\{\{\w+\}\}/g, '');
+    [
+      commerce.explore.editEyebrow,
+      commerce.explore.sponsored,
+      commerce.shop.brandEyebrow,
+      commerce.shop.sortEyebrow,
+      commerce.watchlist.eyebrow,
+      account.me.creditsEyebrow,
+      account.settings.visibilityEyebrow,
+      account.settings.photosEyebrow,
+      account.settings.languageEyebrow,
+      account.deleteAccount.eyebrow,
+      account.deleteAccount.confirmWord,
+      account.palette.seasonEyebrow,
+      account.palette.avoidEyebrow,
+      account.credits.eyebrow,
+    ].forEach((label) => expect(strip(label)).toBe(strip(label).toLocaleUpperCase('tr-TR')));
+    expect(account.settings.notificationsEyebrow).toBe('BİLDİRİMLER');
+    const enAccount = featureFiles.account.en;
+    expect(enAccount.settings.photosEyebrow).toBe(enAccount.settings.photosEyebrow.toUpperCase());
+  });
+
+  it('ships no price or brand placeholders', () => {
+    Object.values(featureFiles).forEach((f) =>
+      [...values(f.tr as Json), ...values(f.en as Json)].forEach((v) => expect(v).not.toMatch(/\[(FİYAT|MARKA|Marka)\]|₺|%\{\{/)),
+    );
+  });
 });

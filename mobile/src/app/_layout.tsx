@@ -17,6 +17,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { useOnboardingStatus } from '@/auth/onboarding';
 import { AnimatedSplash } from '@/components/brand/AnimatedSplash';
 import { sessionStore, useSession } from '@/auth/session';
+import { AppHosts } from '@/components/AppHosts';
+import { restoreLanguagePreference } from '@/i18n/preference';
 import { ConflictHost } from '@/sync/ConflictHost';
 import { wireNetworkAndFocus } from '@/sync/network';
 import { QueryProvider } from '@/sync/QueryProvider';
@@ -24,6 +26,7 @@ import { palettes } from '@/theme/tokens';
 
 void SplashScreen.preventAutoHideAsync();
 wireNetworkAndFocus();
+void restoreLanguagePreference();
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -102,6 +105,7 @@ export default function RootLayout() {
           <Stack.Screen name="shop/product/[id]" />
           <Stack.Screen name="shop/builder" />
           <Stack.Screen name="cart" />
+          <Stack.Screen name="watchlist" />
           <Stack.Screen name="friends/feed" />
           <Stack.Screen name="friends/find" />
           <Stack.Screen name="u/[handle]" />
@@ -124,6 +128,7 @@ export default function RootLayout() {
         <Stack.Screen name="(auth)/reset-password" />
       </Stack>
       <ConflictHost />
+      <AppHosts userId={userId} />
       {splashDone ? null : <AnimatedSplash onDone={finishSplash} />}
     </QueryProvider>
   );

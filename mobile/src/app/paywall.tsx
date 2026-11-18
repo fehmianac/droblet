@@ -1,9 +1,10 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { Check, X } from 'lucide-react-native';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Pressable, ScrollView, View } from 'react-native';
 
+import { track } from '@/analytics/track';
 import { onboardingStore } from '@/auth/onboarding';
 import { useSession } from '@/auth/session';
 import { openPrivacy, openTerms } from '@/components/LegalLinks';
@@ -75,6 +76,10 @@ export default function PaywallScreen() {
   const entitlement = useEntitlement();
   const [plan, setPlan] = useState<Plan>('year');
 
+  useEffect(() => {
+    track('paywall_viewed', { from: from ?? 'unknown' });
+  }, [from]);
+
   const products = store.data?.products ?? [];
   const yearly = products.find((p) => p.kind === 'subscription' && p.period === 'year');
   const monthly = products.find((p) => p.kind === 'subscription' && p.period === 'month');
@@ -84,6 +89,7 @@ export default function PaywallScreen() {
   const close = async () => {
     if (from === 'onboarding' && session.status === 'signedIn') {
       await onboardingStore.markDone(session.user.id);
+      track('signup_step', { step: 'done' });
       router.replace('/');
       return;
     }

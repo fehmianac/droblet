@@ -27,6 +27,11 @@ Without `DROBLET_API_BASE_URL`, API calls fail with the "configuration missing" 
 | `src/api/client.ts` | Fetch wrapper: bearer token, single-flight refresh, 401 → refresh → retry once. |
 | `src/auth/` | Secure-store session, onboarding progress, Apple nonce. |
 | `src/sync/` | Per-user persisted QueryClient, registered mutation functions (queue survives restarts), conflicts (409/404), photo upload. |
+| `src/api/contracts/` + `src/api/dataSource.ts` | Per-feature provisional contracts (store, social, account, analytics) and **the** fixture ↔ API switch (`DATA_SOURCE`): one word per feature, or swap a single hook's `fromSource(...)` for its `api` argument. |
+| `src/features/{store,social,account,credits}/` | Queries, queued mutations (registered via `sync/featureMutations.ts`), pure logic and feature components for Keşfet/mağaza/sepet (20–24b), sosyal (25–27), profil/ayarlar/palet (28–30) and the 05b credit sheet. |
+| `src/analytics/` | `track(event, params)` — allow-listed events, batches of ≤ 50 through the persisted queue to `POST v1/tenant/event`. |
+| `src/i18n/features/` | Per-feature locale files merged into the default namespace. New language = locale files + one entry in `LANGUAGES` (`src/i18n/index.ts`) and `features/index.ts`. |
+| `src/lib/intl.ts`, `dates.ts`, `trSuffix.ts` | Locale-aware money (`Money` = minor units + ISO currency), percent, number and date formatting; Turkish case suffixes for dynamic words. |
 | `src/fixtures/` | Mock data behind hooks where no contract exists yet (Bugün, library, cart badge, **placeholder** store products). |
 | `src/i18n/languages.ts` | Language registry. **Adding a language = one locale file + one entry here** (plus `locales/ios/<code>.json` for native permission dialogs). Drives detection, Intl formatting (`src/lib/format.ts`), `Accept-Language` and the key-parity test. |
 | `src/i18n/features/*.{tr,en}.json` | Per-feature strings (own top-level keys, merged into the default namespace). |

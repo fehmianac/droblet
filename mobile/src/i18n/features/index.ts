@@ -6,12 +6,18 @@
  */
 import aiEn from './ai.en.json';
 import aiTr from './ai.tr.json';
+import enAccount from './en/account.json';
+import enCommerce from './en/commerce.json';
+import enSocial from './en/social.json';
 import looksEn from './looks.en.json';
 import looksTr from './looks.tr.json';
 import stylistEn from './stylist.en.json';
 import stylistTr from './stylist.tr.json';
 import todayEn from './today.en.json';
 import todayTr from './today.tr.json';
+import trAccount from './tr/account.json';
+import trCommerce from './tr/commerce.json';
+import trSocial from './tr/social.json';
 import wardrobeEn from './wardrobe.en.json';
 import wardrobeTr from './wardrobe.tr.json';
 
@@ -21,7 +27,10 @@ export const featureFiles = {
   wardrobe: { tr: wardrobeTr, en: wardrobeEn },
   looks: { tr: looksTr, en: looksEn },
   stylist: { tr: stylistTr, en: stylistEn },
+  commerce: { tr: trCommerce, en: enCommerce },
+  social: { tr: trSocial, en: enSocial },
+  account: { tr: trAccount, en: enAccount },
 } as const;
 
-export const featuresTr = { ...aiTr, ...todayTr, ...wardrobeTr, ...looksTr, ...stylistTr };
-export const featuresEn = { ...aiEn, ...todayEn, ...wardrobeEn, ...looksEn, ...stylistEn };
+export const featuresTr = { ...aiTr, ...todayTr, ...wardrobeTr, ...looksTr, ...stylistTr, ...trCommerce, ...trSocial, ...trAccount };
+export const featuresEn = { ...aiEn, ...todayEn, ...wardrobeEn, ...looksEn, ...stylistEn, ...enCommerce, ...enSocial, ...enAccount };

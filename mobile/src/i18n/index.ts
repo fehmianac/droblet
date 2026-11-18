@@ -4,7 +4,7 @@ import { initReactI18next } from 'react-i18next';
 
 import { DEFAULT_LANGUAGE, isSupportedLanguage, LANGUAGES, SUPPORTED_LANGUAGES, type AppLanguage } from './languages';
 
-export { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, type AppLanguage };
+export { DEFAULT_LANGUAGE, isSupportedLanguage as isAppLanguage, LANGUAGES, SUPPORTED_LANGUAGES, type AppLanguage };
 
 /**
  * i18next resources, built from the language registry (`./languages.ts`). Per-feature files

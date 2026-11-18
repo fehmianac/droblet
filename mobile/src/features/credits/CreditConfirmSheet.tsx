@@ -29,27 +29,27 @@ export function CreditConfirmSheet({ visible, onClose, cost, scope, onConfirm, c
   const credits = useAiCredits();
   const remaining = credits.remaining;
   const affordable = credits.isMember && credits.canAfford(cost);
-  const eyebrow = scope ? t('credits.eyebrowScoped', { scope }) : t('credits.eyebrow');
+  const eyebrow = scope ? t('creditConfirm.eyebrowScoped', { scope }) : t('creditConfirm.eyebrow');
 
   return (
     <BottomSheet visible={visible} onClose={onClose}>
       <View className="gap-4">
         <View className="gap-1.5">
           <Text variant="eyebrow">{eyebrow}</Text>
-          <Text variant="h2">{t('credits.willSpend', { count: cost })}</Text>
+          <Text variant="h2">{t('creditConfirm.willSpend', { count: cost })}</Text>
           <Text variant="body" tone="muted">
-            {t('credits.explain', { count: cost })}
+            {t('creditConfirm.explain', { count: cost })}
           </Text>
         </View>
 
         {remaining !== null ? (
           <View className="gap-2.5 rounded-card border border-line bg-paper p-4">
-            <Row label={t('credits.remainingNow')} value={t('credits.images', { count: remaining })} />
-            <Row label={t('credits.thisAction')} value={`−${cost}`} />
+            <Row label={t('creditConfirm.remainingNow')} value={t('creditConfirm.images', { count: remaining })} />
+            <Row label={t('creditConfirm.thisAction')} value={`−${cost}`} />
             <View className="h-px bg-line" />
             <Row
-              label={t('credits.afterwards')}
-              value={affordable ? t('credits.images', { count: remaining - cost }) : t('credits.notEnough')}
+              label={t('creditConfirm.afterwards')}
+              value={affordable ? t('creditConfirm.images', { count: remaining - cost }) : t('creditConfirm.notEnough')}
               strong
               danger={!affordable}
             />
@@ -57,15 +57,15 @@ export function CreditConfirmSheet({ visible, onClose, cost, scope, onConfirm, c
         ) : null}
 
         <Text variant="caption" tone="muted">
-          {t('credits.cacheNote')}
+          {t('creditConfirm.cacheNote')}
         </Text>
 
         <View className="gap-2">
           {affordable ? (
-            <Button label={t('credits.confirm', { count: cost })} onPress={onConfirm} loading={confirming} testID="credit-confirm" />
+            <Button label={t('creditConfirm.confirm', { count: cost })} onPress={onConfirm} loading={confirming} testID="credit-confirm" />
           ) : (
             <Button
-              label={t(credits.isMember ? 'credits.topUp' : 'credits.becomeMember')}
+              label={t(credits.isMember ? 'creditConfirm.topUp' : 'creditConfirm.becomeMember')}
               disabled={credits.isLoading}
               onPress={() => {
                 onClose();

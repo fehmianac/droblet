@@ -37,7 +37,7 @@
     "leaveHint": "You can leave this screen; we'll send a notification when the image is ready.",
     "progressCount": "{{done}} / {{total}}"
   },
-  "credits": {
+  "creditConfirm": {
     "eyebrow": "TRY IT ON ME",
     "eyebrowScoped": "TRY IT ON ME · {{scope}}",
     "willSpend_one": "{{count}} credit will be used",
