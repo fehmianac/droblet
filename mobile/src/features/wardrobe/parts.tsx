@@ -116,8 +116,10 @@ export function ItemTile({ item, selected, onPress, onLongPress, mark = 'select'
           color={item.color}
           uri={itemImage(item)}
           glyphSize={size === 'library' ? 44 : 48}
-          className={`w-full rounded-image border-2 ${size === 'library' ? 'h-24' : 'h-[128px]'} ${selected ? 'border-ink' : 'border-transparent'}`}
+          className={`w-full rounded-image ${size === 'library' ? 'h-24' : 'h-[128px]'}`}
         />
+        {/* Selection ring drawn over the picture: the tinted ground fills the whole tile, nothing moves when selecting. */}
+        {selected ? <View pointerEvents="none" className="absolute inset-0 rounded-image border-2 border-ink" /> : null}
         {selecting ? (
           <View
             className={`absolute right-1.5 top-1.5 h-[22px] w-[22px] items-center justify-center rounded-pill ${
