@@ -1,0 +1,39 @@
+{
+  "splash": {
+    "tagline": "Dolabın artık senin için düşünüyor."
+  },
+  "ai": {
+    "preparingTag": "SENİN ÜZERİNDE · HAZIRLANIYOR",
+    "previewBadge": "AI önizleme",
+    "tryOnEyebrow": "ÜZERİMDE GÖR",
+    "tryOnLines": {
+      "pieces": "Parçalar hazırlanıyor…",
+      "colors": "Renkler eşleştiriliyor…",
+      "placing": "Üzerine yerleştiriliyor…",
+      "finishing": "Son dokunuşlar…"
+    },
+    "stylistLines": {
+      "wardrobe": "Gardırobuna bakıyorum…",
+      "weather": "Hava {{temperature}}°, ona göre seçiyorum…",
+      "weatherUnknown": "Ortama göre seçiyorum…",
+      "outfits_one": "{{count}} kombin hazırlıyorum…",
+      "outfits_other": "{{count}} kombin hazırlıyorum…"
+    },
+    "tryOnBody": "{{name}} senin fotoğrafında hazırlanıyor. Genelde 20–40 saniye sürer.",
+    "usuallyTakes": "Genelde 20–40 saniye sürer.",
+    "creditCost_one": "{{count}} kredi",
+    "creditCost_other": "{{count}} kredi",
+    "creditCostRemaining": "{{cost}} kredi · kalan {{remaining}}",
+    "noCreditForText": "Kombin önerileri krediden düşmez.",
+    "tagging": "AI etiketliyor…",
+    "preparing": "Hazırlanıyor",
+    "imagePreparing": "Görsel hazırlanıyor",
+    "failedRefunded": "Şu an oluşturamadık. Kredin iade edildi.",
+    "failed": "Şu an oluşturamadık.",
+    "retry": "Tekrar dene",
+    "continueInBackground": "Arka planda devam et — bitince haber veririz",
+    "showWhenReady": "Hazır olunca göster",
+    "leaveHint": "Ekrandan çıkabilirsin; görsel hazır olunca bildirim göndeririz.",
+    "progressCount": "{{done}} / {{total}}"
+  }
+}

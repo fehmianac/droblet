@@ -3,14 +3,16 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
 import en from './en.json';
+import { featuresEn, featuresTr } from './features';
 import tr from './tr.json';
 
 export const SUPPORTED_LANGUAGES = ['tr', 'en'] as const;
 export type AppLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 
 export const resources = {
-  tr: { translation: tr },
-  en: { translation: en },
+  // Per-feature files (src/i18n/features) are merged into the default namespace under their own top-level keys.
+  tr: { translation: { ...tr, ...featuresTr } },
+  en: { translation: { ...en, ...featuresEn } },
 } as const;
 
 /** TR is the default; EN is used when the device prefers English. A manual switch comes with screen 29. */

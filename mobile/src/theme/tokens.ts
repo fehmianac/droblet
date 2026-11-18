@@ -59,6 +59,37 @@ export const thirdPartyColors = {
   googleRed: '#EA4335',
 } as const;
 
+/**
+ * Neutral tones for image placeholders and the AI loading language (canvas v2 `AiYukleniyor*`):
+ * stand-ins for garment colours while the real image is not there yet. Never used for text or UI chrome.
+ */
+export const placeholderTones = {
+  stage: '#DDD3C6',
+  dark: '#3A342E',
+  taupe: '#A89582',
+  oat: '#D6CBBE',
+  clay: '#CDBFAE',
+  camel: '#BFAE99',
+} as const;
+export type PlaceholderTone = keyof typeof placeholderTones;
+
+/** Shimmer highlight of the AI loading language: paper at 0% → 45% → 0%. */
+export const sheen = {
+  clear: 'rgba(251, 249, 245, 0)',
+  peak: 'rgba(251, 249, 245, 0.45)',
+} as const;
+
+/** Motion constants shared by the splash and the AI loading language (README §11). */
+export const motion = {
+  /** cubic-bezier(0.2, 0.8, 0.2, 1) */
+  bezier: [0.2, 0.8, 0.2, 1] as const,
+  splashTotalMs: 2600,
+  shimmerMs: 1800,
+  traceMs: 3200,
+  pieceStaggerMs: 300,
+  lineIntervalMs: 2000,
+} as const;
+
 /** Embedded font family names (loaded in `src/app/_layout.tsx`). Custom fonts carry their weight in the family. */
 export const fontFamilies = {
   displayMedium: 'CormorantGaramond_500Medium',

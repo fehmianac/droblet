@@ -74,6 +74,8 @@
     ],
     "moduleNameMapper": {
       "\\.css$": "<rootDir>/jest/styleMock.js",
+      "^react-native-reanimated$": "<rootDir>/jest/reanimatedMock.js",
+      "^react-native-reanimated/mock$": "<rootDir>/jest/reanimatedMockImpl.js",
       "^lucide-react-native$": "<rootDir>/node_modules/lucide-react-native/dist/cjs/lucide-react-native.js"
     },
     "setupFiles": [
