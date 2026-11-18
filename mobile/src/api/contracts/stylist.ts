@@ -1,6 +1,7 @@
 /**
- * E5 Stilist — PROVISIONAL contract (BACKEND_ENGINEER §Uç nokta haritası, E5). Text suggestions do
- * not use AI credits; only the try-on image of a suggestion does (see contracts/tryon.ts).
+ * E5 Stilist — the app-side shapes. The wire shapes (docs/api/wardrobe-looks-plan-stylist.md §6, §9)
+ * and the mapping live in `../wire/stylist`. Text suggestions need the membership (403
+ * `premium_required`) but no AI credit; only the try-on image of a suggestion costs one.
  */
 import type { Money } from '@/lib/format';
 import type { Occasion } from '../contracts';
@@ -13,9 +14,11 @@ export const STYLIST_TEXT_MIN = 3;
 export const STYLIST_SUGGESTION_COUNT = 3;
 
 /**
- * POST v1/tenant/stylist/outfit → 202 `JobAccepted` (job kind `stylist-outfit`). Idempotent on `requestId`.
- * At least one of `occasion` / `text` is required. `itemIds`: pieces every suggestion must contain
- * ("Bununla kombin yap"). `cityId` null → the server uses the profile city / last known location.
+ * POST v1/tenant/stylist/outfit → 202 job (kind `stylistOutfit`). Idempotent on `requestId`.
+ * Sent as `{ requestId, date, occasion, freeText, onlyMyWardrobe, pinnedItemId, cityId }`: `text` →
+ * `freeText` (≤ 200 on the server), `wardrobeOnly` → `onlyMyWardrobe`, the first of `itemIds` →
+ * `pinnedItemId` ("Bununla kombin yap" pins one piece). `cityId` null → the server uses the profile city.
+ * Errors: 403 `premium_required`, 409 `request_id_reused`, 422 `item_not_found`.
  */
 export type StylistOutfitRequest = {
   requestId: string;
@@ -47,31 +50,38 @@ export type StylistPiece = {
 export type StylistSuggestion = {
   /** 0-based position, stable for the job. */
   index: number;
+  /** Wire `title`; the app's neutral name when the suggestion is the rule-based fallback (`source: "rule"`). */
   name: string;
-  /** The stylist's short note. */
+  /** Wire `explanation` (the stylist's short note); the app's neutral text for the rule-based fallback. */
   note: string;
   pieces: StylistPiece[];
-  /** Existing try-on image for this suggestion (owner only, signed URL), when one was generated. */
+  /** Not sent with the job result; an existing image is read with `GET v1/tenant/tryon?kind=suggestion`. */
   tryOnImageUrl: string | null;
-  /** Set once the suggestion was accepted ("Takvime ekle" / heart). */
+  /** Client-side: set once the suggestion was accepted ("Takvime ekle" / heart). */
   savedLookId: string | null;
   plannedDate: string | null;
 };
 
 export type StylistWeather = { temperatureC: number; summary: string | null; city: string | null };
 
-/** Result of a `stylist-outfit` job (GET v1/tenant/job/{id} → `result`). */
+export type StylistRefusal = 'insufficient_wardrobe' | 'out_of_scope';
+
+/** Result of a `stylist-outfit` job, mapped from the wire `OutfitResult` (ids only) + the wardrobe / catalogue. */
 export type StylistOutfitResult = {
   request: Pick<StylistOutfitRequest, 'date' | 'occasion' | 'text' | 'wardrobeOnly'>;
-  /** Exactly 3. */
+  /** Up to 3; empty when the stylist refused (`refusal`). */
   suggestions: StylistSuggestion[];
-  /** Null when the forecast could not be read. */
+  /** The job result carries no forecast (the badge on 16 reads `GET v1/weather`); always null from the API. */
   weather: StylistWeather | null;
+  /** Why there are no suggestions: the wardrobe cannot dress the day, or the request is not about outfits. */
+  refusal?: StylistRefusal | null;
 };
 
 /**
- * POST v1/tenant/stylist/suggestion/{jobId}/{index}/accept — writes the suggestion as a Look
+ * POST v1/tenant/stylist/suggestion/{jobId}/{index}/accept — sent as `{ clientMutationId, lookId,
+ * name: null, planDate, favorite: false }` → `{ look, planDay }`. Writes the suggestion as a Look
  * (`lookId` = ULID from the device) and, when `date` is set, as that day's PlanDay. Idempotent.
+ * Errors: 404 `job_not_found` / `suggestion_not_found`, 409 `job_not_completed` / `suggestion_stale` / `look_id_taken`.
  */
 export type AcceptSuggestionRequest = { lookId: string; date: string | null; clientMutationId: string; occurredAt: string };
 export type AcceptSuggestionResponse = { lookId: string; plannedDate: string | null };
@@ -79,7 +89,12 @@ export type AcceptSuggestionResponse = { lookId: string; plannedDate: string | n
 export const STYLIST_DISLIKE_REASONS = ['occasion', 'colors', 'piece', 'weather', 'too_formal'] as const;
 export type StylistDislikeReason = (typeof STYLIST_DISLIKE_REASONS)[number];
 
-/** POST v1/tenant/feedback — "Beğenmedim" on a suggestion. Event; idempotent on `clientMutationId`. */
+/**
+ * "Beğenmedim" on a suggestion → `POST v1/tenant/stylist/suggestion/{jobId}/{index}/dislike { reason }`
+ * (204). The wire takes ONE `DislikeReason` (`notMyStyle | wrongOccasion | wrongWeather | colorMismatch
+ * | wornTooOften | other`): the first chip the user picked is sent (none → `other`); the free-text note
+ * has no wire field and stays on the device.
+ */
 export type StylistFeedbackRequest = {
   kind: 'stylist_suggestion';
   jobId: string;
@@ -91,7 +106,8 @@ export type StylistFeedbackRequest = {
 };
 
 /**
- * Context shown on 16 before asking (weather badge). Assumed: GET v1/weather?from=&to= (cityId
- * omitted → profile city) answering `{ city, days: [{ date, temperatureC, summary }] }`.
+ * Context shown on 16 before asking (weather badge), mapped from `GET v1/weather?cityId=` (`../wire/weather`).
+ * The endpoint needs a city: the profile city (`GET v1/tenant/settings`) is used; without one there is
+ * no forecast (`days: []`). `temperatureC` = the day's maximum, `summary` = the localized condition.
  */
 export type WeatherForecastResponse = { city: string | null; days: { date: string; temperatureC: number; summary: string | null }[] };

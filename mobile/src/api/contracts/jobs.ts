@@ -1,16 +1,18 @@
 /**
- * Long-running AI jobs — PROVISIONAL (BACKEND_ENGINEER §Uç nokta haritası: `GET v1/tenant/job/{id}`).
- * A start request (`POST …`, 202) answers `JobAccepted`; the app then polls the job.
+ * Long-running AI jobs as the app sees them. On the wire (`GET v1/tenant/job/{id}`, `JobWire` in
+ * `../wire/core`) the status is `queued | processing | completed | failed` and a failed job carries a
+ * `failure` enum; `toJob` maps both. A start request (202) answers the wire job (or `{ status, job }`);
+ * the hooks reduce it to `JobAccepted`.
  */
 export type JobKind = 'stylist-outfit' | 'stylist-week' | 'stylist-complete' | 'tryon' | 'item-process' | 'trip-pack' | 'palette';
 
 export type JobStatus = 'queued' | 'running' | 'done' | 'failed';
 
-/** 202 body of every job-starting POST. Idempotent on the request's `requestId`. */
+/** What a start hook resolves with: the id to poll. Starts are idempotent on the request's `requestId`. */
 export type JobAccepted = { jobId: string };
 
 export type JobError = {
-  /** Machine code, e.g. `generation_failed`, `monthly_limit_reached`, `body_photo_required`. */
+  /** App code from the wire `failure`: `generation_failed`, `generation_timeout`, `guard_rejected`, `source_deleted`, `no_face_detected`. */
   code: string;
   /** True when the reserved credit was given back (the UI says so). */
   creditRefunded: boolean;
@@ -21,7 +23,7 @@ export type Job<TResult> = {
   id: string;
   kind: JobKind;
   status: JobStatus;
-  /** Optional server progress (e.g. bulk add "8 / 12"). */
+  /** Always null from the API (drafts carry their own `total` / `processed`); fixtures may set it. */
   progress: { done: number; total: number } | null;
   /** Present when `status === 'done'`. */
   result: TResult | null;

@@ -75,7 +75,9 @@
     "dayA11y": "{{weekday}} {{date}}",
     "calendarConfirm": "Add to calendar",
     "empty": "No suggestions came out for this request.",
-    "expired": "This suggestion is no longer available. Ask again."
+    "expired": "This suggestion is no longer available. Ask again.",
+    "ruleTitle": "Suggestion {{number}}",
+    "ruleNote": "Picked from your wardrobe for the day and the weather."
   },
   "stylistFeedback": {
     "title": "What didn't you like?",
@@ -105,5 +107,16 @@
     "creditCostOnly_other": "{{count}} credits",
     "imageA11y": "AI image on you",
     "imageA11yNamed": "{{name}}, AI image on you"
+  },
+  "weatherCondition": {
+    "clear": "clear",
+    "partlyCloudy": "partly cloudy",
+    "cloudy": "cloudy",
+    "fog": "foggy",
+    "drizzle": "drizzle",
+    "rain": "rainy",
+    "snow": "snowy",
+    "showers": "showers",
+    "thunderstorm": "thunderstorms"
   }
 }

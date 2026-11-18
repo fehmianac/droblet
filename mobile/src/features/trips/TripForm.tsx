@@ -84,6 +84,7 @@ export function TripForm({ initial, submitLabel, onSubmit }: Props) {
       <View className="gap-1">
         <TextField
           label={t('tripNew.city')}
+          testID="trip.city"
           placeholder={t('tripNew.cityPlaceholder')}
           value={query}
           onChangeText={(text) => {

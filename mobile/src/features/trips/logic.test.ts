@@ -49,12 +49,12 @@ describe('trip dates', () => {
     expect(tripLengthDays('2026-12-02', '2026-12-02')).toBe(1);
   });
 
-  it('validates the range: both dates, end ≥ start, max 30 days', () => {
+  it('validates the range: both dates, end ≥ start, max 21 days', () => {
     expect(validateTripDates(null, null)).toBe('startRequired');
     expect(validateTripDates('2026-12-02', null)).toBe('endRequired');
     expect(validateTripDates('2026-12-06', '2026-12-02')).toBe('endBeforeStart');
-    expect(validateTripDates('2026-12-01', '2026-12-31')).toBe('tooLong');
-    expect(validateTripDates('2026-12-01', '2026-12-30')).toBeNull();
+    expect(validateTripDates('2026-12-01', '2026-12-22')).toBe('tooLong');
+    expect(validateTripDates('2026-12-01', '2026-12-21')).toBeNull();
     expect(validateTripDates('2026-12-02', '2026-12-02')).toBeNull();
   });
 
