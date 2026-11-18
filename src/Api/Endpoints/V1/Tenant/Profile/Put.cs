@@ -64,10 +64,11 @@ public record UpdateProfileRequest(string DisplayName, string Language, string? 
 
 public class UpdateProfileRequestValidator : AbstractValidator<UpdateProfileRequest>
 {
-    public UpdateProfileRequestValidator()
+    // Languages come from the Localization config list (tr, en today) — adding one is a config + data change.
+    public UpdateProfileRequestValidator(Microsoft.Extensions.Options.IOptionsMonitor<Domain.Options.LocalizationOptions> localization)
     {
         RuleFor(x => x.DisplayName).NotEmpty().WithErrorCode("name_required").MaximumLength(60).WithErrorCode("name_too_long");
-        RuleFor(x => x.Language).Must(l => l is "tr" or "en").WithErrorCode("language_unsupported");
+        RuleFor(x => x.Language).Must(l => localization.CurrentValue.IsSupported(l)).WithErrorCode("language_unsupported");
         RuleFor(x => x.CityId).MaximumLength(64).WithErrorCode("city_invalid");
         RuleFor(x => x.BaseVersion).GreaterThanOrEqualTo(0).WithErrorCode("base_version_invalid");
     }
