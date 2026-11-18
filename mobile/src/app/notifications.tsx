@@ -1,30 +1,52 @@
-import { router } from 'expo-router';
-import { CalendarCheck, Crown, Settings, Sparkles, Star, Tag, UserCheck, type LucideIcon } from 'lucide-react-native';
-import type { TFunction } from 'i18next';
-import { useTranslation } from 'react-i18next';
-import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { router } from "expo-router";
+import {
+  CalendarCheck,
+  Crown,
+  Settings,
+  Sparkles,
+  Star,
+  Tag,
+  UserCheck,
+  type LucideIcon,
+} from "lucide-react-native";
+import type { TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
+import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 
-import type { AppNotification, NotificationKind } from '@/api/contracts/notifications';
-import { Badge } from '@/components/blocks/basics';
-import { MenuRow } from '@/components/blocks/rows';
-import { Button } from '@/components/ui/Button';
-import { Icon } from '@/components/ui/Icon';
-import { IconButton } from '@/components/ui/IconButton';
-import { Screen } from '@/components/ui/Screen';
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
-import { ScreenState } from '@/components/ui/ScreenState';
-import { Text } from '@/components/ui/Text';
-import { NotificationPrefsCard } from '@/features/account/NotificationPrefsCard';
-import { RowCard } from '@/features/account/rows';
-import { groupByDay, targetOf, unreadCount, type NotificationGroup } from '@/features/notifications/logic';
-import { useMarkNotificationsRead } from '@/features/notifications/mutations';
-import { useNotifications } from '@/features/notifications/queries';
-import { useIncomingRequestCount } from '@/features/social/queries';
-import { currentLanguage, type AppLanguage } from '@/i18n';
-import { formatDate, formatDayMonth, formatMoney, relativeTime } from '@/lib/format';
-import { suffixed } from '@/lib/trSuffix';
-import { toDisplayUpper } from '@/lib/upper';
-import { useThemeColors } from '@/theme/useThemeColors';
+import type {
+  AppNotification,
+  NotificationKind,
+} from "@/api/contracts/notifications";
+import { Badge } from "@/components/blocks/basics";
+import { MenuRow } from "@/components/blocks/rows";
+import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
+import { IconButton } from "@/components/ui/IconButton";
+import { Screen } from "@/components/ui/Screen";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { ScreenState } from "@/components/ui/ScreenState";
+import { Text } from "@/components/ui/Text";
+import { NotificationPrefsCard } from "@/features/account/NotificationPrefsCard";
+import { RowCard } from "@/features/account/rows";
+import {
+  groupByDay,
+  targetOf,
+  unreadCount,
+  type NotificationGroup,
+} from "@/features/notifications/logic";
+import { useMarkNotificationsRead } from "@/features/notifications/mutations";
+import { useNotifications } from "@/features/notifications/queries";
+import { useIncomingRequestCount } from "@/features/social/queries";
+import { currentLanguage, type AppLanguage } from "@/i18n";
+import {
+  formatDate,
+  formatDayMonth,
+  formatMoney,
+  relativeTime,
+} from "@/lib/format";
+import { suffixed } from "@/lib/trSuffix";
+import { toDisplayUpper } from "@/lib/upper";
+import { useThemeColors } from "@/theme/useThemeColors";
 
 const ICONS: Record<NotificationKind, LucideIcon> = {
   price_drop: Tag,
@@ -35,44 +57,91 @@ const ICONS: Record<NotificationKind, LucideIcon> = {
 };
 
 /** The two lines of a notification, built in the app's language from the data the server sent. */
-function describe(n: AppNotification, t: TFunction, language: AppLanguage): { title: string; body: string } {
+function describe(
+  n: AppNotification,
+  t: TFunction,
+  language: AppLanguage,
+): { title: string; body: string } {
   switch (n.kind) {
-    case 'price_drop':
+    case "price_drop":
       return {
-        title: t('notifCenter.priceDrop.title', { name: n.productName }),
-        body: t('notifCenter.priceDrop.body', { brand: n.brandName, price: formatMoney(n.price), previous: formatMoney(n.previousPrice) }),
+        title: t("notifCenter.priceDrop.title", { name: n.productName }),
+        body: t("notifCenter.priceDrop.body", {
+          brand: n.brandName,
+          price: formatMoney(n.price),
+          previous: formatMoney(n.previousPrice),
+        }),
       };
-    case 'friend_rating':
-      return { title: t('notifCenter.friendRating.title', { name: n.person.displayName, count: n.score }), body: t('notifCenter.friendRating.body') };
-    case 'weekly_plan':
-      return { title: t('notifCenter.weeklyPlan.title'), body: t('notifCenter.weeklyPlan.body') };
-    case 'credits_low':
-      return { title: t('notifCenter.creditsLow.title', { count: n.remaining }), body: t('notifCenter.creditsLow.body') };
-    case 'renewal':
+    case "friend_rating":
       return {
-        title: t('notifCenter.renewal.title', { date: suffixed(formatDayMonth(new Date(n.renewsAt)), 'locative', language) }),
-        body: t('notifCenter.renewal.body'),
+        title: t("notifCenter.friendRating.title", {
+          name: n.person.displayName,
+          count: n.score,
+        }),
+        body: t("notifCenter.friendRating.body"),
+      };
+    case "weekly_plan":
+      return {
+        title: t("notifCenter.weeklyPlan.title"),
+        body: t("notifCenter.weeklyPlan.body"),
+      };
+    case "credits_low":
+      return {
+        title: t("notifCenter.creditsLow.title", { count: n.remaining }),
+        body: t("notifCenter.creditsLow.body"),
+      };
+    case "renewal":
+      return {
+        title: t("notifCenter.renewal.title", {
+          date: suffixed(
+            formatDayMonth(new Date(n.renewsAt)),
+            "locative",
+            language,
+          ),
+        }),
+        body: t("notifCenter.renewal.body"),
       };
   }
 }
 
 /** Today: "2 saat önce"; older days: the clock time (the day is the group's heading). */
-function timeLabel(n: AppNotification, group: NotificationGroup, t: TFunction): string {
-  if (group.bucket !== 'today') return formatDate(new Date(n.createdAt), { hour: '2-digit', minute: '2-digit' });
+function timeLabel(
+  n: AppNotification,
+  group: NotificationGroup,
+  t: TFunction,
+): string {
+  if (group.bucket !== "today")
+    return formatDate(new Date(n.createdAt), {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   const when = relativeTime(n.createdAt);
-  if (when.unit === 'now') return t('feed.timeNow');
-  if (when.unit === 'minutes') return t('feed.timeMinutes', { count: when.count });
-  if (when.unit === 'hours') return t('feed.timeHours', { count: when.count });
-  return t('feed.timeDays', { count: when.count });
+  if (when.unit === "now") return t("feed.timeNow");
+  if (when.unit === "minutes")
+    return t("feed.timeMinutes", { count: when.count });
+  if (when.unit === "hours") return t("feed.timeHours", { count: when.count });
+  return t("feed.timeDays", { count: when.count });
 }
 
-function groupLabel(group: NotificationGroup, t: TFunction, language: AppLanguage): string {
-  if (group.bucket === 'today') return t('notifCenter.today');
-  if (group.bucket === 'yesterday') return t('notifCenter.yesterday');
-  return toDisplayUpper(formatDate(group.date, { day: 'numeric', month: 'long', weekday: 'long' }), language);
+function groupLabel(
+  group: NotificationGroup,
+  t: TFunction,
+  language: AppLanguage,
+): string {
+  if (group.bucket === "today") return t("notifCenter.today");
+  if (group.bucket === "yesterday") return t("notifCenter.yesterday");
+  return toDisplayUpper(
+    formatDate(group.date, { day: "numeric", month: "long", weekday: "long" }),
+    language,
+  );
 }
 
-type RowProps = { notification: AppNotification; group: NotificationGroup; first: boolean; onOpen: (n: AppNotification) => void };
+type RowProps = {
+  notification: AppNotification;
+  group: NotificationGroup;
+  first: boolean;
+  onOpen: (n: AppNotification) => void;
+};
 
 /** One notification: 36 pt sand glyph · title (medium while unread) + muted line · time and the unread dot. */
 function NotificationRow({ notification, group, first, onOpen }: RowProps) {
@@ -85,15 +154,21 @@ function NotificationRow({ notification, group, first, onOpen }: RowProps) {
     <Pressable
       onPress={() => onOpen(notification)}
       accessibilityRole="button"
-      accessibilityLabel={t(unread ? 'notifCenter.rowUnreadA11y' : 'notifCenter.rowA11y', { title, body, time })}
+      accessibilityLabel={t(
+        unread ? "notifCenter.rowUnreadA11y" : "notifCenter.rowA11y",
+        { title, body, time },
+      )}
       testID={`notification-${notification.id}`}
-      className={`min-h-[64px] flex-row items-center gap-3 py-3 active:opacity-70 ${first ? '' : 'border-t border-line'}`}
+      className={`min-h-[64px] flex-row items-center gap-3 py-3 active:opacity-70 ${first ? "" : "border-t border-line"}`}
     >
       <View className="h-9 w-9 items-center justify-center rounded-pill bg-sand">
         <Icon icon={ICONS[notification.kind]} size={18} />
       </View>
       <View className="flex-1 gap-0.5">
-        <Text variant={unread ? 'bodyMedium' : 'body'} tone={unread ? 'ink' : 'muted'}>
+        <Text
+          variant={unread ? "bodyMedium" : "body"}
+          tone={unread ? "ink" : "muted"}
+        >
           {title}
         </Text>
         <Text variant="caption" tone="muted">
@@ -104,7 +179,14 @@ function NotificationRow({ notification, group, first, onOpen }: RowProps) {
         <Text variant="caption" tone="muted">
           {time}
         </Text>
-        {unread ? <View className="h-2 w-2 rounded-pill bg-accent" testID={`unread-${notification.id}`} /> : <View className="h-2 w-2" />}
+        {unread ? (
+          <View
+            className="h-2 w-2 rounded-pill bg-accent"
+            testID={`unread-${notification.id}`}
+          />
+        ) : (
+          <View className="h-2 w-2" />
+        )}
       </View>
     </Pressable>
   );
@@ -129,18 +211,24 @@ export default function NotificationsScreen() {
     if (n.readAt === null) markRead([n.id]);
     router.push(targetOf(n));
   };
-  const openSettings = () => router.push('/settings');
+  const openSettings = () => router.push("/settings");
 
   return (
     <Screen bottom>
       <ScreenHeader
-        title={t('screens.notifications')}
+        title={t("screens.notifications")}
         leading="back"
-        right={<IconButton icon={Settings} variant="plain" onPress={openSettings} accessibilityLabel={t('notifCenter.settings')} className="-mr-2.5" />}
+        right={
+          <IconButton
+            icon={Settings}
+            variant="plain"
+            onPress={openSettings}
+            accessibilityLabel={t("notifCenter.settings")}
+            className="-mr-2.5"
+          />
+        }
       />
-      <ScreenState
-        query={notifications}
-      >
+      <ScreenState query={notifications}>
         {(data) => {
           const unread = unreadCount(data.items);
           const groups = groupByDay(data.items);
@@ -148,29 +236,58 @@ export default function NotificationsScreen() {
             <ScrollView
               contentContainerClassName="gap-2.5 px-gutter pb-10 pt-0.5"
               refreshControl={
-                <RefreshControl refreshing={notifications.isRefetching} onRefresh={() => void notifications.refetch()} tintColor={colors.muted} />
+                <RefreshControl
+                  refreshing={notifications.isRefetching}
+                  onRefresh={() => void notifications.refetch()}
+                  tintColor={colors.muted}
+                />
               }
             >
-              <View className="min-h-icon-btn flex-row items-center justify-between gap-3">
-                <Text variant="caption" tone="muted" className="flex-1" accessibilityLiveRegion="polite">
-                  {unread > 0 ? t('notifCenter.unread', { count: unread }) : t('notifCenter.allRead')}
-                </Text>
-                {unread > 0 ? <Button variant="text" label={t('notifCenter.markAll')} onPress={() => markRead(null)} className="-mr-2" /> : null}
-              </View>
+              {data.items.length > 0 ? (
+                <View className="min-h-icon-btn flex-row items-center justify-between gap-3">
+                  <Text
+                    variant="caption"
+                    tone="muted"
+                    className="flex-1"
+                    accessibilityLiveRegion="polite"
+                  >
+                    {unread > 0
+                      ? t("notifCenter.unread", { count: unread })
+                      : t("notifCenter.allRead")}
+                  </Text>
+                  {unread > 0 ? (
+                    <Button
+                      variant="text"
+                      label={t("notifCenter.markAll")}
+                      onPress={() => markRead(null)}
+                      className="-mr-2"
+                    />
+                  ) : null}
+                </View>
+              ) : null}
 
               <RowCard>
                 <MenuRow
                   first
                   icon={UserCheck}
-                  label={t('friends.menuRequests')}
-                  trailing={requestCount > 0 ? <Badge tone="accent" label={String(requestCount)} /> : undefined}
-                  onPress={() => router.push('/friends/requests')}
+                  label={t("friends.menuRequests")}
+                  trailing={
+                    requestCount > 0 ? (
+                      <Badge tone="accent" label={String(requestCount)} />
+                    ) : undefined
+                  }
+                  onPress={() => router.push("/friends/requests")}
                 />
               </RowCard>
 
               {groups.length === 0 ? (
-                <Text variant="body" tone="muted" className="py-6 text-center" testID="notifications-empty">
-                  {t('notifCenter.empty')}
+                <Text
+                  variant="body"
+                  tone="muted"
+                  className="py-6 text-center"
+                  testID="notifications-empty"
+                >
+                  {t("notifCenter.empty")}
                 </Text>
               ) : null}
 
@@ -181,14 +298,24 @@ export default function NotificationsScreen() {
                   </Text>
                   <RowCard>
                     {group.items.map((n, index) => (
-                      <NotificationRow key={n.id} notification={n} group={group} first={index === 0} onOpen={open} />
+                      <NotificationRow
+                        key={n.id}
+                        notification={n}
+                        group={group}
+                        first={index === 0}
+                        onOpen={open}
+                      />
                     ))}
                   </RowCard>
                 </View>
               ))}
 
-              <Text variant="eyebrow" accessibilityRole="header" className="pt-2">
-                {t('friends.notificationsPrefs')}
+              <Text
+                variant="eyebrow"
+                accessibilityRole="header"
+                className="pt-2"
+              >
+                {t("friends.notificationsPrefs")}
               </Text>
               <NotificationPrefsCard />
             </ScrollView>
