@@ -31,7 +31,7 @@ concurrency:
 
 jobs:
   release:
-    runs-on: macos-26
+    runs-on: ${{ vars.MOBILE_RUNNER || 'macos-26' }}
     environment: mobile-release   # required reviewer: a tag proposes a release, a person lets it out
     defaults:
       run: { working-directory: mobile }
