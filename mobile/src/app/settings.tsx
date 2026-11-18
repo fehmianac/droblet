@@ -26,7 +26,6 @@ import {
   useDeleteAllPhotos,
   useRemovePhoto,
   useSaveNotificationSettings,
-  useSaveProfileLanguage,
   useSetVisibility,
 } from '@/features/account/mutations';
 import { accountKeys, useMyPhotos, useMyProfile, useNotificationSettings, usePalette } from '@/features/account/queries';
@@ -302,15 +301,14 @@ export default function SettingsScreen() {
   const { t } = useTranslation();
   const profile = useMyProfile();
   const setVisibility = useSetVisibility();
-  const saveLanguage = useSaveProfileLanguage();
   const [deletePhotos, setDeletePhotos] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const language = currentLanguage();
 
   const switchLanguage = (next: AppLanguage) => {
     if (next === language) return;
+    // Applies at once and is remembered on this device; `LanguageSyncHost` writes it to the profile (queued).
     void setAppLanguage(next);
-    if (profile.data) saveLanguage(next, profile.data.baseVersion);
   };
 
   return (
