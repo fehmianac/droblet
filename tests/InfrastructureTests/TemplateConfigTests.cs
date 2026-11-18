@@ -146,4 +146,38 @@ public partial class TemplateConfigTests
         Assert.Equal(editable, written);
         Assert.Single(Regex.Matches(template, "ssm:PutParameter"));   // no other statement may write SSM
     }
+
+    [GeneratedRegex(@"\n  (?<resource>[A-Za-z]+):\n    Type: AWS::Serverless::Function\n    Properties:\n      FunctionName: !Sub droblet-\$\{Stage\}-(?<name>[a-z-]+)\n      LoggingConfig:\n        LogGroup: !Ref (?<group>[A-Za-z]+)\n")]
+    private static partial Regex FunctionLoggingPattern();
+
+    [Fact]
+    public void EveryLambda_LogsToItsOwnNewGroup_WithTheStageRetention()
+    {
+        var template = Template();
+        var functions = Regex.Matches(template, "Type: AWS::Serverless::Function").Count;
+        var wired = FunctionLoggingPattern().Matches(template).ToList();
+
+        Assert.Equal(9, functions);
+        Assert.Equal(functions, wired.Count);   // every function has LoggingConfig.LogGroup
+        Assert.Equal(functions, wired.Select(m => m.Groups["group"].Value).Distinct().Count());
+        foreach (var match in wired)
+        {
+            var group = match.Groups["group"].Value;
+            var declaration = Regex.Match(template, $@"\n  {group}:\n    Type: AWS::Logs::LogGroup\n    Properties:\n      LogGroupName: (?<name>[^\n]+)\n      RetentionInDays: (?<retention>[^\n]+)\n");
+            Assert.True(declaration.Success, group);
+            // A new name: the auto-created /aws/lambda/droblet-{Stage}-{fn} groups already exist on deployed stacks.
+            Assert.Equal($"!Sub /droblet/${{Stage}}/lambda/{match.Groups["name"].Value}", declaration.Groups["name"].Value);
+            Assert.Equal("!If [HasLogRetentionOverride, !Ref LogRetentionDays, !If [IsProd, 400, 90]]", declaration.Groups["retention"].Value);
+        }
+        Assert.DoesNotContain("LogGroupName: !Sub /aws/lambda/", template);
+        Assert.Matches(@"LogRetentionDays:\n    Type: Number\n    Default: 0\n", template);
+        Assert.Contains("HasLogRetentionOverride: !Not [!Equals [!Ref LogRetentionDays, '0']]", template);
+        // Writing to the new groups is covered by the basic execution policy of every Lambda role.
+        Assert.Equal(Regex.Matches(template, "Type: AWS::IAM::Role").Count - AdminOnlyRoles(template),
+            Regex.Matches(template, "service-role/AWSLambdaBasicExecutionRole").Count);
+    }
+
+    /// <summary>Roles that are not assumed by Lambda (none today).</summary>
+    private static int AdminOnlyRoles(string template) =>
+        Regex.Matches(template, @"Principal: \{ Service: (?!lambda\.amazonaws\.com)").Count;
 }
