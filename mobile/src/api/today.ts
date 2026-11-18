@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { ulid } from '@/lib/ids';
+
 import { planKeys } from '@/features/today/keys';
 import { buildTodayFixture, fixtureLogWear, libraryFixture, withLatency } from '@/fixtures/today';
 import { toIsoDate } from '@/lib/format';
@@ -9,6 +11,7 @@ import { mutationKeys, queryKeys } from '@/sync/queryKeys';
 import { apiRequest } from './client';
 import type { LibraryItem, TodayResponse, WearLogRequest } from './contracts';
 import { DATA_SOURCE, fromSource } from './dataSource';
+import { ITEMS_QUERY_KEY, type ItemWire } from './wire/wardrobe';
 
 /** 06 Bugün — `GET v1/tenant/today?date=` (fixture-backed behind the `today` source switch). */
 export function useToday() {
@@ -45,10 +48,61 @@ export function useWearToday() {
   };
 }
 
-/** Ready-made piece library (04b / 12b) — fixture-backed until E2 (candidate `GET v1/catalog/library`). */
+/** Wire row of `GET v1/tenant/library/item`. */
+type LibraryItemWire = {
+  id: string;
+  name: string;
+  category: string;
+  colorIds: string[];
+  fabric: string | null;
+  seasons: string[];
+  imageUrl: string | null;
+};
+
+/** Ready-made piece library (04b / 12b) — `GET v1/tenant/library/item`. */
 export function useItemLibrary() {
   return useQuery({
     queryKey: queryKeys.library,
-    queryFn: (): Promise<LibraryItem[]> => withLatency(libraryFixture),
+    queryFn: () =>
+      fromSource<LibraryItem[]>(
+        'library',
+        () => withLatency(libraryFixture),
+        async () =>
+          (await apiRequest<LibraryItemWire[]>('v1/tenant/library/item')).map((i) => ({
+            id: i.id,
+            name: i.name,
+            category: i.category,
+            imageUrl: i.imageUrl,
+          })),
+      ),
+  });
+}
+
+/** One row per requested piece: `created` | `alreadyApplied` | `rejected` (+ `code`). */
+type ItemCreateResultsWire = {
+  results: { refId: string; outcome: 'created' | 'alreadyApplied' | 'rejected'; code: string | null; item: ItemWire | null }[];
+  createdCount: number;
+};
+
+/**
+ * 04b "İlk 5 parça" — `POST v1/tenant/item/from-library` (1–30 pieces, one `clientMutationId` each;
+ * the new item id is that id). Online, interactive: the caller moves on whatever the outcome, the
+ * pieces can always be added later from 12b.
+ */
+export function useAddLibraryItems() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (libraryItemIds: string[]) =>
+      fromSource<number>(
+        'library',
+        () => libraryItemIds.length,
+        async () => {
+          if (libraryItemIds.length === 0) return 0;
+          const body = { items: libraryItemIds.slice(0, 30).map((libraryItemId) => ({ clientMutationId: ulid(), libraryItemId })) };
+          const res = await apiRequest<ItemCreateResultsWire>('v1/tenant/item/from-library', { method: 'POST', body });
+          return res.createdCount;
+        },
+      ),
+    onSuccess: () => void client.invalidateQueries({ queryKey: ITEMS_QUERY_KEY }),
   });
 }

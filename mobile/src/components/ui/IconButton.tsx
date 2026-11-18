@@ -16,6 +16,7 @@ type Props = {
   badge?: number;
   disabled?: boolean;
   className?: string;
+  testID?: string;
 };
 
 const variantClass = {
@@ -34,12 +35,14 @@ export function IconButton({
   badge,
   disabled = false,
   className,
+  testID,
 }: Props) {
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
       accessibilityRole="button"
+      testID={testID}
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled, selected: active }}
       hitSlop={4}

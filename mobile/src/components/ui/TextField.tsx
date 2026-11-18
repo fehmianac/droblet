@@ -38,6 +38,8 @@ export function TextField({ label, error, hint, password = false, ref, ...input 
           selectionColor={colors.accent}
           secureTextEntry={password && hidden}
           maxFontSizeMultiplier={1.6}
+          multiline={false}
+          numberOfLines={1}
           className="h-full flex-1 px-4 font-sans text-body text-ink"
           {...input}
         />

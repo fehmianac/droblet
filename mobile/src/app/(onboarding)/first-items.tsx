@@ -7,7 +7,7 @@ import { FlatList, Pressable, View } from 'react-native';
 
 import { track } from '@/analytics/track';
 import type { LibraryItem } from '@/api/contracts';
-import { useItemLibrary } from '@/api/today';
+import { useAddLibraryItems, useItemLibrary } from '@/api/today';
 import { useSession } from '@/auth/session';
 import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { Button } from '@/components/ui/Button';
@@ -29,6 +29,7 @@ function LibraryTile({ item, selected, onToggle }: { item: LibraryItem; selected
       accessibilityRole="checkbox"
       accessibilityState={{ checked: selected }}
       accessibilityLabel={t(selected ? 'a11y.itemSelected' : 'a11y.selectItem', { name: item.name })}
+      testID={`firstItems.item.${item.id}`}
       className="flex-1 gap-1.5"
     >
       <View>
@@ -67,12 +68,13 @@ function GridSkeleton() {
 
 /**
  * 04b İlk 5 parça (3/3) — "Gardırobunda bunlardan hangileri var?" ready-made library grid + camera
- * shortcut. No backend contract yet (E2): the selection is kept on the device under the user's key.
+ * shortcut. "Devam et" adds the chosen pieces to the wardrobe (`POST v1/tenant/item/from-library`).
  */
 export default function FirstItemsScreen() {
   const { t } = useTranslation();
   const session = useSession();
   const library = useItemLibrary();
+  const addItems = useAddLibraryItems();
   const [selected, setSelected] = useState<string[]>([]);
 
   const toggle = (id: string) =>
@@ -85,14 +87,15 @@ export default function FirstItemsScreen() {
       void AsyncStorage.setItem(`droblet.firstItems.${session.user.id}`, JSON.stringify(selected));
     }
     track('signup_step', { step: 'first_items', count: selected.length });
-    goToPaywall();
+    // The user is never held on this step: a failed add is not fatal, 12b offers the same pieces later.
+    addItems.mutate(selected, { onSettled: goToPaywall });
   };
 
   const openCamera = () => router.push('/item/add');
 
   return (
     <Screen>
-      <ScreenHeader leading="back" right={<Button variant="text" label={t('common.skip')} onPress={goToPaywall} />} />
+      <ScreenHeader leading="back" right={<Button variant="text" label={t('common.skip')} onPress={goToPaywall} testID="firstItems.skip" />} />
       <View className="gap-2 px-gutter pb-4">
         <Text variant="eyebrow">
           {t('common.eyebrowWithStep', { label: t('firstItems.eyebrow'), step: t('common.stepOf', { current: 3, total: 3 }) })}
@@ -130,7 +133,13 @@ export default function FirstItemsScreen() {
       </ScreenState>
 
       <BottomActionBar>
-        <Button label={t('common.continue')} onPress={submit} disabled={selected.length < TARGET} />
+        <Button
+          label={t('common.continue')}
+          onPress={submit}
+          disabled={selected.length < TARGET}
+          loading={addItems.isPending}
+          testID="firstItems.continue"
+        />
       </BottomActionBar>
     </Screen>
   );

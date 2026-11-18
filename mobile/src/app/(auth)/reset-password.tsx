@@ -94,6 +94,7 @@ export default function ResetPasswordScreen() {
               setError(null);
             }}
             error={error}
+            testID="reset.password"
             hint={t('auth.passwordHint')}
             password
             autoCapitalize="none"
@@ -102,7 +103,7 @@ export default function ResetPasswordScreen() {
             returnKeyType="done"
             onSubmitEditing={submit}
           />
-          <Button label={t('reset.submit')} onPress={submit} loading={reset.isPending} />
+          <Button label={t('reset.submit')} onPress={submit} loading={reset.isPending} testID="reset.submit" />
         </ScrollView>
       </KeyboardAvoidingView>
     </Screen>

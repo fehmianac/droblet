@@ -7,6 +7,11 @@ export class ApiError extends Error {
   readonly status: number | null;
   readonly code: string | null;
   readonly problem: ProblemDetails | null;
+  /**
+   * On 409 of a versioned PUT the server answers with the current record itself (same shape as 200),
+   * not with a ProblemDetails. Null for coded conflicts (`handle_taken`, `request_id_reused`, …).
+   */
+  readonly current: unknown;
 
   constructor(kind: ApiErrorKind, status: number | null, problem: ProblemDetails | null) {
     super(problem?.detail ?? problem?.title ?? kind);
@@ -15,6 +20,7 @@ export class ApiError extends Error {
     this.status = status;
     this.code = problem?.code ?? null;
     this.problem = problem;
+    this.current = status === 409 && problem && !problem.code ? (problem.current ?? problem) : null;
   }
 }
 
@@ -27,6 +33,14 @@ const KNOWN_CODES = [
   'session_expired',
   'monthly_limit_reached',
 ] as const;
+
+/** Server codes that share a translation with a known code. */
+const CODE_ALIASES: Record<string, (typeof KNOWN_CODES)[number]> = {
+  too_many_attempts: 'rate_limited',
+  invalid_or_expired_token: 'invalid_reset_token',
+  invalid_refresh_token: 'session_expired',
+  credits_exhausted: 'monthly_limit_reached',
+};
 export type KnownErrorCode = (typeof KNOWN_CODES)[number] | 'network' | 'config_missing' | 'unknown';
 
 /**
@@ -40,11 +54,15 @@ export function extractApiError(error: unknown): KnownErrorCode {
   if (error.kind === 'session_expired') return 'session_expired';
   const code = error.code as (typeof KNOWN_CODES)[number] | null;
   if (code && (KNOWN_CODES as readonly string[]).includes(code)) return code;
+  if (error.code && CODE_ALIASES[error.code]) return CODE_ALIASES[error.code];
   if (error.status === 429) return 'rate_limited';
   return 'unknown';
 }
 
-/** Field-level validation messages from ProblemDetails `errors`, keyed by lower-camel field name. */
+/**
+ * Field-level validation CODES from ProblemDetails `errors` (`{ "email": ["email_invalid"] }`), keyed
+ * by lower-camel field name. The API never sends sentences — translate the code before showing it.
+ */
 export function fieldErrors(error: unknown): Record<string, string> {
   if (!(error instanceof ApiError) || !error.problem?.errors) return {};
   const out: Record<string, string> = {};
@@ -61,4 +79,20 @@ export function isConflict(error: unknown): error is ApiError {
 
 export function isGone(error: unknown): error is ApiError {
   return error instanceof ApiError && error.status === 404;
+}
+
+/** The server's stable snake_case `code` of a failed request, or null (network, non-API error). */
+export function apiErrorCode(error: unknown): string | null {
+  return error instanceof ApiError ? error.code : null;
+}
+
+/** 403 `premium_required` or 402 `item_recognition_limit_reached` → the paywall (05). */
+export function isPaywallError(error: unknown): boolean {
+  const code = apiErrorCode(error);
+  return code === 'premium_required' || code === 'item_recognition_limit_reached';
+}
+
+/** 402 `credits_exhausted` → the credit-pack sheet (05b), never the paywall. */
+export function isCreditsExhausted(error: unknown): boolean {
+  return apiErrorCode(error) === 'credits_exhausted';
 }

@@ -55,13 +55,14 @@ export default function WelcomeScreen() {
             {t('welcome.promise')}
           </Text>
           <View className="mt-4 gap-2">
-            <Button label={t('welcome.start')} onPress={() => {
+            <Button label={t('welcome.start')} testID="welcome.start" onPress={() => {
                 track('signup_step', { step: 'welcome' });
                 router.push({ pathname: '/start', params: { mode: 'register' } });
               }} />
             <Button
               variant="text"
               label={t('welcome.haveAccount')}
+              testID="welcome.login"
               onPress={() => router.push({ pathname: '/start', params: { mode: 'login' } })}
             />
           </View>

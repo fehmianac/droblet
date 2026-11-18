@@ -113,7 +113,7 @@ export default function PaywallScreen() {
   return (
     <Screen bottom>
       <View className="flex-row justify-end px-gutter pt-2">
-        <IconButton icon={X} variant="plain" onPress={() => void close()} accessibilityLabel={t('a11y.close')} />
+        <IconButton icon={X} variant="plain" onPress={() => void close()} accessibilityLabel={t('a11y.close')} testID="paywall.close" />
       </View>
       <ScrollView contentContainerClassName="gap-7 px-gutter pb-6">
         <View className="gap-2">

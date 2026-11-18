@@ -11,15 +11,17 @@ type ChipProps = {
   /** Small trailing badge, e.g. "Yakında" on disabled segments. */
   badge?: string;
   accessibilityHint?: string;
+  testID?: string;
 };
 
 /** 36 high pill. Selected = filled ink. */
-export function Chip({ label, selected = false, onPress, disabled = false, badge, accessibilityHint }: ChipProps) {
+export function Chip({ label, selected = false, onPress, disabled = false, badge, accessibilityHint, testID }: ChipProps) {
   return (
     <Pressable
       onPress={disabled ? undefined : onPress}
       disabled={disabled}
       accessibilityRole="button"
+      testID={testID}
       accessibilityLabel={badge ? `${label}, ${badge}` : label}
       accessibilityHint={accessibilityHint}
       accessibilityState={{ selected, disabled }}

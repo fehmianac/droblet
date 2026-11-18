@@ -72,6 +72,7 @@ export default function ForgotPasswordScreen() {
               setError(null);
             }}
             error={error}
+            testID="forgot.email"
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="email-address"
@@ -80,7 +81,7 @@ export default function ForgotPasswordScreen() {
             returnKeyType="send"
             onSubmitEditing={submit}
           />
-          <Button label={t('forgot.submit')} onPress={submit} loading={forgot.isPending} />
+          <Button label={t('forgot.submit')} onPress={submit} loading={forgot.isPending} testID="forgot.submit" />
         </ScrollView>
       </KeyboardAvoidingView>
     </Screen>
