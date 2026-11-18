@@ -167,9 +167,11 @@ public class UpdateVisibilityRequestValidator : AbstractValidator<UpdateVisibili
     }
 }
 
-public record UpdateNotificationPrefsRequest(bool MorningOutfit, string MorningOutfitLocalTime, bool WeeklyEdit, bool FriendRatings, string TimeZone, long BaseVersion)
+/// <summary>PriceDrop / FollowRequests are optional: omitted (null) keeps the stored value, so older clients do not switch them off.</summary>
+public record UpdateNotificationPrefsRequest(bool MorningOutfit, string MorningOutfitLocalTime, bool WeeklyEdit, bool FriendRatings, string TimeZone, long BaseVersion,
+    bool? PriceDrop = null, bool? FollowRequests = null)
 {
-    public NotificationPrefsInput ToInput() => new(MorningOutfit, MorningOutfitLocalTime, WeeklyEdit, FriendRatings, TimeZone, BaseVersion);
+    public NotificationPrefsInput ToInput() => new(MorningOutfit, MorningOutfitLocalTime, WeeklyEdit, FriendRatings, TimeZone, BaseVersion, PriceDrop, FollowRequests);
 }
 
 public class UpdateNotificationPrefsRequestValidator : AbstractValidator<UpdateNotificationPrefsRequest>

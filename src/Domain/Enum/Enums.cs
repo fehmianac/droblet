@@ -37,7 +37,7 @@ public enum EntitlementSource { Store }
 
 public enum StorePlatform { Apple, Google }
 
-public enum NotificationType { MorningOutfit, WeeklyEdit, FriendRatings }
+public enum NotificationType { MorningOutfit, WeeklyEdit, FriendRatings, PriceDrop, FollowRequest }
 
 public enum AuthProvider { Email, Apple, Google }
 

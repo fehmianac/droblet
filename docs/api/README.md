@@ -12,7 +12,7 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 
 **Auth** column: `user` = signed-in user (tenant from the token) · `admin` = signed-in user listed in `Admin:UserIds` / `Admin:Emails` · `anonymous` = no token (postbacks are authenticated by signature).
 
-157 endpoints.
+166 endpoints.
 
 ## Auth and account (foundation)
 
@@ -42,6 +42,7 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | GET | `v1/tenant/profile` | user | — | Get profile |
 | PUT | `v1/tenant/profile` | user | [S](store-social-settings.md) | Update profile |
 | PUT | `v1/tenant/profile/handle` | user | — | Claim or change @handle |
+| GET | `v1/tenant/profile/handle/availability` | user | [S](store-social-settings.md) | Check an @handle |
 | GET | `v1/tenant/profile/stats` | user | [W](wardrobe-looks-plan-stylist.md) | Get my profile counters |
 | PUT | `v1/tenant/profile/visibility` | user | [S](store-social-settings.md) | Change closet visibility |
 | GET | `v1/tenant/style-profile` | user | — | Get style profile |
@@ -192,9 +193,15 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | PUT | `v1/tenant/block/{handle}` | user | [S](store-social-settings.md) | Block |
 | DELETE | `v1/tenant/block/{handle}` | user | [S](store-social-settings.md) | Unblock |
 | GET | `v1/tenant/feed` | user | [S](store-social-settings.md) | Friends feed |
-| POST | `v1/tenant/follow/{handle}` | user | [S](store-social-settings.md) | Follow |
+| POST | `v1/tenant/follow/{handle}` | user | [S](store-social-settings.md) | Follow (or ask to follow) |
 | DELETE | `v1/tenant/follow/{handle}` | user | [S](store-social-settings.md) | Unfollow |
+| GET | `v1/tenant/follow-request/incoming` | user | [S](store-social-settings.md) | Follow requests to me |
+| GET | `v1/tenant/follow-request/outgoing` | user | [S](store-social-settings.md) | My follow requests |
+| POST | `v1/tenant/follow-request/{handle}/approve` | user | [S](store-social-settings.md) | Approve a follow request |
+| POST | `v1/tenant/follow-request/{handle}/decline` | user | [S](store-social-settings.md) | Decline a follow request |
+| DELETE | `v1/tenant/follow-request/{handle}` | user | [S](store-social-settings.md) | Cancel my follow request |
 | GET | `v1/tenant/follower` | user | [S](store-social-settings.md) | My followers |
+| DELETE | `v1/tenant/follower/{handle}` | user | [S](store-social-settings.md) | Remove a follower |
 | GET | `v1/tenant/following` | user | [S](store-social-settings.md) | Accounts I follow |
 | GET | `v1/tenant/people` | user | [S](store-social-settings.md) | Search people by @handle |
 | GET | `v1/tenant/people/suggested` | user | [S](store-social-settings.md) | Closets like yours |
@@ -207,6 +214,8 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | POST | `v1/tenant/people/{handle}/report` | user | [S](store-social-settings.md) | Report a person or their content |
 | GET | `v1/tenant/people/{handle}/trip` | user | [S](store-social-settings.md) | Person: Trips tab |
 | GET | `v1/tenant/saved-look` | user | [S](store-social-settings.md) | Saved looks |
+| POST | `v1/tenant/contacts/salt` | user | [S](store-social-settings.md) | Get a contact-matching salt |
+| POST | `v1/tenant/contacts/match` | user | [S](store-social-settings.md) | Find friends from contacts |
 
 ## Invite and share
 
@@ -273,5 +282,6 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | Look ratings | Friends rate through `people/{handle}/look/{lookId}/rating`; the owner sees `rating { average, count }` on `GET v1/tenant/look` | W §4, S §6 |
 | Palette → shop | `GET v1/tenant/palette/products` = the catalog filtered by the palette colours | W §8 |
 | Morning reminder | The `morning_outfit` push is sent when a look is planned for the user's local day | S §9 |
+| Watch-list auto-add | A brand-site click (`checkout`) without a conversion within `Catalog:WatchAutoAddHours` (48) puts its products on the watch list unless they were bought, are in the wardrobe or were removed by the user since | S §4 |
 | Account deletion | `DELETE v1/auth/me` removes every tenant partition of both halves and every cross-tenant trace | S §7 |
 | Language | One supported-language list (`Localization` config); the profile language is set at registration from `Accept-Language` and changed with a partial `PUT v1/tenant/profile` | W §1, S §1, S §7 |

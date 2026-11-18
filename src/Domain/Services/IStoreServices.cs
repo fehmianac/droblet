@@ -92,6 +92,13 @@ public sealed record PurchasePromptAnswer(WardrobePromptStatus Status, IReadOnly
 
 public enum PostbackOutcome { Recorded, Updated, Duplicate, ClickNotFound }
 
+/// <summary>Decision 10: checkout clicks without a conversion in time put their products on the watch list.</summary>
+public interface IWatchListAutoAdd
+{
+    /// <summary>Handles every candidate due at <paramref name="nowUtc"/>; returns how many products were added.</summary>
+    Task<int> RunAsync(DateTime nowUtc, CancellationToken ct);
+}
+
 public interface IAffiliateService
 {
     /// <summary>"[Marka]'da öde": one click for the brand's cart lines; payment happens on the brand's site.</summary>

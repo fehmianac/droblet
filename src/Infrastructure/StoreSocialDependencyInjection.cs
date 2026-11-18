@@ -54,6 +54,7 @@ public static class StoreSocialDependencyInjection
         services.TryAddSingleton<IAnalyticsService, AnalyticsService>();
         services.TryAddSingleton<ICatalogService, CatalogService>();
         services.TryAddSingleton<IContentService, ContentService>();
+        services.TryAddSingleton<IWatchListAutoAdd, WatchListAutoAdd>();
 
         services.TryAddSingleton<IWeatherProvider>(sp => new OpenMeteoWeatherProvider(
             new HttpClient { Timeout = TimeSpan.FromSeconds(10) }, sp.GetRequiredService<IOptionsMonitor<WeatherOptions>>()));
@@ -73,6 +74,7 @@ public static class StoreSocialDependencyInjection
         services.TryAddSingleton<ICartService, CartService>();
         services.TryAddSingleton<IAffiliateService, AffiliateService>();
         services.TryAddSingleton<ISocialService, SocialService>();
+        services.TryAddSingleton<IContactMatchService, ContactMatchService>();
         services.TryAddSingleton<IInviteService, InviteService>();
         services.TryAddSingleton<ISettingsService, SettingsService>();
         services.TryAddSingleton<ICrossTenantCleanup, CrossTenantCleanup>();

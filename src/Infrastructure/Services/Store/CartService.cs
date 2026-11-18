@@ -180,6 +180,8 @@ public sealed class CartService(
         [
             TransactWriteOperation.Delete(pk, WatchItemEntity.GetSk(productId)),
             TransactWriteOperation.Delete(ProductWatcherEntity.GetPk(productId), ProductWatcherEntity.GetSk(tenantId)),
+            // The auto-add pass (decision 10) must not bring back what the user removed.
+            TransactWriteOperation.Put(new WatchRemovedEntity { TenantId = tenantId, ProductId = productId, RemovedAt = Now }),
         ], ct);
         return true;
     }

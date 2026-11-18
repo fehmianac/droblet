@@ -24,6 +24,9 @@ public enum ShareChannel { Whatsapp, Pinterest, Link }
 
 public enum ShareTargetKind { App, Profile, Look, Product, Edit }
 
+/// <summary>Decision 8: the viewer's follow of another account — none, a pending request, or an accepted follow.</summary>
+public enum FollowState { None, Requested, Following }
+
 public enum ReportReason { Spam, Inappropriate, Harassment, Impersonation, MinorSafety, Other }
 
 public enum ReportTargetKind { Profile, Look, Item }
