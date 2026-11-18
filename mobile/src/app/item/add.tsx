@@ -11,10 +11,11 @@ import { Text } from '@/components/ui/Text';
 import type { PreparedPhoto } from '@/features/photos/preparePhoto';
 import { usePhotoPicker } from '@/features/photos/usePhotoPicker';
 import { useStartItemDrafts } from '@/features/wardrobe/mutations';
+import { isRecognitionLimitReached, openRecognitionPaywall, useItemRecognition } from '@/features/wardrobe/recognition';
 import { useIsOnline } from '@/sync/network';
 import { placeholderTones } from '@/theme/tokens';
 
-type Notice = 'none' | 'offline' | 'photoFailed' | 'startFailed';
+type Notice = 'none' | 'offline' | 'photoFailed' | 'startFailed' | 'recognitionLimit';
 
 function Shortcut({ icon, label, a11y, onPress, disabled }: { icon: LucideIcon; label: string; a11y: string; onPress: () => void; disabled?: boolean }) {
   return (
@@ -49,6 +50,15 @@ export default function ItemAddScreen() {
   const startDrafts = useStartItemDrafts();
   const [notice, setNotice] = useState<Notice>('none');
   const [busy, setBusy] = useState(false);
+  const recognition = useItemRecognition();
+
+  // Free AI recognition used up: the paywall opens; this screen stays underneath with "Elle gir".
+  const limitReached = () => {
+    setNotice('recognitionLimit');
+    void recognition.refresh();
+    openRecognitionPaywall();
+  };
+  const enterManually = () => router.push('/item/form');
 
   const onPicked = (photos: PreparedPhoto[]) => {
     const photo = photos[0];
@@ -62,7 +72,7 @@ export default function ItemAddScreen() {
         if (draftId) router.replace({ pathname: '/item/form', params: { draftId } });
         else setNotice('startFailed');
       })
-      .catch(() => setNotice('startFailed'))
+      .catch((error: unknown) => (isRecognitionLimitReached(error) ? limitReached() : setNotice('startFailed')))
       .finally(() => setBusy(false));
   };
 
@@ -72,6 +82,10 @@ export default function ItemAddScreen() {
   const guarded = (action: () => void) => () => {
     if (!online) {
       setNotice('offline');
+      return;
+    }
+    if (recognition.exhausted) {
+      limitReached();
       return;
     }
     setNotice('none');
@@ -136,7 +150,7 @@ export default function ItemAddScreen() {
         </View>
       </View>
 
-      <View className="min-h-12 items-center justify-center px-gutter pb-4 pt-6">
+      <View className="min-h-12 items-center justify-center gap-2 px-gutter pb-4 pt-6">
         {notice === 'none' ? (
           <Text variant="body" tone="paper" className="text-center text-[13px]">
             {t('itemAdd.hint')}
@@ -149,6 +163,18 @@ export default function ItemAddScreen() {
             </Text>
           </View>
         )}
+        {/* Always there: a piece can be saved without AI (12c with empty fields). */}
+        <Pressable
+          onPress={enterManually}
+          accessibilityRole="button"
+          accessibilityLabel={t('itemAdd.manualA11y')}
+          className="min-h-icon-btn items-center justify-center rounded-pill border border-cream/45 px-4 active:opacity-70"
+          testID="item-add-manual"
+        >
+          <Text variant="bodyMedium" tone="paper">
+            {t('itemAdd.manual')}
+          </Text>
+        </Pressable>
       </View>
 
       <View className="flex-row items-start justify-around px-4 pb-4">

@@ -23,10 +23,15 @@ import { draftProgress, formFromDraft, isDraftComplete, limitBulkSelection, toIt
 import { ItemThumb } from '@/features/wardrobe/ItemThumb';
 import { useAddItems, useDiscardDraft, useRetryDraft, useStartItemDrafts } from '@/features/wardrobe/mutations';
 import { StatePanel } from '@/features/wardrobe/parts';
+import { fitToRecognitionQuota, isRecognitionLimitReached, openRecognitionPaywall, useItemRecognition } from '@/features/wardrobe/recognition';
 import { useItemDrafts } from '@/features/wardrobe/queries';
 import { useIsOnline } from '@/sync/network';
 
-type Notice = { kind: 'none' } | { kind: 'offline' | 'photoFailed' | 'startFailed' } | { kind: 'overLimit'; rejected: number };
+type Notice =
+  | { kind: 'none' }
+  | { kind: 'offline' | 'photoFailed' | 'startFailed' | 'recognitionLimit' }
+  | { kind: 'overLimit'; rejected: number }
+  | { kind: 'quotaSkipped'; skipped: number };
 
 function BulkSkeleton() {
   return (
@@ -159,20 +164,46 @@ export default function ItemBulkScreen() {
 
   const queued = drafts.data?.length ?? 0;
 
+  const recognition = useItemRecognition();
+
+  // Free AI recognition used up: the paywall opens; this screen stays underneath with "Elle gir".
+  const limitReached = () => {
+    setNotice({ kind: 'recognitionLimit' });
+    void recognition.refresh();
+    openRecognitionPaywall();
+  };
+  const enterManually = () => router.push({ pathname: '/item/form', params: { from: 'bulk' } });
+
   const onPicked = (photos: PreparedPhoto[]) => {
-    const { accepted, rejected } = limitBulkSelection(photos, queued);
-    setNotice(rejected > 0 ? { kind: 'overLimit', rejected } : { kind: 'none' });
+    const { accepted: withinBatch, rejected } = limitBulkSelection(photos, queued);
+    // Only part of the batch may fit the free recognition quota: process those, report the rest.
+    const { accepted, skipped } = fitToRecognitionQuota(withinBatch, recognition.remaining);
+    if (withinBatch.length > 0 && accepted.length === 0) {
+      limitReached();
+      return;
+    }
+    setNotice(skipped > 0 ? { kind: 'quotaSkipped', skipped } : rejected > 0 ? { kind: 'overLimit', rejected } : { kind: 'none' });
     if (accepted.length === 0) return;
-    startDrafts.start(
-      accepted.map((p) => p.localUri),
-      splitOutfit,
-    ).catch(() => setNotice({ kind: 'startFailed' }));
+    startDrafts
+      .start(
+        accepted.map((p) => p.localUri),
+        splitOutfit,
+      )
+      .then((res) => {
+        const serverSkipped = res.skippedCount ?? 0;
+        if (skipped + serverSkipped > 0) setNotice({ kind: 'quotaSkipped', skipped: skipped + serverSkipped });
+      })
+      .catch((error: unknown) => (isRecognitionLimitReached(error) ? limitReached() : setNotice({ kind: 'startFailed' })));
   };
   const picker = usePhotoPicker({ onPicked, onError: () => setNotice({ kind: 'photoFailed' }) });
 
   const pick = () => {
     if (!online) {
       setNotice({ kind: 'offline' });
+      return;
+    }
+    if (recognition.exhausted) {
+      limitReached();
       return;
     }
     const room = BULK_ADD_MAX - queued;
@@ -193,14 +224,25 @@ export default function ItemBulkScreen() {
         ? notice.rejected > 0
           ? t('bulkAdd.overLimit', { count: notice.rejected, max: BULK_ADD_MAX })
           : t('bulkAdd.limitReached', { max: BULK_ADD_MAX })
-        : t(`bulkAdd.${notice.kind}`);
+        : notice.kind === 'quotaSkipped'
+          ? t('bulkAdd.quotaSkipped', { count: notice.skipped })
+          : t(`bulkAdd.${notice.kind}`);
+  const quotaNotice = notice.kind === 'recognitionLimit' || notice.kind === 'quotaSkipped';
 
   const noticeView = noticeText ? (
-    <View className="flex-row items-start gap-2 rounded-image-lg bg-sand p-3" accessibilityRole="alert" accessibilityLiveRegion="polite">
-      <Icon icon={CircleAlert} size={16} tone="danger" />
-      <Text variant="caption" className="flex-1">
-        {noticeText}
-      </Text>
+    <View className="gap-2 rounded-image-lg bg-sand p-3" accessibilityRole="alert" accessibilityLiveRegion="polite">
+      <View className="flex-row items-start gap-2">
+        <Icon icon={CircleAlert} size={16} tone="danger" />
+        <Text variant="caption" className="flex-1">
+          {noticeText}
+        </Text>
+      </View>
+      {quotaNotice ? (
+        <View className="flex-row flex-wrap gap-2">
+          <Button variant="secondary" label={t('bulkAdd.becomeMember')} onPress={openRecognitionPaywall} />
+          <Button variant="text" label={t('bulkAdd.manual')} onPress={enterManually} testID="bulk-manual-notice" />
+        </View>
+      ) : null}
     </View>
   ) : null;
 
@@ -225,6 +267,8 @@ export default function ItemBulkScreen() {
                 </View>
                 <StatePanel icon={Images} title={t('bulkAdd.emptyTitle')} body={t(splitOutfit ? 'bulkAdd.emptyBodySplit' : 'bulkAdd.emptyBody', { max: BULK_ADD_MAX })}>
                   <Button label={t('bulkAdd.pick')} icon={Images} onPress={pick} loading={startDrafts.isPending} testID="bulk-pick" />
+                  {/* Always there: a piece can be saved without AI (12c with empty fields). */}
+                  <Button variant="text" label={t('bulkAdd.manual')} onPress={enterManually} testID="bulk-manual" />
                 </StatePanel>
               </View>
             );

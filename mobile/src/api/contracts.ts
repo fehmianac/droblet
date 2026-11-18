@@ -112,7 +112,15 @@ export type ConfirmPhotoRequest = { photoId: string; clientMutationId: string };
 export type Entitlement = {
   tier: 'free' | 'member';
   credits: { monthlyAllowance: number; remaining: number; resetsAt: string };
+  /**
+   * AI recognition of garment photos (owner decision 2026-11-18): free for non-members up to a
+   * server-configured `limit`; `limit: null` = unlimited (members), then `remaining` is null too.
+   * Optional until every environment sends it — absent means "ask the server".
+   */
+  itemRecognition?: ItemRecognitionQuota;
 };
+
+export type ItemRecognitionQuota = { limit: number | null; used: number; remaining: number | null };
 
 // ---------- Errors ----------
 

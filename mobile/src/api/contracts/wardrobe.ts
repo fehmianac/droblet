@@ -64,7 +64,12 @@ export type ItemUploadUrlResponse = { uploads: { photoKey: string; uploadUrl: st
  * `splitOutfit`: "Kombin fotoğrafından parçaları ayır" — one photo may yield several drafts.
  */
 export type CreateItemDraftsRequest = { requestId: string; photoKeys: string[]; splitOutfit?: boolean };
-export type CreateItemDraftsResponse = JobAccepted & { draftIds: string[] };
+/**
+ * 402 `item_recognition_limit_reached` when the free recognition quota is used up (nothing is started).
+ * ASSUMPTION: when only part of the batch fits the quota the server starts those and reports the rest
+ * in `skippedCount` (the app also trims the batch to the known `itemRecognition.remaining` beforehand).
+ */
+export type CreateItemDraftsResponse = JobAccepted & { draftIds: string[]; skippedCount?: number };
 
 export type DraftField = 'name' | 'category' | 'color' | 'fabric' | 'seasons';
 

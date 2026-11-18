@@ -1,3 +1,4 @@
+import { itemRecognitionKey } from './recognition';
 import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { File, UploadType } from 'expo-file-system';
 
@@ -295,6 +296,8 @@ export function useStartItemDrafts() {
       );
     },
     onSuccess: () => void client.invalidateQueries({ queryKey: wardrobeKeys.drafts }),
+    // Each recognition (and a 402) changes the free quota.
+    onSettled: () => void client.invalidateQueries({ queryKey: itemRecognitionKey }),
   });
   return {
     ...m,

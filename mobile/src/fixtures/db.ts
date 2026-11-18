@@ -168,6 +168,8 @@ function seed(): FixtureDb {
     entitlement: {
       tier: 'member',
       credits: { monthlyAllowance: 30, remaining: 11, resetsAt: '2026-12-01T00:00:00.000Z' },
+      // Member: unlimited AI recognition. `setFixtureItemRecognition` (fixtures/wardrobe) switches to a free quota.
+      itemRecognition: { limit: null, used: 0, remaining: null },
     },
   };
 }

@@ -1,9 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { userEvent } from '@testing-library/react-native';
-import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
+import { router } from 'expo-router';
+import { act, fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 
 import { fixtureDb, resetFixtureDb } from '@/fixtures/db';
-import { fixtureCreateDrafts, fixtureDraftOptions, resetFixtureDrafts } from '@/fixtures/wardrobe';
+import { fixtureCreateDrafts, fixtureDraftOptions, fixtureListDrafts, resetFixtureDrafts, setFixtureItemRecognition } from '@/fixtures/wardrobe';
 
 const mockSession = {
   accessToken: 'a',
@@ -18,6 +19,19 @@ jest.mock('expo-secure-store', () => ({
   deleteItemAsync: jest.fn(async () => undefined),
   AFTER_FIRST_UNLOCK: 0,
 }));
+// The system camera / photo library cannot run in tests: the picker hands over prepared photos at once.
+const mockPicked: { photos: { uploadId: string; localUri: string; width: number; height: number }[] } = { photos: [] };
+jest.mock('@/features/photos/usePhotoPicker', () => ({
+  usePhotoPicker: ({ onPicked }: { onPicked: (photos: unknown[]) => void }) => ({
+    takePhoto: () => onPicked(mockPicked.photos.slice(0, 1)),
+    chooseFromLibrary: (limit: number) => onPicked(mockPicked.photos.slice(0, limit)),
+    sheet: null,
+  }),
+}));
+const photo = (n: number) => ({ uploadId: `up_${n}`, localUri: `file://photo-${n}.jpg`, width: 1200, height: 1600 });
+/** Lets the entitlement (fixture latency) settle so the screen knows the quota. */
+const settle = () => waitFor(() => new Promise<void>((resolve) => setTimeout(resolve, 700)), { timeout: 2000 });
+
 jest.mock('expo-font', () => ({ ...jest.requireActual('expo-font'), useFonts: () => [true, null] }));
 
 const WAIT = { timeout: 4000 };
@@ -183,4 +197,72 @@ describe('13 Toplu ekle', () => {
     expect(screen.getByText(/up to 30 photos/i)).toBeTruthy();
     expect(screen.getByText('Split an outfit photo')).toBeTruthy();
   });
+});
+
+describe('AI recognition quota (12, 13)', () => {
+  beforeEach(() => {
+    mockPicked.photos = [photo(1), photo(2), photo(3), photo(4)];
+  }, 20_000);
+
+  it('12: with no free recognition left the shutter opens the paywall and "Enter manually" still saves a piece', async () => {
+    setFixtureItemRecognition(3, 3);
+    await open('/item/add');
+    await waitFor(() => expect(screen.getByTestId('item-add-manual')).toBeTruthy(), WAIT);
+    await settle();
+    await fireEvent.press(screen.getByTestId('item-add-shutter'));
+    await waitFor(() => expect(screen).toHavePathname('/paywall'), WAIT);
+    expect(fixtureListDrafts()).toHaveLength(0);
+
+    await act(async () => router.back());
+    await waitFor(() => expect(screen.getByText(/used your free AI recognitions/)).toBeTruthy(), WAIT);
+    await fireEvent.press(screen.getByTestId('item-add-manual'));
+    await waitFor(() => expect(screen).toHavePathname('/item/form'), WAIT);
+    await waitFor(() => expect(screen.getByText('Piece details')).toBeTruthy(), WAIT);
+  }, 20_000);
+
+  it('12: a 402 item_recognition_limit_reached from the server opens the paywall and keeps the manual path', async () => {
+    setFixtureItemRecognition(3, 2);
+    await open('/item/add');
+    await waitFor(() => expect(screen.getByTestId('item-add-shutter')).toBeTruthy(), WAIT);
+    await settle();
+    // The last free recognition is used elsewhere: the app still believes one is left, the server says 402.
+    setFixtureItemRecognition(3, 3);
+    await fireEvent.press(screen.getByTestId('item-add-shutter'));
+    await waitFor(() => expect(screen).toHavePathname('/paywall'), WAIT);
+    expect(fixtureListDrafts()).toHaveLength(0);
+
+    await act(async () => router.back());
+    await waitFor(() => expect(screen.getByText(/used your free AI recognitions/)).toBeTruthy(), WAIT);
+    expect(screen.getByText('Enter manually')).toBeTruthy();
+  }, 20_000);
+
+  it('12: the manual path is there for members too', async () => {
+    await open('/item/add');
+    await waitFor(() => expect(screen.getByText('Enter manually')).toBeTruthy(), WAIT);
+    await fireEvent.press(screen.getByTestId('item-add-manual'));
+    await waitFor(() => expect(screen).toHavePathname('/item/form'), WAIT);
+  }, 20_000);
+
+  it('13: processes the photos that fit the quota and says how many were skipped', async () => {
+    setFixtureItemRecognition(5, 3);
+    await open('/item/bulk');
+    await waitFor(() => expect(screen.getByTestId('bulk-pick')).toBeTruthy(), WAIT);
+    expect(screen.getByTestId('bulk-manual')).toBeTruthy();
+    await settle();
+    await fireEvent.press(screen.getByTestId('bulk-pick'));
+    await waitFor(() => expect(screen.getByText(/2 photos were not processed/)).toBeTruthy(), WAIT);
+    await waitFor(() => expect(fixtureListDrafts()).toHaveLength(2), WAIT);
+    await waitFor(() => expect(screen.getByText('Become a member')).toBeTruthy(), WAIT);
+    expect(screen.getByTestId('bulk-manual-notice')).toBeTruthy();
+  }, 20_000);
+
+  it('13: with nothing left the paywall opens and no photo is sent', async () => {
+    setFixtureItemRecognition(2, 2);
+    await open('/item/bulk');
+    await waitFor(() => expect(screen.getByTestId('bulk-pick')).toBeTruthy(), WAIT);
+    await settle();
+    await fireEvent.press(screen.getByTestId('bulk-pick'));
+    await waitFor(() => expect(screen).toHavePathname('/paywall'), WAIT);
+    expect(fixtureListDrafts()).toHaveLength(0);
+  }, 20_000);
 });

@@ -135,7 +135,10 @@
     "galleryA11y": "Choose from gallery",
     "shutter": "Take a photo",
     "library": "Ready-made library",
-    "libraryA11y": "Add from the ready-made library"
+    "libraryA11y": "Add from the ready-made library",
+    "manual": "Enter manually",
+    "manualA11y": "Add without AI by typing the details",
+    "recognitionLimit": "You have used your free AI recognitions. Become a member to continue, or enter the piece manually."
   },
   "itemLibrary": {
     "title": "Ready-made library",
@@ -231,6 +234,11 @@
     "clearAll": "Clear selection",
     "selectAll": "Select all",
     "add_one": "Add {{count}} piece to wardrobe",
-    "add_other": "Add {{count}} pieces to wardrobe"
+    "add_other": "Add {{count}} pieces to wardrobe",
+    "manual": "Enter manually",
+    "becomeMember": "Become a member",
+    "recognitionLimit": "You have used your free AI recognitions. Become a member to continue, or enter the pieces manually.",
+    "quotaSkipped_one": "{{count}} photo was not processed because your free AI recognitions ran out. Become a member or enter that piece manually.",
+    "quotaSkipped_other": "{{count}} photos were not processed because your free AI recognitions ran out. Become a member or enter those pieces manually."
   }
 }

@@ -135,7 +135,10 @@
     "galleryA11y": "Galeriden seç",
     "shutter": "Fotoğraf çek",
     "library": "Hazır kütüphane",
-    "libraryA11y": "Hazır kütüphaneden ekle"
+    "libraryA11y": "Hazır kütüphaneden ekle",
+    "manual": "Elle gir",
+    "manualA11y": "AI olmadan, bilgileri elle girerek ekle",
+    "recognitionLimit": "Ücretsiz AI tanıma hakkın doldu. Üye olarak devam edebilir ya da parçayı elle girebilirsin."
   },
   "itemLibrary": {
     "title": "Hazır kütüphane",
@@ -231,6 +234,11 @@
     "clearAll": "Seçimi kaldır",
     "selectAll": "Tümünü seç",
     "add_one": "{{count}} parçayı gardıroba ekle",
-    "add_other": "{{count}} parçayı gardıroba ekle"
+    "add_other": "{{count}} parçayı gardıroba ekle",
+    "manual": "Elle gir",
+    "becomeMember": "Üye ol",
+    "recognitionLimit": "Ücretsiz AI tanıma hakkın doldu. Üye olarak devam edebilir ya da parçaları elle girebilirsin.",
+    "quotaSkipped_one": "Ücretsiz AI tanıma hakkın yetmediği için {{count}} fotoğraf işlenmedi. Üye olabilir ya da o parçayı elle girebilirsin.",
+    "quotaSkipped_other": "Ücretsiz AI tanıma hakkın yetmediği için {{count}} fotoğraf işlenmedi. Üye olabilir ya da o parçaları elle girebilirsin."
   }
 }

@@ -81,13 +81,33 @@ function addDraft(requestId: string, localUri: string | null, position: number):
 export function fixtureCreateDrafts(request: CreateItemDraftsRequest): CreateItemDraftsResponse {
   const existing = drafts.filter((d) => d.requestId === request.requestId);
   if (existing.length > 0) return { jobId: `job_${request.requestId}`, draftIds: existing.map((d) => d.id) };
+  // Free recognition quota: nothing left → 402; part of the batch fits → those start, the rest is skipped.
+  const quota = fixtureDb.entitlement.itemRecognition;
+  let photoKeys = request.photoKeys;
+  if (quota && quota.limit !== null) {
+    const remaining = Math.max(0, quota.remaining ?? quota.limit - quota.used);
+    if (remaining === 0) throw new ApiError('http', 402, { status: 402, code: 'item_recognition_limit_reached' });
+    photoKeys = photoKeys.slice(0, remaining);
+    quota.used += photoKeys.length;
+    quota.remaining = remaining - photoKeys.length;
+  }
+  const skippedCount = request.photoKeys.length - photoKeys.length;
   const created: StoredDraft[] = [];
-  request.photoKeys.forEach((key) => {
+  photoKeys.forEach((key) => {
     // "Kombin fotoğrafından ayır": one outfit photo yields several pieces.
     const pieces = request.splitOutfit ? 3 : 1;
     for (let i = 0; i < pieces; i++) created.push(addDraft(request.requestId, key, created.length));
   });
-  return { jobId: `job_${request.requestId}`, draftIds: created.map((d) => d.id) };
+  return { jobId: `job_${request.requestId}`, draftIds: created.map((d) => d.id), ...(skippedCount > 0 ? { skippedCount } : {}) };
+}
+
+/**
+ * Entitlement fixture for the recognition quota: a non-member with `limit` free recognitions of which
+ * `used` are spent (`limit: null` → member, unlimited). Reset by `resetFixtureDb`.
+ */
+export function setFixtureItemRecognition(limit: number | null, used = 0): void {
+  fixtureDb.entitlement.tier = limit === null ? 'member' : 'free';
+  fixtureDb.entitlement.itemRecognition = { limit, used, remaining: limit === null ? null : Math.max(0, limit - used) };
 }
 
 /** GET v1/tenant/item-draft */
