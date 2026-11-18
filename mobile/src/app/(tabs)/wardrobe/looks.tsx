@@ -1,6 +1,15 @@
-import { InlinePlaceholder } from '@/components/navigation/InlinePlaceholder';
+import { useTranslation } from 'react-i18next';
 
-/** Gardırop › Looks — not built in this slice. */
+import { InlinePlaceholder } from '@/components/navigation/InlinePlaceholder';
+import { WardrobeHeader } from '@/features/wardrobe/WardrobeHeader';
+
+/** Gardırop › Looks — placeholder until 14 lands. */
 export default function WardrobeLooksScreen() {
-  return <InlinePlaceholder />;
+  const { t } = useTranslation();
+  return (
+    <>
+      <WardrobeHeader current="looks" eyebrow={t('brand.wordmark')} title={t('wardrobe.title')} />
+      <InlinePlaceholder />
+    </>
+  );
 }
