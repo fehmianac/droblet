@@ -35,5 +35,24 @@
     "showWhenReady": "Hazır olunca göster",
     "leaveHint": "Ekrandan çıkabilirsin; görsel hazır olunca bildirim göndeririz.",
     "progressCount": "{{done}} / {{total}}"
+  },
+  "credits": {
+    "eyebrow": "ÜZERİMDE GÖR",
+    "eyebrowScoped": "ÜZERİMDE GÖR · {{scope}}",
+    "willSpend_one": "{{count}} kredi harcanacak",
+    "willSpend_other": "{{count}} kredi harcanacak",
+    "explain_one": "Senin fotoğrafında bir AI görseli üretilir. Her görsel 1 kredi.",
+    "explain_other": "Her biri için senin fotoğrafında bir AI görseli üretilir. Her görsel 1 kredi.",
+    "remainingNow": "Bu ay kalan",
+    "thisAction": "Bu işlem",
+    "afterwards": "İşlemden sonra",
+    "images_one": "{{count}} görsel",
+    "images_other": "{{count}} görsel",
+    "notEnough": "Kredin yetmiyor",
+    "cacheNote": "Daha önce üretilen görseller önbellekten gelir, tekrar kredi harcamaz. Kombin önerileri krediden düşmez.",
+    "confirm_one": "{{count}} kredi kullan ve oluştur",
+    "confirm_other": "{{count}} kredi kullan ve oluştur",
+    "topUp": "Kredi yükle",
+    "becomeMember": "Üye ol"
   }
 }

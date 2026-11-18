@@ -1,5 +1,6 @@
 import type { Entitlement } from '@/api/contracts';
 import type { Look, LookSlot, LookSlotKind } from '@/api/contracts/looks';
+import type { PlanDay, WearLog } from '@/api/contracts/today';
 import type { Item, ItemCategory, ItemColor, ItemSeason } from '@/api/contracts/wardrobe';
 
 /**
@@ -136,13 +137,34 @@ function seedLooks(items: Item[]): Look[] {
   ];
 }
 
-type FixtureDb = { items: Item[]; looks: Look[]; entitlement: Entitlement };
+type FixtureDb = {
+  items: Item[];
+  looks: Look[];
+  /** Seeded relative to today by the Bugün fixtures (`onFixtureSeed`). */
+  planDays: PlanDay[];
+  wearLogs: WearLog[];
+  entitlement: Entitlement;
+};
+
+type Seeder = (db: FixtureDb, options: { empty: boolean }) => void;
+const seeders: Seeder[] = [];
+
+/**
+ * Lets a feature's fixture file seed its own collections (and re-seed them on `resetFixtureDb`)
+ * without editing this file. Runs immediately and again on every reset.
+ */
+export function onFixtureSeed(seeder: Seeder): void {
+  seeders.push(seeder);
+  seeder(fixtureDb, { empty: false });
+}
 
 function seed(): FixtureDb {
   const items = seedItems();
   return {
     items,
     looks: seedLooks(items),
+    planDays: [],
+    wearLogs: [],
     entitlement: {
       tier: 'member',
       credits: { monthlyAllowance: 30, remaining: 11, resetsAt: '2026-12-01T00:00:00.000Z' },
@@ -158,7 +180,10 @@ export function resetFixtureDb(options: { empty?: boolean } = {}): void {
   const fresh = seed();
   fixtureDb.items = options.empty ? [] : fresh.items;
   fixtureDb.looks = options.empty ? [] : fresh.looks;
+  fixtureDb.planDays = [];
+  fixtureDb.wearLogs = [];
   fixtureDb.entitlement = fresh.entitlement;
+  seeders.forEach((seeder) => seeder(fixtureDb, { empty: Boolean(options.empty) }));
 }
 
 export const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;

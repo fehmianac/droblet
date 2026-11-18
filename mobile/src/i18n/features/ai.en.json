@@ -35,5 +35,24 @@
     "showWhenReady": "Show me when it's ready",
     "leaveHint": "You can leave this screen; we'll send a notification when the image is ready.",
     "progressCount": "{{done}} / {{total}}"
+  },
+  "credits": {
+    "eyebrow": "TRY IT ON ME",
+    "eyebrowScoped": "TRY IT ON ME · {{scope}}",
+    "willSpend_one": "{{count}} credit will be used",
+    "willSpend_other": "{{count}} credits will be used",
+    "explain_one": "An AI image is generated on your photo. Each image is 1 credit.",
+    "explain_other": "An AI image is generated on your photo for each one. Each image is 1 credit.",
+    "remainingNow": "Left this month",
+    "thisAction": "This action",
+    "afterwards": "Afterwards",
+    "images_one": "{{count}} image",
+    "images_other": "{{count}} images",
+    "notEnough": "Not enough credits",
+    "cacheNote": "Images you already generated come from cache and don't use credits again. Outfit suggestions don't use credits.",
+    "confirm_one": "Use {{count}} credit and create",
+    "confirm_other": "Use {{count}} credits and create",
+    "topUp": "Add credits",
+    "becomeMember": "Become a member"
   }
 }
