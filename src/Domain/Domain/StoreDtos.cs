@@ -43,7 +43,8 @@ public record EditDto(
     string? SponsorName,
     IReadOnlyList<EditLookDto> Looks);
 
-public record ContentCollectionDto(string Id, ContentCollectionKind Kind, string Title, string? Subtitle, string? ImageUrl, bool Sponsored, string? SponsorName);
+/// <param name="Handle">The creator's Droblet @handle when such an account exists (null otherwise) → person profile.</param>
+public record ContentCollectionDto(string Id, ContentCollectionKind Kind, string Title, string? Subtitle, string? ImageUrl, bool Sponsored, string? SponsorName, string? Handle = null);
 
 public record ContentLookDto(string Id, string CollectionId, string Title, string? Note, string? ImageUrl, IReadOnlyList<ProductDto> Products, long TotalMinor, string Currency);
 
@@ -72,7 +73,9 @@ public record WatchItemDto(
     long CurrentPriceMinor,
     bool PriceDropped,
     long DropMinor,
-    DateTime AddedAt);
+    DateTime AddedAt,
+    bool Notify = true,
+    WatchOrigin Origin = WatchOrigin.User);
 
 public record CheckoutProductDto(string ProductId, string Url);
 

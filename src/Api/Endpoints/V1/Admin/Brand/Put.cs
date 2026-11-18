@@ -1,3 +1,4 @@
+using Domain.Services.Admin;
 using System.Text.Json;
 using Api.Contracts;
 using Api.Infrastructure.Contract;
@@ -41,10 +42,9 @@ public class Put : IEndpoint
         return endpoints.MapPut("v1/admin/brand/{id}", Handler)
             .Produces<AdminBrandDto>(StatusCodes.Status200OK)
             .Produces<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest)
-            .Produces(StatusCodes.Status401Unauthorized)
-            .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status500InternalServerError)
-            .RequireAuthorization(AdminOptions.Policy)
+            .RequireAdmin(AdminPermissions.CatalogManage)
+            .Audited("brand.upsert", "brand", "id", AdminAuditBefore.Brand)
             .WithSummary("Create or update a brand")
             .WithDescription("Upsert by id (the route id wins). source = network | direct; clickIdParameter = the sub-id query parameter of the brand / network; commissionRateBps overrides the Affiliate config.")
             .WithTags("Admin Catalog");

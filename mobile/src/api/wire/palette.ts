@@ -81,5 +81,5 @@ export function toPalette(wire: PaletteWire): Palette {
 }
 
 export function toPaletteMismatch(wire: PaletteMismatchWire): PaletteMismatch {
-  return { items: wire.items.map((i) => ({ id: i.id, name: i.name, imageUrl: i.imageUrl })) };
+  return { items: wire.items.map((i) => ({ id: i.id, name: i.name ?? '', imageUrl: i.imageUrl })) };
 }

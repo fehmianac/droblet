@@ -3,6 +3,7 @@ import { DeviceHost } from '@/features/account/DeviceHost';
 import { LanguageSyncHost } from '@/features/account/LanguageSyncHost';
 import { CreditSheetHost } from '@/features/credits/CreditPackSheet';
 import { InviteHost } from '@/features/social/InviteHost';
+import { PurchasePromptHost } from '@/features/store/PurchasePromptHost';
 import { PurchaseHost } from '@/purchases/PurchaseHost';
 
 /**
@@ -19,8 +20,10 @@ export function AppHosts({ userId }: { userId: string | null }) {
       {userId ? <LanguageSyncHost key={userId} /> : null}
       {/* Registers this installation (`PUT v1/tenant/user/me/device`) once per sign-in / app start. */}
       {userId ? <DeviceHost key={`device-${userId}`} /> : null}
+      {/* "Gardıroba ekleyelim mi?" after a purchase on a brand site, on the next app open. */}
+      {userId ? <PurchasePromptHost key={`purchase-${userId}`} /> : null}
       {/* StoreKit / Play Billing listener: verifies late or unfinished purchases with the server. */}
-      {userId ? <PurchaseHost key={`purchase-${userId}`} /> : null}
+      {userId ? <PurchaseHost key={`iap-${userId}`} /> : null}
     </>
   );
 }

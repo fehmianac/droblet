@@ -10,6 +10,7 @@ import {
   type ItemFields,
   type ItemSeason,
 } from '@/api/contracts/wardrobe';
+import { normalizeColorHex } from '@/api/wire/wardrobe';
 
 /** 12c form state. Category / colour start empty for a manual entry so the user has to choose. */
 export type ItemFormValues = {
@@ -21,6 +22,8 @@ export type ItemFormValues = {
   color: ItemColor | null;
   /** The server's colour ids behind `color` (kept so an unrelated edit does not coarsen `burgundy` to `red`). */
   colorIds?: string[];
+  /** Optional `#RRGGBB` of an "other" colour. */
+  colorHex: string;
   fabric: string;
   seasons: ItemSeason[];
   useOriginalImage: boolean;
@@ -33,6 +36,7 @@ export const EMPTY_FORM: ItemFormValues = {
   brand: '',
   size: '',
   color: null,
+  colorHex: '',
   fabric: '',
   seasons: [],
   useOriginalImage: false,
@@ -49,6 +53,7 @@ export function formFromItem(item: ItemFields): ItemFormValues {
     size: item.size ?? '',
     color: item.color,
     ...(item.colorIds ? { colorIds: item.colorIds } : {}),
+    colorHex: item.colorHex ?? '',
     fabric: item.fabric ?? '',
     seasons: [...item.seasons],
     useOriginalImage: item.useOriginalImage,
@@ -66,14 +71,15 @@ export function formFromDraft(draft: Pick<ItemDraft, 'suggestion'>): ItemFormVal
     size: s.size ?? '',
     color: s.color ?? null,
     ...(s.colorIds ? { colorIds: s.colorIds } : {}),
+    colorHex: s.colorHex ?? '',
     fabric: s.fabric ?? '',
     seasons: [...(s.seasons ?? [])],
     useOriginalImage: s.useOriginalImage ?? false,
   };
 }
 
-export type ItemFormErrorKey = 'nameRequired' | 'nameTooLong' | 'categoryRequired' | 'colorRequired' | 'seasonRequired';
-export type ItemFormErrors = Partial<Record<'name' | 'category' | 'color' | 'seasons', ItemFormErrorKey>>;
+export type ItemFormErrorKey = 'nameRequired' | 'nameTooLong' | 'categoryRequired' | 'colorRequired' | 'colorHexInvalid' | 'seasonRequired';
+export type ItemFormErrors = Partial<Record<'name' | 'category' | 'color' | 'colorHex' | 'seasons', ItemFormErrorKey>>;
 
 /** Rules of 12c: name, category and colour are required and at least one season must be chosen. */
 export function validateItemForm(values: ItemFormValues): ItemFormErrors {
@@ -83,6 +89,7 @@ export function validateItemForm(values: ItemFormValues): ItemFormErrors {
   else if (name.length > NAME_MAX) errors.name = 'nameTooLong';
   if (!values.category) errors.category = 'categoryRequired';
   if (!values.color) errors.color = 'colorRequired';
+  else if (values.color === 'other' && values.colorHex.trim() && !normalizeColorHex(values.colorHex)) errors.colorHex = 'colorHexInvalid';
   if (values.seasons.length === 0) errors.seasons = 'seasonRequired';
   return errors;
 }
@@ -104,6 +111,7 @@ export function toItemFields(values: ItemFormValues): ItemFields {
     size: orNull(values.size),
     color: values.color,
     ...(values.colorIds ? { colorIds: values.colorIds } : {}),
+    colorHex: values.color === 'other' ? normalizeColorHex(values.colorHex) : null,
     fabric: orNull(values.fabric),
     seasons: values.seasons,
     useOriginalImage: values.useOriginalImage,
@@ -120,6 +128,7 @@ export function fieldsOf(item: Item): ItemFields {
     size: item.size,
     color: item.color,
     ...(item.colorIds ? { colorIds: item.colorIds } : {}),
+    colorHex: item.colorHex ?? null,
     fabric: item.fabric,
     seasons: item.seasons,
     useOriginalImage: item.useOriginalImage,

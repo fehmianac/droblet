@@ -15,6 +15,8 @@ import type {
   FeedPage,
   FeedPiece,
   FeedStory,
+  FollowRequestEntry,
+  FollowState,
   InviteLink,
   PersonProfile,
   PersonSuggestion,
@@ -36,6 +38,10 @@ export type PersonCardWire = {
   styleMatchPercent: number;
   isFollowing: boolean;
   followsYou: boolean;
+  /** `none` | `requested` (pending approval) | `following`. Older servers omit it → derived from `isFollowing`. */
+  followState?: FollowState;
+  /** They have a pending follow request to me. */
+  requestedYou?: boolean;
 };
 
 /** `PersonProfileDto` — GET v1/tenant/people/{handle}. */
@@ -53,19 +59,38 @@ export type PersonProfileWire = PersonCardWire & {
 
 const styleTags = (tags: string[] | null | undefined): StyleTag[] => (tags ?? []).map((t) => toSnake<StyleTag>(t));
 
+/** The follow state of a card / profile; a server without `followState` only knows following or not. */
+export function followStateOf(wire: Pick<PersonCardWire, 'isFollowing' | 'followState'>): FollowState {
+  return wire.followState ?? (wire.isFollowing ? 'following' : 'none');
+}
+
 export function toPersonSuggestion(wire: PersonCardWire): PersonSuggestion {
+  const followState = followStateOf(wire);
   return {
     handle: wire.handle,
     displayName: wire.displayName ?? `@${wire.handle}`,
     avatarUrl: null,
     styleMatch: wire.styleMatchPercent ?? 0,
-    isFollowing: wire.isFollowing,
+    isFollowing: followState === 'following',
+    followState,
+    requestedYou: wire.requestedYou ?? false,
     followsYou: wire.followsYou,
     styleTags: styleTags(wire.styleTags),
   };
 }
 
+/** `FollowRequestDto` — GET v1/tenant/follow-request/incoming · /outgoing. */
+export type FollowRequestWire = { person: PersonCardWire; createdAt: string };
+
+export function toFollowRequest(wire: FollowRequestWire): FollowRequestEntry {
+  return { person: toPersonSuggestion(wire.person), createdAt: wire.createdAt };
+}
+
+/** POST v1/tenant/follow/{handle} → 200. */
+export type FollowResultWire = { state: 'following' | 'requested' };
+
 export function toPersonProfile(wire: PersonProfileWire): PersonProfile {
+  const followState = followStateOf(wire);
   return {
     handle: wire.handle,
     displayName: wire.displayName ?? `@${wire.handle}`,
@@ -74,7 +99,10 @@ export function toPersonProfile(wire: PersonProfileWire): PersonProfile {
     itemCount: wire.itemCount,
     lookCount: wire.lookCount,
     styleMatch: wire.styleMatchPercent ?? 0,
-    isFollowing: wire.isFollowing,
+    isFollowing: followState === 'following',
+    followState,
+    requestedYou: wire.requestedYou ?? false,
+    closetVisibility: wire.closetVisibility === 'followersOnly' ? 'followers' : wire.closetVisibility,
     closetVisible: !wire.closetLocked,
     isSelf: wire.isSelf,
     followsYou: wire.followsYou,
@@ -240,3 +268,16 @@ export type ShareRequestWire = {
 };
 /** `url` = `{base}/{code}` for `app`, else `{base}/{code}?t={targetKind}&id={targetId}&u={ownerHandle}`. */
 export type ShareResponseWire = { shareId: string; inviteCode: string; url: string; channel: ShareChannelWire };
+
+// ---------- contacts matching ----------
+
+/** POST v1/tenant/contacts/salt → single use, 10 minutes. */
+export type ContactSaltWire = { saltId: string; salt: string; prefixLength: number; maxHashes: number; expiresAt: string };
+
+/**
+ * POST v1/tenant/contacts/match `{ saltId, hashes: [{ p, h }] }` (1–1000) → the people found
+ * (self, blocked and invisible cards removed). 404 `contact_salt_not_found`, 400 `hashes_out_of_range`
+ * / `hash_invalid`, 429 `too_many_attempts`.
+ */
+export type ContactMatchRequestWire = { saltId: string; hashes: { p: string; h: string }[] };
+export type ContactMatchResponseWire = { matches: PersonCardWire[] };

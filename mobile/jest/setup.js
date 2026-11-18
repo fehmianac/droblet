@@ -42,3 +42,12 @@ jest.mock('expo-notifications', () => ({
   addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
   getLastNotificationResponse: jest.fn(() => null),
 }));
+
+// expo-contacts has no JS fallback in Jest: permission undetermined, an empty address book.
+jest.mock('expo-contacts/legacy', () => ({
+  PermissionStatus: { GRANTED: 'granted', DENIED: 'denied', UNDETERMINED: 'undetermined' },
+  Fields: { Emails: 'emails' },
+  getPermissionsAsync: jest.fn(async () => ({ status: 'undetermined', canAskAgain: true, granted: false })),
+  requestPermissionsAsync: jest.fn(async () => ({ status: 'granted', canAskAgain: true, granted: true })),
+  getContactsAsync: jest.fn(async () => ({ data: [], hasNextPage: false, hasPreviousPage: false })),
+}));

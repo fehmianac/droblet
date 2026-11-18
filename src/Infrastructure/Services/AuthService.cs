@@ -22,7 +22,8 @@ public sealed class AuthService(
     IOptions<AppLinksOptions> appLinks,
     IOptions<AuthRateLimitOptions> rateLimits,
     TimeProvider timeProvider,
-    ILogger<AuthService> logger) : IAuthService
+    ILogger<AuthService> logger,
+    IContactDirectory contactDirectory) : IAuthService
 {
     private static readonly TimeSpan PasswordResetLifetime = TimeSpan.FromMinutes(30);
     // Verified against when the account does not exist, so response time does not reveal registered e-mails.
@@ -96,6 +97,9 @@ public sealed class AuthService(
         var user = await repository.GetAsync<UserEntity>(UserEntity.GetPk(), UserEntity.GetSk(credential.UserId), ct);
         if (user is null)
             return AuthResult.Fail(AuthOutcome.InvalidCredentials);
+        // Suspended by an admin: only after the password matched, so the answer does not reveal the account to a guesser.
+        if (user.SuspendedAt is not null)
+            return AuthResult.Fail(AuthOutcome.Suspended);
 
         if (verification == PasswordVerification.SuccessRehashNeeded)
         {
@@ -162,6 +166,9 @@ public sealed class AuthService(
             return AuthOutcome.InvalidToken;
 
         logger.LogInformation("Password reset completed for user {UserId}", user.Id);
+        // The reset link proved the address: it may now be found by contact matching (decision 13).
+        if (user.Email is { Length: > 0 } verifiedEmail)
+            await contactDirectory.ListVerifiedEmailAsync(user.TenantId, verifiedEmail, ct);
         return AuthOutcome.Success;
     }
 
@@ -175,6 +182,8 @@ public sealed class AuthService(
         var user = await repository.GetAsync<UserEntity>(UserEntity.GetPk(), UserEntity.GetSk(stored.UserId), ct);
         if (user is null || (user.TokensValidAfter is { } validAfter && stored.IssuedAt < validAfter))
             return AuthResult.Fail(AuthOutcome.InvalidToken);
+        if (user.SuspendedAt is not null)
+            return AuthResult.Fail(AuthOutcome.Suspended);
 
         if (stored.RotatedAt is not null)
         {
@@ -214,6 +223,15 @@ public sealed class AuthService(
 
     public async Task<AuthResult> SignInExternalAsync(AuthProvider provider, ExternalIdentity external, string? displayName, string language, CancellationToken ct)
     {
+        var result = await SignInExternalCoreAsync(provider, external, displayName, language, ct);
+        // Decision 13: an address the provider verified may be found by contact matching.
+        if (result.Tokens is { } tokens && external is { EmailVerified: true, Email: { Length: > 0 } verifiedEmail })
+            await contactDirectory.ListVerifiedEmailAsync(tokens.TenantId, verifiedEmail, ct);
+        return result;
+    }
+
+    private async Task<AuthResult> SignInExternalCoreAsync(AuthProvider provider, ExternalIdentity external, string? displayName, string language, CancellationToken ct)
+    {
         var now = Now;
         var identitySk = AuthIdentityEntity.GetSk(provider, external.Subject);
         var existing = await repository.GetAsync<AuthIdentityEntity>(AuthIdentityEntity.GetPk(), identitySk, ct);
@@ -221,7 +239,7 @@ public sealed class AuthService(
         {
             var known = await repository.GetAsync<UserEntity>(UserEntity.GetPk(), UserEntity.GetSk(existing.UserId), ct);
             if (known is not null)
-                return AuthResult.Ok(await IssueAsync(known, null, false, ct));
+                return known.SuspendedAt is not null ? AuthResult.Fail(AuthOutcome.Suspended) : AuthResult.Ok(await IssueAsync(known, null, false, ct));
         }
 
         var identity = new AuthIdentityEntity { Provider = provider, Subject = external.Subject, CreatedAt = now };
@@ -234,6 +252,8 @@ public sealed class AuthService(
             var linked = emailIdentity is null
                 ? null
                 : await repository.GetAsync<UserEntity>(UserEntity.GetPk(), UserEntity.GetSk(emailIdentity.UserId), ct);
+            if (linked is { SuspendedAt: not null })
+                return AuthResult.Fail(AuthOutcome.Suspended);
             if (linked is not null)
             {
                 identity.UserId = linked.Id;
@@ -283,8 +303,8 @@ public sealed class AuthService(
             Id = user.TenantId,
             OwnerUserId = user.Id,
             DisplayName = user.DisplayName,
-            // A-6 (default closet visibility) is open — start Private, the safe side.
-            ClosetVisibility = ClosetVisibility.Private,
+            // Owner decision 7 (2026-11-19): followers only; the profile card stays searchable.
+            ClosetVisibility = ClosetVisibility.FollowersOnly,
             Language = language,
             CreatedAt = now,
             UpdatedAt = now,

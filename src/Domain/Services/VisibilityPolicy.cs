@@ -10,7 +10,11 @@ public sealed record VisibilityRequest(
     VisibleResource Resource,
     Segment? OwnerSegment = null,
     bool OwnerBlockedViewer = false,
-    bool OwnerDeleted = false);
+    bool OwnerDeleted = false,
+    // Accepted follow edges only — a pending follow request is NOT following (decision 8).
+    bool OwnerFollowsViewer = false,
+    // The owner has a pending request to follow the viewer: the viewer may see who is asking (profile card only).
+    bool OwnerRequestedViewer = false);
 
 /// <summary>
 /// The only gate for reading another tenant's data (E9). Called on every request with the current
@@ -54,8 +58,11 @@ public static class VisibilityPolicy
         if (request.OwnerSegment == Segment.Teen)
             return false;
 
+        // Decision 7: public and followers-only cards are searchable. A private card is visible only inside an existing
+        // relationship (either side follows the other), so a private owner's followers can find her and she can be asked.
         if (request.Resource == VisibleResource.ProfileCard)
-            return request.OwnerVisibility != ClosetVisibility.Private; // Private in search: A-6
+            return request.OwnerVisibility != ClosetVisibility.Private
+                   || request.ViewerFollowsOwner || request.OwnerFollowsViewer || request.OwnerRequestedViewer;
 
         return request.OwnerVisibility switch
         {

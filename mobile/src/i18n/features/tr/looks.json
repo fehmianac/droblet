@@ -171,6 +171,10 @@
       "cold": "hava soğuk olacak",
       "noShoes": "uygun ayakkabı yok",
       "suggested": "stilistin önerisi"
-    }
+    },
+    "dayPieces_one": "{{count}} parça",
+    "dayPieces_other": "{{count}} parça",
+    "dayTryOn": "Üzerimde gör",
+    "daySaveLook": "Look olarak kaydet"
   }
 }

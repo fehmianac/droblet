@@ -70,6 +70,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
     predictiveBackGestureEnabled: false,
     ...(googleServicesFile ? { googleServicesFile } : {}),
+    // expo-contacts also adds WRITE_CONTACTS; contacts matching only reads e-mail addresses.
+    blockedPermissions: ['android.permission.WRITE_CONTACTS'],
     intentFilters: [
       {
         action: 'VIEW',
@@ -113,6 +115,15 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         cameraPermission:
           'Boy fotoğrafını ve parçalarını çekebilmen için kameraya erişmemiz gerekiyor.',
         microphonePermission: false,
+      },
+    ],
+    [
+      'expo-contacts',
+      {
+        // Default (TR) string; per-language strings live in ./locales/ios/*.json. Asked only after
+        // the in-app consent screen (friends/contacts) — owner decision 13.
+        contactsPermission:
+          'Rehberindeki e-posta adreslerinden Droblet’te olan arkadaşlarını bulmak için. Adresler telefonunda karma değerine dönüştürülür; rehberin gönderilmez ve saklanmaz.',
       },
     ],
   ],

@@ -1,10 +1,10 @@
 import * as Notifications from 'expo-notifications';
-import { router, type Href } from 'expo-router';
+import { router } from 'expo-router';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
 import { syncPushRegistration } from '@/notify/push';
-import { notificationRoute } from '@/notify/routes';
+import { routeForPush } from '@/notify/routes';
 
 import { registerDevice } from './device';
 
@@ -17,8 +17,7 @@ function openFrom(response: Notifications.NotificationResponse | null) {
   const id = response.notification.request.identifier;
   if (id === lastRouted) return;
   lastRouted = id;
-  const route = notificationRoute(response.notification.request.content.data as Record<string, unknown> | undefined);
-  if (route) router.push(route as Href);
+  router.push(routeForPush(response.notification.request.content.data as Record<string, unknown> | undefined));
 }
 
 /**

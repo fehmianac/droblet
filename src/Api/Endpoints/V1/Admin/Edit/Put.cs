@@ -1,3 +1,4 @@
+using Domain.Services.Admin;
 using System.Text.Json;
 using Api.Contracts;
 using Api.Infrastructure.Contract;
@@ -42,10 +43,9 @@ public class Put : IEndpoint
             .Produces<AdminEditDto>(StatusCodes.Status200OK)
             .Produces<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest)
             .Produces<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)
-            .Produces(StatusCodes.Status401Unauthorized)
-            .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status500InternalServerError)
-            .RequireAuthorization(AdminOptions.Policy)
+            .RequireAdmin(AdminPermissions.ContentManage)
+            .Audited("edit.upsert", "edit", "id", AdminAuditBefore.Edit)
             .WithSummary("Create or update a weekly edit")
             .WithDescription("weekStart must be a Monday. published=true requires exactly 7 looks (days 1–7), each with 1–2 price-band variants. Every referenced product must exist (422 product_not_found + productIds). sponsorBrandId / sponsorName set the sponsored flag.")
             .WithTags("Admin Content");

@@ -20,15 +20,17 @@ import {
   fromItemFields,
   toItem,
   type ConfirmDraftRowWire,
+  type CreateItemWire,
   type CreateItemDraftsResultWire,
   type CreateItemDraftsWire,
   type FromLibraryRowWire,
+  type ItemCreateResultWire,
   type ItemCreateResultsWire,
   type ItemUploadsWire,
   type ItemWire,
   type PutItemWire,
 } from '@/api/wire/wardrobe';
-import { DATA_SOURCE, fromSource } from '@/api/dataSource';
+import { fromSource } from '@/api/dataSource';
 import { lookKeys } from '@/features/looks/queries';
 import {
   fixtureConfirmDrafts,
@@ -357,16 +359,17 @@ async function startDraftsOnApi(vars: StartDraftsVariables): Promise<CreateItemD
 }
 
 /**
- * Confirm request → the two endpoints behind it:
+ * Confirm request → the three endpoints behind it:
  * - rows with a `draftId` → `POST v1/tenant/item-draft/confirm` (the user's final values; item id = `itemId`),
- * - rows with a `libraryItemId` → `POST v1/tenant/item/from-library` (item id = `itemId`).
+ * - rows with a `libraryItemId` → `POST v1/tenant/item/from-library` (item id = `itemId`),
+ * - rows with neither (manual entry without a photo) → `POST v1/tenant/item`, one call per row.
  * Each answers per-row results (`created` | `alreadyApplied` | `rejected` + `code`); only the items
- * that exist afterwards are returned. A row with neither (no photo, no library piece) cannot be
- * created on the server — it is reported as rejected by not being returned.
+ * that exist afterwards are returned.
  */
 async function confirmOnApi(request: ConfirmItemDraftsRequest): Promise<ConfirmItemDraftsResponse> {
   const draftRows: ConfirmDraftRowWire[] = [];
   const libraryRows: FromLibraryRowWire[] = [];
+  const manualRows: CreateItemWire[] = [];
   request.items.forEach((entry) => {
     if (entry.draftId) {
       draftRows.push({
@@ -379,20 +382,30 @@ async function confirmOnApi(request: ConfirmItemDraftsRequest): Promise<ConfirmI
     } else if (entry.libraryItemId) {
       // The item id is `itemId ?? clientMutationId`: both carry the device's id, so the optimistic tile matches either way.
       libraryRows.push({ clientMutationId: entry.id, libraryItemId: entry.libraryItemId, size: entry.size, itemId: entry.id });
+    } else {
+      manualRows.push(toCreateItemWire(entry));
     }
   });
-  const [fromDrafts, fromLibrary] = await Promise.all([
+  const [fromDrafts, fromLibrary, manual] = await Promise.all([
     draftRows.length > 0
       ? apiRequest<ItemCreateResultsWire>('v1/tenant/item-draft/confirm', { method: 'POST', body: { items: draftRows } })
       : null,
     libraryRows.length > 0
       ? apiRequest<ItemCreateResultsWire>('v1/tenant/item/from-library', { method: 'POST', body: { items: libraryRows } })
       : null,
+    Promise.all(manualRows.map((row) => apiRequest<ItemCreateResultWire>('v1/tenant/item', { method: 'POST', body: row }))),
   ]);
-  const items = [...(fromDrafts?.results ?? []), ...(fromLibrary?.results ?? [])]
+  const items = [...(fromDrafts?.results ?? []), ...(fromLibrary?.results ?? []), ...manual]
     .filter((r) => r.outcome !== 'rejected' && r.item)
     .map((r) => toItem(r.item as ItemWire));
   return { items };
+}
+
+/** A manual row → `POST v1/tenant/item`. The device's item id is both `itemId` and `clientMutationId`, so a replay matches. */
+export function toCreateItemWire(entry: ConfirmItemDraftsRequest['items'][number]): CreateItemWire {
+  const { useOriginalImage: _u, ...fields } = fromItemFields(entry);
+  void _u;
+  return { ...fields, clientMutationId: entry.id, itemId: entry.id };
 }
 
 export type StartDraftsVariables = { requestId: string; localUris: string[]; splitOutfit: boolean; manual?: boolean };
@@ -426,8 +439,6 @@ export function useStartItemDrafts() {
     start: (localUris: string[], splitOutfit = false) => m.mutateAsync({ requestId: ulid(), localUris, splitOutfit }),
     /** "Elle gir" with a photo: no AI and no allowance, the drafts are ready at once with empty fields. */
     startManual: (localUris: string[]) => m.mutateAsync({ requestId: ulid(), localUris, splitOutfit: false, manual: true }),
-    /** True when a photo-less manual entry cannot be saved (the API creates pieces from a photo or the library only). */
-    manualNeedsPhoto: DATA_SOURCE.wardrobe === 'api',
   };
 }
 

@@ -315,6 +315,27 @@ public class AffiliateRulesTests
         Assert.Equal([new RevenueBucket("edit:e1", 2, 150_000, 15_000), new RevenueBucket("user:L9", 1, 30_000, 2_100)], report.ByLook);
         Assert.Equal(["direct", "network"], report.BySource.Select(b => b.Key).ToArray());
     }
+
+    [Fact]
+    public void RevenueReport_CountsClicksPerDay_AndGroupsByNetwork()
+    {
+        var rows = new[]
+        {
+            Row("1", "vakko", 100_000, 10_000, AffiliateConversionStatus.Approved, Sample.Now, source: AffiliateSource.Direct),
+            Row("2", "gap", 30_000, 2_100, AffiliateConversionStatus.Approved, Sample.Now.AddDays(-1)),
+        };
+        AffiliateClickLedgerEntity Click(string id, DateTime at) => new() { Month = "2026-11", ClickId = id, BrandId = "gap", CreatedAt = at };
+        var clicks = new[] { Click("a", Sample.Now), Click("b", Sample.Now), Click("c", Sample.Now.AddDays(-1)), Click("d", Sample.Now.AddDays(-30)) };
+
+        var report = RevenueReportRules.Build(rows, new DateOnly(2026, 11, 17), new DateOnly(2026, 11, 18), clicks: clicks,
+            brandNetworks: new Dictionary<string, string?> { ["gap"] = "Admitad", ["vakko"] = null });
+
+        Assert.Equal(3, report.Clicks);
+        Assert.Equal(2, report.ByDay.Count);
+        Assert.Equal(report.Clicks, report.ByDay.Sum(d => d.Clicks));
+        Assert.Equal(report.Conversions, report.ByDay.Sum(d => d.Conversions));
+        Assert.Equal(["direct", "admitad"], report.ByNetwork.Select(b => b.Key).ToArray());
+    }
 }
 
 public class AnalyticsRulesTests

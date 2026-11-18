@@ -27,6 +27,26 @@ public sealed class CrossTenantCleanup(IRepository repository, TimeProvider time
         foreach (var f in await repository.GetAllAsync<FollowerEntity>(FollowerEntity.GetPk(tenantId), ct))
             keys.Add((FollowingEntity.GetPk(f.FollowerTenantId), FollowingEntity.GetSk(tenantId)));
 
+        // Follow requests (decision 8): mine in the targets' partitions, and the requesters' pointers to me.
+        foreach (var r in await repository.GetAllAsync<FollowRequestEntity>(FollowRequestEntity.GetPk(tenantId), ct))
+        {
+            keys.Add((FollowRequestReceivedEntity.GetPk(r.TargetTenantId), FollowRequestReceivedEntity.GetSk(tenantId)));
+            keys.Add((NotificationQueueEntity.GetPk(NotificationType.FollowRequest), NotificationQueueEntity.GetSk(r.TargetTenantId, tenantId)));
+        }
+        foreach (var r in await repository.GetAllAsync<FollowRequestReceivedEntity>(FollowRequestReceivedEntity.GetPk(tenantId), ct))
+            keys.Add((FollowRequestEntity.GetPk(r.RequesterTenantId), FollowRequestEntity.GetSk(tenantId)));
+
+        // Contact-matching directory rows (decision 13).
+        foreach (var d in await repository.GetAllAsync<ContactDirectoryPointerEntity>(ContactDirectoryPointerEntity.GetPk(tenantId), ct))
+            keys.Add((ContactDirectoryEntity.GetPk(d.Prefix), ContactDirectoryEntity.GetSk(tenantId, d.Hash)));
+
+        // Push outbox rows addressed to me.
+        foreach (var type in Enum.GetValues<NotificationType>())
+        {
+            foreach (var row in await repository.GetAllAsync<NotificationQueueEntity>(NotificationQueueEntity.GetPk(type), $"{tenantId}#", SkOperator.BeginsWith, ct))
+                keys.Add((row.Pk, row.Sk));
+        }
+
         // Ratings I gave: remove from the owner's partition and correct the average.
         foreach (var given in await repository.GetAllAsync<RatingGivenEntity>(RatingGivenEntity.GetPk(tenantId), ct))
             await RemoveGivenRatingAsync(tenantId, given, ct);
@@ -64,6 +84,13 @@ public sealed class CrossTenantCleanup(IRepository repository, TimeProvider time
         var today = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);
         for (var i = 0; i <= 3; i++)
             keys.Add((RatingDigestEntity.GetPk(WeeklyEditRules.Format(today.AddDays(-i))), RatingDigestEntity.GetSk(tenantId)));
+
+        // Watch-list auto-add candidates of my clicks (decision 10).
+        foreach (var click in await repository.GetAllAsync<AffiliateClickEntity>(AffiliateClickEntity.GetPk(tenantId), ct))
+        {
+            if (click.WatchAutoAddDueAt is { } dueAt)
+                keys.Add((WatchAutoAddCandidateEntity.GetPk(dueAt), WatchAutoAddCandidateEntity.GetSk(tenantId, click.ClickId)));
+        }
 
         await AnonymiseRevenueAsync(tenantId, ct);
 

@@ -1,3 +1,4 @@
+using Domain.Services.Admin;
 using System.Text.Json;
 using Api.Contracts;
 using Api.Infrastructure.Contract;
@@ -52,10 +53,9 @@ public class PutLook : IEndpoint
             .Produces<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest)
             .Produces<ProblemDetails>(StatusCodes.Status404NotFound)
             .Produces<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)
-            .Produces(StatusCodes.Status401Unauthorized)
-            .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status500InternalServerError)
-            .RequireAuthorization(AdminOptions.Policy)
+            .RequireAdmin(AdminPermissions.ContentManage)
+            .Audited("collection_look.upsert", "collection_look", "lookId", AdminAuditBefore.CollectionLook)
             .WithSummary("Create or update a collection look")
             .WithDescription("The collection must exist; every product id must exist (422 product_not_found + productIds).")
             .WithTags("Admin Content");

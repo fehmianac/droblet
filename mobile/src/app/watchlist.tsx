@@ -48,7 +48,9 @@ function WatchCard({ entry, profileSize }: { entry: WatchlistEntry; profileSize:
       ? t('watchlist.fromLook', { name: entry.source.lookName })
       : entry.source.kind === 'edit'
         ? t('watchlist.fromEdit')
-        : null;
+        : entry.source.kind === 'auto'
+          ? t('watchlist.fromBrandVisit')
+          : null;
 
   const add = () => {
     const size = preferredSize(entry.sizes, profileSize);
@@ -96,6 +98,7 @@ function WatchCard({ entry, profileSize }: { entry: WatchlistEntry; profileSize:
           active={entry.alertEnabled}
           onPress={() => setWatch({ productId: entry.productId, watching: true, alertEnabled: !entry.alertEnabled })}
           accessibilityLabel={t(entry.alertEnabled ? 'watchlist.alertOn' : 'watchlist.alertOff')}
+          testID={`watch-bell-${entry.productId}`}
         />
       </View>
       <View className="flex-row items-center justify-between gap-3">

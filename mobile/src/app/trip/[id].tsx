@@ -6,7 +6,7 @@ import { Alert, Pressable, ScrollView, Switch, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { TripDay, TripDetail, WeatherCondition } from '@/api/contracts/trips';
-import { ITEM_CATEGORIES } from '@/api/contracts/wardrobe';
+import { ITEM_CATEGORIES, type Item } from '@/api/contracts/wardrobe';
 import { ImageTag, PopoverMenu } from '@/components/ui/Bits';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
@@ -18,10 +18,11 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { CreditConfirmSheet } from '@/features/credits/CreditConfirmSheet';
 import { indexItems, LookCover } from '@/features/looks/LookCover';
-import { useLooks } from '@/features/looks/queries';
+import { assignItemsToSlots, slotList } from '@/features/looks/logic';
 import { useTrip, useTripWrites } from '@/features/trips/api';
 import { groupByCategory, readiness, tripLengthDays } from '@/features/trips/logic';
 import { ReadinessRing } from '@/features/trips/ReadinessRing';
+import { TripDaySheet } from '@/features/trips/TripDaySheet';
 import { TripPacking } from '@/features/trips/TripPacking';
 import { useStartTryOn } from '@/features/tryon/api';
 import { ItemThumb } from '@/features/wardrobe/ItemThumb';
@@ -98,9 +99,13 @@ function Forecast({ trip }: { trip: TripDetail }) {
   );
 }
 
-function DayLooks({ days }: { days: TripDay[] }) {
+/** The day's packed pieces as look slots (a trip day is not a saved look: its cover is built from its pieces). */
+function daySlots(day: TripDay, items: Item[] | undefined) {
+  return items ? slotList(assignItemsToSlots(items, day.itemIds ?? []).slots) : [];
+}
+
+function DayLooks({ days, onOpen }: { days: TripDay[]; onOpen: (day: TripDay) => void }) {
   const { t } = useTranslation();
-  const looks = useLooks();
   const items = useItems();
   const itemsById = indexItems(items.data);
   const planned = days.filter((d) => d.look);
@@ -117,16 +122,16 @@ function DayLooks({ days }: { days: TripDay[] }) {
         const ref = day.look;
         if (!ref) return null;
         const weekday = weekdayShort(parseLocalDate(day.date));
-        const look = looks.data?.find((l) => l.id === ref.id);
         return (
           <Pressable
             key={day.date}
-            onPress={() => router.push({ pathname: '/look/new', params: { id: ref.id } })}
+            onPress={() => onOpen(day)}
             accessibilityRole="button"
             accessibilityLabel={t('tripDetail.dayLook', { weekday, name: ref.name })}
             className="active:opacity-80"
+            testID={`trip-day-${day.date}`}
           >
-            <LookCover tryOnImageUrl={ref.imageUrl} slots={look?.slots ?? []} itemsById={itemsById} className="h-32 w-24 rounded-image">
+            <LookCover slots={daySlots(day, items.data)} itemsById={itemsById} className="h-32 w-24 rounded-image">
               <ImageTag label={toDisplayUpper(weekday, currentLanguage())} className="absolute bottom-1.5 left-1.5" />
             </LookCover>
           </Pressable>
@@ -142,22 +147,36 @@ function PackedTrip({ trip }: { trip: TripDetail }) {
   const online = useIsOnline();
   const writes = useTripWrites();
   const tryOn = useStartTryOn();
-  const [confirm, setConfirm] = useState(false);
+  const items = useItems();
+  // "all" = every day of the trip; a date = that day only (from the day sheet).
+  const [confirm, setConfirm] = useState<'all' | string | null>(null);
+  const [openDay, setOpenDay] = useState<TripDay | null>(null);
   const [tryOnNote, setTryOnNote] = useState<'offline' | 'failed' | null>(null);
 
   const ready = readiness(trip.items);
   const lookDays = trip.days.filter((d) => d.look);
   const groups = groupByCategory(trip.items, ITEM_CATEGORIES);
 
+  const confirmDays = confirm === 'all' ? lookDays : lookDays.filter((d) => d.date === confirm);
+  const askTryOn = (scope: 'all' | string) => {
+    if (!online) {
+      setTryOnNote('offline');
+      return;
+    }
+    setTryOnNote(null);
+    setConfirm(scope);
+  };
+
   const startTryOn = () => {
     void (async () => {
       try {
-        const jobs = await tryOn.startMany(lookDays.map((d) => ({ kind: 'trip-day' as const, id: `${trip.id}:${d.date}` })));
-        setConfirm(false);
+        // Target `tripDay` (`{tripId}/{date}` on the wire): the common job and cache, 1 credit per new image.
+        const jobs = await tryOn.startMany(confirmDays.map((d) => ({ kind: 'trip-day' as const, id: `${trip.id}:${d.date}` })));
+        setConfirm(null);
         const first = jobs[0];
         if (first) router.push({ pathname: '/tryon/[jobId]', params: { jobId: first.jobId, title: trip.cityName } });
       } catch {
-        setConfirm(false);
+        setConfirm(null);
         setTryOnNote('failed');
       }
     })();
@@ -204,7 +223,7 @@ function PackedTrip({ trip }: { trip: TripDetail }) {
         </View>
       ))}
 
-      <DayLooks days={trip.days} />
+      <DayLooks days={trip.days} onOpen={setOpenDay} />
 
       <View className="gap-3">
         <View className="flex-row flex-wrap items-center justify-between gap-x-3 gap-y-1">
@@ -214,14 +233,8 @@ function PackedTrip({ trip }: { trip: TripDetail }) {
               variant="text"
               icon={Sparkles}
               label={t('tripDetail.tryOnLooks')}
-              onPress={() => {
-                if (!online) {
-                  setTryOnNote('offline');
-                  return;
-                }
-                setTryOnNote(null);
-                setConfirm(true);
-              }}
+              onPress={() => askTryOn('all')}
+              testID="trip-tryon-all"
             />
           ) : null}
         </View>
@@ -259,11 +272,25 @@ function PackedTrip({ trip }: { trip: TripDetail }) {
         ))}
       </View>
 
+      <TripDaySheet
+        day={openDay}
+        itemsById={indexItems(items.data)}
+        onClose={() => setOpenDay(null)}
+        onTryOn={(day) => {
+          setOpenDay(null);
+          askTryOn(day.date);
+        }}
+        onSaveAsLook={(day) => {
+          setOpenDay(null);
+          router.push({ pathname: '/look/new', params: { itemIds: (day.itemIds ?? []).join(',') } });
+        }}
+      />
+
       <CreditConfirmSheet
-        visible={confirm}
-        onClose={() => setConfirm(false)}
-        cost={lookDays.length}
-        scope={t('tripDetail.tryOnScopeTag')}
+        visible={confirm !== null}
+        onClose={() => setConfirm(null)}
+        cost={confirmDays.length}
+        scope={confirm === 'all' ? t('tripDetail.tryOnScopeTag') : undefined}
         onConfirm={startTryOn}
         confirming={tryOn.isStarting}
       />

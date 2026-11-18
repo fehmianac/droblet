@@ -1,3 +1,4 @@
+using Domain.Services.Admin;
 using System.Text.Json;
 using Api.Contracts;
 using Api.Infrastructure.Contract;
@@ -21,15 +22,26 @@ public class PostBulk : IEndpoint
 {
     private static async Task<IResult> Handler(
         [FromBody] BulkProductsRequest request,
+        [FromQuery] bool? dryRun,
         [FromServices] ICatalogService catalog,
         [FromServices] IOptionsMonitor<CatalogOptions> options,
+        [FromServices] IAdminContext adminContext,
+        [FromServices] IAuditLog audit,
         CancellationToken cancellationToken)
     {
-
         if (request.Products is not { Count: > 0 } products || products.Count > options.CurrentValue.BulkUpsertMax)
             return StoreResults.BadQuery();
 
-        return Results.Ok(await catalog.BulkUpsertProductsAsync(products, cancellationToken));
+        var result = await catalog.BulkUpsertProductsAsync(products, cancellationToken, dryRun == true);
+        if (dryRun != true)
+        {
+            await audit.WriteAsync(adminContext.Admin, "product.bulk", "product", null, null, new
+            {
+                result.Created, result.Updated, result.Failed,
+                written = result.Rows.Where(r => r.Outcome is "created" or "updated").Select(r => r.Id).ToList(),
+            }, adminContext.Ip, cancellationToken);
+        }
+        return Results.Ok(result);
     }
 
     public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints)
@@ -37,12 +49,10 @@ public class PostBulk : IEndpoint
         return endpoints.MapPost("v1/admin/product/bulk", Handler)
             .Produces<BulkUpsertResult>(StatusCodes.Status200OK)
             .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
-            .Produces(StatusCodes.Status401Unauthorized)
-            .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status500InternalServerError)
-            .RequireAuthorization(AdminOptions.Policy)
+            .RequireAdmin(AdminPermissions.CatalogManage)
             .WithSummary("Bulk upsert products (feeds)")
-            .WithDescription("Up to Catalog:BulkUpsertMax rows per call. Each row is validated on its own; valid rows are written, invalid rows are reported per index (outcome + field error codes).")
+            .WithDescription("Up to Catalog:BulkUpsertMax rows per call. Each row is validated on its own; valid rows are written, invalid rows are reported per index (outcome + field error codes). dryRun=true validates and reports without writing (CSV import preview).")
             .WithTags("Admin Catalog");
     }
 }

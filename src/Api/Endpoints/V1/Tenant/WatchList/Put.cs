@@ -35,7 +35,7 @@ public class Put : IEndpoint
                 return Results.BadRequest(validation.Errors.ToProblemDetails());
         }
 
-        var (outcome, item) = await cart.WatchAsync(apiContext.TenantId, productId, request?.Size, request?.Look?.ToDto(), cancellationToken);
+        var (outcome, item) = await cart.WatchAsync(apiContext.TenantId, productId, request?.Size, request?.Look?.ToDto(), request?.Notify, cancellationToken);
         return StoreResults.CartError(outcome) ?? Results.Ok(item);
     }
 

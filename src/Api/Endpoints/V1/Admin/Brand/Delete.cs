@@ -1,3 +1,4 @@
+using Domain.Services.Admin;
 using System.Text.Json;
 using Api.Contracts;
 using Api.Infrastructure.Contract;
@@ -33,10 +34,9 @@ public class Delete : IEndpoint
         return endpoints.MapDelete("v1/admin/brand/{id}", Handler)
             .Produces(StatusCodes.Status204NoContent)
             .Produces<ProblemDetails>(StatusCodes.Status404NotFound)
-            .Produces(StatusCodes.Status401Unauthorized)
-            .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status500InternalServerError)
-            .RequireAuthorization(AdminOptions.Policy)
+            .RequireAdmin(AdminPermissions.CatalogManage)
+            .Audited("brand.retire", "brand", "id", AdminAuditBefore.Brand)
             .WithSummary("Retire a brand")
             .WithDescription("Brands are never deleted (ids are never reused): the brand is marked retired and leaves the public list.")
             .WithTags("Admin Catalog");

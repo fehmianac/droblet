@@ -1,3 +1,4 @@
+using Domain.Services.Admin;
 using System.Text.Json;
 using Api.Contracts;
 using Api.Infrastructure.Contract;
@@ -36,10 +37,8 @@ public class GetLooks : IEndpoint
         return endpoints.MapGet("v1/admin/collection/{kind}/{id}/look", Handler)
             .Produces<List<AdminCollectionLookDto>>(StatusCodes.Status200OK)
             .Produces<ProblemDetails>(StatusCodes.Status404NotFound)
-            .Produces(StatusCodes.Status401Unauthorized)
-            .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status500InternalServerError)
-            .RequireAuthorization(AdminOptions.Policy)
+            .RequireAdmin(AdminPermissions.ContentManage)
             .WithSummary("Looks of a content collection (admin)")
             .WithDescription("Retired looks included.")
             .WithTags("Admin Content");

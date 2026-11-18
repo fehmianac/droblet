@@ -1,22 +1,20 @@
-import { notificationRoute } from './routes';
+import { routeForPush } from './routes';
 
-describe('notification tap → screen', () => {
-  it.each([
-    [{ type: 'morning_outfit', day: '2026-11-19' }, '/'],
-    [{ type: 'weekly_edit', editId: '01JCX3T7V0Q8M4ZK2R5N6P9W1B' }, '/edit/01JCX3T7V0Q8M4ZK2R5N6P9W1B'],
-    [{ type: 'weekly_edit' }, '/discover'],
-    [{ type: 'friend_rating', lookId: 'look-1' }, '/look/look-1'],
-    [{ type: 'friend_ratings', day: '2026-11-19' }, '/friends/feed'],
-    [{ type: 'follow_request' }, '/friends/find?tab=requests'],
-    [{ type: 'price_drop', productId: 'p-42' }, '/shop/product/p-42'],
-    [{ type: 'price_drop' }, '/watchlist'],
-  ])('%j → %s', (data, route) => {
-    expect(notificationRoute(data)).toBe(route);
+describe('push notification routing', () => {
+  it('opens the screen that belongs to each notification type', () => {
+    expect(routeForPush({ type: 'follow_request', handle: 'elif' })).toBe('/friends/requests');
+    expect(routeForPush({ type: 'price_drop', productId: 'prod_1' })).toEqual({ pathname: '/shop/product/[id]', params: { id: 'prod_1' } });
+    expect(routeForPush({ type: 'price_drop' })).toBe('/watchlist');
+    expect(routeForPush({ type: 'weekly_edit', editId: 'edit-1' })).toEqual({ pathname: '/edit/[id]', params: { id: 'edit-1' } });
+    expect(routeForPush({ type: 'friend_ratings', day: '2026-11-18' })).toBe('/wardrobe/looks');
+    expect(routeForPush({ type: 'friend_rating', lookId: 'look-1' })).toEqual({ pathname: '/look/[id]', params: { id: 'look-1' } });
+    expect(routeForPush({ type: 'morning_outfit', day: '2026-11-18' })).toBe('/');
   });
 
-  it('ignores unknown types and unsafe ids', () => {
-    expect(notificationRoute({ type: 'something_new' })).toBeNull();
-    expect(notificationRoute(null)).toBeNull();
-    expect(notificationRoute({ type: 'price_drop', productId: '../../etc' })).toBe('/watchlist');
+  it('falls back to Bugün for unknown or missing data, and never routes an unsafe id', () => {
+    expect(routeForPush({ type: 'something_new' })).toBe('/');
+    expect(routeForPush({ type: 'weekly_edit' })).toBe('/');
+    expect(routeForPush(null)).toBe('/');
+    expect(routeForPush({ type: 'price_drop', productId: '../../etc' })).toBe('/watchlist');
   });
 });

@@ -1,5 +1,6 @@
 using Domain.Domain;
 using Domain.Entity;
+using Domain.Enum;
 using Domain.Manager;
 using Domain.Options;
 using Domain.Services;
@@ -144,7 +145,7 @@ public sealed class CatalogService(
         return true;
     }
 
-    public async Task<BulkUpsertResult> BulkUpsertProductsAsync(IReadOnlyList<ProductInput> inputs, CancellationToken ct)
+    public async Task<BulkUpsertResult> BulkUpsertProductsAsync(IReadOnlyList<ProductInput> inputs, CancellationToken ct, bool dryRun = false)
     {
         var now = Now;
         var brands = (await repository.GetAllAsync<BrandEntity>(BrandEntity.GetPk(), ct)).ToDictionary(b => b.Id, StringComparer.Ordinal);
@@ -189,6 +190,9 @@ public sealed class CatalogService(
             rows.Add(new BulkRowResult(i, input.Id, previous is null ? "created" : "updated"));
         }
 
+        if (dryRun)
+            return new BulkUpsertResult(created, updated, failed, rows); // validation preview: nothing is written
+
         if (writes.Count > 0)
             await repository.BatchWriteAsync(writes.Values.Cast<Domain.Entity.Base.IEntity>().ToList(), ct);
         InvalidateCache();
@@ -215,6 +219,11 @@ public sealed class CatalogService(
             item.DroppedAt = product.UpdatedAt;
             item.NotifyPending = true;
             await repository.SaveAsync(item, ct);
+            // Outbox row for the price_drop push; the Notifier re-checks the preference and the item's bell before sending.
+            await repository.SaveAsync(new NotificationQueueEntity
+            {
+                Type = NotificationType.PriceDrop, TenantId = watcher.WatcherTenantId, Key = product.Id, CreatedAt = Now,
+            }, ct);
             flagged++;
         }
         return flagged;

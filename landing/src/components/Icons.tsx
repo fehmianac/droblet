@@ -1,5 +1,5 @@
 /** Inline line icons, 1.5 stroke on a 24 grid — the same drawing rules as the app. Decorative: always aria-hidden. */
-type IconName = 'download' | 'lock' | 'trash' | 'visibility' | 'check' | 'open' | 'alert';
+type IconName = 'download' | 'lock' | 'trash' | 'visibility' | 'check' | 'open' | 'alert' | 'sun' | 'chevronLeft' | 'chevronRight';
 
 const paths: Record<IconName, React.ReactNode> = {
   download: <path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19h14" />,
@@ -18,6 +18,14 @@ const paths: Record<IconName, React.ReactNode> = {
   ),
   check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
   open: <path d="M14 5h5v5M19 5l-8 8M11 6H6v12h12v-5" />,
+  sun: (
+    <>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4" />
+    </>
+  ),
+  chevronLeft: <path d="M14.5 6 8.5 12l6 6" />,
+  chevronRight: <path d="m9.5 6 6 6-6 6" />,
   alert: (
     <>
       <circle cx="12" cy="12" r="9" />

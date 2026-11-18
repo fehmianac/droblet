@@ -1,3 +1,4 @@
+using Domain.Services.Admin;
 using System.Text.Json;
 using Api.Contracts;
 using Api.Infrastructure.Contract;
@@ -44,10 +45,9 @@ public class Put : IEndpoint
             .Produces<AdminProductWriteDto>(StatusCodes.Status200OK)
             .Produces<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest)
             .Produces<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)
-            .Produces(StatusCodes.Status401Unauthorized)
-            .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status500InternalServerError)
-            .RequireAuthorization(AdminOptions.Policy)
+            .RequireAdmin(AdminPermissions.CatalogManage)
+            .Audited("product.upsert", "product", "id", AdminAuditBefore.Product)
             .WithSummary("Create or update a product")
             .WithDescription("Upsert by id. name / description are language maps (default language required). A lower price than before flags every watch-list row of the product (priceDropped, watchersFlagged).")
             .WithTags("Admin Catalog");

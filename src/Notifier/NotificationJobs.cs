@@ -24,6 +24,9 @@ public interface INotificationJobs
 /// • WeeklyEdit (weekly): subscribers, once per published edit of the current week.
 /// • FriendRatings (daily): subscribers whose looks were rated today, one digest per day.
 /// • Lifecycle: subscription expiry belongs to the entitlement slice — nothing to send here yet.
+/// • Outbox (with every Reminder run, i.e. every 15 min): event pushes queued by the Api — follow requests (decision 8) and
+///   watch-list price drops (decision 9) — sent when the type is switched on and the reason still exists; then the
+///   watch-list auto-add pass (decision 10) for checkout clicks that saw no conversion in time.
 /// A notification goes out only when there is something to do, at most once per key (NotificationSentEntity),
 /// in the recipient's profile language; an UNREGISTERED token is deleted on the spot. No photos, no personal text.
 /// </summary>
@@ -32,6 +35,7 @@ public sealed class NotificationJobs(
     IPushProvider push,
     IMorningOutfitCheck morningOutfit,
     IOptionsMonitor<LocalizationOptions> localization,
+    IWatchListAutoAdd watchListAutoAdd,
     ILogger<NotificationJobs> logger) : INotificationJobs
 {
     private const int PageSize = 100;
@@ -45,6 +49,14 @@ public sealed class NotificationJobs(
             NotificationJob.FriendRatings => await RunFriendRatingsAsync(scheduledAtUtc, ct),
             _ => (0, 0),
         };
+
+        if (job == NotificationJob.Reminder)
+        {
+            var (queued, delivered) = await RunOutboxAsync(scheduledAtUtc, ct);
+            var added = await watchListAutoAdd.RunAsync(scheduledAtUtc, ct);
+            logger.LogInformation("Notifier outbox at {ScheduledAt:o}: {Queued} queued, {Sent} sent; watch-list auto-add: {Added} products",
+                scheduledAtUtc, queued, delivered, added);
+        }
 
         var result = new NotificationRunResult(job, scheduledAtUtc, candidates, sent);
         logger.LogInformation("Notifier {Job} at {ScheduledAt:o}: {Candidates} candidates, {Sent} sent", job, scheduledAtUtc, result.Candidates, result.Sent);
@@ -114,6 +126,61 @@ public sealed class NotificationJobs(
         return (candidates, sent);
     }
 
+    private static readonly NotificationType[] OutboxTypes = [NotificationType.FollowRequest, NotificationType.PriceDrop];
+
+    /// <summary>Drains the event outbox. A row is removed once handled (sent, switched off, or its reason is gone).</summary>
+    private async Task<(int, int)> RunOutboxAsync(DateTime now, CancellationToken ct)
+    {
+        int queued = 0, sent = 0;
+        foreach (var type in OutboxTypes)
+        {
+            foreach (var row in await repository.GetAllAsync<NotificationQueueEntity>(NotificationQueueEntity.GetPk(type), ct))
+            {
+                queued++;
+                var subscribed = await repository.GetAsync<NotificationSubscriberEntity>(
+                    NotificationSubscriberEntity.GetPk(type), NotificationSubscriberEntity.GetSk(row.TenantId), ct) is not null;
+                var data = await OutboxDataAsync(row, subscribed, ct);
+                if (data is not null && await SendOnceAsync(row.TenantId, type, row.Key, data, now, ct))
+                    sent++;
+                await repository.DeleteAsync(row.Pk, row.Sk, ct);
+            }
+        }
+        return (queued, sent);
+    }
+
+    /// <summary>The push data when the reason still exists and the recipient wants it; null otherwise.</summary>
+    private async Task<Dictionary<string, string>?> OutboxDataAsync(NotificationQueueEntity row, bool subscribed, CancellationToken ct)
+    {
+        switch (row.Type)
+        {
+            case NotificationType.FollowRequest:
+            {
+                if (!subscribed)
+                    return null;
+                var pending = await repository.GetAsync<FollowRequestReceivedEntity>(
+                    FollowRequestReceivedEntity.GetPk(row.TenantId), FollowRequestReceivedEntity.GetSk(row.Key), ct);
+                var requester = pending is null ? null : await repository.GetAsync<TenantEntity>(TenantEntity.GetPk(), TenantEntity.GetSk(row.Key), ct);
+                // Only the handle travels (for the deep link); the sentence never names anybody.
+                return requester?.Handle is { } handle ? new() { ["handle"] = handle } : null;
+            }
+            case NotificationType.PriceDrop:
+            {
+                var item = await repository.GetAsync<WatchItemEntity>(WatchItemEntity.GetPk(row.TenantId), WatchItemEntity.GetSk(row.Key), ct);
+                if (item is null || !item.PriceDropped || !item.NotifyPending)
+                    return null;
+                // The drop is handled either way: the flag is cleared so it is not announced again.
+                item.NotifyPending = false;
+                await repository.SaveAsync(item, ct);
+                return subscribed && WantsPriceDropPush(item) ? new() { ["productId"] = row.Key } : null;
+            }
+            default:
+                return null;
+        }
+    }
+
+    /// <summary>The per-product bell of the watch list (screen 24b).</summary>
+    private static bool WantsPriceDropPush(WatchItemEntity item) => item.NotifyEnabled;
+
     /// <summary>Sends to every registered device of the tenant unless this (type, key) was already sent. True when at least one device accepted it.</summary>
     private async Task<bool> SendOnceAsync(string tenantId, NotificationType type, string key, Dictionary<string, string> data, DateTime now, CancellationToken ct)
     {
@@ -179,6 +246,16 @@ public static class NotificationTexts
             ["tr"] = ("Look'larına yeni puanlar var", "Arkadaşların bugün look'larını puanladı."),
             ["en"] = ("New ratings on your looks", "Your friends rated your looks today."),
         },
+        [NotificationType.PriceDrop] = new()
+        {
+            ["tr"] = ("İzleme listende fiyat düştü", "Takip ettiğin bir parçanın fiyatı düştü."),
+            ["en"] = ("A price dropped on your watch list", "Something you are watching now costs less."),
+        },
+        [NotificationType.FollowRequest] = new()
+        {
+            ["tr"] = ("Yeni takip isteği", "Biri dolabını takip etmek istiyor."),
+            ["en"] = ("New follow request", "Someone would like to follow your closet."),
+        },
     };
 
     public static (string Title, string Body) For(NotificationType type, string? language, string defaultLanguage)
@@ -193,6 +270,8 @@ public static class NotificationTexts
     {
         NotificationType.MorningOutfit => "morning_outfit",
         NotificationType.WeeklyEdit => "weekly_edit",
+        NotificationType.PriceDrop => "price_drop",
+        NotificationType.FollowRequest => "follow_request",
         _ => "friend_ratings",
     };
 

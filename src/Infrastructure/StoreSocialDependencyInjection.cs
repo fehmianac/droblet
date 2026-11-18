@@ -29,7 +29,6 @@ public static class StoreSocialDependencyInjection
         services.Configure<WeatherOptions>(configuration.GetSection(WeatherOptions.Section));
         services.Configure<NotificationOptions>(configuration.GetSection(NotificationOptions.Section));
         services.Configure<AffiliatePostbackOptions>(configuration.GetSection(AffiliatePostbackOptions.Section));
-        services.Configure<AdminOptions>(configuration.GetSection(AdminOptions.Section));
         services.Configure<LocalizationOptions>(configuration.GetSection(LocalizationOptions.Section));
         // The one language list: static helpers (Localized.*) used by rules, workers and prompts read the same config.
         void ApplyLanguages() =>
@@ -54,6 +53,7 @@ public static class StoreSocialDependencyInjection
         services.TryAddSingleton<IAnalyticsService, AnalyticsService>();
         services.TryAddSingleton<ICatalogService, CatalogService>();
         services.TryAddSingleton<IContentService, ContentService>();
+        services.TryAddSingleton<IWatchListAutoAdd, WatchListAutoAdd>();
 
         services.TryAddSingleton<IWeatherProvider>(sp => new OpenMeteoWeatherProvider(
             new HttpClient { Timeout = TimeSpan.FromSeconds(10) }, sp.GetRequiredService<IOptionsMonitor<WeatherOptions>>()));
@@ -82,6 +82,7 @@ public static class StoreSocialDependencyInjection
         services.TryAddSingleton<ICartService, CartService>();
         services.TryAddSingleton<IAffiliateService, AffiliateService>();
         services.TryAddSingleton<ISocialService, SocialService>();
+        services.TryAddSingleton<IContactMatchService, ContactMatchService>();
         services.TryAddSingleton<IInviteService, InviteService>();
         services.TryAddSingleton<ISettingsService, SettingsService>();
         services.TryAddSingleton<ICrossTenantCleanup, CrossTenantCleanup>();

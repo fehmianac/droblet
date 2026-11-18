@@ -1,15 +1,5 @@
 namespace Domain.Options;
 
-/// <summary>Admins of v1/admin/* (README §9.2). Listed in config/SSM (/droblet/{stage}/api/Admin); never in code.</summary>
-public sealed class AdminOptions
-{
-    public const string Section = "Admin";
-    public const string Policy = "AdminJwt";
-    public List<string> UserIds { get; set; } = [];
-    /// <summary>E-mails (case-insensitive); compared with the user's stored e-mail.</summary>
-    public List<string> Emails { get; set; } = [];
-}
-
 public sealed class CatalogOptions
 {
     public const string Section = "Catalog";
@@ -28,6 +18,8 @@ public sealed class CatalogOptions
     public List<string> ImageHosts { get; set; } = [];
     /// <summary>Largest product image the try-on worker downloads.</summary>
     public long MaxImageBytes { get; set; } = 10 * 1024 * 1024;
+    /// <summary>Decision 10: a brand-site click without a conversion after this many hours puts its products on the watch list. 0 = off.</summary>
+    public int WatchAutoAddHours { get; set; } = 48;
 }
 
 public sealed class SocialOptions
@@ -45,6 +37,10 @@ public sealed class SocialOptions
     public int InviteAttributionWindowDays { get; set; } = 30;
     public int ReportsPerDay { get; set; } = 20;
     public int InviteResolvePerIpPerHour { get; set; } = 60;
+    /// <summary>Decision 13: contact-matching uploads per account per day.</summary>
+    public int ContactMatchesPerDay { get; set; } = 10;
+    /// <summary>Most hashes one contact-matching request may carry.</summary>
+    public int ContactMatchMaxHashes { get; set; } = 1000;
 }
 
 /// <summary>Proposal (A-4 open): Open-Meteo, keyless. Owner confirms the provider and its licence terms.</summary>

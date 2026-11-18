@@ -1,19 +1,19 @@
 import { useIsMutating, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { Plus, Trash2, X } from 'lucide-react-native';
+import { Ban, Pencil, Plus, Trash2, X } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, View } from 'react-native';
 
 import { logout } from '@/api/auth';
-import { CLOSET_VISIBILITIES, type MyPhotos, type NotificationSettings } from '@/api/contracts/account';
+import { CLOSET_VISIBILITIES, type MyPhotos } from '@/api/contracts/account';
 import { useEnqueuePhotoUpload } from '@/api/photos';
 import { Card, DangerButton } from '@/components/blocks/basics';
-import { ConfirmDialog, MenuRow, RadioRow, ToggleRow } from '@/components/blocks/rows';
+import { ConfirmDialog, MenuRow, RadioRow } from '@/components/blocks/rows';
 import { SectionState } from '@/components/blocks/SectionState';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
-import { Chip, ChipWrap } from '@/components/ui/Chip';
+import { Chip } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
 import { OfflineBanner } from '@/components/ui/OfflineBanner';
@@ -22,19 +22,13 @@ import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
-import {
-  useDeleteAllPhotos,
-  useRemovePhoto,
-  useSaveNotificationSettings,
-  useSetVisibility,
-} from '@/features/account/mutations';
-import { accountKeys, useMyPhotos, useMyProfile, useNotificationSettings, usePalette } from '@/features/account/queries';
+import { useDeleteAllPhotos, useRemovePhoto, useSetVisibility } from '@/features/account/mutations';
+import { NotificationPrefsCard } from '@/features/account/NotificationPrefsCard';
+import { accountKeys, useMyPhotos, useMyProfile, usePalette } from '@/features/account/queries';
 import type { PreparedPhoto } from '@/features/photos/preparePhoto';
 import { usePhotoPicker } from '@/features/photos/usePhotoPicker';
 import { currentLanguage, LANGUAGES, SUPPORTED_LANGUAGES, type AppLanguage } from '@/i18n';
 import { setAppLanguage } from '@/i18n/preference';
-import { syncPushRegistration } from '@/notify/push';
-import { REMINDER_TIMES } from '@/notify/time';
 import { mutationKeys } from '@/sync/queryKeys';
 
 const MAX_BODY_PHOTOS = 3;
@@ -244,65 +238,6 @@ function DeletePhotosDialog({ visible, onClose }: { visible: boolean; onClose: (
   );
 }
 
-function NotificationsSection() {
-  const { t } = useTranslation();
-  const settings = useNotificationSettings();
-  const save = useSaveNotificationSettings();
-  const [timeOpen, setTimeOpen] = useState(false);
-  const [pushOff, setPushOff] = useState(false);
-
-  return (
-    <Card>
-      <SectionState
-        query={settings}
-        inset={false}
-        errorText={t('settings.notificationsError')}
-        skeleton={<Skeleton className="m-4 h-28 rounded-image" />}
-      >
-        {(data) => {
-          const change = (patch: Partial<NotificationSettings>) => {
-            // Switching a notification on is the moment to ask for push permission (and register the token).
-            if (Object.values(patch).includes(true)) void syncPushRegistration({ ask: true }).then((on) => setPushOff(!on));
-            save({ ...data, ...patch });
-          };
-          const localTime = data.morningTimeLocal;
-          return (
-            <>
-              <ToggleRow first label={t('settings.morning')} value={data.morningReminder} onChange={(v) => change({ morningReminder: v })} />
-              {data.morningReminder ? (
-                <MenuRow label={t('settings.morningTime')} value={localTime} onPress={() => setTimeOpen(true)} />
-              ) : null}
-              <ToggleRow label={t('settings.weeklyEdit')} value={data.weeklyEdit} onChange={(v) => change({ weeklyEdit: v })} />
-              <ToggleRow label={t('settings.friendRatings')} value={data.friendRatings} onChange={(v) => change({ friendRatings: v })} />
-              {pushOff ? (
-                <Text variant="caption" tone="muted" className="px-4 pb-3">
-                  {t('push.denied')}
-                </Text>
-              ) : null}
-              <BottomSheet visible={timeOpen} onClose={() => setTimeOpen(false)} title={t('settings.timeTitle')}>
-                <ChipWrap>
-                  {REMINDER_TIMES.map((time) => (
-                    <Chip
-                      key={time}
-                      label={time}
-                      selected={time === localTime}
-                      onPress={() => {
-                        // Local wall-clock time; the device time zone travels with the PUT.
-                        change({ morningTimeLocal: time });
-                        setTimeOpen(false);
-                      }}
-                    />
-                  ))}
-                </ChipWrap>
-              </BottomSheet>
-            </>
-          );
-        }}
-      </SectionState>
-    </Card>
-  );
-}
-
 /**
  * 29 Gizlilik ve ayarlar — closet visibility, photos (add / remove / 29b delete everything),
  * notification toggles + morning time, the TR / EN language switch (applies at once, is remembered
@@ -349,6 +284,10 @@ export default function SettingsScreen() {
             )}
           </SectionState>
         </Card>
+        <Card>
+          <MenuRow first icon={Pencil} label={t('friends.menuEditProfile')} onPress={() => router.push('/profile-edit')} />
+          <MenuRow icon={Ban} label={t('friends.menuBlocked')} onPress={() => router.push('/friends/blocked')} />
+        </Card>
 
         <Text variant="eyebrow" className="pt-4">
           {t('settings.photosEyebrow')}
@@ -358,7 +297,7 @@ export default function SettingsScreen() {
         <Text variant="eyebrow" className="pt-4">
           {t('settings.notificationsEyebrow')}
         </Text>
-        <NotificationsSection />
+        <NotificationPrefsCard />
 
         <View className="flex-row flex-wrap items-center justify-between gap-3 pt-4">
           <Text variant="eyebrow">{t('settings.languageEyebrow')}</Text>

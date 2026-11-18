@@ -5,7 +5,7 @@ Description: >
   (EventBridge Scheduler), one DynamoDB table, private photo bucket. Region eu-central-1.
   Secrets are never template values. Fixed non-secret config is created here as SSM String parameters
   (name = config section, value = JSON). deploy-infra creates the rest once and never overwrites it:
-  SecureString api/Jwt, api/Email/SendGrid/ApiKey, api/AppleAuth/PrivateKey, api/Store/IapPrivateKey,
+  SecureString api/Jwt, api/AdminJwt, api/Email/SendGrid/ApiKey, api/AppleAuth/PrivateKey, api/Store/IapPrivateKey,
   api/Store/GooglePlayServiceAccountJson, worker/Ai/ApiKey, notifier/Push/ServiceAccountJson,
   notifier/Push/ApnsKey; String api/Email, api/GoogleAuth, api/AppleAuth, api/Store/IapKeyId,
   worker/Ai (full list: docs/store-setup.md). A secret still set to CHANGE_ME counts as not configured. SecureString api/AffiliatePostback
@@ -155,6 +155,72 @@ Resources:
               Bool:
                 'aws:SecureTransport': 'false'
 
+  # ── S3: public catalog images (product / brand / edit / collection / library images from the admin panel) ──
+  # Not user data. Objects under catalog/ are publicly readable over https (the app and the try-on worker fetch
+  # them); writes only through presigned POSTs that the Api issues to signed-in admins.
+  CatalogImageBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub droblet-${Stage}-catalog-images
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: false
+        RestrictPublicBuckets: false
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: abort-incomplete-multipart
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 1
+      CorsConfiguration:
+        CorsRules:
+          - AllowedMethods: [POST]
+            AllowedOrigins: !If
+              - IsProd
+              - ['https://droblet-admin.alatech.co']
+              - ['https://droblet-admin.alatech.co', 'http://localhost:3000']
+            AllowedHeaders: ['*']
+            MaxAge: 3000
+          - AllowedMethods: [GET, HEAD]
+            AllowedOrigins: ['*']
+            MaxAge: 3000
+      Tags:
+        - { Key: project, Value: droblet }
+        - { Key: stage, Value: !Ref Stage }
+
+  CatalogImageBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref CatalogImageBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: PublicReadCatalogImages
+            Effect: Allow
+            Principal: '*'
+            Action: s3:GetObject
+            Resource: !Sub '${CatalogImageBucket.Arn}/catalog/*'
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource:
+              - !GetAtt CatalogImageBucket.Arn
+              - !Sub '${CatalogImageBucket.Arn}/*'
+            Condition:
+              Bool:
+                'aws:SecureTransport': 'false'
+
   # ── SQS: request queues + DLQs (maxReceiveCount 3: an AI call is billed per attempt) ──
   ItemProcessorRequestDlq:
     Type: AWS::SQS::Queue
@@ -289,13 +355,16 @@ Resources:
       Type: String
       Description: Supported languages and the default one. Adding a language is this list plus data (no code).
       Value: '{"SupportedLanguages":["tr","en"],"DefaultLanguage":"tr"}'
-  SsmApiAdmin:
+  SsmApiAdminAuth:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: !Sub /droblet/${Stage}/api/Admin
+      Name: !Sub /droblet/${Stage}/api/AdminAuth
       Type: String
-      Description: Who may call v1/admin (user ids or e-mails). Empty = nobody.
-      Value: '{"UserIds":[],"Emails":[]}'
+      Description: Admin panel sign-in (code TTL, tries, rate limits), CORS origins of v1/admin, first super admin (created without a password).
+      Value: !If
+        - IsProd
+        - '{"PanelUrl":"https://droblet-admin.alatech.co","AllowedOrigins":["https://droblet-admin.alatech.co"],"BootstrapSuperAdminEmail":"fehmianac@gmail.com","CodeTtlMinutes":10,"CodeMaxAttempts":5,"LoginPerEmailPer15Minutes":10,"LoginPerIpPer15Minutes":50,"VerifyPerIpPer15Minutes":50,"ForgotPerEmailPerHour":3,"RequestsPerMinute":600}'
+        - '{"PanelUrl":"https://droblet-admin.alatech.co","AllowedOrigins":["https://droblet-admin.alatech.co","http://localhost:3000"],"BootstrapSuperAdminEmail":"fehmianac@gmail.com","CodeTtlMinutes":10,"CodeMaxAttempts":5,"LoginPerEmailPer15Minutes":10,"LoginPerIpPer15Minutes":50,"VerifyPerIpPer15Minutes":50,"ForgotPerEmailPerHour":3,"RequestsPerMinute":600}'
   SsmApiWardrobe:
     Type: AWS::SSM::Parameter
     Properties:
@@ -336,15 +405,15 @@ Resources:
     Properties:
       Name: !Sub /droblet/${Stage}/api/Catalog
       Type: String
-      Description: Catalog paging, cache and cart limits. ImageHosts = hosts product images may be fetched from (empty = any https host).
-      Value: '{"PageSize":24,"MaxPageSize":60,"CacheSeconds":60,"MaxCartLines":100,"MaxWatchItems":200,"BulkUpsertMax":200,"ImageHosts":[],"MaxImageBytes":10485760}'
+      Description: Catalog paging, cache and cart limits. ImageHosts = hosts product images may be fetched from (empty = any https host). WatchAutoAddHours = brand click without conversion goes on the watch list (0 = off).
+      Value: '{"PageSize":24,"MaxPageSize":60,"CacheSeconds":60,"MaxCartLines":100,"MaxWatchItems":200,"BulkUpsertMax":200,"ImageHosts":[],"MaxImageBytes":10485760,"WatchAutoAddHours":48}'
   SsmApiSocial:
     Type: AWS::SSM::Parameter
     Properties:
       Name: !Sub /droblet/${Stage}/api/Social
       Type: String
       Description: Social limits and the invite link base URL.
-      Value: '{"MaxFollowing":500,"FeedPageSize":20,"SuggestedPageSize":20,"SuggestedCandidateLimit":100,"SearchPageSize":20,"InviteUrl":"https://droblet.alatech.co/i","InviteAttributionWindowDays":30,"ReportsPerDay":20,"InviteResolvePerIpPerHour":60}'
+      Value: '{"MaxFollowing":500,"FeedPageSize":20,"SuggestedPageSize":20,"SuggestedCandidateLimit":100,"SearchPageSize":20,"InviteUrl":"https://droblet.alatech.co/i","InviteAttributionWindowDays":30,"ReportsPerDay":20,"InviteResolvePerIpPerHour":60,"ContactMatchesPerDay":10,"ContactMatchMaxHashes":1000}'
   SsmApiAffiliate:
     Type: AWS::SSM::Parameter
     Properties:
@@ -400,7 +469,7 @@ Resources:
       Name: !Sub /droblet/${Stage}/worker/Catalog
       Type: String
       Description: Same values as api/Catalog (the try-on job downloads product images).
-      Value: '{"PageSize":24,"MaxPageSize":60,"CacheSeconds":60,"MaxCartLines":100,"MaxWatchItems":200,"BulkUpsertMax":200,"ImageHosts":[],"MaxImageBytes":10485760}'
+      Value: '{"PageSize":24,"MaxPageSize":60,"CacheSeconds":60,"MaxCartLines":100,"MaxWatchItems":200,"BulkUpsertMax":200,"ImageHosts":[],"MaxImageBytes":10485760,"WatchAutoAddHours":48}'
   SsmNotifierLocalization:
     Type: AWS::SSM::Parameter
     Properties:
@@ -464,6 +533,30 @@ Resources:
                 Condition:
                   StringLike:
                     's3:prefix': ['uploads/tmp/*', 'tenant/*']
+              # Admin panel image uploads (presigned POST signed with this role).
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub '${CatalogImageBucket.Arn}/catalog/*'
+              # Admin panel settings: read the editable worker / notifier values (api/* is readable above)…
+              - Effect: Allow
+                Action: ssm:GetParameter
+                Resource:
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/worker/Entitlements
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/worker/Packing
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/worker/Ai
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/notifier/Notifications
+              # …and write exactly the owner-editable, non-secret parameters (Domain SettingsCatalog). Nothing else.
+              - Effect: Allow
+                Action: ssm:PutParameter
+                Resource:
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/api/Entitlements
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/worker/Entitlements
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/api/Packing
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/worker/Packing
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/worker/Ai
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/api/Notifications
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/notifier/Notifications
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/api/AuthRateLimits
 
   ItemProcessorLambdaRole:
     Type: AWS::IAM::Role
@@ -641,10 +734,8 @@ Resources:
       DefaultRouteSettings:
         ThrottlingBurstLimit: 200
         ThrottlingRateLimit: 100
-      CorsConfiguration:
-        AllowOrigins: ['*']
-        AllowMethods: [GET, POST, PUT, DELETE, OPTIONS, PATCH]
-        AllowHeaders: ['*']
+      # No CorsConfiguration: CORS is answered by the Api (UseDrobletCors) so v1/admin/* can allow only the admin
+      # panel origin while every other route keeps "*". Gateway CORS would override the Api's headers.
       Tags:
         project: droblet
         stage: !Ref Stage
@@ -666,6 +757,8 @@ Resources:
           TRYON_REQUEST_QUEUE_URL: !Ref TryOnRequestQueue
           PALETTE_REQUEST_QUEUE_URL: !Ref PaletteRequestQueue
           PHOTO_BUCKET: !Ref PhotoBucket
+          CATALOG_IMAGE_BUCKET: !Ref CatalogImageBucket
+          CATALOG_IMAGE_BASE_URL: !Sub https://${CatalogImageBucket}.s3.${AWS::Region}.amazonaws.com
       Events:
         ProxyRoute:
           Type: HttpApi
@@ -734,6 +827,7 @@ Resources:
         Variables:
           SYSTEMS_MANAGER_PATH: !Sub /droblet/${Stage}/worker
           PHOTO_BUCKET: !Ref PhotoBucket
+          CATALOG_IMAGE_BASE_URL: !Sub https://${CatalogImageBucket}.s3.${AWS::Region}.amazonaws.com
       Events:
         Queue:
           Type: SQS
@@ -931,6 +1025,11 @@ Outputs:
     Value: !Ref DrobletTable
   PhotoBucketName:
     Value: !Ref PhotoBucket
+  CatalogImageBucketName:
+    Value: !Ref CatalogImageBucket
+  CatalogImageBaseUrl:
+    Description: Public https base of admin-uploaded catalog images (always allowed by Catalog:ImageHosts).
+    Value: !Sub https://${CatalogImageBucket}.s3.${AWS::Region}.amazonaws.com
   ItemProcessorRequestQueueUrl:
     Value: !Ref ItemProcessorRequestQueue
   StylistRequestQueueUrl:

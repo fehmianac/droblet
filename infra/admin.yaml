@@ -1,0 +1,99 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Droblet admin panel - S3 static website bucket named after the domain (droblet-admin.alatech.co), served through
+  Cloudflare. A separate stack from the backend: one panel, it calls the API given at build time. Cloudflare sends the
+  Host header unchanged and S3 website hosting finds the bucket by Host, so the bucket name must equal the domain.
+  The S3 website endpoint is HTTP only; TLS ends at Cloudflare.
+
+Parameters:
+  AdminDomain:
+    Type: String
+    Default: droblet-admin.alatech.co
+    Description: The panel's host name; also the bucket name.
+  RestrictToCloudflare:
+    Type: String
+    Default: 'true'
+    AllowedValues: ['true', 'false']
+    Description: >
+      true = objects are readable only from Cloudflare's IPv4 ranges (the DNS record must be proxied).
+      false = readable by anyone on the S3 website endpoint (for checking before DNS is set up).
+
+Conditions:
+  CloudflareOnly: !Equals [!Ref RestrictToCloudflare, 'true']
+
+Resources:
+  AdminBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Ref AdminDomain
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: 404.html
+      # A website bucket is read through a bucket policy, so policy-level blocks stay off; ACLs stay blocked.
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: false
+        RestrictPublicBuckets: false
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      Tags:
+        - Key: project
+          Value: droblet
+        - Key: component
+          Value: admin
+
+  AdminBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref AdminBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - !If
+            - CloudflareOnly
+            - Sid: ReadFromCloudflare
+              Effect: Allow
+              Principal: '*'
+              Action: s3:GetObject
+              Resource: !Sub '${AdminBucket.Arn}/*'
+              Condition:
+                IpAddress:
+                  # https://www.cloudflare.com/ips-v4 — update here (and in infra/landing.yaml) when Cloudflare changes it.
+                  aws:SourceIp:
+                    - 173.245.48.0/20
+                    - 103.21.244.0/22
+                    - 103.22.200.0/22
+                    - 103.31.4.0/22
+                    - 141.101.64.0/18
+                    - 108.162.192.0/18
+                    - 190.93.240.0/20
+                    - 188.114.96.0/20
+                    - 197.234.240.0/22
+                    - 198.41.128.0/17
+                    - 162.158.0.0/15
+                    - 104.16.0.0/13
+                    - 104.24.0.0/14
+                    - 172.64.0.0/13
+                    - 131.0.72.0/22
+            - Sid: PublicRead
+              Effect: Allow
+              Principal: '*'
+              Action: s3:GetObject
+              Resource: !Sub '${AdminBucket.Arn}/*'
+
+Outputs:
+  AdminBucketName:
+    Value: !Ref AdminBucket
+  AdminWebsiteHost:
+    Description: CNAME target for the domain in Cloudflare (proxied).
+    Value: !Sub '${AdminDomain}.s3-website.${AWS::Region}.amazonaws.com'
+  AdminWebsiteUrl:
+    Value: !GetAtt AdminBucket.WebsiteURL

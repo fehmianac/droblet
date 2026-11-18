@@ -29,8 +29,11 @@
       "title": "No more \"what do I wear\" mornings or hours of packing.",
       "body": "Your wardrobe now thinks for you. Photograph your clothes; Droblet prepares your outfit for every day and every trip.",
       "platforms": "iOS and Android · Turkish and English",
-      "phoneAlt": "App screen placeholder: Today",
-      "phoneLabel": "App screen: Today"
+      "chips": {
+        "onYou": "ON YOU",
+        "weather": "14° Istanbul",
+        "missing": "Missing piece"
+      }
     },
     "how": {
       "eyebrow": "HOW IT WORKS",
@@ -57,40 +60,47 @@
         {
           "title": "Style advisor",
           "body": "The outfit of the day is ready every morning: matched to the weather and the occasion in your calendar, from your own wardrobe.",
-          "tag": "APP SCREEN: STYLIST",
-          "alt": "Image placeholder: Stylist screen"
+          "tag": "STYLIST"
         },
         {
           "title": "See it on me",
           "body": "See outfits and store products on your own photo. AI images are always shown with the \"On you\" label.",
-          "tag": "ON YOU",
-          "alt": "Image placeholder: AI image on you"
+          "tag": "ON YOU"
         },
         {
           "title": "Smart suitcase",
           "body": "Enter the city and dates; you get daily looks and a packing list where every piece is worn more than once.",
-          "tag": "APP SCREEN: SUITCASE",
-          "alt": "Image placeholder: Suitcase screen"
+          "tag": "SUITCASE"
         },
         {
           "title": "Colour palette",
           "body": "Finds your season type and the tones that suit you best from a face photo, and shows how well your wardrobe matches your palette.",
-          "tag": "APP SCREEN: COLOUR PALETTE",
-          "alt": "Image placeholder: Colour palette screen"
+          "tag": "COLOUR PALETTE"
         },
         {
           "title": "Style store",
           "body": "Find the pieces that complete your look in your size. Payment and delivery happen in the brand's own store.",
-          "tag": "APP SCREEN: STORE",
-          "alt": "Image placeholder: Style store screen"
+          "tag": "STYLE STORE"
         },
         {
           "title": "Friends",
           "body": "Rate your friends' looks with 1–5 stars, get ratings on your own looks, and browse wardrobes.",
-          "tag": "APP SCREEN: FRIENDS",
-          "alt": "Image placeholder: Friends feed screen"
+          "tag": "FRIENDS"
         }
-      ]
+      ],
+      "tones": {
+        "label": "Sample palette: warm autumn",
+        "names": [
+          "Cinnamon",
+          "Caramel",
+          "Olive",
+          "Midnight blue",
+          "Sand",
+          "Burgundy",
+          "Cream",
+          "Espresso"
+        ]
+      }
     },
     "privacy": {
       "eyebrow": "PRIVACY",
@@ -127,8 +137,65 @@
       "priceNote": "The current price and trial length are listed on the App Store and Google Play. Need more? Add an extra AI image pack.",
       "cta": "Start the free trial"
     },
+    "gallery": {
+      "eyebrow": "SCREENS",
+      "title": "Inside the app.",
+      "region": "App screens — scrolls sideways",
+      "previous": "Previous screens",
+      "next": "Next screens"
+    },
     "final": {
       "title": "Your wardrobe now thinks for you."
+    },
+    "screens": {
+      "welcome": {
+        "alt": "Droblet app welcome screen",
+        "caption": "Welcome"
+      },
+      "today": {
+        "alt": "Droblet app, Today screen: the weather and the outfit of the day",
+        "caption": "Today"
+      },
+      "wardrobe": {
+        "alt": "Droblet app, Wardrobe screen: pieces sorted by category",
+        "caption": "Wardrobe"
+      },
+      "looks": {
+        "alt": "Droblet app, Looks screen: saved outfits",
+        "caption": "Looks"
+      },
+      "stylist": {
+        "alt": "Droblet app, Stylist screen: choosing the occasion and the weather",
+        "caption": "Stylist"
+      },
+      "suggestion": {
+        "alt": "Droblet app, outfit suggestion screen",
+        "caption": "Outfit suggestion"
+      },
+      "trip": {
+        "alt": "Droblet app, suitcase detail: daily looks and the packing list",
+        "caption": "Suitcase"
+      },
+      "palette": {
+        "alt": "Droblet app, My colour palette screen: season type and the tones that suit you",
+        "caption": "My colour palette"
+      },
+      "shop": {
+        "alt": "Droblet app, Style store screen",
+        "caption": "Style store"
+      },
+      "product": {
+        "alt": "Droblet app, product screen: size choice and the link to the brand's store",
+        "caption": "Product"
+      },
+      "friends": {
+        "alt": "Droblet app, Friends feed: friends' looks and star ratings",
+        "caption": "Friends"
+      },
+      "profile": {
+        "alt": "Droblet app, Profile screen: this month's AI image credits and membership",
+        "caption": "Profile"
+      }
     }
   },
   "footer": {

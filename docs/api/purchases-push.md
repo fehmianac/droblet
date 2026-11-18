@@ -113,9 +113,9 @@ Notification `data` (all strings) — the app's tap handler routes on `type`:
 |---|---|---|
 | `morning_outfit` | `day` | 06 Bugün (`/`) |
 | `weekly_edit` | `editId` | 08 Haftanın edit'i (`/edit/{editId}`) |
-| `friend_ratings` / `friend_rating` | `lookId` (optional) | the look (`/look/{lookId}`), else the friends feed |
-| `follow_request` | — | follow requests (`/friends/requests` when present, else 27 Dolapları keşfet) |
-| `price_drop` | `productId` | 22 Ürün (`/shop/product/{productId}`) |
+| `friend_ratings` / `friend_rating` | `lookId` (optional) | the look (`/look/{lookId}`), else my looks (`/wardrobe/looks`) |
+| `follow_request` | `handle` | follow requests (`/friends/requests`) |
+| `price_drop` | `productId` | 22 Ürün (`/shop/product/{productId}`), else the watch list |
 
 ## 6. Sign in with Apple — token revocation
 

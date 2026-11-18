@@ -30,6 +30,7 @@ public static class DependencyInjection
         services.Configure<StoreOptions>(configuration.GetSection(StoreOptions.Section));
         services.Configure<AiOptions>(configuration.GetSection(AiOptions.Section));
         services.Configure<AffiliateOptions>(configuration.GetSection(AffiliateOptions.Section));
+        services.Configure<CatalogImageOptions>(configuration.GetSection(CatalogImageOptions.Section));
         // Secrets created by deploy-infra hold the literal CHANGE_ME until the owner fills them in: bind that as "not set".
         services.PostConfigure<AiOptions>(o => o.ApiKey = ConfigSecret.OrNull(o.ApiKey));
         services.PostConfigure<StoreOptions>(o =>
@@ -59,6 +60,14 @@ public static class DependencyInjection
         services.AddSingleton<IJobLifecycle, JobLifecycle>();
         services.AddDrobletWardrobe(configuration);
         services.AddDrobletStoreSocialCore(configuration);
+        // Catalog:ImageHosts restricts where product images may be downloaded from; images uploaded through the admin
+        // panel live on the catalog image bucket, so its host is always allowed (an empty list already allows any host).
+        services.AddOptions<CatalogOptions>().PostConfigure<IOptionsMonitor<CatalogImageOptions>>((catalog, images) =>
+        {
+            if (catalog.ImageHosts.Count > 0 && images.CurrentValue.PublicHost is { } host
+                && !catalog.ImageHosts.Contains(host, StringComparer.OrdinalIgnoreCase))
+                catalog.ImageHosts.Add(host);
+        });
         return services;
     }
 
@@ -103,6 +112,7 @@ public static class DependencyInjection
         services.AddSingleton<IPasswordHasher>(_ => new PasswordHasher());
         services.AddSingleton<ITokenService, TokenService>();
         services.AddSingleton<IRateLimiter, RateLimiter>();
+        services.AddSingleton<IContactDirectory, Infrastructure.Services.Social.ContactDirectory>();
         services.AddSingleton<IAuthService, AuthService>();
         services.AddSingleton<IAccountDeletionService, AccountDeletionService>();
         services.AddSingleton<IPhotoService, PhotoService>();
