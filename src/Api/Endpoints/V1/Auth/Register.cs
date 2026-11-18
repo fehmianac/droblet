@@ -41,12 +41,12 @@ public class Register : IEndpoint
             .ProducesProblem(StatusCodes.Status500InternalServerError)
             .AllowAnonymous()
             .WithSummary("Register with e-mail and password")
-            .WithDescription("Creates the user and their personal tenant, returns a JWT + refresh token.")
+            .WithDescription("Creates the user and their personal tenant, returns a JWT + refresh token. ageConfirmed must be true (\"I am 18 or older\", Terms §3): 400 age_confirmation_required otherwise; the confirmation time is stored (profile ageConfirmedAt).")
             .WithTags("Auth");
     }
 }
 
-public record RegisterRequest(string Name, string Email, string Password);
+public record RegisterRequest(string Name, string Email, string Password, bool AgeConfirmed = false);
 
 public class RegisterRequestValidator : AbstractValidator<RegisterRequest>
 {
@@ -55,5 +55,6 @@ public class RegisterRequestValidator : AbstractValidator<RegisterRequest>
         RuleFor(x => x.Name).NotEmpty().WithErrorCode("name_required").MaximumLength(60).WithErrorCode("name_too_long");
         RuleFor(x => x.Email).Email();
         RuleFor(x => x.Password).Password();
+        RuleFor(x => x.AgeConfirmed).Equal(true).WithErrorCode(ErrorCodes.AgeConfirmationRequired);
     }
 }

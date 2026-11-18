@@ -24,7 +24,8 @@ public sealed class SocialService(
     IRateLimiter rateLimiter,
     IOptionsMonitor<SocialOptions> options,
     TimeProvider timeProvider,
-    ILogger<SocialService> logger) : ISocialService
+    ILogger<SocialService> logger,
+    IAvatarService avatars) : ISocialService
 {
     private const int RatingRetries = 5;
     private const int FeedParallelism = 10;
@@ -188,7 +189,9 @@ public sealed class SocialService(
             FollowerCount: (await repository.GetKeysAsync(FollowerEntity.GetPk(owner.Id), ct)).Count,
             FollowingCount: (await repository.GetKeysAsync(FollowingEntity.GetPk(owner.Id), ct)).Count,
             FollowState: context.IsSelf ? FollowState.None : context.FollowState,
-            RequestedYou: context.OwnerRequestedViewer);
+            RequestedYou: context.OwnerRequestedViewer,
+            // Public to whoever may see the closet (decision 7: followers by default).
+            AvatarUrl: context.IsSelf || (canItems && canLooks) ? (await avatars.GetAsync(owner.Id, ct))?.Url : null);
     }
 
     public async Task<IReadOnlyList<SocialLookDto>?> GetLooksAsync(string viewerTenantId, string handle, CancellationToken ct)

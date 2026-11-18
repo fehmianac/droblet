@@ -15,6 +15,7 @@ public class Put : IEndpoint
     private static async Task<IResult> Handler(
         [FromBody] UpdateProfileRequest request,
         [FromServices] IApiContext apiContext,
+        [FromServices] Domain.Services.IAvatarService avatars,
         [FromServices] IRepository repository,
         [FromServices] IValidator<UpdateProfileRequest> validator,
         [FromServices] TimeProvider timeProvider,
@@ -29,7 +30,7 @@ public class Put : IEndpoint
         if (tenant is null)
             return Results.NotFound();
         if (tenant.Version != request.BaseVersion)
-            return Results.Conflict(tenant.ToDto(user?.Email));
+            return Results.Conflict(await tenant.ToProfileDtoAsync(user, avatars, cancellationToken));
 
         // Partial update: an omitted (null) field keeps its value. cityId = "" clears the city.
         if (request.DisplayName is not null)
@@ -43,10 +44,10 @@ public class Put : IEndpoint
         if (!await repository.SaveIfVersionAsync(tenant, request.BaseVersion, cancellationToken))
         {
             var current = await repository.GetAsync<TenantEntity>(TenantEntity.GetPk(), TenantEntity.GetSk(apiContext.TenantId), cancellationToken);
-            return current is null ? Results.NotFound() : Results.Conflict(current.ToDto(user?.Email));
+            return current is null ? Results.NotFound() : Results.Conflict(await current.ToProfileDtoAsync(user, avatars, cancellationToken));
         }
 
-        return Results.Ok(tenant.ToDto(user?.Email));
+        return Results.Ok(await tenant.ToProfileDtoAsync(user, avatars, cancellationToken));
     }
 
     public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints)

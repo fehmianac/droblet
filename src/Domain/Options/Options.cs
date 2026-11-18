@@ -190,6 +190,11 @@ public sealed class PhotoOptions
     public int ReadUrlTtlSeconds { get; set; } = 300;
     public long MaxUploadBytes { get; set; } = 10 * 1024 * 1024;
     public List<string> AllowedContentTypes { get; set; } = ["image/jpeg", "image/png"];
+    /// <summary>Profile picture: the app resizes to 512 px before upload; the server enforces size and dimensions (no resampling).</summary>
+    public long AvatarMaxUploadBytes { get; set; } = 1024 * 1024;
+    public int AvatarMaxDimension { get; set; } = 1024;
+    /// <summary>Lifetime of the presigned avatar GET returned with a profile.</summary>
+    public int AvatarReadUrlTtlSeconds { get; set; } = 3600;
 }
 
 public sealed class QueueOptions

@@ -55,6 +55,7 @@ public sealed record AuthResult(AuthOutcome Outcome, AuthTokens? Tokens = null)
 
 public interface IAuthService
 {
+    /// <summary>Callers have checked the 18+ confirmation: the new user is stored with AgeConfirmedAt = now.</summary>
     Task<AuthResult> RegisterAsync(string name, string email, string password, string language, string? clientIp, CancellationToken ct);
     Task<AuthResult> LoginAsync(string email, string password, string? clientIp, CancellationToken ct);
     /// <summary>Always completes quietly (202 regardless of whether the account exists).</summary>

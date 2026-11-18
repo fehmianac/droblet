@@ -140,3 +140,53 @@ public static class ImageMetadataStripper
         return null;
     }
 }
+
+/// <summary>
+/// Reads the pixel size from the image header (JPEG SOFn, PNG IHDR) without decoding. Used to enforce the avatar's maximum
+/// dimensions — the server stores, it never resamples (no imaging library in the Lambdas; the app resizes before upload).
+/// </summary>
+public static class ImageDimensions
+{
+    public static bool TryRead(ReadOnlySpan<byte> data, out int width, out int height)
+    {
+        width = height = 0;
+        switch (ImageMetadataStripper.Detect(data))
+        {
+            case ImageFormat.Png:
+                // Signature (8) + IHDR length (4) + "IHDR" (4) + width (4) + height (4).
+                if (data.Length < 24 || data[12] != (byte)'I' || data[13] != (byte)'H' || data[14] != (byte)'D' || data[15] != (byte)'R')
+                    return false;
+                width = (int)BinaryPrimitives.ReadUInt32BigEndian(data.Slice(16, 4));
+                height = (int)BinaryPrimitives.ReadUInt32BigEndian(data.Slice(20, 4));
+                return width > 0 && height > 0;
+            case ImageFormat.Jpeg:
+                var pos = 2;
+                while (pos + 4 <= data.Length)
+                {
+                    if (data[pos] != 0xFF)
+                        return false;
+                    var marker = data[pos + 1];
+                    if (marker == 0xFF) { pos++; continue; } // fill byte
+                    if (marker is 0xD8 or 0x01 or (>= 0xD0 and <= 0xD7)) { pos += 2; continue; } // markers without a length
+                    if (marker is 0xD9 or 0xDA)
+                        return false; // end of image / start of scan before any frame header
+                    var length = BinaryPrimitives.ReadUInt16BigEndian(data.Slice(pos + 2, 2));
+                    if (length < 2 || pos + 2 + length > data.Length)
+                        return false;
+                    // SOF0–SOF15 except DHT (C4), JPG (C8) and DAC (CC): precision (1), height (2), width (2).
+                    if (marker is >= 0xC0 and <= 0xCF and not 0xC4 and not 0xC8 and not 0xCC)
+                    {
+                        if (length < 7)
+                            return false;
+                        height = BinaryPrimitives.ReadUInt16BigEndian(data.Slice(pos + 5, 2));
+                        width = BinaryPrimitives.ReadUInt16BigEndian(data.Slice(pos + 7, 2));
+                        return width > 0 && height > 0;
+                    }
+                    pos += 2 + length;
+                }
+                return false;
+            default:
+                return false;
+        }
+    }
+}

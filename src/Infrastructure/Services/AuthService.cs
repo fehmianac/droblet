@@ -51,6 +51,8 @@ public sealed class AuthService(
             Email = normalizedEmail,
             CreatedAt = now,
             Identities = [identity.Sk],
+            // The endpoint only registers with the 18+ box ticked (ageConfirmed: true is required).
+            AgeConfirmedAt = now,
         };
 
         var operations = new List<TransactWriteOperation>

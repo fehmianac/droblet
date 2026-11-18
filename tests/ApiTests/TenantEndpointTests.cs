@@ -419,7 +419,7 @@ public class JobAndEntitlementEndpointTests(ApiFactory factory) : IClassFixture<
         var client = factory.CreateClient();
         var request = new HttpRequestMessage(HttpMethod.Post, "v1/auth/register")
         {
-            Content = JsonContent.Create(new { name = "Ayşe", email = $"{Guid.NewGuid():N}@example.com", password = "Sifre1234" }, options: ApiFactory.Json),
+            Content = JsonContent.Create(new { name = "Ayşe", email = $"{Guid.NewGuid():N}@example.com", password = "Sifre1234", ageConfirmed = true }, options: ApiFactory.Json),
         };
         if (acceptLanguage is not null)
             request.Headers.TryAddWithoutValidation("Accept-Language", acceptLanguage);

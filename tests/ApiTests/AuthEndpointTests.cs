@@ -41,7 +41,7 @@ public class AuthEndpointTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var email = $"{Guid.NewGuid():N}@Example.com";
         await factory.RegisterAsync(email);
 
-        var response = await factory.CreateClient().PostJsonAsync("v1/auth/register", new { name = "X", email = email.ToUpperInvariant(), password = "Sifre1234" });
+        var response = await factory.CreateClient().PostJsonAsync("v1/auth/register", new { name = "X", email = email.ToUpperInvariant(), password = "Sifre1234", ageConfirmed = true });
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
         Assert.Equal("email_taken", await response.CodeAsync());

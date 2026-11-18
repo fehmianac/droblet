@@ -21,6 +21,9 @@ public class UserEntity : IEntity
     // refresh; TokensValidAfter is moved at the same time so existing refresh tokens die.
     [JsonPropertyName("suspendedAt")] public DateTime? SuspendedAt { get; set; }
     [JsonPropertyName("suspendReason")] public string? SuspendReason { get; set; }
+    // "I am 18 or older" (Terms §3, privacy §17): ticked at e-mail sign-up, or confirmed once after the first Apple / Google
+    // sign-in (POST v1/tenant/profile/age-confirmation). Null = not confirmed yet: the app routes to the confirmation first.
+    [JsonPropertyName("ageConfirmedAt")] public DateTime? AgeConfirmedAt { get; set; }
 
     public static string GetPk() => "users";
     public static string GetSk(string id) => id;

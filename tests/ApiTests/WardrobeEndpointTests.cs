@@ -1053,7 +1053,7 @@ public class ItemRecognitionQuotaEndpointTests : IClassFixture<ItemRecognitionQu
     private async Task<(HttpClient Client, string TenantId)> UserAsync(int limit)
     {
         var client = _factory.WithLimit(limit).CreateClient();
-        var response = await client.PostAsJsonAsync("v1/auth/register", new { name = "Ayşe", email = $"{Guid.NewGuid():N}@example.com", password = "Sifre1234" }, ApiFactory.Json);
+        var response = await client.PostAsJsonAsync("v1/auth/register", new { name = "Ayşe", email = $"{Guid.NewGuid():N}@example.com", password = "Sifre1234", ageConfirmed = true }, ApiFactory.Json);
         var auth = (await response.Content.ReadFromJsonAsync<Api.Contracts.AuthResponse>(ApiFactory.Json))!;
         client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", auth.AccessToken);
         return (client, auth.TenantId);

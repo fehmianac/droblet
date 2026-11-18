@@ -39,7 +39,9 @@ public record PersonProfileDto(
     int FollowerCount,
     int FollowingCount,
     FollowState FollowState = FollowState.None,
-    bool RequestedYou = false);
+    bool RequestedYou = false,
+    // Profile picture, presigned and short-lived; only when this viewer may see the closet (ClosetLocked false). Never a body / face photo.
+    string? AvatarUrl = null);
 
 public record SocialLookPieceDto(OutfitSlot Slot, string? ItemId, string? ProductId, string? Name, string? ImageUrl, ProductDto? Product);
 
