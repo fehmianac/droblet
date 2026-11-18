@@ -634,7 +634,6 @@ Resources:
   HttpApiGateway:
     Type: AWS::Serverless::HttpApi
     Properties:
-      StageName: !Ref Stage
       DefaultRouteSettings:
         ThrottlingBurstLimit: 200
         ThrottlingRateLimit: 100
@@ -923,7 +922,7 @@ Resources:
 Outputs:
   ApiUrl:
     Description: HTTP API base URL (map api.droplet.alatech.co to it).
-    Value: !Sub https://${HttpApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}
+    Value: !Sub https://${HttpApiGateway}.execute-api.${AWS::Region}.amazonaws.com
   TableName:
     Value: !Ref DrobletTable
   PhotoBucketName:

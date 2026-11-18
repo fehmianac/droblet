@@ -226,7 +226,7 @@ Brief'te üst etiket ve marka adı **büyük harf**. Proje kuralı gereği büy�
 
 Eklenenler: logo (öneri: **A — iç boşluğu askı kancası olan damla**; `Logo`, `LogoIkon`, `LogoKullanim`), animasyonlu splash (`Splash`, `SplashKareler`; toplam 2,6 sn, `cubic-bezier(0.2,0.8,0.2,1)`), yeni ekranlar (02b–d şifre sıfırlama, 04b İlk 5 parça, 05b ek kredi, 07b kredi onayı, 12b hazır kütüphane, 12c parça bilgisi, 17b kredi bitti, 17c görsel üretiliyor, 24b izleme listem, 26b şikayet/engelle, 29b–c silme onayları), durum board'ları (`Durum*`, `BugunPlanYok`, `EditFotoYok`, `SepetBos`, `KisiGizli`, `PaletBos`), web landing (`Landing`, `LandingMobil`) ve AI bekleme dili (`AiYukleniyor`, `AiYukleniyorStilist`, `AiYukleniyorVaryantlar`: çark yok; parlama 1,8 sn, siluet çizimi 3,2 sn, parçalar 300 ms arayla, metinler 2 sn'de bir geçiş; hareket azaltmada durağan hal). Hata hali: "Şu an oluşturamadık. Kredin iade edildi." + "Tekrar dene".
 
-Dev ortamı (2026-11-18): `https://b8lvaj4r5e.execute-api.eu-central-1.amazonaws.com/dev` (stack `droblet-dev`, eu-central-1).
+Dev ortamı (2026-11-18): `https://b8lvaj4r5e.execute-api.eu-central-1.amazonaws.com` (stack `droblet-dev`, eu-central-1).
 
 ---
 

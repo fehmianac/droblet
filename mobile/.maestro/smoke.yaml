@@ -1,0 +1,57 @@
+# Smoke flow: fresh install -> register -> onboarding -> the five tabs. Turkish UI.
+# Run: maestro test .maestro/smoke.yaml  (needs a Release/dev build installed on a booted simulator)
+appId: com.alatech.droplet
+env:
+  EMAIL: ${EMAIL}
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+    arguments:
+      AppleLanguages: "(tr)"
+      AppleLocale: "tr_TR"
+- extendedWaitUntil:
+    visible: "Hemen başla"
+    timeout: 20000
+- takeScreenshot: 01-hos-geldin
+- tapOn: "Hemen başla"
+- assertVisible: "Hesabını oluştur"
+- takeScreenshot: 02-kayit
+- tapOn:
+    below: "Ad"
+    index: 0
+- inputText: "Damla"
+- tapOn: "veya e-posta"
+- tapOn:
+    below: "E-posta"
+    index: 0
+- inputText: ${EMAIL}
+- tapOn: "veya e-posta"
+- tapOn:
+    below: "Şifre"
+    index: 0
+- inputText: "Sm0keTest2026"
+- tapOn: "veya e-posta"
+- takeScreenshot: 02b-kayit-dolu
+- tapOn: "Devam et"
+- extendedWaitUntil:
+    visible: "Seni biraz tanıyalım"
+    timeout: 20000
+- takeScreenshot: 03-stil-profili
+- tapOn: "Minimal"
+- tapOn: "Klasik"
+- tapOn: "Sokak"
+- scrollUntilVisible:
+    element: "Karma"
+    direction: DOWN
+- tapOn: "Karma"
+- tapOn: "Devam et"
+- extendedWaitUntil:
+    visible: "Kombinleri senin üzerinde görelim"
+    timeout: 20000
+- takeScreenshot: 04-beden-foto
+- tapOn: "Atla"
+- extendedWaitUntil:
+    visible: "Gardırobunda bunlardan hangileri var?"
+    timeout: 20000
+- takeScreenshot: 04b-ilk-parcalar
