@@ -431,10 +431,14 @@ public static class OpenAiPrompts
             "A dress goes in `top` and leaves `bottom` null. Never repeat the same look on consecutive days. Set `occasion` to the day's occasion. " +
             "title: at most 40 characters; explanation: one short sentence in the given language. " + Tone,
         JobKind.StylistPack =>
-            "You are Droblet's personal stylist packing a suitcase. The user message is a JSON object with the trip (dates, tripTypes, cabinOnly, cabinMaxItems, weather per day), " +
-            "language and `candidates`: the ONLY wardrobe pieces you may pack. Return `itemIds` (the packing list) and one day entry per trip date. " +
-            "Hard rules: daily looks use only packed pieces; when the trip has more than one day EVERY packed piece is worn on at least 2 days; " +
-            "pack as few pieces as possible; if cabinMaxItems is greater than 0 never pack more than cabinMaxItems pieces in total — every piece counts once, shoes, bags and accessories included. " +
+            "You are Droblet's personal stylist packing a capsule wardrobe for a trip. The user message is a JSON object with the trip (dates, tripTypes, cabinOnly, cabinMaxItems, weather per day), " +
+            "`days` (each date with its occasion and outerLayer), `capsule` (the expected number of tops, bottoms, shoes, outerwear and bags, minPieces and maxPieces), minRewearRatio, " +
+            "language and `candidates`: the ONLY wardrobe pieces you may pack. Return `itemIds` (the packing list) and one day entry per trip date with that day's occasion. " +
+            "Hard rules: daily looks use only packed pieces and every packed piece is worn; pack between minPieces and maxPieces pieces, close to the capsule counts; " +
+            "dress each day for its occasion — days with different occasions never get the identical look (e.g. a dinner top that differs from the office tops); " +
+            "re-wear: bottoms, shoes, the bag and the outer layer go with several looks, and the total number of slot uses is at least minRewearRatio times the number of packed pieces; " +
+            "when outerLayer is true that day's look includes the packed outer layer; " +
+            "if cabinMaxItems is greater than 0 never pack more than cabinMaxItems pieces in total — every piece counts once, shoes, bags and accessories included. " +
             "Slot rules: top <- top|dress|beachwear|skiwear, bottom <- bottom|beachwear|skiwear, outerwear <- outerwear|skiwear, shoes <- shoes, bagAccessory <- bag|accessory. " +
             "A dress goes in `top` and leaves `bottom` null. `title` is a short day label (e.g. flight + dinner) in the given language; `explanation` may be null. " + Tone,
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "No stylist prompt for this job kind."),

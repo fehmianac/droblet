@@ -320,7 +320,7 @@ public class PackingRulesTests
     }
 
     [Fact]
-    public void Validate_PieceWornOnlyOnce_OnAMultiDayTrip_Rejected()
+    public void Validate_APieceWornOnce_IsAllowedWhilePiecesAreReWorn_ButTheTwiceClaimIsNotMade()
     {
         var plan = ValidPlan();
         plan = plan with
@@ -329,8 +329,25 @@ public class PackingRulesTests
             Days = [Day(ThreeDays[0], (OutfitSlot.Top, "top2"), (OutfitSlot.Bottom, "bot1"), (OutfitSlot.Shoes, "shoe1")), plan.Days[1], plan.Days[2]],
         };
 
-        Assert.Contains(PackingRules.PieceWornOnce, PackingRules.Validate(plan, Context()));
+        Assert.Empty(PackingRules.Validate(plan, Context()));
         Assert.False(PackingRules.EveryPieceWornTwice(plan));
+        Assert.Equal(9 / 4.0, CapsuleRules.RewearRatio(plan));
+    }
+
+    [Fact]
+    public void Validate_TooLittleReWear_OnAMultiDayTrip_Rejected()
+    {
+        // 3 days, 7 pieces, 9 slot uses: ratio 1.29 < 1.5.
+        string[] tops = ["top1", "top2", "dress1"];
+        string[] bottoms = ["bot1", "bot2"];
+        var plan = new PackPlan(["top1", "top2", "dress1", "bot1", "bot2", "shoe1", "shoe2"],
+        [
+            Day(ThreeDays[0], (OutfitSlot.Top, tops[0]), (OutfitSlot.Bottom, bottoms[0]), (OutfitSlot.Shoes, "shoe1")),
+            Day(ThreeDays[1], (OutfitSlot.Top, tops[1]), (OutfitSlot.Bottom, bottoms[1]), (OutfitSlot.Shoes, "shoe2")),
+            Day(ThreeDays[2], (OutfitSlot.Top, tops[2]), (OutfitSlot.Shoes, "shoe1")),
+        ]);
+
+        Assert.Contains(PackingRules.TooLittleRewear, PackingRules.Validate(plan, Context()));
     }
 
     [Fact]
@@ -338,7 +355,7 @@ public class PackingRulesTests
     {
         var plan = ValidPlan() with { ItemIds = ["top1", "bot1", "shoe1", "bag1"] };
 
-        Assert.Contains(PackingRules.PieceWornOnce, PackingRules.Validate(plan, Context()));
+        Assert.Contains(PackingRules.PieceUnused, PackingRules.Validate(plan, Context()));
     }
 
     [Fact]
@@ -445,7 +462,7 @@ public class PackingRulesTests
     [InlineData(5)]
     [InlineData(7)]
     [InlineData(10)]
-    public void RuleBasedPacking_AlwaysPassesPackingRules_AndWearsEveryPieceTwiceOnMultiDayTrips(int days)
+    public void RuleBasedPacking_AlwaysPassesPackingRules_AndReWearsPiecesOnMultiDayTrips(int days)
     {
         var dates = CalendarDay.Range(new DateOnly(2026, 12, 1), new DateOnly(2026, 12, 1).AddDays(days - 1));
         var wardrobe = Wardrobe.Basic()
@@ -458,7 +475,7 @@ public class PackingRulesTests
         Assert.NotNull(plan);
         Assert.Empty(PackingRules.Validate(plan, context));
         Assert.Equal(days, plan.Days.Count);
-        Assert.Equal(days > 1, PackingRules.EveryPieceWornTwice(plan));
+        Assert.True(days == 1 || CapsuleRules.RewearRatio(plan) >= CapsuleRules.MinRewearRatio);
         Assert.Contains("coat1", plan.ItemIds);
         Assert.Equal(Occasion.Office, plan.Days[0].Occasion);
     }
@@ -493,6 +510,188 @@ public class PackingRulesTests
     [InlineData(TripType.Dinner, Occasion.Dinner)]
     [InlineData(TripType.Sightseeing, Occasion.Travel)]
     public void OccasionFor(TripType type, Occasion expected) => Assert.Equal(expected, PackingRules.OccasionFor(type));
+}
+
+/// <summary>Trip capsule quality (CapsuleRules + RuleBasedPacking): size, per-day occasion, weather layer, re-wear, cabin limit.</summary>
+public class TripCapsuleTests
+{
+    private static readonly Occasion[] BusinessDinner = [Occasion.Office, Occasion.Dinner];
+
+    /// <summary>A real-sized wardrobe: 6 tops, 4 bottoms, 2 dresses, 3 shoes, 2 coats, 2 bags.</summary>
+    private static List<CandidateItem> FullWardrobe() =>
+    [
+        .. Enumerable.Range(1, 6).Select(i => Wardrobe.Piece($"top{i}", ItemCategory.Top, i)),
+        .. Enumerable.Range(1, 4).Select(i => Wardrobe.Piece($"bot{i}", ItemCategory.Bottom, i)),
+        .. Enumerable.Range(1, 2).Select(i => Wardrobe.Piece($"dress{i}", ItemCategory.Dress, i)),
+        .. Enumerable.Range(1, 3).Select(i => Wardrobe.Piece($"shoe{i}", ItemCategory.Shoes, i)),
+        .. Enumerable.Range(1, 2).Select(i => Wardrobe.Piece($"coat{i}", ItemCategory.Outerwear, i)),
+        .. Enumerable.Range(1, 2).Select(i => Wardrobe.Piece($"bag{i}", ItemCategory.Bag, i)),
+    ];
+
+    private static IReadOnlyList<string> Dates(int days) =>
+        CalendarDay.Range(new DateOnly(2026, 12, 1), new DateOnly(2026, 12, 1).AddDays(days - 1));
+
+    private static PackingContext Context(int days, Occasion[] occasions, IEnumerable<string>? layerDates = null, bool cabinOnly = false, int cabinMax = 0,
+        IEnumerable<CandidateItem>? wardrobe = null) =>
+        new((wardrobe ?? FullWardrobe()).ToDictionary(c => c.Id), Dates(days), cabinOnly, cabinMax,
+            CapsuleRules.DayOccasions(days, occasions), (layerDates ?? []).ToHashSet(StringComparer.Ordinal));
+
+    private static ItemCategory CategoryOf(string id, PackingContext context) => context.Candidates[id].Category;
+
+    [Fact]
+    public void Target_ThreeDayBusinessAndDinner_IsASixToNinePieceCapsule()
+    {
+        var occasions = CapsuleRules.DayOccasions(3, BusinessDinner);
+
+        var dry = CapsuleRules.Target(occasions, outerLayer: false);
+        var wet = CapsuleRules.Target(occasions, outerLayer: true);
+
+        Assert.Equal([Occasion.Office, Occasion.Dinner, Occasion.Office], occasions);
+        Assert.Equal(new CapsuleTarget(Tops: 3, Bottoms: 1, Shoes: 1, Outerwear: 0, Bags: 1), dry);
+        Assert.Equal(7, wet.Pieces);
+        Assert.InRange(dry.Pieces, 6, 9);
+        Assert.InRange(wet.Pieces, 6, 9);
+    }
+
+    [Theory]
+    [InlineData(1, 4)]     // weekend away: 1 top, 1 bottom, shoes, bag
+    [InlineData(2, 4)]
+    [InlineData(4, 6)]     // casual: a top per 2 days, a bottom per 3 days
+    [InlineData(7, 11)]    // 4 tops, 3 bottoms, 2 pairs of shoes (6+ days), 1 bag + coat
+    public void Target_CasualTrip_GrowsSlowerThanTheNumberOfDays(int days, int expected)
+    {
+        var target = CapsuleRules.Target(CapsuleRules.DayOccasions(days, [Occasion.Travel]), outerLayer: days >= 7);
+
+        Assert.Equal(expected, target.Pieces);
+        Assert.True(days < 3 || target.Pieces < days * 3);
+    }
+
+    [Fact]
+    public void Target_FiveOfficeDays_FreshTopsReWornBottoms()
+    {
+        var target = CapsuleRules.Target(CapsuleRules.DayOccasions(5, [Occasion.Office]), outerLayer: false);
+
+        Assert.Equal(new CapsuleTarget(Tops: 4, Bottoms: 2, Shoes: 1, Outerwear: 0, Bags: 1), target);
+    }
+
+    [Fact]
+    public void RuleBased_ThreeDayBusinessAndDinner_CoversEveryOccasion_ReWears_AndLayersTheRainyDay()
+    {
+        var dates = Dates(3);
+        var context = Context(3, BusinessDinner, layerDates: [dates[1]]);
+
+        var plan = RuleBasedPacking.Build(context, withOuterwear: true, BusinessDinner)!;
+
+        Assert.Empty(PackingRules.Validate(plan, context));
+        Assert.InRange(plan.ItemIds.Count, 6, 9);
+        Assert.Equal(7, plan.ItemIds.Count);
+        Assert.Equal([Occasion.Office, Occasion.Dinner, Occasion.Office], plan.Days.Select(d => d.Occasion));
+
+        // The dinner look has its own top; the office days share bottom, shoes and bag with it.
+        string TopOf(PackDayPlan day) => day.Slots.Single(s => s.Slot == OutfitSlot.Top).ItemId!;
+        Assert.NotEqual(TopOf(plan.Days[1]), TopOf(plan.Days[0]));
+        Assert.NotEqual(TopOf(plan.Days[1]), TopOf(plan.Days[2]));
+        var wears = PackingRules.PlannedWears(plan);
+        Assert.Equal(3, plan.ItemIds.Count(id => CategoryOf(id, context) == ItemCategory.Top));
+        Assert.All(plan.ItemIds.Where(id => CategoryOf(id, context) is ItemCategory.Bottom or ItemCategory.Shoes or ItemCategory.Bag),
+            id => Assert.Equal(3, wears[id]));
+        Assert.True(CapsuleRules.RewearRatio(plan) >= CapsuleRules.MinRewearRatio);
+
+        // The coat is worn on the rainy day only.
+        var coat = Assert.Single(plan.ItemIds, id => CategoryOf(id, context) == ItemCategory.Outerwear);
+        Assert.Equal([dates[1]], plan.Days.Where(d => d.Slots.Any(s => s.ItemId == coat)).Select(d => d.Date));
+    }
+
+    [Fact]
+    public void RuleBased_SameInput_SamePlan()
+    {
+        var context = Context(5, BusinessDinner, layerDates: Dates(5).Take(2));
+
+        var first = RuleBasedPacking.Build(context, true, BusinessDinner)!;
+        var second = RuleBasedPacking.Build(context, true, BusinessDinner)!;
+
+        Assert.Equal(first.ItemIds, second.ItemIds);
+        Assert.Equal(first.Days.SelectMany(d => d.Slots), second.Days.SelectMany(d => d.Slots));
+    }
+
+    [Theory]
+    [InlineData(3, 5)]
+    [InlineData(3, 4)]
+    [InlineData(7, 6)]
+    [InlineData(10, 8)]
+    public void RuleBased_CabinLimit_IsRespected_AndEveryDayIsStillDressed(int days, int limit)
+    {
+        var context = Context(days, BusinessDinner, layerDates: Dates(days), cabinOnly: true, cabinMax: limit);
+
+        var plan = RuleBasedPacking.Build(context, withOuterwear: true, BusinessDinner)!;
+
+        Assert.True(plan.ItemIds.Count <= limit);
+        Assert.Equal(days, plan.Days.Count);
+        Assert.Empty(PackingRules.Validate(plan, context with { DayOccasions = null }));
+        Assert.True(CapsuleRules.RewearRatio(plan) >= CapsuleRules.MinRewearRatio);
+    }
+
+    [Fact]
+    public void RuleBased_ThinWardrobe_FallsBackToTheMinimalList()
+    {
+        var thin = new[] { Wardrobe.Piece("top1", ItemCategory.Top), Wardrobe.Piece("bot1", ItemCategory.Bottom), Wardrobe.Piece("shoe1", ItemCategory.Shoes) };
+        var context = Context(3, BusinessDinner, wardrobe: thin);
+
+        var plan = RuleBasedPacking.Build(context, withOuterwear: false, BusinessDinner)!;
+
+        Assert.Equal(["top1", "bot1", "shoe1"], plan.ItemIds);
+        Assert.True(PackingRules.EveryPieceWornTwice(plan));
+    }
+
+    [Fact]
+    public void Validate_ModelCapsule_TooBigTooSmallSameLookForDinner_AndMissingRainLayer_Rejected()
+    {
+        var dates = Dates(3);
+        var context = Context(3, BusinessDinner, layerDates: [dates[0]]);
+        PackDayPlan Look(int day, string top, string bottom, string shoes, string? coat = null, string bag = "bag1") =>
+            new(dates[day], null, null,
+            [
+                new SlotRef(OutfitSlot.Top, top), new SlotRef(OutfitSlot.Bottom, bottom), new SlotRef(OutfitSlot.Shoes, shoes),
+                .. coat is null ? Array.Empty<SlotRef>() : [new SlotRef(OutfitSlot.Outerwear, coat)], new SlotRef(OutfitSlot.BagAccessory, bag),
+            ]);
+
+        var good = new PackPlan(["top1", "top2", "top3", "bot1", "shoe1", "coat1", "bag1"],
+            [Look(0, "top1", "bot1", "shoe1", "coat1"), Look(1, "top3", "bot1", "shoe1"), Look(2, "top2", "bot1", "shoe1", "coat1")]);
+        Assert.Empty(PackingRules.Validate(good, context));
+
+        // 12 pieces for 3 days: far above the 7-piece capsule (+1).
+        var big = new PackPlan(["top1", "top2", "top3", "bot1", "bot2", "bot3", "shoe1", "shoe2", "shoe3", "coat1", "bag1", "bag2"],
+            [Look(0, "top1", "bot1", "shoe1", "coat1"), Look(1, "top2", "bot2", "shoe2", "coat1", "bag2"), Look(2, "top3", "bot3", "shoe3", "coat1")]);
+        Assert.Contains(PackingRules.TooManyPieces, PackingRules.Validate(big, context));
+
+        // 4 pieces although the wardrobe supplies a 7-piece capsule (−2).
+        var small = new PackPlan(["top1", "bot1", "shoe1", "coat1"],
+            dates.Select((_, i) => new PackDayPlan(dates[i], null, null,
+                [new SlotRef(OutfitSlot.Top, "top1"), new SlotRef(OutfitSlot.Bottom, "bot1"), new SlotRef(OutfitSlot.Shoes, "shoe1"), new SlotRef(OutfitSlot.Outerwear, "coat1")])).ToList());
+        Assert.Contains(PackingRules.TooFewPieces, PackingRules.Validate(small, context));
+
+        // Dinner in the office look although two tops are packed.
+        var sameLook = good with { Days = [good.Days[0], Look(1, "top1", "bot1", "shoe1", "coat1"), good.Days[2]] };
+        Assert.Contains(PackingRules.OccasionLookRepeated, PackingRules.Validate(sameLook with { ItemIds = ["top1", "top2", "bot1", "shoe1", "coat1", "bag1"] }, context));
+
+        // Coat packed but not worn on the rainy day / not packed at all.
+        var dryDay = good with { Days = [Look(0, "top1", "bot1", "shoe1"), good.Days[1], good.Days[2]] };
+        Assert.Contains(PackingRules.WeatherLayerMissing, PackingRules.Validate(dryDay, context));
+        var noCoat = new PackPlan(["top1", "top2", "top3", "bot1", "shoe1", "bag1"],
+            [Look(0, "top1", "bot1", "shoe1"), Look(1, "top3", "bot1", "shoe1"), Look(2, "top2", "bot1", "shoe1")]);
+        Assert.Contains(PackingRules.WeatherLayerMissing, PackingRules.Validate(noCoat, context));
+        Assert.DoesNotContain(PackingRules.WeatherLayerMissing, PackingRules.Validate(noCoat, context with { CabinOnly = true, CabinMaxItems = 6 }));
+    }
+
+    [Fact]
+    public void Validate_StoredDraftWithoutDayOccasions_ChecksStructureOnly()
+    {
+        var context = Context(3, BusinessDinner) with { DayOccasions = null, LayerDates = null };
+        var plan = RuleBasedPacking.Build(Context(3, BusinessDinner), false, BusinessDinner)!;
+
+        Assert.Null(CapsuleRules.PieceRange(context));
+        Assert.Empty(PackingRules.Validate(plan, context));
+    }
 }
 
 public class AiSchemasTests

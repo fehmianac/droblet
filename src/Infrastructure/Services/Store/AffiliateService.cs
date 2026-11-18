@@ -222,6 +222,7 @@ public sealed class AffiliateService(
             var result = await repository.TransactWriteAsync(operations, ct);
             if (result.Applied)
             {
+                await KeepConvertedClickAsync(input.ClickId, click.TenantId, now, ct);
                 if (click.TenantId is not null)
                 {
                     await analytics.RecordServerEventAsync(AnalyticsRules.Conversion, click.TenantId, new Dictionary<string, string?>
@@ -268,6 +269,26 @@ public sealed class AffiliateService(
             }
         }
         return PostbackOutcome.Updated;
+    }
+
+    /// <summary>
+    /// Retention: a click linked to a conversion loses its 13-month TTL (AffiliateClickRetention) — the index and the
+    /// tenant's click row are kept with the conversion. Rows read back from storage, so nothing else changes.
+    /// </summary>
+    private async Task KeepConvertedClickAsync(string clickId, string? tenantId, DateTime now, CancellationToken ct)
+    {
+        var index = await repository.GetAsync<AffiliateClickIndexEntity>(AffiliateClickIndexEntity.GetPk(clickId), AffiliateClickIndexEntity.GetSk(), ct);
+        if (index is { ConvertedAt: null })
+        {
+            index.ConvertedAt = now;
+            await repository.SaveAsync(index, ct);
+        }
+        if (tenantId is not null
+            && await repository.GetAsync<AffiliateClickEntity>(AffiliateClickEntity.GetPk(tenantId), AffiliateClickEntity.GetSk(clickId), ct) is { ConvertedAt: null } own)
+        {
+            own.ConvertedAt = now;
+            await repository.SaveAsync(own, ct);
+        }
     }
 
     /// <summary>"Gardıroba ekleyelim mi?" is asked once per purchase with known products; a rejected (returned) order withdraws it.</summary>

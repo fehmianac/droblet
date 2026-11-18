@@ -383,7 +383,7 @@ public class StylistJobServiceTests
     }
 
     [Fact]
-    public async Task Pack_PieceWornOnlyOnce_ModelListRejected_RuleBasedListUsed()
+    public async Task Pack_OfficeAndDinnerInTheSameLook_ModelListRejected_RuleBasedListUsed()
     {
         var output = PackOutput(["top1", "top2", "bot1", "shoe1"],
             ("2026-12-01", "top1", "bot1", "shoe1"), ("2026-12-02", "top2", "bot1", "shoe1"), ("2026-12-03", "top1", "bot1", "shoe1"), ("2026-12-04", "top1", "bot1", "shoe1"));
@@ -398,6 +398,36 @@ public class StylistJobServiceTests
         Assert.All(result.Items, i => Assert.True(i.PlannedWears >= 2));
         Assert.Equal(Occasion.Office, result.Days[0].Occasion);
         Assert.Equal(Occasion.Dinner, result.Days[1].Occasion);
+    }
+
+    [Fact]
+    public async Task Pack_ThreeDayBusinessAndDinner_RuleCapsule_GivesDinnerItsOwnLook_AndTheModelGetsTheCapsule()
+    {
+        var model = new FixedModel("{}");
+        var host = Host(model, new FixedWeather(new DailyForecast("2026-12-02", 4, 9, WeatherCondition.Rain)));
+        await SeedWardrobeAsync(host);
+        await host.Repository.SaveAsync(new ItemEntity
+        {
+            Id = "top3", TenantId = Tenant, Category = ItemCategory.Top, ColorIds = ["white"],
+            Seasons = [Season.Spring, Season.Summer, Season.Autumn, Season.Winter], CreatedAt = WorkerTestHost.Now, Version = 1,
+        });
+        var job = await QueuePackAsync(host, "2026-12-01", "2026-12-03");
+
+        var result = StylingJson.TryDeserialize<PackResult>((await RunAsync(host, job)).Result)!;
+
+        Assert.Equal("rule", result.Source);
+        Assert.InRange(result.Items.Count, 6, 9);
+        Assert.Equal([Occasion.Office, Occasion.Dinner, Occasion.Office], result.Days.Select(d => d.Occasion));
+        string TopOf(PackDay day) => day.Slots.Single(s => s.Slot == OutfitSlot.Top).ItemId!;
+        Assert.DoesNotContain(TopOf(result.Days[1]), new[] { TopOf(result.Days[0]), TopOf(result.Days[2]) });
+        Assert.Contains(result.Days[1].Slots, s => s is { Slot: OutfitSlot.Outerwear, ItemId: "coat1" });   // the rainy day
+        Assert.DoesNotContain(result.Days[0].Slots, s => s.Slot == OutfitSlot.Outerwear);
+        Assert.Contains(result.Items, i => i.PlannedWears == 3);                                             // re-worn pieces
+
+        var input = Assert.Single(model.Prompts).InputJson;
+        Assert.Contains("\"capsule\":{", input);
+        Assert.Contains("\"minRewearRatio\":1.5", input);
+        Assert.Contains("\"outerLayer\":true", input);
     }
 
     [Fact]

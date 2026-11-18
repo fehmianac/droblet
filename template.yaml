@@ -46,10 +46,16 @@ Parameters:
     Type: Number
     Default: 2
     MinValue: 2
+  LogRetentionDays:
+    Type: Number
+    Default: 0
+    AllowedValues: [0, 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1096, 1827, 2192, 2557, 2922, 3288, 3653]
+    Description: CloudWatch Logs retention (days) of every Lambda log group. 0 = the stage default, 90 days on dev and 400 on prod.
 
 Conditions:
   IsProd: !Equals [!Ref Stage, prod]
   HasAlarmEmail: !Not [!Equals [!Ref AlarmEmail, '']]
+  HasLogRetentionOverride: !Not [!Equals [!Ref LogRetentionDays, '0']]
 
 Globals:
   Function:
@@ -740,11 +746,80 @@ Resources:
         project: droblet
         stage: !Ref Stage
 
+  # ── Lambda log groups (retention) ─────────────────────────────────────────
+  # Every function writes to an explicitly named group with a retention (LogRetentionDays; default 90 days dev,
+  # 400 days prod) through its LoggingConfig. Why NEW names (/droblet/{Stage}/lambda/{fn}) instead of declaring
+  # /aws/lambda/droblet-{Stage}-{fn}: Lambda already auto-created those groups on the existing stacks, and an
+  # AWS::Logs::LogGroup with an existing name fails the stack update (AlreadyExists) — importing them would need a
+  # separate resource-import change set. Pointing LoggingConfig at a new group is an in-place function update, so this
+  # is safe on an existing stack. The old auto-created groups are left as they are (no retention, no new events):
+  # after the switch, delete them by hand once their history is no longer needed
+  #   aws logs delete-log-group --log-group-name /aws/lambda/droblet-<stage>-<fn>
+  # (or give them a retention: aws logs put-retention-policy --retention-in-days 90 ...). Writing needs no new IAM:
+  # AWSLambdaBasicExecutionRole (every Lambda role below) allows logs:CreateLogStream / PutLogEvents on any group.
+  # tools/Ops `logs` reads the new group and the old one.
+
+  ApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /droblet/${Stage}/lambda/api
+      RetentionInDays: !If [HasLogRetentionOverride, !Ref LogRetentionDays, !If [IsProd, 400, 90]]
+
+  ItemProcessorLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /droblet/${Stage}/lambda/item-processor
+      RetentionInDays: !If [HasLogRetentionOverride, !Ref LogRetentionDays, !If [IsProd, 400, 90]]
+
+  StylistLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /droblet/${Stage}/lambda/stylist
+      RetentionInDays: !If [HasLogRetentionOverride, !Ref LogRetentionDays, !If [IsProd, 400, 90]]
+
+  TryOnLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /droblet/${Stage}/lambda/tryon
+      RetentionInDays: !If [HasLogRetentionOverride, !Ref LogRetentionDays, !If [IsProd, 400, 90]]
+
+  PaletteLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /droblet/${Stage}/lambda/palette
+      RetentionInDays: !If [HasLogRetentionOverride, !Ref LogRetentionDays, !If [IsProd, 400, 90]]
+
+  NotifierReminderLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /droblet/${Stage}/lambda/notifier-reminder
+      RetentionInDays: !If [HasLogRetentionOverride, !Ref LogRetentionDays, !If [IsProd, 400, 90]]
+
+  NotifierWeeklyEditLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /droblet/${Stage}/lambda/notifier-weekly-edit
+      RetentionInDays: !If [HasLogRetentionOverride, !Ref LogRetentionDays, !If [IsProd, 400, 90]]
+
+  NotifierFriendRatingsLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /droblet/${Stage}/lambda/notifier-friend-ratings
+      RetentionInDays: !If [HasLogRetentionOverride, !Ref LogRetentionDays, !If [IsProd, 400, 90]]
+
+  NotifierLifecycleLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /droblet/${Stage}/lambda/notifier-lifecycle
+      RetentionInDays: !If [HasLogRetentionOverride, !Ref LogRetentionDays, !If [IsProd, 400, 90]]
+
   # ── Lambdas ───────────────────────────────────────────────────────────────
   ApiFunction:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub droblet-${Stage}-api
+      LoggingConfig:
+        LogGroup: !Ref ApiLogGroup
       Handler: Api
       Role: !GetAtt ApiLambdaRole.Arn
       MemorySize: 1024   # PBKDF2 (600k iterations) on sign-in is CPU bound
@@ -777,6 +852,8 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub droblet-${Stage}-item-processor
+      LoggingConfig:
+        LogGroup: !Ref ItemProcessorLogGroup
       Handler: ItemProcessor::ItemProcessor.Entrypoint::FunctionHandler
       Role: !GetAtt ItemProcessorLambdaRole.Arn
       Timeout: 120
@@ -799,6 +876,8 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub droblet-${Stage}-stylist
+      LoggingConfig:
+        LogGroup: !Ref StylistLogGroup
       Handler: Stylist::Stylist.Entrypoint::FunctionHandler
       Role: !GetAtt StylistLambdaRole.Arn
       Timeout: 120
@@ -819,6 +898,8 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub droblet-${Stage}-tryon
+      LoggingConfig:
+        LogGroup: !Ref TryOnLogGroup
       Handler: TryOn::TryOn.Entrypoint::FunctionHandler
       Role: !GetAtt TryOnLambdaRole.Arn
       Timeout: 120
@@ -842,6 +923,8 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub droblet-${Stage}-palette
+      LoggingConfig:
+        LogGroup: !Ref PaletteLogGroup
       Handler: Palette::Palette.Entrypoint::FunctionHandler
       Role: !GetAtt PaletteLambdaRole.Arn
       Timeout: 120
@@ -864,6 +947,8 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub droblet-${Stage}-notifier-reminder
+      LoggingConfig:
+        LogGroup: !Ref NotifierReminderLogGroup
       Handler: Notifier::Notifier.Entrypoint::Reminder
       Role: !GetAtt NotifierLambdaRole.Arn
       Timeout: 300
@@ -881,6 +966,8 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub droblet-${Stage}-notifier-weekly-edit
+      LoggingConfig:
+        LogGroup: !Ref NotifierWeeklyEditLogGroup
       Handler: Notifier::Notifier.Entrypoint::WeeklyEdit
       Role: !GetAtt NotifierLambdaRole.Arn
       Timeout: 300
@@ -898,6 +985,8 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub droblet-${Stage}-notifier-friend-ratings
+      LoggingConfig:
+        LogGroup: !Ref NotifierFriendRatingsLogGroup
       Handler: Notifier::Notifier.Entrypoint::FriendRatings
       Role: !GetAtt NotifierLambdaRole.Arn
       Timeout: 300
@@ -915,6 +1004,8 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub droblet-${Stage}-notifier-lifecycle
+      LoggingConfig:
+        LogGroup: !Ref NotifierLifecycleLogGroup
       Handler: Notifier::Notifier.Entrypoint::Lifecycle
       Role: !GetAtt NotifierLambdaRole.Arn
       Timeout: 300
