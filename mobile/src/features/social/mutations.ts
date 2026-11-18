@@ -7,16 +7,20 @@ import type {
   FeedLook,
   FeedPage,
   FollowRequest,
+  FollowRequestAnswer,
+  FollowRequestEntry,
+  FollowState,
   PersonProfile,
   PersonSuggestion,
   RateLookRequest,
   ReportReason,
+  RemoveFollowerRequest,
   ReportRequest,
   SaveLookRequest,
 } from '@/api/contracts/social';
 import { fromSource } from '@/api/dataSource';
 import { ApiError } from '@/api/errors';
-import { fromReportReason, type RatingWire, type ReportRequestWire } from '@/api/wire/social';
+import { fromReportReason, type FollowResultWire, type RatingWire, type ReportRequestWire } from '@/api/wire/social';
 import { socialFixtures } from '@/fixtures/social';
 import { newClientMutation } from '@/sync/clientMutation';
 import { TENANT_WRITE_SCOPE } from '@/sync/queryKeys';
@@ -28,6 +32,8 @@ export const socialMutationKeys = {
   rateLook: ['tenant', 'social', 'look', 'rate'] as const,
   saveLook: ['tenant', 'social', 'look', 'save'] as const,
   follow: ['tenant', 'social', 'follow', 'set'] as const,
+  answerRequest: ['tenant', 'social', 'follow-request', 'answer'] as const,
+  removeFollower: ['tenant', 'social', 'follower', 'remove'] as const,
   report: ['tenant', 'social', 'person', 'report'] as const,
   block: ['tenant', 'social', 'person', 'block'] as const,
   unblock: ['tenant', 'social', 'person', 'unblock'] as const,
@@ -97,38 +103,102 @@ export function registerSocialMutations(client: QueryClient): void {
       client.setQueryData<Feed>(socialKeys.feed, (prev) =>
         updateFeedLooks(prev, (l) => l.lookId === vars.lookId, (l) => ({ ...l, saved: vars.saved })),
       );
+      // "Kaydı kaldır" on the saved-looks screen: the card leaves at once.
+      if (!vars.saved) client.setQueryData<FeedLook[]>(socialKeys.savedLooks, (prev) => prev?.filter((l) => l.lookId !== vars.lookId));
     },
     onSuccess: () => void client.invalidateQueries({ queryKey: socialKeys.savedLooks }),
     onError: () => void client.invalidateQueries({ queryKey: socialKeys.feed }),
   });
 
-  // POST (follow) / DELETE (unfollow) v1/tenant/follow/{handle} → 204, no body
+  // POST (follow → { state }) / DELETE (unfollow, also cancels a pending request) v1/tenant/follow/{handle}
   client.setMutationDefaults(socialMutationKeys.follow, {
     scope: TENANT_WRITE_SCOPE,
     mutationFn: (vars: FollowRequest) =>
-      fromSource(
+      fromSource<FollowState>(
         'social',
         () => socialFixtures.follow(vars.handle, vars.follow),
-        () => apiRequest<void>(`v1/tenant/follow/${handlePath(vars.handle)}`, { method: vars.follow ? 'POST' : 'DELETE' }),
+        async () => {
+          const path = `v1/tenant/follow/${handlePath(vars.handle)}`;
+          if (!vars.follow) {
+            await apiRequest<void>(path, { method: 'DELETE' });
+            return 'none';
+          }
+          return (await apiRequest<FollowResultWire>(path, { method: 'POST' })).state;
+        },
       ),
     onMutate: async (vars: FollowRequest) => {
       await client.cancelQueries({ queryKey: socialKeys.root });
-      const setFollowing = <T extends { isFollowing: boolean }>(value: T): T => ({ ...value, isFollowing: vars.follow });
-      client.setQueryData<PersonProfile | null>(socialKeys.person(vars.handle), (prev) => (prev ? setFollowing(prev) : prev));
-      client.setQueryData<Feed>(socialKeys.feed, (prev) =>
-        updateFeedLooks(prev, (l) => l.author.handle === vars.handle, (l) => ({ ...l, author: setFollowing(l.author) })),
-      );
-      const inLists = (prev: PersonSuggestion[] | undefined) => prev?.map((p) => (p.handle === vars.handle ? setFollowing(p) : p));
-      client.setQueryData<PersonSuggestion[]>(socialKeys.suggested, inLists);
-      client.setQueriesData<PersonSuggestion[]>({ queryKey: ['tenant', 'social', 'search'] }, inLists);
+      // Until the server answers: a public closet is followed at once, anything else is a request.
+      const profile = client.getQueryData<PersonProfile | null>(socialKeys.person(vars.handle));
+      const guess: FollowState = !vars.follow ? 'none' : profile && profile.closetVisibility !== 'public' ? 'requested' : 'following';
+      setFollowState(client, vars.handle, guess);
     },
-    // A new follow changes the feed, the lists and what a followers-only closet shows.
-    onSuccess: (_data: unknown, vars: FollowRequest) => {
+    // The server's answer (`following` or `requested`) replaces the guess; a new follow changes the
+    // feed, the lists and what a followers-only closet shows.
+    onSuccess: (state: FollowState, vars: FollowRequest) => {
+      setFollowState(client, vars.handle, state);
       void client.invalidateQueries({ queryKey: socialKeys.feed });
       void client.invalidateQueries({ queryKey: socialKeys.following });
+      void client.invalidateQueries({ queryKey: socialKeys.followRequests });
       void client.invalidateQueries({ queryKey: socialKeys.person(vars.handle) });
     },
     onError: () => void client.invalidateQueries({ queryKey: socialKeys.root }),
+  });
+
+  // POST v1/tenant/follow-request/{handle}/approve · /decline (incoming), DELETE …/{handle} (cancel mine) → 204
+  client.setMutationDefaults(socialMutationKeys.answerRequest, {
+    scope: TENANT_WRITE_SCOPE,
+    mutationFn: (vars: FollowRequestAnswer) =>
+      fromSource(
+        'social',
+        () => socialFixtures.answerRequest(vars.handle, vars.action),
+        async () => {
+          const path = `v1/tenant/follow-request/${handlePath(vars.handle)}`;
+          try {
+            if (vars.action === 'cancel') await apiRequest<void>(path, { method: 'DELETE' });
+            else await apiRequest<void>(`${path}/${vars.action}`, { method: 'POST' });
+          } catch (e) {
+            // 404 = the request is no longer pending (answered elsewhere, cancelled, blocked): nothing left to do.
+            if (!(e instanceof ApiError && e.status === 404)) throw e;
+          }
+        },
+      ),
+    onMutate: async (vars: FollowRequestAnswer) => {
+      const direction = vars.action === 'cancel' ? 'outgoing' : 'incoming';
+      await client.cancelQueries({ queryKey: socialKeys.followRequests });
+      client.setQueryData<FollowRequestEntry[]>(socialKeys.followRequestList(direction), (prev) =>
+        prev?.filter((r) => r.person.handle !== vars.handle),
+      );
+      if (vars.action === 'cancel') setFollowState(client, vars.handle, 'none');
+      else
+        client.setQueryData<PersonProfile | null>(socialKeys.person(vars.handle), (prev) =>
+          prev ? { ...prev, requestedYou: false, ...(vars.action === 'approve' ? { followsYou: true } : {}) } : prev,
+        );
+    },
+    onSettled: () => {
+      void client.invalidateQueries({ queryKey: socialKeys.followRequests });
+      void client.invalidateQueries({ queryKey: socialKeys.followers });
+      void client.invalidateQueries({ queryKey: ['tenant', 'profile', 'stats'] });
+    },
+  });
+
+  // DELETE v1/tenant/follower/{handle} → 204 (idempotent)
+  client.setMutationDefaults(socialMutationKeys.removeFollower, {
+    scope: TENANT_WRITE_SCOPE,
+    mutationFn: (vars: RemoveFollowerRequest) =>
+      fromSource(
+        'social',
+        () => socialFixtures.removeFollower(vars.handle),
+        () => apiRequest<void>(`v1/tenant/follower/${handlePath(vars.handle)}`, { method: 'DELETE' }),
+      ),
+    onMutate: async (vars: RemoveFollowerRequest) => {
+      await client.cancelQueries({ queryKey: socialKeys.followers });
+      client.setQueryData<PersonSuggestion[]>(socialKeys.followers, (prev) => prev?.filter((p) => p.handle !== vars.handle));
+    },
+    onSettled: () => {
+      void client.invalidateQueries({ queryKey: socialKeys.followers });
+      void client.invalidateQueries({ queryKey: ['tenant', 'profile', 'stats'] });
+    },
   });
 
   // POST v1/tenant/people/{handle}/report { targetKind, targetId?, reason, note? } → 201 { reportId }
@@ -215,6 +285,21 @@ export function registerSocialMutations(client: QueryClient): void {
   });
 }
 
+/** Writes a follow state into every cached place that shows it (profile, feed authors, people lists). */
+function setFollowState(client: QueryClient, handle: string, followState: FollowState): void {
+  const isFollowing = followState === 'following';
+  const apply = <T extends { isFollowing: boolean }>(value: T): T => ({ ...value, isFollowing, followState });
+  client.setQueryData<PersonProfile | null>(socialKeys.person(handle), (prev) => (prev ? apply(prev) : prev));
+  client.setQueryData<Feed>(socialKeys.feed, (prev) =>
+    updateFeedLooks(prev, (l) => l.author.handle === handle, (l) => ({ ...l, author: { ...l.author, isFollowing } })),
+  );
+  const inLists = (prev: PersonSuggestion[] | undefined) => prev?.map((p) => (p.handle === handle ? apply(p) : p));
+  client.setQueryData<PersonSuggestion[]>(socialKeys.suggested, inLists);
+  client.setQueryData<PersonSuggestion[]>(socialKeys.followers, inLists);
+  client.setQueriesData<PersonSuggestion[]>({ queryKey: ['tenant', 'social', 'search'] }, inLists);
+  client.setQueriesData<PersonSuggestion[]>({ queryKey: ['tenant', 'social', 'contacts'] }, inLists);
+}
+
 // ---------- Hooks ----------
 
 const id = () => newClientMutation().clientMutationId;
@@ -229,9 +314,21 @@ export function useSaveLook() {
   return (handle: string, lookId: string, saved: boolean) => m.mutate({ handle, lookId, saved, clientMutationId: id() });
 }
 
+/** `follow: true` = follow / send a request; `false` = unfollow or cancel the pending request. */
 export function useFollow() {
-  const m = useMutation<void, unknown, FollowRequest>({ mutationKey: socialMutationKeys.follow });
+  const m = useMutation<FollowState, unknown, FollowRequest>({ mutationKey: socialMutationKeys.follow });
   return (handle: string, follow: boolean) => m.mutate({ handle, follow, clientMutationId: id() });
+}
+
+/** Approve / decline a request to follow me, or cancel my own pending request. */
+export function useAnswerFollowRequest() {
+  const m = useMutation<void, unknown, FollowRequestAnswer>({ mutationKey: socialMutationKeys.answerRequest });
+  return (handle: string, action: FollowRequestAnswer['action']) => m.mutate({ handle, action, clientMutationId: id() });
+}
+
+export function useRemoveFollower() {
+  const m = useMutation<void, unknown, RemoveFollowerRequest>({ mutationKey: socialMutationKeys.removeFollower });
+  return (handle: string) => m.mutate({ handle, clientMutationId: id() });
 }
 
 /** Reports the profile by default; pass `target` to report one look / item of that person. */

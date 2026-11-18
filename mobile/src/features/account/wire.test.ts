@@ -69,15 +69,39 @@ describe('account wire mappers', () => {
       version: 2,
       updatedAt: null,
     });
-    expect(settings).toEqual({ morningReminder: true, morningTimeLocal: '07:30', weeklyEdit: true, friendRatings: false, baseVersion: 2 });
-    expect(fromNotificationSettings(settings, 'Europe/Istanbul')).toEqual({
+    // A server without the newer switches reads as off.
+    expect(settings).toEqual({
+      morningReminder: true,
+      morningTimeLocal: '07:30',
+      weeklyEdit: true,
+      friendRatings: false,
+      priceDrop: false,
+      followRequests: false,
+      baseVersion: 2,
+    });
+    expect(fromNotificationSettings({ ...settings, priceDrop: true }, 'Europe/Istanbul')).toEqual({
       morningOutfit: true,
       morningOutfitLocalTime: '07:30',
       weeklyEdit: true,
       friendRatings: false,
+      priceDrop: true,
+      followRequests: false,
       timeZone: 'Europe/Istanbul',
       baseVersion: 2,
     });
+    expect(
+      toNotificationSettings({
+        morningOutfit: true,
+        morningOutfitLocalTime: '07:30',
+        weeklyEdit: true,
+        friendRatings: false,
+        priceDrop: true,
+        followRequests: true,
+        timeZone: 'Europe/Istanbul',
+        version: 3,
+        updatedAt: null,
+      }),
+    ).toMatchObject({ priceDrop: true, followRequests: true, baseVersion: 3 });
     expect(toQuarterHour('07:37')).toBe('07:30');
     expect(toQuarterHour('23:55')).toBe('00:00');
   });
