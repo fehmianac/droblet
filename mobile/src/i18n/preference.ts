@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import i18n, { isAppLanguage, type AppLanguage } from './index';
+import i18n, { isSupportedLanguage, type AppLanguage } from './index';
 
 const KEY = 'droblet.language';
 
@@ -8,7 +8,7 @@ const KEY = 'droblet.language';
 export async function restoreLanguagePreference(): Promise<void> {
   try {
     const stored = await AsyncStorage.getItem(KEY);
-    if (isAppLanguage(stored) && stored !== i18n.language) await i18n.changeLanguage(stored);
+    if (isSupportedLanguage(stored) && stored !== i18n.language) await i18n.changeLanguage(stored);
   } catch {
     // Storage unavailable: the device language stays in effect.
   }

@@ -4,11 +4,11 @@ import { initReactI18next } from 'react-i18next';
 
 import { DEFAULT_LANGUAGE, isSupportedLanguage, LANGUAGES, SUPPORTED_LANGUAGES, type AppLanguage } from './languages';
 
-export { DEFAULT_LANGUAGE, isSupportedLanguage as isAppLanguage, LANGUAGES, SUPPORTED_LANGUAGES, type AppLanguage };
+export { DEFAULT_LANGUAGE, isSupportedLanguage, LANGUAGES, SUPPORTED_LANGUAGES, type AppLanguage };
 
 /**
- * i18next resources, built from the language registry (`./languages.ts`). Per-feature files
- * (src/i18n/features) are merged into the default namespace under their own top-level keys.
+ * i18next resources, built from the language registry (`./languages.ts`). Per-language feature files
+ * (src/i18n/features/<code>/) are merged into the default namespace under their own top-level keys.
  */
 export const resources: Record<string, { translation: Record<string, unknown> }> = {};
 for (const code of SUPPORTED_LANGUAGES) {
@@ -17,7 +17,7 @@ for (const code of SUPPORTED_LANGUAGES) {
 
 /**
  * The first device language that is registered; Turkish otherwise.
- * A manual switch comes with screen 29 (`i18n.changeLanguage(code)` — everything below follows it).
+ * The manual switch (29) and its persistence live in `./preference.ts`; everything below follows it.
  */
 export function detectLanguage(): AppLanguage {
   for (const locale of getLocales()) {
