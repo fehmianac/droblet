@@ -104,7 +104,7 @@ describe('19 Bavul detayı', () => {
     expect(screen.getByText('Londra')).toBeTruthy();
     expect(screen.getByText('9 pieces · 5 looks')).toBeTruthy();
     expect(screen.getByText('MISSING PIECE')).toBeTruthy();
-    expect(screen.getByText('Complete the missing pieces')).toBeTruthy();
+    expect(screen.getByText('Get missing')).toBeTruthy();
     expect(screen.getByLabelText('Daily weather forecast')).toBeTruthy();
     expect(screen.getByLabelText('Packing: 3 of 9 pieces ready')).toBeTruthy();
     expect(screen.getByText('3/9')).toBeTruthy();
