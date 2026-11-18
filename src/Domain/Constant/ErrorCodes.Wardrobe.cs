@@ -14,6 +14,9 @@ public static partial class ErrorCodes
     public const string ColorUnknown = "color_unknown";
     public const string FabricUnknown = "fabric_unknown";
     public const string SeasonRequired = "season_required";
+    public const string SubcategoryInvalid = "subcategory_invalid";
+    public const string FabricTextTooLong = "fabric_text_too_long";
+    public const string ColorHexInvalid = "color_hex_invalid";
     public const string LibraryItemNotFound = "library_item_not_found";
     public const string ProductNotFound = "product_not_found";
     public const string ItemIdTaken = "item_id_taken";

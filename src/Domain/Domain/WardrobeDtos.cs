@@ -29,7 +29,10 @@ public record ItemDto(
     ItemListingStatus ListingStatus,
     DateTime CreatedAt,
     DateTime UpdatedAt,
-    long Version);
+    long Version,
+    string? Subcategory = null,
+    string? FabricText = null,
+    string? ColorHex = null);
 
 public record ItemDetailDto(ItemDto Item, IReadOnlyList<LookDto> Looks);
 
