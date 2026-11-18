@@ -48,7 +48,12 @@ export default function AuthStartScreen() {
       if (code === 'email_taken') setErrors({ email: t('errors.email_taken') });
       else if (code === 'invalid_credentials') setErrors({ password: t('errors.invalid_credentials') });
       else if (Object.keys(fields).length > 0) {
-        setErrors({ name: fields.name, email: fields.email, password: fields.password });
+        // The server sends validation codes (`name_required`, `email_invalid`, `password_too_short`), never sentences.
+        setErrors({
+          name: fields.name ? t('errors.nameRequired') : undefined,
+          email: fields.email ? t('errors.emailInvalid') : undefined,
+          password: fields.password ? t('errors.passwordTooShort') : undefined,
+        });
       } else setErrors({ form: t(`errors.${code}`) });
     },
     [t],
@@ -140,6 +145,9 @@ export default function AuthStartScreen() {
             {mode === 'register' ? (
               <TextField
                 testID="auth.name"
+                maxLength={60}
+                autoCapitalize="words"
+                autoCorrect={false}
                 label={t('auth.name')}
                 value={name}
                 onChangeText={(v) => {

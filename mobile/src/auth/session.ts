@@ -34,15 +34,37 @@ export const sessionStore = {
     emit(current ? { status: 'signedIn', user: current.user } : { status: 'signedOut' });
   },
 
-  async setFromAuthResponse(res: AuthResponse): Promise<void> {
+  /**
+   * Stores a token pair. `user` is given at sign-in (name / e-mail from the form or the profile);
+   * a refresh passes none and keeps the stored one.
+   */
+  async setFromAuthResponse(res: AuthResponse, user?: Partial<Omit<AuthUser, 'id'>>): Promise<void> {
+    const previous = current?.user.id === res.userId ? current.user : null;
+    const expiresAt = Date.parse(res.accessTokenExpiresAt);
+    const nextUser: AuthUser = {
+      id: res.userId,
+      name: user?.name ?? previous?.name ?? '',
+      email: user?.email ?? previous?.email ?? '',
+    };
     current = {
       accessToken: res.accessToken,
       refreshToken: res.refreshToken,
-      expiresAt: Date.now() + res.expiresIn * 1000,
-      user: res.user,
+      // An unreadable timestamp reads as "expired": the next request refreshes first.
+      expiresAt: Number.isFinite(expiresAt) ? expiresAt : 0,
+      user: nextUser,
     };
     await writeSession(current);
-    emit({ status: 'signedIn', user: res.user });
+    emit({ status: 'signedIn', user: nextUser });
+  },
+
+  /** Fills in the display name / e-mail once the profile is known (social sign-in, e-mail login). */
+  async updateUser(patch: Partial<Omit<AuthUser, 'id'>>): Promise<void> {
+    if (!current) return;
+    const nextUser: AuthUser = { ...current.user, ...patch };
+    if (nextUser.name === current.user.name && nextUser.email === current.user.email) return;
+    current = { ...current, user: nextUser };
+    await writeSession(current);
+    emit({ status: 'signedIn', user: nextUser });
   },
 
   /**

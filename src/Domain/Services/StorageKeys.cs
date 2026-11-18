@@ -18,6 +18,10 @@ public static class StorageKeys
         $"{PhotoPrefix(tenantId, kind)}{Guard(photoId)}.{extension}";
     public static string TryOnPrefix(string tenantId) => $"{TenantRoot(tenantId)}tryon/";
     public static string ItemsPrefix(string tenantId) => $"{TenantRoot(tenantId)}items/";
+    /// <summary>Cleaned (background removed) garment image of a draft / item.</summary>
+    public static string ItemImage(string tenantId, string draftId) => $"{ItemsPrefix(tenantId)}{Guard(draftId)}.webp";
+    /// <summary>EXIF-stripped original garment photo ("Orijinale dön").</summary>
+    public static string ItemOriginal(string tenantId, string draftId, string extension) => $"{ItemsPrefix(tenantId)}{Guard(draftId)}-original.{extension}";
 
     public static bool BelongsToTenant(string key, string tenantId) =>
         key.StartsWith(TenantRoot(tenantId), StringComparison.Ordinal)

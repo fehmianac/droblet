@@ -25,6 +25,8 @@ export type Item = {
   brand: string | null;
   size: string | null;
   color: ItemColor;
+  /** The server's reference colour ids behind `color` (`[0]` = main). Absent on fixture / optimistic records. */
+  colorIds?: string[];
   fabric: string | null;
   /** At least one. */
   seasons: ItemSeason[];
@@ -32,6 +34,8 @@ export type Item = {
   imageUrl: string | null;
   /** The photo as taken ("Orijinale dön"). */
   originalImageUrl: string | null;
+  /** The photo as taken still exists on the server, so "Orijinale dön" can be offered. */
+  hasOriginalImage?: boolean;
   useOriginalImage: boolean;
   wearCount: number;
   lastWornAt: string | null;

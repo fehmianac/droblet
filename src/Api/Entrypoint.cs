@@ -22,6 +22,7 @@ public class Entrypoint
 
         builder.Services.AddAWSLambdaHosting(LambdaEventSource.HttpApi);
         builder.Services.AddApiCore();
+        builder.Services.AddAdminAuthorization();
         builder.Services.AddDrobletCore(builder.Configuration);
         builder.Services.AddDrobletApiServices(builder.Configuration);
 

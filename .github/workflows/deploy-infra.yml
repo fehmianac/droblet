@@ -152,6 +152,28 @@ jobs:
             echo "deploy.zip yoktu; yer tutucu yuklendi." >> "$GITHUB_STEP_SUMMARY"
           fi
 
+      # CloudFormation, kendisinin olusturmadigi ayni adli bir kaynak varsa change set'i reddeder
+      # (EarlyValidation::ResourceExistenceCheck). Konsoldan elle eklenmis bir "$default" stage bunu tetikler:
+      # stack'e ait degilse silinir, ardindan sablon kendi "$default" stage'ini olusturur.
+      - name: Stack disi $default stage temizligi
+        if: env.EXECUTE == 'true'
+        run: |
+          set -euo pipefail
+          api_id=$(aws cloudformation describe-stack-resource --stack-name "$STACK_NAME" \
+            --logical-resource-id HttpApiGateway --query StackResourceDetail.PhysicalResourceId --output text 2>/dev/null || true)
+          if [ -z "$api_id" ] || [ "$api_id" = "None" ]; then echo "API henuz yok; atlandi."; exit 0; fi
+          managed=$(aws cloudformation describe-stack-resources --stack-name "$STACK_NAME" \
+            --query "StackResources[?ResourceType=='AWS::ApiGatewayV2::Stage'].PhysicalResourceId" --output text)
+          if printf '%s\n' $managed | grep -qx '\$default'; then
+            echo "\$default stage stack'e ait; dokunulmadi."; exit 0
+          fi
+          if aws apigatewayv2 get-stage --api-id "$api_id" --stage-name '$default' >/dev/null 2>&1; then
+            aws apigatewayv2 delete-stage --api-id "$api_id" --stage-name '$default'
+            echo "Stack disi \$default stage silindi (api $api_id); sablon yenisini olusturacak." | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Stack disi \$default stage yok."
+          fi
+
       - name: sam deploy
         env:
           BUCKET: ${{ steps.bucket.outputs.name }}
@@ -214,6 +236,14 @@ jobs:
             "Sign in with Apple .p8 anahtari (token iptali icin; giris dogrulamasi icin gerekmez)."
           ensure "api/Store/NotificationKey" SecureString "CHANGE_ME" \
             "Magaza sunucu bildirimlerini dogrulama anahtari (uyelik satin alma acilinca)."
+          # Affiliate donusum bildirimlerini (postback) imzalayan ortak sirlar: ag ve dogrudan marka anlasmalari.
+          # Uretilen deger ilgili aga / markaya verilir; yoksa her postback reddedilir.
+          net=$(openssl rand -hex 32); echo "::add-mask::$net"
+          dir=$(openssl rand -hex 32); echo "::add-mask::$dir"
+          ensure "api/AffiliatePostback/NetworkSecret" SecureString "$net" \
+            "Affiliate agi postback imza sirri (HMAC). Otomatik uretildi; aga bu deger verilir."
+          ensure "api/AffiliatePostback/DirectSecret" SecureString "$dir" \
+            "Dogrudan marka anlasmalari icin varsayilan postback imza sirri. Otomatik uretildi."
           ensure "worker/Ai/ApiKey" SecureString "CHANGE_ME" \
             "AI saglayici (OpenAI) API anahtari. CHANGE_ME ise AI isleri calismaz."
           ensure "notifier/Push/ServiceAccountJson" SecureString "CHANGE_ME" \

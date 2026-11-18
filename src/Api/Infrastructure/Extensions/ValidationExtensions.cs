@@ -62,11 +62,12 @@ public static class ApiResults
             Extensions = { ["code"] = code },
         });
 
-    public static string Language(this HttpContext context)
-    {
-        var header = context.Request.Headers.AcceptLanguage.ToString();
-        return header.StartsWith("en", StringComparison.OrdinalIgnoreCase) ? "en" : "tr";
-    }
+    /// <summary>
+    /// Language of an anonymous request (register, social sign-in, password reset): the first supported language of
+    /// Accept-Language (Localization:SupportedLanguages), else the default language.
+    /// </summary>
+    public static string Language(this HttpContext context) =>
+        Domain.Services.Localized.Language(null, context.Request.Headers.AcceptLanguage.ToString());
 
     public static string? ClientIp(this HttpContext context) => context.Connection.RemoteIpAddress?.ToString();
 }

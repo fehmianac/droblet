@@ -9,9 +9,20 @@ public static class Ulid
 
     public static string New(DateTime? utcNow = null)
     {
-        var ms = (utcNow ?? DateTime.UtcNow).ToUnixTimeMilliseconds();
         Span<byte> random = stackalloc byte[10];
         RandomNumberGenerator.Fill(random);
+        return Build((utcNow ?? DateTime.UtcNow).ToUnixTimeMilliseconds(), random);
+    }
+
+    /// <summary>
+    /// A ULID that is a pure function of (time, seed): the same server-side action always yields the same id, so a
+    /// retried mutation is idempotent without the client supplying an id.
+    /// </summary>
+    public static string Deterministic(DateTime utc, string seed) =>
+        Build(utc.ToUnixTimeMilliseconds(), SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(seed)).AsSpan(0, 10));
+
+    private static string Build(long ms, ReadOnlySpan<byte> random)
+    {
 
         Span<char> chars = stackalloc char[26];
         for (var i = 9; i >= 0; i--)

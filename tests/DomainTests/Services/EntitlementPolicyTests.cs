@@ -151,3 +151,42 @@ public class EntitlementResolverTests
         Assert.False(EntitlementResolver.CreditContextFor(ActiveEntitlement.Free, Now, 30).HasAllowance);
     }
 }
+
+public class ItemRecognitionPolicyTests
+{
+    [Theory]
+    [InlineData(10, 0, 10, 0, 10)]
+    [InlineData(10, 4, 10, 4, 6)]
+    [InlineData(10, 10, 10, 10, 0)]
+    [InlineData(10, 13, 10, 10, 0)]   // limit lowered after use: never negative, used capped at the limit
+    [InlineData(0, 0, 0, 0, 0)]
+    [InlineData(-5, 0, 0, 0, 0)]
+    public void NonMember_HasALifetimeAllowance(int limit, int used, int expectedLimit, int expectedUsed, int expectedRemaining)
+    {
+        var quota = EntitlementPolicy.ItemRecognition(Tier.Free, limit, used);
+
+        Assert.Equal((expectedLimit, expectedUsed, expectedRemaining), (quota.Limit, quota.Used, quota.Remaining));
+        Assert.False(quota.Unlimited);
+    }
+
+    [Fact]
+    public void Member_IsUnlimited()
+    {
+        var quota = EntitlementPolicy.ItemRecognition(Tier.Premium, 10, 250);
+
+        Assert.True(quota.Unlimited);
+        Assert.Equal((null, 250, null), (quota.Limit, quota.Used, quota.Remaining));
+        Assert.Equal(new ItemRecognitionGrant(30, 0, null), EntitlementPolicy.GrantItemRecognition(Tier.Premium, 0, 999, 30));
+    }
+
+    [Theory]
+    [InlineData(10, 0, 1, 1, 0, null)]
+    [InlineData(10, 9, 1, 1, 0, null)]                                        // the last one
+    [InlineData(10, 7, 30, 3, 27, null)]                                      // bulk: up to what is left, the rest skipped
+    [InlineData(10, 10, 1, 0, 1, ErrorCodes.ItemRecognitionLimitReached)]     // 402
+    [InlineData(10, 10, 5, 0, 5, ErrorCodes.ItemRecognitionLimitReached)]
+    [InlineData(0, 0, 1, 0, 1, ErrorCodes.PremiumRequired)]                   // limit 0 = members only → paywall
+    [InlineData(10, 10, 0, 0, 0, null)]                                       // nothing requested, nothing refused
+    public void Grant_ForANonMember(int limit, int used, int requested, int granted, int skipped, string? reason) =>
+        Assert.Equal(new ItemRecognitionGrant(granted, skipped, reason), EntitlementPolicy.GrantItemRecognition(Tier.Free, limit, used, requested));
+}

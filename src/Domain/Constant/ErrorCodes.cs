@@ -1,7 +1,7 @@
 namespace Domain.Constant;
 
 /// <summary>Stable snake_case error codes. The client owns the TR/EN sentences.</summary>
-public static class ErrorCodes
+public static partial class ErrorCodes
 {
     public const string ValidationFailed = "validation_failed";
     public const string NotFound = "not_found";
@@ -32,5 +32,7 @@ public static class ErrorCodes
     // Entitlement / credits
     public const string PremiumRequired = "premium_required";
     public const string CreditsExhausted = "credits_exhausted";
+    /// <summary>402: a non-member used every free AI garment recognition. The client shows the paywall; manual entry stays possible.</summary>
+    public const string ItemRecognitionLimitReached = "item_recognition_limit_reached";
     public const string PurchaseVerificationUnavailable = "purchase_verification_unavailable";
 }

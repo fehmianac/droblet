@@ -29,6 +29,9 @@ public static class DependencyInjection
         services.Configure<StoreOptions>(configuration.GetSection(StoreOptions.Section));
         services.Configure<AiOptions>(configuration.GetSection(AiOptions.Section));
         services.Configure<AffiliateOptions>(configuration.GetSection(AffiliateOptions.Section));
+        // Secrets created by deploy-infra hold the literal CHANGE_ME until the owner fills them in: bind that as "not set".
+        services.PostConfigure<AiOptions>(o => o.ApiKey = ConfigSecret.OrNull(o.ApiKey));
+        services.PostConfigure<StoreOptions>(o => o.NotificationKey = ConfigSecret.OrNull(o.NotificationKey));
 
         services.AddSingleton(TimeProvider.System);
 
@@ -41,19 +44,28 @@ public static class DependencyInjection
         services.AddSingleton<IEventManager, EventManager>();
         services.AddSingleton<IEntitlementService, EntitlementService>();
         services.AddSingleton<ICreditService, CreditService>();
+        services.AddSingleton<IItemRecognitionQuotaService, ItemRecognitionQuotaService>();
         services.AddSingleton<IJobLifecycle, JobLifecycle>();
+        services.AddDrobletWardrobe(configuration);
+        services.AddDrobletStoreSocialCore(configuration);
         return services;
     }
 
     public static IServiceCollection AddDrobletAi(this IServiceCollection services)
     {
-        services.AddSingleton<NotConfiguredAiProvider>();
-        services.AddSingleton<IAiProvider>(sp => sp.GetRequiredService<NotConfiguredAiProvider>());
-        services.AddSingleton<IImageCleanup>(sp => sp.GetRequiredService<NotConfiguredAiProvider>());
-        services.AddSingleton<IGarmentVision>(sp => sp.GetRequiredService<NotConfiguredAiProvider>());
-        services.AddSingleton<ITryOnRenderer>(sp => sp.GetRequiredService<NotConfiguredAiProvider>());
-        services.AddSingleton<IStylistModel>(sp => sp.GetRequiredService<NotConfiguredAiProvider>());
-        services.AddSingleton<IPaletteAnalyzer>(sp => sp.GetRequiredService<NotConfiguredAiProvider>());
+        // OpenAI over plain HTTP. With Ai:Enabled = false (default) or a missing key / model id every call throws
+        // AiProviderException, so jobs fail with ProviderError and credits are refunded — same as before.
+        services.AddSingleton(sp => new OpenAiProvider(
+            new HttpClient { Timeout = Timeout.InfiniteTimeSpan },
+            sp.GetRequiredService<IOptionsMonitor<AiOptions>>(),
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<OpenAiProvider>>()));
+        services.AddSingleton<IAiProvider>(sp => sp.GetRequiredService<OpenAiProvider>());
+        services.AddSingleton<IImageCleanup>(sp => sp.GetRequiredService<OpenAiProvider>());
+        services.AddSingleton<IGarmentVision>(sp => sp.GetRequiredService<OpenAiProvider>());
+        services.AddSingleton<ITryOnRenderer>(sp => sp.GetRequiredService<OpenAiProvider>());
+        services.AddSingleton<IStylistModel>(sp => sp.GetRequiredService<OpenAiProvider>());
+        services.AddSingleton<IPaletteAnalyzer>(sp => sp.GetRequiredService<OpenAiProvider>());
+        services.AddSingleton<IOutfitSplitter>(sp => sp.GetRequiredService<OpenAiProvider>());
         return services;
     }
 
@@ -65,6 +77,8 @@ public static class DependencyInjection
         services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.Section));
         services.Configure<AppLinksOptions>(configuration.GetSection(AppLinksOptions.Section));
         services.Configure<AuthRateLimitOptions>(configuration.GetSection(AuthRateLimitOptions.Section));
+        services.PostConfigure<AppleAuthOptions>(o => o.PrivateKey = ConfigSecret.OrNull(o.PrivateKey));
+        services.PostConfigure<EmailOptions>(o => o.SendGrid.ApiKey = ConfigSecret.OrNull(o.SendGrid.ApiKey));
 
         services.AddHttpContextAccessor();
         services.AddScoped<IApiContext, ApiContext>();
@@ -96,6 +110,7 @@ public static class DependencyInjection
             sp.GetRequiredService<IOptionsMonitor<GoogleAuthOptions>>(),
             sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<GoogleIdentityVerifier>>()));
 
+        services.AddDrobletStoreSocialApi();
         return services;
     }
 }

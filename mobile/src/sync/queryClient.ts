@@ -7,7 +7,7 @@ import { ApiError } from '@/api/errors';
 import { registerMutationDefaults } from './mutationFns';
 
 /** Bump when a persisted shape changes incompatibly; old caches are discarded. */
-export const CACHE_BUSTER = 'v1';
+export const CACHE_BUSTER = 'v2';
 export const CACHE_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 7;
 
 function shouldRetry(failureCount: number, error: unknown): boolean {

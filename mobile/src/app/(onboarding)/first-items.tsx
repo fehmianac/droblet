@@ -7,7 +7,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 
 import { track } from '@/analytics/track';
 import type { LibraryItem } from '@/api/contracts';
-import { useItemLibrary } from '@/api/today';
+import { useAddLibraryItems, useItemLibrary } from '@/api/today';
 import { useSession } from '@/auth/session';
 import { StepHeader } from '@/components/auth/StepHeader';
 import { BottomActionBar } from '@/components/ui/BottomActionBar';
@@ -83,13 +83,14 @@ function GridSkeleton() {
 /**
  * 04b İlk 5 parça (3/3) — "Gardırobunda bunlardan hangileri var?": camera shortcut card, a 3 × 3 grid of
  * ready-made pieces, a link to the whole library and the bottom bar with the "N / 5 seçildi" counter.
- * Five is a recommendation, not a gate. No backend contract yet (E2): the selection is kept on the device
- * under the user's key.
+ * Five is a recommendation, not a gate. "Devam et" adds the chosen pieces to the wardrobe
+ * (`POST v1/tenant/item/from-library`).
  */
 export default function FirstItemsScreen() {
   const { t } = useTranslation();
   const session = useSession();
   const library = useItemLibrary();
+  const addItems = useAddLibraryItems();
   const [selected, setSelected] = useState<string[]>([]);
 
   const toggle = (id: string) =>
@@ -100,7 +101,10 @@ export default function FirstItemsScreen() {
       void AsyncStorage.setItem(`droblet.firstItems.${session.user.id}`, JSON.stringify(selected));
     }
     track('signup_step', { step: 'first_items', count: selected.length });
-    router.push({ pathname: '/paywall', params: { from: 'onboarding' } });
+    const goToPaywall = () => router.push({ pathname: '/paywall', params: { from: 'onboarding' } });
+    // The user is never held on this step: a failed add is not fatal, 12b offers the same pieces later.
+    if (selected.length === 0) goToPaywall();
+    else addItems.mutate(selected, { onSettled: goToPaywall });
   };
 
   const openCamera = () => router.push('/item/add');
@@ -182,7 +186,7 @@ export default function FirstItemsScreen() {
               {t('firstItems.counterHint')}
             </Text>
           </View>
-          <Button size="bar" label={t('common.continue')} onPress={submit} testID="firstItems.continue" />
+          <Button size="bar" label={t('common.continue')} onPress={submit} loading={addItems.isPending} testID="firstItems.continue" />
         </View>
       </BottomActionBar>
     </Screen>

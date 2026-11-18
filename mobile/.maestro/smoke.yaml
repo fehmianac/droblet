@@ -1,0 +1,122 @@
+# Smoke flow: fresh install -> register -> onboarding -> the five tabs, against the real API.
+# Elements are addressed by testID (stable across languages and copy changes).
+# Run: maestro test -e EMAIL="smoke+$(date +%s)@example.com" .maestro/smoke.yaml
+#      (needs a Release/dev build installed on a booted simulator; every run needs a fresh e-mail)
+appId: com.alatech.droplet
+env:
+  EMAIL: ${EMAIL}
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+    arguments:
+      AppleLanguages: "(tr)"
+      AppleLocale: "tr_TR"
+- extendedWaitUntil:
+    visible:
+      id: "welcome.start"
+    timeout: 20000
+- takeScreenshot: 01-hos-geldin
+- tapOn:
+    id: "welcome.start"
+
+# 02 Kayıt — e-mail sign-up
+- extendedWaitUntil:
+    visible:
+      id: "auth.name"
+    timeout: 10000
+- takeScreenshot: 02-kayit
+- tapOn:
+    id: "auth.name"
+- inputText: "Damla"
+- tapOn:
+    id: "auth.email"
+- inputText: ${EMAIL}
+- tapOn:
+    id: "auth.password"
+- inputText: "Sm0keTest2026"
+- hideKeyboard
+- takeScreenshot: 02b-kayit-dolu
+- scrollUntilVisible:
+    element:
+      id: "auth.submit"
+    direction: DOWN
+- tapOn:
+    id: "auth.submit"
+
+# 03 Stil profili — a new account always goes through onboarding
+- extendedWaitUntil:
+    visible:
+      id: "style.continue"
+    timeout: 20000
+- takeScreenshot: 03-stil-profili
+- tapOn:
+    id: "style.tag.minimal"
+- tapOn:
+    id: "style.tag.classic"
+- tapOn:
+    id: "style.tag.street"
+- scrollUntilVisible:
+    element:
+      id: "style.budget.mixed"
+    direction: DOWN
+- tapOn:
+    id: "style.budget.mixed"
+- tapOn:
+    id: "style.continue"
+
+# 04 Beden + fotoğraf — skipped (no camera on the simulator)
+- extendedWaitUntil:
+    visible:
+      id: "body.skip"
+    timeout: 20000
+- takeScreenshot: 04-beden-foto
+- tapOn:
+    id: "body.skip"
+
+# 04b İlk 5 parça — five pieces from the ready-made library (GET v1/tenant/library/item)
+- extendedWaitUntil:
+    visible:
+      id: "firstItems.item.lib-white-tshirt"
+    timeout: 20000
+- takeScreenshot: 04b-ilk-parcalar
+- tapOn:
+    id: "firstItems.item.lib-white-tshirt"
+- tapOn:
+    id: "firstItems.item.lib-black-tshirt"
+- tapOn:
+    id: "firstItems.item.lib-white-shirt"
+- tapOn:
+    id: "firstItems.item.lib-striped-shirt"
+- tapOn:
+    id: "firstItems.item.lib-cream-knit"
+- tapOn:
+    id: "firstItems.continue"
+
+# 05 Paywall — closed without buying
+- extendedWaitUntil:
+    visible:
+      id: "paywall.close"
+    timeout: 20000
+- takeScreenshot: 05-paywall
+- tapOn:
+    id: "paywall.close"
+
+# The five tabs
+- extendedWaitUntil:
+    visible:
+      id: "tab.today"
+    timeout: 20000
+- takeScreenshot: 06-bugun
+- tapOn:
+    id: "tab.wardrobe"
+- takeScreenshot: 10-gardirop
+- tapOn:
+    id: "tab.stylist"
+- takeScreenshot: 16-stilist
+- tapOn:
+    id: "tab.discover"
+- takeScreenshot: 20-kesfet
+- tapOn:
+    id: "tab.profile"
+- takeScreenshot: 28-profil

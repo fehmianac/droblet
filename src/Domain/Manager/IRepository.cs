@@ -33,6 +33,10 @@ public sealed record TransactWriteOperation
     public static TransactWriteOperation PutVersioned(IVersionedEntity entity) =>
         new() { Entity = entity, Pk = entity.Pk, Sk = entity.Sk, Condition = WriteCondition.VersionEquals, ExpectedVersion = entity.Version };
 
+    /// <summary>Put only if the key still exists: a background writer never brings back a row the user deleted meanwhile.</summary>
+    public static TransactWriteOperation PutExisting(IEntity entity) =>
+        new() { Entity = entity, Pk = entity.Pk, Sk = entity.Sk, Condition = WriteCondition.Exists };
+
     public static TransactWriteOperation Delete(string pk, string sk) =>
         new() { Pk = pk, Sk = sk, IsDelete = true };
 

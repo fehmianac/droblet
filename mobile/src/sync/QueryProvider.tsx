@@ -1,7 +1,8 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
-import { useMemo, type ReactNode } from 'react';
+import { useEffect, useMemo, type ReactNode } from 'react';
 
+import { setActiveQueryClient } from './activeClient';
 import { CACHE_BUSTER, CACHE_MAX_AGE_MS, createPersister, createQueryClient, dehydrateOptions } from './queryClient';
 
 /**
@@ -11,6 +12,12 @@ import { CACHE_BUSTER, CACHE_MAX_AGE_MS, createPersister, createQueryClient, deh
 export function QueryProvider({ userId, children }: { userId: string | null; children: ReactNode }) {
   const client = useMemo(() => createQueryClient(), [userId]); // eslint-disable-line react-hooks/exhaustive-deps
   const persister = useMemo(() => (userId ? createPersister(userId) : null), [userId]);
+
+  // Wire mappers outside React join responses with this user's cached wardrobe / catalogue.
+  useEffect(() => {
+    setActiveQueryClient(client);
+    return () => setActiveQueryClient(null);
+  }, [client]);
 
   if (!userId || !persister) {
     return <QueryClientProvider client={client}>{children}</QueryClientProvider>;

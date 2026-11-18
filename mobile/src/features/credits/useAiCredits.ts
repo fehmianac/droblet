@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { apiRequest } from '@/api/client';
 import type { Entitlement } from '@/api/contracts';
 import { fromSource } from '@/api/dataSource';
+import { toEntitlement, type EntitlementWire } from '@/api/wire/core';
 import { clone, fixtureDb } from '@/fixtures/db';
 
 import { creditSheetStore } from './creditSheetStore';
@@ -34,7 +35,7 @@ export function useAiCredits(): AiCredits {
       fromSource<Entitlement>(
         'jobs',
         () => clone(fixtureDb.entitlement),
-        () => apiRequest<Entitlement>('v1/tenant/entitlement'),
+        async () => toEntitlement(await apiRequest<EntitlementWire>('v1/tenant/entitlement')),
       ),
   });
   const remaining = query.data?.credits.remaining ?? null;

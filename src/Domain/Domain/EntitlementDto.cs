@@ -5,7 +5,10 @@ namespace Domain.Domain;
 
 public record CreditsDto(int MonthlyAllowance, int AllowanceRemaining, int PackRemaining, int TotalRemaining, DateTime? ResetsAt);
 
-public record EntitlementDto(Tier Tier, string? ProductId, StorePlatform? Platform, DateTime? ExpiresAt, CreditsDto Credits);
+/// <summary>AI garment recognitions: limit / remaining null = unlimited (members). used = completed + in progress.</summary>
+public record ItemRecognitionDto(int? Limit, int Used, int? Remaining);
+
+public record EntitlementDto(Tier Tier, string? ProductId, StorePlatform? Platform, DateTime? ExpiresAt, CreditsDto Credits, ItemRecognitionDto ItemRecognition);
 
 public static class EntitlementDtoMapper
 {
@@ -19,5 +22,8 @@ public static class EntitlementDtoMapper
             snapshot.Credits.AllowanceRemaining,
             snapshot.Credits.PackRemaining,
             snapshot.Credits.TotalRemaining,
-            snapshot.Credits.ResetsAt));
+            snapshot.Credits.ResetsAt),
+        (snapshot.ItemRecognition ?? EntitlementPolicy.ItemRecognition(snapshot.Active.Tier, 0, 0)).ToDto());
+
+    public static ItemRecognitionDto ToDto(this ItemRecognitionQuota quota) => new(quota.Limit, quota.Used, quota.Remaining);
 }
