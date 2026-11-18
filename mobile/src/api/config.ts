@@ -26,3 +26,8 @@ export function googleClientIds(): { ios: string | null; android: string | null;
   const ids = extra().googleClientIds ?? {};
   return { ios: ids.ios ?? null, android: ids.android ?? null, web: ids.web ?? null };
 }
+
+/** Domain of shared links (`https://{domain}/l/…`, `/u/…`, `/invite/…`). */
+export function linkDomain(): string {
+  return extra().linkDomain ?? 'droplet.alatech.co';
+}

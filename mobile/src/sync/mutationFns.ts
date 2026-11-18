@@ -9,10 +9,15 @@ import type {
   WearLogRequest,
 } from '@/api/contracts';
 import { isConflict, isGone } from '@/api/errors';
+import { registerLooksMutations } from '@/features/looks/mutations';
+import { registerStylistMutations } from '@/features/stylist/mutations';
+import { registerTodayMutations } from '@/features/today/mutations';
+import { registerWardrobeMutations } from '@/features/wardrobe/mutations';
 import { withLatency } from '@/fixtures/today';
 import { ulid } from '@/lib/ids';
 
 import { conflictStore } from './conflicts';
+import { registerFeatureMutations } from './featureMutations';
 import { mutationKeys, queryKeys, TENANT_WRITE_SCOPE } from './queryKeys';
 import { uploadPhoto } from './photoUpload';
 
@@ -93,9 +98,18 @@ export function registerMutationDefaults(client: QueryClient): void {
     retry: 3,
   });
 
+  // Per-feature queued writes (Bugün E4, Gardırop E2/E3/E5, Stilist E5) register themselves.
+  registerTodayMutations(client);
+  registerWardrobeMutations(client);
+  registerLooksMutations(client);
+  registerStylistMutations(client);
+
   // Fixture-backed until the E4 wear-log contract exists (candidate: POST v1/tenant/wear-logs).
   client.setMutationDefaults(mutationKeys.createWearLog, {
     scope: TENANT_WRITE_SCOPE,
     mutationFn: (vars: WearLogRequest) => withLatency(vars, 200),
   });
+
+  // Keşfet/mağaza/sepet, sosyal, profil/ayarlar/palet and analytics register their own writes.
+  registerFeatureMutations(client);
 }

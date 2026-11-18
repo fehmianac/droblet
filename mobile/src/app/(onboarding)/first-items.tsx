@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FlatList, Pressable, View } from 'react-native';
 
+import { track } from '@/analytics/track';
 import type { LibraryItem } from '@/api/contracts';
 import { useItemLibrary } from '@/api/today';
 import { useSession } from '@/auth/session';
@@ -83,6 +84,7 @@ export default function FirstItemsScreen() {
     if (session.status === 'signedIn') {
       void AsyncStorage.setItem(`droblet.firstItems.${session.user.id}`, JSON.stringify(selected));
     }
+    track('signup_step', { step: 'first_items', count: selected.length });
     goToPaywall();
   };
 

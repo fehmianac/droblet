@@ -2,9 +2,8 @@ import { Heart } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { Pressable, View } from 'react-native';
 
-import { currentLanguage } from '@/i18n';
-import { formatTry } from '@/lib/format';
-import { toDisplayUpper } from '@/lib/upper';
+import { formatMoney, type Money } from '@/lib/format';
+import { toBrandUpper } from '@/lib/upper';
 
 import { IconButton } from './IconButton';
 import { PlaceholderImage } from './PlaceholderImage';
@@ -13,7 +12,7 @@ import { Text } from './Text';
 type Props = {
   brand: string;
   name: string;
-  price: number | null;
+  price: Money | null;
   imageUri?: string | null;
   favorite: boolean;
   onToggleFavorite: () => void;
@@ -28,18 +27,18 @@ export function ProductCard({ brand, name, price, imageUri, favorite, onToggleFa
       <Pressable
         onPress={onPress}
         accessibilityRole="button"
-        accessibilityLabel={[brand, name, price !== null ? formatTry(price) : null].filter(Boolean).join(', ')}
+        accessibilityLabel={[brand, name, price !== null ? formatMoney(price) : null].filter(Boolean).join(', ')}
         className="gap-2"
       >
         <PlaceholderImage uri={imageUri} className="aspect-[4/5] w-full rounded-image-lg" />
         <View className="gap-0.5">
           <Text variant="brand" tone="muted" numberOfLines={1}>
-            {toDisplayUpper(brand, currentLanguage())}
+            {toBrandUpper(brand)}
           </Text>
           <Text variant="body" numberOfLines={1}>
             {name}
           </Text>
-          {price !== null ? <Text variant="bodyMedium">{formatTry(price)}</Text> : null}
+          {price !== null ? <Text variant="bodyMedium">{formatMoney(price)}</Text> : null}
         </View>
       </Pressable>
       <View className="absolute right-2 top-2">

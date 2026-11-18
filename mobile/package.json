@@ -63,7 +63,8 @@
     "web": "expo start --web",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "jest"
+    "test": "jest",
+    "check": "tsc --noEmit && eslint . && jest"
   },
   "private": true,
   "jest": {
@@ -74,6 +75,8 @@
     ],
     "moduleNameMapper": {
       "\\.css$": "<rootDir>/jest/styleMock.js",
+      "^react-native-reanimated$": "<rootDir>/jest/reanimatedMock.js",
+      "^react-native-reanimated/mock$": "<rootDir>/jest/reanimatedMockImpl.js",
       "^lucide-react-native$": "<rootDir>/node_modules/lucide-react-native/dist/cjs/lucide-react-native.js"
     },
     "setupFiles": [

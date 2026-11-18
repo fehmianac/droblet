@@ -7,7 +7,9 @@
     "preview": {
       "distribution": "internal",
       "channel": "preview",
-      "android": { "buildType": "apk" },
+      "android": {
+        "buildType": "apk"
+      },
       "env": {
         "DROBLET_API_BASE_URL": "https://b8lvaj4r5e.execute-api.eu-central-1.amazonaws.com/dev",
         "DROBLET_TERMS_URL": "https://droplet.alatech.co/terms",
@@ -18,7 +20,7 @@
       "channel": "production",
       "autoIncrement": true,
       "env": {
-        "DROBLET_API_BASE_URL": "https://api.droplet.alatech.co",
+        "DROBLET_API_BASE_URL": "https://b8lvaj4r5e.execute-api.eu-central-1.amazonaws.com/dev",
         "DROBLET_TERMS_URL": "https://droplet.alatech.co/terms",
         "DROBLET_PRIVACY_URL": "https://droplet.alatech.co/privacy"
       }
@@ -27,9 +29,7 @@
   "submit": {
     "production": {
       "ios": {
-        "appleId": "[APPLE_ID_EMAIL]",
-        "ascAppId": "[APP_STORE_CONNECT_APP_ID]",
-        "appleTeamId": "[APPLE_TEAM_ID]"
+        "appleTeamId": "4LB4RD97A9"
       },
       "android": {
         "serviceAccountKeyPath": "./play-service-account.json",

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AccessibilityInfo, ScrollView, View } from 'react-native';
 
+import { track } from '@/analytics/track';
 import { STYLE_TAGS, type Budget, type Segment, type StyleTag } from '@/api/contracts';
 import { useSaveStyleProfile, useStyleProfile } from '@/api/profile';
 import { Button } from '@/components/ui/Button';
@@ -62,6 +63,7 @@ export default function StyleProfileScreen() {
   const submit = () => {
     if (!complete || !budget) return;
     save.save({ segment, styleTags: tags, budget, baseVersion: existing.data?.baseVersion ?? 0 });
+    track('signup_step', { step: 'style_profile' });
     router.push('/body');
   };
 

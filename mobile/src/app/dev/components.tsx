@@ -21,7 +21,7 @@ import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
-import { formatTry } from '@/lib/format';
+import { formatMoney, moneyFromMajor } from '@/lib/format';
 
 /** Component showcase (dev builds only) — sample data from the design's 08 Haftanın edit'i. */
 export default function ComponentsShowcase() {
@@ -88,11 +88,11 @@ export default function ComponentsShowcase() {
           <Text variant="h3">{t('dev.cards')}</Text>
           <AiImage kind="onYou" uri={null} className="aspect-[4/5] w-full" />
           <AiImage kind="preview" uri={null} className="aspect-[4/5] w-2/3" />
-          <ProductRow brand="Marks & Spencer" name="Beyaz Poplin Gömlek" price={3000} />
-          <ProductRow brand="Beymen Club" name="City Medium Siyah Çanta" price={12950} />
+          <ProductRow brand="Marks & Spencer" name="Beyaz Poplin Gömlek" price={moneyFromMajor(3000, 'TRY')} />
+          <ProductRow brand="Beymen Club" name="City Medium Siyah Çanta" price={moneyFromMajor(12950, 'TRY')} />
           <View className="flex-row gap-3">
             <ProductCard brand="Vakko" name="Yün Karışımlı Blazer" price={null} favorite={fav} onToggleFavorite={() => setFav(!fav)} onPress={() => undefined} />
-            <ProductCard brand="Communité" name="Triko Kazak" price={4200} favorite={false} onToggleFavorite={() => undefined} onPress={() => undefined} />
+            <ProductCard brand="Communité" name="Triko Kazak" price={moneyFromMajor(4200, 'TRY')} favorite={false} onToggleFavorite={() => undefined} onPress={() => undefined} />
           </View>
           <View className="flex-row gap-3">
             <LookCard className="flex-1" tag={t('occasion.office')} name="Lacivert Blazer" rating={4.6} onPress={() => undefined} />
@@ -108,7 +108,7 @@ export default function ComponentsShowcase() {
           <StateMessage message={t('states.placeholder')} actionLabel={t('common.retry')} onAction={() => undefined} />
         </View>
       </ScrollView>
-      <BottomActionBar totalLabel={`${t('product.total')} · ${t('product.piecesCount', { count: 4 })}`} totalValue={formatTry(26550)}>
+      <BottomActionBar totalLabel={`${t('product.total')} · ${t('product.piecesCount', { count: 4 })}`} totalValue={formatMoney(moneyFromMajor(26550, 'TRY'))}>
         <Button label={t('dev.sampleBuy')} onPress={() => setSheet(true)} />
       </BottomActionBar>
       <BottomSheet visible={sheet} onClose={() => setSheet(false)} title={t('dev.sheet')}>

@@ -1,0 +1,78 @@
+import { useMutation } from '@tanstack/react-query';
+
+import type { Occasion } from '@/api/contracts';
+import type { Look } from '@/api/contracts/looks';
+import { ulid } from '@/lib/ids';
+import { newClientMutation } from '@/sync/clientMutation';
+
+import { slotList, toSlotInputs, type SlotMap } from './logic';
+import { lookMutationKeys, type CreateLookVariables, type DeleteLookVariables, type PutLookVariables } from './mutations';
+
+export type LookDraft = { name: string; occasion: Occasion; slots: SlotMap };
+
+/**
+ * Look writes (create / update / favourite / delete). All go through the offline queue with a stable
+ * `clientMutationId`; ids are ULIDs made when the user acts. The cache is updated optimistically.
+ */
+export function useLookWrites() {
+  const create = useMutation<Look, unknown, CreateLookVariables>({ mutationKey: lookMutationKeys.create });
+  const put = useMutation<Look, unknown, PutLookVariables>({ mutationKey: lookMutationKeys.put });
+  const remove = useMutation<void, unknown, DeleteLookVariables>({ mutationKey: lookMutationKeys.remove });
+
+  return {
+    /** Returns the new look's id immediately (the write may still be queued). */
+    create: (draft: LookDraft): string => {
+      const id = ulid();
+      const { clientMutationId, occurredAt } = newClientMutation();
+      create.mutate({
+        request: { id, name: draft.name, occasion: draft.occasion, slots: toSlotInputs(draft.slots), clientMutationId },
+        optimistic: {
+          id,
+          name: draft.name,
+          occasion: draft.occasion,
+          slots: slotList(draft.slots),
+          isFavorite: false,
+          rating: null,
+          ratingCount: 0,
+          tryOnImageUrl: null,
+          createdAt: occurredAt,
+          baseVersion: 0,
+        },
+      });
+      return id;
+    },
+    update: (look: Look, draft: LookDraft): void => {
+      const { clientMutationId } = newClientMutation();
+      put.mutate({
+        id: look.id,
+        request: {
+          name: draft.name,
+          occasion: draft.occasion,
+          slots: toSlotInputs(draft.slots),
+          isFavorite: look.isFavorite,
+          baseVersion: look.baseVersion,
+          clientMutationId,
+        },
+        optimistic: { ...look, name: draft.name, occasion: draft.occasion, slots: slotList(draft.slots) },
+      });
+    },
+    toggleFavorite: (look: Look): void => {
+      const { clientMutationId } = newClientMutation();
+      put.mutate({
+        id: look.id,
+        request: {
+          name: look.name,
+          occasion: look.occasion,
+          slots: look.slots.map(({ slot, source, refId }) => ({ slot, source, refId })),
+          isFavorite: !look.isFavorite,
+          baseVersion: look.baseVersion,
+          clientMutationId,
+        },
+        optimistic: { ...look, isFavorite: !look.isFavorite },
+      });
+    },
+    remove: (look: Pick<Look, 'id'>): void => {
+      remove.mutate({ id: look.id, clientMutationId: newClientMutation().clientMutationId });
+    },
+  };
+}

@@ -1,17 +1,25 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { buildTodayFixture, libraryFixture, withLatency } from '@/fixtures/today';
+import { planKeys } from '@/features/today/keys';
+import { buildTodayFixture, fixtureLogWear, libraryFixture, withLatency } from '@/fixtures/today';
 import { toIsoDate } from '@/lib/format';
 import { newClientMutation } from '@/sync/clientMutation';
 import { mutationKeys, queryKeys } from '@/sync/queryKeys';
 
+import { apiRequest } from './client';
 import type { LibraryItem, TodayResponse, WearLogRequest } from './contracts';
+import { DATA_SOURCE, fromSource } from './dataSource';
 
-/** 06 Bugün — fixture-backed until the E4 contract (candidate `GET v1/tenant/today`) is agreed. */
+/** 06 Bugün — `GET v1/tenant/today?date=` (fixture-backed behind the `today` source switch). */
 export function useToday() {
   return useQuery({
     queryKey: queryKeys.today,
-    queryFn: (): Promise<TodayResponse> => withLatency(buildTodayFixture()),
+    queryFn: () =>
+      fromSource<TodayResponse>(
+        'today',
+        () => buildTodayFixture(),
+        () => apiRequest<TodayResponse>(`v1/tenant/today?date=${toIsoDate(new Date())}`),
+      ),
   });
 }
 
@@ -28,8 +36,12 @@ export function useWearToday() {
   });
   return {
     ...m,
-    wear: (lookId: string) =>
-      m.mutate({ lookId, date: toIsoDate(new Date()), ...newClientMutation() }),
+    wear: (lookId: string) => {
+      const vars: WearLogRequest = { lookId, date: toIsoDate(new Date()), ...newClientMutation() };
+      // The queued write is registered in src/sync (fixture no-op there); keep the fixture calendar in step.
+      if (DATA_SOURCE.today === 'fixtures') fixtureLogWear(vars.lookId, vars.date, vars.occurredAt);
+      m.mutate(vars, { onSuccess: () => void client.invalidateQueries({ queryKey: planKeys.planDays }) });
+    },
   };
 }
 

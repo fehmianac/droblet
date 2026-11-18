@@ -12,10 +12,13 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { useOnboardingStatus } from '@/auth/onboarding';
+import { AnimatedSplash } from '@/components/brand/AnimatedSplash';
 import { sessionStore, useSession } from '@/auth/session';
+import { AppHosts } from '@/components/AppHosts';
+import { restoreLanguagePreference } from '@/i18n/preference';
 import { ConflictHost } from '@/sync/ConflictHost';
 import { wireNetworkAndFocus } from '@/sync/network';
 import { QueryProvider } from '@/sync/QueryProvider';
@@ -23,6 +26,7 @@ import { palettes } from '@/theme/tokens';
 
 void SplashScreen.preventAutoHideAsync();
 wireNetworkAndFocus();
+void restoreLanguagePreference();
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -48,6 +52,10 @@ export default function RootLayout() {
   useEffect(() => {
     if (ready) void SplashScreen.hideAsync();
   }, [ready]);
+
+  // 00 Splash: the native (static) splash hands over to the animated one, once per cold start.
+  const [splashDone, setSplashDone] = useState(false);
+  const finishSplash = useCallback(() => setSplashDone(true), []);
 
   if (!ready) return null;
 
@@ -85,15 +93,19 @@ export default function RootLayout() {
           <Stack.Screen name="calendar" />
           <Stack.Screen name="item/[id]" />
           <Stack.Screen name="item/bulk" />
+          <Stack.Screen name="item/library" />
+          <Stack.Screen name="item/form" />
           <Stack.Screen name="look/new" />
           <Stack.Screen name="look/[id]" />
           <Stack.Screen name="trip/[id]" />
+          <Stack.Screen name="trip/new" options={{ presentation: 'modal' }} />
           <Stack.Screen name="stylist/[jobId]" />
           <Stack.Screen name="palette" />
           <Stack.Screen name="shop/index" />
           <Stack.Screen name="shop/product/[id]" />
           <Stack.Screen name="shop/builder" />
           <Stack.Screen name="cart" />
+          <Stack.Screen name="watchlist" />
           <Stack.Screen name="friends/feed" />
           <Stack.Screen name="friends/find" />
           <Stack.Screen name="u/[handle]" />
@@ -116,6 +128,8 @@ export default function RootLayout() {
         <Stack.Screen name="(auth)/reset-password" />
       </Stack>
       <ConflictHost />
+      <AppHosts userId={userId} />
+      {splashDone ? null : <AnimatedSplash onDone={finishSplash} />}
     </QueryProvider>
   );
 }

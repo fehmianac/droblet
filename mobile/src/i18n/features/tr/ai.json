@@ -1,0 +1,63 @@
+{
+  "splash": {
+    "tagline": "Dolabın artık senin için düşünüyor."
+  },
+  "ai": {
+    "preparingTag": "SENİN ÜZERİNDE · HAZIRLANIYOR",
+    "previewBadge": "AI önizleme",
+    "tryOnEyebrow": "ÜZERİMDE GÖR",
+    "tryOnLines": {
+      "pieces": "Parçalar hazırlanıyor…",
+      "colors": "Renkler eşleştiriliyor…",
+      "placing": "Üzerine yerleştiriliyor…",
+      "finishing": "Son dokunuşlar…"
+    },
+    "stylistLines": {
+      "wardrobe": "Gardırobuna bakıyorum…",
+      "weather": "Hava {{temperature}}°, ona göre seçiyorum…",
+      "weatherUnknown": "Ortama göre seçiyorum…",
+      "outfits_one": "{{count}} kombin hazırlıyorum…",
+      "outfits_other": "{{count}} kombin hazırlıyorum…"
+    },
+    "tryOnBody": "{{name}} senin fotoğrafında hazırlanıyor. Genelde 20–40 saniye sürer.",
+    "usuallyTakes": "Genelde 20–40 saniye sürer.",
+    "creditCost_one": "{{count}} kredi",
+    "creditCost_other": "{{count}} kredi",
+    "creditCostRemaining_one": "{{count}} kredi · kalan {{remaining}}",
+    "creditCostRemaining_other": "{{count}} kredi · kalan {{remaining}}",
+    "noCreditForText": "Kombin önerileri krediden düşmez.",
+    "tagging": "AI etiketliyor…",
+    "preparing": "Hazırlanıyor",
+    "imagePreparing": "Görsel hazırlanıyor",
+    "failedRefunded": "Şu an oluşturamadık. Kredin iade edildi.",
+    "failed": "Şu an oluşturamadık.",
+    "retry": "Tekrar dene",
+    "continueInBackground": "Arka planda devam et — bitince haber veririz",
+    "showWhenReady": "Hazır olunca göster",
+    "leaveHint": "Ekrandan çıkabilirsin; görsel hazır olunca bildirim göndeririz.",
+    "progressCount": "{{done}} / {{total}}",
+    "paletteLines": {
+      "tones": "Sana yakışan tonlar seçiliyor…",
+      "wardrobe": "Gardırobunla eşleştiriliyor…"
+    }
+  },
+  "creditConfirm": {
+    "eyebrow": "ÜZERİMDE GÖR",
+    "eyebrowScoped": "ÜZERİMDE GÖR · {{scope}}",
+    "willSpend_one": "{{count}} kredi harcanacak",
+    "willSpend_other": "{{count}} kredi harcanacak",
+    "explain_one": "Senin fotoğrafında bir AI görseli üretilir. Her görsel 1 kredi.",
+    "explain_other": "Her biri için senin fotoğrafında bir AI görseli üretilir. Her görsel 1 kredi.",
+    "remainingNow": "Bu ay kalan",
+    "thisAction": "Bu işlem",
+    "afterwards": "İşlemden sonra",
+    "images_one": "{{count}} görsel",
+    "images_other": "{{count}} görsel",
+    "notEnough": "Kredin yetmiyor",
+    "cacheNote": "Daha önce üretilen görseller önbellekten gelir, tekrar kredi harcamaz. Kombin önerileri krediden düşmez.",
+    "confirm_one": "{{count}} kredi kullan ve oluştur",
+    "confirm_other": "{{count}} kredi kullan ve oluştur",
+    "topUp": "Kredi yükle",
+    "becomeMember": "Üye ol"
+  }
+}

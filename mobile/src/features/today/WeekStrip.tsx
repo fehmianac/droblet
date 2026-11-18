@@ -4,7 +4,7 @@ import { Pressable, View } from 'react-native';
 
 import type { WeekDay } from '@/api/contracts';
 import { Text } from '@/components/ui/Text';
-import { parseLocalDate, weekdayShort } from '@/lib/format';
+import { formatDate, formatNumber, parseLocalDate, weekdayShort } from '@/lib/format';
 
 /** 7-day strip: today filled ink, a dot under planned days; tap → 07 with that day selected. */
 export function WeekStrip({ week, today }: { week: WeekDay[]; today: string }) {
@@ -15,12 +15,12 @@ export function WeekStrip({ week, today }: { week: WeekDay[]; today: string }) {
         const date = parseLocalDate(d.date);
         const isToday = d.date === today;
         const weekday = weekdayShort(date);
-        const day = String(date.getDate());
+        const day = formatNumber(date.getDate());
         const label = isToday
           ? t('a11y.dayToday', { weekday, day })
           : d.hasPlan
             ? t('a11y.dayPlanned', { weekday, day })
-            : `${weekday} ${day}`;
+            : formatDate(date, { weekday: 'long', day: 'numeric' });
         return (
           <Pressable
             key={d.date}

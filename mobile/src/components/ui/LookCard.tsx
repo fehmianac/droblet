@@ -2,6 +2,8 @@ import { Star } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { Pressable, View } from 'react-native';
 
+import { formatNumber } from '@/lib/format';
+
 import { Icon } from './Icon';
 import { PlaceholderImage } from './PlaceholderImage';
 import { Text } from './Text';
@@ -19,9 +21,9 @@ type Props = {
 
 /** Image + occasion tag + name + optional friends' rating. */
 export function LookCard({ name, tag, imageUri, rating, onPress, className }: Props) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const ratingText =
-    rating != null ? new Intl.NumberFormat(i18n.language === 'en' ? 'en-GB' : 'tr-TR', { maximumFractionDigits: 1 }).format(rating) : null;
+    rating != null ? formatNumber(rating, { maximumFractionDigits: 1 }) : null;
   return (
     <Pressable
       onPress={onPress}

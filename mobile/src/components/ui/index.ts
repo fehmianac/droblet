@@ -1,4 +1,6 @@
+export * from './ai';
 export { AiBadge, AiImage } from './AiBadge';
+export { Badge, ImageTag, InfoNote, PopoverMenu, type MenuAction } from './Bits';
 export { BottomActionBar } from './BottomActionBar';
 export { BottomSheet } from './BottomSheet';
 export { Button } from './Button';

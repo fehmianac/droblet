@@ -1,11 +1,11 @@
-import { formatTry, parseLocalDate, seasonOf, toIsoDate } from './format';
+import { formatMoney, moneyFromMajor, parseLocalDate, seasonOf, toIsoDate } from './format';
 
 jest.mock('@/i18n', () => ({ currentLocaleTag: () => 'tr-TR' }));
 
 describe('format', () => {
   it('formats TRY with tr-TR grouping', () => {
-    expect(formatTry(26550)).toBe('₺26.550');
-    expect(formatTry(199.99)).toBe('₺199,99');
+    expect(formatMoney(moneyFromMajor(26550, 'TRY'))).toBe('₺26.550');
+    expect(formatMoney(moneyFromMajor(199.99, 'TRY'))).toBe('₺199,99');
   });
 
   it('round-trips local calendar dates', () => {

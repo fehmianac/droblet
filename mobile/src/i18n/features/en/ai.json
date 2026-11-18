@@ -1,0 +1,63 @@
+{
+  "splash": {
+    "tagline": "Your wardrobe now thinks for you."
+  },
+  "ai": {
+    "preparingTag": "ON YOU · IN PROGRESS",
+    "previewBadge": "AI preview",
+    "tryOnEyebrow": "TRY IT ON ME",
+    "tryOnLines": {
+      "pieces": "Getting the pieces ready…",
+      "colors": "Matching the colours…",
+      "placing": "Placing them on you…",
+      "finishing": "Finishing touches…"
+    },
+    "stylistLines": {
+      "wardrobe": "Looking through your wardrobe…",
+      "weather": "It's {{temperature}}°, choosing for that…",
+      "weatherUnknown": "Choosing for the occasion…",
+      "outfits_one": "Putting together {{count}} outfit…",
+      "outfits_other": "Putting together {{count}} outfits…"
+    },
+    "tryOnBody": "{{name}} is being prepared on your photo. It usually takes 20–40 seconds.",
+    "usuallyTakes": "It usually takes 20–40 seconds.",
+    "creditCost_one": "{{count}} credit",
+    "creditCost_other": "{{count}} credits",
+    "creditCostRemaining_one": "{{count}} credit · {{remaining}} left",
+    "creditCostRemaining_other": "{{count}} credits · {{remaining}} left",
+    "noCreditForText": "Outfit suggestions don't use credits.",
+    "tagging": "AI is tagging…",
+    "preparing": "Preparing",
+    "imagePreparing": "Preparing the image",
+    "failedRefunded": "We couldn't create it right now. Your credit was refunded.",
+    "failed": "We couldn't create it right now.",
+    "retry": "Try again",
+    "continueInBackground": "Continue in the background — we'll let you know when it's done",
+    "showWhenReady": "Show me when it's ready",
+    "leaveHint": "You can leave this screen; we'll send a notification when the image is ready.",
+    "progressCount": "{{done}} / {{total}}",
+    "paletteLines": {
+      "tones": "Choosing the tones that suit you…",
+      "wardrobe": "Matching them with your wardrobe…"
+    }
+  },
+  "creditConfirm": {
+    "eyebrow": "TRY IT ON ME",
+    "eyebrowScoped": "TRY IT ON ME · {{scope}}",
+    "willSpend_one": "{{count}} credit will be used",
+    "willSpend_other": "{{count}} credits will be used",
+    "explain_one": "An AI image is generated on your photo. Each image is 1 credit.",
+    "explain_other": "An AI image is generated on your photo for each one. Each image is 1 credit.",
+    "remainingNow": "Left this month",
+    "thisAction": "This action",
+    "afterwards": "Afterwards",
+    "images_one": "{{count}} image",
+    "images_other": "{{count}} images",
+    "notEnough": "Not enough credits",
+    "cacheNote": "Images you already generated come from cache and don't use credits again. Outfit suggestions don't use credits.",
+    "confirm_one": "Use {{count}} credit and create",
+    "confirm_other": "Use {{count}} credits and create",
+    "topUp": "Add credits",
+    "becomeMember": "Become a member"
+  }
+}
