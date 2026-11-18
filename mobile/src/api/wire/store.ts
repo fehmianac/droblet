@@ -306,9 +306,13 @@ export type WatchItemWire = {
   priceDropped: boolean;
   dropMinor: number;
   addedAt: string;
+  /** The price-drop bell of this product (absent on older servers = on). */
+  notify?: boolean;
+  /** `auto` = added by the server after a brand visit without a purchase. */
+  origin?: 'user' | 'auto';
 };
 
-export function toWatchlistEntry(wire: WatchItemWire, muted: ReadonlySet<string> = new Set()): WatchlistEntry {
+export function toWatchlistEntry(wire: WatchItemWire): WatchlistEntry {
   const product = toProductSummary(wire.product);
   return {
     productId: product.id,
@@ -323,14 +327,21 @@ export function toWatchlistEntry(wire: WatchItemWire, muted: ReadonlySet<string>
     category: product.category,
     colors: product.colors,
     sizes: product.sizes,
-    alertEnabled: !muted.has(product.id),
+    alertEnabled: wire.notify ?? true,
     // The wire carries only the look's id, not its name: a user look reads as "from a look" without one.
-    source: wire.look ? (wire.look.kind === 'user' ? { kind: 'look', lookName: '' } : { kind: 'edit' }) : { kind: 'manual' },
+    source:
+      wire.origin === 'auto'
+        ? { kind: 'auto' }
+        : wire.look
+          ? wire.look.kind === 'user'
+            ? { kind: 'look', lookName: '' }
+            : { kind: 'edit' }
+          : { kind: 'manual' },
   };
 }
 
-export function toWatchlist(wire: WatchItemWire[], muted?: ReadonlySet<string>): Watchlist {
-  return { items: wire.map((w) => toWatchlistEntry(w, muted)) };
+export function toWatchlist(wire: WatchItemWire[]): Watchlist {
+  return { items: wire.map((w) => toWatchlistEntry(w)) };
 }
 
 // ---------- purchase prompt ----------
