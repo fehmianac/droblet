@@ -145,7 +145,7 @@ public sealed class NotificationJobs(
                     await repository.DeleteAsync(device.Pk, device.Sk, ct);
                     break;
                 case PushResult.NotConfigured:
-                    return false; // push is switched off: nothing was sent, keep no receipt
+                    break; // this channel (APNs / FCM) is switched off; another device may still get it, else no receipt
             }
         }
 
