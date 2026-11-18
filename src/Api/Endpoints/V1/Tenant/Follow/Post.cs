@@ -1,19 +1,8 @@
-using System.Text.Json;
 using Api.Contracts;
 using Api.Infrastructure.Contract;
-using Api.Infrastructure.Extensions;
-using Domain.Constant;
 using Domain.Context;
-using Domain.Domain;
-using Domain.Entity;
-using Domain.Enum;
-using Domain.Manager;
-using Domain.Options;
 using Domain.Services;
-using Domain.Validation;
-using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 
 namespace Api.Endpoints.V1.Tenant.Follow;
 
@@ -25,20 +14,17 @@ public class Post : IEndpoint
         [FromServices] ISocialService social,
         CancellationToken cancellationToken)
     {
-
-        return StoreResults.SocialError(await social.FollowAsync(apiContext.TenantId, handle, cancellationToken)) ?? Results.NoContent();
+        var (outcome, state) = await social.FollowAsync(apiContext.TenantId, handle, cancellationToken);
+        return StoreResults.SocialError(outcome) ?? Results.Ok(new FollowResultDto(state));
     }
 
     public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints)
     {
         return endpoints.MapPost("v1/tenant/follow/{handle}", Handler)
-            .Produces(StatusCodes.Status204NoContent)
-            .Produces<ProblemDetails>(StatusCodes.Status404NotFound)
-            .Produces<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)
-            .ProducesProblem(StatusCodes.Status500InternalServerError)
-            .RequireAuthorization(ClaimNames.TenantUserPolicy)
-            .WithSummary("Follow")
-            .WithDescription("Immediate (no approval), both edges in one transaction, idempotent. 422 follow_limit_reached / cannot_target_self.")
-            .WithTags("Tenant Social");
+            .Produces<FollowResultDto>(StatusCodes.Status200OK)
+            .Problems(StatusCodes.Status404NotFound, StatusCodes.Status422UnprocessableEntity)
+            .Tenant("Tenant Social", "Follow",
+                "Decision 8: a public account is followed at once (state following); a followers-only or private account gets a pending request " +
+                "(state requested) that the owner approves or declines. Idempotent. 422 follow_limit_reached (follows + pending requests) / cannot_target_self.");
     }
 }

@@ -18,6 +18,8 @@ public sealed class CatalogOptions
     public List<string> ImageHosts { get; set; } = [];
     /// <summary>Largest product image the try-on worker downloads.</summary>
     public long MaxImageBytes { get; set; } = 10 * 1024 * 1024;
+    /// <summary>Decision 10: a brand-site click without a conversion after this many hours puts its products on the watch list. 0 = off.</summary>
+    public int WatchAutoAddHours { get; set; } = 48;
 }
 
 public sealed class SocialOptions
@@ -35,6 +37,10 @@ public sealed class SocialOptions
     public int InviteAttributionWindowDays { get; set; } = 30;
     public int ReportsPerDay { get; set; } = 20;
     public int InviteResolvePerIpPerHour { get; set; } = 60;
+    /// <summary>Decision 13: contact-matching uploads per account per day.</summary>
+    public int ContactMatchesPerDay { get; set; } = 10;
+    /// <summary>Most hashes one contact-matching request may carry.</summary>
+    public int ContactMatchMaxHashes { get; set; } = 1000;
 }
 
 /// <summary>Proposal (A-4 open): Open-Meteo, keyless. Owner confirms the provider and its licence terms.</summary>

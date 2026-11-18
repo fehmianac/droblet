@@ -72,7 +72,8 @@ public interface ICartService
     Task<bool> RemoveLineAsync(string tenantId, string lineId, CancellationToken ct);
 
     Task<IReadOnlyList<WatchItemDto>> GetWatchListAsync(string tenantId, CancellationToken ct);
-    Task<(CartOutcome Outcome, WatchItemDto? Item)> WatchAsync(string tenantId, string productId, string? size, LookRefDto? look, CancellationToken ct);
+    /// <summary>New item: notify defaults to true. Existing item: only notify / size / look change when sent; the price reference is kept.</summary>
+    Task<(CartOutcome Outcome, WatchItemDto? Item)> WatchAsync(string tenantId, string productId, string? size, LookRefDto? look, bool? notify, CancellationToken ct);
     Task<bool> UnwatchAsync(string tenantId, string productId, CancellationToken ct);
 
     /// <summary>Favourite product ids, newest first. Ids of products that no longer resolve are left out.</summary>
@@ -92,6 +93,13 @@ public sealed record PostbackInput(string ClickId, string OrderId, long AmountMi
 public sealed record PurchasePromptAnswer(WardrobePromptStatus Status, IReadOnlyList<ItemCreateResultDto> Items);
 
 public enum PostbackOutcome { Recorded, Updated, Duplicate, ClickNotFound }
+
+/// <summary>Decision 10: checkout clicks without a conversion in time put their products on the watch list.</summary>
+public interface IWatchListAutoAdd
+{
+    /// <summary>Handles every candidate due at <paramref name="nowUtc"/>; returns how many products were added.</summary>
+    Task<int> RunAsync(DateTime nowUtc, CancellationToken ct);
+}
 
 public interface IAffiliateService
 {

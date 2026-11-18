@@ -11,6 +11,3 @@ export const pendingProductTryOns = new Map<string, string>();
  * favourites endpoints yet (`v1/tenant/favorite/product` answers 404 there).
  */
 export const localFavorites = new Set<string>();
-
-/** Watch-list entries whose price alert the user switched off — the server has no per-product switch. */
-export const mutedWatchAlerts = new Set<string>();

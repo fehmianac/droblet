@@ -61,7 +61,8 @@ public sealed class WardrobeService(
 
     public async Task<ServiceResult<ItemDto>> UpdateItemAsync(string tenantId, string id, UpdateItemCommand command, CancellationToken ct)
     {
-        var errors = ItemRules.Validate(new ItemFields(command.Name, command.Category, command.ColorIds, command.Fabric, command.Seasons, command.Size, command.Brand));
+        var errors = ItemRules.Validate(new ItemFields(command.Name, command.Category, command.ColorIds, command.Fabric, command.Seasons, command.Size, command.Brand,
+            Clean(command.Subcategory), Clean(command.FabricText), command.ColorHex));
         if (errors.Count > 0)
             return ServiceResult.Invalid<ItemDto>(errors[0]);
 
@@ -73,8 +74,11 @@ public sealed class WardrobeService(
 
         item.Name = Clean(command.Name);
         item.Category = command.Category;
+        item.Subcategory = Clean(command.Subcategory);
         item.ColorIds = command.ColorIds.ToList();
+        item.ColorHex = ItemRules.NormalizeColorHex(command.ColorIds, command.ColorHex);
         item.Fabric = command.Fabric;
+        item.FabricText = Clean(command.FabricText);
         item.Seasons = command.Seasons.Distinct().ToList();
         item.Size = Clean(command.Size);
         item.Brand = Clean(command.Brand);
@@ -371,7 +375,8 @@ public sealed class WardrobeService(
         if (ItemDraftRules.CheckConfirm(draft.Status, draft.Kind, draft.NeedsReview, command.Reviewed) is { } code)
             return Rejected(command.DraftId, code);
 
-        var errors = ItemRules.Validate(new ItemFields(command.Name, command.Category, command.ColorIds, command.Fabric, command.Seasons, command.Size, command.Brand));
+        var errors = ItemRules.Validate(new ItemFields(command.Name, command.Category, command.ColorIds, command.Fabric, command.Seasons, command.Size, command.Brand,
+            Clean(command.Subcategory), Clean(command.FabricText), command.ColorHex));
         if (errors.Count > 0)
             return new ItemCreateResultDto(command.DraftId, ItemCreateOutcome.Rejected, ErrorCodes.ValidationFailed, errors, null);
 
@@ -382,8 +387,11 @@ public sealed class WardrobeService(
             TenantId = tenantId,
             Name = Clean(command.Name),
             Category = command.Category!.Value,
+            Subcategory = Clean(command.Subcategory),
             ColorIds = command.ColorIds!.ToList(),
+            ColorHex = ItemRules.NormalizeColorHex(command.ColorIds, command.ColorHex),
             Fabric = command.Fabric,
+            FabricText = Clean(command.FabricText),
             Seasons = command.Seasons!.Distinct().ToList(),
             Size = Clean(command.Size),
             Brand = Clean(command.Brand),
@@ -397,6 +405,44 @@ public sealed class WardrobeService(
 
         return await CreateAsync(tenantId, command.ClientMutationId, command.DraftId, item,
             [TransactWriteOperation.Delete(draft.Pk, draft.Sk)], ct);
+    }
+
+    // ── Manual piece (no photo) ──────────────────────────────────────────────────────────────────────────────────
+
+    public async Task<ItemCreateResultDto> CreateItemAsync(string tenantId, CreateItemCommand command, CancellationToken ct)
+    {
+        var decision = await entitlements.CheckAsync(tenantId, Capability.WardrobeItem, ct);
+        if (!decision.Allowed)
+            return Rejected(command.ClientMutationId, decision.Reason ?? ErrorCodes.PremiumRequired);
+
+        var itemId = command.ItemId ?? command.ClientMutationId;
+        if (await ReplayAsync(tenantId, command.ClientMutationId, itemId, command.ClientMutationId, ct) is { } replay)
+            return replay;
+
+        var errors = ItemRules.Validate(new ItemFields(command.Name, command.Category, command.ColorIds, command.Fabric, command.Seasons, command.Size, command.Brand,
+            Clean(command.Subcategory), Clean(command.FabricText), command.ColorHex));
+        if (errors.Count > 0)
+            return new ItemCreateResultDto(command.ClientMutationId, ItemCreateOutcome.Rejected, ErrorCodes.ValidationFailed, errors, null);
+
+        var now = Now;
+        return await CreateAsync(tenantId, command.ClientMutationId, command.ClientMutationId, new ItemEntity
+        {
+            Id = itemId,
+            TenantId = tenantId,
+            Name = Clean(command.Name),
+            Category = command.Category!.Value,
+            Subcategory = Clean(command.Subcategory),
+            ColorIds = command.ColorIds!.ToList(),
+            ColorHex = ItemRules.NormalizeColorHex(command.ColorIds, command.ColorHex),
+            Fabric = command.Fabric,
+            FabricText = Clean(command.FabricText),
+            Seasons = command.Seasons!.Distinct().ToList(),
+            Size = Clean(command.Size),
+            Brand = Clean(command.Brand),
+            Source = ItemSource.Manual,
+            CreatedAt = now,
+            UpdatedAt = now,
+        }, [], ct);
     }
 
     // ── Library and catalog product ───────────────────────────────────────────────────────────────────────────────
@@ -538,7 +584,7 @@ public sealed class WardrobeService(
 
         return new ItemDto(item.Id, item.Name, item.Category, item.ColorIds, item.Fabric, item.Seasons, item.Size, item.Brand, item.Source,
             item.ProductId, item.LibraryItemId, url, expires, item.OriginalImageKey is not null, item.UseOriginalImage, item.WearCount,
-            item.LastWornAt, item.ListingStatus, item.CreatedAt, item.UpdatedAt, item.Version);
+            item.LastWornAt, item.ListingStatus, item.CreatedAt, item.UpdatedAt, item.Version, item.Subcategory, item.FabricText, item.ColorHex);
     }
 
     private async Task<ItemDraftDto> ToDtoAsync(ItemDraftEntity draft, CancellationToken ct)

@@ -22,7 +22,8 @@ public sealed class AuthService(
     IOptions<AppLinksOptions> appLinks,
     IOptions<AuthRateLimitOptions> rateLimits,
     TimeProvider timeProvider,
-    ILogger<AuthService> logger) : IAuthService
+    ILogger<AuthService> logger,
+    IContactDirectory contactDirectory) : IAuthService
 {
     private static readonly TimeSpan PasswordResetLifetime = TimeSpan.FromMinutes(30);
     // Verified against when the account does not exist, so response time does not reveal registered e-mails.
@@ -165,6 +166,9 @@ public sealed class AuthService(
             return AuthOutcome.InvalidToken;
 
         logger.LogInformation("Password reset completed for user {UserId}", user.Id);
+        // The reset link proved the address: it may now be found by contact matching (decision 13).
+        if (user.Email is { Length: > 0 } verifiedEmail)
+            await contactDirectory.ListVerifiedEmailAsync(user.TenantId, verifiedEmail, ct);
         return AuthOutcome.Success;
     }
 
@@ -218,6 +222,15 @@ public sealed class AuthService(
     }
 
     public async Task<AuthResult> SignInExternalAsync(AuthProvider provider, ExternalIdentity external, string? displayName, string language, CancellationToken ct)
+    {
+        var result = await SignInExternalCoreAsync(provider, external, displayName, language, ct);
+        // Decision 13: an address the provider verified may be found by contact matching.
+        if (result.Tokens is { } tokens && external is { EmailVerified: true, Email: { Length: > 0 } verifiedEmail })
+            await contactDirectory.ListVerifiedEmailAsync(tokens.TenantId, verifiedEmail, ct);
+        return result;
+    }
+
+    private async Task<AuthResult> SignInExternalCoreAsync(AuthProvider provider, ExternalIdentity external, string? displayName, string language, CancellationToken ct)
     {
         var now = Now;
         var identitySk = AuthIdentityEntity.GetSk(provider, external.Subject);
@@ -290,8 +303,8 @@ public sealed class AuthService(
             Id = user.TenantId,
             OwnerUserId = user.Id,
             DisplayName = user.DisplayName,
-            // A-6 (default closet visibility) is open — start Private, the safe side.
-            ClosetVisibility = ClosetVisibility.Private,
+            // Owner decision 7 (2026-11-19): followers only; the profile card stays searchable.
+            ClosetVisibility = ClosetVisibility.FollowersOnly,
             Language = language,
             CreatedAt = now,
             UpdatedAt = now,

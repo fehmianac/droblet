@@ -23,6 +23,7 @@ public sealed class AffiliateService(
     IAnalyticsService analytics,
     IOptionsMonitor<AffiliateOptions> affiliateOptions,
     IOptionsMonitor<AffiliatePostbackOptions> postbackOptions,
+    IOptionsMonitor<CatalogOptions> catalogOptions,
     TimeProvider timeProvider,
     ILogger<AffiliateService> logger) : IAffiliateService
 {
@@ -109,7 +110,21 @@ public sealed class AffiliateService(
             Source = brand.Source,
             CreatedAt = now,
         };
-        var ledger = new AffiliateClickLedgerEntity
+        var operations = new List<TransactWriteOperation> { TransactWriteOperation.Create(index) };
+        // Decision 10: no conversion within the window → the products go on the watch list (Notifier pass).
+        if (catalogOptions.CurrentValue.WatchAutoAddHours > 0)
+        {
+            var candidate = new WatchAutoAddCandidateEntity
+            {
+                TenantId = tenantId, ClickId = clickId, ProductIds = productIds, ClickedAt = now,
+                DueAt = now.AddHours(catalogOptions.CurrentValue.WatchAutoAddHours),
+            };
+            click.WatchAutoAddDueAt = candidate.DueAt;
+            operations.Add(TransactWriteOperation.Put(candidate));
+        }
+        operations.Add(TransactWriteOperation.Put(click));
+        // Global click ledger for the admin revenue report (clicks per day / brand / network; no user id).
+        operations.Add(TransactWriteOperation.Put(new AffiliateClickLedgerEntity
         {
             Month = now.ToString("yyyy-MM", CultureInfo.InvariantCulture),
             ClickId = clickId,
@@ -117,9 +132,8 @@ public sealed class AffiliateService(
             Source = brand.Source,
             Network = brand.Network,
             CreatedAt = now,
-        };
-        var result = await repository.TransactWriteAsync(
-            [TransactWriteOperation.Create(index), TransactWriteOperation.Put(click), TransactWriteOperation.Put(ledger)], ct);
+        }));
+        var result = await repository.TransactWriteAsync(operations, ct);
         if (!result.Applied)
             throw new InvalidOperationException($"Click could not be recorded: {result.Outcome}.");
 

@@ -19,10 +19,16 @@ public enum LookRefKind { Edit, Collection, User }
 
 public enum WardrobePromptStatus { None, Pending, Accepted, Dismissed }
 
+/// <summary>How a product got on the watch list: the user's own tap, or the 48-hour "no purchase after the brand visit" rule.</summary>
+public enum WatchOrigin { User, Auto }
+
 // E9 — social
 public enum ShareChannel { Whatsapp, Pinterest, Link }
 
 public enum ShareTargetKind { App, Profile, Look, Product, Edit }
+
+/// <summary>Decision 8: the viewer's follow of another account — none, a pending request, or an accepted follow.</summary>
+public enum FollowState { None, Requested, Following }
 
 public enum ReportReason { Spam, Inappropriate, Harassment, Impersonation, MinorSafety, Other }
 

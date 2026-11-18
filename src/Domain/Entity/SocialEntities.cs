@@ -281,3 +281,54 @@ public class PublicProfileIndexEntity : IEntity
     public static string GetPk(Segment segment) => $"publicprofile#{segment.ToString().ToLowerInvariant()}";
     public static string GetSk(string publicTenantId) => publicTenantId;
 }
+
+/// <summary>
+/// Decision 8: following a followers-only / private account is a request until the owner approves it. Outgoing row in
+/// the requester's partition; <see cref="FollowRequestReceivedEntity"/> is its twin in the owner's partition (same transaction).
+/// A pending request is never "following" for VisibilityPolicy.
+/// </summary>
+public class FollowRequestEntity : IEntity
+{
+    [JsonPropertyName("pk")] public string Pk => GetPk(TenantId);
+    [JsonPropertyName("sk")] public string Sk => GetSk(TargetTenantId);
+
+    [JsonPropertyName("tenantId")] public string TenantId { get; set; } = null!;          // requester
+    [JsonPropertyName("targetTenantId")] public string TargetTenantId { get; set; } = null!;
+    [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; }
+
+    public static string GetPk(string tenantId) => $"tenant#{tenantId}#followrequest";
+    public static string GetSk(string targetTenantId) => targetTenantId;
+}
+
+public class FollowRequestReceivedEntity : IEntity
+{
+    [JsonPropertyName("pk")] public string Pk => GetPk(TenantId);
+    [JsonPropertyName("sk")] public string Sk => GetSk(RequesterTenantId);
+
+    [JsonPropertyName("tenantId")] public string TenantId { get; set; } = null!;          // the account asked
+    [JsonPropertyName("requesterTenantId")] public string RequesterTenantId { get; set; } = null!;
+    [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; }
+
+    public static string GetPk(string tenantId) => $"tenant#{tenantId}#followrequestreceived";
+    public static string GetSk(string requesterTenantId) => requesterTenantId;
+}
+
+/// <summary>
+/// Global outbox of event-driven pushes (follow request, price drop), drained by the Notifier every 15 minutes.
+/// Holds ids only; the Notifier re-checks the preference and that the reason still exists before sending. TTL 3 days.
+/// </summary>
+public class NotificationQueueEntity : IEntity
+{
+    [JsonPropertyName("pk")] public string Pk => GetPk(Type);
+    [JsonPropertyName("sk")] public string Sk => GetSk(TenantId, Key);
+
+    [JsonPropertyName("type")] public NotificationType Type { get; set; }
+    [JsonPropertyName("tenantId")] public string TenantId { get; set; } = null!;          // recipient
+    /// <summary>Requester tenant id (follow request) or product id (price drop).</summary>
+    [JsonPropertyName("key")] public string Key { get; set; } = null!;
+    [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; }
+    [JsonPropertyName("ttl")] public long Ttl => CreatedAt.AddDays(3).ToUnixTimeSeconds();
+
+    public static string GetPk(NotificationType type) => $"notifqueue#{type.ToString().ToLowerInvariant()}";
+    public static string GetSk(string tenantId, string key) => $"{tenantId}#{key}";
+}

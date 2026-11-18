@@ -70,6 +70,34 @@ public class VisibilityPolicyTests
         Assert.Equal(expected, Can(visibility, false, VisibleResource.ProfileCard));
     }
 
+    [Theory]
+    [InlineData(true, false, false, true)]    // the private owner follows the viewer
+    [InlineData(false, true, false, true)]    // the viewer follows the private owner (approved)
+    [InlineData(false, false, true, true)]    // the private owner asked to follow the viewer
+    [InlineData(false, false, false, false)]  // stranger
+    public void VisibilityPolicy_PrivateCard_OnlyInsideARelationship_ClosetStaysClosed(bool ownerFollowsViewer, bool viewerFollowsOwner, bool ownerRequested, bool card)
+    {
+        bool CanSee(VisibleResource resource) => VisibilityPolicy.CanView(new VisibilityRequest(Viewer, Owner, ClosetVisibility.Private, viewerFollowsOwner, resource,
+            Segment.Women, OwnerFollowsViewer: ownerFollowsViewer, OwnerRequestedViewer: ownerRequested));
+
+        Assert.Equal(card, CanSee(VisibleResource.ProfileCard));
+        Assert.False(CanSee(VisibleResource.Look));
+        Assert.False(CanSee(VisibleResource.Item));
+    }
+
+    [Fact]
+    public void VisibilityPolicy_PendingFollowRequest_IsNotFollowing()
+    {
+        // Callers pass only accepted edges: a pending request reaches the policy as "not following".
+        var context = new PersonContext(Viewer, new Domain.Entity.TenantEntity { Id = Owner, ClosetVisibility = ClosetVisibility.FollowersOnly, Segment = Segment.Women },
+            ViewerFollowsOwner: false, OwnerFollowsViewer: false, Blocked: false, ViewerRequested: true);
+
+        Assert.Equal(FollowState.Requested, context.FollowState);
+        Assert.True(context.CanView(VisibleResource.ProfileCard));
+        Assert.False(context.CanView(VisibleResource.Look));
+        Assert.False(context.CanView(VisibleResource.LookRating));
+    }
+
     [Fact]
     public void VisibilityPolicy_WhenUnfollowed_AccessClosesImmediately()
     {

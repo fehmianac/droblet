@@ -18,7 +18,25 @@ public sealed record UpdateItemCommand(
     string? Size,
     string? Brand,
     bool? UseOriginalImage,
-    long BaseVersion);
+    long BaseVersion,
+    string? Subcategory = null,
+    string? FabricText = null,
+    string? ColorHex = null);
+
+/// <summary>"Fotoğrafsız ekle": a piece typed in by hand. The new item id is itemId ?? clientMutationId.</summary>
+public sealed record CreateItemCommand(
+    string ClientMutationId,
+    ItemCategory? Category,
+    IReadOnlyList<string>? ColorIds,
+    IReadOnlyList<Season>? Seasons,
+    string? ItemId = null,
+    string? Name = null,
+    string? Subcategory = null,
+    string? ColorHex = null,
+    string? Fabric = null,
+    string? FabricText = null,
+    string? Size = null,
+    string? Brand = null);
 
 public sealed record ItemUploadsCommand(int Count, string ContentType);
 
@@ -41,7 +59,10 @@ public sealed record ConfirmDraftCommand(
     string? Size,
     string? Brand,
     bool UseOriginalImage = false,
-    string? ItemId = null);
+    string? ItemId = null,
+    string? Subcategory = null,
+    string? FabricText = null,
+    string? ColorHex = null);
 
 public sealed record ConfirmDraftsCommand(IReadOnlyList<ConfirmDraftCommand> Items);
 
@@ -57,6 +78,8 @@ public interface IWardrobeService
     Task<ItemDetailDto?> GetItemAsync(string tenantId, string id, CancellationToken ct);
     Task<ServiceResult<ItemDto>> UpdateItemAsync(string tenantId, string id, UpdateItemCommand command, CancellationToken ct);
     Task<bool> DeleteItemAsync(string tenantId, string id, CancellationToken ct);
+    /// <summary>Manual piece without a photo (source = manual). Idempotent by clientMutationId.</summary>
+    Task<ItemCreateResultDto> CreateItemAsync(string tenantId, CreateItemCommand command, CancellationToken ct);
 
     Task<ItemUploadsDto> CreateUploadsAsync(string tenantId, ItemUploadsCommand command, CancellationToken ct);
     Task<ServiceResult<StartDraftsDto>> StartDraftsAsync(string tenantId, StartDraftsCommand command, string? requestLanguage, CancellationToken ct);

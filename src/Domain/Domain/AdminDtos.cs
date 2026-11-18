@@ -24,7 +24,7 @@ public record AdminEditDto(
 
 public record AdminCollectionDto(
     string Id, ContentCollectionKind Kind, IReadOnlyDictionary<string, string> Title, IReadOnlyDictionary<string, string>? Subtitle, string? ImageUrl, int SortOrder,
-    IReadOnlyDictionary<string, string>? SponsorName, bool Retired, DateTime CreatedAt, DateTime UpdatedAt);
+    IReadOnlyDictionary<string, string>? SponsorName, bool Retired, DateTime CreatedAt, DateTime UpdatedAt, string? Handle = null);
 
 public record AdminCollectionLookDto(
     string Id, string CollectionId, IReadOnlyDictionary<string, string> Title, IReadOnlyDictionary<string, string>? Note, string? ImageUrl, IReadOnlyList<string> ProductIds, int SortOrder,
@@ -46,7 +46,7 @@ public static class AdminDtoMapper
         e.SponsorBrandId, e.SponsorName, e.Published, e.Retired, Services.WeeklyEditRules.IsSponsored(e), e.CreatedAt, e.UpdatedAt);
 
     public static AdminCollectionDto ToAdminDto(this ContentCollectionEntity c) => new(
-        c.Id, c.Kind, c.Title, c.Subtitle, c.ImageUrl, c.SortOrder, c.SponsorName, c.Retired, c.CreatedAt, c.UpdatedAt);
+        c.Id, c.Kind, c.Title, c.Subtitle, c.ImageUrl, c.SortOrder, c.SponsorName, c.Retired, c.CreatedAt, c.UpdatedAt, c.Handle);
 
     public static AdminCollectionLookDto ToAdminDto(this ContentLookEntity l) => new(
         l.Id, l.CollectionId, l.Title, l.Note, l.ImageUrl, l.ProductIds, l.SortOrder, l.Retired, l.CreatedAt, l.UpdatedAt);

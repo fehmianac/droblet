@@ -137,7 +137,7 @@ public sealed class CartService(
         return result;
     }
 
-    public async Task<(CartOutcome Outcome, WatchItemDto? Item)> WatchAsync(string tenantId, string productId, string? size, LookRefDto? look, CancellationToken ct)
+    public async Task<(CartOutcome Outcome, WatchItemDto? Item)> WatchAsync(string tenantId, string productId, string? size, LookRefDto? look, bool? notify, CancellationToken ct)
     {
         var product = await catalog.GetProductAsync(productId, ct);
         if (product is null)
@@ -146,7 +146,29 @@ public sealed class CartService(
         var pk = WatchItemEntity.GetPk(tenantId);
         var existing = await repository.GetAsync<WatchItemEntity>(pk, WatchItemEntity.GetSk(productId), ct);
         if (existing is not null)
+        {
+            // Re-PUT: the bell (and size / look when sent) change; the price reference and the origin are kept.
+            var changed = false;
+            if (notify is { } bell && bell != existing.NotifyEnabled)
+            {
+                existing.Notify = bell;
+                changed = true;
+            }
+            if (!string.IsNullOrWhiteSpace(size) && CatalogRules.NormalizeSize(size) is var normalized && normalized != existing.Size)
+            {
+                existing.Size = normalized;
+                changed = true;
+            }
+            if (look is not null && (look.Kind != existing.LookKind || look.Id != existing.LookId))
+            {
+                existing.LookKind = look.Kind;
+                existing.LookId = look.Id;
+                changed = true;
+            }
+            if (changed)
+                await repository.SaveAsync(existing, ct);
             return (CartOutcome.Ok, await ToDtoAsync(existing, ct));
+        }
 
         if (product.Retired)
             return (CartOutcome.ProductRetired, null);
@@ -162,6 +184,8 @@ public sealed class CartService(
             LookId = look?.Id,
             PriceAtAddMinor = product.PriceMinor,
             AddedAt = Now,
+            Notify = notify ?? true,
+            Origin = Domain.Enum.WatchOrigin.User,
         };
         await repository.TransactWriteAsync(
         [
@@ -180,6 +204,8 @@ public sealed class CartService(
         [
             TransactWriteOperation.Delete(pk, WatchItemEntity.GetSk(productId)),
             TransactWriteOperation.Delete(ProductWatcherEntity.GetPk(productId), ProductWatcherEntity.GetSk(tenantId)),
+            // The auto-add pass (decision 10) must not bring back what the user removed.
+            TransactWriteOperation.Put(new WatchRemovedEntity { TenantId = tenantId, ProductId = productId, RemovedAt = Now }),
         ], ct);
         return true;
     }
@@ -227,6 +253,7 @@ public sealed class CartService(
         // Computed from the current price, so a later price rise clears the badge without another write.
         var dropped = CatalogRules.IsPriceDrop(item.PriceAtAddMinor, product.PriceMinor);
         return new WatchItemDto(await catalog.ToDtoAsync(product, ct), item.Size, StoreDtoMapper.ToLookRef(item.LookKind, item.LookId),
-            item.PriceAtAddMinor, product.PriceMinor, dropped, dropped ? item.PriceAtAddMinor - product.PriceMinor : 0, item.AddedAt);
+            item.PriceAtAddMinor, product.PriceMinor, dropped, dropped ? item.PriceAtAddMinor - product.PriceMinor : 0, item.AddedAt,
+            item.NotifyEnabled, item.Origin);
     }
 }

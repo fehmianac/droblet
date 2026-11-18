@@ -171,6 +171,20 @@
     "addToCart": "Add to cart",
     "viewProduct": "View product",
     "empty": "Your watchlist is empty. Watch a product you like and we'll tell you when its price drops.",
-    "emptyAction": "Explore products"
+    "emptyAction": "Explore products",
+    "fromBrandVisit": "You visited the brand without buying, so we kept it on your list"
+  },
+  "purchasePrompt": {
+    "eyebrow": "YOUR PURCHASE",
+    "title": "Add it to your wardrobe?",
+    "body_one": "Let us add the piece you bought from {{brand}} to your wardrobe so you can style it right away.",
+    "body_other": "Let us add the {{count}} pieces you bought from {{brand}} to your wardrobe so you can style them right away.",
+    "more_one": "and {{count}} more piece",
+    "more_other": "and {{count}} more pieces",
+    "accept_one": "Add to wardrobe",
+    "accept_other": "Add {{count}} pieces to wardrobe",
+    "dismiss": "No, thanks",
+    "later": "Later",
+    "failed": "We could not add it right now. Try again."
   }
 }

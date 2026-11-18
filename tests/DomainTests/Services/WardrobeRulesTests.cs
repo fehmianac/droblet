@@ -128,6 +128,31 @@ public class ItemRulesTests
     [Fact]
     public void Validate_TooLongName_ValidationFailed() =>
         Assert.Contains(ErrorCodes.ValidationFailed, ItemRules.Validate(Valid() with { Name = new string('a', ItemRules.MaxNameLength + 1) }));
+
+    [Theory]
+    [InlineData("blazer", true)]
+    [InlineData("mini-skirt", true)]
+    [InlineData("Blazer", false)]
+    [InlineData("two words", false)]
+    [InlineData("-dash", false)]
+    public void Subcategory_IsALowerCaseKebabId(string value, bool valid) =>
+        Assert.Equal(valid, !ItemRules.Validate(Valid() with { Subcategory = value }).Contains(ErrorCodes.SubcategoryInvalid));
+
+    [Fact]
+    public void FreeTextFabric_AndOtherColour_AreAccepted_WithinLimits()
+    {
+        Assert.Empty(ItemRules.Validate(Valid() with { ColorIds = ["other"], ColorHex = "#a1b2c3", Fabric = null, FabricText = "Tüvit" }));
+        Assert.Contains(ErrorCodes.FabricTextTooLong, ItemRules.Validate(Valid() with { FabricText = new string('a', ItemRules.MaxFabricTextLength + 1) }));
+        Assert.Contains(ErrorCodes.ColorHexInvalid, ItemRules.Validate(Valid() with { ColorHex = "#12345" }));
+    }
+
+    [Fact]
+    public void ColorHex_IsKeptOnlyWithTheOtherColour_UpperCased()
+    {
+        Assert.Equal("#A1B2C3", ItemRules.NormalizeColorHex(["navy", "other"], " #a1b2c3 "));
+        Assert.Null(ItemRules.NormalizeColorHex(["navy"], "#A1B2C3"));
+        Assert.Null(ItemRules.NormalizeColorHex(["other"], " "));
+    }
 }
 
 public class ItemDraftRulesTests

@@ -20,6 +20,8 @@ public class AffiliateClickEntity : IEntity
     [JsonPropertyName("source")] public AffiliateSource Source { get; set; }
     [JsonPropertyName("network")] public string? Network { get; set; }
     [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; }
+    /// <summary>When the watch-list auto-add candidate of this click falls due (decision 10); null = none was queued.</summary>
+    [JsonPropertyName("watchAutoAddDueAt")] public DateTime? WatchAutoAddDueAt { get; set; }
 
     public static string GetPk(string tenantId) => $"tenant#{tenantId}#affiliateclick";
     public static string GetSk(string clickId) => clickId;

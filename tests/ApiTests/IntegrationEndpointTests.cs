@@ -34,6 +34,7 @@ public class IntegrationEndpointTests(StoreSocialApiFactory factory) : IClassFix
         var stranger = await factory.UserAsync();
         var lookId = await CreateLookAsync(owner, bag);
         (await friend.Client.PostAsync($"v1/tenant/follow/{owner.Handle}", null)).EnsureSuccessStatusCode();
+        (await owner.Client.PostAsync($"v1/tenant/follow-request/{friend.Handle}/approve", null)).EnsureSuccessStatusCode();   // decision 8
 
         var feed = await (await friend.Client.GetAsync("v1/tenant/feed")).JsonAsync();
         var rated = await friend.Client.PutJsonAsync($"v1/tenant/people/{owner.Handle}/look/{lookId}/rating", new { score = 4 });

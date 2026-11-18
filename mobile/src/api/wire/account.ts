@@ -51,6 +51,9 @@ export type PutVisibilityWire = { closetVisibility: ClosetVisibilityWire; baseVe
  */
 export type PutProfileWire = { displayName?: string; language?: string; cityId?: string; baseVersion: number };
 
+/** GET v1/tenant/profile/handle/availability?handle= */
+export type HandleAvailabilityWire = { handle: string; available: boolean; code: string | null };
+
 /** PUT v1/tenant/profile/handle → `ProfileWire`. 400 `handle_invalid`, 409 `handle_taken`, 422 `handle_reserved`. */
 export type PutHandleWire = { handle: string };
 
@@ -97,11 +100,16 @@ export type NotificationPrefsWire = {
   morningOutfitLocalTime: string;
   weeklyEdit: boolean;
   friendRatings: boolean;
+  /** Off by default; older servers omit it. */
+  priceDrop?: boolean;
+  /** Off by default; older servers omit it. */
+  followRequests?: boolean;
   timeZone: string;
   version: number;
   updatedAt: string | null;
 };
 
+/** `priceDrop` / `followRequests` omitted or null keep the stored value. */
 export type PutNotificationPrefsWire = Omit<NotificationPrefsWire, 'version' | 'updatedAt'> & { baseVersion: number };
 
 export function toNotificationSettings(wire: NotificationPrefsWire): NotificationSettings {
@@ -110,6 +118,8 @@ export function toNotificationSettings(wire: NotificationPrefsWire): Notificatio
     morningTimeLocal: wire.morningOutfitLocalTime,
     weeklyEdit: wire.weeklyEdit,
     friendRatings: wire.friendRatings,
+    priceDrop: wire.priceDrop ?? false,
+    followRequests: wire.followRequests ?? false,
     baseVersion: wire.version,
   };
 }
@@ -120,6 +130,8 @@ export function fromNotificationSettings(settings: NotificationSettings, timeZon
     morningOutfitLocalTime: settings.morningTimeLocal,
     weeklyEdit: settings.weeklyEdit,
     friendRatings: settings.friendRatings,
+    priceDrop: settings.priceDrop,
+    followRequests: settings.followRequests,
     timeZone,
     baseVersion: settings.baseVersion,
   };

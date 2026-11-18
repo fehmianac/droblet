@@ -1,5 +1,6 @@
 using Domain.Domain;
 using Domain.Entity;
+using Domain.Enum;
 using Domain.Manager;
 using Domain.Options;
 using Domain.Services;
@@ -218,6 +219,11 @@ public sealed class CatalogService(
             item.DroppedAt = product.UpdatedAt;
             item.NotifyPending = true;
             await repository.SaveAsync(item, ct);
+            // Outbox row for the price_drop push; the Notifier re-checks the preference and the item's bell before sending.
+            await repository.SaveAsync(new NotificationQueueEntity
+            {
+                Type = NotificationType.PriceDrop, TenantId = watcher.WatcherTenantId, Key = product.Id, CreatedAt = Now,
+            }, ct);
             flagged++;
         }
         return flagged;

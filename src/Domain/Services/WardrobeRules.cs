@@ -80,14 +80,36 @@ public sealed record ItemFields(
     string? Fabric,
     IReadOnlyList<Season>? Seasons,
     string? Size,
-    string? Brand);
+    string? Brand,
+    string? Subcategory = null,
+    string? FabricText = null,
+    string? ColorHex = null);
 
-public static class ItemRules
+public static partial class ItemRules
 {
     public const int MaxNameLength = 80;
     public const int MaxBrandLength = 60;
     public const int MaxSizeLength = 12;
     public const int MaxColors = 5;
+    public const int MaxSubcategoryLength = 40;
+    public const int MaxFabricTextLength = 60;
+
+    [System.Text.RegularExpressions.GeneratedRegex("^[a-z0-9]+(-[a-z0-9]+)*$")]
+    private static partial System.Text.RegularExpressions.Regex SubcategoryPattern();
+
+    [System.Text.RegularExpressions.GeneratedRegex("^#[0-9A-Fa-f]{6}$")]
+    private static partial System.Text.RegularExpressions.Regex HexPattern();
+
+    /// <summary>Free sub-type id from the form ("blazer", "mini-skirt"): lower-case words joined by hyphens, at most 40 chars.</summary>
+    public static bool IsValidSubcategory(string? value) =>
+        value is null || value.Length <= MaxSubcategoryLength && SubcategoryPattern().IsMatch(value);
+
+    /// <summary>Only meaningful with the colour id "other": the user's own colour as #RRGGBB.</summary>
+    public static bool IsValidColorHex(string? value) => value is null || HexPattern().IsMatch(value);
+
+    /// <summary>Normalises "#aabbcc" → "#AABBCC"; null when no "other" colour is selected (the hex would mean nothing).</summary>
+    public static string? NormalizeColorHex(IReadOnlyList<string>? colorIds, string? hex) =>
+        string.IsNullOrWhiteSpace(hex) || colorIds is null || !colorIds.Contains(ColorCatalog.OtherId) ? null : hex.Trim().ToUpperInvariant();
 
     /// <summary>
     /// Category, at least one colour and at least one season are mandatory (brief §4.3 form: "en az bir sezon zorunlu").
@@ -109,6 +131,15 @@ public static class ItemRules
 
         if (fields.Seasons is not { Count: > 0 } || fields.Seasons.Any(s => !System.Enum.IsDefined(s)))
             errors.Add(ErrorCodes.SeasonRequired);
+
+        if (!IsValidSubcategory(fields.Subcategory))
+            errors.Add(ErrorCodes.SubcategoryInvalid);
+
+        if (fields.FabricText is { Length: > MaxFabricTextLength })
+            errors.Add(ErrorCodes.FabricTextTooLong);
+
+        if (!IsValidColorHex(string.IsNullOrWhiteSpace(fields.ColorHex) ? null : fields.ColorHex.Trim()))
+            errors.Add(ErrorCodes.ColorHexInvalid);
 
         if (fields.Name is { Length: > MaxNameLength } || fields.Brand is { Length: > MaxBrandLength } || fields.Size is { Length: > MaxSizeLength })
             errors.Add(ErrorCodes.ValidationFailed);

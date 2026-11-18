@@ -16,8 +16,14 @@ public class ItemEntity : IVersionedEntity
     [JsonPropertyName("tenantId")] public string TenantId { get; set; } = null!;
     [JsonPropertyName("name")] public string? Name { get; set; }
     [JsonPropertyName("category")] public ItemCategory Category { get; set; }
+    // Free sub-type id from the form ("blazer"); the category stays the outfit-slot driver.
+    [JsonPropertyName("subcategory")] public string? Subcategory { get; set; }
     [JsonPropertyName("colorIds")] public List<string> ColorIds { get; set; } = [];   // first = main colour
+    // Only with the colour id "other": the user's own colour (#RRGGBB).
+    [JsonPropertyName("colorHex")] public string? ColorHex { get; set; }
     [JsonPropertyName("fabric")] public string? Fabric { get; set; }
+    // Free-text fabric when it is not one of the fabric ids (kept verbatim, never sent to an AI prompt as an id).
+    [JsonPropertyName("fabricText")] public string? FabricText { get; set; }
     [JsonPropertyName("seasons")] public List<Season> Seasons { get; set; } = [];     // at least one
     [JsonPropertyName("size")] public string? Size { get; set; }
     [JsonPropertyName("brand")] public string? Brand { get; set; }

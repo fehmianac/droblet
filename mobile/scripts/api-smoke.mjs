@@ -12,6 +12,7 @@
  * Exit code 1 when a step failed.
  */
 import { Buffer } from 'node:buffer';
+import { createHash } from 'node:crypto';
 
 const BASE = (process.env.DROBLET_API_BASE_URL ?? 'https://b8lvaj4r5e.execute-api.eu-central-1.amazonaws.com').replace(/\/+$/, '');
 const PASSWORD = 'Sm0keTest2026';
@@ -263,6 +264,14 @@ async function main() {
         await branchStep('wardrobe', 'v1/tenant/item-draft/{id}/retry', 'POST', `v1/tenant/item-draft/${draftId}/retry`, A, [202, 404, 409]);
       }
     }
+    // Manual piece without a photo (7b) with the formerly lossy fields (7c).
+    const manualId = ulid();
+    await branchStep('wardrobe', 'v1/tenant/item (manual, no photo)', 'POST', 'v1/tenant/item', {
+      ...A, body: { clientMutationId: manualId, itemId: manualId, name: 'Smoke blazer', category: 'outerwear', subcategory: 'blazer', colorIds: ['other'], colorHex: '#123456', fabricText: 'tüvit', seasons: ['autumn'] },
+    }, [201], (j) => need(j.item && j.item.imageUrl === null && j.item.source === 'manual' && j.item.subcategory === 'blazer', 'manual item'));
+    await branchStep('wardrobe', 'v1/tenant/item (manual, replay)', 'POST', 'v1/tenant/item', {
+      ...A, body: { clientMutationId: manualId, itemId: manualId, name: 'Smoke blazer', category: 'outerwear', colorIds: ['other'], seasons: ['autumn'] },
+    }, [200], (j) => need(j.outcome === 'alreadyApplied', 'idempotent'));
     await step('wardrobe', 'v1/tenant/item', 'GET', 'v1/tenant/item', A, [200], (j) => {
       need(Array.isArray(j), 'array');
       has(j[0], 'id', 'name', 'category', 'colorIds', 'seasons', 'imageUrl', 'wearCount', 'version');
@@ -411,6 +420,8 @@ async function main() {
       await step('cart', 'v1/tenant/cart/checkout/{brandId}', 'POST', `v1/tenant/cart/checkout/${product.brandId}`, A, [200, 422], (j, r) => (r.status === 422 ? j.code : 'checkout url'));
       if (lineId) await step('cart', 'v1/tenant/cart/line/{lineId}', 'DELETE', `v1/tenant/cart/line/${lineId}`, A, [204]);
       await step('watch list', 'v1/tenant/watch-list/{productId}', 'PUT', `v1/tenant/watch-list/${product.id}`, { ...A, body: {} }, [200], (j) => has(j, 'product', 'priceAtAddMinor', 'currentPriceMinor', 'priceDropped'));
+      await step('watch list', 'v1/tenant/watch-list/{productId} (bell off)', 'PUT', `v1/tenant/watch-list/${product.id}`, { ...A, body: { notify: false } }, [200], (j) =>
+        'notify' in j ? need(j.notify === false && j.origin === 'user', 'bell off') : 'older deployment (no notify)');
       await step('watch list', 'v1/tenant/watch-list/{productId}', 'DELETE', `v1/tenant/watch-list/${product.id}`, A, [204]);
     } else {
       await step('cart', 'v1/tenant/cart/line (unknown product; catalog empty)', 'POST', 'v1/tenant/cart/line', { ...A, body: { lines: [{ clientMutationId: ulid(), productId: 'smoke-unknown' }] } }, [404], (j) => need(j.code === 'product_not_found', 'code'));
@@ -436,13 +447,49 @@ async function main() {
     });
     await step('social', 'v1/tenant/people/suggested', 'GET', 'v1/tenant/people/suggested', B, [200], (j) => need(Array.isArray(j), 'array'));
     await step('social', 'v1/tenant/people/{handle}', 'GET', `v1/tenant/people/${handleA}`, B, [200], (j) => has(j, 'handle', 'displayName', 'isSelf', 'isFollowing', 'closetVisibility', 'closetLocked', 'itemCount', 'lookCount', 'followerCount', 'followingCount'));
-    await step('social', 'v1/tenant/follow/{handle}', 'POST', `v1/tenant/follow/${handleA}`, B, [204]);
+    // a is public → the follow is immediate (200 { state } since decision 8; 204 on an older deployment).
+    await step('social', 'v1/tenant/follow/{handle} (public → following)', 'POST', `v1/tenant/follow/${handleA}`, B, [200, 204], (j, r) =>
+      r.status === 204 ? 'older deployment (204)' : need(j.state === 'following', 'state following'));
     await step('social', 'v1/tenant/following', 'GET', 'v1/tenant/following', B, [200], (j) => need(j.some((p) => p.handle === handleA), 'following a'));
-    // b's closet is private (the default), so her card is hidden from lists other people read.
     await step('social', 'v1/tenant/follower', 'GET', 'v1/tenant/follower', A, [200], (j) => {
       need(Array.isArray(j), 'array');
-      return `${j.length} visible follower(s) (b is private)`;
+      return `${j.length} visible follower(s)`;
     });
+    // b is followers-only (the default of a new account, decision 7) → a's follow is a request b approves (decision 8).
+    const asked = await step('follow requests', 'v1/tenant/follow/{handle} (followers-only → requested)', 'POST', `v1/tenant/follow/${handleB}`, A, [200, 204, 404], (j, r) =>
+      r.status === 200 ? need(j.state === 'requested' || j.state === 'following', 'state') && `state ${j.state}` : 'older deployment (b private by default)');
+    if (asked.json?.state === 'requested') {
+      await branchStep('follow requests', 'v1/tenant/follow-request/outgoing', 'GET', 'v1/tenant/follow-request/outgoing', A, [200], (j) => need(j.some((r) => r.person.handle === handleB), 'request listed'));
+      await branchStep('follow requests', 'v1/tenant/follow-request/incoming', 'GET', 'v1/tenant/follow-request/incoming', B, [200], (j) => {
+        need(j.some((r) => r.person.handle === handleA), 'request listed');
+        has(j[0], 'person', 'createdAt');
+      });
+      await branchStep('follow requests', 'v1/tenant/people/{handle} (pending)', 'GET', `v1/tenant/people/${handleB}`, A, [200], (j) => need(j.followState === 'requested' && j.closetLocked === true, 'pending is not following'));
+      await branchStep('follow requests', 'v1/tenant/follow-request/{handle}/approve', 'POST', `v1/tenant/follow-request/${handleA}/approve`, B, [204]);
+      await branchStep('follow requests', 'v1/tenant/follow-request/{handle}/approve (again)', 'POST', `v1/tenant/follow-request/${handleA}/approve`, B, [404]);
+      await branchStep('follow requests', 'v1/tenant/follower/{handle}', 'DELETE', `v1/tenant/follower/${handleA}`, B, [204]);
+      await branchStep('follow requests', 'v1/tenant/follow/{handle} (ask again)', 'POST', `v1/tenant/follow/${handleB}`, A, [200], (j) => need(j.state === 'requested', 'requested'));
+      await branchStep('follow requests', 'v1/tenant/follow-request/{handle}/decline', 'POST', `v1/tenant/follow-request/${handleA}/decline`, B, [204]);
+      await branchStep('follow requests', 'v1/tenant/follow/{handle} (ask a third time)', 'POST', `v1/tenant/follow/${handleB}`, A, [200]);
+      await branchStep('follow requests', 'v1/tenant/follow-request/{handle} (cancel)', 'DELETE', `v1/tenant/follow-request/${handleB}`, A, [204]);
+    }
+    await branchStep('profile', 'v1/tenant/profile/handle/availability (taken)', 'GET', `v1/tenant/profile/handle/availability?handle=${handleB}`, A, [200], (j) => need(j.available === false && j.code === 'handle_taken', 'taken'));
+    await branchStep('profile', 'v1/tenant/profile/handle/availability (own)', 'GET', `v1/tenant/profile/handle/availability?handle=${handleA}`, A, [200], (j) => need(j.available === true, 'own handle'));
+    await branchStep('profile', 'v1/tenant/profile/handle/availability (reserved)', 'GET', 'v1/tenant/profile/handle/availability?handle=admin', A, [200], (j) => need(j.code === 'handle_reserved', 'reserved'));
+    // Contact matching (decision 13): hashes only; smoke users have unverified e-mails, so no match is expected.
+    const salt = await branchStep('contacts', 'v1/tenant/contacts/salt', 'POST', 'v1/tenant/contacts/salt', A, [200], (j) => has(j, 'saltId', 'salt', 'prefixLength', 'maxHashes', 'expiresAt'));
+    if (salt.json?.salt) {
+      const sha = (v) => createHash('sha256').update(v, 'utf8').digest('hex');
+      const hashes = [b.email, 'nobody@example.com'].map((e) => {
+        const h0 = sha(e.trim().toLowerCase());
+        return { p: h0.slice(0, salt.json.prefixLength), h: sha(`${salt.json.salt}:email:${h0}`) };
+      });
+      await branchStep('contacts', 'v1/tenant/contacts/match', 'POST', 'v1/tenant/contacts/match', { ...A, body: { saltId: salt.json.saltId, hashes } }, [200], (j) => {
+        need(Array.isArray(j.matches), 'matches');
+        return `${j.matches.length} match(es)`;
+      });
+      await branchStep('contacts', 'v1/tenant/contacts/match (salt reused)', 'POST', 'v1/tenant/contacts/match', { ...A, body: { saltId: salt.json.saltId, hashes } }, [404], (j) => need(j.code === 'contact_salt_not_found', 'single use'));
+    }
     await step('social', 'v1/tenant/feed', 'GET', 'v1/tenant/feed', B, [200], (j) => {
       has(j, 'items', 'pageToken');
       if (look) {
