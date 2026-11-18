@@ -29,7 +29,7 @@
   "submit": {
     "production": {
       "ios": {
-        "appleTeamId": "[APPLE_TEAM_ID]"
+        "appleTeamId": "4LB4RD97A9"
       },
       "android": {
         "serviceAccountKeyPath": "./play-service-account.json",
