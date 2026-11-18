@@ -48,8 +48,12 @@ public sealed class ApiFactory : WebApplicationFactory<Entrypoint>
             services.AddSingleton<IGoogleIdentityVerifier>(Google);
             services.RemoveAll<IPasswordHasher>();
             services.AddSingleton<IPasswordHasher>(new PasswordHasher(1_000));
+            services.RemoveAll<Domain.Manager.IEventManager>();
+            services.AddSingleton<Domain.Manager.IEventManager>(Events);
         });
     }
+
+    public CapturingEventManager Events { get; } = new();
 
     public async Task<(HttpClient Client, AuthResponse Auth)> RegisterAsync(string? email = null, string password = "Sifre1234")
     {
@@ -60,6 +64,23 @@ public sealed class ApiFactory : WebApplicationFactory<Entrypoint>
         var auth = (await response.Content.ReadFromJsonAsync<AuthResponse>(Json))!;
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.AccessToken);
         return (client, auth);
+    }
+}
+
+/// <summary>Queue double: records what the Api would have put on a worker queue.</summary>
+public sealed class CapturingEventManager : Domain.Manager.IEventManager
+{
+    public List<Domain.Events.IJobRequestedEvent> Published { get; } = [];
+
+    public Task PublishAsync(Domain.Events.IJobRequestedEvent jobEvent, CancellationToken ct = default)
+    {
+        lock (Published) Published.Add(jobEvent);
+        return Task.CompletedTask;
+    }
+
+    public IReadOnlyList<T> Of<T>(string tenantId) where T : Domain.Events.IJobRequestedEvent
+    {
+        lock (Published) return Published.OfType<T>().Where(e => e.TenantId == tenantId).ToList();
     }
 }
 
