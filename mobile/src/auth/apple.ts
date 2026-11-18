@@ -26,6 +26,8 @@ export async function requestAppleCredential(): Promise<AppleAuthRequest | null>
       nonce: rawNonce,
       givenName: credential.fullName?.givenName ?? null,
       familyName: credential.fullName?.familyName ?? null,
+      // Exchanged by the server for an Apple refresh token, revoked when the account is deleted (App Store 5.1.1(v)).
+      authorizationCode: credential.authorizationCode ?? null,
     };
   } catch (e) {
     if (e instanceof Error && 'code' in e && (e as { code?: string }).code === 'ERR_REQUEST_CANCELED') return null;

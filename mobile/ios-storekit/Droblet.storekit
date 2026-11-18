@@ -1,0 +1,149 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : "https://droblet.alatech.co/privacy"
+      }
+    ]
+  },
+  "identifier" : "6E1B6C1D-5F0A-4C36-9C2B-8A1F7D3E9B10",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "79.99",
+      "familyShareable" : false,
+      "internalID" : "6739000001",
+      "localizations" : [
+        {
+          "description" : "20 AI görseli. Tek seferlik paket, hemen kullanılabilir.",
+          "displayName" : "20 AI görseli",
+          "locale" : "tr"
+        },
+        {
+          "description" : "20 AI images. One-time pack, ready to use.",
+          "displayName" : "20 AI images",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.alatech.droplet.credits.20",
+      "referenceName" : "AI credits 20",
+      "type" : "Consumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "",
+    "_developerTeamID" : "4LB4RD97A9",
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 0,
+    "_locale" : "tr",
+    "_storefront" : "TUR",
+    "_storeKitErrors" : [
+
+    ]
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "21600000",
+      "localizations" : [
+        {
+          "description" : "Droblet Üyelik",
+          "displayName" : "Droblet Üyelik",
+          "locale" : "tr"
+        },
+        {
+          "description" : "Droblet Membership",
+          "displayName" : "Droblet Membership",
+          "locale" : "en_US"
+        }
+      ],
+      "name" : "Droblet Üyelik",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "1499.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6739000003",
+          "introductoryOffer" : {
+            "internalID" : "6739000013",
+            "numberOfPeriods" : 1,
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P1W"
+          },
+          "localizations" : [
+            {
+              "description" : "Ayda 30 AI görseli, stil danışmanı, akıllı bavul, renk paleti.",
+              "displayName" : "Droblet Üyelik · Yıllık",
+              "locale" : "tr"
+            },
+            {
+              "description" : "30 AI images a month, stylist, smart packing, colour palette.",
+              "displayName" : "Droblet Membership · Yearly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.alatech.droplet.premium.yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Premium yearly",
+          "subscriptionGroupID" : "21600000",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "199.99",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "6739000002",
+          "introductoryOffer" : {
+            "internalID" : "6739000012",
+            "numberOfPeriods" : 1,
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P1W"
+          },
+          "localizations" : [
+            {
+              "description" : "Ayda 30 AI görseli, stil danışmanı, akıllı bavul, renk paleti.",
+              "displayName" : "Droblet Üyelik · Aylık",
+              "locale" : "tr"
+            },
+            {
+              "description" : "30 AI images a month, stylist, smart packing, colour palette.",
+              "displayName" : "Droblet Membership · Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.alatech.droplet.premium.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Premium monthly",
+          "subscriptionGroupID" : "21600000",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

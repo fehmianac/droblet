@@ -33,6 +33,7 @@ import type { PreparedPhoto } from '@/features/photos/preparePhoto';
 import { usePhotoPicker } from '@/features/photos/usePhotoPicker';
 import { currentLanguage, LANGUAGES, SUPPORTED_LANGUAGES, type AppLanguage } from '@/i18n';
 import { setAppLanguage } from '@/i18n/preference';
+import { syncPushRegistration } from '@/notify/push';
 import { REMINDER_TIMES } from '@/notify/time';
 import { mutationKeys } from '@/sync/queryKeys';
 
@@ -248,6 +249,7 @@ function NotificationsSection() {
   const settings = useNotificationSettings();
   const save = useSaveNotificationSettings();
   const [timeOpen, setTimeOpen] = useState(false);
+  const [pushOff, setPushOff] = useState(false);
 
   return (
     <Card>
@@ -258,7 +260,11 @@ function NotificationsSection() {
         skeleton={<Skeleton className="m-4 h-28 rounded-image" />}
       >
         {(data) => {
-          const change = (patch: Partial<NotificationSettings>) => save({ ...data, ...patch });
+          const change = (patch: Partial<NotificationSettings>) => {
+            // Switching a notification on is the moment to ask for push permission (and register the token).
+            if (Object.values(patch).includes(true)) void syncPushRegistration({ ask: true }).then((on) => setPushOff(!on));
+            save({ ...data, ...patch });
+          };
           const localTime = data.morningTimeLocal;
           return (
             <>
@@ -268,6 +274,11 @@ function NotificationsSection() {
               ) : null}
               <ToggleRow label={t('settings.weeklyEdit')} value={data.weeklyEdit} onChange={(v) => change({ weeklyEdit: v })} />
               <ToggleRow label={t('settings.friendRatings')} value={data.friendRatings} onChange={(v) => change({ friendRatings: v })} />
+              {pushOff ? (
+                <Text variant="caption" tone="muted" className="px-4 pb-3">
+                  {t('push.denied')}
+                </Text>
+              ) : null}
               <BottomSheet visible={timeOpen} onClose={() => setTimeOpen(false)} title={t('settings.timeTitle')}>
                 <ChipWrap>
                   {REMINDER_TIMES.map((time) => (

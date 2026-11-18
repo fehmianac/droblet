@@ -1,0 +1,26 @@
+{
+  "purchase": {
+    "purchasing": "Mağaza açılıyor…",
+    "verifying": "Satın alma doğrulanıyor…",
+    "restoring": "Satın alımların kontrol ediliyor…",
+    "successMember": "Hoş geldin. Droblet Üyeliğin aktif.",
+    "successPack_one": "{{count}} AI görseli hesabına eklendi.",
+    "successPack_other": "{{count}} AI görseli hesabına eklendi.",
+    "pending": "Satın alma onay bekliyor. Onaylandığında kendiliğinden açılır; bu ekranı kapatabilirsin.",
+    "cancelled": "Satın alma iptal edildi. Ücret alınmadı.",
+    "errorTitle": "Satın alma tamamlanamadı",
+    "errorUnavailable": "Mağazaya şu an ulaşılamıyor. App Store / Google Play oturumunu ve bağlantını kontrol edip tekrar dene.",
+    "errorNetwork": "Bağlantı yok. Ödemen güvende; bağlantı gelince otomatik olarak doğrulanır.",
+    "errorInvalid": "Mağaza bu satın almayı doğrulayamadı. Ücret alındıysa \"Satın alımları geri yükle\"ye dokun.",
+    "errorOwnedElsewhere": "Bu satın alma başka bir Droblet hesabına bağlı. O hesapla giriş yaparak kullanabilirsin.",
+    "errorNotConfigured": "Satın almalar şu an doğrulanamıyor. Ödemen güvende; kısa süre sonra kendiliğinden tamamlanır.",
+    "errorStore": "Mağaza bir hata bildirdi. Biraz sonra tekrar dene.",
+    "restoredMember": "Satın alımların geri yüklendi. Droblet Üyeliğin aktif.",
+    "restoredNone": "Bu hesapta geri yüklenecek bir üyelik bulunamadı.",
+    "restoredElsewhere": "Bulunan üyelik başka bir Droblet hesabına bağlı.",
+    "gracePeriod": "Son ödemen alınamadı. Üyeliğin şimdilik devam ediyor; mağaza ayarlarından ödeme yöntemini güncelle."
+  },
+  "push": {
+    "denied": "Bildirim izni kapalı. Hatırlatmaları almak için Ayarlar'dan Droblet bildirimlerini aç."
+  }
+}
