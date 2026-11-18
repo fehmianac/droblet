@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/api/client';
 import type { Look } from '@/api/contracts/looks';
 import { fromSource } from '@/api/dataSource';
-import { clone, fixtureDb, FixtureNotFound } from '@/fixtures/db';
+import { ApiError } from '@/api/errors';
+import { clone, fixtureDb } from '@/fixtures/db';
 
 /** Query keys of the looks feature (E3). */
 export const lookKeys = {
@@ -33,7 +34,8 @@ export function useLook(id: string | null | undefined) {
         'wardrobe',
         () => {
           const look = fixtureDb.looks.find((l) => l.id === id);
-          if (!look) throw new FixtureNotFound(`look ${id}`);
+          // Same shape as the server's answer for an unknown look: no retry, the screen shows the error state.
+          if (!look) throw new ApiError('http', 404, null);
           return clone(look);
         },
         () => apiRequest<Look>(`v1/tenant/look/${id}`),

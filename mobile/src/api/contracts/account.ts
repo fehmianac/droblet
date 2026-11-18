@@ -34,6 +34,23 @@ export type PutVisibilityRequest = { closetVisibility: ClosetVisibility; baseVer
 /** PUT v1/tenant/profile — assumption: a partial, versioned update carrying only `language` → the updated profile. */
 export type PutProfileLanguageRequest = { language: AppLanguage; baseVersion: number; clientMutationId: string };
 
+/**
+ * PUT v1/tenant/profile — "Profili düzenle" (28). ASSUMED: the same versioned profile PUT, carrying the
+ * name, the handle and (only when it changes) the photo → the updated profile.
+ * 422 `handle_taken` when someone else has the handle; 409 + `{ current }` when the version moved on.
+ * `avatarPhotoId`: id returned by `POST v1/tenant/profile/avatar/upload-url` after the upload;
+ * `null` removes the photo; absent keeps it.
+ */
+export type UpdateProfileRequest = {
+  displayName: string;
+  handle: string;
+  avatarPhotoId?: string | null;
+  baseVersion: number;
+  clientMutationId: string;
+};
+/** POST v1/tenant/profile/avatar/upload-url — ASSUMED: same shape as the photo upload URL (presigned PUT, image/jpeg). */
+export type AvatarUploadUrlResponse = { photoId: string; uploadUrl: string; expiresAt: string };
+
 /** GET v1/tenant/photo — metadata + short-lived signed URLs (never persisted). */
 export type PhotoMeta = { photoId: string; url: string | null };
 export type MyPhotos = {

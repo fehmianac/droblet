@@ -1,5 +1,5 @@
 import type { LookSlotKind } from '@/api/contracts/looks';
-import { keepPreviousData, queryOptions, useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, queryOptions, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { apiRequest } from '@/api/client';
 import type {
@@ -15,7 +15,6 @@ import type {
   ProductPage,
   ProductQuery,
   SeriesOutfit,
-  TryOnState,
   Watchlist,
   WeeklyEditSummary,
 } from '@/api/contracts/store';
@@ -36,7 +35,7 @@ export const storeKeys = {
   match: (id: string) => ['tenant', 'catalog', 'match', id] as const,
   complete: (itemId: string) => ['tenant', 'stylist', 'complete', itemId] as const,
   favorites: ['tenant', 'favorite', 'product'] as const,
-  tryOn: (productId: string) => ['tenant', 'tryon', 'product', productId] as const,
+  tryOnJob: (productId: string) => ['tenant', 'tryon', 'product', productId, 'job'] as const,
   cart: ['tenant', 'cart', 'current'] as const,
   watchlist: ['tenant', 'watchlist', 'current'] as const,
 };
@@ -185,25 +184,26 @@ export function useFavoriteProducts() {
 }
 
 /**
- * 22 "Üzerimde" — the owner's try-on image of a product. Polls while the TryOn worker runs.
- * The signed image URL is short-lived, so this query is never persisted.
+ * 22 "Üzerimde" — the id of the try-on job started for a product in this session, so coming back to
+ * the product shows the same image (or the same wait) instead of spending another credit. The job
+ * itself is started and polled with the shared `useStartTryOn` / `useTryOnJob` (features/tryon).
+ * Never persisted: a job and its signed image URL do not outlive the session.
  */
-export function productTryOnOptions(productId: string) {
+function productTryOnJobOptions(productId: string) {
   return queryOptions({
-    queryKey: storeKeys.tryOn(productId),
+    queryKey: storeKeys.tryOnJob(productId),
     meta: { persist: false },
-    queryFn: () =>
-      fromSource(
-        'jobs',
-        () => storeFixtures.tryOn(productId),
-        () => apiRequest<TryOnState>(`v1/tenant/tryon${queryString({ kind: 'product', id: productId })}`),
-      ),
-    refetchInterval: (query) => (query.state.data?.status === 'pending' ? 1500 : false),
+    staleTime: Infinity,
+    // Client-held state: a refetch (e.g. a broad invalidation) answers with what is already known.
+    queryFn: ({ client, queryKey }) => client.getQueryData<string | null>(queryKey) ?? null,
   });
 }
 
-export function useProductTryOn(productId: string, enabled: boolean) {
-  return useQuery({ ...productTryOnOptions(productId), enabled });
+export function useProductTryOnJobId(productId: string): [jobId: string | null, remember: (jobId: string | null) => void] {
+  const client = useQueryClient();
+  const options = productTryOnJobOptions(productId);
+  const query = useQuery(options);
+  return [query.data ?? null, (jobId) => client.setQueryData(options.queryKey, jobId)];
 }
 
 // ---------- Cart (24) and watchlist (24b) ----------

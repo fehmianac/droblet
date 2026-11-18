@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { ChevronLeft, ChevronRight, Shirt, Sparkles, X } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Sparkles, X } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
@@ -8,7 +8,6 @@ import type { Look } from '@/api/contracts/looks';
 import { Badge } from '@/components/ui/Bits';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
-import { Chip } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
 import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
@@ -16,6 +15,7 @@ import { ListTabBar } from '@/components/navigation/TabBar';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
+import { Silhouette } from '@/components/ui/Silhouette';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { useLooks } from '@/features/looks/queries';
@@ -34,22 +34,14 @@ import { useThemeColors } from '@/theme/useThemeColors';
  */
 const goBack = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
-/** One class set per state — never two competing border utilities on the same cell. */
-function cellClass(kind: DayStatus['kind'], isToday: boolean): string {
-  if (isToday) return `border-2 border-ink ${kind === 'worn' ? 'bg-accent' : kind === 'planned' ? 'bg-sand' : ''}`;
-  if (kind === 'worn') return 'bg-accent';
-  if (kind === 'planned') return 'border border-accent bg-sand';
-  return 'border border-dashed border-line';
-}
-
 function CalendarSkeleton() {
   return (
-    <View className="gap-2 px-gutter pt-2">
+    <View className="gap-[5px] px-gutter">
       {[0, 1, 2, 3, 4].map((row) => (
-        <View key={row} className="flex-row gap-1.5">
+        <View key={row} className="flex-row gap-[5px] pt-[17px]">
           {[0, 1, 2, 3, 4, 5, 6].map((cell) => (
             <View key={cell} className="flex-1">
-              <Skeleton className="aspect-[4/5] w-full rounded-[10px]" />
+              <Skeleton className="h-[52px] w-full rounded-lg" />
             </View>
           ))}
         </View>
@@ -60,8 +52,9 @@ function CalendarSkeleton() {
 }
 
 /**
- * 09 Takvim — "ne giyeceğim, ne giydim": a Monday-first month grid (worn and planned days are
- * filled), a day sheet with that day's look or a stylist suggestion, and the month's summary.
+ * 09 Takvim — "ne giyeceğim, ne giydim": a Monday-first month grid (the day number above a 52-high box:
+ * the look's thumbnail on worn and planned days, a dashed box on empty ones), a day sheet with that day's
+ * look or a stylist suggestion, and the month's summary with "Rapor" → the month report.
  */
 export default function CalendarScreen() {
   const { t } = useTranslation();
@@ -85,21 +78,21 @@ export default function CalendarScreen() {
   return (
     <Screen>
       <ScreenHeader leading="back" onLeadingPress={goBack} />
-      <View className="gap-1 px-gutter pb-3">
+      <View className="gap-1.5 px-gutter pb-3.5 pt-1">
         <Text variant="eyebrow">{t('calendarScreen.eyebrow')}</Text>
         <View className="flex-row items-center justify-between gap-3">
           <Text variant="display" className="flex-1" numberOfLines={1} adjustsFontSizeToFit>
             {formatMonthYear(monthDate)}
           </Text>
-          <View className="flex-row gap-2">
-            <IconButton icon={ChevronLeft} onPress={() => setMonth(shiftMonth(month, -1))} accessibilityLabel={t('calendarScreen.prevMonth')} />
-            <IconButton icon={ChevronRight} onPress={() => setMonth(shiftMonth(month, 1))} accessibilityLabel={t('calendarScreen.nextMonth')} />
+          <View className="flex-row gap-1.5">
+            <IconButton icon={ChevronLeft} iconSize={18} onPress={() => setMonth(shiftMonth(month, -1))} accessibilityLabel={t('calendarScreen.prevMonth')} />
+            <IconButton icon={ChevronRight} iconSize={18} onPress={() => setMonth(shiftMonth(month, 1))} accessibilityLabel={t('calendarScreen.nextMonth')} />
           </View>
         </View>
       </View>
-      <View className="flex-row gap-1.5 px-gutter pb-2" accessible={false} importantForAccessibility="no-hide-descendants">
+      <View className="flex-row gap-[5px] px-gutter pb-3.5" accessible={false} importantForAccessibility="no-hide-descendants">
         {weekdays.map((w, i) => (
-          <Text key={`${w}${i}`} variant="caption" tone="muted" className="flex-1 text-center" numberOfLines={1}>
+          <Text key={`${w}${i}`} variant="tab" tone="muted" className="flex-1 text-center" numberOfLines={1}>
             {w}
           </Text>
         ))}
@@ -114,38 +107,50 @@ export default function CalendarScreen() {
           return (
             <>
               <ScrollView
-                contentContainerClassName="gap-5 px-gutter pb-8"
+                contentContainerClassName="gap-3.5 px-gutter pb-8"
                 refreshControl={<RefreshControl refreshing={query.isRefetching} onRefresh={query.refetch} tintColor={colors.muted} />}
               >
-                <View className="gap-1.5">
+                <View className="gap-[5px]">
                   {monthGrid(month).map((row, r) => (
-                    <View key={r} className="flex-row gap-1.5">
+                    <View key={r} className="flex-row gap-[5px]">
                       {row.map((date, c) => {
                         if (!date) return <View key={c} className="flex-1" />;
                         const status = dayStatus(date, data);
-                        const filled = status.kind !== 'empty';
                         const isToday = date === today;
                         const dateLabel = formatDate(parseLocalDate(date), { day: 'numeric', month: 'long' });
                         const base = t(
                           status.kind === 'worn' ? 'calendarScreen.dayWorn' : status.kind === 'planned' ? 'calendarScreen.dayPlanned' : 'calendarScreen.dayEmpty',
                           { date: dateLabel },
                         );
+                        const image = lookOf(status)?.tryOnImageUrl ?? null;
                         return (
                           <Pressable
                             key={c}
                             onPress={() => setSelected(date)}
                             accessibilityRole="button"
                             accessibilityLabel={isToday ? t('calendarScreen.dayToday', { label: base }) : base}
-                            className={`aspect-[4/5] flex-1 items-center justify-between rounded-[10px] py-1.5 active:opacity-70 ${cellClass(status.kind, isToday)}`}
+                            className="flex-1 items-center gap-[3px] active:opacity-70"
                           >
                             <Text
-                              variant={isToday ? 'bodyMedium' : 'caption'}
-                              tone={status.kind === 'worn' ? 'paper' : isToday ? 'ink' : 'muted'}
+                              variant="badge"
+                              tone={isToday ? 'ink' : 'muted'}
+                              className={isToday ? 'font-sans-semibold' : 'font-sans'}
                               maxFontSizeMultiplier={1.2}
                             >
                               {formatNumber(Number(date.slice(8)))}
                             </Text>
-                            {filled ? <Icon icon={Shirt} size={14} tone={status.kind === 'worn' ? 'paper' : 'accent'} /> : <View className="h-3.5" />}
+                            {status.kind === 'empty' ? (
+                              <View className="h-[52px] w-full rounded-lg border border-dashed border-line" />
+                            ) : (
+                              <View className="h-[52px] w-full items-center justify-center overflow-hidden rounded-lg">
+                                <PlaceholderImage uri={image} className="h-full w-full" />
+                                {image ? null : (
+                                  <View className="absolute inset-0 items-center justify-center" pointerEvents="none">
+                                    <Silhouette height={33} opacity={0.3} />
+                                  </View>
+                                )}
+                              </View>
+                            )}
                           </Pressable>
                         );
                       })}
@@ -153,10 +158,10 @@ export default function CalendarScreen() {
                   ))}
                 </View>
 
-                <View className="flex-row items-center gap-3 rounded-card border border-line bg-paper p-4">
+                <View className="flex-row items-center gap-3.5 rounded-card border border-line bg-paper p-3.5">
                   <View className="flex-1 gap-1">
                     <Text variant="eyebrow">{t('calendarScreen.summaryEyebrow')}</Text>
-                    <Text variant="h3">
+                    <Text variant="title">
                       {data.summary.daysLogged > 0 ? t('calendarScreen.daysLogged', { count: data.summary.daysLogged }) : t('calendarScreen.noLogs')}
                     </Text>
                     {data.summary.mostWorn ? (
@@ -165,13 +170,24 @@ export default function CalendarScreen() {
                       </Text>
                     ) : null}
                   </View>
-                  <Chip label={t('calendarScreen.report')} disabled badge={t('common.comingSoon')} />
+                  <Pressable
+                    onPress={() => router.push({ pathname: '/plan/report', params: { month } })}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('calendarScreen.reportA11y', { month: formatMonthYear(monthDate) })}
+                    hitSlop={4}
+                    className="h-chip flex-row items-center gap-1.5 rounded-pill border border-line px-[15px] active:opacity-80"
+                  >
+                    <Text variant="chip" numberOfLines={1}>
+                      {t('calendarScreen.report')}
+                    </Text>
+                    <Icon icon={ChevronRight} size={14} />
+                  </Pressable>
                 </View>
               </ScrollView>
 
               <BottomSheet visible={selected !== null} onClose={() => setSelected(null)}>
                 {selected && selectedStatus ? (
-                  <View className="gap-4">
+                  <View className="gap-3.5">
                     <View className="flex-row items-center justify-between gap-3">
                       <Text variant="eyebrow" className="flex-1">
                         {toDisplayUpper(formatDate(parseLocalDate(selected), { day: 'numeric', month: 'long' }), currentLanguage())}
@@ -180,13 +196,17 @@ export default function CalendarScreen() {
                     </View>
                     {selectedStatus.kind !== 'empty' ? (
                       <>
-                        <View className="flex-row items-center gap-3">
-                          <PlaceholderImage uri={selectedLook?.tryOnImageUrl} className="h-[88px] w-[70px] rounded-image" />
+                        <View className="flex-row items-center gap-3.5">
+                          <View className="h-[124px] w-24 items-center justify-center overflow-hidden rounded-image">
+                            <PlaceholderImage uri={selectedLook?.tryOnImageUrl} className="h-full w-full" />
+                            {selectedLook?.tryOnImageUrl ? null : (
+                              <View className="absolute inset-0 items-center justify-center" pointerEvents="none">
+                                <Silhouette height={73} />
+                              </View>
+                            )}
+                          </View>
                           <View className="flex-1 gap-1.5">
-                            <Badge
-                              label={t(selectedStatus.kind === 'worn' ? 'calendarScreen.statusWorn' : 'calendarScreen.statusPlanned')}
-                              tone={selectedStatus.kind === 'worn' ? 'accent' : 'sand'}
-                            />
+                            <Badge label={t(selectedStatus.kind === 'worn' ? 'calendarScreen.statusWorn' : 'calendarScreen.statusPlanned')} />
                             <Text variant="h3" numberOfLines={2}>
                               {selectedLook?.name ?? t('calendarScreen.savedLook')}
                             </Text>
@@ -202,17 +222,16 @@ export default function CalendarScreen() {
                             <View className="min-w-[45%] flex-1">
                               <Button
                                 variant="secondary"
-                                className="h-btn-primary"
                                 label={t('calendarScreen.openLook')}
                                 onPress={() => {
                                   setSelected(null);
-                                  router.push({ pathname: '/look/new', params: { id: selectedLook.id } });
+                                  router.push({ pathname: '/look/[id]', params: { id: selectedLook.id } });
                                 }}
                               />
                             </View>
                           ) : null}
                           <View className="min-w-[45%] flex-1">
-                            <Button label={t('calendarScreen.change')} onPress={() => suggest(selected)} />
+                            <Button size="md" label={t('calendarScreen.change')} onPress={() => suggest(selected)} />
                           </View>
                         </View>
                       </>

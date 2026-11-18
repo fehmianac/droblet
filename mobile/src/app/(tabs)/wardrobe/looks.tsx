@@ -26,10 +26,10 @@ import { useThemeColors } from '@/theme/useThemeColors';
 
 function LooksSkeleton() {
   return (
-    <View className="flex-row flex-wrap gap-3 px-gutter pt-2">
+    <View className="flex-row flex-wrap gap-x-3 gap-y-3.5 px-gutter pt-2">
       {[0, 1, 2, 3].map((i) => (
         <View key={i} className="w-[47%] grow gap-2">
-          <Skeleton className="aspect-[4/5] w-full rounded-image-lg" />
+          <Skeleton className="h-[210px] w-full rounded-image-lg" />
           <Skeleton className="h-3 w-3/4 rounded-field" />
         </View>
       ))}
@@ -44,37 +44,37 @@ function LookTile({ look, itemsById, onToggleFavorite }: { look: Look; itemsById
   return (
     <View className="flex-1">
       <Pressable
-        onPress={() => router.push({ pathname: '/look/new', params: { id: look.id } })}
+        onPress={() => router.push({ pathname: '/look/[id]', params: { id: look.id } })}
         accessibilityRole="button"
         accessibilityLabel={rating ? t('looks.cardLabelRated', { occasion, name: look.name, rating }) : t('looks.cardLabel', { occasion, name: look.name })}
         className="gap-2 active:opacity-80"
       >
-        <LookCover tryOnImageUrl={look.tryOnImageUrl} slots={look.slots} itemsById={itemsById} className="aspect-[4/5] w-full rounded-image-lg">
+        <LookCover seed={look.id} tryOnImageUrl={look.tryOnImageUrl} slots={look.slots} itemsById={itemsById} className="h-[210px] w-full rounded-image-lg">
           <ImageTag label={toDisplayUpper(occasion, currentLanguage())} className="absolute bottom-2 left-2" />
         </LookCover>
         <View className="flex-row items-center justify-between gap-2">
-          <Text variant="bodyMedium" numberOfLines={1} className="flex-1">
+          <Text variant="segment" numberOfLines={1} className="flex-1">
             {look.name}
           </Text>
           {rating ? (
-            <View className="flex-row items-center gap-1">
-              <Icon icon={Star} size={14} tone="accent" filled />
-              <Text variant="caption" tone="muted">
-                {rating}
-              </Text>
+            <View className="flex-row items-center gap-[3px]">
+              <Icon icon={Star} size={13} />
+              <Text variant="caption">{rating}</Text>
             </View>
           ) : null}
         </View>
       </Pressable>
-      <View className="absolute right-2 top-2">
-        <IconButton
-          icon={Heart}
-          variant="inverse"
-          active={look.isFavorite}
-          onPress={onToggleFavorite}
-          accessibilityLabel={t(look.isFavorite ? 'looks.favoriteRemove' : 'looks.favoriteAdd', { name: look.name })}
-        />
-      </View>
+      {/* 32 pt paper circle on the image (canvas); the touch target is widened to 44 with hitSlop. */}
+      <Pressable
+        onPress={onToggleFavorite}
+        hitSlop={6}
+        accessibilityRole="button"
+        accessibilityState={{ selected: look.isFavorite }}
+        accessibilityLabel={t(look.isFavorite ? 'looks.favoriteRemove' : 'looks.favoriteAdd', { name: look.name })}
+        className="absolute right-2 top-2 h-8 w-8 items-center justify-center rounded-pill bg-paper/90 active:opacity-70"
+      >
+        <Icon icon={Heart} size={16} filled={look.isFavorite} />
+      </Pressable>
     </View>
   );
 }
@@ -96,7 +96,7 @@ export default function WardrobeLooksScreen() {
         current="looks"
         eyebrow={t('looks.eyebrow')}
         title={looks.data ? t('looks.count', { count: looks.data.length }) : undefined}
-        actions={<IconButton icon={Plus} onPress={createLook} accessibilityLabel={t('looks.create')} />}
+        actions={<IconButton icon={Plus} variant="filled" onPress={createLook} accessibilityLabel={t('looks.create')} testID="look-create" />}
       />
       <ScreenState
         query={looks}
@@ -128,7 +128,7 @@ export default function WardrobeLooksScreen() {
                   keyExtractor={(look) => look.id}
                   numColumns={2}
                   columnWrapperClassName="gap-3"
-                  contentContainerClassName="gap-5 px-gutter pb-8 pt-3"
+                  contentContainerClassName="gap-3.5 px-gutter pb-8 pt-2.5"
                   refreshControl={
                     <RefreshControl refreshing={looks.isRefetching} onRefresh={() => void looks.refetch()} tintColor={colors.muted} />
                   }

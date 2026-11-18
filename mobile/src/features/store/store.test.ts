@@ -1,10 +1,11 @@
 import { fixtureDb } from '@/fixtures/db';
 import { slotOfItemCategory } from '@/features/store/slots';
 import type { Cart, ProductSummary } from '@/api/contracts/store';
-import { brandsFixture, buildCart, filterProducts, localizedCatalogue, paginate, productsFixture } from '@/fixtures/store';
+import { brandsFixture, buildCart, creatorsFixture, filterProducts, localizedCatalogue, paginate, productsFixture } from '@/fixtures/store';
 
 import { EMPTY_SLOTS, filledCount, firstEmptySlot, storeItems, storeTotal, toLookSlots, withProduct } from './builder';
 import { addLinesToCart, preferredSize, priceDropPercent, removeLineFromCart } from './cartMath';
+import { clearSheetFilters, filterCount, toggleValue } from './filters';
 import { EMPTY_PRODUCT_QUERY } from './queries';
 
 const lira = (amount: number) => ({ amountMinor: amount * 100, currency: 'TRY' });
@@ -132,5 +133,34 @@ describe('outfit builder', () => {
 
   it('ignores products that fit no slot', () => {
     expect(withProduct(EMPTY_SLOTS, byId('prod_008'), null)).toEqual(EMPTY_SLOTS); // dress
+  });
+});
+
+describe('the one "Filtrele" sheet (21)', () => {
+  const query = { ...EMPTY_PRODUCT_QUERY, categories: ['shirt' as const], brandIds: ['brand_ms', 'brand_vakko'], colors: ['white' as const], sizes: ['S'], q: 'poplin', sort: 'price_asc' as const };
+
+  it('counts the active values of each chip', () => {
+    expect(filterCount(query, 'brand')).toBe(2);
+    expect(filterCount(query, 'color')).toBe(1);
+    expect(filterCount(query, 'size')).toBe(1);
+    expect(filterCount(EMPTY_PRODUCT_QUERY, 'brand')).toBe(0);
+  });
+
+  it('"Temizle" resets brand, colour, size and sort, and keeps the search text and the category chip', () => {
+    expect(clearSheetFilters(query)).toEqual({ ...EMPTY_PRODUCT_QUERY, categories: ['shirt'], q: 'poplin' });
+  });
+
+  it('toggles a chip value on and off', () => {
+    expect(toggleValue(['a'], 'b')).toEqual(['a', 'b']);
+    expect(toggleValue(['a', 'b'], 'a')).toEqual(['b']);
+  });
+});
+
+describe('creators (20)', () => {
+  it('keeps people as neutral placeholders and carries the sponsored flag as data', () => {
+    expect(creatorsFixture.map((c) => c.displayName)).toEqual(['@ornek_stilist', '@ornek_editor', 'Marka vitrini']);
+    expect(creatorsFixture.filter((c) => c.sponsored).map((c) => c.id)).toEqual(['creator_3']);
+    // A sponsored showcase is a brand placement, not a person: it has no profile to open.
+    expect(creatorsFixture.find((c) => c.sponsored)?.handle).toBeNull();
   });
 });

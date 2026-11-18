@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { TFunction } from 'i18next';
 
 import { apiRequest } from '@/api/client';
 import type { Occasion } from '@/api/contracts';
@@ -117,8 +118,14 @@ export function useStartStylistOutfit() {
   };
 }
 
-export function useStylistJob(jobId: string | null | undefined, options: { enabled?: boolean } = {}): JobView<StylistOutfitResult> {
-  return useJob<StylistOutfitResult>('stylist-outfit', jobId, options);
+/** The stilist wait stops after 60 s without a result (canvas note "Zaman aşımı / hata durumu"). */
+export const STYLIST_TIMEOUT_MS = 60_000;
+
+export function useStylistJob(
+  jobId: string | null | undefined,
+  options: { enabled?: boolean; timeoutMs?: number } = {},
+): JobView<StylistOutfitResult> {
+  return useJob<StylistOutfitResult>('stylist-outfit', jobId, { timeoutMs: STYLIST_TIMEOUT_MS, ...options });
 }
 
 /** "Takvime ekle" (date) / heart (no date) — queued, optimistic (see mutations.ts). */
@@ -161,4 +168,27 @@ export function useSuggestionTryOns(jobId: string) {
         return next;
       }),
   };
+}
+
+/**
+ * The three sentences of the stilist wait (`AiYukleniyorStilist`): the wardrobe, the day's weather
+ * ("Hava 14°, hafif yağmur…" when the forecast has a summary) and the number of outfits on the way.
+ */
+export function stylistWaitLines(
+  t: TFunction,
+  weather: { temperatureC: number; summary?: string | null } | null,
+  count: number,
+  language: string,
+): string[] {
+  const temperature = weather ? Math.round(weather.temperatureC) : null;
+  const summary = weather?.summary?.trim().toLocaleLowerCase(language) || null;
+  return [
+    t('ai.stylistLines.wardrobe'),
+    temperature === null
+      ? t('ai.stylistLines.weatherUnknown')
+      : summary
+        ? t('ai.stylistLines.weatherSummary', { temperature, summary })
+        : t('ai.stylistLines.weather', { temperature }),
+    t('ai.stylistLines.outfits', { count }),
+  ];
 }

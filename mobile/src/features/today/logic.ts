@@ -1,7 +1,8 @@
 import { sumMoney } from '@/lib/format';
-import type { Occasion } from '@/api/contracts';
+import type { LookPiece, Occasion } from '@/api/contracts';
 import type { Look } from '@/api/contracts/looks';
-import type { CalendarMonth, EditProduct, PlanDay } from '@/api/contracts/today';
+import type { CalendarMonth, EditProduct, PlanDay, WearLog } from '@/api/contracts/today';
+import type { Item } from '@/api/contracts/wardrobe';
 import type { TryOnTarget } from '@/api/contracts/tryon';
 
 /** One row of 07: a date of the week joined with its plan record and the planned look. */
@@ -61,4 +62,66 @@ export function dayStatus(date: string, month: Pick<CalendarMonth, 'wearLogs' | 
   const plan = month.planDays.find((p) => p.date === date);
   if (plan?.lookId) return { kind: 'planned', lookId: plan.lookId };
   return { kind: 'empty' };
+}
+
+/**
+ * 06: the piece thumbnails beside the try-on image. At most `max` (the board draws three); when the look
+ * has a missing piece it is always among them, last, so the "EKSİK PARÇA" marker is never cut off.
+ */
+export function todayThumbs(pieces: LookPiece[], max = 3): LookPiece[] {
+  const head = pieces.slice(0, max);
+  const missing = pieces.find((p) => p.source === 'store');
+  if (!missing || head.includes(missing)) return head;
+  return [...pieces.filter((p) => p.source !== 'store').slice(0, max - 1), missing];
+}
+
+export type MonthReport = {
+  /** Distinct days with at least one "Bunu giyiyorum" record. */
+  daysLogged: number;
+  daysInMonth: number;
+  /** Distinct wardrobe pieces worn in the month. */
+  piecesWorn: number;
+  /** Distinct looks worn in the month. */
+  looksWorn: number;
+  /** Most worn pieces, most frequent first (ties keep wardrobe order). */
+  topItems: { item: Item; count: number }[];
+  /** Occasions of the worn looks, most frequent first. */
+  occasions: { occasion: Occasion; count: number }[];
+  /** Pieces that were in the wardrobe during the month and were never worn in it. */
+  unworn: Item[];
+};
+
+/**
+ * 09 "Rapor": one month read from the wear logs the calendar already has — nothing is fetched for it.
+ * Logs of other months are ignored; pieces deleted from the wardrobe are left out of the lists.
+ */
+export function buildMonthReport(month: string, wearLogs: WearLog[], looks: Look[], items: Item[], limit = 5): MonthReport {
+  const logs = wearLogs.filter((w) => w.date.startsWith(month));
+  const [y, m] = month.split('-').map(Number);
+  const daysInMonth = new Date(y ?? 1970, m ?? 1, 0).getDate();
+  const monthEnd = `${month}-${String(daysInMonth).padStart(2, '0')}`;
+
+  const itemCounts = new Map<string, number>();
+  const occasionCountsMap = new Map<Occasion, number>();
+  const lookIds = new Set<string>();
+  logs.forEach((log) => {
+    new Set(log.itemIds).forEach((id) => itemCounts.set(id, (itemCounts.get(id) ?? 0) + 1));
+    const look = log.lookId ? looks.find((l) => l.id === log.lookId) : undefined;
+    if (log.lookId) lookIds.add(log.lookId);
+    if (look) occasionCountsMap.set(look.occasion, (occasionCountsMap.get(look.occasion) ?? 0) + 1);
+  });
+
+  const worn = items.filter((i) => itemCounts.has(i.id));
+  return {
+    daysLogged: new Set(logs.map((w) => w.date)).size,
+    daysInMonth,
+    piecesWorn: worn.length,
+    looksWorn: lookIds.size,
+    topItems: worn
+      .map((item) => ({ item, count: itemCounts.get(item.id) ?? 0 }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, limit),
+    occasions: [...occasionCountsMap.entries()].map(([occasion, count]) => ({ occasion, count })).sort((a, b) => b.count - a.count),
+    unworn: items.filter((i) => !itemCounts.has(i.id) && i.createdAt.slice(0, 10) <= monthEnd),
+  };
 }

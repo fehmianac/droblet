@@ -1,10 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import { File, UploadType } from 'expo-file-system';
 import { Image } from 'expo-image';
 
 import { apiRequest } from '@/api/client';
 import type {
   AnalyzePaletteRequest,
+  AvatarUploadUrlResponse,
   ClosetVisibility,
   DeleteAllPhotosRequest,
   MyPhotos,
@@ -15,8 +17,10 @@ import type {
   PutProfileLanguageRequest,
   PutVisibilityRequest,
   RemovePhotoRequest,
+  UpdateProfileRequest,
 } from '@/api/contracts/account';
 import { fromSource } from '@/api/dataSource';
+import { ApiError } from '@/api/errors';
 import { sessionStore } from '@/auth/session';
 import type { AppLanguage } from '@/i18n';
 import { openCreditSheetIfExhausted } from '@/features/credits/creditSheetStore';
@@ -178,6 +182,58 @@ export function useAnalyzePalette() {
     const id = ulid();
     m.mutate({ requestId: id, clientMutationId: id });
   };
+}
+
+/** What "Profili düzenle" saves. `avatar`: a newly picked local file, `null` to remove the photo, absent to keep it. */
+export type ProfileEdit = { displayName: string; handle: string; avatar?: { localUri: string } | null; baseVersion: number };
+
+/** ASSUMED avatar upload: presigned PUT like the body / face photos, on its own endpoint. */
+async function uploadAvatar(localUri: string): Promise<string> {
+  const target = await apiRequest<AvatarUploadUrlResponse>('v1/tenant/profile/avatar/upload-url', {
+    method: 'POST',
+    body: { contentType: 'image/jpeg' },
+  });
+  const result = await new File(localUri).upload(target.uploadUrl, {
+    httpMethod: 'PUT',
+    uploadType: UploadType.BINARY_CONTENT,
+    headers: { 'Content-Type': 'image/jpeg' },
+  });
+  if (result.status < 200 || result.status >= 300) throw new ApiError('http', result.status, null);
+  return target.photoId;
+}
+
+/**
+ * 28 "Profili düzenle" — name, handle and photo. Interactive and online-only (never queued): whether
+ * the handle is free is the server's answer (422 `handle_taken`), and the user must see it at once.
+ */
+export function useUpdateProfile() {
+  const client = useQueryClient();
+  return useMutation<MyProfile, unknown, ProfileEdit>({
+    networkMode: 'always',
+    retry: false,
+    mutationFn: (edit) => {
+      const request: UpdateProfileRequest = {
+        displayName: edit.displayName,
+        handle: edit.handle,
+        baseVersion: edit.baseVersion,
+        clientMutationId: newClientMutation().clientMutationId,
+      };
+      return fromSource(
+        'account',
+        () => accountFixtures.updateProfile(request, edit.avatar === undefined ? undefined : (edit.avatar?.localUri ?? null)),
+        async () => {
+          const avatarPhotoId = edit.avatar ? await uploadAvatar(edit.avatar.localUri) : edit.avatar;
+          return apiRequest<MyProfile>('v1/tenant/profile', {
+            method: 'PUT',
+            body: avatarPhotoId === undefined ? request : { ...request, avatarPhotoId },
+          });
+        },
+      );
+    },
+    onSuccess: (saved) => {
+      client.setQueryData(accountKeys.profile, saved);
+    },
+  });
 }
 
 /**

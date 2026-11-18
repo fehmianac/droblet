@@ -1,4 +1,4 @@
-import { ChevronDown, CircleAlert } from 'lucide-react-native';
+import { ChevronDown, CircleAlert, RotateCcw } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
@@ -12,33 +12,44 @@ import { Chip, ChipWrap } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { Text } from '@/components/ui/Text';
 import { TextField } from '@/components/ui/TextField';
+import { surfaceTones } from '@/theme/tokens';
 
 import { NAME_MAX, toItemFields, validateItemForm, type ItemFormValues } from './form';
 import { ColorSwatch, ItemThumb } from './ItemThumb';
 import { SeasonChips } from './parts';
 
+/** Warm "check this" badge on a field the model was unsure about (canvas: `.badge` on #F3E3CF, ink text). */
+export function CautionBadge({ label }: { label: string }) {
+  return (
+    <View className="h-badge flex-row items-center gap-1 self-start rounded-pill px-2" style={{ backgroundColor: surfaceTones.caution }}>
+      <Icon icon={CircleAlert} size={12} />
+      <Text variant="badge" numberOfLines={1}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
 type PickerRowProps = { label: string; value: string | null; placeholder: string; error?: string | null; warning?: string | null; onPress: () => void };
 
-/** A field that opens a picker sheet; looks like a text field, announced as a button. */
+/** A field that opens a picker sheet; looks like a text field (canvas `.fld` + `.inp`), announced as a button. */
 function PickerRow({ label, value, placeholder, error, warning, onPress }: PickerRowProps) {
   return (
     <View className="gap-1.5">
-      <View className="flex-row flex-wrap items-center justify-between gap-2">
-        <Text variant="bodyMedium">{label}</Text>
-        {warning ? <Badge label={warning} tone="accent" icon={CircleAlert} /> : null}
-      </View>
+      <Text variant="label">{label}</Text>
       <Pressable
         onPress={onPress}
         accessibilityRole="button"
         accessibilityLabel={[label, value ?? placeholder, warning].filter(Boolean).join(', ')}
         accessibilityHint={error ?? undefined}
-        className={`h-btn-primary flex-row items-center gap-2 rounded-field border bg-paper px-4 active:opacity-80 ${error ? 'border-danger' : 'border-line'}`}
+        className={`h-field flex-row items-center gap-2 rounded-field border bg-paper pl-3.5 pr-3 active:opacity-80 ${error ? 'border-danger' : 'border-line'}`}
       >
-        <Text variant="body" tone={value ? 'ink' : 'muted'} className="flex-1" numberOfLines={1}>
+        <Text variant="body" tone={value ? 'ink' : 'muted'} className="flex-1 text-[15px]" numberOfLines={1}>
           {value ?? placeholder}
         </Text>
         <Icon icon={ChevronDown} size={18} tone="muted" />
       </Pressable>
+      {warning ? <CautionBadge label={warning} /> : null}
       {error ? <FieldError message={error} /> : null}
     </View>
   );
@@ -63,6 +74,8 @@ type Props = {
   originalImageUrl: string | null;
   /** Draft mode: fields the model was unsure about. */
   lowConfidence?: DraftField[];
+  /** Manual entry with the user's own, unprocessed photo (kept when the free AI recognition ran out). */
+  unprocessedPhoto?: boolean;
   onSubmit: (fields: ItemFields) => void;
 };
 
@@ -71,7 +84,7 @@ type Props = {
  * nothing is saved until "Gardıroba kaydet". Rules: name, category and colour are required and at
  * least one season must be selected (save stays disabled, with the reason, until then).
  */
-export function ItemForm({ mode, initial, imageUrl, originalImageUrl, lowConfidence = [], onSubmit }: Props) {
+export function ItemForm({ mode, initial, imageUrl, originalImageUrl, lowConfidence = [], unprocessedPhoto = false, onSubmit }: Props) {
   const { t } = useTranslation();
   const [values, setValues] = useState<ItemFormValues>(initial);
   const [submitted, setSubmitted] = useState(false);
@@ -85,6 +98,8 @@ export function ItemForm({ mode, initial, imageUrl, originalImageUrl, lowConfide
 
   const canToggleImage = Boolean(imageUrl && originalImageUrl && imageUrl !== originalImageUrl);
   const picture = values.useOriginalImage ? (originalImageUrl ?? imageUrl) : (imageUrl ?? originalImageUrl);
+  // The tag says what is on screen: the photo as taken, or the background-removed one.
+  const showsOriginal = values.useOriginalImage || (unprocessedPhoto && Boolean(picture));
   const categoryLabel = values.category
     ? values.subcategory.trim()
       ? t('itemForm.categoryWithType', { category: t(`itemCategory.${values.category}`), type: values.subcategory.trim() })
@@ -104,20 +119,20 @@ export function ItemForm({ mode, initial, imageUrl, originalImageUrl, lowConfide
 
   return (
     <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerClassName="gap-5 px-gutter pb-8 pt-1" keyboardShouldPersistTaps="handled">
-        <View className="flex-row gap-4">
+      <ScrollView contentContainerClassName="gap-3 px-gutter pb-8 pt-1" keyboardShouldPersistTaps="handled">
+        <View className="flex-row gap-3.5">
           <View>
             <ItemThumb
               category={values.category ?? 'top'}
               color={values.color ?? 'other'}
               uri={picture}
-              className="h-[150px] w-[120px] rounded-image-lg"
-              glyphSize={56}
-              accessibilityLabel={t(values.useOriginalImage ? 'itemForm.imageOriginalA11y' : 'itemForm.imageCleanA11y')}
+              className="h-[164px] w-[132px] rounded-image-lg"
+              glyphSize={72}
+              accessibilityLabel={t(showsOriginal ? 'itemForm.imageOriginalA11y' : 'itemForm.imageCleanA11y')}
             />
-            {picture ? <ImageTag label={t(values.useOriginalImage ? 'itemForm.originalTag' : 'itemForm.cleanTag')} className="absolute bottom-2 left-2" /> : null}
+            {picture ? <ImageTag label={t(showsOriginal ? 'itemForm.originalTag' : 'itemForm.cleanTag')} className="absolute bottom-2 left-2" /> : null}
           </View>
-          <View className="flex-1 justify-center gap-2.5">
+          <View className="flex-1 gap-2">
             {mode === 'draft' ? (
               <>
                 <Text variant="eyebrow">{t('itemForm.aiEyebrow')}</Text>
@@ -129,15 +144,23 @@ export function ItemForm({ mode, initial, imageUrl, originalImageUrl, lowConfide
               </>
             ) : null}
             {canToggleImage ? (
-              <View className="flex-row">
-                <Chip
-                  label={t(values.useOriginalImage ? 'itemForm.useClean' : 'itemForm.useOriginal')}
-                  onPress={() => set({ useOriginalImage: !values.useOriginalImage })}
-                />
-              </View>
+              // Canvas: a chip with the "turn back" arrow, pinned to the bottom of the column.
+              <Pressable
+                onPress={() => set({ useOriginalImage: !values.useOriginalImage })}
+                accessibilityRole="button"
+                accessibilityLabel={t(values.useOriginalImage ? 'itemForm.useClean' : 'itemForm.useOriginal')}
+                hitSlop={{ top: 4, bottom: 4 }}
+                className="mt-auto h-chip flex-row items-center gap-1.5 self-start rounded-pill border border-line px-[15px] active:opacity-80"
+                testID="item-form-image-toggle"
+              >
+                <Icon icon={RotateCcw} size={15} />
+                <Text variant="chip" numberOfLines={1}>
+                  {t(values.useOriginalImage ? 'itemForm.useClean' : 'itemForm.useOriginal')}
+                </Text>
+              </Pressable>
             ) : mode === 'manual' ? (
               <Text variant="caption" tone="muted">
-                {t('itemForm.manualHint')}
+                {t(unprocessedPhoto && picture ? 'itemForm.manualPhotoHint' : 'itemForm.manualHint')}
               </Text>
             ) : null}
           </View>
@@ -152,29 +175,45 @@ export function ItemForm({ mode, initial, imageUrl, originalImageUrl, lowConfide
           autoCapitalize="sentences"
           returnKeyType="next"
         />
-        <PickerRow
-          label={t('itemForm.category')}
-          value={categoryLabel}
-          placeholder={t('itemForm.choose')}
-          error={errorText('category')}
-          warning={lowConfidence.includes('category') ? t('itemForm.checkCategory') : null}
-          onPress={() => setSheet('category')}
-        />
-        <TextField label={t('itemForm.brand')} placeholder={t('itemForm.optional')} value={values.brand} onChangeText={(brand) => set({ brand })} autoCorrect={false} />
-        <TextField label={t('itemForm.size')} placeholder={t('itemForm.optional')} value={values.size} onChangeText={(size) => set({ size })} autoCapitalize="characters" autoCorrect={false} />
-        <PickerRow
-          label={t('itemForm.color')}
-          value={values.color ? t(`itemColor.${values.color}`) : null}
-          placeholder={t('itemForm.choose')}
-          error={errorText('color')}
-          warning={lowConfidence.includes('color') ? t('itemForm.checkField') : null}
-          onPress={() => setSheet('color')}
-        />
-        <TextField label={t('itemForm.fabric')} placeholder={t('itemForm.optional')} value={values.fabric} onChangeText={(fabric) => set({ fabric })} />
+        {/* Canvas: Kategori | Marka, Beden | Renk in two columns (10 apart), Kumaş across. */}
+        <View className="flex-row gap-2.5">
+          <View className="flex-1">
+            <PickerRow
+              label={t('itemForm.category')}
+              value={categoryLabel}
+              placeholder={t('itemForm.choose')}
+              error={errorText('category')}
+              warning={lowConfidence.includes('category') ? t('itemForm.checkCategory') : null}
+              onPress={() => setSheet('category')}
+            />
+          </View>
+          <View className="flex-1">
+            <TextField label={t('itemForm.brand')} placeholder={t('itemForm.optional')} value={values.brand} onChangeText={(brand) => set({ brand })} autoCorrect={false} />
+          </View>
+        </View>
+        <View className="flex-row gap-2.5">
+          <View className="flex-1">
+            <TextField label={t('itemForm.size')} placeholder={t('itemForm.optional')} value={values.size} onChangeText={(size) => set({ size })} autoCapitalize="characters" autoCorrect={false} />
+          </View>
+          <View className="flex-1">
+            <PickerRow
+              label={t('itemForm.color')}
+              value={values.color ? t(`itemColor.${values.color}`) : null}
+              placeholder={t('itemForm.choose')}
+              error={errorText('color')}
+              warning={lowConfidence.includes('color') ? t('itemForm.checkField') : null}
+              onPress={() => setSheet('color')}
+            />
+          </View>
+        </View>
+        <View className="gap-1.5">
+          <TextField label={t('itemForm.fabric')} placeholder={t('itemForm.optional')} value={values.fabric} onChangeText={(fabric) => set({ fabric })} />
+          {lowConfidence.includes('fabric') ? <CautionBadge label={t('itemForm.checkField')} /> : null}
+        </View>
 
         <View className="gap-2">
           <View className="flex-row flex-wrap items-baseline gap-x-1.5">
-            <Text variant="bodyMedium">{t('itemForm.season')}</Text>
+            <Text variant="label">{t('itemForm.season')}</Text>
             <Text variant="caption" tone="muted">
               {t('itemForm.seasonHint')}
             </Text>
@@ -186,6 +225,7 @@ export function ItemForm({ mode, initial, imageUrl, originalImageUrl, lowConfide
 
       <BottomActionBar>
         <Button
+          size="lg"
           label={t(mode === 'edit' ? 'itemForm.saveEdit' : 'itemForm.save')}
           onPress={submit}
           disabled={noSeason}

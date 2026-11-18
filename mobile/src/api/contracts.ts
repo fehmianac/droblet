@@ -112,6 +112,8 @@ export type ConfirmPhotoRequest = { photoId: string; clientMutationId: string };
 export type Entitlement = {
   tier: 'free' | 'member';
   credits: { monthlyAllowance: number; remaining: number; resetsAt: string };
+  /** Billing period of the active membership ("Yıllık" on 28 Profil). Optional until the server sends it. */
+  plan?: 'monthly' | 'yearly';
   /**
    * AI recognition of garment photos (owner decision 2026-11-18): free for non-members up to a
    * server-configured `limit`; `limit: null` = unlimited (members), then `remaining` is null too.

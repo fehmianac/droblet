@@ -3,10 +3,10 @@ import { ItemThumb } from '@/features/wardrobe/ItemThumb';
 import { itemImage } from '@/features/wardrobe/parts';
 import { useItems } from '@/features/wardrobe/queries';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ArrowUpDown, Puzzle, Shirt, X } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import { ChevronDown, LayoutGrid, Search, X } from 'lucide-react-native';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FlatList, Pressable, RefreshControl, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, ScrollView, TextInput, View, useWindowDimensions } from 'react-native';
 
 import {
   CATALOG_COLORS,
@@ -16,20 +16,21 @@ import {
   type ProductSummary,
 } from '@/api/contracts/store';
 import { useBodyProfile } from '@/api/profile';
-import { Card, SearchField } from '@/components/blocks/basics';
 import { CartButton, SectionState } from '@/components/blocks/SectionState';
+import { ListTabBar } from '@/components/navigation/TabBar';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 import { Chip, ChipRow } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { OfflineBanner } from '@/components/ui/OfflineBanner';
-import { ListTabBar } from '@/components/navigation/TabBar';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
-import { FilterSheet, filterCount, type FilterKind } from '@/features/store/FilterSheet';
+import { FilterSheet } from '@/features/store/FilterSheet';
+import { filterCount, type FilterDimension } from '@/features/store/filters';
+import { HangerGlyph } from '@/features/store/icons';
 import { useSetFavorite } from '@/features/store/mutations';
 import { ShopProductCard } from '@/features/store/ShopProductCard';
 import {
@@ -43,66 +44,111 @@ import { useThemeColors } from '@/theme/useThemeColors';
 /** The category chips of the design, in order. Shoes and bags are reached through search and the builder. */
 const CHIP_CATEGORIES: ProductCategory[] = ['tshirt', 'shirt', 'knit', 'jacket', 'trousers', 'dress', 'accessory'];
 
+/** Grid metrics of the board: 20 gutter, 12 between the two columns. */
+const GUTTER = 20;
+const COLUMN_GAP = 12;
+
 function parseColors(param: string | undefined): CatalogColor[] {
   if (!param) return [];
   const known = CATALOG_COLORS as readonly string[];
   return param.split(',').filter((c): c is CatalogColor => known.includes(c));
 }
 
-function SkeletonCard() {
+/** Skeleton card of the board: a 120 block and two 9-high bars. */
+function SkeletonCard({ short = false }: { short?: boolean }) {
   return (
-    <View className="w-1/2 gap-2 px-1.5">
-      <Skeleton className="aspect-[4/5] w-full rounded-image-lg" />
-      <Skeleton className="h-3 w-16 rounded-field" />
-      <Skeleton className="h-4 w-28 rounded-field" />
-      <Skeleton className="h-4 w-14 rounded-field" />
+    <View className="flex-1 gap-1.5">
+      <Skeleton className="h-[120px] w-full rounded-image" />
+      <Skeleton className={`h-[9px] rounded-pill ${short ? 'w-2/5' : 'w-1/2'}`} />
+      <Skeleton className={`h-[9px] rounded-pill ${short ? 'w-[70%]' : 'w-4/5'}`} />
     </View>
   );
 }
 
 function GridSkeleton({ rows = 2 }: { rows?: number }) {
   return (
-    <View className="gap-5">
+    <View className="gap-3.5 px-gutter">
       {Array.from({ length: rows }, (_, row) => (
-        <View key={row} className="flex-row">
+        <View key={row} className="flex-row gap-3">
           <SkeletonCard />
-          <SkeletonCard />
+          <SkeletonCard short />
         </View>
       ))}
     </View>
   );
 }
 
-function Shortcut({ icon, label, onPress }: { icon: typeof Shirt; label: string; onPress: () => void }) {
+/** The two entry cards under the search field: 20 glyph + a two-line 13-medium label, radius 16. */
+function Shortcut({ glyph, label, onPress }: { glyph: ReactNode; label: string; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} className="flex-1 active:opacity-80">
-      <Card className="min-h-16 flex-row items-center gap-3 p-3.5">
-        <View className="h-9 w-9 items-center justify-center rounded-pill bg-sand">
-          <Icon icon={icon} size={18} tone="accent" />
-        </View>
-        <Text variant="bodyMedium" className="flex-1">
-          {label}
-        </Text>
-      </Card>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label.replace('\n', ' ')}
+      className="min-h-icon-btn flex-1 flex-row items-center gap-2.5 rounded-menu border border-line bg-paper p-3 active:opacity-80"
+    >
+      {glyph}
+      <Text variant="price" numberOfLines={2} className="flex-1 leading-4">
+        {label}
+      </Text>
     </Pressable>
   );
 }
 
+type SearchProps = { value: string; onChangeText: (value: string) => void };
+
+/** Search field of 21: 48 high, full pill, paper, an 18 muted magnifier 16 in; a clear button once filled. */
+function ShopSearchField({ value, onChangeText }: SearchProps) {
+  const { t } = useTranslation();
+  const colors = useThemeColors();
+  return (
+    <View className="h-field flex-row items-center rounded-pill border border-line bg-paper pl-4">
+      <Icon icon={Search} size={18} tone="muted" />
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        accessibilityLabel={t('shop.searchLabel')}
+        placeholder={t('shop.searchPlaceholder')}
+        placeholderTextColor={colors.muted}
+        selectionColor={colors.accent}
+        autoCapitalize="none"
+        autoCorrect={false}
+        returnKeyType="search"
+        maxFontSizeMultiplier={1.6}
+        className="h-full flex-1 px-2 font-sans text-button text-ink"
+      />
+      {value !== '' ? (
+        <Pressable
+          onPress={() => onChangeText('')}
+          accessibilityRole="button"
+          accessibilityLabel={t('shop.clearSearch')}
+          className="h-icon-btn w-icon-btn items-center justify-center"
+        >
+          <Icon icon={X} size={18} tone="muted" />
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
 /**
- * 21 Stil mağazası — search, the Kombin oluşturucu / Parçamı tamamla shortcuts, category chips,
- * Marka · Renk · Beden filter sheets + sort, and a 2-column infinite grid with skeleton cards.
- * `?colors=a,b` preselects colour filters ("Paletime uygun ürünler" from 30).
+ * 21 Stil mağazası — search, the Kombin oluşturucu / Parçamı tamamla entries, category chips, the
+ * Marka · Renk · Beden chips and the sort label (all four open the one "Filtrele" sheet) and a
+ * 2-column infinite grid with skeleton cards. `?colors=a,b` preselects colour filters ("Paletime uygun
+ * ürünler" from 30).
  */
 export default function ShopScreen() {
   const { t } = useTranslation();
   const colors = useThemeColors();
+  const { width, height } = useWindowDimensions();
+  const cardWidth = (width - GUTTER * 2 - COLUMN_GAP) / 2;
   const params = useLocalSearchParams<{ colors?: string }>();
   const bodyProfile = useBodyProfile();
   const profileSize = bodyProfile.data?.size ?? null;
 
   const [query, setQuery] = useState<ProductQuery>(() => ({ ...EMPTY_PRODUCT_QUERY, colors: parseColors(params.colors) }));
   const [search, setSearch] = useState('');
-  const [sheet, setSheet] = useState<FilterKind | null>(null);
+  const [filterOpen, setFilterOpen] = useState(false);
   const [completeOpen, setCompleteOpen] = useState(false);
   const [completeFor, setCompleteFor] = useState<Item | null>(null);
 
@@ -132,37 +178,33 @@ export default function ShopScreen() {
     setCompleteFor(null);
   };
 
-  const filterChip = (kind: Exclude<FilterKind, 'sort'>, label: string) => {
-    const count = filterCount(query, kind);
+  const filterChip = (dimension: FilterDimension, label: string) => {
+    const count = filterCount(query, dimension);
     return (
       <Chip
         label={count > 0 ? t('shop.filterWithCount', { label, count }) : label}
         selected={count > 0}
-        onPress={() => setSheet(kind)}
+        trailingIcon={ChevronDown}
+        accessibilityHint={t('shop.filterHint')}
+        onPress={() => setFilterOpen(true)}
       />
     );
   };
 
   const header = (
-    <View className="gap-4 pb-4">
-      <View className="gap-4 px-gutter">
-        <SearchField
-          value={search}
-          onChangeText={setSearch}
-          label={t('shop.searchLabel')}
-          placeholder={t('shop.searchPlaceholder')}
-          clearLabel={t('shop.clearSearch')}
-        />
-        <View className="flex-row gap-3">
-          <Shortcut icon={Shirt} label={t('shop.builderShortcut')} onPress={() => router.push('/shop/builder')} />
-          <Shortcut icon={Puzzle} label={t('shop.completeShortcut')} onPress={() => setCompleteOpen(true)} />
+    <View className="gap-3 pt-1">
+      <View className="gap-3 px-gutter">
+        <ShopSearchField value={search} onChangeText={setSearch} />
+        <View className="flex-row gap-2.5">
+          <Shortcut glyph={<Icon icon={LayoutGrid} size={20} />} label={t('shop.builderShortcut')} onPress={() => router.push('/shop/builder')} />
+          <Shortcut glyph={<HangerGlyph />} label={t('shop.completeShortcut')} onPress={() => setCompleteOpen(true)} />
         </View>
       </View>
 
       {completeFor ? (
         <View className="flex-row items-center gap-2 px-gutter">
-          <View className="h-chip flex-1 flex-row items-center rounded-pill bg-ink px-4">
-            <Text variant="bodyMedium" tone="paper" numberOfLines={1}>
+          <View className="h-chip flex-1 flex-row items-center rounded-pill bg-ink px-[15px]">
+            <Text variant="chip" tone="cream" numberOfLines={1}>
               {t('shop.completeFor', { name: completeFor.name })}
             </Text>
           </View>
@@ -170,7 +212,7 @@ export default function ShopScreen() {
             onPress={() => setCompleteFor(null)}
             accessibilityRole="button"
             accessibilityLabel={t('shop.completeClear')}
-            className="h-icon-btn w-icon-btn items-center justify-center rounded-pill border border-line bg-paper"
+            className="h-icon-btn w-icon-btn items-center justify-center rounded-pill border border-line"
           >
             <Icon icon={X} size={18} />
           </Pressable>
@@ -192,19 +234,19 @@ export default function ShopScreen() {
               />
             ))}
           </ChipRow>
-          <View className="flex-row items-center gap-2 px-gutter">
+          <View className="flex-row items-center gap-1.5 px-gutter">
             {filterChip('brand', t('shop.filterBrand'))}
             {filterChip('color', t('shop.filterColor'))}
             {filterChip('size', t('shop.filterSize'))}
             <View className="flex-1" />
             <Pressable
-              onPress={() => setSheet('sort')}
+              onPress={() => setFilterOpen(true)}
               accessibilityRole="button"
               accessibilityLabel={t('shop.sortA11y', { sort: t(`shop.sort.${query.sort}`) })}
-              className="min-h-icon-btn flex-row items-center gap-1.5 active:opacity-70"
+              hitSlop={8}
+              className="min-h-chip justify-center active:opacity-70"
             >
-              <Icon icon={ArrowUpDown} size={16} tone="muted" />
-              <Text variant="caption" tone="muted">
+              <Text variant="caption" tone="muted" numberOfLines={1}>
                 {t(`shop.sort.${query.sort}`)}
               </Text>
             </Pressable>
@@ -223,8 +265,8 @@ export default function ShopScreen() {
         keyExtractor={(item) => item.id}
         numColumns={2}
         ListHeaderComponent={header}
-        contentContainerClassName="gap-5 pb-8"
-        columnWrapperClassName="px-[14px]"
+        contentContainerClassName="gap-3.5 pb-8"
+        columnWrapperClassName="gap-3 px-gutter"
         keyboardShouldPersistTaps="handled"
         onEndReachedThreshold={0.6}
         onEndReached={() => {
@@ -238,7 +280,7 @@ export default function ShopScreen() {
           />
         }
         renderItem={({ item }) => (
-          <View className="w-1/2 px-1.5">
+          <View style={{ width: cardWidth }}>
             <ShopProductCard
               product={item}
               favorite={favoriteIds.includes(item.id)}
@@ -250,11 +292,7 @@ export default function ShopScreen() {
         ListEmptyComponent={
           <SectionState
             query={{ data: items, status: active.status, fetchStatus: active.fetchStatus, error: active.error, refetch: active.refetch }}
-            skeleton={
-              <View className="px-[14px]">
-                <GridSkeleton />
-              </View>
-            }
+            skeleton={<GridSkeleton />}
           >
             {() => (
               <StateMessage
@@ -267,7 +305,7 @@ export default function ShopScreen() {
         }
         ListFooterComponent={
           products.isFetchingNextPage ? (
-            <View className="px-[14px]" accessible accessibilityLabel={t('a11y.loading')}>
+            <View accessible accessibilityLabel={t('a11y.loading')}>
               <GridSkeleton rows={1} />
             </View>
           ) : products.isFetchNextPageError ? (
@@ -281,32 +319,30 @@ export default function ShopScreen() {
         }
       />
 
-      {sheet ? (
+      {filterOpen ? (
         <FilterSheet
-          key={sheet}
-          kind={sheet}
           initial={query}
           profileSize={profileSize}
-          onClose={() => setSheet(null)}
+          onClose={() => setFilterOpen(false)}
           onApply={(next) => {
             setQuery({ ...next, q: query.q });
-            setSheet(null);
+            setFilterOpen(false);
           }}
         />
       ) : null}
 
       <BottomSheet visible={completeOpen} onClose={() => setCompleteOpen(false)} title={t('shop.completeTitle')}>
-        <View className="gap-4">
-          <Text variant="body" tone="muted">
+        <View className="gap-3.5">
+          <Text variant="caption" tone="muted">
             {t('shop.completeBody')}
           </Text>
           <SectionState
             query={wardrobe}
             inset={false}
             skeleton={
-              <View className="flex-row gap-3">
+              <View className="flex-row gap-2.5">
                 {[0, 1, 2].map((i) => (
-                  <Skeleton key={i} className="h-28 w-24 rounded-image" />
+                  <Skeleton key={i} className="h-[92px] flex-1 rounded-image" />
                 ))}
               </View>
             }
@@ -327,7 +363,8 @@ export default function ShopScreen() {
                   />
                 </View>
               ) : (
-                <View className="flex-row flex-wrap gap-3">
+                // Three columns, 10 apart, inside the sheet's 20 gutters; a large wardrobe scrolls.
+                <ScrollView style={{ maxHeight: height * 0.5 }} contentContainerClassName="flex-row flex-wrap gap-2.5" showsVerticalScrollIndicator={false}>
                   {pieces.map((piece) => (
                     <Pressable
                       key={piece.id}
@@ -337,15 +374,16 @@ export default function ShopScreen() {
                       }}
                       accessibilityRole="button"
                       accessibilityLabel={piece.name}
-                      className="w-24 gap-1.5 active:opacity-80"
+                      style={{ width: (width - GUTTER * 2 - 20) / 3 }}
+                      className="gap-[5px] active:opacity-80"
                     >
-                      <ItemThumb category={piece.category} color={piece.color} uri={itemImage(piece)} className="aspect-[4/5] w-full rounded-image" />
+                      <ItemThumb category={piece.category} color={piece.color} uri={itemImage(piece)} className="h-[92px] w-full rounded-image" />
                       <Text variant="caption" numberOfLines={2}>
                         {piece.name}
                       </Text>
                     </Pressable>
                   ))}
-                </View>
+                </ScrollView>
               )
             }
           </SectionState>

@@ -104,6 +104,13 @@ export type ConfirmItemDraftsRequest = {
     id: string;
     /** Library piece this item was created from (12b), when any. */
     libraryItemId?: string | null;
+    /**
+     * ASSUMED (not in the endpoint map yet): the user's own photo for a piece entered WITHOUT AI — a key from
+     * `POST v1/tenant/item/upload-url`. Used when the free recognition quota is exhausted (402): the photo
+     * that was taken is kept and saved with the manual entry; the server stores it as the item's image
+     * without running the ItemProcessor. Ignored together with a `draftId`.
+     */
+    photoKey?: string | null;
     reviewed: boolean;
     clientMutationId: string;
   })[];

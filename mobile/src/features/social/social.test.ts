@@ -4,7 +4,10 @@ import { decideAiGate } from '@/features/credits/useAiGate';
 
 import { mapIncomingLink } from './deepLinks';
 import { applyRating, lookShareUrl, profileShareUrl } from './feedMath';
-import { shareTargetUrl } from './ShareSheet';
+import { copyLink, shareTargetUrl } from './ShareSheet';
+
+jest.mock('expo-clipboard', () => ({ setStringAsync: jest.fn(async () => true) }));
+const clipboard = jest.requireMock('expo-clipboard') as { setStringAsync: jest.Mock };
 
 describe('deep links', () => {
   it('maps invite links and keeps the code', () => {
@@ -37,6 +40,17 @@ describe('deep links', () => {
       'https://wa.me/?text=Bak%3A%20https%3A%2F%2Fx.y%2Fl%2F1',
     );
     expect(shareTargetUrl('pinterest', 'https://x.y/l/1', 'm')).toContain('url=https%3A%2F%2Fx.y%2Fl%2F1');
+  });
+});
+
+describe('copy link', () => {
+  it('copies the link and reports a refusal instead of throwing', async () => {
+    await expect(copyLink('https://x.y/l/1')).resolves.toBe(true);
+    expect(clipboard.setStringAsync).toHaveBeenCalledWith('https://x.y/l/1');
+    clipboard.setStringAsync.mockResolvedValueOnce(false);
+    await expect(copyLink('https://x.y/l/1')).resolves.toBe(false);
+    clipboard.setStringAsync.mockRejectedValueOnce(new Error('denied'));
+    await expect(copyLink('https://x.y/l/1')).resolves.toBe(false);
   });
 });
 

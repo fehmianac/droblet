@@ -20,6 +20,8 @@ type Props = {
   loading?: boolean;
   disabled?: boolean;
   icon?: LucideIcon;
+  /** Where the icon sits; 'trailing' for links that leave the app ("[Marka]'da öde"). Default 'leading'. */
+  iconPosition?: 'leading' | 'trailing';
   accessibilityHint?: string;
   className?: string;
   testID?: string;
@@ -50,6 +52,7 @@ export function Button({
   loading = false,
   disabled = false,
   icon,
+  iconPosition = 'leading',
   accessibilityHint,
   className,
   testID,
@@ -76,10 +79,11 @@ export function Button({
         <ActivityIndicator color={filled ? colors.cream : colors.ink} />
       ) : (
         <View className="flex-row items-center gap-2">
-          {icon ? <Icon icon={icon} tone={contentTone} size={18} /> : null}
+          {icon && iconPosition === 'leading' ? <Icon icon={icon} tone={contentTone} size={18} /> : null}
           <Text variant="button" tone={contentTone} numberOfLines={1}>
             {label}
           </Text>
+          {icon && iconPosition === 'trailing' ? <Icon icon={icon} tone={contentTone} size={16} /> : null}
         </View>
       )}
     </Pressable>

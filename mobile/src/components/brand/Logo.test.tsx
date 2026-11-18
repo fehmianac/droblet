@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { render, screen } from '@testing-library/react-native';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -42,8 +43,9 @@ describe('logo — canvas direction A', () => {
     expect(palettes.light.cream).toBe(CANVAS.cream);
   });
 
-  it('draws the hook as LogoIkon does per size: base only at 17, 2.6 up to 35, 2.2 from 44', () => {
+  it('draws the hook as LogoIkon does per size: base only up to 18, 2.6 up to 35, 2.2 from 44', () => {
     expect(markStroke(17)).toEqual({ path: CANVAS.base, strokeWidth: 3.4 });
+    expect(markStroke(18)).toEqual({ path: CANVAS.base, strokeWidth: 3.4 });
     expect(markStroke(20)).toEqual({ path: CANVAS.hook, strokeWidth: 2.6 });
     expect(markStroke(35)).toEqual({ path: CANVAS.hook, strokeWidth: 2.6 });
     expect(markStroke(44)).toEqual({ path: CANVAS.hook, strokeWidth: 2.2 });

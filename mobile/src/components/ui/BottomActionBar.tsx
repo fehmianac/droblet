@@ -11,13 +11,18 @@ type Props = {
   totalValue?: string;
   /** Usually one primary Button with `size="bar"` (48 high). */
   children: ReactNode;
+  /**
+   * The total keeps its own width and the action takes the rest (08: "2 eksik parça ₺16.250" beside a
+   * full-width "Look'u tamamla"). Default: the total takes the free space, the action its own width.
+   */
+  actionFill?: boolean;
 };
 
 /**
  * Sticky bottom bar replacing the tab bar on detail/create/checkout screens (canvas `.bar`):
  * paper, top hairline, padding 12 / 20 / 30, total (12 muted over 17 medium) + the action.
  */
-export function BottomActionBar({ totalLabel, totalValue, children }: Props) {
+export function BottomActionBar({ totalLabel, totalValue, children, actionFill = false }: Props) {
   const insets = useSafeAreaInsets();
   const hasTotal = Boolean(totalLabel || totalValue);
   return (
@@ -26,7 +31,7 @@ export function BottomActionBar({ totalLabel, totalValue, children }: Props) {
       style={{ paddingBottom: Math.max(insets.bottom, 16) }}
     >
       {hasTotal ? (
-        <View className="flex-1">
+        <View className={actionFill ? '' : 'flex-1'}>
           {totalLabel ? (
             <Text variant="caption" tone="muted" numberOfLines={1}>
               {totalLabel}
@@ -39,7 +44,7 @@ export function BottomActionBar({ totalLabel, totalValue, children }: Props) {
           ) : null}
         </View>
       ) : null}
-      <View className={hasTotal ? 'shrink' : 'flex-1'}>{children}</View>
+      <View className={hasTotal && !actionFill ? 'shrink' : 'flex-1'}>{children}</View>
     </View>
   );
 }

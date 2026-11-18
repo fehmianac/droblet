@@ -2,6 +2,7 @@ import { View } from 'react-native';
 
 import { placeholderTones, type PlaceholderTone } from '@/theme/tokens';
 
+import { Silhouette } from '../Silhouette';
 import { Skeleton } from '../Skeleton';
 import { AiReveal } from './AiReveal';
 import { AiShimmer } from './AiShimmer';
@@ -34,9 +35,11 @@ export function AiSkeletonCards({ count = 3, tones = DEFAULT_TONES, imageClassNa
         return (
           <View key={i} className="flex-1 gap-2">
             <View className={`overflow-hidden rounded-image-lg bg-sand ${imageClassName}`}>
-              <AiShimmer />
+              <AiShimmer band={0.6} from={-1.2} to={2.2} />
               <AiReveal index={i} preset="card" className="absolute inset-0" fill>
-                <View className="h-full w-full" style={{ backgroundColor: placeholderTones[tone] }} />
+                <View className="h-full w-full items-center justify-center" style={{ backgroundColor: placeholderTones[tone] }}>
+                  <Silhouette height={74} tone={tone === 'dark' ? 'cream' : 'ink'} />
+                </View>
               </AiReveal>
             </View>
             <Skeleton className={`h-2.5 rounded-[5px] ${widths[0]}`} />

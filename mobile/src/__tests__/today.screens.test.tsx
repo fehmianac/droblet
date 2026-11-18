@@ -1,10 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 
-import { weekStartOf } from '@/features/today/dates';
+import { addDays, monthOf, weekDates, weekStartOf } from '@/features/today/dates';
 import { resetFixtureDb } from '@/fixtures/db';
 import { todayFixtureOptions } from '@/fixtures/today';
-import { formatMoney, formatMonthYear, moneyFromMajor, toIsoDate } from '@/lib/format';
+import { formatIsoDateRange, formatMoney, formatMonthYear, moneyFromMajor, parseLocalDate, toIsoDate, weekdayShort } from '@/lib/format';
+import { toDisplayUpper } from '@/lib/upper';
 
 const mockSession = {
   accessToken: 'a',
@@ -35,8 +36,16 @@ describe('06 Bugün', () => {
     await renderRouter('./src/app', { initialUrl: '/' });
     await waitFor(() => expect(screen.getByText('Lacivert Blazer')).toBeTruthy(), WAIT);
     expect(screen.getByLabelText('Notifications')).toBeTruthy();
+    // One line above the name: "BUGÜNÜN KOMBİNİ · OFİS" (no separate badge).
+    expect(screen.getByText("TODAY'S OUTFIT · OFFICE")).toBeTruthy();
+    expect(screen.getByText('ON YOU')).toBeTruthy();
     expect(screen.getByText('MISSING PIECE')).toBeTruthy();
+    expect(screen.getByLabelText('Küçük taşlı küpe, missing piece')).toBeTruthy();
     expect(screen.getByLabelText('Complete the look')).toBeTruthy();
+    // The edit strip: the day and the look name are a tag on the image.
+    const monday = weekStartOf(today);
+    expect(screen.getByText(toDisplayUpper(`${weekdayShort(parseLocalDate(monday))} · Beyaz Gömlek, Net Çizgi`, "en"))).toBeTruthy();
+    expect(screen.getByLabelText('Open the edit of the week')).toBeTruthy();
     // The seeded look is already a favourite: the heart removes it, optimistically.
     await fireEvent.press(screen.getByLabelText('Remove from lookbook'));
     await waitFor(() => expect(screen.getByLabelText('Save to lookbook')).toBeTruthy(), WAIT);
@@ -47,6 +56,8 @@ describe('06 Bugün', () => {
     await renderRouter('./src/app', { initialUrl: '/' });
     await waitFor(() => expect(screen.getByText('Nothing planned for today')).toBeTruthy(), WAIT);
     expect(screen.getByText('Ask the stylist')).toBeTruthy();
+    // 06 · plan yok: the greeting stands alone, without the occasion line.
+    expect(screen.getByText(/^Good (morning|afternoon|evening) Damla\.$/)).toBeTruthy();
   });
 });
 
@@ -56,8 +67,14 @@ describe('07 Haftalık plan', () => {
     await waitFor(() => expect(screen.getByText('Lacivert Blazer')).toBeTruthy(), WAIT);
     expect(screen.getByText('Weekly plan')).toBeTruthy();
     expect(screen.getByText('Plan my week')).toBeTruthy();
-    // "Today" = the day badge and the tab of the bottom menu, which stays on this list screen (canvas 07).
-    expect(screen.getAllByText('Today').length).toBe(2);
+    // The rows are this Monday → Sunday week, and the line above the title says exactly that.
+    const week = weekDates(today);
+    expect(screen.getByText(`THIS WEEK · ${formatIsoDateRange(week[0] as string, week[6] as string).toUpperCase()}`)).toBeTruthy();
+    expect(screen.queryByText('THE NEXT 7 DAYS')).toBeNull();
+    // The week's occasions are chips; the leading one is the filled one.
+    expect(screen.getByLabelText(/^Office ×\d$/).props.accessibilityState).toMatchObject({ selected: true });
+    // The bottom menu stays on this list screen (canvas 07).
+    expect(screen.getAllByText('Today').length).toBe(1);
 
     // 07b: the cost is shown before anything is spent.
     await fireEvent.press(screen.getByText('Try it on me'));
@@ -80,6 +97,16 @@ describe('07 Haftalık plan', () => {
     await renderRouter('./src/app', { initialUrl: '/plan/week' });
     await waitFor(() => expect(screen.getByText('Create a look')).toBeTruthy(), WAIT);
   });
+
+  it('names another week by its dates only', async () => {
+    const nextWeek = weekDates(addDays(today, 7));
+    await renderRouter('./src/app', { initialUrl: `/plan/week?day=${nextWeek[2]}` });
+    await waitFor(
+      () => expect(screen.getByText(formatIsoDateRange(nextWeek[0] as string, nextWeek[6] as string).toUpperCase())).toBeTruthy(),
+      WAIT,
+    );
+    expect(screen.queryByText(/^THIS WEEK/)).toBeNull();
+  });
 });
 
 describe("08 Haftanın edit'i", () => {
@@ -89,6 +116,12 @@ describe("08 Haftanın edit'i", () => {
     await renderRouter('./src/app', { initialUrl: `/edit/current?look=${firstLook}` });
     await waitFor(() => expect(screen.getByText('Beyaz Gömlek, Net Çizgi')).toBeTruthy(), WAIT);
     expect(screen.getByText('2 pieces are already in your wardrobe · hidden')).toBeTruthy();
+    // The actions sit on the image; there is no "Sponsored" label on an editorial edit.
+    expect(screen.getByLabelText('Go back')).toBeTruthy();
+    expect(screen.getByLabelText('Share')).toBeTruthy();
+    expect(screen.getByLabelText('Save to lookbook')).toBeTruthy();
+    expect(screen.getAllByText('ON YOU').length).toBe(7);
+    expect(screen.queryByText('SPONSORED')).toBeNull();
     expect(screen.queryByText('Beyaz Poplin Gömlek')).toBeNull();
     expect(screen.getByText('2 missing pieces')).toBeTruthy();
     expect(screen.getByText(formatMoney(moneyFromMajor(16250, 'TRY')))).toBeTruthy();
@@ -99,6 +132,8 @@ describe("08 Haftanın edit'i", () => {
 
     await fireEvent.press(screen.getByText('Show'));
     expect(screen.getByText('Beyaz Poplin Gömlek')).toBeTruthy();
+    expect(screen.getByText('2 pieces are already in your wardrobe')).toBeTruthy();
+    expect(screen.getByText('Hide')).toBeTruthy();
     // Showing owned pieces never changes the total.
     expect(screen.getByText(formatMoney(moneyFromMajor(53400, 'TRY')))).toBeTruthy();
   });
@@ -117,6 +152,19 @@ describe("08 Haftanın edit'i", () => {
     await waitFor(() => expect(screen.getByText('Complete your profile photo')).toBeTruthy(), WAIT);
     expect(screen.getByText('Add a photo')).toBeTruthy();
     expect(screen.getByText('Beyaz Gömlek, Net Çizgi')).toBeTruthy();
+    // 08 · fotoğraf yok: a plain header with back only, no image, no style note.
+    expect(screen.getByLabelText('Go back')).toBeTruthy();
+    expect(screen.queryByLabelText('Share')).toBeNull();
+    expect(screen.queryByText('ON YOU')).toBeNull();
+    expect(screen.queryByText(/Beyaz poplin gömleği/)).toBeNull();
+    expect(screen.getByText('2 missing pieces')).toBeTruthy();
+  });
+
+  it('marks a sponsored edit', async () => {
+    todayFixtureOptions.sponsoredBy = 'Marks & Spencer';
+    await renderRouter('./src/app', { initialUrl: `/edit/current?look=${firstLook}` });
+    await waitFor(() => expect(screen.getByText('SPONSORED')).toBeTruthy(), WAIT);
+    expect(screen.getByText('Made in partnership with Marks & Spencer.')).toBeTruthy();
   });
 });
 
@@ -130,6 +178,14 @@ describe('09 Takvim', () => {
     await waitFor(() => expect(screen.getByText('Planned')).toBeTruthy(), WAIT);
     expect(screen.getByText('Lacivert Blazer')).toBeTruthy();
     expect(screen.getByText('Open look')).toBeTruthy();
+    expect(screen.getByText('Change')).toBeTruthy();
+  });
+
+  it('opens the month report from "Rapor"', async () => {
+    await renderRouter('./src/app', { initialUrl: '/calendar' });
+    await waitFor(() => expect(screen.getByText('Report')).toBeTruthy(), WAIT);
+    await fireEvent.press(screen.getByLabelText(`Open the report for ${formatMonthYear(new Date())}`));
+    await waitFor(() => expect(screen.getByText('MONTHLY REPORT')).toBeTruthy(), WAIT);
   });
 
   it('offers a stylist suggestion for an empty day and moves between months', async () => {
@@ -145,5 +201,30 @@ describe('09 Takvim', () => {
     next.setDate(1);
     next.setMonth(next.getMonth() + 1);
     await waitFor(() => expect(screen.getByText(formatMonthYear(next))).toBeTruthy(), WAIT);
+  });
+});
+
+describe('09 › Rapor', () => {
+  // The seeded wear logs reach 16 days back, so the previous month always has some when this one is young.
+  const previousMonth = monthOf(addDays(`${monthOf(today)}-01`, -1));
+  const month = Number(today.slice(8)) > 16 ? monthOf(today) : previousMonth;
+
+  it('reads the month back from the wear logs', async () => {
+    await renderRouter('./src/app', { initialUrl: `/plan/report?month=${month}` });
+    await waitFor(() => expect(screen.getByText('Most worn')).toBeTruthy(), WAIT);
+    expect(screen.getByText('MONTHLY REPORT')).toBeTruthy();
+    expect(screen.getByText(formatMonthYear(parseLocalDate(`${month}-01`)))).toBeTruthy();
+    expect(screen.getByText(/days? logged$/)).toBeTruthy();
+    expect(screen.getByText(/of the month's \d+ days are logged\.$/)).toBeTruthy();
+    expect(screen.getByText('Occasions')).toBeTruthy();
+    expect(screen.getByText('Not worn this month')).toBeTruthy();
+    expect(screen.getAllByText(/^\d+ times?$/).length).toBeGreaterThan(0);
+  });
+
+  it('shows one sentence and one action for a month without records', async () => {
+    resetFixtureDb({ empty: true });
+    await renderRouter('./src/app', { initialUrl: `/plan/report?month=${month}` });
+    await waitFor(() => expect(screen.getByText('Back to the calendar')).toBeTruthy(), WAIT);
+    expect(screen.getByText(/^Nothing is logged for this month\./)).toBeTruthy();
   });
 });

@@ -1,4 +1,4 @@
-import { Ellipsis, Sparkles } from 'lucide-react-native';
+import { Ellipsis, Plus, Sparkles } from 'lucide-react-native';
 import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, View, type ViewInstance } from 'react-native';
@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/Bits';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
 import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
+import { Silhouette } from '@/components/ui/Silhouette';
 import { Text } from '@/components/ui/Text';
 import { useTryOnJob } from '@/features/tryon/api';
 import { currentLanguage } from '@/i18n';
@@ -18,7 +19,6 @@ import type { WeekRow } from './logic';
 
 type Props = {
   row: WeekRow;
-  isToday: boolean;
   /** Opens the ⋯ menu; `top` is where the menu should sit (window coordinates). */
   onOpenMenu: (top: number) => void;
   onSuggest: () => void;
@@ -29,8 +29,11 @@ type Props = {
   onRetryTryOn: () => void;
 };
 
-/** One day of 07 Haftalık plan: planned look with its ⋯ menu, or the empty day with "Öner". */
-export function WeekDayRow({ row, isToday, onOpenMenu, onSuggest, tryOnJobId, focused, onRetryTryOn }: Props) {
+/**
+ * One day of 07 Haftalık plan, as drawn: a paper card (56 × 72 look thumbnail, "PAZARTESİ · OFİS", the look
+ * name, the date and the borderless ⋯ button) or the dashed empty day (sand "+" tile, "Kombin seçilmedi", "Öner").
+ */
+export function WeekDayRow({ row, onOpenMenu, onSuggest, tryOnJobId, focused, onRetryTryOn }: Props) {
   const { t } = useTranslation();
   const anchor = useRef<ViewInstance>(null);
   const date = parseLocalDate(row.date);
@@ -46,13 +49,15 @@ export function WeekDayRow({ row, isToday, onOpenMenu, onSuggest, tryOnJobId, fo
 
   if (!row.look) {
     return (
-      <View className="flex-row items-center gap-3 rounded-card border border-dashed border-line p-3">
-        <View className="h-[70px] w-14 items-center justify-center rounded-image border border-dashed border-line" accessible={false} />
-        <View className="flex-1 gap-0.5">
-          <Text variant="eyebrow" numberOfLines={1}>
+      <View className="flex-row items-center gap-3 rounded-card border-[1.5px] border-dashed border-line p-2.5">
+        <View className="h-[72px] w-14 items-center justify-center rounded-thumb bg-sand" accessible={false}>
+          <Icon icon={Plus} size={22} tone="muted" />
+        </View>
+        <View className="flex-1 gap-[3px]">
+          <Text variant="eyebrow" numberOfLines={2}>
             {eyebrow}
           </Text>
-          <Text variant="body" tone="muted" numberOfLines={1}>
+          <Text variant="title" tone="muted" numberOfLines={1}>
             {t('weekPlan.noLook')}
           </Text>
         </View>
@@ -61,10 +66,10 @@ export function WeekDayRow({ row, isToday, onOpenMenu, onSuggest, tryOnJobId, fo
           accessibilityRole="button"
           accessibilityLabel={t('weekPlan.suggestA11y', { day: dayLabel })}
           hitSlop={4}
-          className="h-chip flex-row items-center gap-1.5 rounded-pill border border-line bg-paper px-4 active:opacity-80"
+          className="h-chip flex-row items-center gap-1.5 rounded-pill border border-line px-[15px] active:opacity-80"
         >
-          <Icon icon={Sparkles} size={16} />
-          <Text variant="bodyMedium" numberOfLines={1}>
+          <Icon icon={Sparkles} size={15} />
+          <Text variant="chip" numberOfLines={1}>
             {t('weekPlan.suggest')}
           </Text>
         </Pressable>
@@ -73,21 +78,27 @@ export function WeekDayRow({ row, isToday, onOpenMenu, onSuggest, tryOnJobId, fo
   }
 
   return (
-    <View className="gap-3 rounded-card border border-line bg-paper p-3">
+    <View className="gap-3 rounded-card border border-line bg-paper p-2.5">
       <View className="flex-row items-center gap-3">
-        <PlaceholderImage uri={image} className="h-[70px] w-14 rounded-image" />
-        <View className="flex-1 gap-0.5">
+        <View className="h-[72px] w-14 items-center justify-center overflow-hidden rounded-thumb">
+          <PlaceholderImage uri={image} className="h-full w-full" />
+          {image ? null : (
+            <View className="absolute inset-0 items-center justify-center" pointerEvents="none">
+              <Silhouette height={45} />
+            </View>
+          )}
+        </View>
+        <View className="flex-1 gap-[3px]">
           <Text variant="eyebrow" numberOfLines={1}>
             {eyebrow}
           </Text>
-          <Text variant="bodyMedium" numberOfLines={1}>
+          <Text variant="title" numberOfLines={1}>
             {row.look.name}
           </Text>
           <View className="flex-row flex-wrap items-center gap-2">
             <Text variant="caption" tone="muted">
               {formatDate(date, { day: 'numeric', month: 'long' })}
             </Text>
-            {isToday ? <Badge label={t('weekPlan.todayBadge')} /> : null}
             {job.isDone ? <Badge label={t('weekPlan.tryOnReady')} tone="accent" /> : null}
           </View>
         </View>

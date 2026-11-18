@@ -18,6 +18,8 @@ export const brandEasing = Easing.bezier(...motion.bezier);
 export type RevealTiming = {
   /** Time before the element starts to appear inside each cycle (its stagger offset). */
   delayMs: number;
+  /** Hidden time at the start of every cycle (e.g. the first 10 % of the stilist card fill). */
+  leadMs?: number;
   enterMs: number;
   holdMs: number;
   exitMs: number;
@@ -35,15 +37,18 @@ export function revealTiming(options: {
   cycleMs: number;
   enterMs: number;
   exitMs: number;
-  /** Fraction of the cycle (after the delay) at which the exit starts. */
+  /** Fraction of the cycle (after the delay) at which the exit ends. */
   exitAt: number;
+  /** Hidden time at the start of every cycle, before the entrance. Default 0. */
+  leadMs?: number;
 }): RevealTiming {
   const { index, staggerMs, cycleMs, enterMs, exitMs, exitAt } = options;
+  const leadMs = Math.max(0, options.leadMs ?? 0);
   const delayMs = Math.max(0, index) * staggerMs;
-  const exitStart = Math.max(enterMs, cycleMs * exitAt - exitMs);
-  const holdMs = Math.max(0, exitStart - enterMs);
-  const used = enterMs + holdMs + exitMs;
-  return { delayMs, enterMs, holdMs, exitMs, restMs: Math.max(0, cycleMs - used) };
+  const exitStart = Math.max(leadMs + enterMs, cycleMs * exitAt - exitMs);
+  const holdMs = Math.max(0, exitStart - leadMs - enterMs);
+  const used = leadMs + enterMs + holdMs + exitMs;
+  return { delayMs, leadMs, enterMs, holdMs, exitMs, restMs: Math.max(0, cycleMs - used) };
 }
 
 /**
@@ -54,6 +59,7 @@ export function revealTiming(options: {
 export function useRevealLoop(timing: RevealTiming, reduceMotion: boolean): SharedValue<number> {
   const value = useSharedValue(reduceMotion ? 1 : 0);
   const { delayMs, enterMs, holdMs, exitMs, restMs } = timing;
+  const leadMs = timing.leadMs ?? 0;
   useEffect(() => {
     if (reduceMotion) {
       cancelAnimation(value);
@@ -66,7 +72,7 @@ export function useRevealLoop(timing: RevealTiming, reduceMotion: boolean): Shar
         delayMs,
         withRepeat(
           withSequence(
-            withTiming(1, { duration: enterMs, easing: brandEasing }),
+            withDelay(leadMs, withTiming(1, { duration: enterMs, easing: brandEasing })),
             withDelay(holdMs, withTiming(2, { duration: exitMs, easing: Easing.inOut(Easing.ease) })),
             // Jump back to hidden, then rest until the next cycle.
             withTiming(0, { duration: 0 }),
@@ -78,7 +84,7 @@ export function useRevealLoop(timing: RevealTiming, reduceMotion: boolean): Shar
       ),
     );
     return () => cancelAnimation(value);
-  }, [delayMs, enterMs, exitMs, holdMs, reduceMotion, restMs, value]);
+  }, [delayMs, enterMs, exitMs, holdMs, leadMs, reduceMotion, restMs, value]);
   return value;
 }
 

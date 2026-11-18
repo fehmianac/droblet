@@ -1,7 +1,8 @@
 import { router } from 'expo-router';
+import { Search } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FlatList, View } from 'react-native';
+import { FlatList, TextInput, View } from 'react-native';
 
 import type { LibraryItem } from '@/api/contracts';
 import { ITEM_CATEGORIES, type ItemCategory } from '@/api/contracts/wardrobe';
@@ -9,15 +10,16 @@ import { useItemLibrary } from '@/api/today';
 import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { Button } from '@/components/ui/Button';
 import { Chip, ChipRow } from '@/components/ui/Chip';
+import { Icon } from '@/components/ui/Icon';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
 import { Text } from '@/components/ui/Text';
-import { TextField } from '@/components/ui/TextField';
 import { matchesSearch, toggleIn } from '@/features/wardrobe/filters';
 import { libraryCategory, libraryItemFields } from '@/features/wardrobe/form';
 import { useAddItems } from '@/features/wardrobe/mutations';
 import { ItemGridSkeleton, ItemTile, padToColumns } from '@/features/wardrobe/parts';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 /**
  * 12b Hazır kütüphane — add pieces without taking photos: pick the closest ready-made ones, edit
@@ -25,6 +27,7 @@ import { ItemGridSkeleton, ItemTile, padToColumns } from '@/features/wardrobe/pa
  */
 export default function ItemLibraryScreen() {
   const { t } = useTranslation();
+  const colors = useThemeColors();
   const library = useItemLibrary();
   const addItems = useAddItems();
   const [selected, setSelected] = useState<string[]>([]);
@@ -43,7 +46,7 @@ export default function ItemLibraryScreen() {
       <ScreenHeader title={t('itemLibrary.title')} leading="back" />
       <ScreenState
         query={library}
-        skeleton={<ItemGridSkeleton rows={3} />}
+        skeleton={<ItemGridSkeleton rows={4} tileClassName="h-24 rounded-image" />}
         isEmpty={(items) => items.length === 0}
         empty={{ message: t('itemLibrary.empty'), actionLabel: t('itemLibrary.emptyAction'), onAction: () => router.replace('/item/add') }}
       >
@@ -58,8 +61,8 @@ export default function ItemLibraryScreen() {
                 data={padToColumns(visible)}
                 keyExtractor={(item, index) => item?.id ?? `pad-${index}`}
                 numColumns={3}
-                columnWrapperClassName="gap-3 px-gutter"
-                contentContainerClassName="gap-4 pb-8"
+                columnWrapperClassName="gap-2.5 px-gutter"
+                contentContainerClassName="gap-3 pb-8"
                 keyboardShouldPersistTaps="handled"
                 ListHeaderComponent={
                   <View className="gap-3 pb-1">
@@ -67,15 +70,24 @@ export default function ItemLibraryScreen() {
                       <Text variant="body" tone="muted">
                         {t('itemLibrary.body')}
                       </Text>
-                      <TextField
-                        label={t('itemLibrary.searchLabel')}
-                        placeholder={t('itemLibrary.searchPlaceholder')}
-                        value={search}
-                        onChangeText={setSearch}
-                        autoCorrect={false}
-                        returnKeyType="search"
-                        clearButtonMode="while-editing"
-                      />
+                      {/* Canvas: one 48 field with the magnifier inside and no visible label (the label is for screen readers). */}
+                      <View className="h-field flex-row items-center gap-2.5 rounded-field border border-line bg-paper pl-3.5">
+                        <Icon icon={Search} size={18} tone="muted" />
+                        <TextInput
+                          accessibilityLabel={t('itemLibrary.searchLabel')}
+                          placeholder={t('itemLibrary.searchPlaceholder')}
+                          placeholderTextColor={colors.muted}
+                          selectionColor={colors.accent}
+                          value={search}
+                          onChangeText={setSearch}
+                          autoCorrect={false}
+                          returnKeyType="search"
+                          clearButtonMode="while-editing"
+                          maxFontSizeMultiplier={1.6}
+                          className="h-full flex-1 pr-3.5 font-sans text-[15px] text-ink"
+                          testID="library-search"
+                        />
+                      </View>
                     </View>
                     <ChipRow>
                       <Chip label={t('itemCategory.all')} selected={category === 'all'} onPress={() => setCategory('all')} />
@@ -112,6 +124,8 @@ export default function ItemLibraryScreen() {
                         useOriginalImage: false,
                       }}
                       selected={selected.includes(item.id)}
+                      mark="add"
+                      size="library"
                       onPress={() => setSelected((prev) => toggleIn(prev, item.id))}
                     />
                   ) : (
@@ -120,14 +134,17 @@ export default function ItemLibraryScreen() {
                 }
               />
               <BottomActionBar>
-                <View className="flex-row flex-wrap items-center gap-x-4 gap-y-2">
-                  <View className="min-w-28 flex-1 gap-0.5" accessibilityLiveRegion="polite">
-                    <Text variant="bodyMedium">{t('itemLibrary.selected', { count: selected.length })}</Text>
-                    <Text variant="caption" tone="muted">
+                {/* Canvas `.bar`: the count (15 medium) over the reassurance on the left, the 48 action on the right. */}
+                <View className="flex-row items-center gap-2.5">
+                  <View className="flex-1" accessibilityLiveRegion="polite">
+                    <Text variant="bodyMedium" className="text-[15px]" numberOfLines={1}>
+                      {t('itemLibrary.selected', { count: selected.length })}
+                    </Text>
+                    <Text variant="caption" tone="muted" numberOfLines={2}>
                       {t('itemLibrary.editLater')}
                     </Text>
                   </View>
-                  <Button className="grow" label={t('itemLibrary.add')} disabled={selected.length === 0} onPress={() => submit(items)} testID="library-add" />
+                  <Button size="bar" label={t('itemLibrary.add')} disabled={selected.length === 0} onPress={() => submit(items)} testID="library-add" />
                 </View>
               </BottomActionBar>
             </>

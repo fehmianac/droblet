@@ -18,7 +18,6 @@ import {
   type ProductSummary,
   type SeriesOutfit,
   type SetWatchRequest,
-  type TryOnState,
   type Watchlist,
   type WatchlistEntry,
   type WeeklyEditSummary,
@@ -201,7 +200,7 @@ function currentEdit(today: Date = new Date()): WeeklyEditSummary {
 /** Placeholder creators — sample handles only, no real people (README §9.1 A-7). */
 export const creatorsFixture: CreatorCard[] = [
   { id: 'creator_1', handle: 'ornek_stilist', displayName: '@ornek_stilist', role: 'Stil danışmanı', lookTitle: 'Quiet luxury ofis', imageUrl: null, sponsored: false },
-  { id: 'creator_2', handle: 'ornek_editor', displayName: 'Stil editörü', role: 'Editör', lookTitle: 'Hafta sonu katman', imageUrl: null, sponsored: false },
+  { id: 'creator_2', handle: 'ornek_editor', displayName: '@ornek_editor', role: 'Editör', lookTitle: 'Hafta sonu katman', imageUrl: null, sponsored: false },
   { id: 'creator_3', handle: null, displayName: 'Marka vitrini', role: null, lookTitle: 'Lüks dokunuş', imageUrl: null, sponsored: true },
 ];
 
@@ -213,7 +212,6 @@ type State = {
   cart: CartRow[];
   watch: Map<string, { alertEnabled: boolean; source: WatchlistEntry['source']; previousPrice: Money | null }>;
   favorites: Set<string>;
-  tryOn: Map<string, { status: TryOnState['status']; readyAt: number }>;
   wardrobeAdds: string[];
 };
 
@@ -230,7 +228,6 @@ function initialState(): State {
       ['prod_009', { alertEnabled: false, source: { kind: 'manual' }, previousPrice: null }],
     ]),
     favorites: new Set<string>(),
-    tryOn: new Map(),
     wardrobeAdds: [],
   };
 }
@@ -269,8 +266,6 @@ export function buildCart(rows: CartRow[], catalogue: ProductSummary[]): Cart {
   };
 }
 
-const TRY_ON_DURATION_MS = 1500;
-
 export const storeFixtures = {
   edit: (): WeeklyEditSummary => currentEdit(),
   creators: (): CreatorCard[] => creatorsFixture,
@@ -300,18 +295,6 @@ export const storeFixtures = {
   },
   addToWardrobe: (productId: string): void => {
     state.wardrobeAdds.push(productId);
-  },
-
-  tryOn: (productId: string): TryOnState => {
-    const entry = state.tryOn.get(productId);
-    if (!entry) return { status: 'none', imageUrl: null };
-    if (entry.status === 'pending' && Date.now() >= entry.readyAt) entry.status = 'done';
-    return { status: entry.status, imageUrl: null };
-  },
-  requestTryOn: (productId: string): void => {
-    if (!state.tryOn.has(productId)) {
-      state.tryOn.set(productId, { status: 'pending', readyAt: Date.now() + TRY_ON_DURATION_MS });
-    }
   },
 
   cart: (): Cart => buildCart(state.cart, localizedCatalogue()),

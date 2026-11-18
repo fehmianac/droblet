@@ -108,6 +108,11 @@ export type WeeklyEdit = {
   looks: EditLook[];
   /** False → "Profil fotoğrafını tamamla" card instead of the try-on image. */
   hasBodyPhoto: boolean;
+  /**
+   * Brand of a sponsored edit (BRIEF: `weekly_edit.sponsor`, faz 3) → the "SPONSORLU" label on 08.
+   * ASSUMPTION: optional on the wire; absent or null = an editorial edit.
+   */
+  sponsoredBy?: string | null;
 };
 
 /** ASSUMPTION (24b belongs to the store slice): POST v1/tenant/watchlist — idempotent on clientMutationId. */

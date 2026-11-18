@@ -32,8 +32,10 @@ export const DATA_SOURCE = {
   account: 'fixtures',
   /** Renk paleti (30). */
   palette: 'fixtures',
+  /** Bildirim merkezi (provisional contract). */
+  notifications: 'fixtures',
 } satisfies Record<string, DataSource> as Record<
-  'today' | 'wardrobe' | 'stylist' | 'jobs' | 'content' | 'catalog' | 'cart' | 'watchlist' | 'social' | 'account' | 'palette',
+  'today' | 'wardrobe' | 'stylist' | 'jobs' | 'content' | 'catalog' | 'cart' | 'watchlist' | 'social' | 'account' | 'palette' | 'notifications',
   DataSource
 >;
 

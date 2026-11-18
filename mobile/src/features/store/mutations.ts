@@ -15,18 +15,15 @@ import type {
   RemoveCartLineRequest,
   SetFavoriteRequest,
   SetWatchRequest,
-  TryOnRequest,
-  TryOnState,
   Watchlist,
   WatchlistEntry,
 } from '@/api/contracts/store';
 import { fromSource } from '@/api/dataSource';
 import { isGone } from '@/api/errors';
-import { openCreditSheetIfExhausted } from '@/features/credits/creditSheetStore';
 import { storeFixtures } from '@/fixtures/store';
 import { ulid } from '@/lib/ids';
 import { newClientMutation } from '@/sync/clientMutation';
-import { queryKeys, TENANT_WRITE_SCOPE } from '@/sync/queryKeys';
+import { TENANT_WRITE_SCOPE } from '@/sync/queryKeys';
 
 import { addLinesToCart, removeLineFromCart, type NewCartLine } from './cartMath';
 import { storeKeys } from './queries';
@@ -34,7 +31,6 @@ import { storeKeys } from './queries';
 export const storeMutationKeys = {
   setFavorite: ['tenant', 'favorite', 'product', 'set'] as const,
   addItemFromProduct: ['tenant', 'item', 'from-product'] as const,
-  requestTryOn: ['tenant', 'tryon', 'request'] as const,
   createLook: ['tenant', 'look', 'create-from-builder'] as const,
   addCartLines: ['tenant', 'cart', 'line', 'add'] as const,
   removeCartLine: ['tenant', 'cart', 'line', 'remove'] as const,
@@ -74,34 +70,6 @@ export function registerStoreMutations(client: QueryClient): void {
         () => apiRequest<void>('v1/tenant/item/from-product', { method: 'POST', body: vars }),
       ),
     onSuccess: () => void client.invalidateQueries({ queryKey: wardrobeKeys.items }),
-  });
-
-  client.setMutationDefaults(storeMutationKeys.requestTryOn, {
-    scope: TENANT_WRITE_SCOPE,
-    mutationFn: (vars: TryOnRequest) =>
-      fromSource(
-        'jobs',
-        () => storeFixtures.requestTryOn(vars.target.id),
-        () => apiRequest<void>('v1/tenant/tryon', { method: 'POST', body: vars }),
-      ),
-    onMutate: async (vars: TryOnRequest) => {
-      const key = storeKeys.tryOn(vars.target.id);
-      await client.cancelQueries({ queryKey: key });
-      client.setQueryData<TryOnState>(key, { status: 'pending', imageUrl: null });
-    },
-    onSuccess: (_data: void, vars: TryOnRequest) => {
-      track('credit_spent', { feature: 'product_try_on' });
-      void client.invalidateQueries({ queryKey: storeKeys.tryOn(vars.target.id) });
-      void client.invalidateQueries({ queryKey: queryKeys.entitlement });
-    },
-    onError: (error: unknown, vars: TryOnRequest) => {
-      // Out of credits → 05b sheet (not the paywall); the toggle falls back to the product photo.
-      const exhausted = openCreditSheetIfExhausted(error, 'product_try_on');
-      client.setQueryData<TryOnState>(storeKeys.tryOn(vars.target.id), {
-        status: exhausted ? 'none' : 'failed',
-        imageUrl: null,
-      });
-    },
   });
 
   client.setMutationDefaults(storeMutationKeys.createLook, {
@@ -203,14 +171,6 @@ export function useAddItemFromProduct() {
   const m = useMutation<void, unknown, AddItemFromProductRequest>({ mutationKey: storeMutationKeys.addItemFromProduct });
   return (productId: string, size: ProductSize) =>
     m.mutate({ productId, size, clientMutationId: newClientMutation().clientMutationId });
-}
-
-export function useRequestTryOn() {
-  const m = useMutation<void, unknown, TryOnRequest>({ mutationKey: storeMutationKeys.requestTryOn });
-  return (productId: string) => {
-    const id = ulid();
-    m.mutate({ requestId: id, clientMutationId: id, target: { kind: 'product', id: productId } });
-  };
 }
 
 export function useCreateLook() {

@@ -13,7 +13,7 @@ import { BUILDER_SLOTS, type BuilderSlot } from '@/api/contracts/store';
 import { useBodyProfile } from '@/api/profile';
 import { BrandMark } from '@/components/blocks/BrandMark';
 import { SectionState } from '@/components/blocks/SectionState';
-import { AiImage } from '@/components/ui/AiBadge';
+import { ImageTag } from '@/components/ui/Bits';
 import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
@@ -22,6 +22,7 @@ import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { Silhouette } from '@/components/ui/Silhouette';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { useProfileStats } from '@/features/account/queries';
@@ -40,6 +41,7 @@ import {
 import { useAddToCart, useCreateLook } from '@/features/store/mutations';
 import { useProduct, useSlotProducts } from '@/features/store/queries';
 import { formatMoney } from '@/lib/format';
+import { placeholderTones } from '@/theme/tokens';
 
 type Source = 'store' | 'wardrobe';
 
@@ -67,10 +69,11 @@ function SlotCard({
         ? t('builder.storeMeta', { brand: fill.product.brandName, price: formatMoney(fill.product.price) })
         : fill.product.brandName;
 
+  // As drawn: a paper card (radius 12) per filled slot; the slot being filled has the 1.5 ink outline.
   return (
     <View
-      className={`flex-row items-center rounded-image-lg border bg-paper ${
-        selected ? 'border-ink' : fill ? 'border-line' : 'border-dashed border-line'
+      className={`flex-row items-center rounded-image ${fill ? 'bg-paper' : ''} ${
+        selected ? 'border-[1.5px] border-ink' : 'border border-line'
       }`}
     >
       <Pressable
@@ -78,34 +81,41 @@ function SlotCard({
         accessibilityRole="button"
         accessibilityState={{ selected }}
         accessibilityLabel={[fill ? slotLabel : t('builder.slotEmpty', { slot: slotLabel }), name, meta].filter(Boolean).join(', ')}
-        className="min-h-14 flex-1 flex-row items-center gap-2.5 p-2 active:opacity-70"
+        className="min-h-[60px] flex-1 flex-row items-center gap-2.5 px-2 py-1.5 active:opacity-70"
       >
         {fill ? (
           <PlaceholderImage
             uri={fill.source === 'store' ? fill.product.imageUrl : itemImage(fill.piece)}
-            className="h-11 w-9 rounded-image"
+            className="h-12 w-10 rounded-lg"
           />
         ) : (
-          <View className="h-11 w-9 items-center justify-center rounded-image bg-sand">
+          <View className="h-12 w-10 items-center justify-center rounded-lg bg-sand">
             <Icon icon={Plus} size={16} tone="muted" />
           </View>
         )}
         <View className="flex-1">
-          <Text variant="caption" tone="muted" numberOfLines={1}>
+          <Text variant="tab" tone="muted" numberOfLines={1}>
             {fill ? slotLabel : t('builder.slotEmpty', { slot: slotLabel })}
           </Text>
-          <Text variant="bodyMedium" numberOfLines={1}>
+          <Text variant={fill ? 'label' : 'caption'} tone={fill ? 'ink' : 'muted'} numberOfLines={1} className="text-[12.5px]">
             {name}
           </Text>
+          {/* Store pieces are marked in accent (they are the ones that cost money). */}
           {meta ? (
-            // Store pieces are marked in accent (they are the ones that cost money).
-            <Text variant="caption" tone={fill?.source === 'store' ? 'accent' : 'muted'} numberOfLines={1}>
-              {meta}
-            </Text>
+            fill?.source === 'store' ? (
+              <Text variant="brand" tone="accent" numberOfLines={1} className="tracking-normal">
+                {meta}
+              </Text>
+            ) : (
+              <Text variant="tab" tone="muted" numberOfLines={1}>
+                {meta}
+              </Text>
+            )
           ) : null}
         </View>
       </Pressable>
-      {fill ? (
+      {/* Not on the board: the only way to empty a slot again, shown on the selected slot alone. */}
+      {fill && selected ? (
         <Pressable
           onPress={onClear}
           accessibilityRole="button"
@@ -121,10 +131,10 @@ function SlotCard({
 
 function StripSkeleton() {
   return (
-    <View className="flex-row gap-3 px-gutter">
+    <View className="flex-row gap-2.5 px-gutter">
       {[0, 1, 2, 3].map((i) => (
-        <View key={i} className="w-24 gap-1.5">
-          <Skeleton className="aspect-[4/5] w-full rounded-image" />
+        <View key={i} className="w-24 gap-1">
+          <Skeleton className="h-[104px] w-full rounded-thumb" />
           <Skeleton className="h-3 w-16 rounded-field" />
         </View>
       ))}
@@ -135,7 +145,8 @@ function StripSkeleton() {
 /**
  * 23 Kombin oluşturucu — five slots (üst, alt, dış giyim, ayakkabı, çanta), each filled from the
  * store or the wardrobe. The selected slot gets suggestions below; store pieces show their price in
- * accent. "Lookbook'a kaydet" writes a look; "N ürünü satın al" adds the store pieces to the cart.
+ * accent. "Lookbook'a kaydet" writes a look and opens the lookbook; "N ürünü satın al" adds the store
+ * pieces to the cart. Create screen: bottom action bar, no bottom menu.
  *
  * `?productId=` starts with that product in its slot (22 "Göster"); `?lookId=` comes from
  * "Look'u tamamla" — prefilling from that look waits for the E3 look contract.
@@ -185,20 +196,31 @@ export default function BuilderScreen() {
     createLook({ name: t('builder.defaultLookName'), occasion: null, slots: toLookSlots(slots) });
     if (stats.data?.lookCount === 0) track('first_look_created', { source: 'builder' });
     setSaved(true);
+    // As on the board: the saved look is shown in the lookbook; "back" returns here with the slots intact.
+    router.push('/wardrobe/looks');
   };
 
   return (
     <Screen>
       <ScreenHeader title={t('screens.builder')} leading="back" />
       <OfflineBanner />
-      <ScrollView contentContainerClassName="gap-5 pb-8">
+      <ScrollView contentContainerClassName="gap-3 pb-8 pt-1">
         <Text variant="body" tone="muted" className="px-gutter">
           {t('builder.intro')}
         </Text>
 
         <View className="flex-row gap-3 px-gutter">
-          <AiImage kind="preview" uri={null} className="w-2/5 self-stretch" />
-          <View className="flex-1 gap-2">
+          <View
+            className="h-[300px] w-[140px] items-center justify-center overflow-hidden rounded-image-lg"
+            style={{ backgroundColor: placeholderTones.stage }}
+            accessible
+            accessibilityRole="image"
+            accessibilityLabel={t('builder.previewA11y')}
+          >
+            <Silhouette height={150} />
+            <ImageTag label={t('builder.previewTag')} className="absolute bottom-2 left-2" />
+          </View>
+          <View className="flex-1 gap-[7px]">
             {BUILDER_SLOTS.map((slot) => (
               <SlotCard
                 key={slot}
@@ -219,7 +241,7 @@ export default function BuilderScreen() {
           <View className="flex-row flex-wrap items-center gap-2 px-gutter" accessibilityRole="tablist" accessibilityLabel={t('builder.sourceLabel')}>
             <Chip label={t('builder.sourceStore')} selected={source === 'store'} onPress={() => setSource('store')} />
             <Chip label={t('builder.sourceWardrobe')} selected={source === 'wardrobe'} onPress={() => setSource('wardrobe')} />
-            <Text variant="caption" tone="muted" className="flex-1 text-right" accessibilityLiveRegion="polite">
+            <Text variant="caption" tone="muted" numberOfLines={1} className="flex-1 text-right" accessibilityLiveRegion="polite">
               {t('builder.suggestionsFor', { slot: slotLabel })}
             </Text>
           </View>
@@ -233,7 +255,7 @@ export default function BuilderScreen() {
               errorText={t('builder.suggestionsError')}
             >
               {(list) => (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-3 px-gutter">
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2.5 px-gutter">
                   {list.map((product) => (
                     <Pressable
                       key={product.id}
@@ -244,10 +266,10 @@ export default function BuilderScreen() {
                         .join(', ')}
                       className="w-24 gap-1 active:opacity-80"
                     >
-                      <PlaceholderImage uri={product.imageUrl} className="aspect-[4/5] w-full rounded-image" />
-                      <BrandMark name={product.brandName} logoUrl={product.brandLogoUrl} />
+                      <PlaceholderImage uri={product.imageUrl} className="h-[104px] w-full rounded-thumb" />
+                      <BrandMark name={product.brandName} logoUrl={product.brandLogoUrl} className="text-[9.5px]" />
                       {product.price !== null ? (
-                        <Text variant="caption" tone="accent">
+                        <Text variant="price" className="text-[12px]">
                           {formatMoney(product.price)}
                         </Text>
                       ) : null}
@@ -271,7 +293,7 @@ export default function BuilderScreen() {
               errorText={t('builder.suggestionsError')}
             >
               {(list) => (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-3 px-gutter">
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2.5 px-gutter">
                   {list.map((piece) => (
                     <Pressable
                       key={piece.id}
@@ -280,7 +302,7 @@ export default function BuilderScreen() {
                       accessibilityLabel={piece.name}
                       className="w-24 gap-1 active:opacity-80"
                     >
-                      <ItemThumb category={piece.category} color={piece.color} uri={itemImage(piece)} className="aspect-[4/5] w-full rounded-image" />
+                      <ItemThumb category={piece.category} color={piece.color} uri={itemImage(piece)} className="h-[104px] w-full rounded-thumb" />
                       <Text variant="caption" numberOfLines={2}>
                         {piece.name}
                       </Text>
@@ -294,10 +316,10 @@ export default function BuilderScreen() {
       </ScrollView>
 
       <BottomActionBar>
-        <View className="flex-row items-center gap-3">
+        <View className="flex-row items-center gap-2.5">
           {saved ? (
             <View
-              className="h-btn-secondary flex-1 flex-row items-center justify-center gap-2 rounded-pill bg-sand px-3"
+              className="h-btn-bar flex-1 flex-row items-center justify-center gap-2 rounded-pill bg-sand px-3"
               accessible
               accessibilityLiveRegion="polite"
               accessibilityLabel={t('builder.savedLook')}
@@ -310,7 +332,8 @@ export default function BuilderScreen() {
           ) : (
             <Button
               variant="secondary"
-              className="flex-1"
+              size="bar"
+              className="flex-1 px-2.5"
               label={t('builder.saveLook')}
               onPress={save}
               disabled={!canSave}
@@ -318,7 +341,8 @@ export default function BuilderScreen() {
             />
           )}
           <Button
-            className="flex-1"
+            size="bar"
+            className="flex-1 px-2.5"
             label={toBuy.length > 0 ? t('builder.buy', { count: toBuy.length }) : t('builder.buyNone')}
             disabled={toBuy.length === 0}
             onPress={() => {

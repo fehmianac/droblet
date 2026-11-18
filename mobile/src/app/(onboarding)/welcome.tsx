@@ -67,6 +67,7 @@ export default function WelcomeScreen() {
         <View className="mt-2 gap-2.5">
           <Button
             label={t('welcome.start')}
+            testID="welcome.start"
             onPress={() => {
               track('signup_step', { step: 'welcome' });
               router.push({ pathname: '/start', params: { mode: 'register' } });
@@ -76,6 +77,7 @@ export default function WelcomeScreen() {
             variant="secondary"
             size="lg"
             label={t('welcome.haveAccount')}
+            testID="welcome.login"
             onPress={() => router.push({ pathname: '/start', params: { mode: 'login' } })}
           />
         </View>

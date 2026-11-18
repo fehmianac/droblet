@@ -77,7 +77,8 @@ export function AiBusyButton({ label }: { label?: string }) {
       className="h-btn-primary flex-row items-center justify-center gap-2 overflow-hidden rounded-pill bg-ink px-6"
     >
       <AiShimmer />
-      <AiDropPulse height={19} tone="cream" hookTone="ink" />
+      {/* 16×19 cream drop without the hook (`AiYukleniyorVaryantlar`, "Satır içi"). */}
+      <AiDropPulse height={19} tone="cream" hookTone="cream" />
       <Text variant="button" tone="paper" numberOfLines={1}>
         {text}
       </Text>

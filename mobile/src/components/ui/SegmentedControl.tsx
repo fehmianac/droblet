@@ -14,10 +14,12 @@ type Props<T extends string> = {
    * light shadow. 'ink' — the 02 Kayıt ol / Giriş yap switch: 48 track, the selected segment is filled ink.
    */
   variant?: 'paper' | 'ink';
+  /** Each segment gets `${testID}.${value}`. */
+  testID?: string;
 };
 
 /** Sand track with 4 pt padding and gap; segments are full pills. */
-export function SegmentedControl<T extends string>({ segments, value, onChange, accessibilityLabel, variant = 'paper' }: Props<T>) {
+export function SegmentedControl<T extends string>({ segments, value, onChange, accessibilityLabel, variant = 'paper', testID }: Props<T>) {
   const ink = variant === 'ink';
   return (
     <View
@@ -30,6 +32,7 @@ export function SegmentedControl<T extends string>({ segments, value, onChange, 
         return (
           <Pressable
             key={s.value}
+            testID={testID ? `${testID}.${s.value}` : undefined}
             onPress={() => onChange(s.value)}
             accessibilityRole="tab"
             accessibilityLabel={s.label}

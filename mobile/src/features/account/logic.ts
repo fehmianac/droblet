@@ -12,6 +12,84 @@ export function paletteCatalogColors(tones: PaletteTone[]): CatalogColor[] {
   return [...new Set(tones.map((tone) => tone.catalogColor).filter((c): c is CatalogColor => c !== null))];
 }
 
+// ---------- 28 "Profili düzenle" ----------
+
+export const NAME_MAX = 40;
+export const HANDLE_MIN = 3;
+export const HANDLE_MAX = 20;
+
+/** What the user typed → the handle as it is stored: no "@", no spaces around, lower-case ASCII (İ / I / ı → i). */
+export function normalizeHandle(input: string): string {
+  return input
+    .trim()
+    .replace(/^@+/, '')
+    .replace(/[İIı]/g, 'i')
+    .toLowerCase();
+}
+
+export type ProfileFieldError = 'nameRequired' | 'nameTooLong' | 'handleRequired' | 'handleTooShort' | 'handleTooLong' | 'handleInvalid';
+export type ProfileErrors = { displayName?: ProfileFieldError; handle?: ProfileFieldError };
+
+/** Field errors of the edit-profile form; an empty object = valid. `handle` is checked after `normalizeHandle`. */
+export function validateProfile(input: { displayName: string; handle: string }): ProfileErrors {
+  const errors: ProfileErrors = {};
+  const name = input.displayName.trim();
+  if (name === '') errors.displayName = 'nameRequired';
+  else if (name.length > NAME_MAX) errors.displayName = 'nameTooLong';
+
+  const handle = normalizeHandle(input.handle);
+  if (handle === '') errors.handle = 'handleRequired';
+  else if (!/^[a-z0-9_.]+$/.test(handle)) errors.handle = 'handleInvalid';
+  else if (handle.length < HANDLE_MIN) errors.handle = 'handleTooShort';
+  else if (handle.length > HANDLE_MAX) errors.handle = 'handleTooLong';
+  return errors;
+}
+
+// ---------- 29b what "delete my photos" removes ----------
+
+export type PhotoDeleteLine =
+  | { key: 'bodyAndFace' | 'bodyPhotos' | 'generated'; count: number }
+  | { key: 'facePhoto' | 'generatedAll' | 'palette' };
+
+/**
+ * The bullet list of 29b, from what the account really has: the photos (one line, as drawn:
+ * "1 boy fotoğrafı ve yüz fotoğrafın"), the images generated on the user (the count when the server
+ * sends one) and the palette analysis when there is one.
+ */
+export function photoDeleteLines(
+  photos: { body: unknown[]; face: unknown | null; generatedImageCount: number | null } | undefined,
+  hasPalette: boolean,
+): PhotoDeleteLine[] {
+  const lines: PhotoDeleteLine[] = [];
+  const body = photos?.body.length ?? 0;
+  const face = Boolean(photos?.face);
+  if (body > 0 && face) lines.push({ key: 'bodyAndFace', count: body });
+  else if (body > 0) lines.push({ key: 'bodyPhotos', count: body });
+  else if (face) lines.push({ key: 'facePhoto' });
+  const generated = photos?.generatedImageCount ?? null;
+  lines.push(generated !== null && generated > 0 ? { key: 'generated', count: generated } : { key: 'generatedAll' });
+  if (hasPalette) lines.push({ key: 'palette' });
+  return lines;
+}
+
+// ---------- 30 swatches ----------
+
+/**
+ * A tone close to the paper/cream surface needs the hairline the canvas draws around "Krem" and the
+ * icy white. Relative luminance (sRGB) of `#RRGGBB`; anything unreadable counts as not light.
+ */
+export function isLightTone(hex: string): boolean {
+  const match = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!match?.[1]) return false;
+  const value = parseInt(match[1], 16);
+  const channel = (c: number) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  };
+  const luminance = 0.2126 * channel((value >> 16) & 255) + 0.7152 * channel((value >> 8) & 255) + 0.0722 * channel(value & 255);
+  return luminance > 0.7;
+}
+
 /** Tone names come from the server per language; Turkish is the fallback for a language it does not send yet. */
 export function toneName(tone: PaletteTone, language: AppLanguage): string {
   return tone.name[language] ?? tone.name.tr;

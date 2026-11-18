@@ -1,10 +1,11 @@
-import { Sparkles } from 'lucide-react-native';
+import { Sparkle, X } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { Alert, View } from 'react-native';
 
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
+import { IconButton } from '@/components/ui/IconButton';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { useEntitlement } from '@/entitlement/useEntitlement';
@@ -21,8 +22,8 @@ export function usedShare(monthlyAllowance: number, remaining: number): number {
 
 /**
  * 05b Ek kredi paketi. Opens when the month's AI image credits are used up (not the paywall) and
- * from Profil "Kredi yükle". Numbers come from the server (`GET v1/tenant/entitlement`), the pack's
- * price and size from the store products. Buying stays disabled until the billing bridge (E10).
+ * from Profil / Üyelik "Kredi yükle". Numbers come from the server (`GET v1/tenant/entitlement`), the
+ * pack's price and size from the store products. Buying stays disabled until the billing bridge (E10).
  */
 export function CreditPackSheet({ reason }: { reason: CreditSheetReason }) {
   const { t } = useTranslation();
@@ -40,18 +41,24 @@ export function CreditPackSheet({ reason }: { reason: CreditSheetReason }) {
 
   return (
     <BottomSheet visible onClose={close}>
-      <View className="gap-5">
-        <View className="gap-1">
-          <Text variant="eyebrow">{t('credits.eyebrow')}</Text>
-          <Text variant="h2">
-            {reason === 'exhausted' && credits
-              ? t('credits.titleExhausted', { total: credits.monthlyAllowance })
-              : t('credits.titleTopUp')}
-          </Text>
+      {/* The sheet insets 20; the board draws this one at 24. */}
+      <View className="gap-[18px] px-1 pb-1">
+        <View className="flex-row items-start justify-between gap-2">
+          <View className="flex-1 gap-2">
+            <Text variant="eyebrow" tone="accent">
+              {t('credits.eyebrow')}
+            </Text>
+            <Text variant="h2">
+              {reason === 'exhausted' && credits
+                ? t('credits.titleExhausted', { total: credits.monthlyAllowance })
+                : t('credits.titleTopUp')}
+            </Text>
+          </View>
+          <IconButton icon={X} variant="plain" onPress={close} accessibilityLabel={t('a11y.close')} className="-mr-2.5 -mt-1.5" testID="credit-pack-close" />
         </View>
 
         {credits && used !== null ? (
-          <View className="gap-2">
+          <View className="gap-1.5">
             <View
               className="h-1.5 overflow-hidden rounded-pill bg-sand"
               accessible
@@ -76,34 +83,38 @@ export function CreditPackSheet({ reason }: { reason: CreditSheetReason }) {
         ) : null}
 
         {pack && pack.credits !== null ? (
-          <View className="flex-row items-center gap-3 rounded-card border border-ink bg-paper p-4" accessible>
+          // One pack, shown as the chosen option: 2 pt ink ring.
+          <View className="flex-row items-center gap-3.5 rounded-card border-2 border-ink bg-paper p-4" accessible>
             <View className="h-icon-btn w-icon-btn items-center justify-center rounded-pill bg-sand">
-              <Icon icon={Sparkles} size={20} tone="accent" />
+              <Icon icon={Sparkle} size={20} />
             </View>
-            <View className="flex-1 gap-0.5">
-              <Text variant="bodyMedium">{t('credits.pack', { count: pack.credits })}</Text>
+            <View className="flex-1">
+              <Text variant="button">{t('credits.pack', { count: pack.credits })}</Text>
               <Text variant="caption" tone="muted">
                 {t('credits.packMeta')}
               </Text>
             </View>
-            <Text variant="h3">{pack.localizedPrice}</Text>
+            <Text variant="total" className="text-[16px]">
+              {pack.localizedPrice}
+            </Text>
           </View>
         ) : (
           <Skeleton className="h-20 w-full rounded-card" />
         )}
 
-        <Text variant="caption" tone="muted">
+        <Text variant="caption" tone="muted" className="leading-[18px]">
           {t('credits.note')}
         </Text>
 
-        <View className="gap-2">
+        <View className="gap-1.5">
           <Button
             label={pack ? t('credits.buy', { price: pack.localizedPrice }) : t('me.topUp')}
             onPress={buy}
             disabled={!pack}
             loading={store.isPending}
+            testID="credit-pack-buy"
           />
-          <Button variant="secondary" label={t('credits.notNow')} onPress={close} />
+          <Button variant="text" label={t('credits.notNow')} onPress={close} />
         </View>
       </View>
     </BottomSheet>

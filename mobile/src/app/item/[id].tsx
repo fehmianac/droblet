@@ -15,6 +15,7 @@ import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
+import { Silhouette } from '@/components/ui/Silhouette';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
@@ -24,6 +25,10 @@ import { DeleteConfirmSheet, itemImage, SeasonSheet } from '@/features/wardrobe/
 import { useItemDetail } from '@/features/wardrobe/queries';
 import { currentLanguage } from '@/i18n';
 import { toDisplayUpper } from '@/lib/upper';
+import { placeholderTones, type PlaceholderTone } from '@/theme/tokens';
+
+/** Grounds of the look tiles on board 11, in order. */
+const LOOK_TONES: PlaceholderTone[] = ['taupe', 'dark', 'clay'];
 
 function DetailSkeleton() {
   return (
@@ -147,23 +152,31 @@ export default function ItemDetailScreen() {
 
                 {item.looks.length > 0 ? (
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2.5 px-gutter">
-                    {item.looks.map((look) => (
-                      <Pressable
-                        key={look.id}
-                        onPress={() => router.push({ pathname: '/look/new', params: { id: look.id } })}
-                        accessibilityRole="button"
-                        accessibilityLabel={look.name}
-                        className="w-[104px] gap-1 active:opacity-80"
-                      >
-                        <View>
-                          <PlaceholderImage uri={look.imageUrl} className="h-[132px] w-[104px] rounded-image-lg" />
-                          <ImageTag label={toDisplayUpper(occasionLabels[look.occasion] ?? look.occasion, currentLanguage())} className="absolute bottom-2 left-2" />
-                        </View>
-                        <Text variant="caption" numberOfLines={1}>
-                          {look.name}
-                        </Text>
-                      </Pressable>
-                    ))}
+                    {item.looks.map((look, index) => {
+                      const tone = LOOK_TONES[index % LOOK_TONES.length] ?? 'taupe';
+                      return (
+                        <Pressable
+                          key={look.id}
+                          onPress={() => router.push({ pathname: '/look/new', params: { id: look.id } })}
+                          accessibilityRole="button"
+                          accessibilityLabel={look.name}
+                          className="active:opacity-80"
+                        >
+                          {/* Canvas: 104 × 132 tile, radius 14 — the standing figure on a toned ground until the look has a picture — with the occasion tag. */}
+                          <View
+                            className="h-[132px] w-[104px] items-center justify-center overflow-hidden rounded-image-lg"
+                            style={{ backgroundColor: placeholderTones[tone] }}
+                          >
+                            {look.imageUrl ? (
+                              <PlaceholderImage uri={look.imageUrl} className="h-full w-full" />
+                            ) : (
+                              <Silhouette height={100} tone={tone === 'dark' ? 'cream' : 'ink'} />
+                            )}
+                            <ImageTag label={toDisplayUpper(occasionLabels[look.occasion] ?? look.occasion, currentLanguage())} className="absolute bottom-2 left-2" />
+                          </View>
+                        </Pressable>
+                      );
+                    })}
                   </ScrollView>
                 ) : (
                   <Text variant="body" tone="muted" className="px-gutter">
@@ -185,6 +198,7 @@ export default function ItemDetailScreen() {
                 <View className="flex-row items-center gap-3">
                   <Button
                     className="flex-1"
+                    size="lg"
                     icon={Sparkles}
                     label={t('itemDetail.styleWith')}
                     onPress={() => router.navigate({ pathname: '/stylist', params: { itemId: item.id } })}

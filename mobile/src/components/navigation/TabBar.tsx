@@ -11,6 +11,8 @@ import { Text } from '@/components/ui/Text';
 import { sizes } from '@/theme/tokens';
 import { useThemeColors } from '@/theme/useThemeColors';
 
+import { useTabBarHidden } from './tabBarVisibility';
+
 export type TabName = 'index' | 'wardrobe' | 'stylist' | 'discover' | 'profile';
 
 type LabelKey = `tabs.${'today' | 'wardrobe' | 'stylist' | 'discover' | 'profile'}`;
@@ -54,7 +56,9 @@ type BarProps = {
 /**
  * The bar itself (canvas `.tabbar`): 86 high including the bottom safe area, paper, top hairline, content
  * starts 8 below the edge. Four 64-wide tabs (22 icon, 10.5 label; active = ink, semibold) around the
- * Stilist button — a 56 ink circle raised 18 above the bar with a soft shadow and no label.
+ * Stilist button — a 56 ink circle raised 18 above the bar with a soft shadow. The canvas draws NO text
+ * under that button (`<a class="fab" aria-label="Stilist">` holds only the glyph); a label there would sit
+ * under the raised circle and be half covered, so the name is carried by the accessibility label only.
  */
 export function TabBarView({ active, onPress }: BarProps) {
   const { t } = useTranslation();
@@ -73,6 +77,7 @@ export function TabBarView({ active, onPress }: BarProps) {
           return (
             <Pressable
               key={name}
+              testID="tab.stylist"
               onPress={() => onPress(name)}
               accessibilityRole="tab"
               accessibilityLabel={label}
@@ -90,6 +95,7 @@ export function TabBarView({ active, onPress }: BarProps) {
         return (
           <Pressable
             key={name}
+            testID={`tab.${name === 'index' ? 'today' : name}`}
             onPress={() => onPress(name)}
             accessibilityRole="tab"
             accessibilityLabel={label}
@@ -110,8 +116,11 @@ export function TabBarView({ active, onPress }: BarProps) {
 
 /** Tab bar of the five tab roots (rendered by the Tabs navigator). */
 export function TabBar({ state, emitter, navigateToTab }: BottomTabBarProps) {
+  // A tab root may own the bottom edge for a while (10 Gardırop multi-select: the selection bar replaces the menu).
+  const hidden = useTabBarHidden();
   const current = state.routes[state.index]?.name;
   const active = current && isTab(current) ? current : null;
+  if (hidden) return null;
   return (
     <TabBarView
       active={active}

@@ -1,17 +1,20 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { Search } from 'lucide-react-native';
+import { ChevronRight, Search } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 
-import type { CreatorCard } from '@/api/contracts/store';
+import type { CreatorCard, WeeklyEditSummary } from '@/api/contracts/store';
 import { CartButton, SectionState } from '@/components/blocks/SectionState';
-import { Button } from '@/components/ui/Button';
+import { Logo } from '@/components/brand/Logo';
 import { Chip, ChipRow } from '@/components/ui/Chip';
+import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
 import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenState } from '@/components/ui/ScreenState';
+import { Silhouette } from '@/components/ui/Silhouette';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { CreatorCardView } from '@/features/store/CreatorCardView';
@@ -19,15 +22,16 @@ import { useCreators, useCurrentEdit, useSeriesOutfits } from '@/features/store/
 import { currentLanguage } from '@/i18n';
 import { formatIsoDateRange } from '@/lib/format';
 import { toDisplayUpper } from '@/lib/upper';
+import { inkFade, placeholderTones } from '@/theme/tokens';
 import { useThemeColors } from '@/theme/useThemeColors';
 
 type DiscoverSection = 'editor' | 'influencer' | 'series';
 
 function EditorSkeleton() {
   return (
-    <View className="gap-5 px-gutter pt-3">
-      <Skeleton className="aspect-[4/5] w-full rounded-card" />
-      <Skeleton className="h-6 w-48 rounded-field" />
+    <View className="gap-4 pt-1.5">
+      <Skeleton className="mx-gutter h-[290px] rounded-card" />
+      <Skeleton className="mx-gutter h-6 w-48 rounded-field" />
       <CreatorStripSkeleton />
     </View>
   );
@@ -35,10 +39,10 @@ function EditorSkeleton() {
 
 function CreatorStripSkeleton() {
   return (
-    <View className="flex-row gap-3 px-gutter">
+    <View className="flex-row gap-2.5 px-gutter">
       {[0, 1, 2].map((i) => (
-        <View key={i} className="w-36 gap-2">
-          <Skeleton className="aspect-[3/4] w-full rounded-image-lg" />
+        <View key={i} className="w-[132px] gap-1.5">
+          <Skeleton className="h-[170px] w-full rounded-image-lg" />
           <Skeleton className="h-4 w-24 rounded-field" />
         </View>
       ))}
@@ -64,9 +68,47 @@ function CreatorGrid({ creators }: { creators: CreatorCard[] }) {
 }
 
 /**
- * 20 Keşfet — chips (Editör · Mağaza · Influencer · Arkadaşlar · Dizi outfitleri), the weekly edit
- * cover, the creator looks strip (with the "Sponsorlu" label) and the cart icon with its badge.
- * Mağaza and Arkadaşlar open their own screens (21, 25).
+ * The weekly edit cover of 20: a 290-high photograph (radius 20) with the eyebrow, the serif title and
+ * the meta line set on an ink fade at its foot. Opens the edit (20b).
+ */
+function EditCover({ edit }: { edit: WeeklyEditSummary }) {
+  const { t } = useTranslation();
+  const eyebrow = t('explore.editEyebrow', {
+    range: toDisplayUpper(formatIsoDateRange(edit.startDate, edit.endDate), currentLanguage()),
+  });
+  const meta = t('explore.editMeta', { count: edit.lookCount });
+  return (
+    <Pressable
+      onPress={() => router.push({ pathname: '/edit/[id]', params: { id: edit.id } })}
+      accessibilityRole="button"
+      accessibilityLabel={[eyebrow, edit.title, meta].join(', ')}
+      className="mx-gutter h-[290px] items-center justify-center overflow-hidden rounded-card active:opacity-90"
+      style={{ backgroundColor: placeholderTones.dark }}
+    >
+      {edit.imageUrl ? (
+        <PlaceholderImage uri={edit.imageUrl} className="absolute inset-0" />
+      ) : (
+        <Silhouette height={180} tone="cream" />
+      )}
+      <LinearGradient colors={[inkFade.clear, inkFade.deep]} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: 18 }}>
+        <Text variant="eyebrow" tone="cream">
+          {eyebrow}
+        </Text>
+        <Text variant="h2" tone="cream" className="mt-1.5 text-[28px] leading-[30px]" numberOfLines={2}>
+          {edit.title}
+        </Text>
+        <Text variant="chip" tone="cream" className="mt-1.5">
+          {meta}
+        </Text>
+      </LinearGradient>
+    </Pressable>
+  );
+}
+
+/**
+ * 20 Keşfet — the logo header with search and the cart (count dot), the chips (Editör · Mağaza ·
+ * Influencer · Arkadaşlar · Dizi outfitleri), the weekly edit cover and the creator looks strip (with
+ * the "SPONSORLU" tag). Mağaza and Arkadaşlar open their own screens (21, 25); "Tümü" opens the feed (25).
  */
 export default function DiscoverTab() {
   const { t } = useTranslation();
@@ -83,17 +125,14 @@ export default function DiscoverTab() {
 
   return (
     <Screen>
-      <View className="flex-row items-center justify-between px-gutter pb-2 pt-2">
-        <View className="gap-1">
-          <Text variant="eyebrow">{t('brand.wordmark')}</Text>
-          <Text variant="display">{t('discover.title')}</Text>
-        </View>
+      <View className="h-12 flex-row items-center justify-between px-gutter">
+        <Logo />
         <View className="flex-row gap-2">
           <IconButton icon={Search} onPress={() => router.push('/shop')} accessibilityLabel={t('explore.search')} />
           <CartButton />
         </View>
       </View>
-      <View>
+      <View className="pt-0.5">
         <ChipRow>
           <Chip label={t('discover.chipEditor')} selected={section === 'editor'} onPress={() => setSection('editor')} />
           <Chip label={t('discover.chipShop')} onPress={() => router.push('/shop')} />
@@ -113,33 +152,24 @@ export default function DiscoverTab() {
           {(data) =>
             data ? (
               <ScrollView
-                contentContainerClassName="gap-6 pb-8 pt-3"
+                contentContainerClassName="gap-4 pb-8 pt-2.5"
                 refreshControl={<RefreshControl refreshing={edit.isRefetching} onRefresh={refresh} tintColor={colors.muted} />}
               >
-                <Pressable
-                  onPress={() => router.push({ pathname: '/edit/[id]', params: { id: data.id } })}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${t('screens.edit')}, ${data.title}`}
-                  className="mx-gutter overflow-hidden rounded-card border border-line bg-paper active:opacity-90"
-                >
-                  <PlaceholderImage uri={data.imageUrl} className="aspect-[4/5] w-full" />
-                  <View className="gap-1 p-4">
-                    <Text variant="eyebrow">
-                      {t('explore.editEyebrow', {
-                        range: toDisplayUpper(formatIsoDateRange(data.startDate, data.endDate), currentLanguage()),
-                      })}
-                    </Text>
-                    <Text variant="h2">{data.title}</Text>
-                    <Text variant="body" tone="muted">
-                      {t('explore.editMeta', { count: data.lookCount })}
-                    </Text>
-                  </View>
-                </Pressable>
+                <EditCover edit={data} />
 
-                <View className="gap-3">
+                <View className="gap-4">
                   <View className="flex-row items-center justify-between px-gutter">
                     <Text variant="h3">{t('explore.creatorLooks')}</Text>
-                    <Button variant="text" label={t('common.seeAll')} onPress={() => setSection('influencer')} />
+                    <Pressable
+                      onPress={() => router.push('/friends/feed')}
+                      accessibilityRole="link"
+                      accessibilityLabel={t('explore.creatorLooksAll')}
+                      hitSlop={8}
+                      className="min-h-icon-btn flex-row items-center gap-0.5 active:opacity-70"
+                    >
+                      <Text variant="label">{t('common.seeAll')}</Text>
+                      <Icon icon={ChevronRight} size={14} />
+                    </Pressable>
                   </View>
                   <SectionState
                     query={creators}
@@ -148,9 +178,9 @@ export default function DiscoverTab() {
                     emptyText={t('explore.creatorsEmpty')}
                   >
                     {(list) => (
-                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-3 px-gutter">
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2.5 px-gutter">
                         {list.map((c) => (
-                          <CreatorCardView key={c.id} creator={c} className="w-36" />
+                          <CreatorCardView key={c.id} creator={c} />
                         ))}
                       </ScrollView>
                     )}

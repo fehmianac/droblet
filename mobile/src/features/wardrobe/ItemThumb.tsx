@@ -1,8 +1,10 @@
 import { Image } from 'expo-image';
+import { Check } from 'lucide-react-native';
 import { View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import type { ItemCategory, ItemColor } from '@/api/contracts/wardrobe';
+import { Icon } from '@/components/ui/Icon';
 import { garmentColors, placeholderTones, type PlaceholderTone } from '@/theme/tokens';
 import { useThemeColors } from '@/theme/useThemeColors';
 
@@ -35,6 +37,16 @@ const TONE_BY_COLOR: Record<ItemColor, PlaceholderTone | 'sand'> = {
   other: 'oat',
 };
 
+/** The category's line glyph on its own (camera frame of board 12, placeholders). Decorative. */
+export function GarmentGlyph({ category, size = 32, tone = 'ink', opacity = 0.5 }: { category: ItemCategory; size?: number; tone?: 'ink' | 'cream'; opacity?: number }) {
+  const colors = useThemeColors();
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" opacity={opacity} accessible={false}>
+      <Path d={GLYPHS[category]} fill="none" stroke={colors[tone]} strokeWidth={1.1} strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
 type Props = {
   category: ItemCategory;
   color?: ItemColor;
@@ -65,21 +77,27 @@ export function ItemThumb({ category, color = 'other', uri, className, glyphSize
       {uri ? (
         <Image source={{ uri }} contentFit="cover" className="h-full w-full" transition={150} />
       ) : (
-        <Svg width={glyphSize} height={glyphSize} viewBox="0 0 24 24" opacity={0.5} accessible={false}>
-          <Path d={GLYPHS[category]} fill="none" stroke={tone === 'dark' ? colors.cream : colors.ink} strokeWidth={1.1} strokeLinejoin="round" />
-        </Svg>
+        <GarmentGlyph category={category} size={glyphSize} tone={tone === 'dark' ? 'cream' : 'ink'} />
       )}
     </View>
   );
 }
 
-/** Round colour dot for the filter sheet and colour pickers. Always paired with a text label / a11y label. */
-export function ColorSwatch({ color, size = 28 }: { color: ItemColor; size?: number }) {
+/** Colours light enough that the check on a chosen swatch has to be ink. */
+const LIGHT_SWATCHES: readonly ItemColor[] = ['white', 'cream', 'beige', 'pink', 'other'];
+
+/**
+ * Round colour dot for the filter sheet and colour pickers. Always paired with a text label / a11y label.
+ * `selected` (optional) adds an ink ring and a check.
+ */
+export function ColorSwatch({ color, size = 28, selected }: { color: ItemColor; size?: number; selected?: boolean }) {
   return (
     <View
-      className="rounded-pill border border-line"
+      className={`items-center justify-center rounded-pill ${selected ? 'border-2 border-ink' : 'border border-line'}`}
       style={{ width: size, height: size, backgroundColor: garmentColors[color] }}
       accessible={false}
-    />
+    >
+      {selected ? <Icon icon={Check} size={Math.round(size * 0.4)} tone={LIGHT_SWATCHES.includes(color) ? 'ink' : 'cream'} /> : null}
+    </View>
   );
 }

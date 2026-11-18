@@ -19,9 +19,9 @@ type MarkProps = {
   accessibilityLabel?: string;
 };
 
-/** Hook stroke per size, as drawn on `LogoIkon`: 2.2 from 44 wide, 2.6 below, base only (3.4) at icon-small. */
+/** Hook stroke per size, as drawn on `LogoIkon`: 2.2 from 44 wide, 2.6 below, base only (3.4) at 18 and below (29 px icon, inline AI status). */
 export function markStroke(width: number): { path: string; strokeWidth: number } {
-  if (width <= 17) return { path: HANGER_BASE_PATH, strokeWidth: 3.4 };
+  if (width <= 18) return { path: HANGER_BASE_PATH, strokeWidth: 3.4 };
   return { path: HOOK_PATH, strokeWidth: width <= 35 ? 2.6 : 2.2 };
 }
 

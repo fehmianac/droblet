@@ -1,27 +1,27 @@
 import { useIsMutating, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { Plus, Trash2, X } from 'lucide-react-native';
+import { ChevronRight, Plus, Trash2, X } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Modal, Pressable, ScrollView, View } from 'react-native';
 
 import { logout } from '@/api/auth';
 import { CLOSET_VISIBILITIES, type MyPhotos, type NotificationSettings } from '@/api/contracts/account';
 import { useEnqueuePhotoUpload } from '@/api/photos';
-import { Card, DangerButton } from '@/components/blocks/basics';
-import { ConfirmDialog, MenuRow, RadioRow, ToggleRow } from '@/components/blocks/rows';
 import { SectionState } from '@/components/blocks/SectionState';
+import { Badge, ImageTag } from '@/components/ui/Bits';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
-import { Chip, ChipWrap } from '@/components/ui/Chip';
+import { Chip } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
-import { IconButton } from '@/components/ui/IconButton';
 import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { Silhouette } from '@/components/ui/Silhouette';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
+import { photoDeleteLines } from '@/features/account/logic';
 import {
   useDeleteAllPhotos,
   useRemovePhoto,
@@ -29,34 +29,64 @@ import {
   useSetVisibility,
 } from '@/features/account/mutations';
 import { accountKeys, useMyPhotos, useMyProfile, useNotificationSettings, usePalette } from '@/features/account/queries';
+import { ChoiceRow, RowCard } from '@/features/account/rows';
 import type { PreparedPhoto } from '@/features/photos/preparePhoto';
 import { usePhotoPicker } from '@/features/photos/usePhotoPicker';
+import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { currentLanguage, LANGUAGES, SUPPORTED_LANGUAGES, type AppLanguage } from '@/i18n';
 import { setAppLanguage } from '@/i18n/preference';
 import { localToUtcTime, REMINDER_TIMES, utcToLocalTime } from '@/notify/time';
 import { mutationKeys } from '@/sync/queryKeys';
+import { placeholderTones } from '@/theme/tokens';
 
 const MAX_BODY_PHOTOS = 3;
 
-function PhotoThumb({ uri, tag, removeLabel, onRemove }: { uri: string | null; tag: string; removeLabel?: string; onRemove?: () => void }) {
+type ThumbProps = {
+  uri: string | null;
+  kind: 'body' | 'face';
+  tag: string;
+  removeLabel?: string;
+  onRemove?: () => void;
+};
+
+/** 52 × 66 thumbnail as on 29: the kind tag bottom-left, a 22 pt paper "remove" button top-right (44 pt target). */
+function PhotoThumb({ uri, kind, tag, removeLabel, onRemove }: ThumbProps) {
   return (
-    <View>
-      <PlaceholderImage uri={uri} className="h-24 w-[76px] rounded-image" accessibilityLabel={tag} />
-      <View className="absolute bottom-1.5 left-1.5 rounded-pill bg-paper/90 px-2 py-0.5" pointerEvents="none">
-        <Text variant="eyebrow" tone="ink">
-          {tag}
-        </Text>
-      </View>
-      {onRemove && removeLabel ? (
-        <View className="absolute -right-3 -top-3">
-          <IconButton icon={X} variant="inverse" onPress={onRemove} accessibilityLabel={removeLabel} />
+    <View className="h-[66px] w-[52px]">
+      {uri ? (
+        <PlaceholderImage uri={uri} className="h-full w-full rounded-thumb" accessibilityLabel={tag} />
+      ) : (
+        <View
+          className={`h-full w-full items-center justify-center overflow-hidden rounded-thumb ${kind === 'face' ? 'bg-sand' : ''}`}
+          style={kind === 'body' ? { backgroundColor: placeholderTones.stage } : undefined}
+          accessible
+          accessibilityRole="image"
+          accessibilityLabel={tag}
+        >
+          {kind === 'body' ? (
+            <Silhouette height={44} />
+          ) : (
+            <View className="h-[34px] w-[26px] rounded-pill border-[1.5px] border-dashed border-muted" />
+          )}
         </View>
+      )}
+      <ImageTag label={tag} className="absolute bottom-1 left-1 px-1 py-0.5" />
+      {onRemove && removeLabel ? (
+        <Pressable
+          onPress={onRemove}
+          accessibilityRole="button"
+          accessibilityLabel={removeLabel}
+          hitSlop={11}
+          className="absolute right-0.5 top-0.5 h-[22px] w-[22px] items-center justify-center rounded-pill bg-paper active:opacity-70"
+        >
+          <Icon icon={X} size={12} />
+        </Pressable>
       ) : null}
     </View>
   );
 }
 
-/** FOTOĞRAFLARIM — the user's own photos: remove one, add one, or delete everything (29b). */
+/** FOTOĞRAFLARIM — the user's own photos: remove one, add / replace one, or delete everything (29b). */
 function PhotosSection({ onDeleteAll }: { onDeleteAll: () => void }) {
   const { t } = useTranslation();
   const client = useQueryClient();
@@ -91,49 +121,61 @@ function PhotosSection({ onDeleteAll }: { onDeleteAll: () => void }) {
   const bodyCount = (data: MyPhotos) => data.body.length + queued.filter((q) => q.kind === 'body').length;
 
   return (
-    <Card className="gap-3 p-4">
+    <View className="gap-2.5 rounded-card border border-line bg-paper px-3.5 py-3">
       <SectionState
         query={photos}
         inset={false}
         errorText={t('settings.photosError')}
         skeleton={
-          <View className="flex-row gap-4">
-            <Skeleton className="h-24 w-[76px] rounded-image" />
-            <Skeleton className="h-24 w-[76px] rounded-image" />
+          <View className="flex-row gap-2">
+            <Skeleton className="h-[66px] w-[52px] rounded-thumb" />
+            <Skeleton className="h-[66px] w-[52px] rounded-thumb" />
           </View>
         }
       >
         {(data) => (
           <>
-            <View className="flex-row flex-wrap gap-4 pt-2">
-              {data.body.map((p) => (
-                <PhotoThumb
-                  key={p.photoId}
-                  uri={p.url}
-                  tag={t('settings.bodyTag')}
-                  removeLabel={t('settings.removeBody')}
-                  onRemove={() => removePhoto('body', p.photoId)}
-                />
-              ))}
-              {data.face && !queued.some((q) => q.kind === 'face') ? (
-                <PhotoThumb
-                  uri={data.face.url}
-                  tag={t('settings.faceTag')}
-                  removeLabel={t('settings.removeFace')}
-                  onRemove={() => data.face && removePhoto('face', data.face.photoId)}
-                />
-              ) : null}
-              {queued.map((q) => (
-                <PhotoThumb key={q.photo.uploadId} uri={q.photo.localUri} tag={t(q.kind === 'body' ? 'settings.bodyTag' : 'settings.faceTag')} />
-              ))}
-              <Pressable
-                onPress={() => setAddOpen(true)}
-                accessibilityRole="button"
-                accessibilityLabel={t('settings.addPhoto')}
-                className="h-24 w-[76px] items-center justify-center rounded-image border border-dashed border-line active:opacity-70"
-              >
-                <Icon icon={Plus} tone="muted" />
-              </Pressable>
+            <View className="flex-row items-center gap-2">
+              <View className="flex-shrink flex-row flex-wrap gap-2">
+                {data.body.map((p) => (
+                  <PhotoThumb
+                    key={p.photoId}
+                    kind="body"
+                    uri={p.url}
+                    tag={t('settings.bodyTag')}
+                    removeLabel={t('settings.removeBody')}
+                    onRemove={() => removePhoto('body', p.photoId)}
+                  />
+                ))}
+                {data.face && !queued.some((q) => q.kind === 'face') ? (
+                  <PhotoThumb
+                    kind="face"
+                    uri={data.face.url}
+                    tag={t('settings.faceTag')}
+                    removeLabel={t('settings.removeFace')}
+                    onRemove={() => data.face && removePhoto('face', data.face.photoId)}
+                  />
+                ) : null}
+                {queued.map((q) => (
+                  <PhotoThumb
+                    key={q.photo.uploadId}
+                    kind={q.kind}
+                    uri={q.photo.localUri}
+                    tag={t(q.kind === 'body' ? 'settings.bodyTag' : 'settings.faceTag')}
+                  />
+                ))}
+                <Pressable
+                  onPress={() => setAddOpen(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('settings.addPhoto')}
+                  className="h-[66px] w-[52px] items-center justify-center rounded-thumb border-[1.5px] border-dashed border-muted active:opacity-70"
+                >
+                  <Icon icon={Plus} size={18} />
+                </Pressable>
+              </View>
+              <Text variant="caption" tone="muted" className="min-w-[96px] flex-1 text-[11.5px] leading-4">
+                {t('settings.photosNote')}
+              </Text>
             </View>
             {queued.length > 0 ? (
               <Text variant="caption" tone="accent" accessibilityLiveRegion="polite">
@@ -157,7 +199,8 @@ function PhotosSection({ onDeleteAll }: { onDeleteAll: () => void }) {
                 />
                 <Button
                   variant="secondary"
-                  label={t('settings.addFace')}
+                  size="lg"
+                  label={t(data.face ? 'settings.replaceFace' : 'settings.addFace')}
                   onPress={() => {
                     setAddOpen(false);
                     facePicker.chooseFromLibrary(1);
@@ -168,81 +211,89 @@ function PhotosSection({ onDeleteAll }: { onDeleteAll: () => void }) {
           </>
         )}
       </SectionState>
-      <Text variant="caption" tone="muted">
-        {t('settings.photosNote')}
-      </Text>
       <Pressable
         onPress={onDeleteAll}
         accessibilityRole="button"
         accessibilityLabel={t('settings.deletePhotos')}
-        className="min-h-icon-btn flex-row items-center gap-2 border-t border-line pt-3 active:opacity-70"
+        className="min-h-icon-btn flex-row items-center gap-2 active:opacity-70"
       >
-        <Icon icon={Trash2} size={18} tone="danger" />
+        <Icon icon={Trash2} size={17} tone="danger" />
         <Text variant="bodyMedium" tone="danger" className="flex-1">
           {t('settings.deletePhotos')}
         </Text>
       </Pressable>
       {bodyPicker.sheet}
       {facePicker.sheet}
-    </Card>
+    </View>
   );
 }
 
-/** 29b — what exactly is deleted, that it cannot be undone, and what stays. */
+/**
+ * 29b Silme onayı · fotoğraflar — centred alert as drawn: danger mark, what exactly is deleted, that it
+ * cannot be undone, what stays; "Kalıcı olarak sil" over "Vazgeç". The scrim cancels.
+ */
 function DeletePhotosDialog({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { t } = useTranslation();
+  const reduceMotion = useReduceMotion();
   const photos = useMyPhotos();
   const palette = usePalette();
   const deleteAll = useDeleteAllPhotos();
 
-  const lines: string[] = [];
-  if (photos.data && photos.data.body.length > 0) lines.push(t('photoDelete.bodyPhotos', { count: photos.data.body.length }));
-  if (photos.data?.face) lines.push(t('photoDelete.facePhoto'));
-  const generated = photos.data?.generatedImageCount ?? null;
-  lines.push(generated !== null && generated > 0 ? t('photoDelete.generated', { count: generated }) : t('photoDelete.generatedAll'));
-  if (palette.data) lines.push(t('photoDelete.palette'));
+  const lines = photoDeleteLines(photos.data, palette.data != null).map((line) =>
+    'count' in line ? t(`photoDelete.${line.key}`, { count: line.count }) : t(`photoDelete.${line.key}`),
+  );
 
   return (
-    <ConfirmDialog
-      visible={visible}
-      onCancel={onClose}
-      title={t('photoDelete.title')}
-      actions={
-        <>
-          <DangerButton
-            label={t('photoDelete.confirm')}
-            onPress={() => {
-              deleteAll();
-              onClose();
-            }}
-          />
-          <Button variant="secondary" label={t('common.cancel')} onPress={onClose} />
-        </>
-      }
-    >
-      <View className="gap-2">
-        <Text variant="body">{t('photoDelete.listTitle')}</Text>
-        {lines.map((line) => (
-          <View key={line} className="flex-row gap-2">
-            <Text variant="caption" tone="muted">
-              •
+    <Modal visible={visible} transparent animationType={reduceMotion ? 'none' : 'fade'} onRequestClose={onClose} statusBarTranslucent>
+      <View className="flex-1 items-center justify-center px-6">
+        <Pressable className="absolute inset-0 bg-scrim" onPress={onClose} accessibilityRole="button" accessibilityLabel={t('common.cancel')} />
+        <View accessibilityViewIsModal accessibilityRole="alert" className="w-full gap-3.5 rounded-3xl bg-paper p-6 shadow-lg" testID="delete-photos-dialog">
+          <View className="h-12 w-12 items-center justify-center rounded-pill bg-danger/10" accessible={false}>
+            <Icon icon={Trash2} size={22} tone="danger" />
+          </View>
+          <Text variant="h2" accessibilityRole="header">
+            {t('photoDelete.title')}
+          </Text>
+          <View className="gap-1.5">
+            <Text variant="body" tone="muted">
+              {t('photoDelete.listTitle')}
             </Text>
-            <Text variant="caption" tone="muted" className="flex-1">
-              {line}
+            <View>
+              {lines.map((line) => (
+                <Text key={line} variant="caption" className="leading-5">
+                  {t('photoDelete.bullet', { line })}
+                </Text>
+              ))}
+            </View>
+            <Text variant="segment" tone="danger">
+              {t('photoDelete.irreversible')}
+            </Text>
+            <Text variant="caption" tone="muted">
+              {t('photoDelete.keeps')}
             </Text>
           </View>
-        ))}
-        <Text variant="bodyMedium" tone="danger">
-          {t('photoDelete.irreversible')}
-        </Text>
-        <Text variant="caption" tone="muted">
-          {t('photoDelete.keeps')}
-        </Text>
+          <View className="mt-1 gap-2">
+            <Button
+              variant="danger"
+              label={t('photoDelete.confirm')}
+              onPress={() => {
+                deleteAll();
+                onClose();
+              }}
+            />
+            <Button variant="secondary" size="lg" label={t('common.cancel')} onPress={onClose} className="border-line" />
+          </View>
+        </View>
       </View>
-    </ConfirmDialog>
+    </Modal>
   );
 }
 
+/**
+ * BİLDİRİMLER — one check box per notification type, as drawn. The reminder time (not on the board,
+ * needed by the product: the push is sent at the user's local time) sits under its check box while it is on.
+ * Saved through the versioned `PUT v1/tenant/user/me/notifications`; the server sends the pushes.
+ */
 function NotificationsSection() {
   const { t } = useTranslation();
   const settings = useNotificationSettings();
@@ -250,52 +301,85 @@ function NotificationsSection() {
   const [timeOpen, setTimeOpen] = useState(false);
 
   return (
-    <Card>
+    <RowCard>
       <SectionState
         query={settings}
         inset={false}
         errorText={t('settings.notificationsError')}
-        skeleton={<Skeleton className="m-4 h-28 rounded-image" />}
+        skeleton={<Skeleton className="my-3.5 h-28 rounded-image" />}
       >
         {(data) => {
           const change = (patch: Partial<NotificationSettings>) => save({ ...data, ...patch });
           const localTime = utcToLocalTime(data.morningTimeUtc);
           return (
             <>
-              <ToggleRow first label={t('settings.morning')} value={data.morningReminder} onChange={(v) => change({ morningReminder: v })} />
+              <ChoiceRow
+                first
+                kind="checkbox"
+                label={t('settings.morning')}
+                checked={data.morningReminder}
+                onPress={() => change({ morningReminder: !data.morningReminder })}
+              />
               {data.morningReminder ? (
-                <MenuRow label={t('settings.morningTime')} value={localTime} onPress={() => setTimeOpen(true)} />
+                <Pressable
+                  onPress={() => setTimeOpen(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('settings.morningTimeA11y', { time: localTime })}
+                  className="min-h-icon-btn flex-row items-center gap-3 border-t border-line py-1.5 active:opacity-70"
+                >
+                  <Text variant="body" tone="muted" className="flex-1 text-[14.5px]">
+                    {t('settings.morningTime')}
+                  </Text>
+                  <Badge label={localTime} />
+                  <Icon icon={ChevronRight} size={16} />
+                </Pressable>
               ) : null}
-              <ToggleRow label={t('settings.weeklyEdit')} value={data.weeklyEdit} onChange={(v) => change({ weeklyEdit: v })} />
-              <ToggleRow label={t('settings.friendRatings')} value={data.friendRatings} onChange={(v) => change({ friendRatings: v })} />
+              <ChoiceRow
+                kind="checkbox"
+                label={t('settings.weeklyEdit')}
+                checked={data.weeklyEdit}
+                onPress={() => change({ weeklyEdit: !data.weeklyEdit })}
+              />
+              <ChoiceRow
+                kind="checkbox"
+                label={t('settings.friendRatings')}
+                checked={data.friendRatings}
+                onPress={() => change({ friendRatings: !data.friendRatings })}
+              />
               <BottomSheet visible={timeOpen} onClose={() => setTimeOpen(false)} title={t('settings.timeTitle')}>
-                <ChipWrap>
-                  {REMINDER_TIMES.map((time) => (
-                    <Chip
-                      key={time}
-                      label={time}
-                      selected={time === localTime}
-                      onPress={() => {
-                        // Shown in local time, stored as UTC HH:mm.
-                        change({ morningTimeUtc: localToUtcTime(time) });
-                        setTimeOpen(false);
-                      }}
-                    />
-                  ))}
-                </ChipWrap>
+                <View className="gap-4">
+                  <Text variant="body" tone="muted">
+                    {t('settings.timeBody')}
+                  </Text>
+                  <View className="flex-row flex-wrap gap-2">
+                    {REMINDER_TIMES.map((time) => (
+                      <Chip
+                        key={time}
+                        label={time}
+                        selected={time === localTime}
+                        onPress={() => {
+                          // Shown in local time, stored as UTC HH:mm.
+                          change({ morningTimeUtc: localToUtcTime(time) });
+                          setTimeOpen(false);
+                        }}
+                      />
+                    ))}
+                  </View>
+                </View>
               </BottomSheet>
             </>
           );
         }}
       </SectionState>
-    </Card>
+    </RowCard>
   );
 }
 
 /**
- * 29 Gizlilik ve ayarlar — closet visibility, photos (add / remove / 29b delete everything),
- * notification toggles + morning time, the TR / EN language switch (applies at once, is remembered
- * on the device and saved to the profile), sign out and the way to 29c account deletion.
+ * 29 Gizlilik ve ayarlar — closet visibility (radios), photos (BOY / YÜZ thumbnails, add / replace /
+ * remove, 29b delete everything), notification types (check boxes) + the morning reminder time, the
+ * Türkçe / English switch (applies at once, is remembered on the device and saved to the profile),
+ * "Çıkış yap" and the way to 29c account deletion. Detail screen: no bottom menu.
  */
 export default function SettingsScreen() {
   const { t } = useTranslation();
@@ -315,20 +399,19 @@ export default function SettingsScreen() {
     <Screen bottom>
       <ScreenHeader title={t('screens.settings')} leading="back" />
       <OfflineBanner />
-      <ScrollView contentContainerClassName="gap-3 px-gutter pb-10">
-        <Text variant="eyebrow" className="pt-2">
-          {t('settings.visibilityEyebrow')}
-        </Text>
-        <Card>
-          <SectionState query={profile} inset={false} skeleton={<Skeleton className="m-4 h-28 rounded-image" />}>
+      <ScrollView contentContainerClassName="gap-2.5 px-gutter pb-10 pt-0.5">
+        <Text variant="eyebrow">{t('settings.visibilityEyebrow')}</Text>
+        <RowCard>
+          <SectionState query={profile} inset={false} skeleton={<Skeleton className="my-3.5 h-28 rounded-image" />}>
             {(data) => (
               <View accessibilityRole="radiogroup" accessibilityLabel={t('settings.visibilityLabel')}>
                 {CLOSET_VISIBILITIES.map((v, index) => (
-                  <RadioRow
+                  <ChoiceRow
                     key={v}
+                    kind="radio"
                     first={index === 0}
                     label={t(`settings.visibility.${v}`)}
-                    selected={data.closetVisibility === v}
+                    checked={data.closetVisibility === v}
                     onPress={() => {
                       if (data.closetVisibility !== v) setVisibility(v, data.baseVersion);
                     }}
@@ -337,44 +420,61 @@ export default function SettingsScreen() {
               </View>
             )}
           </SectionState>
-        </Card>
+        </RowCard>
 
-        <Text variant="eyebrow" className="pt-4">
-          {t('settings.photosEyebrow')}
-        </Text>
+        <Text variant="eyebrow">{t('settings.photosEyebrow')}</Text>
         <PhotosSection onDeleteAll={() => setDeletePhotos(true)} />
 
-        <Text variant="eyebrow" className="pt-4">
-          {t('settings.notificationsEyebrow')}
-        </Text>
+        <Text variant="eyebrow">{t('settings.notificationsEyebrow')}</Text>
         <NotificationsSection />
 
-        <View className="flex-row flex-wrap items-center justify-between gap-3 pt-4">
+        <View className="flex-row flex-wrap items-center justify-between gap-3">
           <Text variant="eyebrow">{t('settings.languageEyebrow')}</Text>
-          <View className="flex-row flex-wrap gap-2" accessibilityRole="radiogroup" accessibilityLabel={t('settings.languageLabel')}>
-            {SUPPORTED_LANGUAGES.map((l) => (
-              <Chip key={l} label={LANGUAGES[l].name} selected={language === l} onPress={() => switchLanguage(l)} />
-            ))}
+          <View
+            className="flex-row gap-[3px] rounded-pill bg-sand p-[3px]"
+            accessibilityRole="radiogroup"
+            accessibilityLabel={t('settings.languageLabel')}
+          >
+            {SUPPORTED_LANGUAGES.map((l) => {
+              const selected = language === l;
+              return (
+                <Pressable
+                  key={l}
+                  onPress={() => switchLanguage(l)}
+                  accessibilityRole="radio"
+                  accessibilityLabel={LANGUAGES[l].name}
+                  accessibilityState={{ checked: selected }}
+                  hitSlop={{ top: 4, bottom: 4 }}
+                  className={`h-chip items-center justify-center rounded-pill px-[15px] ${selected ? 'bg-paper shadow-sm' : ''}`}
+                >
+                  <Text variant="chip">{LANGUAGES[l].name}</Text>
+                </Pressable>
+              );
+            })}
           </View>
         </View>
 
-        <View className="flex-row flex-wrap items-center justify-between gap-2 pt-4">
-          <Button
-            variant="secondary"
-            label={t('settings.logout')}
-            loading={signingOut}
+        <View className="flex-row flex-wrap items-center justify-between gap-2">
+          <Pressable
             onPress={() => {
+              if (signingOut) return;
               setSigningOut(true);
               void logout().finally(() => setSigningOut(false));
             }}
-          />
+            accessibilityRole="button"
+            accessibilityLabel={t('settings.logout')}
+            accessibilityState={{ busy: signingOut }}
+            className={`min-h-icon-btn justify-center active:opacity-70 ${signingOut ? 'opacity-40' : ''}`}
+          >
+            <Text variant="body">{t('settings.logout')}</Text>
+          </Pressable>
           <Pressable
             onPress={() => router.push('/delete-account')}
             accessibilityRole="button"
             accessibilityLabel={t('settings.deleteAccount')}
-            className="min-h-btn-secondary justify-center px-2 active:opacity-70"
+            className="min-h-icon-btn justify-center active:opacity-70"
           >
-            <Text variant="button" tone="danger">
+            <Text variant="body" tone="danger">
               {t('settings.deleteAccount')}
             </Text>
           </Pressable>

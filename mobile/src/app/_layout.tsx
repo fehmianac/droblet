@@ -91,6 +91,7 @@ export default function RootLayout() {
         <Stack.Protected guard={onboarded} redirectTo={home}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="plan/week" />
+          <Stack.Screen name="plan/report" />
           <Stack.Screen name="edit/[id]" />
           <Stack.Screen name="calendar" />
           <Stack.Screen name="item/[id]" />
@@ -112,6 +113,7 @@ export default function RootLayout() {
           <Stack.Screen name="friends/find" />
           <Stack.Screen name="u/[handle]" />
           <Stack.Screen name="settings" />
+          <Stack.Screen name="edit-profile" />
           <Stack.Screen name="subscription" />
           <Stack.Screen name="notifications" />
           <Stack.Screen name="delete-account" />

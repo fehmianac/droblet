@@ -76,6 +76,15 @@ export const placeholderTones = {
 } as const;
 export type PlaceholderTone = keyof typeof placeholderTones;
 
+/**
+ * Two surfaces the canvas draws outside the palette: the ground of the camera screen (board 12) and the
+ * warm "check this" badge on an uncertain AI guess (board 13 "Kategoriyi kontrol et"; ink text on it).
+ */
+export const surfaceTones = {
+  camera: '#2A2622',
+  caution: '#F3E3CF',
+} as const;
+
 /** Swatches for wardrobe colour families (filter sheet, colour picker). Keys = `ItemColor` in api/contracts/wardrobe. */
 export const garmentColors = {
   black: '#1C1A17',
@@ -96,6 +105,12 @@ export const garmentColors = {
 export const sheen = {
   clear: 'rgba(251, 249, 245, 0)',
   peak: 'rgba(251, 249, 245, 0.45)',
+} as const;
+
+/** Ink fade under text set on a photograph (20 Keşfet edit cover): ink at 0% → 82%. */
+export const inkFade = {
+  clear: 'rgba(28, 26, 23, 0)',
+  deep: 'rgba(28, 26, 23, 0.82)',
 } as const;
 
 /** Motion constants shared by the splash and the AI loading language (README §11). */

@@ -3,13 +3,16 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, View } from 'react-native';
 
 import type { CreatorCard } from '@/api/contracts/store';
-import { Avatar, SponsoredTag } from '@/components/blocks/basics';
+import { ImageTag } from '@/components/ui/Bits';
 import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
+import { Silhouette } from '@/components/ui/Silhouette';
 import { Text } from '@/components/ui/Text';
 
 /**
- * A creator's featured look (20 strip, Influencer chip). A sponsored showcase carries the
- * "SPONSORLU" label and opens the store; a creator opens their profile (26).
+ * A creator's featured look (20 strip, Influencer chip) as drawn: 170-high image (radius 14) with the
+ * standing figure while there is no photo, a 20 avatar dot + name (12 medium) and the look title.
+ * `sponsored` puts the "SPONSORLU" image tag on the top-left corner and opens the store; a creator
+ * opens their profile (26). Sponsorship starts later — the flag comes from the content API.
  */
 export function CreatorCardView({ creator, className }: { creator: CreatorCard; className?: string }) {
   const { t } = useTranslation();
@@ -24,19 +27,15 @@ export function CreatorCardView({ creator, className }: { creator: CreatorCard; 
       accessibilityLabel={[creator.sponsored ? t('explore.sponsoredA11y') : null, creator.displayName, creator.lookTitle]
         .filter(Boolean)
         .join(', ')}
-      className={`gap-2 active:opacity-80 ${className ?? ''}`}
+      className={`gap-1.5 active:opacity-80 ${className ?? 'w-[132px]'}`}
     >
-      <View>
-        <PlaceholderImage uri={creator.imageUrl} className="aspect-[3/4] w-full rounded-image-lg" />
-        {creator.sponsored ? (
-          <View className="absolute left-2 top-2" pointerEvents="none">
-            <SponsoredTag />
-          </View>
-        ) : null}
+      <View className="h-[170px] w-full items-center justify-center overflow-hidden rounded-image-lg bg-sand">
+        {creator.imageUrl ? <PlaceholderImage uri={creator.imageUrl} className="h-full w-full" /> : <Silhouette height={105} />}
+        {creator.sponsored ? <ImageTag label={t('explore.sponsored')} className="absolute left-2 top-2" /> : null}
       </View>
-      <View className="flex-row items-center gap-2">
-        <Avatar name={creator.displayName} size={22} />
-        <Text variant="bodyMedium" numberOfLines={1} className="flex-1">
+      <View className="flex-row items-center gap-1.5">
+        <View className="h-5 w-5 rounded-pill bg-line" accessible={false} />
+        <Text variant="label" numberOfLines={1} className="flex-1">
           {creator.displayName}
         </Text>
       </View>

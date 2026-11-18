@@ -135,16 +135,7 @@ export type BuilderSlot = (typeof BUILDER_SLOTS)[number];
  */
 export type CompleteSuggestions = { products: ProductSummary[] };
 
-// ---------- Try-on of a product (22 "Üzerimde") ----------
-
-/** GET v1/tenant/tryon?kind=product&id= → the owner's existing image for this target, if any. */
-export type TryOnState = {
-  status: 'none' | 'pending' | 'done' | 'failed';
-  /** Private, short-lived signed URL — never persisted. */
-  imageUrl: string | null;
-};
-/** POST v1/tenant/tryon → 202; 422 `body_photo_required`; `credits_exhausted` when the month's credits are used. */
-export type TryOnRequest = { requestId: string; clientMutationId: string; target: { kind: 'product'; id: string } };
+// Try-on of a product (22 "Üzerimde") uses the shared job contract in `./tryon` (target `{ kind: 'product', id }`).
 
 // ---------- Outfit builder (23) ----------
 

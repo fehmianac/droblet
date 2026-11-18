@@ -33,7 +33,7 @@ function mondayOf(isoDate: string): string {
 }
 
 /** Dev/test knobs for states the fixtures cannot reach otherwise. */
-export const todayFixtureOptions: { hasBodyPhoto: boolean } = { hasBodyPhoto: true };
+export const todayFixtureOptions: { hasBodyPhoto: boolean; sponsoredBy: string | null } = { hasBodyPhoto: true, sponsoredBy: null };
 
 const watchlist = new Set<string>();
 const savedEditLooks = new Set<string>();
@@ -58,6 +58,7 @@ onFixtureSeed((db, { empty }) => {
   watchlist.clear();
   savedEditLooks.clear();
   todayFixtureOptions.hasBodyPhoto = true;
+  todayFixtureOptions.sponsoredBy = null;
   if (empty) return;
   const today = toIsoDate(new Date());
   const has = (id: string | null) => (id && db.looks.some((l) => l.id === id) ? id : null);
@@ -304,6 +305,7 @@ export function fixtureWeeklyEdit(id: string, today: Date = new Date()): WeeklyE
     weekEnd: shift(weekStart, 6),
     looks: buildEditLooks(weekStart),
     hasBodyPhoto: todayFixtureOptions.hasBodyPhoto,
+    sponsoredBy: todayFixtureOptions.sponsoredBy,
   });
 }
 

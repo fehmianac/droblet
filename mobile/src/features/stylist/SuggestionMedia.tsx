@@ -5,9 +5,10 @@ import { View } from 'react-native';
 import type { StylistPiece, StylistSuggestion } from '@/api/contracts/stylist';
 import { AiDropPulse, AiFailure, AiProgressLines, AiShimmerImage } from '@/components/ui/ai';
 import { AiImage } from '@/components/ui/AiBadge';
-import { Badge, ImageTag } from '@/components/ui/Bits';
+import { Badge, MissingTag } from '@/components/ui/Bits';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
+import { Silhouette } from '@/components/ui/Silhouette';
 import { Text } from '@/components/ui/Text';
 import { ItemThumb } from '@/features/wardrobe/ItemThumb';
 
@@ -25,121 +26,130 @@ type Props = {
   creditRefunded: boolean;
   onRetry: () => void;
   retrying: boolean;
-  /** 17b. */
-  noCreditsBody: string;
-  onTopUp: () => void;
 };
 
-function PieceTile({ piece, className }: { piece: StylistPiece; className: string }) {
+/**
+ * The pieces shown as tiles: in outfit order, but a missing (store) piece is never cut off — it takes
+ * the last tile, as on the board, so "EKSİK PARÇA" is visible without reading the rows.
+ */
+export function tilePieces(pieces: StylistPiece[], count: number): StylistPiece[] {
+  const missing = pieces.filter((p) => p.source === 'store').slice(0, count);
+  const owned = pieces.filter((p) => p.source !== 'store').slice(0, count - missing.length);
+  return [...owned, ...missing];
+}
+
+/** A piece tile next to the "on you" slot. A missing (store) piece: dashed espresso frame + "EKSİK PARÇA" top-right. */
+function PieceTile({ piece, className, glyphSize = 32 }: { piece: StylistPiece; className: string; glyphSize?: number }) {
   const { t } = useTranslation();
   const missing = piece.source === 'store';
   return (
-    <View className={`overflow-hidden rounded-image ${missing ? 'border border-dashed border-accent' : ''} ${className}`}>
+    <View className={`overflow-hidden rounded-image ${missing ? 'border-[1.5px] border-dashed border-accent' : ''} ${className}`}>
       <ItemThumb
         category={piece.category}
         color={piece.color ?? undefined}
         uri={piece.imageUrl}
         className="h-full w-full"
-        accessibilityLabel={missing ? t('stylistResult.missingPieceA11y', { name: piece.name }) : piece.name}
+        glyphSize={glyphSize}
+        accessibilityLabel={missing ? t('stylistResult.missingPieceA11y', { name: piece.name, detail: '' }).trim() : piece.name}
       />
-      {missing ? <ImageTag label={t('stylistResult.missingTag')} className="absolute bottom-1.5 left-1.5 max-w-[92%] px-1.5" /> : null}
+      {missing ? <MissingTag className="absolute right-1.5 top-1.5" /> : null}
     </View>
   );
 }
 
 /**
- * Top of a suggestion: the "on you" slot + piece tiles. States: idle ("Üzerimde gör", 1 credit),
- * working (17c — shimmer, breathing drop, rotating lines), done (AI image, always labelled),
- * failed (credit refunded + retry) and 17b no credits (piece collage + "Kredi yükle").
+ * Top of a suggestion (17): the "on you" slot (200 × 264 on the board) + three piece tiles. States:
+ * idle ("Üzerimde gör", 1 credit), working (17c — shimmer, breathing drop, rotating lines), done (AI
+ * image: "AI önizleme" top-left, "SENİN ÜZERİNDE" bottom-left), failed (the same slot says the credit
+ * came back and offers "Tekrar dene") and 17b no credits (the piece collage; see `NoCreditsCard`).
  */
-export function SuggestionMedia({
-  suggestion,
-  mode,
-  imageUrl,
-  creditLine,
-  onTryOn,
-  tryOnDisabled,
-  creditRefunded,
-  onRetry,
-  retrying,
-  noCreditsBody,
-  onTopUp,
-}: Props) {
+export function SuggestionMedia({ suggestion, mode, imageUrl, creditLine, onTryOn, tryOnDisabled, creditRefunded, onRetry, retrying }: Props) {
   const { t } = useTranslation();
 
   if (mode === 'noCredits') {
+    const pieces = tilePieces(suggestion.pieces, 4);
     return (
-      <View className="gap-3">
-        <View>
-          <View className="flex-row flex-wrap gap-2">
-            {suggestion.pieces.slice(0, 4).map((p) => (
-              <PieceTile key={`${p.slot}${p.refId}`} piece={p} className="aspect-[4/5] grow basis-[46%]" />
-            ))}
-          </View>
-          <View className="absolute left-3 top-3">
-            <Badge label={t('stylistResult.collageBadge')} />
-          </View>
+      <View className="rounded-[16px] border border-line bg-paper p-2.5">
+        <View className="flex-row flex-wrap gap-2">
+          {pieces.map((p, i) => (
+            <PieceTile key={`${p.slot}${p.refId}`} piece={p} glyphSize={i < 2 ? 56 : 44} className={`grow basis-[46%] ${i < 2 ? 'h-[150px]' : 'h-[110px]'}`} />
+          ))}
         </View>
-        <View className="gap-2.5 rounded-card border border-line bg-paper p-4" accessibilityLiveRegion="polite">
-          <View className="flex-row items-center gap-2">
-            <Icon icon={Sparkles} size={18} tone="accent" />
-            <Text variant="bodyMedium" className="flex-1">
-              {t('stylistResult.noCreditsTitle')}
-            </Text>
-          </View>
-          <Text variant="caption" tone="muted">
-            {noCreditsBody}
+        <View className="absolute left-[18px] top-[18px] h-badge justify-center rounded-pill border border-line bg-paper px-2">
+          <Text variant="badge" numberOfLines={1}>
+            {t('stylistResult.collageBadge')}
           </Text>
-          <Button label={t('stylistResult.topUp')} onPress={onTopUp} />
         </View>
       </View>
     );
   }
 
   const lines = [t('ai.tryOnLines.pieces'), t('ai.tryOnLines.colors'), t('ai.tryOnLines.placing'), t('ai.tryOnLines.finishing')];
-  const tiles = suggestion.pieces.slice(0, 3);
+  const tiles = tilePieces(suggestion.pieces, 3);
 
   return (
-    <View className="gap-3">
-      <View className="flex-row gap-2.5">
-        <View className="aspect-[200/264] flex-[1.7]">
-          {mode === 'done' ? (
-            <View className="h-full w-full">
-              <AiImage kind="onYou" uri={imageUrl} className="h-full w-full" accessibilityLabel={t('tryOn.imageA11yNamed', { name: suggestion.name })} />
-              <View className="absolute bottom-3 left-3" pointerEvents="none">
-                <Badge tone="ink" icon={Sparkles} label={t('ai.previewBadge')} />
+    <View className="flex-row gap-2.5">
+      {/* 200 : 140 of the 350-wide board row. */}
+      <View className="aspect-[200/264] flex-[10]">
+        {mode === 'done' ? (
+          <View className="h-full w-full">
+            <AiImage kind="onYou" uri={imageUrl} className="h-full w-full" accessibilityLabel={t('tryOn.imageA11yNamed', { name: suggestion.name })} />
+            {imageUrl ? null : (
+              <View className="absolute inset-0 items-center justify-center" pointerEvents="none">
+                <Silhouette height={168} />
               </View>
+            )}
+            <View className="absolute left-2.5 top-2.5" pointerEvents="none">
+              <Badge tone="ink" icon={Sparkles} label={t('ai.previewBadge')} />
             </View>
-          ) : mode === 'working' ? (
-            <AiShimmerImage className="h-full w-full gap-3 rounded-image-lg p-4">
-              <AiDropPulse height={31} hookTone="sand" />
-              <View className="w-full">
-                <AiProgressLines lines={lines} size="compact" align="center" />
-              </View>
-              <Text variant="caption" tone="muted" className="text-center">
-                {creditLine}
-              </Text>
-            </AiShimmerImage>
-          ) : (
-            <View className="h-full w-full items-center justify-center gap-2.5 rounded-image-lg bg-sand p-3">
-              {mode === 'idle' ? (
-                <>
-                  <Button variant="secondary" icon={Sparkles} label={t('stylistResult.tryOn')} onPress={onTryOn} disabled={tryOnDisabled} />
-                  <Text variant="caption" tone="muted" className="text-center">
-                    {creditLine}
-                  </Text>
-                </>
-              ) : null}
+          </View>
+        ) : mode === 'working' ? (
+          <AiShimmerImage className="h-full w-full gap-3 rounded-image-lg p-4">
+            <AiDropPulse height={31} hookTone="sand" />
+            <View className="w-full">
+              <AiProgressLines lines={lines} size="compact" align="center" />
             </View>
-          )}
-        </View>
-        <View className="flex-1 gap-2">
-          {tiles.map((p) => (
-            <PieceTile key={`${p.slot}${p.refId}`} piece={p} className="flex-1" />
-          ))}
-        </View>
+            <Text variant="caption" tone="muted" className="text-center">
+              {creditLine}
+            </Text>
+          </AiShimmerImage>
+        ) : mode === 'failed' ? (
+          <View className="h-full w-full items-center justify-center rounded-image-lg bg-sand px-3">
+            <AiFailure layout="inline" creditRefunded={creditRefunded} onRetry={onRetry} retrying={retrying} />
+          </View>
+        ) : (
+          <View className="h-full w-full items-center justify-center gap-2.5 rounded-image-lg bg-sand p-3">
+            <Button variant="secondary" icon={Sparkles} label={t('stylistResult.tryOn')} onPress={onTryOn} disabled={tryOnDisabled} />
+            <Text variant="caption" tone="muted" className="text-center">
+              {creditLine}
+            </Text>
+          </View>
+        )}
       </View>
-      {mode === 'failed' ? <AiFailure layout="inline" creditRefunded={creditRefunded} onRetry={onRetry} retrying={retrying} /> : null}
+      <View className="flex-[7] gap-2">
+        {tiles.map((p) => (
+          <PieceTile key={`${p.slot}${p.refId}`} piece={p} className="flex-1" />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+/** 17b — the card under the title when the month's AI images are used up: one sentence, one action ("Kredi yükle", 48 high). */
+export function NoCreditsCard({ body, onTopUp }: { body: string; onTopUp: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <View className="gap-2.5 rounded-card border border-line bg-paper p-4" accessibilityLiveRegion="polite">
+      <View className="flex-row items-center gap-2.5">
+        <Icon icon={Sparkles} size={20} tone="accent" />
+        <Text variant="bodyMedium" className="flex-1 text-[15px]">
+          {t('stylistResult.noCreditsTitle')}
+        </Text>
+      </View>
+      <Text variant="caption" tone="muted" className="leading-[18px]">
+        {body}
+      </Text>
+      <Button size="bar" label={t('stylistResult.topUp')} onPress={onTopUp} />
     </View>
   );
 }

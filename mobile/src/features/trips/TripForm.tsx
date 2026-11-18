@@ -1,17 +1,17 @@
-import { Calendar, CircleAlert, Luggage, MapPin } from 'lucide-react-native';
+import { Calendar, CircleAlert, MapPin, Sparkles } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, View } from 'react-native';
+import { Pressable, TextInput, View } from 'react-native';
 
 import { TRIP_MAX_DAYS, TRIP_TYPES, type City, type TripDetail, type TripType } from '@/api/contracts/trips';
 import { Button } from '@/components/ui/Button';
-import { Chip, ChipWrap } from '@/components/ui/Chip';
+import { Chip } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
-import { TextField } from '@/components/ui/TextField';
 import { formatDate, parseLocalDate } from '@/lib/format';
 import { useIsOnline } from '@/sync/network';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 import { useCitySearch, type TripDraft } from './api';
 import { DateRangePicker, todayIso, type DateRange, type RangeField } from './DateRangePicker';
@@ -29,14 +29,14 @@ function DateField({ label, value, onPress, error }: { label: string; value: str
   const text = value ? formatDate(parseLocalDate(value), { day: 'numeric', month: 'short' }) : t('tripNew.pickDate');
   return (
     <View className="flex-1 gap-1.5">
-      <Text variant="bodyMedium">{label}</Text>
+      <Text variant="label">{label}</Text>
       <Pressable
         onPress={onPress}
         accessibilityRole="button"
         accessibilityLabel={t('tripNew.dateFieldLabel', { label, value: text })}
-        className={`h-btn-primary flex-row items-center gap-2 rounded-field border bg-paper px-4 active:opacity-80 ${error ? 'border-danger' : 'border-line'}`}
+        className={`h-field flex-row items-center gap-2 rounded-field border bg-paper px-3.5 active:opacity-80 ${error ? 'border-danger' : 'border-line'}`}
       >
-        <Icon icon={Calendar} size={18} tone="muted" />
+        <Icon icon={Calendar} size={17} tone="muted" />
         <Text variant="body" tone={value ? 'ink' : 'muted'} numberOfLines={1} className="flex-1">
           {text}
         </Text>
@@ -51,7 +51,9 @@ function DateField({ label, value, onPress, error }: { label: string; value: str
  */
 export function TripForm({ initial, submitLabel, onSubmit }: Props) {
   const { t } = useTranslation();
+  const colors = useThemeColors();
   const online = useIsOnline();
+  const [cityFocused, setCityFocused] = useState(false);
   const [city, setCity] = useState<City | null>(initial ? { id: initial.cityId, name: initial.cityName, region: initial.region } : null);
   const [query, setQuery] = useState(initial?.cityName ?? '');
   const [range, setRange] = useState<DateRange>({ start: initial?.startDate ?? null, end: initial?.endDate ?? null });
@@ -80,27 +82,53 @@ export function TripForm({ initial, submitLabel, onSubmit }: Props) {
   };
 
   return (
-    <View className="gap-4">
-      <View className="gap-1">
-        <TextField
-          label={t('tripNew.city')}
-          placeholder={t('tripNew.cityPlaceholder')}
-          value={query}
-          onChangeText={(text) => {
-            setQuery(text);
-            if (city && text !== city.name) setCity(null);
-          }}
-          error={cityError}
-          hint={city?.region}
-          autoCorrect={false}
-          autoCapitalize="words"
-          returnKeyType="search"
-          accessibilityState={{ expanded: searching }}
-        />
+    <View className="gap-3">
+      <View className="gap-1.5">
+        <Text variant="label">{t('tripNew.city')}</Text>
+        {/* Canvas 18: pin inside the field, ink border while the city is being typed. */}
+        <View
+          className={`h-field flex-row items-center gap-2 rounded-field border bg-paper px-3.5 ${
+            cityError ? 'border-danger' : cityFocused || searching ? 'border-ink' : 'border-line'
+          }`}
+        >
+          <Icon icon={MapPin} size={17} />
+          <TextInput
+            accessibilityLabel={t('tripNew.city')}
+            accessibilityHint={cityError ?? city?.region}
+            accessibilityState={{ expanded: searching }}
+            placeholder={t('tripNew.cityPlaceholder')}
+            placeholderTextColor={colors.muted}
+            selectionColor={colors.accent}
+            value={query}
+            onChangeText={(text) => {
+              setQuery(text);
+              if (city && text !== city.name) setCity(null);
+            }}
+            onFocus={() => setCityFocused(true)}
+            onBlur={() => setCityFocused(false)}
+            autoCorrect={false}
+            autoCapitalize="words"
+            returnKeyType="search"
+            maxFontSizeMultiplier={1.6}
+            className="h-full flex-1 font-sans text-[15px] text-ink"
+          />
+        </View>
+        {cityError ? (
+          <View className="flex-row items-center gap-1.5" accessibilityLiveRegion="polite">
+            <Icon icon={CircleAlert} size={14} tone="danger" />
+            <Text variant="caption" tone="danger" className="flex-1">
+              {cityError}
+            </Text>
+          </View>
+        ) : city?.region ? (
+          <Text variant="caption" tone="muted">
+            {city.region}
+          </Text>
+        ) : null}
         {searching ? (
-          <View className="rounded-image-lg border border-line bg-paper py-1" accessibilityRole="menu">
+          <View className="rounded-menu border border-line bg-paper p-1 shadow-lg" accessibilityRole="menu">
             {cities.data && cities.data.length > 0 ? (
-              cities.data.map((c) => (
+              cities.data.map((c, index) => (
                 <Pressable
                   key={c.id}
                   onPress={() => {
@@ -109,13 +137,12 @@ export function TripForm({ initial, submitLabel, onSubmit }: Props) {
                   }}
                   accessibilityRole="menuitem"
                   accessibilityLabel={t('tripNew.cityOption', { name: c.name, region: c.region })}
-                  className="min-h-icon-btn flex-row items-center gap-2.5 px-3 py-1.5 active:opacity-70"
+                  className="h-[52px] justify-center rounded-thumb px-3 active:opacity-70"
                 >
-                  <Icon icon={MapPin} size={16} tone="muted" />
-                  <Text variant="bodyMedium" numberOfLines={1}>
+                  <Text variant={index === 0 ? 'bodyMedium' : 'body'} numberOfLines={1}>
                     {c.name}
                   </Text>
-                  <Text variant="caption" tone="muted" numberOfLines={1} className="flex-1">
+                  <Text variant="caption" tone="muted" numberOfLines={1}>
                     {c.region}
                   </Text>
                 </Pressable>
@@ -143,7 +170,7 @@ export function TripForm({ initial, submitLabel, onSubmit }: Props) {
       </View>
 
       <View className="gap-1.5">
-        <View className="flex-row gap-3">
+        <View className="flex-row gap-2.5">
           <DateField
             label={t('tripNew.depart')}
             value={range.start}
@@ -167,9 +194,9 @@ export function TripForm({ initial, submitLabel, onSubmit }: Props) {
         ) : null}
       </View>
 
-      <View className="gap-2">
-        <Text variant="bodyMedium">{t('tripNew.types')}</Text>
-        <ChipWrap>
+      <View className="gap-1.5">
+        <Text variant="label">{t('tripNew.types')}</Text>
+        <View className="flex-row flex-wrap gap-1.5">
           {TRIP_TYPES.map((type) => (
             <Chip
               key={type}
@@ -179,10 +206,10 @@ export function TripForm({ initial, submitLabel, onSubmit }: Props) {
             />
           ))}
           <Chip label={t('tripNew.cabinOnly')} selected={cabinOnly} onPress={() => setCabinOnly((v) => !v)} />
-        </ChipWrap>
+        </View>
       </View>
 
-      <Button label={submitLabel} icon={Luggage} onPress={submit} testID="trip-submit" />
+      <Button label={submitLabel} icon={Sparkles} onPress={submit} testID="trip-submit" />
 
       <DateRangePicker field={picker} range={range} minDate={todayIso()} onChange={setRange} onClose={() => setPicker(null)} />
     </View>

@@ -69,7 +69,13 @@ export function useStartTryOn() {
   };
 }
 
+/**
+ * How long a try-on wait lasts before its area shows "Şu an oluşturamadık. Kredin iade edildi." +
+ * "Tekrar dene" (canvas note "Zaman aşımı / hata durumu": 60 s without a result).
+ */
+export const TRY_ON_TIMEOUT_MS = 60_000;
+
 /** Polls a try-on job; refreshes the credit counter when it settles (a failed job returns its credit). */
-export function useTryOnJob(jobId: string | null | undefined, options: { enabled?: boolean } = {}): JobView<TryOnResult> {
-  return useJob<TryOnResult>('tryon', jobId, options);
+export function useTryOnJob(jobId: string | null | undefined, options: { enabled?: boolean; timeoutMs?: number } = {}): JobView<TryOnResult> {
+  return useJob<TryOnResult>('tryon', jobId, { timeoutMs: TRY_ON_TIMEOUT_MS, ...options });
 }
