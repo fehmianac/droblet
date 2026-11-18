@@ -3,6 +3,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { legalDocsDir, legalMarkdownFiles } from './legal-markdown.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const out = join(root, 'out');
@@ -86,14 +87,16 @@ const pages = [
   'terms',
   'privacy',
   'kvkk',
+  'consents',
   'subscription-terms',
   'cookies',
+  'community-guidelines',
   'delete-account',
   'reset-password',
   'invite',
   'l',
 ];
-const legalPages = ['terms', 'privacy', 'kvkk', 'subscription-terms', 'cookies'];
+const legalPages = ['terms', 'privacy', 'kvkk', 'consents', 'subscription-terms', 'cookies', 'community-guidelines'];
 
 const htmlLang = (html) => /<html[^>]*\slang="([^"]+)"/.exec(html)?.[1];
 
@@ -116,6 +119,10 @@ for (const locale of locales) {
       const banner = dictionaries[locale].legal.draftTitle;
       expect(html.includes(banner), `${label}: draft banner "${banner}" not found`);
       expect(/<meta name="robots" content="noindex/.test(html), `${label}: legal draft must be noindex`);
+      expect(html.includes(dictionaries[locale].legal.summaryLabel), `${label}: summary box not found`);
+      // Every legal page is reachable from the footer of every page in that language.
+      const href = `${locale === defaultLocale ? '' : `/${locale}`}/${page}/`;
+      expect(html.includes(`href="${href}"`), `${label}: footer does not link to ${href}`);
     }
   }
 }
@@ -185,7 +192,16 @@ for (const file of files.filter((path) => path.endsWith('.html'))) {
   }
 }
 
-// ── 5. App screenshots ─────────────────────────────────────────────────────────────────────────────
+// ── 5. Legal Markdown for review (docs/legal/) matches the dictionaries ────────────────────────────
+// Only inside the full repository: a deploy that checks out landing/ alone has no docs/ folder.
+if (existsSync(legalDocsDir)) {
+  for (const [path, content] of legalMarkdownFiles()) {
+    const label = relative(join(root, '..'), path);
+    expect(existsSync(path) && readFileSync(path, 'utf8') === content, `${label} is out of date — run \`npm run legal:md\``);
+  }
+}
+
+// ── 6. App screenshots ─────────────────────────────────────────────────────────────────────────────
 // Every language has the same set of screenshots; each page shows its own language's set, and every
 // screenshot a page references is in out/. Weight budgets keep the landing page light.
 const screensDir = join(out, 'screens');
