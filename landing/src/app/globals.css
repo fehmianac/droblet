@@ -21,6 +21,15 @@
   --color-danger: #9a3b2e;
   /* Second placeholder tone of the canvas (mobile `placeholderTones.stage`). Image placeholders only. */
   --color-stage: #ddd3c6;
+  /* Sample "warm autumn" palette shown in the colour-palette feature (the app's showcase data, not UI colours). */
+  --color-tone-1: #7a4e3a;
+  --color-tone-2: #a8763e;
+  --color-tone-3: #5e6b4e;
+  --color-tone-4: #2f3a4f;
+  --color-tone-5: #c9b79c;
+  --color-tone-6: #8c3b3b;
+  --color-tone-7: #e8dcc6;
+  --color-tone-8: #4a3b33;
 
   --font-serif: var(--font-cormorant), Georgia, 'Times New Roman', serif;
   --font-sans: var(--font-jost), system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -253,6 +262,157 @@
     border-color: var(--color-danger);
   }
 
+  /*
+   * iPhone frame around a real screenshot. Sizes are in container units of the frame itself, so the
+   * same frame works at 200 px (gallery) and 300 px (hero): bezel 3.4%, screen corner 12.6%.
+   */
+  .phone {
+    container-type: inline-size;
+    flex: none;
+    max-width: 100%;
+  }
+
+  /* Units below are container units of `.phone` (its own width). */
+  .phone-body {
+    position: relative;
+    padding: 3.4cqw;
+    border-radius: 16cqw;
+    background-color: var(--color-ink);
+    box-shadow:
+      inset 0 0 0 1px rgb(255 255 255 / 0.1),
+      0 2px 4px rgb(28 26 23 / 0.08),
+      0 24px 48px -18px rgb(28 26 23 / 0.38);
+  }
+
+  .phone-screen {
+    position: relative;
+    overflow: hidden;
+    border-radius: 12.6cqw;
+    background-color: var(--color-sand);
+  }
+
+  .phone-screen img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .phone-island {
+    position: absolute;
+    top: 2.6cqw;
+    left: 50%;
+    width: 29cqw;
+    height: 8.4cqw;
+    border-radius: 9999px;
+    background-color: var(--color-ink);
+    transform: translateX(-50%);
+  }
+
+  /* A small piece of the app's own UI language, floating next to the hero phones. */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border: 1px solid var(--color-line);
+    border-radius: 9999px;
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 500;
+    white-space: nowrap;
+    box-shadow: 0 10px 24px -14px rgb(28 26 23 / 0.35);
+  }
+
+  .chip-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    background-color: var(--color-accent);
+  }
+
+  /* Panel a phone rises out of (cropped at the bottom edge). */
+  .stage {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: var(--radius-card);
+  }
+
+  .swatch {
+    width: 36px;
+    height: 36px;
+    border-radius: 9999px;
+    box-shadow: inset 0 0 0 1px rgb(28 26 23 / 0.12);
+  }
+
+  /* Screens gallery: one row, scroll-snap, aligned with the page column. */
+  .gallery-strip {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: max(16px, calc((100vw - var(--container-page)) / 2 + 24px));
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-line) transparent;
+  }
+
+  .gallery-strip:focus-visible {
+    outline-offset: -2px;
+    border-radius: 0;
+  }
+
+  .gallery-list {
+    display: flex;
+    gap: 28px;
+    width: max-content;
+    margin: 0;
+    padding: 8px max(16px, calc((100vw - var(--container-page)) / 2 + 24px)) 28px;
+    list-style: none;
+  }
+
+  .gallery-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    scroll-snap-align: start;
+  }
+
+  .gallery-button {
+    display: inline-flex;
+    width: 44px;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--color-ink);
+    border-radius: 9999px;
+    background-color: transparent;
+    color: var(--color-ink);
+    cursor: pointer;
+    transition:
+      background-color 180ms var(--ease-brand),
+      color 180ms var(--ease-brand);
+  }
+
+  .gallery-button:hover {
+    background-color: var(--color-ink);
+    color: var(--color-cream);
+  }
+
+  /* Scroll-in motion (RevealOnScroll). Hidden only once the script has run, never without JavaScript. */
+  [data-reveal] {
+    transition:
+      opacity 800ms var(--ease-brand),
+      transform 800ms var(--ease-brand);
+  }
+
+  .reveal-ready [data-reveal]:not(.is-revealed) {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+
   /* Entrance of the hero — off when the user asks for less motion. */
   .rise {
     animation: rise 700ms var(--ease-brand) both;
@@ -279,10 +439,21 @@
     scroll-behavior: auto;
   }
 
+  .reveal-ready [data-reveal]:not(.is-revealed) {
+    opacity: 1;
+    transform: none;
+  }
+
   *,
   *::before,
   *::after {
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* Self-hosted fonts (see src/lib/fonts.ts). */
+.font-vars {
+  --font-cormorant: 'Cormorant Garamond', Georgia, serif;
+  --font-jost: 'Jost', system-ui, sans-serif;
 }

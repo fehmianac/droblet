@@ -1,3 +1,11 @@
+import '@fontsource/cormorant-garamond/latin-500.css';
+import '@fontsource/cormorant-garamond/latin-ext-500.css';
+import '@fontsource/cormorant-garamond/latin-600.css';
+import '@fontsource/cormorant-garamond/latin-ext-600.css';
+import '@fontsource/jost/latin-400.css';
+import '@fontsource/jost/latin-ext-400.css';
+import '@fontsource/jost/latin-500.css';
+import '@fontsource/jost/latin-ext-500.css';
 import './globals.css';
 
 /**
