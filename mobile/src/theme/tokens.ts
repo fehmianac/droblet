@@ -73,6 +73,22 @@ export const placeholderTones = {
 } as const;
 export type PlaceholderTone = keyof typeof placeholderTones;
 
+/** Swatches for wardrobe colour families (filter sheet, colour picker). Keys = `ItemColor` in api/contracts/wardrobe. */
+export const garmentColors = {
+  black: '#1C1A17',
+  white: '#FFFFFF',
+  beige: '#D8C7AE',
+  navy: '#2F3A4F',
+  brown: '#7A4E3A',
+  grey: '#9B9892',
+  cream: '#EFE6D6',
+  blue: '#5B7A99',
+  green: '#5E6B4E',
+  red: '#8C3B3B',
+  pink: '#D9A7A0',
+  other: '#C9B79C',
+} as const;
+
 /** Shimmer highlight of the AI loading language: paper at 0% → 45% → 0%. */
 export const sheen = {
   clear: 'rgba(251, 249, 245, 0)',

@@ -1,1 +1,41 @@
-{}
+{
+  "itemCategory": {
+    "all": "All",
+    "top": "Tops",
+    "bottom": "Bottoms",
+    "dress": "Dresses",
+    "outerwear": "Outerwear",
+    "shoes": "Shoes",
+    "bag": "Bags",
+    "accessory": "Accessories",
+    "beachwear": "Beachwear",
+    "skiwear": "Skiwear"
+  },
+  "itemSeason": {
+    "spring": "Spring",
+    "summer": "Summer",
+    "autumn": "Autumn",
+    "winter": "Winter"
+  },
+  "itemColor": {
+    "black": "Black",
+    "white": "White",
+    "beige": "Beige",
+    "navy": "Navy",
+    "brown": "Brown",
+    "grey": "Grey",
+    "cream": "Cream",
+    "blue": "Blue",
+    "green": "Green",
+    "red": "Red",
+    "pink": "Pink",
+    "other": "Other"
+  },
+  "lookSlot": {
+    "top": "Top",
+    "bottom": "Bottom",
+    "outerwear": "Outerwear",
+    "shoes": "Shoes",
+    "accessory": "Bag / Accessory"
+  }
+}

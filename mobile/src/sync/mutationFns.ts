@@ -9,6 +9,7 @@ import type {
   WearLogRequest,
 } from '@/api/contracts';
 import { isConflict, isGone } from '@/api/errors';
+import { registerLooksMutations } from '@/features/looks/mutations';
 import { registerStylistMutations } from '@/features/stylist/mutations';
 import { registerTodayMutations } from '@/features/today/mutations';
 import { registerWardrobeMutations } from '@/features/wardrobe/mutations';
@@ -99,6 +100,7 @@ export function registerMutationDefaults(client: QueryClient): void {
   // Per-feature queued writes (Bugün E4, Gardırop E2/E3/E5, Stilist E5) register themselves.
   registerTodayMutations(client);
   registerWardrobeMutations(client);
+  registerLooksMutations(client);
   registerStylistMutations(client);
 
   // Fixture-backed until the E4 wear-log contract exists (candidate: POST v1/tenant/wear-logs).

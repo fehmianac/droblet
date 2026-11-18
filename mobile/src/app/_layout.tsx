@@ -90,9 +90,12 @@ export default function RootLayout() {
           <Stack.Screen name="calendar" />
           <Stack.Screen name="item/[id]" />
           <Stack.Screen name="item/bulk" />
+          <Stack.Screen name="item/library" />
+          <Stack.Screen name="item/form" />
           <Stack.Screen name="look/new" />
           <Stack.Screen name="look/[id]" />
           <Stack.Screen name="trip/[id]" />
+          <Stack.Screen name="trip/new" options={{ presentation: 'modal' }} />
           <Stack.Screen name="stylist/[jobId]" />
           <Stack.Screen name="palette" />
           <Stack.Screen name="shop/index" />

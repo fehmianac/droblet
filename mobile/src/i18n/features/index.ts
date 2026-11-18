@@ -6,6 +6,8 @@
  */
 import aiEn from './ai.en.json';
 import aiTr from './ai.tr.json';
+import looksEn from './looks.en.json';
+import looksTr from './looks.tr.json';
 import stylistEn from './stylist.en.json';
 import stylistTr from './stylist.tr.json';
 import todayEn from './today.en.json';
@@ -17,8 +19,9 @@ export const featureFiles = {
   ai: { tr: aiTr, en: aiEn },
   today: { tr: todayTr, en: todayEn },
   wardrobe: { tr: wardrobeTr, en: wardrobeEn },
+  looks: { tr: looksTr, en: looksEn },
   stylist: { tr: stylistTr, en: stylistEn },
 } as const;
 
-export const featuresTr = { ...aiTr, ...todayTr, ...wardrobeTr, ...stylistTr };
-export const featuresEn = { ...aiEn, ...todayEn, ...wardrobeEn, ...stylistEn };
+export const featuresTr = { ...aiTr, ...todayTr, ...wardrobeTr, ...looksTr, ...stylistTr };
+export const featuresEn = { ...aiEn, ...todayEn, ...wardrobeEn, ...looksEn, ...stylistEn };

@@ -1,1 +1,41 @@
-{}
+{
+  "itemCategory": {
+    "all": "Tümü",
+    "top": "Üst",
+    "bottom": "Alt",
+    "dress": "Elbise",
+    "outerwear": "Dış giyim",
+    "shoes": "Ayakkabı",
+    "bag": "Çanta",
+    "accessory": "Aksesuar",
+    "beachwear": "Plaj giyim",
+    "skiwear": "Kayak giyim"
+  },
+  "itemSeason": {
+    "spring": "İlkbahar",
+    "summer": "Yaz",
+    "autumn": "Sonbahar",
+    "winter": "Kış"
+  },
+  "itemColor": {
+    "black": "Siyah",
+    "white": "Beyaz",
+    "beige": "Bej",
+    "navy": "Lacivert",
+    "brown": "Kahve",
+    "grey": "Gri",
+    "cream": "Krem",
+    "blue": "Mavi",
+    "green": "Yeşil",
+    "red": "Kırmızı",
+    "pink": "Pembe",
+    "other": "Diğer"
+  },
+  "lookSlot": {
+    "top": "Üst",
+    "bottom": "Alt",
+    "outerwear": "Dış giyim",
+    "shoes": "Ayakkabı",
+    "accessory": "Çanta / Aksesuar"
+  }
+}
