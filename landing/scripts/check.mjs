@@ -86,14 +86,16 @@ const pages = [
   'terms',
   'privacy',
   'kvkk',
+  'consents',
   'subscription-terms',
   'cookies',
+  'community-guidelines',
   'delete-account',
   'reset-password',
   'invite',
   'l',
 ];
-const legalPages = ['terms', 'privacy', 'kvkk', 'subscription-terms', 'cookies'];
+const legalPages = ['terms', 'privacy', 'kvkk', 'consents', 'subscription-terms', 'cookies', 'community-guidelines'];
 
 const htmlLang = (html) => /<html[^>]*\slang="([^"]+)"/.exec(html)?.[1];
 
@@ -116,6 +118,10 @@ for (const locale of locales) {
       const banner = dictionaries[locale].legal.draftTitle;
       expect(html.includes(banner), `${label}: draft banner "${banner}" not found`);
       expect(/<meta name="robots" content="noindex/.test(html), `${label}: legal draft must be noindex`);
+      expect(html.includes(dictionaries[locale].legal.summaryLabel), `${label}: summary box not found`);
+      // Every legal page is reachable from the footer of every page in that language.
+      const href = `${locale === defaultLocale ? '' : `/${locale}`}/${page}/`;
+      expect(html.includes(`href="${href}"`), `${label}: footer does not link to ${href}`);
     }
   }
 }

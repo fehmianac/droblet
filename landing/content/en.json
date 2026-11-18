@@ -204,8 +204,10 @@
     "terms": "Terms of Use",
     "privacy": "Privacy Policy",
     "kvkk": "KVKK Privacy Notice",
+    "consents": "Consent Texts",
     "subscription": "Subscription Terms",
     "cookies": "Cookie Notice",
+    "communityGuidelines": "Community Guidelines",
     "deleteAccount": "Delete my account",
     "contact": "Contact",
     "langAria": "Language"
@@ -220,69 +222,195 @@
   "legal": {
     "draftBadge": "DRAFT",
     "draftTitle": "Draft — pending legal review",
-    "draftBody": "This page is a draft of structure and headings; it is not a binding text. The final text will be published after legal review.",
+    "draftBody": "This text is a comprehensive draft and is not binding until it has been legally reviewed. Words in square brackets (e.g. [COMPANY ADDRESS]) are details that have not been decided yet.",
     "tocLabel": "CONTENTS",
+    "summaryLabel": "IN SHORT",
+    "versionLabel": "Draft date",
+    "version": "19 November 2026 · Effective: [EFFECTIVE DATE]",
     "controllerLabel": "Data controller",
-    "controller": "Droblet Ltd (London, United Kingdom)",
+    "controller": "Droblet Ltd, [COMPANY ADDRESS], London, United Kingdom · Company no. [COMPANY NUMBER] · [CONTACT E-MAIL]",
     "docs": {
       "terms": {
         "eyebrow": "LEGAL",
         "title": "Terms of Use",
-        "description": "Droblet Terms of Use — draft, pending legal review.",
-        "intro": "These terms govern the use of the Droblet mobile app and this website. The service is provided by Droblet Ltd (London, United Kingdom).",
+        "description": "Terms of use for the Droblet mobile app and the droblet.alatech.co website — draft, pending legal review.",
+        "intro": "These terms are the agreement between you and Droblet Ltd (“Droblet”, “we”) for your use of the Droblet mobile app and the droblet.alatech.co website (together, the “Service”). By creating an account or using the Service you accept these terms, the Privacy Policy, the Subscription Terms and the Community Guidelines.",
+        "summary": [
+          "You must be 18 or over to use Droblet.",
+          "The photos you upload and the images generated for you are yours and visible only to you; you can delete them at any time.",
+          "AI suggestions and “On you” images are there to give you ideas; they do not guarantee how a size, colour or product will really look on you.",
+          "Droblet does not sell products or take payments. You buy in the brand's own shop; we may earn a commission from the brand, which does not change the price you pay.",
+          "Droblet Membership is bought, managed and cancelled through the App Store or Google Play.",
+          "Be respectful: content that breaks the Community Guidelines can be removed and accounts can be suspended.",
+          "You can delete your account at any time in the app or at droblet.alatech.co/delete-account."
+        ],
         "sections": [
           {
-            "heading": "Scope of the service",
+            "heading": "Who we are and what this agreement covers",
             "paragraphs": [
-              "Droblet is a personal wardrobe app where you digitise your clothes, get outfit suggestions and plan your suitcase for trips.",
-              "Draft — pending legal review: the full definition and limits of the service."
+              "The Service is provided by Droblet Ltd, a company registered in England and Wales (company no. [COMPANY NUMBER], address: [COMPANY ADDRESS], London, United Kingdom). You can reach us at [CONTACT E-MAIL].",
+              "This agreement is made up of these Terms of Use, the Subscription Terms (for Droblet Membership and extra credit packs) and the Community Guidelines. How we process your personal data is explained in the Privacy Policy and the KVKK Information Notice; those are notices, not part of the contract.",
+              "If these terms and the store terms (App Store, Google Play) differ on payment, billing or refunds, the store terms apply to that point."
             ]
           },
           {
-            "heading": "Account",
+            "heading": "What the Service is",
             "paragraphs": [
-              "You create an account to use the app. You can delete your account at any time from the app (Profile › Settings › Delete my account) or from the Delete my account page on this site.",
-              "Draft — pending legal review: age requirement, account security and user obligations."
+              "Droblet is a personal wardrobe and style app. With the Service you can:",
+              "- build your digital wardrobe by photographing your clothes or entering them by hand (AI suggests type, colour and fabric; you confirm before anything is saved);",
+              "- create looks (outfits), plan your calendar and record what you wore;",
+              "- get a daily outfit, a weekly plan and a packing list from the stylist;",
+              "- see outfits and shop products on your own full-body photo (“See it on me”) and get a colour palette analysis from your face photo;",
+              "- explore the weekly edit and the shop catalogue, and be sent to the brand's own shop to buy;",
+              "- follow friends, see their closets and looks as far as their visibility setting allows, and rate looks.",
+              "Wardrobe, looks, calendar, shop and social features are free. AI features need Droblet Membership; non-members can use AI garment recognition for free on their first 10 item photos. Details are in the Subscription Terms.",
+              "We keep developing the Service; features may be added, changed or removed. If we materially reduce a paid feature we will tell you in advance (see section 16)."
             ]
           },
           {
-            "heading": "Your content and photos",
+            "heading": "Who can use Droblet",
             "paragraphs": [
-              "Your photos and the images generated on you are visible only to you. You can delete them at any time from Profile › Privacy.",
-              "Draft — pending legal review: content licence, prohibited uses and the reporting process."
+              "You must be 18 or over to use the Service. By creating an account you confirm that you are over 18. If we learn that an account belongs to someone under 18 we will close it and delete its data.",
+              "A version for users aged 13 to 18 with parental consent may be offered later; these terms will be updated when it is.",
+              "Each person may open one account, for themselves only. Someone whose account we closed for breaking these terms may not open a new one without our written permission."
             ]
           },
           {
-            "heading": "AI-generated content",
+            "heading": "Your account and its security",
             "paragraphs": [
-              "Outfit suggestions and images labelled \"On you\" are generated by artificial intelligence and are meant to give you an idea.",
-              "Draft — pending legal review: limits of liability for AI output."
+              "You can create your account with e-mail and password, with Apple or with Google. You are responsible for keeping the information you give us accurate and up to date.",
+              "Do not share your password and do not reuse a password from another service. If you think your account is being used without your permission, change your password and tell us at [CONTACT E-MAIL].",
+              "Your username (@handle) and display name are visible to other users. We may change or remove a username that impersonates someone, is misleading or breaks the Community Guidelines."
             ]
           },
           {
-            "heading": "Store and third-party brands",
+            "heading": "Your content",
             "paragraphs": [
-              "Droblet does not take payment. When you want to buy a product you are taken to the brand's own store; payment and delivery are completed there.",
-              "Draft — pending legal review: liability for third-party stores and commission disclosure."
+              "The photos you upload, the information you enter, the looks you create and your ratings (“Your Content”) belong to you. Droblet claims no ownership of Your Content.",
+              "So that we can provide the Service, you give us a worldwide, royalty-free, non-transferable, non-exclusive permission to store, copy, process and reformat (for example, remove the background of) Your Content, only to run the Service, show it to you, show it to the people your visibility setting allows, and carry out the AI tasks you start. This permission also covers the service providers who do this work on our behalf (for example hosting and the AI provider).",
+              "This permission ends when you delete the content or your account. Deleted data leaves our backups within 30 days at the latest (see the Privacy Policy). We do not use Your Content in advertising or marketing without your separate permission, and we do not use it to train AI models.",
+              "You confirm that you have the rights needed for what you upload and that it complies with these terms, the Community Guidelines and the law. In particular, you may not upload another person's photo as your full-body or face photo."
             ]
           },
           {
-            "heading": "Membership",
+            "heading": "Your photos and AI-generated content",
             "paragraphs": [
-              "The terms of Droblet Membership are set out on the Subscription Terms page.",
-              "Draft — pending legal review."
+              "Your full-body photo, your face photo and the images generated on you are visible only to you; no visibility setting ever shows them to another user. You can delete them in the app under Profile › Privacy, without deleting your account.",
+              "Outfit suggestions, packing lists, item labels, the colour palette and “On you” images are generated by AI. They are there to give you ideas and can be wrong: they do not guarantee a product's size, fit, colour or how it will look on you. Check the brand's product information and size chart before you buy.",
+              "You may use the AI features only with your own photo and for personal, non-commercial purposes. You may not use generated images to mislead, to impersonate anyone, or to depict another person without their consent.",
+              "AI results do not lead to any legal or similarly significant decision about you; they are suggestions only, and it is up to you whether to accept them."
             ]
           },
           {
-            "heading": "Liability, changes and governing law",
+            "heading": "Social features",
             "paragraphs": [
-              "Draft — pending legal review: limitation of liability, notice of changes to these terms, governing law and jurisdiction."
+              "You choose who can see your closet: Public, Followers only (the default) or Private. The setting only affects your processed item images, your looks and the ratings they received. Your profile card (username, display name, style tags, follower counts) appears in search.",
+              "Public accounts are followed at once; for Followers-only or Private accounts a follow request is sent, which the owner approves or declines.",
+              "You can rate looks with 1 to 5 stars. The look's owner sees the average and the number of ratings, never who gave them.",
+              "You can report a person or their content and block them. You and a person you block cannot see each other anywhere. Details are in the Community Guidelines."
+            ]
+          },
+          {
+            "heading": "What you must not do",
+            "paragraphs": [
+              "When you use the Service you must not:",
+              "- upload content that breaks the law, these terms or the Community Guidelines; share nudity or sexual content, hate speech, harassment or violence;",
+              "- upload a photo of another person without their consent, or a photo of anyone under 18;",
+              "- impersonate another person or a brand, or open a misleading account;",
+              "- spam, or send follows, ratings, reports or invites in bulk or by automated means;",
+              "- access the Service with automated tools (bots, scrapers), collect other users' data or try to get around security measures;",
+              "- reverse engineer or copy the Service, or use it commercially without our permission;",
+              "- misuse the AI features or try to get around allowances or credit limits by deception;",
+              "- do anything that harms or overloads the Service."
+            ]
+          },
+          {
+            "heading": "Shop, brands and commission",
+            "paragraphs": [
+              "The products in the shop and in the weekly edit are sold by the brands, not by Droblet. When you tap the button to buy a product you are sent to the brand's own website; the order, payment, delivery, returns and warranty are between you and the brand and follow the brand's terms. Droblet receives no payment or card details.",
+              "Part of Droblet's income comes from affiliate commission: when you buy from a brand you reached through Droblet, the brand or an affiliate network (for example Admitad or Gelir Ortakları / ReklamAction) may pay us a commission. This commission does not change the price you pay. So that the commission can be matched to the order, a click id that contains neither your name nor your e-mail address is added to the link.",
+              "Product information, prices and stock come from the brands or are entered by hand and may be out of date. What counts is the information the brand's website shows when you order. If we publish sponsored content we label it clearly as “Sponsored”.",
+              "After you buy from a brand the app may offer to add the purchased products to your wardrobe; they are added only if you agree. If you visit a brand and do not buy within 48 hours, the product may be added to your watch list with notifications off; you can remove it at any time."
+            ]
+          },
+          {
+            "heading": "Droblet Membership and payments",
+            "paragraphs": [
+              "Droblet Membership (monthly or yearly) and extra AI image packs can only be bought as in-app purchases through the App Store or Google Play. Prices, the free trial, auto-renewal, cancellation and refunds are explained in the Subscription Terms, and payment follows the terms of the store you use."
+            ]
+          },
+          {
+            "heading": "Droblet's intellectual property",
+            "paragraphs": [
+              "The app, the website, the Droblet name and logo, the design, the software, the weekly edit, the ready-made item library and the editorial content belong to Droblet or its licensors. Brand names and product images belong to the brands.",
+              "As long as you follow these terms we give you a personal, non-transferable, non-exclusive, revocable licence to use the Service on your own device for personal, non-commercial purposes. This licence gives you no ownership of the source code or the content.",
+              "We may use suggestions and feedback you send us about the Service without any obligation to you."
+            ]
+          },
+          {
+            "heading": "Third-party services",
+            "paragraphs": [
+              "The Service works with third-party services such as Sign in with Apple and Google, App Store and Google Play payments, brand websites and weather data. Those services have their own terms and privacy policies; Droblet is not responsible for their content or how they work.",
+              "Weather forecasts come from a third-party weather service and are approximate."
+            ]
+          },
+          {
+            "heading": "Availability of the Service",
+            "paragraphs": [
+              "We make reasonable efforts to keep the Service available and free of errors, but there may be interruptions for maintenance, updates, security or because of our service providers. If an AI task fails, the AI image credit spent on it is returned."
+            ]
+          },
+          {
+            "heading": "Suspension and termination",
+            "paragraphs": [
+              "You can delete your account at any time in the app (Profile › Settings › Delete my account) or at droblet.alatech.co/delete-account. Deleting your account does not cancel an active subscription; you must cancel it separately in the App Store or Google Play.",
+              "If you seriously or repeatedly break these terms, the Community Guidelines or the law, we may remove your content and suspend or close your account, with or without a warning. Where possible we will tell you why and give you a way to appeal (see the Community Guidelines).",
+              "When the agreement ends your permission to use the Service ends and your data is deleted within the periods in the Privacy Policy. Terms that by their nature should continue after the end (for example liability and governing law) stay in force."
+            ]
+          },
+          {
+            "heading": "Liability",
+            "paragraphs": [
+              "We provide the Service “as is”. We do not guarantee that AI output is accurate, that a product will suit you, or that a brand will deliver your order correctly and on time. For claims about a purchase from a brand, the brand is the party to contact.",
+              "To the extent the law allows, Droblet's total liability under this agreement is limited to the amount you paid for Droblet in the 12 months before the event giving rise to the claim. We are not liable for indirect loss, loss of profit or loss of data (except data deleted through our fault).",
+              "This section does not limit our liability for intent or gross negligence, for death or personal injury caused by negligence, or for fraud, nor any statutory rights you have as a consumer that cannot be limited by contract (for example under Turkish Consumer Protection Law No. 6502 and the UK Consumer Rights Act 2015)."
+            ]
+          },
+          {
+            "heading": "Changes to these terms",
+            "paragraphs": [
+              "We may change these terms. We will tell you about material changes in the app or by e-mail at least [CHANGE NOTICE PERIOD] before they take effect. If you do not accept the changes you can delete your account before the effective date; continuing to use the Service after that date means you accept the new terms.",
+              "Changes made for security reasons or because the law requires them may take effect immediately."
+            ]
+          },
+          {
+            "heading": "Governing law and disputes",
+            "paragraphs": [
+              "This agreement is governed by [GOVERNING LAW AND COURTS]. This choice does not take away the protection of the mandatory consumer rules of the country where you live.",
+              "If you live in Türkiye you can apply, within the monetary limits, to the Consumer Arbitration Committee (Tüketici Hakem Heyeti) where you live or where the transaction took place, and above those limits to the Consumer Court. If you live in the United Kingdom you can bring a claim in the courts of the part of the UK where you live.",
+              "If something goes wrong, please write to us first at [CONTACT E-MAIL]; most problems can be solved that way."
+            ]
+          },
+          {
+            "heading": "Additional terms for the App Store and Google Play",
+            "paragraphs": [
+              "If you downloaded the app from the Apple App Store, the following also apply:",
+              "- This agreement is between you and Droblet, not Apple; Droblet, not Apple, is responsible for the app and its content.",
+              "- Your licence is limited to using the app on Apple devices that you own or control, as permitted by the App Store Usage Rules.",
+              "- Apple has no obligation to provide maintenance or support for the app.",
+              "- If the app fails to conform to any applicable warranty you may notify Apple, and Apple may refund the purchase price (if any). To the extent the law allows, Apple has no other warranty obligation.",
+              "- Droblet, not Apple, is responsible for handling product liability claims, claims that the app does not meet legal or regulatory requirements, and consumer protection claims relating to the app.",
+              "- Droblet, not Apple, is responsible for investigating, defending, settling and discharging any claim that the app infringes a third party's intellectual property rights.",
+              "- You confirm that you are not located in a country subject to a US government embargo or designated as a “terrorist supporting” country, and that you are not on any US government list of prohibited or restricted parties.",
+              "- Apple and its subsidiaries are third-party beneficiaries of this agreement and, once you accept it, have the right to enforce it against you.",
+              "If you downloaded the app from Google Play, the Google Play Terms of Service also apply; Droblet, not Google, is responsible for the app."
             ]
           },
           {
             "heading": "Contact",
             "paragraphs": [
-              "Draft — pending legal review: contact address and channels."
+              "Questions, complaints and notices: [CONTACT E-MAIL] · Droblet Ltd, [COMPANY ADDRESS], London, United Kingdom.",
+              "To delete your account: in the app, Profile › Settings › Delete my account, or droblet.alatech.co/delete-account."
             ]
           }
         ]
@@ -290,115 +418,466 @@
       "privacy": {
         "eyebrow": "LEGAL",
         "title": "Privacy Policy",
-        "description": "Droblet Privacy Policy — draft, pending legal review.",
-        "intro": "This policy explains how Droblet processes personal data. The data controller is Droblet Ltd (London, United Kingdom). For users in Türkiye the KVKK applies, alongside the UK GDPR.",
+        "description": "How Droblet processes personal data: what, why, with whom, for how long, and your rights — draft, pending legal review.",
+        "intro": "This policy explains how your personal data is processed when you use the Droblet mobile app and the droblet.alatech.co website. The data controller is Droblet Ltd (London, United Kingdom). The policy follows the UK General Data Protection Regulation (UK GDPR) and the Data Protection Act 2018; for users in Türkiye, the details required by Law No. 6698 (KVKK) are in the separate KVKK Information Notice.",
+        "summary": [
+          "Your full-body photo, your face photo and the images generated on you are visible only to you and are never shown to anyone else in any setting.",
+          "You can delete these photos and the generated images at any time under Profile › Privacy, without deleting your account.",
+          "We use your face photo only for the colour palette analysis; we do not identify you, run face recognition or extract a face template.",
+          "For AI features your photos and the information needed are sent to OpenAI; our data is stored with AWS in Frankfurt. This means transfers outside Türkiye and the UK.",
+          "If you choose to find friends from your contacts, your address book never leaves your phone; only single-use hashes are sent, and they are not stored.",
+          "We use no ad tracking, no third-party analytics or advertising SDKs, and we do not sell your data. When we send you to a brand we add only a click id for the commission.",
+          "When you delete your account your data is deleted at once and leaves our backups within 30 days.",
+          "You have the right to access, correct, delete, object and port your data: [CONTACT E-MAIL]."
+        ],
         "sections": [
           {
-            "heading": "Our core privacy promises",
+            "heading": "Who we are",
             "paragraphs": [
-              "Your photos and the images generated on you are visible only to you.",
-              "Your face and full-length photos are never shown to anyone else, under any visibility setting.",
-              "You can delete your photos and generated images at any time from Profile › Privacy; this works without deleting your account.",
-              "You choose who sees your wardrobe: everyone, followers only, or private."
+              "Data controller: Droblet Ltd, [COMPANY ADDRESS], London, United Kingdom; company no. [COMPANY NUMBER]; Information Commissioner's Office (ICO) registration no. [ICO REGISTRATION NUMBER].",
+              "For any privacy question or rights request: [CONTACT E-MAIL]. Our data controller representative in Türkiye: [TÜRKİYE REPRESENTATIVE]."
             ]
           },
           {
-            "heading": "Data we process",
+            "heading": "What this policy covers",
             "paragraphs": [
-              "Your account details (such as your e-mail address), the pieces you add to your wardrobe and their photos, your full-length and face photos, the looks you create, and your calendar and suitcase plans.",
-              "Draft — pending legal review: the full list of data categories and the legal basis for each."
+              "This policy covers the Droblet mobile app (iOS and Android) and the droblet.alatech.co website. Brand websites you visit from the app, the App Store, Google Play and your Apple and Google accounts have their own privacy policies.",
+              "Droblet is currently intended for users aged 18 and over and is offered mainly in Türkiye."
             ]
           },
           {
-            "heading": "What we use data for",
+            "heading": "The data we process",
             "paragraphs": [
-              "To organise your wardrobe, prepare outfit and suitcase suggestions, run the colour palette analysis and generate \"On you\" images.",
-              "Draft — pending legal review: purposes of processing and legal bases."
+              "Information you give us:",
+              "- Account: your name, e-mail address and a one-way hash of your password (the password itself is never stored). If you sign in with Apple or Google, the account id, e-mail address (with Apple this may be a private relay address) and name those services provide; with Sign in with Apple, an Apple refresh token stored encrypted so that we can revoke the link with Apple when you delete your account.",
+              "- Profile: your username (@handle), display name, language, the city you choose for weather, and your closet visibility setting.",
+              "- Style profile: who it is for (currently Women), the three style tags you choose and your budget range.",
+              "- Body profile: your height, your size and, optionally, your weight.",
+              "- Photos: your full-body photo and your face photo; the item and outfit photos you take or upload for your wardrobe.",
+              "- Wardrobe and planning: your items and their details (type, colour, fabric, season, brand, size), your looks, calendar plans, what you wore, your trips (city and dates), the occasions and free-text requests you send to the stylist, and your “Not for me” feedback.",
+              "- Social: whom you follow and who follows you, follow requests, the ratings you give, looks you save, people you block, reports you file and the note you add.",
+              "- Shopping: your cart, watch list, favourite products, your clicks through to brands and your answers to “Add to your wardrobe?”.",
+              "- Your notification preferences, your time zone and any support messages you send us.",
+              "Data created while you use the Service:",
+              "- Generated data: images generated on you, your colour palette result (season type and shades), processed (background-removed) item images, AI suggestions.",
+              "- Membership and credits: your subscription status, store transaction ids, your AI image credit balance and movements. We never receive your card or payment details.",
+              "- Device: a device id (created by the app), platform and push notification token.",
+              "- Usage events: certain steps in the app (for example sign-up completed, first item added, membership screen viewed). They contain no name, e-mail or free text (see section 9).",
+              "- Technical and security data: IP address, request time, error records; sign-in attempt counters to prevent abuse.",
+              "Information from others:",
+              "- Apple and Google: your sign-in details; App Store and Google Play: purchase, renewal, cancellation and refund notifications.",
+              "- Affiliate networks and brands: if you order from a brand you reached through Droblet, the order number, amount, currency and order status (never your name, address or payment details).",
+              "- Other users: follow requests sent to you, ratings given to your looks, reports about you."
             ]
           },
           {
-            "heading": "Processing with artificial intelligence",
+            "heading": "Photos, your face photo and your weight",
             "paragraphs": [
-              "\"On you\" images and the colour palette analysis are generated by artificial intelligence from the photos you upload.",
-              "Draft — pending legal review: service providers, international transfers and the scope of explicit consent."
+              "Uploading a full-body or face photo is optional; you can use the app without them. If you upload one, its location and device information (EXIF/XMP metadata) is removed in the first processing step, the clean copy is stored encrypted in storage that is closed to the public, and it is shown only to you, through private links that expire quickly.",
+              "We use your face photo only for the colour palette analysis: the AI looks at the skin, hair and eye colours in the photo and chooses the season type that suits you. We do not identify or verify you or run face recognition; we do not extract or store a template that uniquely identifies you from your face (a biometric template). The AI is explicitly told not to identify or describe the person. For these reasons we consider that this is not processing of biometric data; even so, we process your face and full-body photos only with your explicit consent. [LEGAL REVIEW: biometric data assessment]",
+              "We use your full-body photo only to generate “See it on me” images. Because the photo may show your body, it is never shown to other users or to our support or moderation staff under any setting, and it never enters a shared cache.",
+              "Your weight is optional and, because it may be seen as close to health data, is stored only with your explicit consent. Height and weight are not sent to the AI provider; the AI is told never to comment on your body, weight or health.",
+              "We do not infer special category information such as ethnic origin, health or religion from your photos or any other data."
             ]
           },
           {
-            "heading": "Sharing and transfers",
+            "heading": "Why we use your data and our lawful basis",
             "paragraphs": [
-              "When you go to a brand's store to buy a product, payment and delivery are completed there; Droblet does not receive payment details.",
-              "Draft — pending legal review: processors, recipient groups and safeguards for international transfers."
+              "- Opening your account, signing you in, sending password reset e-mails and providing the Service (wardrobe, looks, calendar, trips, shop, social features): performance of our contract with you (UK GDPR art. 6(1)(b)).",
+              "- Generating “See it on me” images from your full-body photo, analysing your colour palette from your face photo and storing your weight: your explicit consent (art. 6(1)(a) and, where needed, art. 9(2)(a)). You can withdraw it at any time.",
+              "- Suggesting type, colour and fabric from item photos with AI and removing backgrounds; preparing stylist, weekly plan and packing suggestions: performance of the contract.",
+              "- Finding friends from contacts: your consent; for the people in your contacts, legitimate interests (art. 6(1)(f)), because their data never leaves your device in readable form and is not stored.",
+              "- Showing your profile card in search and your closet to other users according to your visibility setting: performance of the contract (you choose the setting).",
+              "- Verifying membership and credit purchases and managing your membership and credits: performance of the contract; legal obligation for keeping records (art. 6(1)(c)).",
+              "- Service notifications such as follow requests and friend ratings: performance of the contract; you can switch them off in settings.",
+              "- Notifications of a marketing nature such as the weekly edit and price drops: your consent (see section 16).",
+              "- Matching your click to a brand with the order that follows (commission, offering to add what you bought to your wardrobe, adding to your watch list after 48 hours): our legitimate interest in sustaining the Service's revenue model and making shopping easier for you; adding to your wardrobe needs your confirmation.",
+              "- Improving and measuring the product with usage events: legitimate interests (with pseudonymous, limited data).",
+              "- Security, preventing fraud and abuse, rate limits, reviewing reports and moderation: legitimate interests and, where applicable, legal obligation.",
+              "- Establishing, exercising or defending legal claims and responding to authorities: legal obligation and legitimate interests.",
+              "Where we rely on legitimate interests we have balanced them against your rights and freedoms; you can ask for this assessment and object to the processing."
             ]
           },
           {
-            "heading": "Retention and deletion",
+            "heading": "AI processing",
             "paragraphs": [
-              "You can delete your photos and generated images from Profile › Privacy, and your whole account from the app or from the Delete my account page on this site.",
-              "Draft — pending legal review: retention periods."
+              "Our AI features are provided by OpenAI (OpenAI, L.L.C. / OpenAI Ireland Ltd [LEGAL REVIEW: contracting entity]). AI calls are made only from our servers; the app never connects to OpenAI directly. What each feature sends:",
+              "- Item recognition and background removal: the item or outfit photo with its metadata removed.",
+              "- “See it on me”: your full-body photo and the images of the selected pieces.",
+              "- Colour palette: your face photo.",
+              "- Stylist, weekly plan, packing: date, season, occasion, weather, your style profile, your palette result, the type, colour, fabric and season of your wardrobe items, any free text you write, and your language. Your name, e-mail, height and weight are not sent.",
+              "OpenAI is a processor acting on our behalf and on our instructions. Under OpenAI's API terms, data sent through the API is not used to train its models; it may be retained for [OPENAI RETENTION] to monitor for abuse. [LEGAL REVIEW: data processing agreement and zero data retention option]",
+              "AI output is a suggestion only; we make no automated decision with legal or similarly significant effects on you (UK GDPR art. 22). AI suggestions enter your saved data only after you confirm them."
+            ]
+          },
+          {
+            "heading": "Finding friends from your contacts",
+            "paragraphs": [
+              "This feature is optional. The app first explains what will happen and asks for your agreement; only if you agree does your phone ask for contacts permission.",
+              "On your phone, the e-mail addresses in your contacts are turned into SHA-256 hashes with a single-use salt that changes on every request. Only these hashes are sent to us; names, phone numbers and the e-mail addresses themselves never leave your phone.",
+              "We compare the hashes with values made the same way from our members' verified e-mail addresses and show you the profile cards of the members found (as far as their visibility settings allow). Uploaded hashes are neither saved nor logged; the salt is deleted after use and expires within 10 minutes at the latest. At most 10 matches can be run per day.",
+              "Phone numbers are not used by this feature. You can withdraw the permission at any time in your phone's settings; as no contact data is stored, there is nothing to delete. If you do not want to be found from other people's contacts, the only way at the moment is to delete your account; a separate “don't match me” option may be added later."
+            ]
+          },
+          {
+            "heading": "Shopping links and commission",
+            "paragraphs": [
+              "When you go to a brand to buy a product we add a click id to the link and record the click with your account, the products and the look, if any. Your name, e-mail or any other identifier is not sent to the brand or to the affiliate network (Admitad, Gelir Ortakları / ReklamAction, or a brand with a direct agreement).",
+              "If you place an order, the network or brand tells us the order number, amount, currency and status against that click id. We use this to calculate the commission, to offer to add what you bought to your wardrobe, and to avoid adding a product you bought to your watch list. If no order arrives within 48 hours, the products are added to your watch list with notifications off.",
+              "The information you give on the brand's website (name, address, payment) is the brand's responsibility and follows the brand's privacy policy. Cookies used by networks and brands on their own websites are also their responsibility."
+            ]
+          },
+          {
+            "heading": "Usage events (our own analytics)",
+            "paragraphs": [
+              "We use no third-party analytics, advertising or tracking SDKs and we do not read the advertising identifier (IDFA/AAID). To improve the product, the app sends events from a fixed list (for example “sign-up completed”, “membership screen viewed”, “credit spent”) to our own servers.",
+              "When events are stored, a one-way hash replaces your account id; events cannot contain names, e-mail addresses or free text, only short predefined values (for example a screen name, a product id or a number). Event records are deleted automatically after 400 days."
+            ]
+          },
+          {
+            "heading": "What other users can see",
+            "paragraphs": [
+              "- Everyone (in search): your username, display name, style tags, style match percentage, and follower and following counts. Private accounts are visible only to people they have a follow relationship with.",
+              "- Depending on your visibility setting (Public: everyone; Followers only: followers you approved; Private: nobody): your processed item images and their names, your looks and your looks' average rating.",
+              "- Nobody, in any setting: your full-body and face photos, the images generated on you, your colour palette, your height, weight and size, your calendar and wear log, your trips, cart, watch list, notification settings and e-mail.",
+              "Look images that your friends see are made of item images, never your “See it on me” image. Item images are the background-removed images, not the original photo you took.",
+              "Someone who opens your invite link sees only your first name on the web page."
+            ]
+          },
+          {
+            "heading": "Who we share data with",
+            "paragraphs": [
+              "We do not sell your data or share it for advertising. To provide the Service we share it only as far as needed with:",
+              "- Amazon Web Services (AWS): servers, database and photo storage; data is stored in the EU, in the Frankfurt region (eu-central-1). Processor.",
+              "- OpenAI: AI processing (section 6). Processor.",
+              "- Twilio SendGrid: password reset e-mails; your e-mail address and the e-mail content. Processor.",
+              "- Cloudflare: delivering and protecting the website; visitors' IP addresses and request details. Processor.",
+              "- Apple (Apple Push Notification service) and Google (Firebase Cloud Messaging): delivering notifications to your device; the device's push token and the notification text.",
+              "- Apple and Google: Sign in with Apple / Google and App Store / Google Play payments. These companies are separate controllers for their own services.",
+              "- Open-Meteo: weather. Our server sends only the coordinates of the city you chose; never your identity or IP address.",
+              "- Admitad, Gelir Ortakları (ReklamAction) and brands with direct agreements: only the click id (section 8).",
+              "- Other users: as described in section 10.",
+              "- Courts, law enforcement and regulators: where the law requires it or to protect someone's vital interests.",
+              "- Our legal, accounting and audit advisers; in a merger, transfer or sale of our company, the buyer or successor, who must keep to this policy.",
+              "You can ask for the current list of processors at [CONTACT E-MAIL]."
+            ]
+          },
+          {
+            "heading": "International transfers",
+            "paragraphs": [
+              "Droblet is a UK company and our service providers are in several countries. Your data is therefore transferred outside Türkiye and the UK, in particular to the EU (Germany — AWS) and the US (OpenAI, Twilio SendGrid, Google, Apple, Cloudflare).",
+              "Transfers from the UK to the EU rely on the UK's adequacy regulations for the EU/EEA. Transfers to the US and other countries rely on [TRANSFER MECHANISM] (for example certified recipients under the UK–US data bridge, the ICO International Data Transfer Agreement, or the UK Addendum to the EU Standard Contractual Clauses).",
+              "Transfers from Türkiye abroad are subject to KVKK art. 9; the grounds are set out in the KVKK Information Notice. [LEGAL REVIEW: KVKK standard contracts and notification to the Board]",
+              "You can ask for a copy of the transfer safeguards at [CONTACT E-MAIL]."
+            ]
+          },
+          {
+            "heading": "How long we keep data",
+            "paragraphs": [
+              "- Account, profile, style and body profile, wardrobe, looks, plans, trips, cart, watch list, favourites, follow relationships, the ratings you give, palette result and generated images: until you delete them or your account.",
+              "- Full-body and face photos: until you delete or replace them or delete your account.",
+              "- Unprocessed uploads (the raw photo before processing): 1 day at most.",
+              "- Item drafts awaiting your confirmation and AI job records: 7 days.",
+              "- “Not for me” feedback, credit movements and credit reservations: 400 days or until you delete your account, whichever comes first.",
+              "- Usage events: 400 days (pseudonymous).",
+              "- Password reset link: 30 minutes. Session: access token 60 minutes, refresh token 60 days.",
+              "- Contact-matching salt: 10 minutes at most; uploaded hashes: never stored.",
+              "- Notification delivery records: 14 days; store notification records: 90 days.",
+              "- Clicks through to brands and order notifications: [AFFILIATE RECORD RETENTION]; when you delete your account the link between these records and your account is deleted, and the remaining revenue record is anonymous.",
+              "- Reports: [REPORT RETENTION]; when you delete your account, reports about you are deleted and reports you filed remain without your identity.",
+              "- Server and security logs: [LOG RETENTION]. Logs never contain e-mail addresses, passwords, photos, the free text you write or AI responses.",
+              "- Backups: the live database is protected by 30-day point-in-time recovery; deleted data leaves the backups within 30 days at the latest. Versioning is switched off on photo storage, so no older copy of a deleted photo is kept.",
+              "Data we must keep longer because of a legal obligation or an ongoing dispute is kept only for that purpose and only as long as needed."
+            ]
+          },
+          {
+            "heading": "Deleting photos and deleting your account",
+            "paragraphs": [
+              "Profile › Privacy › “Delete my photos and generated images” deletes your full-body and face photos, every image generated on you and the colour palette result derived from your face photo; pending AI jobs using these photos are cancelled. If you delete only the full-body photo, the images generated with it are deleted too; if you delete only the face photo, the palette result is deleted too. Your wardrobe items are not affected; you can delete them one by one.",
+              "You can delete your account in the app (Profile › Settings › Delete my account) or at droblet.alatech.co/delete-account. Deletion covers your account, sign-in identities, profile, all photos and generated images, wardrobe, looks, plans, trips, cart, watch list, device and notification records, follow relationships and follow requests (on both sides), ratings you gave and received, saved looks, blocks, reports about you, your invite code and your entry in the contact-matching directory. If you signed in with Apple, the link with Apple is revoked too.",
+              "What remains after deletion: reports you filed (without your identity), anonymous revenue records no longer linked to your account, pseudonymous usage events (for up to 400 days) and backups for up to 30 days.",
+              "Deleting your account does not cancel an App Store or Google Play subscription; you must cancel it separately in the store settings."
             ]
           },
           {
             "heading": "Your rights",
             "paragraphs": [
-              "Draft — pending legal review: your rights under KVKK Article 11 and the UK GDPR, and how to exercise them."
+              "Under the UK GDPR you have the right to:",
+              "- access your data and get a copy;",
+              "- have inaccurate or incomplete data corrected;",
+              "- have your data erased;",
+              "- have processing restricted;",
+              "- object to processing based on legitimate interests; you can always object to direct marketing;",
+              "- receive the data you gave us, processed by automated means on the basis of contract or consent, in a structured, machine-readable format and have it sent to another service (data portability);",
+              "- withdraw your consent at any time (this does not affect the lawfulness of processing before the withdrawal);",
+              "- not be subject to decisions based solely on automated processing that significantly affect you.",
+              "If you live in Türkiye, your rights under KVKK art. 11 are explained in the KVKK Information Notice.",
+              "Send your request to [CONTACT E-MAIL] from the e-mail address registered to your account. We may ask for more information to confirm your identity. We answer within one month at the latest (for complex requests this may be extended by two further months; we will tell you if so). Requests are free of charge.",
+              "You can see, correct and delete most of your data yourself in the app.",
+              "If you are not satisfied after contacting us, you can complain to the UK Information Commissioner's Office (ICO, ico.org.uk) or, in Türkiye, to the Personal Data Protection Board (Kişisel Verileri Koruma Kurulu)."
             ]
           },
           {
-            "heading": "Contact",
+            "heading": "Notifications and marketing",
             "paragraphs": [
-              "Draft — pending legal review: data controller contact details and request channels."
+              "Push notifications are sent only if you allow notifications on your phone. You can switch each type on or off in Profile › Settings › Notifications:",
+              "- Morning outfit reminder (when you planned a look for that day), follow requests and friend ratings: service notifications.",
+              "- Weekly edit and price drops on products in your watch list: these may contain products and offers and can count as marketing; we ask for your separate consent for them. [LEGAL REVIEW: default setting]",
+              "We do not currently send marketing e-mails or text messages. If we do, we will ask for your explicit consent first and give you a way to opt out in every message."
+            ]
+          },
+          {
+            "heading": "Children",
+            "paragraphs": [
+              "Droblet is not for anyone under 18 and we do not knowingly collect data from anyone under 18. If we learn that someone under 18 has opened an account, we delete the account and its data. If you notice this, write to [CONTACT E-MAIL].",
+              "If a version with parental consent for users aged 13 to 18 is offered later, this policy will be updated before then."
+            ]
+          },
+          {
+            "heading": "Security",
+            "paragraphs": [
+              "We protect your data with: encryption on every connection (TLS); encryption of the database and photo storage; photo storage closed to the public with short-lived private links; passwords stored with a strong hashing algorithm; each user's data kept under its own key and opened to another user only through the visibility rules; rate limits on sign-in and sensitive actions; role-based, logged administrator access; and an admin panel that never shows users' photos.",
+              "No system is completely secure. If a breach affects your data we will tell the competent authority, and you where required, within the legal deadlines."
+            ]
+          },
+          {
+            "heading": "Cookies",
+            "paragraphs": [
+              "Our website's own code sets no cookies, stores nothing in your browser and contains no analytics or advertising tools. The app does not use cookies. Details are in the Cookie Notice."
+            ]
+          },
+          {
+            "heading": "Changes and contact",
+            "paragraphs": [
+              "We may update this policy. We will tell you about material changes in the app or by e-mail before they take effect; if a new purpose needs your consent, we will ask for it first.",
+              "Questions and requests: [CONTACT E-MAIL] · Droblet Ltd, [COMPANY ADDRESS], London, United Kingdom."
             ]
           }
         ]
       },
       "kvkk": {
         "eyebrow": "LEGAL",
-        "title": "KVKK Privacy Notice",
-        "description": "Droblet KVKK Privacy Notice — draft, pending legal review.",
-        "intro": "This is a draft of the privacy notice prepared under Article 10 of the Turkish Personal Data Protection Law no. 6698 (KVKK). The Turkish version of this notice is the original.",
+        "title": "KVKK Information Notice",
+        "description": "Information notice for Droblet users under art. 10 of Turkish Personal Data Protection Law No. 6698 (KVKK) — English courtesy translation, draft, pending legal review.",
+        "intro": "This notice is given under art. 10 of Turkish Personal Data Protection Law No. 6698 (“KVKK”) and the Communiqué on the Procedures and Principles for Fulfilling the Obligation to Inform, to inform people who use the Droblet mobile app and the droblet.alatech.co website. This English text is a courtesy translation; the Turkish original prevails. Processing that needs your explicit consent uses separate explicit consent texts; this notice is not a consent statement.",
+        "summary": [
+          "The data controller is Droblet Ltd, established in London; its representative in Türkiye is [TÜRKİYE REPRESENTATIVE].",
+          "We process account, profile, wardrobe, photo, body, social, shopping, membership and security data to provide the Service.",
+          "We rely on your explicit consent for AI processing of your full-body and face photos, your weight, finding friends from contacts and marketing notifications.",
+          "Data is stored on AWS servers in Germany and transferred to OpenAI (US) for AI processing.",
+          "You can exercise your rights under KVKK art. 11 by applying to [CONTACT E-MAIL]; we answer within 30 days at the latest."
+        ],
         "sections": [
           {
-            "heading": "Data controller",
+            "heading": "Data controller and representative",
             "paragraphs": [
-              "Droblet Ltd (London, United Kingdom).",
-              "Draft — pending legal review: registration and address details, and the representative in Türkiye if any."
+              "Data controller: Droblet Ltd, [COMPANY ADDRESS], London, United Kingdom (company no. [COMPANY NUMBER]). E-mail: [CONTACT E-MAIL]. Registered electronic mail (KEP) address: [KEP ADDRESS].",
+              "Data controller representative (Türkiye): [TÜRKİYE REPRESENTATIVE].",
+              "Registration with the Data Controllers' Registry (VERBİS): [VERBIS REGISTRATION STATUS]."
             ]
           },
           {
-            "heading": "Personal data processed",
+            "heading": "Categories of personal data processed",
             "paragraphs": [
-              "Identity and contact data (such as your e-mail address), visual data (photos of pieces, full-length and face photo, images generated on you), and usage data (wardrobe, look, calendar and suitcase records).",
-              "Draft — pending legal review: the data category and scope of the face photo and colour palette analysis."
+              "- Identity: name, username (@handle), display name.",
+              "- Contact: e-mail address.",
+              "- Visual records: full-body photo, face photo, item and outfit photos, processed item images, images generated on you.",
+              "- Physical characteristics and body information: height, size, optional weight; the colour palette result derived from the face photo (season type, shades).",
+              "- Customer transactions: style profile (style tags, budget), wardrobe records, looks, calendar and wear log, trips (city, dates), stylist requests and feedback, cart, watch list, favourites, clicks through to brands and order notifications (order no., amount, status), subscription status, store transaction ids, AI credit balance and movements, support correspondence.",
+              "- Social interaction: follow relationships and requests, ratings given and received, saved looks, blocks, reports and report notes, closet visibility setting.",
+              "- Location: the city you choose for weather (the device location is not read).",
+              "- Marketing: notification preferences and consent to marketing notifications.",
+              "- Transaction security: password hash, session tokens, Apple/Google account ids, encrypted Apple refresh token, device id, push token, IP address, server logs, sign-in attempt counters, account suspension records.",
+              "- Contacts: single-use hashes made on your phone from the e-mail addresses in your contacts (not stored; names, numbers and the addresses themselves never leave your phone).",
+              "- Usage events: app events in which a hash replaces the account id and which contain no free text.",
+              "Special categories of personal data: We use the face photo only for the colour palette analysis; we do not identify or verify anyone or run face recognition, and we do not extract or store a biometric template that uniquely identifies a person. We therefore consider that the face photo is not processed as biometric data. Weight may be regarded as health-related data. In both cases we process this data only with your explicit consent. [LEGAL REVIEW: KVKK art. 6 assessment]"
             ]
           },
           {
             "heading": "Purposes of processing",
             "paragraphs": [
-              "Draft — pending legal review: purposes of processing for each data category."
+              "- Creating your account, authentication and session management, password reset;",
+              "- keeping your digital wardrobe, looks, calendar, wear log and trip plans;",
+              "- AI item recognition, background removal, and outfit, weekly plan and packing suggestions;",
+              "- with your explicit consent, generating “See it on me” images from your full-body photo and analysing your colour palette from your face photo;",
+              "- making suggestions based on the weather;",
+              "- providing social features (search, follow, rating, saving, invitations, sharing) according to your visibility setting;",
+              "- with your explicit consent, finding friends from your contacts;",
+              "- providing the shop catalogue, sending you to brands, tracking affiliate commission, offering to add purchased products to your wardrobe, watch list and price tracking;",
+              "- verifying Droblet Membership and extra credit purchases, managing membership and credits;",
+              "- sending service notifications and, with your explicit consent, marketing notifications;",
+              "- developing and measuring the product;",
+              "- information and transaction security, preventing abuse and fraud, reviewing reports and enforcing the community guidelines;",
+              "- answering requests and complaints and handling data subject applications;",
+              "- meeting legal obligations, informing competent authorities and protecting rights in legal disputes."
             ]
           },
           {
-            "heading": "Legal bases and method of collection",
+            "heading": "Legal grounds",
             "paragraphs": [
-              "Draft — pending legal review: legal bases under KVKK Articles 5 and 6; data is collected electronically through the app."
+              "- Processing directly related to the formation or performance of a contract (KVKK art. 5/2-c): account, profile, wardrobe, looks, plans, trips, AI item recognition and style suggestions, social features, shop and cart, membership and credits, service notifications, support.",
+              "- Compliance with the controller's legal obligation (art. 5/2-ç): requests of competent authorities, data subject applications, keeping required records.",
+              "- Establishing, exercising or protecting a right (art. 5/2-e): dispute and complaint processes.",
+              "- The controller's legitimate interest, provided it does not harm your fundamental rights and freedoms (art. 5/2-f): security and abuse prevention, moderation, matching affiliate clicks and orders, product development with pseudonymous usage events.",
+              "- Explicit consent (art. 5/1 and, where needed, art. 6): AI processing of your full-body and face photos (“See it on me”, colour palette), storing your weight, finding friends from contacts, notifications of a marketing nature and, where needed, incidental transfers abroad. You can withdraw your explicit consent at any time; the related feature then stops working, but you can keep using Droblet's other features."
             ]
           },
           {
-            "heading": "Explicit consent",
+            "heading": "Method of collection",
             "paragraphs": [
-              "Draft — pending legal review: the explicit consent text for processing the full-length and face photo, the colour palette analysis and international transfers, and how consent is withdrawn."
+              "Your personal data is collected electronically: through the information you enter in the app and on the website, the photos you upload, and automatically while you use the app. Data is also received electronically from Apple and Google (sign-in), the App Store and Google Play (purchase and subscription notifications), affiliate networks and brands (order notifications) and other users (follow requests, ratings, reports)."
             ]
           },
           {
-            "heading": "Transfers",
+            "heading": "Transfers of personal data",
             "paragraphs": [
-              "Draft — pending legal review: the recipient groups data is transferred to and the basis for international transfers."
+              "Within Türkiye: when you go to a brand, only a click id containing neither your name nor your e-mail is shared with the affiliate network Gelir Ortakları (ReklamAction) and with brands that have a direct agreement. Where the law requires it, data may be transferred to competent public authorities and courts.",
+              "Abroad: to provide the Service your personal data is transferred to these recipients:",
+              "- Droblet Ltd (United Kingdom): providing the Service as data controller.",
+              "- Amazon Web Services (Germany, Frankfurt): servers, database and photo storage.",
+              "- OpenAI (US): AI processing — item and outfit photos, with your explicit consent your full-body and face photos, style profile and wardrobe attributes.",
+              "- Twilio SendGrid (US): password reset e-mails — e-mail address.",
+              "- Cloudflare (US and global): delivering and protecting the website — IP address.",
+              "- Apple and Google (US): sign-in, in-app purchase verification and delivering notifications.",
+              "- Admitad (affiliate network abroad [LEGAL REVIEW: country]): the click id only.",
+              "- Open-Meteo ([LEGAL REVIEW: country]): only the coordinates of the city you chose; no identity data is transferred.",
+              "Transfers abroad are made under KVKK art. 9 on the basis of [TRANSFER MECHANISM] (for example standard contracts announced by the Board, signed with the recipients and notified to the Authority in time). For incidental transfers without these safeguards, your explicit consent under art. 9/6-a may be relied on. [LEGAL REVIEW: transfer mechanism]"
             ]
           },
           {
-            "heading": "Your rights under KVKK Article 11",
+            "heading": "Retention periods",
             "paragraphs": [
-              "Draft — pending legal review: the list of rights and how to apply."
+              "Your personal data is kept as long as needed for the purpose: account and content data until you delete it or your account; unprocessed uploads 1 day at most; item drafts and AI job records 7 days; usage events, credit movements and stylist feedback 400 days; password reset link 30 minutes; refresh token 60 days. Affiliate records are kept for [AFFILIATE RECORD RETENTION], reports for [REPORT RETENTION] and server logs for [LOG RETENTION]. Deleted data leaves backups within 30 days at the latest. The detailed table is in the Privacy Policy.",
+              "When the period ends, data is deleted, destroyed or anonymised. [LEGAL REVIEW: personal data retention and destruction policy]"
+            ]
+          },
+          {
+            "heading": "Your rights under KVKK art. 11",
+            "paragraphs": [
+              "By applying to the data controller you can:",
+              "- learn whether your personal data is processed;",
+              "- request information about it if it is;",
+              "- learn the purpose of processing and whether it is used for that purpose;",
+              "- know the third parties in Türkiye or abroad to whom it is transferred;",
+              "- request correction if it is incomplete or inaccurate;",
+              "- request erasure or destruction under the conditions of KVKK art. 7;",
+              "- request that correction, erasure and destruction be notified to the third parties to whom the data was transferred;",
+              "- object to a result against you arising from analysis of the data exclusively by automated systems;",
+              "- claim compensation if you suffer damage because of unlawful processing."
+            ]
+          },
+          {
+            "heading": "How to apply",
+            "paragraphs": [
+              "In line with the Communiqué on the Procedures and Principles of Application to the Data Controller, you can send your application to [CONTACT E-MAIL] from the e-mail address registered with Droblet, with a secure electronic or mobile signature, by registered electronic mail (KEP) to [KEP ADDRESS], or in writing to [COMPANY ADDRESS]. Your application must include your name, surname, Turkish ID number (if you are a Turkish citizen) or nationality and passport or ID number (if you are not), your address for notifications, your e-mail address if any, and the subject of your request.",
+              "We resolve your application free of charge as soon as possible and within 30 days at the latest. If the action involves an additional cost, the fee in the Board's tariff may be charged. If your application is refused, you find the answer insufficient or we do not answer in time, you can complain to the Personal Data Protection Board within 30 days of learning the answer and in any case within 60 days of your application.",
+              "You can see, correct and delete most of your data yourself in the app: Profile › Privacy for photos, and Profile › Settings › Delete my account or droblet.alatech.co/delete-account for your account."
+            ]
+          },
+          {
+            "heading": "Updates",
+            "paragraphs": [
+              "We update this notice when our processing changes. The current text is always at droblet.alatech.co/kvkk; we announce material changes in the app."
+            ]
+          }
+        ]
+      },
+      "consents": {
+        "eyebrow": "LEGAL",
+        "title": "Consent Texts",
+        "description": "The separate consent texts the Droblet app shows on the relevant screens: photos and AI, weight, contacts, marketing notifications, transfers abroad — draft, pending legal review.",
+        "intro": "The texts below are shown one by one in the app when you first use the related feature. Each one is optional and covers only its own subject. This page collects them all so that you can read later what you agreed or did not agree to. General information on how your personal data is processed is in the KVKK Information Notice and the Privacy Policy.",
+        "summary": [
+          "You do not have to consent; if you don't, only the related feature does not work and you can use the rest of Droblet as usual.",
+          "Each consent is separate and covers only its own subject; you never give them all with one tap.",
+          "You can withdraw a consent you gave at any time in the app.",
+          "We record when you consented and to which version of the text."
+        ],
+        "sections": [
+          {
+            "heading": "How these texts work",
+            "paragraphs": [
+              "Each text comes with an unticked box or an “I agree” button on the related screen. You can read the whole text before agreeing. Your consent is specific, informed and freely given within the meaning of KVKK art. 3 and UK GDPR art. 4(11).",
+              "When you consent, the date, time, text version and which consent you gave are recorded with your account; the record is kept until you delete your account. [LEGAL REVIEW: retention of consent records]",
+              "No consent is a condition for using the features of Droblet that do not depend on it."
+            ]
+          },
+          {
+            "heading": "Consent 1 — Full-body photo and “See it on me”",
+            "paragraphs": [
+              "Purpose: to generate images that show outfits and shop products on you (“See it on me”).",
+              "Data: the full-body photo you upload and the images generated from it. The photo's location and device information is removed in the first processing step after upload.",
+              "Who processes it and where: Droblet Ltd; the photo is stored on AWS servers in Frankfurt (Germany) and sent to OpenAI (US) to generate the images.",
+              "How long: until you delete the photo or the generated images, or your account. The photo and the images are never shown to other users in any setting.",
+              "If you do not consent: you cannot use “See it on me”; wardrobe, looks, the stylist and the other features keep working.",
+              "Consent statement: “I give my explicit consent to Droblet Ltd processing my full-body photo to generate ‘See it on me’ images, and transferring it for that purpose to AWS (Germany) and OpenAI (US).”"
+            ]
+          },
+          {
+            "heading": "Consent 2 — Face photo and colour palette analysis",
+            "paragraphs": [
+              "Purpose: to find the colour season and shades that suit you by looking at the skin, hair and eye colours in your face photo (colour palette analysis).",
+              "Data: the face photo you upload and the palette result derived from it (season type, shades that suit you and shades to avoid). No identification, verification or face recognition takes place; no face template that uniquely identifies you is extracted or stored.",
+              "Who processes it and where: Droblet Ltd; the photo is stored on AWS servers in Frankfurt (Germany) and sent to OpenAI (US) for the analysis.",
+              "How long: until you delete the photo or your account. When you delete your face photo, the palette result is deleted too. The photo and the palette are never shown to other users in any setting.",
+              "If you do not consent: you cannot use the colour palette analysis; the other features keep working.",
+              "Consent statement: “I give my explicit consent to Droblet Ltd processing my face photo only for colour palette analysis and without identifying me, and transferring it for that purpose to AWS (Germany) and OpenAI (US).”"
+            ]
+          },
+          {
+            "heading": "Consent 3 — Weight",
+            "paragraphs": [
+              "Purpose: to complete your body profile. Weight is optional.",
+              "Data: the weight you enter. It is not sent to the AI provider and is not shown to other users.",
+              "Who processes it and where: Droblet Ltd; stored on AWS servers in Frankfurt (Germany).",
+              "How long: until you remove it or delete your account.",
+              "If you do not consent: you leave the weight field empty; no feature is affected.",
+              "Consent statement: “I give my explicit consent to Droblet Ltd storing my weight as part of my body profile.”"
+            ]
+          },
+          {
+            "heading": "Consent 4 — Finding friends from your contacts",
+            "paragraphs": [
+              "Purpose: to find people in your contacts who use Droblet.",
+              "Data: on your phone, the e-mail addresses in your contacts are turned into SHA-256 hashes with a single-use salt that changes on every request; only these hashes are sent. Names, phone numbers and the e-mail addresses themselves never leave your phone.",
+              "Who processes it and where: Droblet Ltd; the hashes are held in memory on AWS servers in Frankfurt (Germany) only while the match runs.",
+              "How long: the hashes are neither saved nor logged; the salt is deleted after use and expires within 10 minutes at the latest.",
+              "If you do not consent: your phone never asks for contacts permission; you can find friends by searching for their username or with an invite link.",
+              "Consent statement: “I give my explicit consent to the e-mail addresses in my contacts being turned into hashes on my phone and sent to Droblet Ltd to find my friends on Droblet.”"
+            ]
+          },
+          {
+            "heading": "Consent 5 — Marketing notifications",
+            "paragraphs": [
+              "Purpose: to send notifications that may contain products and offers, such as the weekly edit (looks and products picked by the editor) and price drops on products in your watch list.",
+              "Data: your notification preferences, your device's push token, your language and time zone, your watch list.",
+              "Who processes it and where: Droblet Ltd; notifications are delivered through the Apple Push Notification service on iOS and Google Firebase Cloud Messaging on Android (US).",
+              "How long: until you withdraw your consent or delete your account.",
+              "If you do not consent: these notifications are not sent. Service notifications such as the morning outfit reminder and follow requests do not depend on this consent and can be switched off one by one.",
+              "Consent statement: “I agree to receive notifications that may contain products and offers, such as the weekly edit and price drops.” [LEGAL REVIEW: scope of Turkish Law No. 6563 and the IYS register]"
+            ]
+          },
+          {
+            "heading": "Consent 6 — Transfers abroad",
+            "paragraphs": [
+              "Purpose: transferring your personal data outside Türkiye to provide the Service, because Droblet is established in the UK and its service providers are abroad.",
+              "Data and recipients: your account, profile, wardrobe and usage data to Droblet Ltd (UK) and AWS (Germany); your photos and wardrobe attributes to OpenAI (US) for AI processing; your e-mail address to Twilio SendGrid (US); your push token to Apple and Google (US).",
+              "Basis: these transfers rely first on the appropriate safeguards in KVKK art. 9 (for example standard contracts). This consent is asked under KVKK art. 9/6-a for incidental transfers where those safeguards are not in place. [LEGAL REVIEW: whether this consent is needed and its scope]",
+              "How long: until you withdraw your consent or delete your account.",
+              "If you do not consent or withdraw: transfers without appropriate safeguards are not made; features that depend on them (for example AI) may not be available.",
+              "Consent statement: “I give my explicit consent to my personal data being transferred abroad to the recipients and for the purposes above, in incidental cases where the safeguards of KVKK art. 9 are not in place.”"
+            ]
+          },
+          {
+            "heading": "Withdrawing your consent",
+            "paragraphs": [
+              "You can withdraw any consent at any time:",
+              "- Full-body and face photo: delete the photo under Profile › Privacy; the related consent counts as withdrawn and the generated images or the palette result are deleted.",
+              "- Weight: clear the weight field in your body profile in the app.",
+              "- Contacts: switch off Droblet's contacts permission in your phone's settings.",
+              "- Marketing notifications: switch off the notification under Profile › Settings › Notifications.",
+              "- In any other case, or in addition to the above: write to [CONTACT E-MAIL].",
+              "Withdrawing consent does not affect the lawfulness of processing before the withdrawal. [LEGAL REVIEW: consent withdrawal screen in the app]"
             ]
           }
         ]
@@ -406,47 +885,128 @@
       "subscriptionTerms": {
         "eyebrow": "LEGAL",
         "title": "Subscription Terms",
-        "description": "Droblet Membership subscription terms — draft, pending legal review.",
-        "intro": "This page summarises the terms of the Droblet Membership subscription.",
+        "description": "Droblet Membership and extra AI image packs: what is included, price, free trial, auto-renewal, cancellation, refunds and the right to cancel — draft, pending legal review.",
+        "intro": "These terms govern the Droblet Membership subscription and extra AI image packs and form part of the Terms of Use. Purchases are made through the App Store or Google Play; payment, billing and refunds are also subject to the terms of the store you use.",
+        "summary": [
+          "Droblet Membership is monthly or yearly; the current price and any free trial are shown in the store before you buy.",
+          "Membership includes 30 AI images every month. Unused images do not roll over to the next month.",
+          "Membership renews automatically and your store account is charged unless you cancel at least 24 hours before the end of the period.",
+          "You cancel in the App Store or Google Play subscription settings. Deleting the app or your account does not cancel the subscription.",
+          "Refund requests go to Apple or Google; Droblet does not take the payment and so cannot refund directly.",
+          "When your membership ends your data is not deleted; only the membership features are switched off."
+        ],
         "sections": [
           {
             "heading": "What Droblet Membership includes",
             "paragraphs": [
-              "30 AI images a month, the personal style advisor, the smart suitcase and the colour palette analysis.",
-              "Wardrobe, looks, calendar, store and friends are open without a membership too."
+              "- 30 AI images (“See it on me”) in every subscription month;",
+              "- a personal stylist: daily outfit suggestions and a weekly plan;",
+              "- a smart suitcase: packing lists and daily looks for your trips;",
+              "- colour palette analysis from your face photo;",
+              "- unlimited AI item recognition.",
+              "Text-based AI features such as the stylist, packing and the palette do not use AI image credits."
+            ]
+          },
+          {
+            "heading": "What is free without membership",
+            "paragraphs": [
+              "Wardrobe (including adding items by hand), looks, calendar, shop, cart, watch list and friends are free without membership. Non-members can use AI item recognition for free on their first 10 item photos; after that they can always keep adding items by hand.",
+              "When a non-member taps an AI feature, the membership screen is shown."
+            ]
+          },
+          {
+            "heading": "Plans and prices",
+            "paragraphs": [
+              "Droblet Membership comes in two plans: monthly and yearly. Prices are shown in Turkish lira, including taxes, in the App Store or Google Play before you buy; the price shown in the app is read from the store.",
+              "The store calculates the price with the currency and taxes it applies. Price and currency may differ depending on your country."
+            ]
+          },
+          {
+            "heading": "Free trial",
+            "paragraphs": [
+              "New subscribers may be offered a free trial through the store. The trial length and the amount charged when it ends are shown on the store's purchase screen before you confirm.",
+              "Unless you cancel at least 24 hours before the trial ends, the trial turns into a paid subscription and the price of the plan you chose is charged. If you cancel during the trial you keep the membership features until the trial ends.",
+              "Under the store's eligibility rules, the free trial can be used once per Apple ID or Google account. If you buy a paid plan during the trial, the rest of the trial is forfeited."
+            ]
+          },
+          {
+            "heading": "Payment and auto-renewal",
+            "paragraphs": [
+              "Payment is charged to the payment method of your Apple ID or Google account when you confirm the purchase.",
+              "The subscription renews automatically for the same period at the then-current price unless it is cancelled at least 24 hours before the end of the period; the renewal is charged within the 24 hours before the period ends.",
+              "If a renewal payment fails, the store retries for a while; during that time (grace period) your access to membership features may continue as the store reports. If payment cannot be collected, the membership ends."
+            ]
+          },
+          {
+            "heading": "Cancellation",
+            "paragraphs": [
+              "You can cancel your subscription at any time:",
+              "- iPhone: Settings › your name › Subscriptions › Droblet Membership › Cancel Subscription;",
+              "- Android: Google Play › Profile › Payments & subscriptions › Subscriptions › Droblet Membership › Cancel subscription.",
+              "Cancellation takes effect at the end of the current period; you keep membership features until then. No refund is given for a partly used period, except under the store's rules.",
+              "Deleting the app or your Droblet account does not cancel the subscription. Cancel in the store before you delete your account."
             ]
           },
           {
             "heading": "AI image allowance",
             "paragraphs": [
-              "Membership includes 30 AI images a month. The allowance renews every month; unused images do not carry over to the next month.",
-              "If you need more, you can buy an extra AI image pack in the app."
+              "Membership includes 30 AI images in every subscription month. One “See it on me” image uses 1 credit. The allowance is topped up to 30 at the start of each subscription month; unused images do not roll over. On the yearly plan the allowance also renews monthly.",
+              "Before a task that will create several images (for example every day of the weekly plan), the app shows how many credits it will use and asks you to confirm. If the image of the same outfit is requested again, it comes from the cache and no second credit is used. If an image cannot be created, the credit is returned.",
+              "You can see your remaining credits on the Profile screen."
             ]
           },
           {
-            "heading": "Price and free trial",
+            "heading": "Extra AI image packs",
             "paragraphs": [
-              "Membership is monthly or yearly. The current price and trial length are shown on the App Store and Google Play.",
-              "Draft — pending legal review: charging at the end of the trial, and taxes."
+              "When your monthly allowance runs out you can buy an extra AI image pack (for example 20 images) in the app. Packs are consumable in-app purchases and can be bought again; the price is shown in the store before you buy.",
+              "Pack credits are used after your monthly allowance and are not removed at the end of the month. Because pack credits are used for “See it on me”, they can be spent only while your membership is active; if your membership ends, your remaining pack credits are kept and can be used when you subscribe again. [LEGAL REVIEW: pack credits tied to membership, and their duration]",
+              "If the store refunds a pack, the credits left from that pack are removed from your balance (the balance never goes below zero); images created before the refund are not deleted."
             ]
           },
           {
-            "heading": "Renewal and cancellation",
+            "heading": "Changing plan and restoring purchases",
             "paragraphs": [
-              "Your membership is managed through the App Store / Google Play and is cancelled there. Deleting your account does not cancel the subscription; cancel it in your store settings first.",
-              "Draft — pending legal review: auto-renewal terms."
+              "You can switch between the monthly and yearly plan in the store's subscription settings. The store decides when the switch takes effect and any price difference (usually an upgrade applies at once and a downgrade at the end of the period). Your AI image month is kept when you switch.",
+              "On a new device or after reinstalling, “Restore purchases” on the membership screen links your subscription to your account again.",
+              "A purchase can be linked to one Droblet account only. A purchase linked to another Droblet account cannot be restored; if that account was deleted, the purchase can be linked to the new account."
             ]
           },
           {
-            "heading": "Refunds and right of withdrawal",
+            "heading": "Refunds",
             "paragraphs": [
-              "Draft — pending legal review: refund conditions and the right of withdrawal."
+              "Apple or Google, not Droblet, takes the payment; so please send refund requests to the store directly:",
+              "- App Store: reportaproblem.apple.com or Apple Support;",
+              "- Google Play: your order history in Google Play or the Google Play refund request page.",
+              "The store decides on refunds under its refund policy. When a subscription is refunded, membership access ends on the refund date.",
+              "This section does not limit your right to cancel below or any other rights you have under consumer law."
             ]
           },
           {
-            "heading": "Changes",
+            "heading": "Right to cancel (withdrawal)",
             "paragraphs": [
-              "Draft — pending legal review: notice of changes to price and scope."
+              "For consumers in Türkiye: under art. 15/1-ğ of the Distance Contracts Regulation, there is no right of withdrawal for services performed instantly in electronic form or intangible goods delivered instantly to the consumer. By confirming at purchase that the membership features are made available immediately, you accept that you lose the right of withdrawal for this reason. You can cancel free of charge at any time during a free trial. [LEGAL REVIEW: applicability to subscriptions and extra packs]",
+              "For consumers in the United Kingdom: under the Consumer Contracts Regulations 2013 you have a 14-day right to cancel for digital content and services. If you expressly ask for digital content (for example an extra AI image pack) to be supplied immediately within the cancellation period and acknowledge that you lose your right to cancel, the right ends once the content is supplied. For the subscription service, if you ask for the service to start within the cancellation period and then cancel, you may have to pay for the service provided up to that point in proportion. [LEGAL REVIEW: subscription rules of the Digital Markets, Competition and Consumers Act 2024]",
+              "You can give notice of cancellation through the store's refund channel or at [CONTACT E-MAIL]; if you contact us, we will help you through the store's refund process."
+            ]
+          },
+          {
+            "heading": "Price and scope changes",
+            "paragraphs": [
+              "We may change the subscription price. We announce price increases before they take effect in the app and, as the store's rules require, through the store; where the store requires it, it asks you to accept the increase. If you do not accept, the subscription ends at the end of the current period.",
+              "If we change the monthly number of AI images or the scope of membership to your disadvantage, we will tell you at least [CHANGE NOTICE PERIOD] in advance; the change applies from the next renewal period and you can cancel before then."
+            ]
+          },
+          {
+            "heading": "When your membership ends",
+            "paragraphs": [
+              "When your membership ends none of your data is deleted. Your wardrobe, looks, calendar, trips, your existing colour palette result and the images already created stay available; only new AI tasks (new images, new suggestions, new analyses) are switched off. Unused monthly AI images expire.",
+              "Your rights to delete your photos, delete your account, change your closet visibility and restore purchases are never restricted on any plan."
+            ]
+          },
+          {
+            "heading": "Contact",
+            "paragraphs": [
+              "For questions about membership, credits or purchases: [CONTACT E-MAIL]. For payments and refunds, please use the store's support channels."
             ]
           }
         ]
@@ -454,33 +1014,178 @@
       "cookies": {
         "eyebrow": "LEGAL",
         "title": "Cookie Notice",
-        "description": "Droblet Cookie Notice — draft, pending legal review.",
-        "intro": "This notice explains the use of cookies and similar technologies on this website.",
+        "description": "Use of cookies and similar technologies on the droblet.alatech.co website and in the Droblet app — draft, pending legal review.",
+        "intro": "This notice explains the use of cookies and similar technologies (browser storage, device storage, tracking pixels) on the droblet.alatech.co website and in the Droblet mobile app.",
+        "summary": [
+          "Our website's own code sets no cookies and saves no data in your browser.",
+          "We use no analytics, advertising, social media or tracking tools, so we do not ask for cookie consent.",
+          "Fonts are served from our own server; opening a page sends no request to Google or any other third party.",
+          "Cloudflare, which delivers and protects the site, may use a strictly necessary security cookie: [CLOUDFLARE COOKIES].",
+          "If we ever add a cookie that is not strictly necessary, we will ask for your consent first."
+        ],
         "sections": [
           {
-            "heading": "Cookies on this site",
+            "heading": "What cookies are",
             "paragraphs": [
-              "This site's own code does not set cookies, does not save data to browser storage, and contains no analytics or advertising tools.",
-              "Draft — pending legal review: the list of strictly necessary cookies the infrastructure provider may use for security."
+              "Cookies are small text files saved in your browser when you visit a website. Similar technologies include the browser's local storage (localStorage, sessionStorage), apps storing data on the device and tracking pixels embedded in pages. In this notice “cookies” covers all of them."
             ]
           },
           {
-            "heading": "Types of cookies",
+            "heading": "What our website uses",
             "paragraphs": [
-              "Draft — pending legal review: definitions of strictly necessary, functional, analytics and marketing cookies and their status on this site."
+              "droblet.alatech.co is a static website. The site's own code:",
+              "- does not set or read cookies;",
+              "- does not save data in localStorage, sessionStorage or IndexedDB;",
+              "- contains no analytics, advertising, retargeting, social media plug-ins or tracking pixels;",
+              "- serves fonts and images from its own domain; opening a page sends no request to Google Fonts or any other third party.",
+              "The “Delete my account” and “Reset password” pages send what you enter to the Droblet API only to carry out that action. During account deletion the session token is kept only in the page's memory; it is never stored in a cookie or browser storage and is gone when you close the page.",
+              "On the link pages (invite, look, password reset) your browser's language setting is read only to send you to the right language page; it is not saved anywhere."
+            ]
+          },
+          {
+            "heading": "Cloudflare",
+            "paragraphs": [
+              "Our website is delivered through Cloudflare. To keep the site fast and secure, Cloudflare processes visitors' IP addresses and request details and may set a strictly necessary security cookie to tell malicious traffic (bots) apart: [CLOUDFLARE COOKIES].",
+              "Such cookies are strictly necessary for the site to run securely and, under the Turkish KVKK Cookie Guidelines and regulation 6 of the UK PECR, need no consent. Cloudflare does not use this information for advertising. [LEGAL REVIEW: confirm Cloudflare settings]"
+            ]
+          },
+          {
+            "heading": "Mobile app",
+            "paragraphs": [
+              "The Droblet app uses no cookies and contains no third-party analytics, advertising or tracking SDKs; it does not read the advertising identifier (IDFA/AAID) and does not track you across apps.",
+              "The app keeps on your device only what it needs to work: session tokens in the device's secure storage (iOS Keychain / Android Keystore), your language preference and a short-lived image cache in the app's own space. The relevant cache is cleared when you sign out and when you delete your photos.",
+              "The usage events the app sends to our own servers are described in the Privacy Policy."
+            ]
+          },
+          {
+            "heading": "External links",
+            "paragraphs": [
+              "When you go from our website or the app to the App Store, Google Play or a brand's shop, those sites may use their own cookies. When you visit a brand in the in-app browser, cookies that the brand and the affiliate network (for example Admitad or Gelir Ortakları / ReklamAction) use to match the order to the click are their responsibility and follow their cookie policies."
             ]
           },
           {
             "heading": "Managing your preferences",
             "paragraphs": [
-              "You can delete or block cookies in your browser settings.",
-              "Draft — pending legal review: preference management if a cookie that requires consent is added."
+              "You can see, delete and block cookies in your browser settings. Blocking Cloudflare's security cookie may make the site show a verification screen in some cases.",
+              "To clear the cache in the app, sign out or uninstall the app."
             ]
           },
           {
             "heading": "Changes and contact",
             "paragraphs": [
-              "Draft — pending legal review."
+              "If we add analytics or any other cookie that is not strictly necessary, we will update this notice and ask for your explicit consent before the cookie is placed; you can use the site without consenting.",
+              "Questions: [CONTACT E-MAIL]."
+            ]
+          }
+        ]
+      },
+      "communityGuidelines": {
+        "eyebrow": "LEGAL",
+        "title": "Community Guidelines",
+        "description": "Community guidelines for items, looks, profiles and ratings on Droblet; reporting, blocking and moderation — draft, pending legal review.",
+        "intro": "On Droblet you can browse your friends' closets, rate their looks and take inspiration from them. These guidelines exist so that everyone feels safe and comfortable in the community. They form part of the Terms of Use.",
+        "summary": [
+          "Share only your own clothes and your own looks; never upload other people's photos.",
+          "Nudity, sexual content, hate, harassment, violence and misleading accounts are not allowed.",
+          "Rate the look, not the person. Ratings are anonymous; don't misuse that.",
+          "You can report and block a person or their content from the ⋯ menu on their profile.",
+          "We review reports within [MODERATION RESPONSE TIME]; we remove content that breaks the rules and may suspend accounts."
+        ],
+        "sections": [
+          {
+            "heading": "What the community shares",
+            "paragraphs": [
+              "On Droblet other users can see (depending on your closet visibility setting):",
+              "- your profile card: username, display name, style tags, follower counts;",
+              "- your wardrobe items: the background-removed item image and the item's name;",
+              "- your looks and their average rating.",
+              "Your full-body and face photos, the images generated on you and your colour palette are never shared. Droblet has no comments or private messages."
+            ]
+          },
+          {
+            "heading": "What you can share",
+            "paragraphs": [
+              "- Photos of clothes, shoes, bags and accessories you own or wear.",
+              "- Looks you create and the names you give them.",
+              "- A username and display name that reflect you and do not impersonate anyone else.",
+              "When you photograph an item, make sure no other people, documents or personal information are visible in the background. The app removes the background of item images; others see only this cleaned image."
+            ]
+          },
+          {
+            "heading": "What you must not share",
+            "paragraphs": [
+              "- Nudity, sexual content, or sexualised use of underwear or swimwear photos;",
+              "- photos of anyone under 18, or any content relating to the sexual abuse of children (we report such content to the authorities);",
+              "- a photo of another person taken or uploaded without their consent;",
+              "- content that demeans, hates or discriminates on the basis of race, ethnic origin, religion, sex, sexual orientation, disability, body or appearance — including usernames and look names;",
+              "- threats, harassment, bullying or content glorifying violence;",
+              "- accounts that impersonate another person, influencer or brand;",
+              "- spam, advertising, referral links, or names containing personal contact details (phone, address, e-mail);",
+              "- counterfeit, smuggled or illegal products, weapons or drugs;",
+              "- images protected by someone else's copyright (for example uploading a brand's campaign photo as if it were your own item). To add shop products to your look, use the shop option in the app."
+            ]
+          },
+          {
+            "heading": "Rating",
+            "paragraphs": [
+              "You can rate looks from 1 to 5 stars. Ratings are anonymous: the look's owner sees only the average and how many people rated it, never who gave what.",
+              "A rating is an opinion on a look's style, not a judgement of a person's body or appearance. Mass or coordinated low ratings to target someone, rating from fake accounts and trading ratings are not allowed."
+            ]
+          },
+          {
+            "heading": "Respect and privacy",
+            "paragraphs": [
+              "If an account is Private or Followers only, you cannot see the closet until your follow request is approved; don't keep repeating a declined request.",
+              "Do not use images from other people's closets or looks to humiliate or expose them, or for commercial purposes without permission."
+            ]
+          },
+          {
+            "heading": "Reporting",
+            "paragraphs": [
+              "If you see a profile, item or look that breaks the rules, tap ⋯ › Report on the person's profile. Choose a reason: spam, inappropriate content, harassment, impersonation, minor safety or other. You can add a note of up to 500 characters.",
+              "The person you report is never told who you are. To prevent abuse, an account can send at most 20 reports a day; knowingly filing false reports also breaks these guidelines.",
+              "Our moderation team reviews reports within [MODERATION RESPONSE TIME]. Reports about the safety of minors are prioritised.",
+              "If you cannot access the app or want to report something from outside it, write to [CONTACT E-MAIL]."
+            ]
+          },
+          {
+            "heading": "Blocking",
+            "paragraphs": [
+              "You can block someone from their profile with ⋯ › Block. When you block someone:",
+              "- you cannot see each other in search, on profiles, in the feed, in suggestions or in contact matching;",
+              "- follow relationships and pending follow requests between you are removed in both directions;",
+              "- you cannot rate, report or follow each other.",
+              "The blocked person is not notified. You can see the people you blocked and unblock them under Profile › Settings; unblocking does not restore follow relationships."
+            ]
+          },
+          {
+            "heading": "Moderation and enforcement",
+            "paragraphs": [
+              "A moderator reviews every report and decides on one of these outcomes:",
+              "- close the report (if no rule was broken);",
+              "- remove the content;",
+              "- warn the account owner;",
+              "- suspend the account — a suspended account cannot sign in.",
+              "For serious violations (for example child abuse or serious threats) we may close the account without warning and, where required, report it to the competent authorities. Moderators cannot see users' full-body or face photos or generated images; reviews are based only on content visible to others.",
+              "Repeated violations lead to stronger measures."
+            ]
+          },
+          {
+            "heading": "Appeals",
+            "paragraphs": [
+              "If you think your content was removed or your account suspended by mistake, write to [CONTACT E-MAIL] with your username within 30 days of learning of the decision. Your appeal is reviewed by someone who did not make the first decision, and we tell you the outcome. [LEGAL REVIEW: appeal period]"
+            ]
+          },
+          {
+            "heading": "Emergencies",
+            "paragraphs": [
+              "If you think someone's life or safety is in danger, call the emergency services first: 112 in Türkiye, 999 in the United Kingdom. Droblet is not an emergency service."
+            ]
+          },
+          {
+            "heading": "Changes",
+            "paragraphs": [
+              "We may update these guidelines as the community grows. We announce material changes in the app."
             ]
           }
         ]

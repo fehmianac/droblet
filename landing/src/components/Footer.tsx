@@ -15,8 +15,10 @@ export function Footer({ locale, page }: Props) {
     { href: '/terms/', label: t.terms },
     { href: '/privacy/', label: t.privacy },
     { href: '/kvkk/', label: t.kvkk },
+    { href: '/consents/', label: t.consents },
     { href: '/subscription-terms/', label: t.subscription },
     { href: '/cookies/', label: t.cookies },
+    { href: '/community-guidelines/', label: t.communityGuidelines },
     { href: '/delete-account/', label: t.deleteAccount },
   ];
 
