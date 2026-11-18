@@ -92,7 +92,8 @@ Not in this document: wardrobe items, looks, today/plan/calendar, stylist/trips,
         { "priceBand": "luxuryTouch", "products": [ProductDto], "totalMinor": 2000000, "currency": "TRY" } ] } ] }
 
 // ContentCollectionDto
-{ "id": "creator-1", "kind": "creator", "title": "Editör 1", "subtitle": null, "imageUrl": null, "sponsored": false, "sponsorName": null }
+{ "id": "creator-1", "kind": "creator", "title": "Editör 1", "subtitle": null, "imageUrl": null, "sponsored": false, "sponsorName": null,
+  "handle": "editor1" }   // the creator's Droblet @handle while an account holds it, else null → "Arkadaş bul" creator row opens v1/tenant/people/{handle}
 
 // ContentLookDto
 { "id": "look-1", "collectionId": "creator-1", "title": "Hafta sonu", "note": null, "imageUrl": null,
@@ -133,7 +134,7 @@ wardrobe category (`top`, `bottom`, …), `itemIds` are wardrobe item ids, and `
 | POST | `v1/tenant/cart/checkout/{brandId}` | — | `CheckoutDto`. `422 cart_empty`, `404 brand_not_found`, `422 product_retired`, `422 affiliate_link_missing`. |
 | POST | `v1/tenant/catalog/product/{id}/checkout` | `{ "look"?: LookRef }` or empty | `CheckoutDto`. `404 product_not_found`, `422 product_retired`, `422 affiliate_link_missing`. |
 | GET | `v1/tenant/watch-list` | — | `WatchItemDto[]`, newest first |
-| PUT | `v1/tenant/watch-list/{productId}` | `{ "size"?, "look"?: LookRef }` or empty | `WatchItemDto`. `404 product_not_found`, `422 product_retired`, `422 watch_list_full`. |
+| PUT | `v1/tenant/watch-list/{productId}` | `{ "size"?, "look"?: LookRef, "notify"?: bool }` or empty | `WatchItemDto`. `404 product_not_found`, `422 product_retired`, `422 watch_list_full`. New item: `notify` defaults to `true`. Already watched: only `notify` (and `size` / `look` when sent) change — the price reference is kept, an empty body changes nothing. |
 | DELETE | `v1/tenant/watch-list/{productId}` | — | `204`. `404 not_found`. |
 | GET | `v1/tenant/favorite/product` | — | `{ "productIds": ["hs-white-shirt"] }` — the hearts on product cards, newest first |
 | PUT | `v1/tenant/favorite/product/{productId}` | — | `204`. `404 product_not_found`, `422 product_retired`, `422 favorite_list_full` (500). |
@@ -155,7 +156,9 @@ wardrobe category (`top`, `bottom`, …), `itemIds` are wardrobe item ids, and `
 
 // WatchItemDto
 { "product": ProductDto, "size": "M", "look": null, "priceAtAddMinor": 300000, "currentPriceMinor": 240000,
-  "priceDropped": true, "dropMinor": 60000, "addedAt": "…" }
+  "priceDropped": true, "dropMinor": 60000, "addedAt": "…",
+  "notify": true,                 // the bell on the row: price-drop push for this product (needs the priceDrop preference too)
+  "origin": "user" }              // "user" = added by the user; "auto" = added after a brand visit without a purchase
 
 // PurchasePromptDto
 { "id": "01J…", "brandId": "gap", "brandName": "Gap", "products": [ProductDto], "look": LookRef|null, "status": "pending", "receivedAt": "…" }
@@ -380,7 +383,7 @@ deleted: `DELETE` retires (ids are never reused). Ids: `^[a-z0-9][a-z0-9-]{1,62}
 | PUT | `v1/admin/edit/{id}` | `{ "segment": "women", "weekStart" (a Monday), "title": L, "subtitle"?: L, "coverImageUrl"?, "looks": [{ "id"?, "day": 1–7, "title": L, "styleNote"?: L, "imageUrl"?, "variants": [{ "priceBand", "productIds": [1–10] }] }], "sponsorBrandId"?, "sponsorName"?: L, "published", "retired"? }` | `AdminEditDto`. `422 product_not_found` + `productIds: [...]`. |
 | DELETE | `v1/admin/edit/{id}` | — | `204`. `404 not_found`. |
 | GET | `v1/admin/collection/{kind}` | — | `AdminCollectionDto[]` |
-| PUT | `v1/admin/collection/{kind}/{id}` | `{ "title": L, "subtitle"?: L, "imageUrl"?, "sortOrder", "sponsorName"?: L, "retired"? }` | `AdminCollectionDto` |
+| PUT | `v1/admin/collection/{kind}/{id}` | `{ "title": L, "subtitle"?: L, "imageUrl"?, "sortOrder", "sponsorName"?: L, "handle"?: "@editor1", "retired"? }` | `AdminCollectionDto` (with `handle`). `handle` is stored normalised (no `@`, lower case); `400 handle_invalid` when it is not a valid handle format. |
 | DELETE | `v1/admin/collection/{kind}/{id}` | — | `204`. `404`. |
 | GET | `v1/admin/collection/{kind}/{id}/look` | — | `AdminCollectionLookDto[]` |
 | PUT | `v1/admin/collection/{kind}/{id}/look/{lookId}` | `{ "title": L, "note"?: L, "imageUrl"?, "productIds"?: [≤ 10], "sortOrder", "retired"? }` | `AdminCollectionLookDto`. `404 not_found` (collection), `422 product_not_found`. |
