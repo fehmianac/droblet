@@ -9,14 +9,13 @@ namespace Domain.Options
     public sealed class LocalizationOptions
     {
         public const string Section = "Localization";
-        private static readonly string[] Fallback = ["tr", "en"];
 
         /// <summary>Empty = tr, en. (Kept empty by default so configuration replaces the list instead of appending to it.)</summary>
         public List<string> SupportedLanguages { get; set; } = [];
         public string DefaultLanguage { get; set; } = "tr";
 
-        public IReadOnlyList<string> Languages =>
-            SupportedLanguages.Count > 0 ? SupportedLanguages.Select(l => l.Trim().ToLowerInvariant()).Distinct().ToList() : Fallback;
+        /// <summary>Normalised list (lower-case, distinct, the default language always included).</summary>
+        public IReadOnlyList<string> Languages => global::Domain.Services.LanguagePolicy.From(this).Supported;
 
         public bool IsSupported(string? language) => language is not null && Languages.Contains(language, StringComparer.Ordinal);
     }

@@ -384,7 +384,7 @@ public class ReferenceCatalogTests
     public void ReferenceNames_AreLanguageMaps_WithEverySupportedLanguage()
     {
         var maps = ColorCatalog.All.Select(c => c.Name).Concat(SeasonTypeCatalog.All.Select(s => s.Name));
-        Assert.All(maps, names => Assert.All(Localized.Supported, language => Assert.False(string.IsNullOrWhiteSpace(names[language]))));
+        Assert.All(maps, names => Assert.All(LanguagePolicy.BuiltIn.Supported, language => Assert.False(string.IsNullOrWhiteSpace(names[language]))));
     }
 
     [Theory]
@@ -492,4 +492,65 @@ public class LibrarySeedTests
 
     [Fact]
     public void Parse_NotJson_ReportsError() => Assert.False(LibrarySeed.Parse("nope").IsValid);
+}
+
+public class LanguagePolicyTests
+{
+    private static LanguagePolicy Policy(string? defaultLanguage = "tr", params string[] supported) =>
+        LanguagePolicy.From(new Domain.Options.LocalizationOptions { SupportedLanguages = supported.ToList(), DefaultLanguage = defaultLanguage! });
+
+    [Fact]
+    public void EmptyConfig_IsTurkishAndEnglish_DefaultTurkish()
+    {
+        var policy = LanguagePolicy.From(new Domain.Options.LocalizationOptions());
+        Assert.Equal(["tr", "en"], policy.Supported.ToArray());
+        Assert.Equal("tr", policy.Default);
+        Assert.Equal(policy.Supported, LanguagePolicy.BuiltIn.Supported);
+    }
+
+    [Fact]
+    public void ConfigIsTheOnlyLanguageList_AThirdLanguageIsConfigOnly()
+    {
+        var policy = Policy("tr", "tr", "EN ", "de", "de");
+
+        Assert.Equal(["tr", "en", "de"], policy.Supported.ToArray());
+        Assert.Equal("de", policy.Normalize("de-AT"));
+        Assert.Equal("de", policy.Language(null, "de-DE,de;q=0.9,en;q=0.8"));
+        Assert.Null(LanguagePolicy.BuiltIn.Normalize("de"));
+        Assert.Equal("tr", LanguagePolicy.BuiltIn.Language(null, "de-DE,de;q=0.9"));
+    }
+
+    [Fact]
+    public void DefaultLanguage_IsAlwaysSupported_AndIsTheFallback()
+    {
+        var policy = Policy("en", "tr");
+
+        Assert.Equal(["en", "tr"], policy.Supported.ToArray());
+        Assert.Equal("en", policy.Default);
+        Assert.Equal("en", policy.Language("fr", "es-ES"));
+        Assert.Equal("tr", Policy("", "tr", "en").Default); // blank default = first supported
+    }
+
+    [Theory]
+    [InlineData("en", null, "en")]                          // profile wins
+    [InlineData("en", "tr-TR", "en")]
+    [InlineData(null, "en-US,en;q=0.9,tr;q=0.8", "en")]     // then Accept-Language by weight
+    [InlineData(null, "fr-FR,tr;q=0.5,en;q=0.9", "en")]
+    [InlineData("xx", "tr", "tr")]                          // unsupported profile value is ignored
+    [InlineData(null, "fr-FR", "tr")]                       // nothing supported → default
+    [InlineData(null, null, "tr")]
+    [InlineData(null, "", "tr")]
+    public void Language_ProfileThenAcceptLanguageThenDefault(string? profile, string? acceptLanguage, string expected) =>
+        Assert.Equal(expected, LanguagePolicy.BuiltIn.Language(profile, acceptLanguage));
+
+    [Fact]
+    public void LocalizationOptions_UseTheSamePolicy()
+    {
+        var options = new Domain.Options.LocalizationOptions { SupportedLanguages = ["EN", "tr", "de"], DefaultLanguage = "tr" };
+
+        Assert.Equal(["en", "tr", "de"], options.Languages.ToArray());
+        Assert.True(options.IsSupported("de"));
+        Assert.False(options.IsSupported("fr"));
+        Assert.False(options.IsSupported(null));
+    }
 }

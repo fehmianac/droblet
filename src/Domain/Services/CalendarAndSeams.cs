@@ -33,37 +33,88 @@ public static class CalendarDay
 }
 
 /// <summary>
+/// The supported languages and the default one — always the Localization config (Localization:SupportedLanguages /
+/// Localization:DefaultLanguage, SSM /droblet/{stage}/…/Localization). No code lists languages anywhere else:
+/// adding a language is a config change plus data.
+/// </summary>
+public sealed class LanguagePolicy
+{
+    public static readonly LanguagePolicy BuiltIn = new(["tr", "en"], "tr");
+
+    public IReadOnlyList<string> Supported { get; }
+    public string Default { get; }
+
+    public LanguagePolicy(IEnumerable<string>? supported, string? defaultLanguage)
+    {
+        var languages = (supported ?? []).Select(Code).Where(l => l.Length > 0).Distinct(StringComparer.Ordinal).ToList();
+        if (languages.Count == 0)
+            languages = ["tr", "en"];
+        var fallback = Code(defaultLanguage);
+        // The default language is always supported: it is the fallback of every other one.
+        Default = fallback.Length == 0 ? languages[0] : fallback;
+        if (!languages.Contains(Default, StringComparer.Ordinal))
+            languages.Insert(0, Default);
+        Supported = languages;
+    }
+
+    public static LanguagePolicy From(Options.LocalizationOptions options) => new(options.SupportedLanguages, options.DefaultLanguage);
+
+    public bool IsSupported(string? language) => language is not null && Supported.Contains(language, StringComparer.Ordinal);
+
+    /// <summary>A single language tag ("en", "en-US", "EN_us") → its supported primary code, else null.</summary>
+    public string? Normalize(string? language)
+    {
+        if (string.IsNullOrWhiteSpace(language))
+            return null;
+        var primary = Code(language.Trim().Split(',', ';', '-', '_')[0]);
+        return IsSupported(primary) ? primary : null;
+    }
+
+    /// <summary>First supported language of an Accept-Language header by q weight, else null.</summary>
+    public string? Negotiate(string? acceptLanguage) => LocalizedText.Negotiate(acceptLanguage, Supported);
+
+    /// <summary>Profile language first, then the request's Accept-Language, then the default.</summary>
+    public string Language(string? profileLanguage, string? acceptLanguage = null) =>
+        Normalize(profileLanguage) ?? Negotiate(acceptLanguage) ?? Default;
+
+    private static string Code(string? value) => (value ?? "").Trim().ToLowerInvariant();
+}
+
+/// <summary>
 /// Languages and localized reference text. The Api never returns user-facing prose of its own: only codes / enums,
 /// AI-generated text (in the user's language, stored with that language) and reference names stored as a
-/// { "tr": "…", "en": "…" } map that is resolved per request with a Turkish fallback. A third language is data only.
+/// { "tr": "…", "en": "…" } map that is resolved per request with a default-language fallback. A third language is
+/// config + data only. <see cref="Policy"/> is set once at start-up from the Localization options (AddDrobletCore).
 /// </summary>
 public static class Localized
 {
+    /// <summary>Built-in default: record defaults and the mandatory key of seed files. Runtime checks use <see cref="Policy"/>.</summary>
     public const string Default = "tr";
-    public static readonly IReadOnlyList<string> Supported = ["tr", "en"];
+
+    private static volatile LanguagePolicy _policy = LanguagePolicy.BuiltIn;
+
+    public static LanguagePolicy Policy => _policy;
+
+    public static void Configure(Options.LocalizationOptions options) => _policy = LanguagePolicy.From(options);
 
     public static IReadOnlyDictionary<string, string> Of(string tr, string en) =>
         new Dictionary<string, string>(StringComparer.Ordinal) { ["tr"] = tr, ["en"] = en };
 
-    /// <summary>Profile language first, then the request's Accept-Language, then Turkish.</summary>
-    public static string Language(string? profileLanguage, string? requestLanguage = null) =>
-        Normalize(profileLanguage) ?? Normalize(requestLanguage) ?? Default;
+    /// <summary>Profile language first, then the request's Accept-Language, then the default language.</summary>
+    public static string Language(string? profileLanguage, string? requestLanguage = null) => _policy.Language(profileLanguage, requestLanguage);
 
-    public static string? Normalize(string? language)
-    {
-        if (string.IsNullOrWhiteSpace(language))
-            return null;
-        var primary = language.Trim().Split(',', ';', '-', '_')[0].ToLowerInvariant();
-        return Supported.Contains(primary) ? primary : null;
-    }
+    public static string? Normalize(string? language) => _policy.Normalize(language);
 
     public static string Resolve(IReadOnlyDictionary<string, string>? names, string? language)
     {
         if (names is null || names.Count == 0)
             return "";
-        if (Normalize(language) is { } wanted && names.TryGetValue(wanted, out var text) && !string.IsNullOrWhiteSpace(text))
+        var policy = _policy;
+        if (policy.Normalize(language) is { } wanted && names.TryGetValue(wanted, out var text) && !string.IsNullOrWhiteSpace(text))
             return text;
-        return names.TryGetValue(Default, out var fallback) && !string.IsNullOrWhiteSpace(fallback) ? fallback : names.Values.First();
+        if (names.TryGetValue(policy.Default, out var fallback) && !string.IsNullOrWhiteSpace(fallback))
+            return fallback;
+        return names.TryGetValue(Default, out var builtIn) && !string.IsNullOrWhiteSpace(builtIn) ? builtIn : names.Values.First();
     }
 }
 

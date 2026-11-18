@@ -51,12 +51,4 @@ public static class AdminAuthorizationExtensions
                 .AddRequirements(new AdminRequirement()));
         return services;
     }
-
-    /// <summary>?lang= for language-partitioned admin content. Null = unsupported value.</summary>
-    public static string? ContentLanguage(string? lang) => lang switch
-    {
-        null or "" or "tr" => "tr",
-        "en" => "en",
-        _ => null,
-    };
 }

@@ -330,12 +330,20 @@ public static class OpenAiPrompts
         "Tone: calm, editorial, personal. Address the user informally (in Turkish: 'sen'). Short sentences, no exclamation marks. " +
         "Never comment on body shape, weight or health. Never mention brands or prices. Never invent a garment: refer to pieces only by slot and colour.";
 
-    /// <summary>English name of a supported language for the "write in …" instruction; unknown codes fall back to Turkish.</summary>
-    public static string LanguageName(string? language) => Localized.Language(language) switch
+    /// <summary>English name of a supported language for the "write in …" instruction; unsupported codes fall back to the default language.</summary>
+    public static string LanguageName(string? language)
     {
-        "en" => "English",
-        _ => "Turkish",
-    };
+        var code = Localized.Language(language);
+        try
+        {
+            var name = System.Globalization.CultureInfo.GetCultureInfo(code).EnglishName;
+            return string.IsNullOrWhiteSpace(name) || name.StartsWith("Unknown", StringComparison.OrdinalIgnoreCase) ? code : name;
+        }
+        catch (System.Globalization.CultureNotFoundException)
+        {
+            return code;
+        }
+    }
 
     private static string WriteIn(string? language) =>
         $" Write every title, name, label and explanation in {LanguageName(language)} (language code: {Localized.Language(language)}).";

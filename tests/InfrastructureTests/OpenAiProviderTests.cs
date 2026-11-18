@@ -364,7 +364,7 @@ public class LibraryCatalogTests
 
         Assert.True(items.Count >= 20);
         Assert.Equal(items.Count, items.Select(i => i.Id).Distinct().Count());
-        Assert.All(items, i => Assert.All(Localized.Supported, language => Assert.False(string.IsNullOrWhiteSpace(i.Name[language]))));
+        Assert.All(items, i => Assert.All(LanguagePolicy.BuiltIn.Supported, language => Assert.False(string.IsNullOrWhiteSpace(i.Name[language]))));
         Assert.Equal(Enum.GetValues<ItemCategory>().Order(), items.Select(i => i.Category).Distinct().Order()); // every wardrobe chip has a starter piece
     }
 
