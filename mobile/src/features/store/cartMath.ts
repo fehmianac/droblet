@@ -1,5 +1,5 @@
 import type { Cart, CartGroup, ProductSize, ProductSummary } from '@/api/contracts/store';
-import { sumMoney, type Money } from '@/lib/intl';
+import { sumMoney, type Money } from '@/lib/format';
 
 function totals(groups: CartGroup[]): Cart {
   const priced = groups

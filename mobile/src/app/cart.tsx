@@ -22,7 +22,7 @@ import { Text } from '@/components/ui/Text';
 import { useBrandCheckout, useRemoveCartLine } from '@/features/store/mutations';
 import { useCart } from '@/features/store/queries';
 import { currentLanguage } from '@/i18n';
-import { formatMoney } from '@/lib/intl';
+import { formatMoney } from '@/lib/format';
 import { suffixed } from '@/lib/trSuffix';
 import { useIsOnline } from '@/sync/network';
 import { useThemeColors } from '@/theme/useThemeColors';

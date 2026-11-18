@@ -1,3 +1,4 @@
+import { moneyFromMajor } from '@/lib/format';
 import type { Look } from '@/api/contracts/looks';
 import type { EditProduct, PlanDay, WearLog } from '@/api/contracts/today';
 
@@ -97,7 +98,7 @@ describe('editSummary', () => {
     id,
     brand: 'b',
     name: id,
-    price,
+    price: moneyFromMajor(price, 'TRY'),
     imageUrl: null,
     category: 'top',
     ownedItemId,
@@ -109,18 +110,18 @@ describe('editSummary', () => {
     const s = editSummary(products, false);
     expect(s.visible.map((p) => p.id)).toEqual(['flats', 'bag']);
     expect(s.ownedCount).toBe(2);
-    expect(s.missingTotal).toBe(16250);
+    expect(s.missingTotal).toEqual(moneyFromMajor(16250, 'TRY'));
   });
 
   it('showing owned pieces does not change the total', () => {
     const s = editSummary(products, true);
     expect(s.visible).toHaveLength(4);
-    expect(s.missingTotal).toBe(16250);
+    expect(s.missingTotal).toEqual(moneyFromMajor(16250, 'TRY'));
   });
 
   it('handles a look the user fully owns', () => {
     const s = editSummary([product('shirt', 1890, 'item_1')], false);
-    expect(s).toMatchObject({ visible: [], missing: [], ownedCount: 1, missingTotal: 0 });
+    expect(s).toMatchObject({ visible: [], missing: [], ownedCount: 1, missingTotal: null });
   });
 });
 

@@ -19,7 +19,7 @@ import { Text } from '@/components/ui/Text';
 import { preferredSize, priceDropPercent } from '@/features/store/cartMath';
 import { useAddToCart, useSetWatch } from '@/features/store/mutations';
 import { useWatchlist } from '@/features/store/queries';
-import { formatMoney, formatPercent } from '@/lib/intl';
+import { formatMoney, formatPercent } from '@/lib/format';
 import { useThemeColors } from '@/theme/useThemeColors';
 
 function toProduct(entry: WatchlistEntry): ProductSummary {

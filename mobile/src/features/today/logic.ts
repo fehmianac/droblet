@@ -1,3 +1,4 @@
+import { sumMoney } from '@/lib/format';
 import type { Occasion } from '@/api/contracts';
 import type { Look } from '@/api/contracts/looks';
 import type { CalendarMonth, EditProduct, PlanDay } from '@/api/contracts/today';
@@ -46,7 +47,8 @@ export function editSummary(products: EditProduct[], showOwned: boolean) {
     visible: showOwned ? products : missing,
     missing,
     ownedCount: products.length - missing.length,
-    missingTotal: missing.reduce((sum, p) => sum + p.price, 0),
+    /** Null when nothing is missing. */
+    missingTotal: sumMoney(missing.map((p) => p.price)),
   };
 }
 

@@ -1,3 +1,4 @@
+import { moneyFromMajor , parseLocalDate, toIsoDate } from '@/lib/format';
 import type { LibraryItem, LookPiece, Occasion, TodayLook, TodayResponse } from '@/api/contracts';
 import type { Look } from '@/api/contracts/looks';
 import type {
@@ -14,7 +15,6 @@ import type {
 } from '@/api/contracts/today';
 import type { ItemCategory } from '@/api/contracts/wardrobe';
 import { clone, fixtureDb, FixtureNotFound, onFixtureSeed } from '@/fixtures/db';
-import { parseLocalDate, toIsoDate } from '@/lib/format';
 
 /**
  * Fixtures for the Bugün slice (06–09) and the ready-made library (04b / 12b). They read looks and
@@ -271,7 +271,7 @@ function product([id, brand, name, price, category, ownedItemId]: ProductSeed): 
     id,
     brand,
     name,
-    price,
+    price: moneyFromMajor(price, 'TRY'),
     imageUrl: null,
     category,
     ownedItemId: ownedItemId && fixtureDb.items.some((i) => i.id === ownedItemId) ? ownedItemId : null,

@@ -32,7 +32,7 @@ import { creditSheetStore } from '@/features/credits/creditSheetStore';
 import { priceDropPercent } from '@/features/store/cartMath';
 import { useWatchlist } from '@/features/store/queries';
 import { currentLanguage } from '@/i18n';
-import { formatDayMonth, formatMonthName } from '@/lib/dates';
+import { formatDayMonth, formatMonthName } from '@/lib/format';
 import { suffixed } from '@/lib/trSuffix';
 import { toDisplayUpper } from '@/lib/upper';
 import { useThemeColors } from '@/theme/useThemeColors';

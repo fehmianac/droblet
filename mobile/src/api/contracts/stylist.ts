@@ -2,6 +2,7 @@
  * E5 Stilist — PROVISIONAL contract (BACKEND_ENGINEER §Uç nokta haritası, E5). Text suggestions do
  * not use AI credits; only the try-on image of a suggestion does (see contracts/tryon.ts).
  */
+import type { Money } from '@/lib/format';
 import type { Occasion } from '../contracts';
 import type { JobAccepted } from './jobs';
 import type { LookSlotKind } from './looks';
@@ -36,8 +37,8 @@ export type StylistPiece = {
   refId: string;
   name: string;
   brand: string | null;
-  /** TRY, store pieces only. */
-  price: number | null;
+  /** Store pieces only (minor units + ISO currency). */
+  price: Money | null;
   imageUrl: string | null;
   category: ItemCategory;
   color: ItemColor | null;

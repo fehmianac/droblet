@@ -20,7 +20,7 @@ import { Text } from '@/components/ui/Text';
 import { useFollow } from '@/features/social/mutations';
 import { useInviteLink, usePeopleSearch, useSuggestedPeople } from '@/features/social/queries';
 import { useCreators } from '@/features/store/queries';
-import { formatPercent } from '@/lib/intl';
+import { formatPercent } from '@/lib/format';
 
 function PersonRow({ person }: { person: PersonSuggestion }) {
   const { t } = useTranslation();

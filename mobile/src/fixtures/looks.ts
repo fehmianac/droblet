@@ -1,3 +1,4 @@
+import { moneyFromMajor } from '@/lib/format';
 import type { CreateLookRequest, Look, LookSlot, LookSlotInput, LookSlotKind, PutLookRequest } from '@/api/contracts/looks';
 import { ApiError } from '@/api/errors';
 
@@ -32,7 +33,7 @@ function resolveSlot(input: LookSlotInput): LookSlot {
     };
   }
   const product = stubSlotProducts.find((p) => p.id === input.refId);
-  return { ...input, name: product?.name ?? '', imageUrl: null, brand: product?.brand ?? null, price: product?.price ?? null, deleted: false };
+  return { ...input, name: product?.name ?? '', imageUrl: null, brand: product?.brand ?? null, price: product ? moneyFromMajor(product.price, 'TRY') : null, deleted: false };
 }
 
 export function fixtureCreateLook(request: CreateLookRequest): Look {

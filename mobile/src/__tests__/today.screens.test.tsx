@@ -4,7 +4,7 @@ import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-li
 import { weekStartOf } from '@/features/today/dates';
 import { resetFixtureDb } from '@/fixtures/db';
 import { todayFixtureOptions } from '@/fixtures/today';
-import { formatMonthYear, formatTry, toIsoDate } from '@/lib/format';
+import { formatMoney, formatMonthYear, moneyFromMajor, toIsoDate } from '@/lib/format';
 
 const mockSession = {
   accessToken: 'a',
@@ -90,16 +90,16 @@ describe("08 Haftanın edit'i", () => {
     expect(screen.getByText('2 pieces are already in your wardrobe · hidden')).toBeTruthy();
     expect(screen.queryByText('Beyaz Poplin Gömlek')).toBeNull();
     expect(screen.getByText('2 missing pieces')).toBeTruthy();
-    expect(screen.getByText(formatTry(16250))).toBeTruthy();
+    expect(screen.getByText(formatMoney(moneyFromMajor(16250, 'TRY')))).toBeTruthy();
 
     await fireEvent.press(screen.getByText('Luxury touch'));
-    await waitFor(() => expect(screen.getByText(formatTry(53400))).toBeTruthy(), WAIT);
+    await waitFor(() => expect(screen.getByText(formatMoney(moneyFromMajor(53400, 'TRY')))).toBeTruthy(), WAIT);
     expect(screen.getByText('Yapılı Deri Çanta')).toBeTruthy();
 
     await fireEvent.press(screen.getByText('Show'));
     expect(screen.getByText('Beyaz Poplin Gömlek')).toBeTruthy();
     // Showing owned pieces never changes the total.
-    expect(screen.getByText(formatTry(53400))).toBeTruthy();
+    expect(screen.getByText(formatMoney(moneyFromMajor(53400, 'TRY')))).toBeTruthy();
   });
 
   it('adds a piece to the watch list', async () => {

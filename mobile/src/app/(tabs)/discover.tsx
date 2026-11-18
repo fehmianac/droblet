@@ -17,7 +17,7 @@ import { Text } from '@/components/ui/Text';
 import { CreatorCardView } from '@/features/store/CreatorCardView';
 import { useCreators, useCurrentEdit, useSeriesOutfits } from '@/features/store/queries';
 import { currentLanguage } from '@/i18n';
-import { formatDateRange } from '@/lib/dates';
+import { formatIsoDateRange } from '@/lib/format';
 import { toDisplayUpper } from '@/lib/upper';
 import { useThemeColors } from '@/theme/useThemeColors';
 
@@ -126,7 +126,7 @@ export default function DiscoverTab() {
                   <View className="gap-1 p-4">
                     <Text variant="eyebrow">
                       {t('explore.editEyebrow', {
-                        range: toDisplayUpper(formatDateRange(data.startDate, data.endDate), currentLanguage()),
+                        range: toDisplayUpper(formatIsoDateRange(data.startDate, data.endDate), currentLanguage()),
                       })}
                     </Text>
                     <Text variant="h2">{data.title}</Text>

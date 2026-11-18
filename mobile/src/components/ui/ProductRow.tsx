@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { currentLanguage } from '@/i18n';
-import { formatTry } from '@/lib/format';
+import { formatMoney, type Money } from '@/lib/format';
 import { toDisplayUpper } from '@/lib/upper';
 
 import { PlaceholderImage } from './PlaceholderImage';
@@ -12,8 +12,8 @@ import { Text } from './Text';
 type Props = {
   brand: string;
   name: string;
-  /** TRY amount; null when unknown. */
-  price: number | null;
+  /** Null when unknown. */
+  price: Money | null;
   imageUri?: string | null;
   onPress?: () => void;
   trailing?: ReactNode;
@@ -28,7 +28,7 @@ export function ProductRow({ brand, name, price, imageUri, onPress, trailing }: 
       onPress={onPress}
       disabled={!onPress}
       accessibilityRole={onPress ? 'button' : undefined}
-      accessibilityLabel={[brand, name, price !== null ? formatTry(price) : null].filter(Boolean).join(', ')}
+      accessibilityLabel={[brand, name, price !== null ? formatMoney(price) : null].filter(Boolean).join(', ')}
       className="min-h-16 flex-row items-center gap-3 py-2"
     >
       <PlaceholderImage uri={imageUri} className="h-[70px] w-14 rounded-image" />
@@ -40,7 +40,7 @@ export function ProductRow({ brand, name, price, imageUri, onPress, trailing }: 
           {name}
         </Text>
       </View>
-      {price !== null ? <Text variant="bodyMedium">{formatTry(price)}</Text> : null}
+      {price !== null ? <Text variant="bodyMedium">{formatMoney(price)}</Text> : null}
       {trailing}
     </Pressable>
   );

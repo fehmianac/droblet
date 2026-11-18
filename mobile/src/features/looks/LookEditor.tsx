@@ -21,7 +21,7 @@ import { Text } from '@/components/ui/Text';
 import { TextField } from '@/components/ui/TextField';
 import { CreditConfirmSheet } from '@/features/credits/CreditConfirmSheet';
 import { useStartTryOn } from '@/features/tryon/api';
-import { formatTry } from '@/lib/format';
+import { formatMoney } from '@/lib/format';
 import { useIsOnline } from '@/sync/network';
 
 import { useLookWrites, type LookDraft } from './api';
@@ -239,7 +239,7 @@ export function LookEditor({ look, initialSlots, skippedCount = 0, items }: Prop
                     </View>
                   ) : slot.price !== null ? (
                     <Text variant="caption" tone="accent">
-                      {formatTry(slot.price)}
+                      {formatMoney(slot.price)}
                     </Text>
                   ) : null}
                 </View>

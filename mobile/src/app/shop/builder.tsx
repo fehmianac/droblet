@@ -35,7 +35,7 @@ import {
 } from '@/features/store/builder';
 import { useAddToCart, useCreateLook } from '@/features/store/mutations';
 import { useProduct, useSlotProducts, useWardrobePieces } from '@/features/store/queries';
-import { formatMoney } from '@/lib/intl';
+import { formatMoney } from '@/lib/format';
 
 type Source = 'store' | 'wardrobe';
 

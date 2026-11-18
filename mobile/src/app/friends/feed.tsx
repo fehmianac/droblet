@@ -21,8 +21,7 @@ import { lookShareUrl } from '@/features/social/feedMath';
 import { useFollow, useRateLook, useSaveLook } from '@/features/social/mutations';
 import { useFeed, useInviteLink } from '@/features/social/queries';
 import { ShareSheet } from '@/features/social/ShareSheet';
-import { relativeTime } from '@/lib/dates';
-import { formatNumber } from '@/lib/intl';
+import { relativeTime , formatNumber } from '@/lib/format';
 import { useThemeColors } from '@/theme/useThemeColors';
 
 function FeedSkeleton() {
@@ -134,7 +133,7 @@ function LookPost({ look, onShare }: { look: FeedLook; onShare: () => void }) {
       <View className="flex-row flex-wrap items-center gap-x-1">
         <Text variant="caption" tone="muted" accessibilityLiveRegion="polite">
           {look.averageRating !== null && look.ratingCount > 0
-            ? t('feed.ratingSummary', { average: formatNumber(look.averageRating, 1), count: look.ratingCount })
+            ? t('feed.ratingSummary', { average: formatNumber(look.averageRating, { maximumFractionDigits: 1 }), count: look.ratingCount })
             : t('feed.noRatings')}
         </Text>
         <Text variant="caption" tone="muted">

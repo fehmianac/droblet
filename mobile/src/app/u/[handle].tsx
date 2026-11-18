@@ -24,8 +24,7 @@ import { profileShareUrl } from '@/features/social/feedMath';
 import { useFollow } from '@/features/social/mutations';
 import { useInviteLink, usePerson, usePersonItems, usePersonLooks, usePersonTrips } from '@/features/social/queries';
 import { ReportSheet } from '@/features/social/ReportSheet';
-import { formatYearMonth } from '@/lib/dates';
-import { formatNumber, formatPercent } from '@/lib/intl';
+import { formatYearMonth , formatNumber, formatPercent } from '@/lib/format';
 
 type ProfileTab = 'looks' | 'closet' | 'trips';
 

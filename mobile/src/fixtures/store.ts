@@ -26,8 +26,7 @@ import {
 import { ApiError } from '@/api/errors';
 import { slotOfCategory } from '@/features/store/slots';
 import { currentLanguage } from '@/i18n';
-import { toIsoDate } from '@/lib/format';
-import { sumMoney, type Money } from '@/lib/intl';
+import { moneyFromMajor, sumMoney, toIsoDate, type Money } from '@/lib/format';
 
 /**
  * Typed fixtures for E8 (Keşfet, mağaza, sepet, izleme listesi), used while `DATA_SOURCE` points the
@@ -52,7 +51,7 @@ type BrandKey = keyof typeof BRANDS;
 export const brandsFixture: Brand[] = Object.values(BRANDS);
 
 /** Fixture prices are whole lira amounts; the wire format is minor units + ISO code. */
-const lira = (amount: number): Money => ({ amountMinor: amount * 100, currency: 'TRY' });
+const lira = (amount: number): Money => moneyFromMajor(amount, 'TRY');
 
 const APPAREL = ['XS', 'S', 'M', 'L', 'XL'];
 const SHOES = ['36', '37', '38', '39', '40'];

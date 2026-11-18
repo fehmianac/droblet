@@ -7,7 +7,7 @@ import { BrandMark } from '@/components/blocks/BrandMark';
 import { IconButton } from '@/components/ui/IconButton';
 import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
 import { Text } from '@/components/ui/Text';
-import { formatMoney } from '@/lib/intl';
+import { formatMoney } from '@/lib/format';
 
 type Props = { product: ProductSummary; favorite: boolean; onToggleFavorite: () => void; onPress: () => void };
 

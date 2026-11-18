@@ -1,6 +1,7 @@
 /**
  * E3 Look'lar — PROVISIONAL contract (BACKEND_ENGINEER §Uç nokta haritası, E3).
  */
+import type { Money } from '@/lib/format';
 import type { Occasion } from '../contracts';
 import type { ItemCategory } from './wardrobe';
 
@@ -29,8 +30,8 @@ export type LookSlot = {
   name: string;
   imageUrl: string | null;
   brand: string | null;
-  /** TRY, store pieces only. */
-  price: number | null;
+  /** Store pieces only (minor units + ISO currency). */
+  price: Money | null;
   /** The wardrobe item was deleted after the look was saved. */
   deleted: boolean;
 };

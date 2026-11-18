@@ -1,3 +1,4 @@
+import { moneyFromMajor } from '@/lib/format';
 import type { Look, LookSlot, LookSlotKind } from '@/api/contracts/looks';
 import {
   STYLIST_SUGGESTION_COUNT,
@@ -39,7 +40,7 @@ const STORE_PIECE: StylistPiece = {
   refId: 'prod_earrings',
   name: 'Küçük taşlı küpe',
   brand: 'Atelier Mono',
-  price: 1450,
+  price: moneyFromMajor(1450, 'TRY'),
   imageUrl: null,
   category: 'accessory',
   color: null,

@@ -7,7 +7,7 @@ import {
   type WardrobePiece,
 } from '@/api/contracts/store';
 
-import { sumMoney, type Money } from '@/lib/intl';
+import { sumMoney, type Money } from '@/lib/format';
 
 import { preferredSize } from './cartMath';
 import { slotOfCategory } from './slots';

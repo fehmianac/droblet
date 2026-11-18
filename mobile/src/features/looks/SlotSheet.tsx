@@ -14,7 +14,7 @@ import { Text } from '@/components/ui/Text';
 import { ItemThumb } from '@/features/wardrobe/ItemThumb';
 import { stubSlotProducts } from '@/fixtures/looks';
 import { currentLanguage } from '@/i18n';
-import { formatTry } from '@/lib/format';
+import { formatMoney, moneyFromMajor } from '@/lib/format';
 import { toDisplayUpper } from '@/lib/upper';
 
 import { SLOT_FALLBACK_CATEGORY, slotFromWardrobeItem } from './logic';
@@ -108,12 +108,13 @@ export function SlotSheet({ slot, current, items, onPick, onRemove, onClose }: P
               </Text>
               {products.map((product) => {
                 const selected = isCurrent('store', product.id);
-                const price = formatTry(product.price);
+                const money = moneyFromMajor(product.price, 'TRY');
+                const price = formatMoney(money);
                 return (
                   <Pressable
                     key={product.id}
                     onPress={() =>
-                      onPick({ slot, source: 'store', refId: product.id, name: product.name, imageUrl: null, brand: product.brand, price: product.price, deleted: false })
+                      onPick({ slot, source: 'store', refId: product.id, name: product.name, imageUrl: null, brand: product.brand, price: money, deleted: false })
                     }
                     accessibilityRole="button"
                     accessibilityLabel={t(selected ? 'lookEditor.productLabelSelected' : 'lookEditor.productLabel', { brand: product.brand, name: product.name, price })}

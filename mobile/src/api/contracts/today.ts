@@ -2,6 +2,7 @@
  * E4 Bugün, haftalık plan, takvim — PROVISIONAL contract (BACKEND_ENGINEER §Uç nokta haritası, E4).
  * Calendar dates are `YYYY-MM-DD` in the user's local calendar.
  */
+import type { Money } from '@/lib/format';
 import type { Occasion, TodayResponse } from '../contracts';
 import type { JobAccepted } from './jobs';
 import type { ItemCategory } from './wardrobe';
@@ -76,8 +77,8 @@ export type EditProduct = {
   id: string;
   brand: string;
   name: string;
-  /** TRY, current catalogue price. */
-  price: number;
+  /** Current catalogue price (minor units + ISO currency). */
+  price: Money;
   imageUrl: string | null;
   category: ItemCategory;
   /** Set when the user already owns an equivalent piece (WardrobeMatchRules) — hidden by default on 08. */

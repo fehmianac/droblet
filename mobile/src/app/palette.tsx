@@ -21,7 +21,7 @@ import { paletteCatalogColors, toneName } from '@/features/account/logic';
 import { useMyPhotos, usePalette, usePaletteMismatch } from '@/features/account/queries';
 import { useAiGate } from '@/features/credits/useAiGate';
 import { currentLanguage } from '@/i18n';
-import { formatPercent } from '@/lib/intl';
+import { formatPercent } from '@/lib/format';
 import { suffixed } from '@/lib/trSuffix';
 
 type ReadyPalette = Extract<Palette, { status: 'ready' }>;

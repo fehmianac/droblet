@@ -30,7 +30,7 @@ import { Text } from '@/components/ui/Text';
 import { useAddToWatchlist, useSaveEditLook, useWeeklyEdit } from '@/features/today/api';
 import { editSummary } from '@/features/today/logic';
 import { currentLanguage } from '@/i18n';
-import { formatDate, formatDateRange, formatTry, parseLocalDate, toIsoDate } from '@/lib/format';
+import { formatDate, formatDateRange, formatMoney, parseLocalDate, toIsoDate } from '@/lib/format';
 import { toDisplayUpper } from '@/lib/upper';
 
 function EditSkeleton() {
@@ -261,7 +261,7 @@ export default function WeeklyEditScreen() {
               </ScrollView>
               <BottomActionBar
                 totalLabel={summary.missing.length > 0 ? t('weekEdit.missing', { count: summary.missing.length }) : t('weekEdit.nothingMissing')}
-                totalValue={summary.missing.length > 0 ? formatTry(summary.missingTotal) : undefined}
+                totalValue={summary.missingTotal ? formatMoney(summary.missingTotal) : undefined}
               >
                 <Button
                   label={t('weekEdit.completeLook')}

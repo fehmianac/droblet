@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { useEntitlement } from '@/entitlement/useEntitlement';
 import { useStoreProducts } from '@/entitlement/useStoreProducts';
-import { formatDayMonth } from '@/lib/dates';
+import { formatDayMonth } from '@/lib/format';
 
 import { creditSheetStore, useCreditSheetReason, type CreditSheetReason } from './creditSheetStore';
 

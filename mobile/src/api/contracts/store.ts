@@ -1,4 +1,4 @@
-import type { Money } from '@/lib/intl';
+import type { Money } from '@/lib/format';
 
 /**
  * E8 — Keşfet, mağaza, ürün, kombin oluşturucu, sepet, izleme listesi (20–24b).

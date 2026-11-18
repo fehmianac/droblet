@@ -41,7 +41,7 @@ import {
   useWatchlist,
 } from '@/features/store/queries';
 import { currentLanguage } from '@/i18n';
-import { formatMoney } from '@/lib/intl';
+import { formatMoney } from '@/lib/format';
 import { suffixed } from '@/lib/trSuffix';
 
 type ProductView = 'product' | 'onMe';

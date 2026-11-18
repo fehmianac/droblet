@@ -7,7 +7,7 @@ import type { StylistPiece } from '@/api/contracts/stylist';
 import { Icon } from '@/components/ui/Icon';
 import { Text } from '@/components/ui/Text';
 import { ItemThumb } from '@/features/wardrobe/ItemThumb';
-import { formatTry } from '@/lib/format';
+import { formatMoney } from '@/lib/format';
 
 type Props = {
   pieces: StylistPiece[];
@@ -25,9 +25,9 @@ export function SuggestionPieces({ pieces, suggestionId }: Props) {
         const caption = !missing
           ? t('stylistResult.fromWardrobe')
           : piece.brand && piece.price !== null
-            ? t('stylistResult.missingStoreBrand', { brand: piece.brand, price: formatTry(piece.price) })
+            ? t('stylistResult.missingStoreBrand', { brand: piece.brand, price: formatMoney(piece.price) })
             : piece.price !== null
-              ? t('stylistResult.missingStorePrice', { price: formatTry(piece.price) })
+              ? t('stylistResult.missingStorePrice', { price: formatMoney(piece.price) })
               : t('stylistResult.missingStore');
         return (
           <View key={`${piece.slot}${piece.refId}`} className="min-h-12 flex-row items-center gap-3">
