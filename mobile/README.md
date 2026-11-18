@@ -28,6 +28,8 @@ Without `DROBLET_API_BASE_URL`, API calls fail with the "configuration missing" 
 | `src/auth/` | Secure-store session, onboarding progress, Apple nonce. |
 | `src/sync/` | Per-user persisted QueryClient, registered mutation functions (queue survives restarts), conflicts (409/404), photo upload. |
 | `src/fixtures/` | Mock data behind hooks where no contract exists yet (Bugün, library, cart badge, **placeholder** store products). |
+| `src/i18n/languages.ts` | Language registry. **Adding a language = one locale file + one entry here** (plus `locales/ios/<code>.json` for native permission dialogs). Drives detection, Intl formatting (`src/lib/format.ts`), `Accept-Language` and the key-parity test. |
+| `src/i18n/features/*.{tr,en}.json` | Per-feature strings (own top-level keys, merged into the default namespace). |
 | `src/i18n/{tr,en}.json` | Every user-facing string. Upper-case labels are written upper-case here (`STİL PROFİLİ`) — never `uppercase`/`textTransform` (lint-enforced). |
 
 ## Rules enforced by ESLint

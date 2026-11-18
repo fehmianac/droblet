@@ -1,0 +1,42 @@
+import { useQuery } from '@tanstack/react-query';
+
+import { apiRequest } from '@/api/client';
+import type { Look } from '@/api/contracts/looks';
+import { fromSource } from '@/api/source';
+import { clone, fixtureDb, FixtureNotFound } from '@/fixtures/db';
+
+/** Query keys of the looks feature (E3). */
+export const lookKeys = {
+  looks: ['tenant', 'look'] as const,
+  look: (id: string) => ['tenant', 'look', id] as const,
+};
+
+/** 14 Looklar — the lookbook; favourite / occasion filters run on the device. */
+export function useLooks() {
+  return useQuery({
+    queryKey: lookKeys.looks,
+    queryFn: () =>
+      fromSource<Look[]>(
+        'wardrobe',
+        () => clone(fixtureDb.looks),
+        () => apiRequest<Look[]>('v1/tenant/look'),
+      ),
+  });
+}
+
+export function useLook(id: string | null | undefined) {
+  return useQuery({
+    queryKey: lookKeys.look(id ?? 'none'),
+    enabled: Boolean(id),
+    queryFn: () =>
+      fromSource<Look>(
+        'wardrobe',
+        () => {
+          const look = fixtureDb.looks.find((l) => l.id === id);
+          if (!look) throw new FixtureNotFound(`look ${id}`);
+          return clone(look);
+        },
+        () => apiRequest<Look>(`v1/tenant/look/${id}`),
+      ),
+  });
+}
