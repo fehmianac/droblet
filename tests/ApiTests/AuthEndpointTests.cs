@@ -16,7 +16,7 @@ public class AuthEndpointTests(ApiFactory factory) : IClassFixture<ApiFactory>
     {
         // Browsers send OPTIONS before a cross-origin call; API Gateway adds the CORS headers, the app must answer 2xx.
         using var request = new HttpRequestMessage(HttpMethod.Options, path);
-        request.Headers.Add("Origin", "https://droplet.alatech.co");
+        request.Headers.Add("Origin", "https://droblet.alatech.co");
         request.Headers.Add("Access-Control-Request-Method", "POST");
 
         var response = await factory.CreateClient().SendAsync(request);
@@ -134,7 +134,7 @@ public class AuthEndpointTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var forgot = await client.PostJsonAsync("v1/auth/password/forgot", new { email });
         Assert.Equal(HttpStatusCode.Accepted, forgot.StatusCode);
         var mail = factory.Email.Sent.Last(m => m.To == email);
-        Assert.Contains("https://droplet.alatech.co/reset-password?token=", mail.TextBody);
+        Assert.Contains("https://droblet.alatech.co/reset-password?token=", mail.TextBody);
         var token = Uri.UnescapeDataString(mail.TextBody.Split("token=")[1].Split('\n')[0].Trim());
 
         var reset = await client.PostJsonAsync("v1/auth/password/reset", new { token, newPassword = "YeniSifre99" });

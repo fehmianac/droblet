@@ -250,7 +250,7 @@ Resources:
     Properties:
       Name: !Sub /droblet/${Stage}/api/App
       Type: String
-      Value: '{"PasswordResetUrl":"https://droplet.alatech.co/reset-password","Scheme":"droplet","BundleId":"com.alatech.droplet"}'
+      Value: '{"PasswordResetUrl":"https://droblet.alatech.co/reset-password","Scheme":"droplet","BundleId":"com.alatech.droplet"}'
   SsmApiStore:
     Type: AWS::SSM::Parameter
     Properties:
@@ -340,7 +340,7 @@ Resources:
       Name: !Sub /droblet/${Stage}/api/Social
       Type: String
       Description: Social limits and the invite link base URL.
-      Value: '{"MaxFollowing":500,"FeedPageSize":20,"SuggestedPageSize":20,"SuggestedCandidateLimit":100,"SearchPageSize":20,"InviteUrl":"https://droplet.alatech.co/i","InviteAttributionWindowDays":30,"ReportsPerDay":20,"InviteResolvePerIpPerHour":60}'
+      Value: '{"MaxFollowing":500,"FeedPageSize":20,"SuggestedPageSize":20,"SuggestedCandidateLimit":100,"SearchPageSize":20,"InviteUrl":"https://droblet.alatech.co/i","InviteAttributionWindowDays":30,"ReportsPerDay":20,"InviteResolvePerIpPerHour":60}'
   SsmApiAffiliate:
     Type: AWS::SSM::Parameter
     Properties:
@@ -921,7 +921,7 @@ Resources:
 
 Outputs:
   ApiUrl:
-    Description: HTTP API base URL (map api.droplet.alatech.co to it).
+    Description: HTTP API base URL (map api.droblet.alatech.co to it).
     Value: !Sub https://${HttpApiGateway}.execute-api.${AWS::Region}.amazonaws.com
   TableName:
     Value: !Ref DrobletTable

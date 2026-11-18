@@ -8,7 +8,7 @@ Description: >
 Parameters:
   LandingDomain:
     Type: String
-    Default: droplet.alatech.co
+    Default: droblet.alatech.co
     Description: The site's host name; also the bucket name.
   RestrictToCloudflare:
     Type: String

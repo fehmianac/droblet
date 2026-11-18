@@ -29,5 +29,5 @@ export function googleClientIds(): { ios: string | null; android: string | null;
 
 /** Domain of shared links (`https://{domain}/l/…`, `/u/…`, `/invite/…`). */
 export function linkDomain(): string {
-  return extra().linkDomain ?? 'droplet.alatech.co';
+  return extra().linkDomain ?? 'droblet.alatech.co';
 }

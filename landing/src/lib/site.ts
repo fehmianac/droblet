@@ -13,9 +13,9 @@ function httpUrl(value: string | undefined): string {
 }
 
 /** Public origin, no trailing slash. The fallback is the domain the deploy workflow publishes to. */
-export const siteUrl = httpUrl(process.env.NEXT_PUBLIC_SITE_URL) || 'https://droplet.alatech.co';
+export const siteUrl = httpUrl(process.env.NEXT_PUBLIC_SITE_URL) || 'https://droblet.alatech.co';
 
-/** Host shown in the footer ("droplet.alatech.co"). */
+/** Host shown in the footer ("droblet.alatech.co"). */
 export const siteHost = siteUrl.replace(/^https?:\/\//i, '');
 
 /** API origin, no trailing slash. Empty: account deletion and password reset show "unavailable". */

@@ -16,7 +16,7 @@ import { isValidPassword } from '@/lib/validation';
 
 /**
  * New password — opened from the e-mail link: `droplet://reset-password?token=…` or
- * `https://droplet.alatech.co/reset-password?token=…`.
+ * `https://droblet.alatech.co/reset-password?token=…`.
  */
 export default function ResetPasswordScreen() {
   const { t } = useTranslation();

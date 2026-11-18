@@ -158,7 +158,7 @@ Brief ve 02 ekranı **e-posta + şifre** (en az 8 karakter), "Şifremi unuttum" 
 | Affiliate | **İkisi birden:** affiliate ağı **ve** markalarla doğrudan anlaşma. Tıklama/dönüşüm kaydı `source` (Network / Direct) taşır; komisyon oranı marka bazında config'te; dönüşüm iki kaynaktan da postback ile gelir | A-2 (gelir altyapısı) |
 | AI metin (stilist, etiketleme) | **GPT-6 Astra** | A-3 |
 | AI görsel (üzerimde gör) | **GPT Image 2.5 Sunburst** (brief'teki Gemini 2.5 Flash Image yerine). Model kimlikleri SSM'de (`Ai:TextModel`, `Ai:ImageModel`); görsel başı maliyet spike'ta ölçülür, 30 kredi sınırı aynen geçerli | A-3 |
-| Alan adı | `droplet.alatech.co` (API: `api.droplet.alatech.co`, şifre sıfırlama ve davet linkleri, universal/app links, SendGrid gönderici alanı) | A-10 |
+| Alan adı | `droblet.alatech.co` (API: `api.droblet.alatech.co`, şifre sıfırlama ve davet linkleri, universal/app links, SendGrid gönderici alanı) | A-10 |
 | Bundle id / package | `com.alatech.droplet` (iOS ve Android) | A-10 |
 | URL scheme | `droplet` (öneri, alan adı ve bundle id ile tutarlı) | A-10 |
 | Bölge ve deploy | AWS **eu-central-1**; GitHub Actions + AWS access key secret'ları (`deploy-infra.yml`, `deploy-lambdas.yml`) | — |

@@ -35,7 +35,7 @@ All are read at build time (`src/lib/site.ts`). An empty value is a supported st
 
 | Variable | Used for | When empty |
 |---|---|---|
-| `NEXT_PUBLIC_SITE_URL` | canonical, hreflang, sitemap, Open Graph | falls back to `https://droplet.alatech.co` |
+| `NEXT_PUBLIC_SITE_URL` | canonical, hreflang, sitemap, Open Graph | falls back to `https://droblet.alatech.co` |
 | `NEXT_PUBLIC_API_BASE_URL` | `/delete-account`, `/reset-password`, invite preview | those pages show "Şu an kullanılamıyor" instead of a form; the build still passes |
 | `NEXT_PUBLIC_APP_STORE_URL` | App Store buttons | button is a disabled "App Store · Yakında" pill |
 | `NEXT_PUBLIC_PLAY_STORE_URL` | Google Play buttons | button is a disabled "Google Play · Yakında" pill |

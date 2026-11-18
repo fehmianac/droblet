@@ -131,5 +131,5 @@ export const socialFixtures = {
       .sort((a, b) => b.styleMatch - a.styleMatch)
       .map((p) => ({ ...ref(p), styleMatch: p.styleMatch, isFollowing: p.isFollowing })),
 
-  inviteLink: (): InviteLink => ({ url: 'https://droplet.alatech.co/invite/DAMLA24', code: 'DAMLA24' }),
+  inviteLink: (): InviteLink => ({ url: 'https://droblet.alatech.co/invite/DAMLA24', code: 'DAMLA24' }),
 };

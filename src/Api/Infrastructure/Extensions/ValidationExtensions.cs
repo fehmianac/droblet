@@ -22,7 +22,7 @@ public static class ValidationExtensions
         {
             Title = ErrorCodes.ValidationFailed,
             Status = StatusCodes.Status400BadRequest,
-            Type = "https://droplet.alatech.co/errors/validation_failed",
+            Type = "https://droblet.alatech.co/errors/validation_failed",
         };
         problem.Extensions["code"] = ErrorCodes.ValidationFailed;
         return problem;
@@ -58,7 +58,7 @@ public static class ApiResults
         {
             Status = statusCode,
             Title = code,
-            Type = $"https://droplet.alatech.co/errors/{code}",
+            Type = $"https://droblet.alatech.co/errors/{code}",
             Extensions = { ["code"] = code },
         });
 
