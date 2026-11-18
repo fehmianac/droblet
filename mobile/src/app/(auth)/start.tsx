@@ -193,7 +193,9 @@ export default function AuthStartScreen() {
               password
               autoCapitalize="none"
               autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
-              textContentType={mode === 'register' ? 'newPassword' : 'password'}
+              // 'password' in both modes: with 'newPassword' iOS lays its strong-password assistant over the field and
+              // typed characters replace each other (sign-up then stores a password the user never typed).
+              textContentType="password"
               returnKeyType="go"
               onSubmitEditing={submit}
             />

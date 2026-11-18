@@ -39,6 +39,11 @@ type Props = {
 export function TodayLookCard({ look, onWear, onRefresh, onToggleFavorite, refreshing }: Props) {
   const { t } = useTranslation();
   const hasMissing = look.pieces.some((p) => p.source === 'store');
+  const showThumbs = refreshing || Boolean(look.tryOnImageUrl);
+  // The collage holds four tiles: the missing piece is always one of them.
+  const owned = look.pieces.filter((p) => p.source !== 'store');
+  const missingPieces = look.pieces.filter((p) => p.source === 'store');
+  const collagePieces = [...owned.slice(0, Math.max(0, 4 - Math.min(missingPieces.length, 4))), ...missingPieces].slice(0, 4);
   const eyebrow = toDisplayUpper(t('todayHome.lookEyebrow', { occasion: t(`occasion.${look.occasion}`) }), currentLanguage());
   return (
     <View className="overflow-hidden rounded-card border border-line bg-paper">
@@ -50,8 +55,8 @@ export function TodayLookCard({ look, onWear, onRefresh, onToggleFavorite, refre
         ) : (
           <OnYouImage
             uri={look.tryOnImageUrl}
-            className="flex-[23]"
-            pieces={look.pieces.map((p) => ({ category: p.category, color: p.color, imageUrl: p.imageUrl, missing: p.source === 'store' }))}
+            className={look.tryOnImageUrl ? 'flex-[23]' : 'flex-1'}
+            pieces={collagePieces.map((p) => ({ category: p.category, color: p.color, imageUrl: p.imageUrl, missing: p.source === 'store' }))}
             seed={look.id}
             silhouetteHeight={168}
             accessibilityLabel={t('todayHome.lookImageA11y', { name: look.name })}
@@ -60,6 +65,8 @@ export function TodayLookCard({ look, onWear, onRefresh, onToggleFavorite, refre
             <OnYouCta target={{ kind: 'look', id: look.id }} title={look.name} feature="today_try_on" />
           </OnYouImage>
         )}
+        {/* Without a generated image the collage already shows the pieces — the thumbnail column would repeat them. */}
+        {showThumbs ? (
         <View className="flex-[12] gap-1 p-1">
           {todayThumbs(look.pieces).map((p) => {
             const missing = p.source === 'store';
@@ -76,6 +83,7 @@ export function TodayLookCard({ look, onWear, onRefresh, onToggleFavorite, refre
             );
           })}
         </View>
+        ) : null}
       </View>
 
       <View className="gap-2.5 px-4 pb-3.5 pt-3">

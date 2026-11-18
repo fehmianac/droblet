@@ -46,8 +46,9 @@ describe('06 Bugün', () => {
     expect(screen.getByTestId('image-slot-collage')).toBeTruthy();
     await waitFor(() => expect(screen.getByTestId('on-you-cta-try-on')).toBeTruthy(), WAIT);
     expect(screen.getByText('Try it on me')).toBeTruthy();
-    expect(screen.getByText('MISSING PIECE')).toBeTruthy();
-    expect(screen.getByLabelText('Küçük taşlı küpe, missing piece')).toBeTruthy();
+    // No generated image yet: the piece collage fills the card and marks the missing piece.
+    expect(screen.getByText('MISSING')).toBeTruthy();
+    expect(screen.getAllByLabelText('Missing piece').length).toBeGreaterThan(0);
     expect(screen.getByLabelText('Complete the look')).toBeTruthy();
     // The edit strip: the day and the look name are a tag on the image.
     const monday = weekStartOf(today);

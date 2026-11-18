@@ -31,7 +31,7 @@ export function decideOnYouState(input: { hasBodyPhoto: boolean | null; isMember
 
 function Panel({ text, children, testID }: { text: string | null; children: ReactNode; testID: string }) {
   return (
-    <View className="items-center gap-1.5 rounded-field bg-paper/95 p-2" testID={testID}>
+    <View className={`items-center gap-1.5 ${text ? 'rounded-field bg-paper/95 p-2' : ''}`} testID={testID}>
       {text ? (
         <Text variant="caption" className="text-center" accessibilityLiveRegion="polite">
           {text}
@@ -78,21 +78,21 @@ export function OnYouCta({ target, title, feature, hasBodyPhoto }: Props) {
   if (state === 'photo') {
     return (
       <Panel text={t('productDetail.tryOnNeedsPhoto')} testID="on-you-cta-photo">
-        <Button variant="secondary" size="md" label={t('productDetail.tryOnAddPhoto')} onPress={() => router.push('/settings')} className="px-4" />
+        <Button variant="secondary" size="md" label={t('productDetail.tryOnAddPhoto')} onPress={() => router.push('/settings')} className="bg-paper px-4" />
       </Panel>
     );
   }
   if (state === 'member') {
     return (
       <Panel text={t('me.teaserBody')} testID="on-you-cta-member">
-        <Button variant="secondary" size="md" label={t('creditConfirm.becomeMember')} onPress={() => openCreditTopUp(false)} className="px-4" />
+        <Button variant="secondary" size="md" label={t('creditConfirm.becomeMember')} onPress={() => openCreditTopUp(false)} className="bg-paper px-4" />
       </Panel>
     );
   }
   if (state === 'credits') {
     return (
       <Panel text={t('stylistResult.noCreditsTitle')} testID="on-you-cta-credits">
-        <Button variant="secondary" size="md" label={t('stylistResult.topUp')} onPress={() => openCreditTopUp(true)} className="px-4" />
+        <Button variant="secondary" size="md" label={t('stylistResult.topUp')} onPress={() => openCreditTopUp(true)} className="bg-paper px-4" />
       </Panel>
     );
   }
@@ -117,7 +117,7 @@ export function OnYouCta({ target, title, feature, hasBodyPhoto }: Props) {
         size="md"
         icon={Sparkles}
         label={t('lookEditor.tryOn')}
-        className="px-4"
+        className="bg-paper px-4"
         onPress={() => {
           if (!online) {
             setNote('offline');

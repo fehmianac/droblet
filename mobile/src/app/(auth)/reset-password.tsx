@@ -118,7 +118,7 @@ export default function ResetPasswordScreen() {
               password
               autoCapitalize="none"
               autoComplete="new-password"
-              textContentType="newPassword"
+              textContentType="password"
               returnKeyType="next"
               onSubmitEditing={() => repeatRef.current?.focus()}
             />
@@ -135,7 +135,7 @@ export default function ResetPasswordScreen() {
               password
               autoCapitalize="none"
               autoComplete="new-password"
-              textContentType="newPassword"
+              textContentType="password"
               returnKeyType="done"
               onSubmitEditing={submit}
             />

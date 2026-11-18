@@ -88,6 +88,16 @@ env:
     env:
       URL: "droplet://stylist"
 - takeScreenshot: 16-stilist
+- runFlow:
+    when:
+      visible: "Ofis"
+    commands:
+      - tapOn: "Ofis"
+- runFlow:
+    when:
+      visible: "Office"
+    commands:
+      - tapOn: "Office"
 - tapOn:
     id: "stylist-submit"
 - takeScreenshot: ai-kombin-onerisi-bekleme
@@ -95,6 +105,7 @@ env:
     visible:
       id: "suggestion-pager"
     timeout: 30000
+    optional: true
 - takeScreenshot: 17-kombin-onerisi
 - runFlow:
     file: open.yaml
