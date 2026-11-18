@@ -8,6 +8,22 @@ namespace ApiTests;
 
 public class AuthEndpointTests(ApiFactory factory) : IClassFixture<ApiFactory>
 {
+    [Theory]
+    [InlineData("v1/auth/login")]
+    [InlineData("v1/auth/me")]
+    [InlineData("v1/tenant/profile")]
+    public async Task Preflight_Options_Returns204_WithoutAuth(string path)
+    {
+        // Browsers send OPTIONS before a cross-origin call; API Gateway adds the CORS headers, the app must answer 2xx.
+        using var request = new HttpRequestMessage(HttpMethod.Options, path);
+        request.Headers.Add("Origin", "https://droplet.alatech.co");
+        request.Headers.Add("Access-Control-Request-Method", "POST");
+
+        var response = await factory.CreateClient().SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
     [Fact]
     public async Task Register_ReturnsTokensAndCreatesTenant()
     {

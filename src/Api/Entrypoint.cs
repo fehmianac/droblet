@@ -40,6 +40,19 @@ public class Entrypoint
             await ApiResults.Problem(status, code).ExecuteAsync(context);
         }));
 
+        // CORS preflight: API Gateway adds the Access-Control-* headers (template.yaml CorsConfiguration) but the
+        // ANY /{proxy+} route still forwards OPTIONS here, and without this the browser sees 405 and blocks the
+        // web pages (account deletion, password reset) from calling the API.
+        app.Use(async (context, next) =>
+        {
+            if (HttpMethods.IsOptions(context.Request.Method))
+            {
+                context.Response.StatusCode = StatusCodes.Status204NoContent;
+                return;
+            }
+            await next();
+        });
+
         app.UseAuthentication();
         app.UseAuthorization();
         app.MapEndpointsCore([typeof(Entrypoint).Assembly]);
