@@ -1,7 +1,9 @@
 import { useMutation, type QueryClient } from '@tanstack/react-query';
 
 import type { MarkNotificationsReadRequest, NotificationList } from '@/api/contracts/notifications';
+import { apiRequest } from '@/api/client';
 import { fromSource } from '@/api/dataSource';
+import type { MarkReadResponseWire, MarkReadWire } from '@/api/wire/notifications';
 import { notificationFixtures } from '@/fixtures/notifications';
 import { newClientMutation } from '@/sync/clientMutation';
 import { TENANT_WRITE_SCOPE } from '@/sync/queryKeys';
@@ -21,8 +23,12 @@ export function registerNotificationMutations(client: QueryClient): void {
       fromSource(
         'notifications',
         () => notificationFixtures.markRead(vars),
-        // Provisional `PUT v1/tenant/notification/read` does not exist yet: nothing to send.
-        () => Promise.resolve(),
+        async () => {
+          const body: MarkReadWire = { ids: vars.ids };
+          const res = await apiRequest<MarkReadResponseWire>('v1/tenant/notification/read', { method: 'POST', body });
+          // The server's count covers every page (the optimistic one only the loaded items).
+          client.setQueryData<NotificationList>(notificationKeys.list, (prev) => (prev ? { ...prev, unreadCount: res.unreadCount } : prev));
+        },
       ),
     onMutate: async (vars: MarkNotificationsReadRequest) => {
       await client.cancelQueries({ queryKey: notificationKeys.list });

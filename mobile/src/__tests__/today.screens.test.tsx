@@ -36,7 +36,7 @@ describe('06 Bugün', () => {
   it('shows the logo header, the missing piece and saves the look to the lookbook', async () => {
     await renderRouter('./src/app', { initialUrl: '/' });
     await waitFor(() => expect(screen.getByText('Lacivert Blazer')).toBeTruthy(), WAIT);
-    expect(screen.getByLabelText('Notifications')).toBeTruthy();
+    expect(screen.getByLabelText(/^Notifications/)).toBeTruthy();
     // One line above the name: "BUGÜNÜN KOMBİNİ · OFİS" (no separate badge).
     expect(screen.getByText("TODAY'S OUTFIT · OFFICE")).toBeTruthy();
     // No generated image yet: the piece collage with its badge and the action — never the "ON YOU" tag on a placeholder.

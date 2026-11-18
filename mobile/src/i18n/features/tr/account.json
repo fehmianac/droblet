@@ -192,31 +192,32 @@
     "allRead": "Hepsi okundu",
     "markAll": "Tümünü okundu say",
     "settings": "Bildirim ayarları",
-    "empty": "Henüz bildirimin yok; fiyatı düşen ürünler ve arkadaş puanları burada görünür.",
+    "empty": "Henüz bildirimin yok; takip istekleri, look puanları, fiyat düşüşleri ve haftanın edit’i burada görünür.",
     "rowA11y": "{{title}}. {{body}}. {{time}}",
     "rowUnreadA11y": "Okunmadı. {{title}}. {{body}}. {{time}}",
+    "morningOutfit": {
+      "title": "Bugünün kombini hazır",
+      "body": "Planladığın look seni bekliyor"
+    },
+    "weeklyEdit": {
+      "title": "Haftanın edit’i yayında",
+      "body": "Bu haftanın look’larına göz at"
+    },
+    "friendRatings": {
+      "title": "Look’larına yeni puanlar var",
+      "body": "Arkadaşların look’larını puanladı"
+    },
     "priceDrop": {
-      "title": "{{name}} için fiyat düştü",
-      "body": "{{brand}} · {{previous}} yerine {{price}}"
+      "title": "İzleme listende fiyat düştü",
+      "body": "Takip ettiğin bir parçanın fiyatı düştü"
     },
-    "friendRating": {
-      "title_one": "{{name}} lookuna {{count}} yıldız verdi",
-      "title_other": "{{name}} lookuna {{count}} yıldız verdi",
-      "body": "Arkadaş akışında gör"
+    "followRequest": {
+      "title": "@{{handle}} seni takip etmek istiyor",
+      "titleAnonymous": "Yeni takip isteği",
+      "body": "İsteği onayla ya da reddet"
     },
-    "weeklyPlan": {
-      "title": "Haftalık planın hazır",
-      "body": "Bu haftanın kombinlerine göz at"
-    },
-    "creditsLow": {
-      "title_one": "Bu ay {{count}} AI görselin kaldı",
-      "title_other": "Bu ay {{count}} AI görselin kaldı",
-      "body": "Kredi yükleyebilir ya da yenilenmeyi bekleyebilirsin"
-    },
-    "renewal": {
-      "title": "Üyeliğin {{date}} yenileniyor",
-      "body": "Üyelik ayrıntılarını gör"
-    }
+    "bellUnread_one": "Bildirimler, {{count}} okunmamış",
+    "bellUnread_other": "Bildirimler, {{count}} okunmamış"
   },
   "credits": {
     "eyebrow": "AI GÖRSELİ · BU AY",
