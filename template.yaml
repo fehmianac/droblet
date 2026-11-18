@@ -5,9 +5,10 @@ Description: >
   (EventBridge Scheduler), one DynamoDB table, private photo bucket. Region eu-central-1.
   Secrets are never template values. Fixed non-secret config is created here as SSM String parameters
   (name = config section, value = JSON). deploy-infra creates the rest once and never overwrites it:
-  SecureString api/Jwt, api/Email/SendGrid/ApiKey, api/AppleAuth/PrivateKey, api/Store/NotificationKey,
-  worker/Ai/ApiKey, notifier/Push/ServiceAccountJson; String api/Email, api/GoogleAuth, api/AppleAuth,
-  worker/Ai. A secret still set to CHANGE_ME counts as not configured. SecureString api/AffiliatePostback
+  SecureString api/Jwt, api/Email/SendGrid/ApiKey, api/AppleAuth/PrivateKey, api/Store/IapPrivateKey,
+  api/Store/GooglePlayServiceAccountJson, worker/Ai/ApiKey, notifier/Push/ServiceAccountJson,
+  notifier/Push/ApnsKey; String api/Email, api/GoogleAuth, api/AppleAuth, api/Store/IapKeyId,
+  worker/Ai (full list: docs/store-setup.md). A secret still set to CHANGE_ME counts as not configured. SecureString api/AffiliatePostback
   is created by hand. E-mail (SendGrid), weather, FCM and OpenAI are HTTPS calls: no SES resource.
 
 Parameters:
