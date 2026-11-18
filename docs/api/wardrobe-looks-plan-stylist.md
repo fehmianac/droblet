@@ -1,6 +1,6 @@
 # Droblet API — wardrobe, looks, plan, stylist, try-on, palette (E2–E7)
 
-Contract for the mobile team. Everything here is implemented in `src/Api/Endpoints/V1/Tenant/*` and covered by `tests/ApiTests/WardrobeEndpointTests.cs`.
+Contract for the mobile team. Everything here is implemented in `src/Api/Endpoints/V1/Tenant/*` and covered by `tests/ApiTests/WardrobeEndpointTests.cs` and `tests/ApiTests/IntegrationEndpointTests.cs`. Catalog, cart, social, settings, weather and admin are in [store-social-settings.md](store-social-settings.md); the full endpoint index is [README.md](README.md).
 
 ## 1. Conventions
 
@@ -20,8 +20,8 @@ Contract for the mobile team. Everything here is implemented in `src/Api/Endpoin
 
 The only prose the API returns is (a) AI-generated text and (b) reference names.
 
-- AI text (look titles/notes, suitcase day labels, draft names) is generated in the user's language: profile `language` (`tr` \| `en`) → `Accept-Language` → `tr`. The language is stored with the result (`result.language`, `draft.language`); if it differs from the current UI language, start a new job instead of showing the stored text.
-- Reference names (colours, season types, library pieces) are stored as `{ "tr": "…", "en": "…" }` and returned already resolved in a single `name` field, with a Turkish fallback. A third language is a data change only.
+- AI text (look titles/notes, suitcase day labels, draft names) is generated in the user's language: profile `language` → `Accept-Language` (first supported language by q weight) → the default language. The supported languages and the default are config (`Localization:SupportedLanguages`, today `tr`, `en`; default `tr`) — the same list everywhere in the API. The profile language is set at registration from the phone's `Accept-Language` (unsupported → `tr`) and the app writes it again with `PUT v1/tenant/profile { "language", "baseVersion" }` whenever the app language changes. The language is stored with the result (`result.language`, `draft.language`); if it differs from the current UI language, start a new job instead of showing the stored text.
+- Reference names (colours, season types, library pieces) are stored as `{ "tr": "…", "en": "…" }` and returned already resolved in a single `name` field, with a default-language (Turkish) fallback. A third language is config + data only.
 
 ### Shared error codes
 
@@ -29,6 +29,7 @@ The only prose the API returns is (a) AI-generated text and (b) reference names.
 |---|---|---|
 | 403 | `premium_required` | AI feature touched by a non-member → paywall (05) |
 | 402 | `credits_exhausted` | No AI image credit left → **credit-pack sheet (05b)**, not the paywall |
+| 402 | `item_recognition_limit_reached` | A non-member used every free AI garment recognition → paywall; adding the piece by hand stays possible (`manual: true`, §3) |
 | 409 | `request_id_reused` | `requestId` already used for a different kind of job |
 | 409 | `job_not_completed` | Accept called before the job finished |
 | 404 | `job_not_found`, `suggestion_not_found` | |
@@ -50,7 +51,7 @@ The only prose the API returns is (a) AI-generated text and (b) reference names.
 | `LookSource` | `user`, `stylist`, `edit`, `builder` (`stylist` is set only by the accept endpoints) |
 | `TripType` | `business`, `dinner`, `sightseeing` |
 | `TripStatus` | `upcoming`, `active`, `past` |
-| `WeatherCondition` | `clear`, `cloudy`, `rain`, `snow`, `storm`, `fog` |
+| `WeatherCondition` | `clear`, `partlyCloudy`, `cloudy`, `fog`, `drizzle`, `rain`, `snow`, `showers`, `thunderstorm`, `unknown` (one enum for the whole API — same as `GET v1/weather`) |
 | `DislikeReason` | `notMyStyle`, `wrongOccasion`, `wrongWeather`, `colorMismatch`, `wornTooOften`, `other` |
 | `MissingPieceReason` | `emptySlot`, `rain`, `cold`, `noShoes`, `suggested` |
 | `TryOnTargetKind` | `item`, `look`, `product`, `editLook`, `suggestion` |
@@ -88,6 +89,8 @@ Ready-made library (screens 04b, 12b). Names in the profile language.
 [{ "id": "lib-white-tshirt", "name": "Beyaz tişört", "category": "top", "colorIds": ["white"], "fabric": "cotton", "seasons": ["spring", "summer", "autumn"], "imageUrl": null }]
 ```
 `imageUrl` is null until `Wardrobe:PublicAssetBaseUrl` is configured (global asset bucket/CDN).
+
+`reference.slots` reflects the category → slot mapping in config (`Wardrobe:SlotMapping`; default: beachwear → top/bottom, skiwear → top/bottom/outerwear). Always read it from here instead of hard-coding it.
 
 ---
 
@@ -127,12 +130,15 @@ Validation codes (400 `errors`): `category_required`, `color_required`, `color_u
    Upload each photo as multipart form POST to `url`: all `fields` first, then `file` (same pattern as profile photos).
    400 codes: `count_out_of_range`, `content_type_required`, `content_type_unsupported`.
 
-2. **POST `v1/tenant/item-draft`** `{ "requestId": "01J…", "uploadIds": ["01J…"], "splitOutfit": false }` → **202**
+2. **POST `v1/tenant/item-draft`** `{ "requestId": "01J…", "uploadIds": ["01J…"], "splitOutfit": false, "manual": false }` → **202**
    ```json
-   { "drafts": [ItemDraftDto], "jobs": [JobDto] }
+   { "drafts": [ItemDraftDto], "jobs": [JobDto], "skippedCount": 0, "skippedUploadIds": [],
+     "itemRecognition": { "limit": 10, "used": 3, "remaining": 7 } }
    ```
+   **AI recognition allowance (non-members).** A non-member has a lifetime number of AI recognitions (`Entitlements:Free:ItemRecognitionLimit`, default 10; `GET v1/tenant/entitlement` → `itemRecognition`). Every photo of a single, bulk or split request uses one **when its job completes**; a job that fails (`providerError`, `guardRejected`, `sourceDeleted`, …) uses none. A bulk request above what is left processes the first photos and returns the rest in `skippedCount` / `skippedUploadIds` (those uploads are untouched). Nothing left → **402 `item_recognition_limit_reached`** (show the paywall); limit configured as 0 → **403 `premium_required`**. Members: unlimited (`limit` / `remaining` are `null`).
+   **Manual entry.** `"manual": true` uses no AI and no allowance: each photo becomes a draft that is immediately `ready`, without suggestions and without a job (`jobId: null`); the user fills the form and confirms it as usual. Use it after a 402, or for the skipped uploads.
    One draft (id = `uploadId`) and one job per photo; with a single photo the job id is `requestId`. `splitOutfit: true` = "Kombin fotoğrafından parçaları ayır": each photo is an outfit, its pieces come back as separate drafts (`kind: "piece"`, `parentDraftId`), at most 6 per photo.
-   Errors: 404 `upload_not_found` · 422 `upload_missing` (nothing was uploaded to that slot) · 403 (entitlement) · 400 `request_id_invalid`, `upload_ids_out_of_range`, `upload_id_invalid`.
+   Errors: 404 `upload_not_found` · 422 `upload_missing` (nothing was uploaded to that slot) · 402 `item_recognition_limit_reached` · 403 `premium_required` · 400 `request_id_invalid`, `upload_ids_out_of_range`, `upload_id_invalid`.
 
 3. **GET `v1/tenant/item-draft`**
    ```json
@@ -160,7 +166,7 @@ Validation codes (400 `errors`): `category_required`, `color_required`, `color_u
    The new item id is `itemId ?? clientMutationId`. Per-row `code` when `outcome: "rejected"`: `draft_not_found`, `draft_not_ready`, `draft_review_required` (flagged draft sent with `reviewed: false`), `draft_is_outfit_source`, `validation_failed` (+ `errors`: the item codes above), `item_id_taken`.
    400 (whole request): `items_out_of_range`, `draft_duplicate`, `client_mutation_id_duplicate`, `draft_id_invalid`, `client_mutation_id_invalid`.
 
-5. **DELETE `v1/tenant/item-draft/{id}`** → 204 · 404
+5. **DELETE `v1/tenant/item-draft/{id}`** → 204 · 404. Deleting a draft that is still being processed is final: the worker never writes it back, removes the images it produced and ends the job as `failed` / `sourceDeleted` (no allowance used).
 
 ### Without a photo
 
@@ -168,6 +174,7 @@ Validation codes (400 `errors`): `category_required`, `color_required`, `color_u
   → same `results` shape (`refId` = `libraryItemId`); rejected code `library_item_not_found`. Items get `source: "library"`.
 - **POST `v1/tenant/item/from-product`** `{ "clientMutationId": "01J…", "productId": "prd…", "size": "M" }`
   → 201 (created) / 200 (replay) with one result row `{ refId, outcome, code, errors, item }`; items get `source: "purchase"`. 404 `product_not_found` (unknown or retired).
+  The product comes from the real catalog (`GET v1/catalog/product/{id}`): the item takes the product name in the user's language, the brand name, the product's first image as `imageUrl` (a public catalog URL, no expiry) and the wardrobe category of the catalog category (`tshirt`/`shirt`/`blouse`/`knitwear`/`sweatshirt`/`activewear` → `top`; `trousers`/`jeans`/`skirt`/`shorts` → `bottom`; `jacket`/`coat` → `outerwear`; `dress` → `dress`; `swimwear` → `beachwear`; `skiwear`, `shoes`, `bag`, `accessory` unchanged). Catalog colours that are not wardrobe colour ids are dropped; seasons default to all four. "Gardıroba ekle" on the product screen is this call; accepting a purchase prompt (`PUT v1/tenant/purchase-prompt/{id}`, other document) adds the pieces server-side with the same rules.
 
 ---
 
@@ -182,9 +189,11 @@ Validation codes (400 `errors`): `category_required`, `color_required`, `color_u
     { "slot": "bagAccessory", "itemId": null, "productId": "prd…", "missing": true, "unavailable": false }
   ],
   "pieceCount": 2, "hasMissingPieces": true, "favorite": false, "source": "user",
-  "createdAt": "…", "updatedAt": "…", "version": 1
+  "createdAt": "…", "updatedAt": "…", "version": 1,
+  "rating": { "average": 4.5, "count": 2 }
 }
 ```
+`rating` = what friends gave this look (`PUT v1/tenant/people/{handle}/look/{lookId}/rating`): average with one decimal and the number of ratings. It is filled by `GET v1/tenant/look` and `GET v1/tenant/look/{id}`; it is `null` while nobody rated the look and wherever a `LookDto` is embedded in another response (plan day, today, item detail, accept results). Deleting a look deletes its rating summary.
 `missing: true` = the slot is a catalog product the user does not own ("Eksik parça" → "Look'u tamamla"). `unavailable: true` = the wardrobe item was deleted.
 
 Slot rules (server-enforced, also in `reference.slots`): one piece per slot; each slot is **either** `itemId` (own wardrobe) **or** `productId` (catalog); the category must fit the slot; a **dress goes in `top` and closes `bottom`**; **at least 2 pieces**; the same piece cannot fill two slots.
@@ -220,7 +229,7 @@ Slot rules (server-enforced, also in `reference.slots`): one piece per slot; eac
   "week": [{ "date": "2026-11-18", "hasPlan": true, "worn": false }]
 }
 ```
-`weather` is **null** until a weather provider is configured (and when no city/coordinates are known). `plan`/`look` null = "Bugün için plan yok". `week` = 7 days starting at `date`. 400 `validation_failed` for a bad date.
+`weather` comes from the weather provider (Open-Meteo, shared 60-minute cache): the coordinates when both are sent, otherwise the profile city (`cityId` from `GET v1/weather/city`). Temperatures are whole °C. It is **null** when neither is known, when the provider is unavailable and nothing is cached, or when `date` is outside the 7-day forecast. Trip days (`TripDetailDto.days[].weather`) follow the same rule with the trip's `cityId`. `plan`/`look` null = "Bugün için plan yok". `week` = 7 days starting at `date`. 400 `validation_failed` for a bad date.
 
 ### Plan days
 | Method | Path | Request | Response |
@@ -316,7 +325,8 @@ Plans the 7 days from `weekStart`. `days` is optional; a day without an occasion
 | PUT | `v1/tenant/trip/{id}/item/{itemId}` | `{ "packed": true, "clientMutationId": "01J…", "occurredAt": "…" }` | `TripItemDto` · 404 |
 
 Trip 400 codes: `id_invalid`, `city_id_invalid`, `city_name_too_long`, `start_date_invalid`, `end_date_invalid`, `date_range_invalid` (end before start, or longer than 21 days), `trip_types_invalid`.
-Packing rules (enforced in the job and again at accept): only pieces of the wardrobe; one look per trip day built only from packed pieces; **every packed piece is worn at least twice** (on a 1-day trip: at least once); cabin-only never exceeds the configured limit. Ticking is idempotent and offline-safe: a late older event never overrides a newer mark. Pieces already ticked stay ticked when a new list is accepted.
+Packing rules (enforced in the job and again at accept): only pieces of the wardrobe; one look per trip day built only from packed pieces; **every packed piece is worn at least twice** (on a 1-day trip: at least once).
+**Cabin-only limit**: a `cabinOnly` trip never packs more than `Packing:CabinMaxItems` pieces (default **12**; every piece counts once, shoes and bags included; `0` = not enforced). The stylist is asked for at most that many; a list that is only too long is trimmed by rule — every slot keeps its most-used piece, then the pieces used in the most looks stay, and the dropped pieces are replaced in their looks — and the result says so (`cabinLimit`, `cabinTrimmed`, `droppedItemIds`, §9). The limit is checked again at accept (the trip or the limit may have changed since the draft): a list above it is refused with 409 `suggestion_stale`. Ticking is idempotent and offline-safe: a late older event never overrides a newer mark. Pieces already ticked stay ticked when a new list is accepted.
 
 ---
 
@@ -328,7 +338,8 @@ One generated image = 1 credit. The credit is reserved when the job is queued, k
 ```json
 { "requestId": "01J…", "target": { "kind": "look", "id": "01J…", "index": null } }
 ```
-`target.id`: item id · look id · product id · edit look id · for `suggestion` the **stylist job id** with `index`.
+`target.id`: item id · look id · product id (catalog) · edit look id · for `suggestion` the **stylist job id** with `index`.
+`editLook` ids: a weekly-edit look id (`EditDto.looks[].id`) renders its first price-band variant; `"{lookId}@{priceBand}"` (e.g. `edit-2026-w47-d1@luxuryTouch`) renders that variant; `"{collectionId}/{lookId}"` renders a creator / series collection look. Only published, non-retired content resolves. Product garments are rendered from the product's first catalog image.
 
 | Status | Body | Meaning |
 |---|---|---|
@@ -342,7 +353,7 @@ One generated image = 1 credit. The credit is reserved when the job is queued, k
 | 409 | `request_id_reused` | |
 | 400 | `request_id_invalid`, `target_required`, `target_kind_invalid`, `target_id_invalid`, `target_index_invalid` | |
 
-Job failures: `sourceDeleted` (body photo or a piece was deleted meanwhile — or a product image is not available yet), `providerError`, `guardRejected`. In every case the credit is refunded.
+Job failures: `sourceDeleted` (body photo or a piece was deleted meanwhile — or a product has no downloadable image: not https, not an image, larger than `Catalog:MaxImageBytes`, or its host is not in `Catalog:ImageHosts` when that list is set), `providerError`, `guardRejected`. In every case the credit is refunded.
 
 | Method | Path | Response |
 |---|---|---|
@@ -384,14 +395,16 @@ Job failures: `noFaceDetected` (no / several faces, or the photo is unsuitable �
   "flattering": [{ "id": "camel", "family": "brown", "hex": "#C19A6B", "name": "Camel" }],
   "avoid": [{ "id": "black", "family": "black", "hex": "#1C1A17", "name": "Siyah" }],
   "lowConfidence": false, "sourcePhotoActive": true, "analyzedAt": "…",
-  "compatibility": { "percent": 67, "totalCount": 3, "compatibleCount": 1, "neutralCount": 1, "incompatibleCount": 1 }
+  "compatibility": { "percent": 67, "totalCount": 3, "compatibleCount": 1, "neutralCount": 1, "incompatibleCount": 1,
+                     "unmatchedCount": 0, "neutralsCountAsCompatible": true }
 }
 ```
-`compatibility` is rule-based and computed on every read: a piece is judged by its main colour — in `avoid` → incompatible, in `flattering` → compatible, otherwise neutral. `percent = round(100 × (compatible + neutral) / total)`, so the percentage and the incompatible list always add up to the whole wardrobe; `percent` is null for an empty wardrobe. `lowConfidence: true` → suggest retaking the photo. `sourcePhotoActive: false` → the face photo was replaced since; offer a new analysis.
+`compatibility` is rule-based and computed on every read: a piece is judged by its main colour — in `avoid` → incompatible, in `flattering` → compatible, otherwise neutral. `percent = round(100 × (compatible + neutral) / total)`, so the percentage and the incompatible list always add up to the whole wardrobe; `percent` is null for an empty wardrobe. Both parts of the rule are config (`Palette`): `NeutralsCountAsCompatible` (default `true`, approved; `false` → `percent = compatible / total`) and `NeutralColorIds` (default empty = every colour outside the season's two lists is neutral; when set, a colour in none of the three lists is counted in `unmatchedCount`: in the total, neither compatible nor in the mismatch list). `lowConfidence: true` → suggest retaking the photo. `sourcePhotoActive: false` → the face photo was replaced since; offer a new analysis.
 
 | Method | Path | Response |
 |---|---|---|
 | GET | `v1/tenant/palette/mismatch` | `{ "items": ItemDto[] }` ("Uyumsuz parçaları gör") · 404 `palette_not_found` |
+| GET | `v1/tenant/palette/products?category=&priceBand=&sort=&pageToken=&limit=` | "Paletime uygun ürünler": `{ "items": [ProductDto], "pageToken", "count" }` — the catalog (same shape, filters and paging as `GET v1/catalog/product`) restricted to products that carry at least one of my `flattering` colours and whose main (first) colour is not in `avoid`. Rule based, no AI, no credit. · 404 `palette_not_found` · 400 for an unknown `category` / `priceBand` / `sort` |
 | DELETE | `v1/tenant/palette` | 204 |
 
 ---
@@ -425,13 +438,22 @@ Up to 3 suggestions. `source: "rule"` = rule-based fallback: `title` and `explan
 { "tripId": "01J…", "cabinOnly": true, "everyPieceWornTwice": true, "source": "model", "refusal": null, "language": "tr",
   "items": [{ "itemId": "…", "plannedWears": 2 }],
   "days": [{ "date": "2027-03-01", "label": "Uçuş + akşam yemeği", "occasion": "dinner", "slots": [{ "slot": "top", "itemId": "…", "productId": null }] }],
-  "missing": [{ "slot": "outerwear", "category": "outerwear", "reason": "rain", "productId": null }] }
+  "missing": [{ "slot": "outerwear", "category": "outerwear", "reason": "rain", "productId": null }],
+  "cabinLimit": 12, "cabinTrimmed": false, "droppedItemIds": [] }
 ```
+`cabinLimit` = the piece limit applied to this cabin-only trip (`null` for a normal trip or when the limit is 0). `cabinTrimmed: true` = pieces were left out to stay within it; `droppedItemIds` lists the pieces a rule removed from the stylist's list (empty when the shorter list was built from scratch by the rule-based fallback, `source: "rule"`).
 
 **`tryOn`** `{ "tryOnImageId": "…" }` · **`palette`** `{ "seasonTypeId": "…", "lowConfidence": false }`
 
 ---
 
-## 10. Not in this document
+## 10. Profile counters and entitlement
 
-Built by the catalog / social module: catalog and shop, cart, watchlist, affiliate, weekly edit content, feed/follow/rating (look rating summary), settings, notifications, analytics, the weather provider, `stylist/complete` ("Parçamı tamamla") and `palette/products`. Until those land: `weather` is null, `editLook` try-on targets return 404, and a try-on that needs a catalog product image fails with `sourceDeleted` (credit refunded).
+| Method | Path | Response |
+|---|---|---|
+| GET | `v1/tenant/profile/stats` | Screen 28 counters of the signed-in account: `{ "itemCount": 42, "lookCount": 9, "tripCount": 2, "followerCount": 12, "followingCount": 30 }` |
+| GET | `v1/tenant/entitlement` | Tier and AI credits, plus `"itemRecognition": { "limit": 10, "used": 3, "remaining": 7 }` — the AI garment recognition allowance (§3). `limit` / `remaining` are `null` for members (unlimited); `used` = completed + in progress. `limit: 0` = the feature is members-only. |
+
+## 11. Not in this document
+
+[store-social-settings.md](store-social-settings.md): catalog and shop, cart, watch list, affiliate checkout, weekly edit and content, feed / people / follow / rating / save / block / report, invite and share, settings, notifications and devices, analytics events, weather endpoints, the admin API, and `POST v1/tenant/catalog/complete` ("Parçamı tamamla"). Sign-in, profile photos, body and style profile, purchases and `GET v1/tenant/job/{id}` are foundation endpoints without a contract document. Every endpoint is listed in [README.md](README.md).

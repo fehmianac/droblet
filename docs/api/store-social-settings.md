@@ -3,7 +3,7 @@
 Contract for the mobile app (E8 Keşfet/mağaza, E9 Sosyal, E11 Ayarlar, analytics events, weather) and the admin panel
 (`v1/admin/*`). Base URL (dev): `https://b8lvaj4r5e.execute-api.eu-central-1.amazonaws.com/dev`.
 
-Not in this document: wardrobe items, looks, today/plan/calendar, stylist/trips, try-on, palette (other slice).
+Not in this document: wardrobe items, looks, today/plan/calendar, stylist/trips, try-on, palette, profile counters — see [wardrobe-looks-plan-stylist.md](wardrobe-looks-plan-stylist.md). Every endpoint is listed in [README.md](README.md).
 
 ## 1. Conventions
 
@@ -14,7 +14,7 @@ Not in this document: wardrobe items, looks, today/plan/calendar, stylist/trips,
 | JSON | camelCase. Enums are camelCase strings (`highStreet`, `followersOnly`). Unknown enum value or malformed JSON → `400 validation_failed`. |
 | Errors | ProblemDetails: `{ "type", "title", "status", "code" }` — `code` is the stable value to switch on. Validation: `400` with `code: "validation_failed"` and `errors: { "<field>": ["<code>"] }`. |
 | No prose | The API never returns sentences of its own. Only stored content (product names, edit titles, city names…) is text; everything else is a code or enum the client translates. Push notifications are the one exception (§9). |
-| Language | Stored content is resolved to one language per request: **profile `language`** → `Accept-Language` → `tr`. Missing translation → default language (`tr`). Supported languages come from config `Localization:SupportedLanguages` (`tr`, `en`); a new language is config + data. |
+| Language | Stored content is resolved to one language per request: **profile `language`** → `Accept-Language` → `tr`. Missing translation → default language (`tr`). Supported languages come from config `Localization:SupportedLanguages` (`tr`, `en`); a new language is config + data. This one list is used by every language check in the API (profile validation, registration, AI text, password-reset e-mail). The profile language is **set at registration** (e-mail, Apple, Google) from the request's `Accept-Language` when it names a supported language, else `tr`. |
 | Money | Integer minor units (`priceMinor`, kuruş) + ISO `currency` (`TRY`). No formatting server side. Totals are computed from the current catalog on every read. |
 | Time | UTC ISO-8601 (`2026-11-18T09:00:00Z`). Calendar days are `yyyy-MM-dd` strings. |
 | Privacy | A cross-user read that is not allowed returns `404` — indistinguishable from "does not exist". Never `403`. |
@@ -27,7 +27,9 @@ Not in this document: wardrobe items, looks, today/plan/calendar, stylist/trips,
 |---|---|
 | `priceBand` | `highStreet`, `luxuryTouch` |
 | `category` | `tshirt`, `shirt`, `blouse`, `knitwear`, `sweatshirt`, `jacket`, `coat`, `trousers`, `jeans`, `skirt`, `shorts`, `dress`, `shoes`, `bag`, `accessory`, `swimwear`, `skiwear`, `activewear` |
-| `slot` | `top`, `bottom`, `outerwear`, `shoes`, `bag`, `onePiece`, `accessory` |
+| `slot` (catalog products, `complete`) | `top`, `bottom`, `outerwear`, `shoes`, `bag`, `onePiece`, `accessory` |
+| look piece `slot` (`SocialLookDto.pieces[].slot`) | the wardrobe `OutfitSlot`: `top`, `bottom`, `outerwear`, `shoes`, `bagAccessory` |
+| wardrobe item `category` (match items, `people/{handle}/item`) | the wardrobe `ItemCategory`: `top`, `bottom`, `dress`, `outerwear`, `shoes`, `bag`, `accessory`, `beachwear`, `skiwear` |
 | `source` (affiliate) | `network`, `direct` |
 | `lookRef.kind` | `edit` (weekly edit look id), `collection` (creator / series look id), `user` (a user's look id) |
 | conversion `status` | `pending`, `approved`, `rejected` |
@@ -116,8 +118,10 @@ Query of `GET v1/catalog/product` (all optional): `category`, `brand` (brand id)
 Invalid `category` / `priceBand` / `sort` → `400 validation_failed`.
 
 Match and complete are **rule based** (different outfit slot + harmonising colours: either side neutral or a shared colour),
-synchronous and free of credits. They read the wardrobe through `IClosetReader`; until the wardrobe slice is merged the
-wardrobe is empty, so `compatibleCount` is 0 and `complete` proposes every slot.
+synchronous and free of credits. They read the caller's real wardrobe (`GET v1/tenant/item`): `items[].category` is the
+wardrobe category (`top`, `bottom`, …), `itemIds` are wardrobe item ids, and `imageUrl` is the cleaned item image
+(short-lived) or the public library / catalog image. A wardrobe piece fills the catalog slot of its category
+(dress / beachwear → `onePiece`, skiwear → `outerwear`).
 
 ## 4. Cart, watch list, checkout (screens 22, 24, 24b; flow 5.5)
 
@@ -132,7 +136,7 @@ wardrobe is empty, so `compatibleCount` is 0 and `complete` proposes every slot.
 | PUT | `v1/tenant/watch-list/{productId}` | `{ "size"?, "look"?: LookRef }` or empty | `WatchItemDto`. `404 product_not_found`, `422 product_retired`, `422 watch_list_full`. |
 | DELETE | `v1/tenant/watch-list/{productId}` | — | `204`. `404 not_found`. |
 | GET | `v1/tenant/purchase-prompt` | — | `PurchasePromptDto[]` — pending "Gardıroba ekleyelim mi?" |
-| PUT | `v1/tenant/purchase-prompt/{id}` | `{ "accepted": true|false }` | `204`. `404 not_found`. |
+| PUT | `v1/tenant/purchase-prompt/{id}` | `{ "accepted": true|false }` | `200 { "status": "accepted", "items": [{ "refId": productId, "outcome": "created", "code", "errors", "item": ItemDto }] }` — `status` is `accepted` or `dismissed`, `outcome` is `created` or `alreadyApplied` (`items` empty when dismissed). `404 not_found`. `403 premium_required` when the wardrobe refuses the add — the prompt stays pending. |
 
 ```jsonc
 // CartDto
@@ -161,7 +165,7 @@ Rules the client can rely on:
 - **No price on the line**: subtotals follow the catalog. A retired product stays in the cart with `available: false` and adds nothing.
 - **Checkout does not take payment** and does not empty the cart. It records a click (`click_id` → user, products, look, source) and returns the link. One product → that product's link; several products of a brand → the brand's landing link when the brand has one, else the first product's; `products[]` always lists per-product links. The query parameter name is per brand (default `click_id`).
 - **Watch list** is separate from favourites. `priceDropped` compares the current price with the price when it was added; when an admin/feed lowers a price, every watcher is flagged server side (the price-drop push itself is not sent yet).
-- **Purchase prompt**: created when a conversion postback arrives for the user's click. After the user accepts, add the pieces with the wardrobe endpoint (`POST v1/tenant/item/from-product`, other slice), then `PUT … { "accepted": true }`.
+- **Purchase prompt**: created when a conversion postback arrives for the user's click. `PUT … { "accepted": true }` is the whole action: the **server** adds every purchased product to the wardrobe (`source: "purchase"`, same mapping as `POST v1/tenant/item/from-product`) and returns the created items. It is idempotent — answering twice, or retrying after a timeout, never adds a piece twice (`outcome: "alreadyApplied"`). The client must **not** also call `item/from-product` for these products.
 
 ## 5. Conversion postback (server to server — not for the app)
 
@@ -235,7 +239,7 @@ wear log, cart, watch list, notification settings, e-mail.
 // SocialLookDto
 { "id": "01J…", "ownerHandle": "ayse", "ownerDisplayName": "Ayşe", "name": "Ofis", "occasion": "office", "createdAt": "…",
   "pieces": [ { "slot": "top", "itemId": "…", "productId": null, "name": "Beyaz gömlek", "imageUrl": "https://… (short-lived)", "product": null },
-              { "slot": "bag", "itemId": null, "productId": "lx-bag", "name": "Deri El Çantası", "imageUrl": "https://…", "product": ProductDto } ],
+              { "slot": "bagAccessory", "itemId": null, "productId": "lx-bag", "name": "Deri El Çantası", "imageUrl": "https://…", "product": ProductDto } ],
   "rating": { "average": 4.6, "count": 12, "myScore": 5 },   // average null when count = 0; one decimal
   "saved": false }
 ```
@@ -244,7 +248,9 @@ wear log, cart, watch list, notification settings, e-mail.
 - **Style match %**: Jaccard of the two users' style tags: 3 shared = 100, 2 = 50, 1 = 20, 0 = 0.
 - **Look images** are item images, never try-on images. `pieces[].product` is set for catalog pieces → "Parçaları gör" can add to cart with `look: { "kind": "user", "id": lookId }`.
 - **After a block** both users get `404` for each other everywhere (search, profile, tabs, follow, rating, report, feed, suggestions). Only the blocker sees the entry in `GET v1/tenant/block`.
-- Looks, items and trips come from the wardrobe slice (`IClosetReader`); until it is merged these lists are empty.
+- Looks, items and trips are the owner's real wardrobe data (the looks of `GET v1/tenant/look`, the items of `GET v1/tenant/item`), always behind the visibility table above. What a viewer gets is narrower than what the owner sees: a look lists only its existing pieces (a deleted item's slot is dropped); `imageUrl` is the cleaned (background-removed) item image or the public library / catalog image — **never the original photo** and never a try-on image, `null` when the piece only has an original; `pieces[].slot` is the wardrobe slot (`bagAccessory`, not `bag`).
+- The trips tab lists finished trips only (end date before today) as city + month. It stays owner-only.
+- The owner sees the same rating on her own looks: `GET v1/tenant/look` / `look/{id}` → `rating { average, count }` (other document).
 
 ### Invite and share (flow 5.7)
 
@@ -269,7 +275,7 @@ sign-up. The code is 8 characters, case-insensitive. Phase 1 gives no reward.
 | PUT | `v1/tenant/user/me/notifications` | `{ "morningOutfit", "morningOutfitLocalTime": "07:30", "weeklyEdit", "friendRatings", "timeZone": "Europe/Istanbul", "baseVersion" }` | `NotificationPrefsDto`. `409` + current prefs. `400`: `local_time_invalid` (HH:mm, quarter hours only), `time_zone_invalid` (IANA id). |
 | PUT | `v1/tenant/user/me/device` | `{ "deviceId" (8–100 chars), "platform", "pushToken"?, "timeZone"? }` | `{ "deviceId", "platform", "pushEnabled", "updatedAt" }`. `422 device_limit_reached` (10). |
 | DELETE | `v1/tenant/user/me/device/{deviceId}` | — | `204` (idempotent) |
-| PUT | `v1/tenant/profile` *(existing)* | `{ "displayName", "language", "cityId"?, "baseVersion" }` | Language and city are changed here. `language` must be in the supported list → else `400 language_unsupported`. `cityId` = id from `GET v1/weather/city`. |
+| PUT | `v1/tenant/profile` *(existing)* | `{ "displayName"?, "language"?, "cityId"?, "baseVersion" }` | **Partial update**: an omitted / `null` field keeps its value, so the app sends only `{ "language", "baseVersion" }` when its language changes (extra fields such as `clientMutationId` are ignored). `cityId: ""` clears the city. `language` must be in the supported list → else `400 language_unsupported`; a blank `displayName` → `400 name_required`. `cityId` = id from `GET v1/weather/city`. `409` + current `ProfileDto` when `baseVersion` is stale. |
 
 ```jsonc
 // SettingsDto
@@ -325,7 +331,7 @@ sentences in the recipient's profile language (`tr`, `en`; other languages fall 
 |---|---|---|---|
 | `weekly_edit` | `editId` | Weekly; `weeklyEdit` on and an edit for the current week is published | edit |
 | `friend_ratings` | `day` | Daily digest; `friendRatings` on and a look was rated today (no scores or names in the text) | day |
-| `morning_outfit` | `day` | At `morningOutfitLocalTime`; `morningOutfit` on **and** a look is planned for today (needs the plan slice — nothing is sent until it is wired) | local day |
+| `morning_outfit` | `day` | At `morningOutfitLocalTime`; `morningOutfit` on **and** a look that still exists is planned for the user's local day (`PUT v1/tenant/plan-day/{date}` with a `lookId`; an occasion alone does not count) | local day |
 
 ## 10. Weather
 
@@ -344,6 +350,8 @@ sentences in the recipient's profile language (`tr`, `en`; other languages fall 
 Location permission granted → send `lat`/`lon` (rounded to 0.1° on the server before use; never stored with the user).
 Otherwise use the profile `cityId`. `days[0]` is today at that location. Forecasts come from a shared cache
 (60 minutes); when the provider is down the last cached forecast is served.
+The same forecast feeds `GET v1/tenant/today` (`weather`), trip days and the stylist / suitcase jobs (other document),
+there as whole °C (`minTempC` / `maxTempC`) and `null` instead of a 503 when nothing is available.
 
 ## 11. Admin API (`v1/admin/*`)
 
@@ -422,10 +430,15 @@ TABLE_NAME=droblet-dev-table dotnet run --project tools/Seed -- apply     # writ
 | `Admin` | `UserIds[]`, `Emails[]` | empty → nobody is admin |
 | `AffiliatePostback` (SecureString) | `NetworkSecret`, `DirectSecret`, `DirectBrandSecrets{}`, `DefaultClickIdParameter` | no secrets → postbacks answer 503 |
 | `Localization` | `SupportedLanguages[]`, `DefaultLanguage` | `tr`, `en` / `tr` |
-| `Catalog` | `PageSize`, `MaxPageSize`, `CacheSeconds`, `MaxCartLines`, `MaxWatchItems`, `BulkUpsertMax` | 24, 60, 60, 100, 200, 200 |
+| `Catalog` | `PageSize`, `MaxPageSize`, `CacheSeconds`, `MaxCartLines`, `MaxWatchItems`, `BulkUpsertMax`, `ImageHosts[]` (hosts product images may be downloaded from for try-on; empty = any https host), `MaxImageBytes` | 24, 60, 60, 100, 200, 200, empty, 10 MB |
 | `Social` | `MaxFollowing`, `FeedPageSize`, `SuggestedPageSize`, `SuggestedCandidateLimit`, `SearchPageSize`, `InviteUrl`, `InviteAttributionWindowDays`, `ReportsPerDay`, `InviteResolvePerIpPerHour` | 500, 20, 20, 100, 20, `https://droplet.alatech.co/i`, 30, 20, 60 |
 | `Weather` | `Provider`, `CacheMinutes`, `ForecastBaseUrl`, `GeocodingBaseUrl`, `TimeoutSeconds` | `OpenMeteo`, 60 |
 | `Notifications` | `DefaultMorningLocal`, `DefaultTimeZone`, `MaxDevicesPerTenant` | `07:30`, `Europe/Istanbul`, 10 |
-| `/droblet/{stage}/notifier/FirebaseServiceAccount` (SecureString) | `project_id`, `client_email`, `private_key` | empty → push disabled |
+| `/droblet/{stage}/notifier/Push/ServiceAccountJson` (SecureString) | the Firebase service-account JSON file as downloaded (`project_id`, `client_email`, `private_key`) | `CHANGE_ME` or empty → push disabled |
 
-No `template.yaml` change was needed: these parameters live under paths the Lambdas can already read.
+`template.yaml` creates the non-secret sections (`Localization`, `Admin`, `Catalog`, `Social`, `Weather`, `Notifications`,
+`Affiliate`, plus `Wardrobe`, `Stylist`, `Packing`, `Palette`, `Entitlements`) as SSM String parameters with these defaults —
+for the Api and, where a worker applies the same rule, under `/worker/` (and `Localization` under `/notifier/`).
+Secrets are created by `deploy-infra` with the placeholder `CHANGE_ME`, which the code treats as **not configured**
+(no e-mail, no push, no AI call, no Apple key, no store notification key). `AffiliatePostback` is created by hand; a
+missing or `CHANGE_ME` secret refuses every postback (503).
