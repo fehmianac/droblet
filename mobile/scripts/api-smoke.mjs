@@ -264,6 +264,14 @@ async function main() {
         await branchStep('wardrobe', 'v1/tenant/item-draft/{id}/retry', 'POST', `v1/tenant/item-draft/${draftId}/retry`, A, [202, 404, 409]);
       }
     }
+    // Manual piece without a photo (7b) with the formerly lossy fields (7c).
+    const manualId = ulid();
+    await branchStep('wardrobe', 'v1/tenant/item (manual, no photo)', 'POST', 'v1/tenant/item', {
+      ...A, body: { clientMutationId: manualId, itemId: manualId, name: 'Smoke blazer', category: 'outerwear', subcategory: 'blazer', colorIds: ['other'], colorHex: '#123456', fabricText: 'tüvit', seasons: ['autumn'] },
+    }, [201], (j) => need(j.item && j.item.imageUrl === null && j.item.source === 'manual' && j.item.subcategory === 'blazer', 'manual item'));
+    await branchStep('wardrobe', 'v1/tenant/item (manual, replay)', 'POST', 'v1/tenant/item', {
+      ...A, body: { clientMutationId: manualId, itemId: manualId, name: 'Smoke blazer', category: 'outerwear', colorIds: ['other'], seasons: ['autumn'] },
+    }, [200], (j) => need(j.outcome === 'alreadyApplied', 'idempotent'));
     await step('wardrobe', 'v1/tenant/item', 'GET', 'v1/tenant/item', A, [200], (j) => {
       need(Array.isArray(j), 'array');
       has(j[0], 'id', 'name', 'category', 'colorIds', 'seasons', 'imageUrl', 'wearCount', 'version');
@@ -412,6 +420,8 @@ async function main() {
       await step('cart', 'v1/tenant/cart/checkout/{brandId}', 'POST', `v1/tenant/cart/checkout/${product.brandId}`, A, [200, 422], (j, r) => (r.status === 422 ? j.code : 'checkout url'));
       if (lineId) await step('cart', 'v1/tenant/cart/line/{lineId}', 'DELETE', `v1/tenant/cart/line/${lineId}`, A, [204]);
       await step('watch list', 'v1/tenant/watch-list/{productId}', 'PUT', `v1/tenant/watch-list/${product.id}`, { ...A, body: {} }, [200], (j) => has(j, 'product', 'priceAtAddMinor', 'currentPriceMinor', 'priceDropped'));
+      await step('watch list', 'v1/tenant/watch-list/{productId} (bell off)', 'PUT', `v1/tenant/watch-list/${product.id}`, { ...A, body: { notify: false } }, [200], (j) =>
+        'notify' in j ? need(j.notify === false && j.origin === 'user', 'bell off') : 'older deployment (no notify)');
       await step('watch list', 'v1/tenant/watch-list/{productId}', 'DELETE', `v1/tenant/watch-list/${product.id}`, A, [204]);
     } else {
       await step('cart', 'v1/tenant/cart/line (unknown product; catalog empty)', 'POST', 'v1/tenant/cart/line', { ...A, body: { lines: [{ clientMutationId: ulid(), productId: 'smoke-unknown' }] } }, [404], (j) => need(j.code === 'product_not_found', 'code'));
