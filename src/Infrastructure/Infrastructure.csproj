@@ -18,4 +18,9 @@
     <InternalsVisibleTo Include="InfrastructureTests" />
   </ItemGroup>
 
+  <!-- Ready library seed: served until the global library#item partition is seeded (LibraryCatalog). -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\seed\library\items.json" LogicalName="seed.library.items.json" Link="Seed\library-items.json" />
+  </ItemGroup>
+
 </Project>

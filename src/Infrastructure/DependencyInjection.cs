@@ -42,18 +42,25 @@ public static class DependencyInjection
         services.AddSingleton<IEntitlementService, EntitlementService>();
         services.AddSingleton<ICreditService, CreditService>();
         services.AddSingleton<IJobLifecycle, JobLifecycle>();
+        services.AddDrobletWardrobe(configuration);
         return services;
     }
 
     public static IServiceCollection AddDrobletAi(this IServiceCollection services)
     {
-        services.AddSingleton<NotConfiguredAiProvider>();
-        services.AddSingleton<IAiProvider>(sp => sp.GetRequiredService<NotConfiguredAiProvider>());
-        services.AddSingleton<IImageCleanup>(sp => sp.GetRequiredService<NotConfiguredAiProvider>());
-        services.AddSingleton<IGarmentVision>(sp => sp.GetRequiredService<NotConfiguredAiProvider>());
-        services.AddSingleton<ITryOnRenderer>(sp => sp.GetRequiredService<NotConfiguredAiProvider>());
-        services.AddSingleton<IStylistModel>(sp => sp.GetRequiredService<NotConfiguredAiProvider>());
-        services.AddSingleton<IPaletteAnalyzer>(sp => sp.GetRequiredService<NotConfiguredAiProvider>());
+        // OpenAI over plain HTTP. With Ai:Enabled = false (default) or a missing key / model id every call throws
+        // AiProviderException, so jobs fail with ProviderError and credits are refunded — same as before.
+        services.AddSingleton(sp => new OpenAiProvider(
+            new HttpClient { Timeout = Timeout.InfiniteTimeSpan },
+            sp.GetRequiredService<IOptionsMonitor<AiOptions>>(),
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<OpenAiProvider>>()));
+        services.AddSingleton<IAiProvider>(sp => sp.GetRequiredService<OpenAiProvider>());
+        services.AddSingleton<IImageCleanup>(sp => sp.GetRequiredService<OpenAiProvider>());
+        services.AddSingleton<IGarmentVision>(sp => sp.GetRequiredService<OpenAiProvider>());
+        services.AddSingleton<ITryOnRenderer>(sp => sp.GetRequiredService<OpenAiProvider>());
+        services.AddSingleton<IStylistModel>(sp => sp.GetRequiredService<OpenAiProvider>());
+        services.AddSingleton<IPaletteAnalyzer>(sp => sp.GetRequiredService<OpenAiProvider>());
+        services.AddSingleton<IOutfitSplitter>(sp => sp.GetRequiredService<OpenAiProvider>());
         return services;
     }
 
