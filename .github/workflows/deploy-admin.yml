@@ -1,0 +1,100 @@
+name: Deploy admin
+
+# admin/** main'e girince ya da elle: bucket stack'i (infra/admin.yaml) kurulur/guncellenir, panel build edilir,
+# kontrol edilir ve admin/out/ bucket'a senkronlanir. Bucket adi = alan adi (droblet-admin.alatech.co).
+# API adresi build aninda gomulur: repo degiskeni API_BASE_URL (ornek: https://xxxx.execute-api.eu-central-1.amazonaws.com).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'admin/**'
+      - 'infra/admin.yaml'
+      - '.github/workflows/deploy-admin.yml'
+  workflow_dispatch:
+    inputs:
+      restrict_to_cloudflare:
+        description: Okumayi yalniz Cloudflare IP'lerine ac (DNS proxy kurulmadan once "false" ile denenebilir)
+        type: choice
+        options: ['true', 'false']
+        default: 'true'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-admin
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'eu-central-1' }}
+  ADMIN_DOMAIN: ${{ vars.ADMIN_DOMAIN || 'droblet-admin.alatech.co' }}
+  STACK_NAME: droblet-admin
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: API adresi var mi
+        env:
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+        run: |
+          if [ -z "$API_BASE_URL" ]; then
+            echo "::error::Repo degiskeni API_BASE_URL bos; panel hangi API'yi cagiracagini bilemez."; exit 1
+          fi
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: admin/package-lock.json
+
+      # Once build ve kontroller: hatali bir panel bucket'a hic gitmez.
+      - name: Build + kontroller
+        working-directory: admin
+        env:
+          NEXT_PUBLIC_API_BASE_URL: ${{ vars.API_BASE_URL }}
+          NEXT_TELEMETRY_DISABLED: '1'
+        run: |
+          npm ci
+          npm run typecheck
+          npm run lint
+          npm run build
+          npm run check
+          test -f out/index.html || { echo "::error::out/index.html yok; statik export basarisiz."; exit 1; }
+
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Bucket stack
+        env:
+          # push ile calisirken girdi yoktur: stack'teki onceki deger korunur (ilk kurulumda sablon varsayilani).
+          RESTRICT: ${{ inputs.restrict_to_cloudflare }}
+        run: |
+          set -euo pipefail
+          overrides=("AdminDomain=$ADMIN_DOMAIN")
+          [ -n "$RESTRICT" ] && overrides+=("RestrictToCloudflare=$RESTRICT")
+          aws cloudformation deploy \
+            --stack-name "$STACK_NAME" \
+            --template-file infra/admin.yaml \
+            --parameter-overrides "${overrides[@]}" \
+            --no-fail-on-empty-changeset \
+            --tags project=droblet component=admin
+          aws cloudformation describe-stacks --stack-name "$STACK_NAME" \
+            --query "Stacks[0].Outputs[].[OutputKey,OutputValue]" --output text \
+            | awk -F'\t' 'BEGIN{print "| Anahtar | Deger |\n|---|---|"} {printf "| %s | `%s` |\n", $1, $2}' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Senkron
+        working-directory: admin
+        run: |
+          set -euo pipefail
+          bucket="s3://$ADMIN_DOMAIN"
+          # Hash'li dosyalar uzun sure onbellekte kalir; HTML ve digerleri her istekte dogrulanir (yeni surum hemen gelir).
+          aws s3 sync out/_next "$bucket/_next" --delete --cache-control "public,max-age=31536000,immutable"
+          aws s3 sync out "$bucket" --delete --exclude "_next/*" --cache-control "no-cache,max-age=0,must-revalidate"
+          echo "Yayinlandi: https://$ADMIN_DOMAIN (API: ${{ vars.API_BASE_URL }})" >> "$GITHUB_STEP_SUMMARY"
