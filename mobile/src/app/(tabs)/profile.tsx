@@ -1,5 +1,20 @@
 import { router } from 'expo-router';
-import { Bookmark, Briefcase, Check, CircleAlert, Crown, Lock, Palette as PaletteIcon, Pencil, Settings, Users } from 'lucide-react-native';
+import {
+  Bookmark,
+  BookmarkCheck,
+  Briefcase,
+  Check,
+  CircleAlert,
+  Crown,
+  Lock,
+  Palette as PaletteIcon,
+  Pencil,
+  Settings,
+  UserCheck,
+  UserPlus,
+  Users,
+  X,
+} from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 
@@ -16,9 +31,11 @@ import { Screen } from '@/components/ui/Screen';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { useEntitlement } from '@/entitlement/useEntitlement';
+import { useProfileNudge } from '@/features/account/profileEdit';
 import { useMyPhotos, useMyProfile, usePalette, useProfileStats } from '@/features/account/queries';
 import { ProfileMenuRow, RowCard } from '@/features/account/rows';
 import { creditSheetStore } from '@/features/credits/creditSheetStore';
+import { useIncomingRequestCount } from '@/features/social/queries';
 import { priceDropPercent } from '@/features/store/cartMath';
 import { useWatchlist } from '@/features/store/queries';
 import { currentLanguage } from '@/i18n';
@@ -118,6 +135,32 @@ function Stat({ label }: { label: string }) {
   );
 }
 
+/** One-time "Profilini tamamla" card (after onboarding, while there is no @handle). */
+function ProfileNudge({ onDismiss }: { onDismiss: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <Card className="gap-3 p-4">
+      <View className="flex-row items-start gap-3">
+        <View className="flex-1 gap-1">
+          <Text variant="h3">{t('friends.nudgeTitle')}</Text>
+          <Text variant="body" tone="muted">
+            {t('friends.nudgeBody')}
+          </Text>
+        </View>
+        <IconButton icon={X} variant="plain" onPress={onDismiss} accessibilityLabel={t('friends.nudgeDismiss')} testID="profile.nudge.dismiss" />
+      </View>
+      <Button
+        label={t('friends.nudgeAction')}
+        onPress={() => {
+          onDismiss();
+          router.push('/edit-profile');
+        }}
+        testID="profile.nudge.action"
+      />
+    </Card>
+  );
+}
+
 /**
  * 28 Profil — logo header + settings, who you are (photo, name, handle · style, numbers, "Profili düzenle"),
  * the AI credit counter ("Bu ay 30 görselden N'si kaldı" + "Kredi yükle" → 05b) and the menu exactly as
@@ -134,6 +177,9 @@ export default function ProfileTab() {
   const photos = useMyPhotos();
   const palette = usePalette();
   const watchlist = useWatchlist();
+  const requestCount = useIncomingRequestCount();
+  const userId = session.status === 'signedIn' ? session.user.id : null;
+  const nudge = useProfileNudge(userId, profile.data ? profile.data.handle !== null : null);
 
   const name = profile.data?.displayName ?? (session.status === 'signedIn' ? session.user.name : '');
   const tags = (profile.data?.styleTags ?? []).slice(0, 2).map((tag) => t(`style.tags.${tag}`));
@@ -202,6 +248,8 @@ export default function ProfileTab() {
           <IconButton icon={Pencil} iconSize={18} onPress={() => router.push('/edit-profile')} accessibilityLabel={t('me.editProfile')} />
         </View>
 
+        {nudge.visible ? <ProfileNudge onDismiss={nudge.dismiss} /> : null}
+
         {entitlement.data ? (
           isMember ? (
             <CreditCard entitlement={entitlement.data} hasBodyPhoto={photos.data ? photos.data.body.length > 0 : null} />
@@ -222,6 +270,15 @@ export default function ProfileTab() {
         <RowCard>
           <ProfileMenuRow first icon="hanger" label={t('me.menu.wardrobeStats')} onPress={() => router.navigate('/wardrobe')} />
           <ProfileMenuRow icon={Briefcase} label={t('me.menu.tripArchive')} onPress={() => router.navigate('/wardrobe/trips')} />
+          <ProfileMenuRow
+            icon={UserCheck}
+            label={t('friends.menuRequests')}
+            trailing={requestCount > 0 ? <Badge tone="accent" label={String(requestCount)} /> : undefined}
+            onPress={() => router.push('/friends/requests')}
+          />
+          <ProfileMenuRow icon={BookmarkCheck} label={t('friends.menuSaved')} onPress={() => router.push('/friends/saved')} />
+          <ProfileMenuRow icon={Users} label={t('friends.followersTitle')} onPress={() => router.push('/friends/followers')} />
+          <ProfileMenuRow icon={UserPlus} label={t('friends.followingTitle')} onPress={() => router.push('/friends/following')} />
           <ProfileMenuRow
             icon={PaletteIcon}
             label={t('me.menu.palette')}

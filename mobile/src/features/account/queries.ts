@@ -2,7 +2,7 @@ import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-quer
 
 import { apiRequest } from '@/api/client';
 import type { StyleTag } from '@/api/contracts';
-import type { CityOption, MyPhotos, MyProfile, NotificationSettings, Palette, PaletteMismatch, ProfileStats } from '@/api/contracts/account';
+import type { CityOption, HandleAvailability, MyPhotos, MyProfile, NotificationSettings, Palette, PaletteMismatch, ProfileStats } from '@/api/contracts/account';
 import type { ProductPage } from '@/api/contracts/store';
 import { fromSource, queryString } from '@/api/dataSource';
 import { ApiError, isGone } from '@/api/errors';
@@ -12,6 +12,7 @@ import {
   toNotificationSettings,
   toProfileStats,
   type CityWire,
+  type HandleAvailabilityWire,
   type NotificationPrefsWire,
   type ProfileStatsWire,
   type SettingsWire,
@@ -35,6 +36,7 @@ export const accountKeys = {
   paletteMismatch: ['tenant', 'palette', 'mismatch'] as const,
   paletteProducts: (pageToken: string | null) => ['tenant', 'palette', 'products', pageToken ?? 'first'] as const,
   cities: (q: string) => ['weather', 'city', q] as const,
+  handleAvailability: (handle: string) => ['tenant', 'profile', 'handle', 'availability', handle] as const,
 };
 
 /** Style tags live in the style profile, not in `ProfileDto`; 404 (not set yet) reads as none. */
@@ -132,6 +134,32 @@ export function useAccountSettings() {
             devices: wire.devices.map((d) => ({ deviceId: d.deviceId, platform: d.platform, pushEnabled: d.pushEnabled })),
             profileVersion: wire.profileVersion,
           };
+        },
+      ),
+  });
+}
+
+const HANDLE_CODES = ['handle_invalid', 'handle_reserved', 'handle_taken'] as const;
+
+/**
+ * Live @handle check (`GET v1/tenant/profile/handle/availability?handle=`). The caller debounces;
+ * nothing is asked for an empty value. Never persisted — the answer is only true for a moment.
+ */
+export function useHandleAvailability(handle: string) {
+  const value = handle.trim().replace(/^@/, '');
+  return useQuery({
+    queryKey: accountKeys.handleAvailability(value.toLowerCase()),
+    enabled: value.length > 0,
+    meta: { persist: false },
+    staleTime: 0,
+    queryFn: () =>
+      fromSource<HandleAvailability>(
+        'account',
+        () => accountFixtures.handleAvailability(value),
+        async () => {
+          const wire = await apiRequest<HandleAvailabilityWire>(`v1/tenant/profile/handle/availability${queryString({ handle: value })}`);
+          const code = HANDLE_CODES.find((c) => c === wire.code) ?? (wire.available ? null : 'handle_invalid');
+          return { handle: wire.handle, available: wire.available, code };
         },
       ),
   });

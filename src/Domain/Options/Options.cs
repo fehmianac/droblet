@@ -21,12 +21,27 @@ public sealed class AppleAuthOptions
     public string BundleId { get; set; } = "";
     /// <summary>Extra accepted audiences (e.g. a Services ID for web sign-in).</summary>
     public List<string> AdditionalAudiences { get; set; } = [];
+    /// <summary>Apple developer team (4LB4RD97A9): "iss" of the client secret used for token exchange / revocation.</summary>
     public string? TeamId { get; set; }
+    /// <summary>Key id of the Sign in with Apple .p8 key (SSM api/AppleAuth/KeyId).</summary>
     public string? KeyId { get; set; }
+    /// <summary>The .p8 key itself (SSM SecureString api/AppleAuth/PrivateKey).</summary>
     public string? PrivateKey { get; set; }
+    /// <summary>"client_id" of the token / revoke calls; the bundle id for native sign-in.</summary>
+    public string? ClientId { get; set; }
+    /// <summary>AES-256 key (base64, SSM SecureString api/AppleAuth/TokenEncryptionKey) for the stored Apple refresh token.
+    /// Unset → a key derived from Jwt:SecretKey is used.</summary>
+    public string? TokenEncryptionKey { get; set; }
+    public string TokenUrl { get; set; } = "https://appleid.apple.com/auth/token";
+    public string RevokeUrl { get; set; } = "https://appleid.apple.com/auth/revoke";
 
     /// <summary>False while the SSM parameter still holds the CHANGE_ME placeholder (ConfigSecret).</summary>
     public bool HasPrivateKey => ConfigSecret.IsSet(PrivateKey);
+
+    /// <summary>Token exchange / revocation need the team id, key id and .p8 key (App Store requirement on account deletion).</summary>
+    public bool CanRevokeTokens => HasPrivateKey && ConfigSecret.IsSet(KeyId) && ConfigSecret.IsSet(TeamId) && !string.IsNullOrWhiteSpace(EffectiveClientId);
+
+    public string EffectiveClientId => string.IsNullOrWhiteSpace(ClientId) ? BundleId : ClientId;
 
     public IReadOnlyList<string> Audiences() =>
         new[] { BundleId }.Concat(AdditionalAudiences).Where(a => !string.IsNullOrWhiteSpace(a)).Distinct().ToList();
@@ -114,13 +129,57 @@ public sealed class StoreOptions
     public Dictionary<string, int> CreditPacks { get; set; } = [];
     public string? NotificationKey { get; set; }
 
+    /// <summary>iOS bundle id every StoreKit 2 transaction / notification must carry.</summary>
+    public string BundleId { get; set; } = "com.alatech.droplet";
+    /// <summary>Android package of every Play purchase / RTDN.</summary>
+    public string AndroidPackage { get; set; } = "com.alatech.droplet";
+    /// <summary>App Store app id (appAppleId); when set, production notifications must carry it.</summary>
+    public long? AppAppleId { get; set; }
+    /// <summary>Sandbox transactions (TestFlight, App Review, sandbox testers) are accepted — Apple's review uses them on production.</summary>
+    public bool AcceptSandbox { get; set; } = true;
+    /// <summary>
+    /// Optional: base64 DER of the "StoreKit Testing in Xcode" root (Xcode → Editor → Save Public Certificate). Only a
+    /// transaction whose environment is "Xcode" may chain to it; leave empty on prod.
+    /// </summary>
+    public string? XcodeTestRootCertificate { get; set; }
+
+    /// <summary>App Store Server API key id (SSM api/Store/IapKeyId).</summary>
+    public string? IapKeyId { get; set; }
+    /// <summary>App Store Connect issuer id (SSM api/Store/IssuerId).</summary>
+    public string? IssuerId { get; set; }
+    /// <summary>In-App Purchase .p8 key (SSM SecureString api/Store/IapPrivateKey).</summary>
+    public string? IapPrivateKey { get; set; }
+    public string AppStoreServerApiUrl { get; set; } = "https://api.storekit.itunes.apple.com";
+    public string AppStoreServerApiSandboxUrl { get; set; } = "https://api.storekit-sandbox.itunes.apple.com";
+
+    /// <summary>Bound from SSM SecureString api/Store/GooglePlayServiceAccountJson (Google's key file) by GoogleServiceAccountBinder.</summary>
+    public GoogleServiceAccount GooglePlay { get; set; } = new();
+    public string GooglePlayApiUrl { get; set; } = "https://androidpublisher.googleapis.com";
+    /// <summary>Audience the Pub/Sub push subscription puts into its OIDC token (SSM api/Store/GooglePubSubAudience).</summary>
+    public string? GooglePubSubAudience { get; set; }
+    /// <summary>Service account the push subscription authenticates as (SSM api/Store/GooglePubSubServiceAccount).</summary>
+    public string? GooglePubSubServiceAccount { get; set; }
+
     /// <summary>False while the SSM parameter still holds the CHANGE_ME placeholder (ConfigSecret).</summary>
     public bool HasNotificationKey => ConfigSecret.IsSet(NotificationKey);
+    public bool HasAppStoreServerApi => ConfigSecret.IsSet(IapKeyId) && ConfigSecret.IsSet(IssuerId) && ConfigSecret.IsSet(IapPrivateKey);
+    public bool HasGooglePlayApi => GooglePlay.IsConfigured;
+    public bool HasGooglePubSubVerification => ConfigSecret.IsSet(GooglePubSubAudience) && ConfigSecret.IsSet(GooglePubSubServiceAccount);
 
     public sealed class StoreProductIds
     {
         public List<string> Premium { get; set; } = [];
     }
+}
+
+/// <summary>A Google service-account key file (snake_case in the JSON). Empty / CHANGE_ME = not configured.</summary>
+public sealed class GoogleServiceAccount
+{
+    public string? ClientEmail { get; set; }
+    public string? PrivateKey { get; set; }
+    public string TokenUri { get; set; } = "https://oauth2.googleapis.com/token";
+
+    public bool IsConfigured => ConfigSecret.IsSet(ClientEmail) && ConfigSecret.IsSet(PrivateKey);
 }
 
 public sealed class PhotoOptions

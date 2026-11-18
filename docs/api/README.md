@@ -5,24 +5,26 @@ Every HTTP endpoint of the Api Lambda (`src/Api/Endpoints/V1`), with the contrac
 | Document | Scope |
 |---|---|
 | **W** — [wardrobe-looks-plan-stylist.md](wardrobe-looks-plan-stylist.md) | Wardrobe items, drafts and library; looks; today / plan / wear log; stylist and trips; try-on; palette; profile counters; AI recognition allowance; job result shapes |
-| **S** — [store-social-settings.md](store-social-settings.md) | Keşfet content, catalog, cart, watch list, affiliate checkout and postback; feed, people, follow, block, report, rating, save; invite and share; settings, notifications, devices; analytics events; weather; admin API |
+| **S** — [store-social-settings.md](store-social-settings.md) | Keşfet content, catalog, cart, watch list, affiliate checkout and postback; feed, people, follow, block, report, rating, save; invite and share; settings, notifications, devices; analytics events; weather; admin content shapes (§11) |
+| **A** — [admin.md](admin.md) | Admin panel: admin sign-in (password + e-mailed code), roles and permissions, admin users, audit log, dashboard, app users and moderation actions, library, catalog images, Parameter Store settings |
+| **P** — [purchases-push.md](purchases-push.md) | In-app purchases (StoreKit 2 / Play Billing verified on the server), restore, App Store / Play store notifications, device push tokens (APNs / FCM) and notification deep links, Sign in with Apple token revocation |
 | **—** | Foundation endpoints (sign-in, profile basics, photos, style / body profile, purchases, jobs). No contract document yet: the request / response records sit next to each endpoint in `src/Api/Endpoints/V1/Auth` and `src/Api/Endpoints/V1/Tenant/{Profile,Photo,StyleProfile,BodyProfile,Entitlement}`; the one-line summary below is the endpoint's own (`WithSummary`). |
 
 Shared conventions (both documents, §1): camelCase JSON and enum strings; `Authorization: Bearer <accessToken>`; errors are ProblemDetails with a stable snake_case `code`; calendar days are `yyyy-MM-dd`, instants UTC ISO-8601; the API returns codes, never sentences; text content is resolved to the request language (profile language → `Accept-Language` → `tr`, languages from `Localization:SupportedLanguages`).
 
-**Auth** column: `user` = signed-in user (tenant from the token) · `admin` = signed-in user listed in `Admin:UserIds` / `Admin:Emails` · `anonymous` = no token (postbacks are authenticated by signature).
+**Auth** column: `user` = signed-in user (tenant from the token) · `admin:<permission>` = signed-in **admin panel** account (separate admin token, never an app token) whose role holds that permission ([A §2](admin.md)); `admin` = any signed-in admin · `anonymous` = no token (postbacks and store notifications are authenticated by signature / OIDC token; admin sign-in routes are rate limited per IP).
 
-157 endpoints.
+200 endpoints.
 
 ## Auth and account (foundation)
 
 | Method | Path | Auth | Doc | What |
 |---|---|---|---|---|
-| POST | `v1/auth/apple` | anonymous | — | Sign in with Apple |
+| POST | `v1/auth/apple` | anonymous | [P](purchases-push.md) | Sign in with Apple |
 | POST | `v1/auth/google` | anonymous | — | Sign in with Google |
 | POST | `v1/auth/login` | anonymous | — | Sign in with e-mail and password |
 | POST | `v1/auth/logout` | user | — | Sign out |
-| DELETE | `v1/auth/me` | user | — | Delete my account |
+| DELETE | `v1/auth/me` | user | [P](purchases-push.md) | Delete my account |
 | POST | `v1/auth/password/forgot` | anonymous | — | Request a password reset e-mail |
 | POST | `v1/auth/password/reset` | anonymous | — | Set a new password with a reset token |
 | POST | `v1/auth/refresh` | anonymous | — | Rotate the refresh token |
@@ -42,6 +44,7 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | GET | `v1/tenant/profile` | user | — | Get profile |
 | PUT | `v1/tenant/profile` | user | [S](store-social-settings.md) | Update profile |
 | PUT | `v1/tenant/profile/handle` | user | — | Claim or change @handle |
+| GET | `v1/tenant/profile/handle/availability` | user | [S](store-social-settings.md) | Check an @handle |
 | GET | `v1/tenant/profile/stats` | user | [W](wardrobe-looks-plan-stylist.md) | Get my profile counters |
 | PUT | `v1/tenant/profile/visibility` | user | [S](store-social-settings.md) | Change closet visibility |
 | GET | `v1/tenant/style-profile` | user | — | Get style profile |
@@ -52,8 +55,8 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | Method | Path | Auth | Doc | What |
 |---|---|---|---|---|
 | GET | `v1/tenant/entitlement` | user | [W](wardrobe-looks-plan-stylist.md) | Get tier and AI credits |
-| POST | `v1/tenant/entitlement/purchase` | user | — | Verify a store purchase |
-| POST | `v1/tenant/entitlement/restore` | user | — | Restore purchases |
+| POST | `v1/tenant/entitlement/purchase` | user | [P](purchases-push.md) | Verify a store purchase |
+| POST | `v1/tenant/entitlement/restore` | user | [P](purchases-push.md) | Restore purchases |
 | GET | `v1/tenant/job/{id}` | user | [W](wardrobe-looks-plan-stylist.md) | Get job status |
 
 ## Wardrobe: reference, library, items, drafts
@@ -61,6 +64,7 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | Method | Path | Auth | Doc | What |
 |---|---|---|---|---|
 | GET | `v1/tenant/item` | user | [W](wardrobe-looks-plan-stylist.md) | Get wardrobe items |
+| POST | `v1/tenant/item` | user | [W](wardrobe-looks-plan-stylist.md) | Add a piece without a photo |
 | GET | `v1/tenant/item-draft` | user | [W](wardrobe-looks-plan-stylist.md) | Get pending item drafts |
 | POST | `v1/tenant/item-draft` | user | [W](wardrobe-looks-plan-stylist.md) | Start AI processing of uploaded garment photos |
 | POST | `v1/tenant/item-draft/confirm` | user | [W](wardrobe-looks-plan-stylist.md) | Confirm drafts into wardrobe items |
@@ -177,6 +181,13 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | PUT | `v1/tenant/watch-list/{productId}` | user | [S](store-social-settings.md) | Watch a product |
 | DELETE | `v1/tenant/watch-list/{productId}` | user | [S](store-social-settings.md) | Stop watching a product |
 
+## Store server notifications (server to server)
+
+| Method | Path | Auth | Doc | What |
+|---|---|---|---|---|
+| POST | `v1/store/apple/notifications` | anonymous | [P](purchases-push.md) | App Store Server Notifications v2 |
+| POST | `v1/store/google/notifications` | anonymous | [P](purchases-push.md) | Google Play Real-time developer notifications (Pub/Sub push) |
+
 ## Affiliate postback (server to server)
 
 | Method | Path | Auth | Doc | What |
@@ -192,9 +203,15 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | PUT | `v1/tenant/block/{handle}` | user | [S](store-social-settings.md) | Block |
 | DELETE | `v1/tenant/block/{handle}` | user | [S](store-social-settings.md) | Unblock |
 | GET | `v1/tenant/feed` | user | [S](store-social-settings.md) | Friends feed |
-| POST | `v1/tenant/follow/{handle}` | user | [S](store-social-settings.md) | Follow |
+| POST | `v1/tenant/follow/{handle}` | user | [S](store-social-settings.md) | Follow (or ask to follow) |
 | DELETE | `v1/tenant/follow/{handle}` | user | [S](store-social-settings.md) | Unfollow |
+| GET | `v1/tenant/follow-request/incoming` | user | [S](store-social-settings.md) | Follow requests to me |
+| GET | `v1/tenant/follow-request/outgoing` | user | [S](store-social-settings.md) | My follow requests |
+| POST | `v1/tenant/follow-request/{handle}/approve` | user | [S](store-social-settings.md) | Approve a follow request |
+| POST | `v1/tenant/follow-request/{handle}/decline` | user | [S](store-social-settings.md) | Decline a follow request |
+| DELETE | `v1/tenant/follow-request/{handle}` | user | [S](store-social-settings.md) | Cancel my follow request |
 | GET | `v1/tenant/follower` | user | [S](store-social-settings.md) | My followers |
+| DELETE | `v1/tenant/follower/{handle}` | user | [S](store-social-settings.md) | Remove a follower |
 | GET | `v1/tenant/following` | user | [S](store-social-settings.md) | Accounts I follow |
 | GET | `v1/tenant/people` | user | [S](store-social-settings.md) | Search people by @handle |
 | GET | `v1/tenant/people/suggested` | user | [S](store-social-settings.md) | Closets like yours |
@@ -207,6 +224,8 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | POST | `v1/tenant/people/{handle}/report` | user | [S](store-social-settings.md) | Report a person or their content |
 | GET | `v1/tenant/people/{handle}/trip` | user | [S](store-social-settings.md) | Person: Trips tab |
 | GET | `v1/tenant/saved-look` | user | [S](store-social-settings.md) | Saved looks |
+| POST | `v1/tenant/contacts/salt` | user | [S](store-social-settings.md) | Get a contact-matching salt |
+| POST | `v1/tenant/contacts/match` | user | [S](store-social-settings.md) | Find friends from contacts |
 
 ## Invite and share
 
@@ -223,7 +242,7 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 |---|---|---|---|---|
 | POST | `v1/tenant/event` | user | [S](store-social-settings.md) | Analytics events (batch) |
 | GET | `v1/tenant/settings` | user | [S](store-social-settings.md) | Settings (screen 29) in one call |
-| PUT | `v1/tenant/user/me/device` | user | [S](store-social-settings.md) | Register / refresh a device |
+| PUT | `v1/tenant/user/me/device` | user | [S](store-social-settings.md) · [P](purchases-push.md) | Register / refresh a device |
 | DELETE | `v1/tenant/user/me/device/{deviceId}` | user | [S](store-social-settings.md) | Remove a device |
 | GET | `v1/tenant/user/me/notifications` | user | [S](store-social-settings.md) | Notification preferences |
 | PUT | `v1/tenant/user/me/notifications` | user | [S](store-social-settings.md) | Update notification preferences |
@@ -237,29 +256,62 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 
 ## Admin API
 
+Admin panel at `https://droblet-admin.alatech.co` ([admin.md](admin.md)). Admin routes answer CORS only for the panel origin.
+
 | Method | Path | Auth | Doc | What |
 |---|---|---|---|---|
-| GET | `v1/admin/brand` | admin | [S](store-social-settings.md) | Brands (admin) |
-| PUT | `v1/admin/brand/{id}` | admin | [S](store-social-settings.md) | Create or update a brand |
-| DELETE | `v1/admin/brand/{id}` | admin | [S](store-social-settings.md) | Retire a brand |
-| GET | `v1/admin/collection/{kind}` | admin | [S](store-social-settings.md) | Content collections (admin) |
-| PUT | `v1/admin/collection/{kind}/{id}` | admin | [S](store-social-settings.md) | Create or update a content collection |
-| DELETE | `v1/admin/collection/{kind}/{id}` | admin | [S](store-social-settings.md) | Retire a content collection |
-| GET | `v1/admin/collection/{kind}/{id}/look` | admin | [S](store-social-settings.md) | Looks of a content collection (admin) |
-| PUT | `v1/admin/collection/{kind}/{id}/look/{lookId}` | admin | [S](store-social-settings.md) | Create or update a collection look |
-| DELETE | `v1/admin/collection/{kind}/{id}/look/{lookId}` | admin | [S](store-social-settings.md) | Retire a collection look |
-| GET | `v1/admin/edit` | admin | [S](store-social-settings.md) | Weekly edits (admin) |
-| PUT | `v1/admin/edit/{id}` | admin | [S](store-social-settings.md) | Create or update a weekly edit |
-| DELETE | `v1/admin/edit/{id}` | admin | [S](store-social-settings.md) | Retire a weekly edit |
-| GET | `v1/admin/moderation/report` | admin | [S](store-social-settings.md) | Moderation queue |
-| POST | `v1/admin/moderation/report/{id}/resolve` | admin | [S](store-social-settings.md) | Resolve a report |
-| GET | `v1/admin/product` | admin | [S](store-social-settings.md) | Products (admin, paged) |
-| POST | `v1/admin/product/bulk` | admin | [S](store-social-settings.md) | Bulk upsert products (feeds) |
-| GET | `v1/admin/product/{id}` | admin | [S](store-social-settings.md) | Product (admin) |
-| PUT | `v1/admin/product/{id}` | admin | [S](store-social-settings.md) | Create or update a product |
-| DELETE | `v1/admin/product/{id}` | admin | [S](store-social-settings.md) | Retire a product |
-| GET | `v1/admin/report/funnel` | admin | [S](store-social-settings.md) | Funnel report |
-| GET | `v1/admin/report/revenue` | admin | [S](store-social-settings.md) | Conversion / revenue report |
+| GET | `v1/admin/brand` | admin:catalog.manage | [S](store-social-settings.md) | Brands (admin) |
+| PUT | `v1/admin/brand/{id}` | admin:catalog.manage | [S](store-social-settings.md) | Create or update a brand |
+| DELETE | `v1/admin/brand/{id}` | admin:catalog.manage | [S](store-social-settings.md) | Retire a brand |
+| GET | `v1/admin/collection/{kind}` | admin:content.manage | [S](store-social-settings.md) | Content collections (admin) |
+| PUT | `v1/admin/collection/{kind}/{id}` | admin:content.manage | [S](store-social-settings.md) | Create or update a content collection |
+| DELETE | `v1/admin/collection/{kind}/{id}` | admin:content.manage | [S](store-social-settings.md) | Retire a content collection |
+| GET | `v1/admin/collection/{kind}/{id}/look` | admin:content.manage | [S](store-social-settings.md) | Looks of a content collection (admin) |
+| PUT | `v1/admin/collection/{kind}/{id}/look/{lookId}` | admin:content.manage | [S](store-social-settings.md) | Create or update a collection look |
+| DELETE | `v1/admin/collection/{kind}/{id}/look/{lookId}` | admin:content.manage | [S](store-social-settings.md) | Retire a collection look |
+| GET | `v1/admin/edit` | admin:content.manage | [S](store-social-settings.md) | Weekly edits (admin) |
+| PUT | `v1/admin/edit/{id}` | admin:content.manage | [S](store-social-settings.md) | Create or update a weekly edit |
+| DELETE | `v1/admin/edit/{id}` | admin:content.manage | [S](store-social-settings.md) | Retire a weekly edit |
+| GET | `v1/admin/moderation/report` | admin:moderation.manage | [S](store-social-settings.md) | Moderation queue |
+| POST | `v1/admin/moderation/report/{id}/resolve` | admin:moderation.manage | [S](store-social-settings.md) | Resolve a report |
+| GET | `v1/admin/product` | admin:catalog.manage | [S](store-social-settings.md) | Products (admin, paged) |
+| POST | `v1/admin/product/bulk` | admin:catalog.manage | [S](store-social-settings.md) | Bulk upsert products (feeds) |
+| GET | `v1/admin/product/{id}` | admin:catalog.manage | [S](store-social-settings.md) | Product (admin) |
+| PUT | `v1/admin/product/{id}` | admin:catalog.manage | [S](store-social-settings.md) | Create or update a product |
+| DELETE | `v1/admin/product/{id}` | admin:catalog.manage | [S](store-social-settings.md) | Retire a product |
+| GET | `v1/admin/report/funnel` | admin:analytics.view | [S](store-social-settings.md) | Funnel report |
+| GET | `v1/admin/report/revenue` | admin:analytics.view | [S](store-social-settings.md) | Conversion / revenue report |
+| POST | `v1/admin/auth/login` | anonymous | [A](admin.md) | Admin sign-in, step 1: e-mail + password |
+| POST | `v1/admin/auth/verify` | anonymous | [A](admin.md) | Admin sign-in, step 2: the e-mailed code |
+| POST | `v1/admin/auth/refresh` | anonymous | [A](admin.md) | Rotate the admin refresh token |
+| POST | `v1/admin/auth/logout` | admin | [A](admin.md) | Sign out of this session |
+| POST | `v1/admin/auth/logout-all` | admin | [A](admin.md) | Sign out of every session |
+| GET | `v1/admin/auth/me` | admin | [A](admin.md) | The signed-in admin and their permissions |
+| PUT | `v1/admin/auth/password` | admin | [A](admin.md) | Change my admin password |
+| POST | `v1/admin/auth/password/forgot` | anonymous | [A](admin.md) | E-mail a set / reset password link |
+| POST | `v1/admin/auth/password/reset` | anonymous | [A](admin.md) | Set a new admin password with the e-mailed token |
+| GET | `v1/admin/admin-user` | admin:admins.manage | [A](admin.md) | Admin users |
+| POST | `v1/admin/admin-user` | admin:admins.manage | [A](admin.md) | Invite an admin user |
+| PUT | `v1/admin/admin-user/{id}` | admin:admins.manage | [A](admin.md) | Change name, role or disabled |
+| POST | `v1/admin/admin-user/{id}/invite` | admin:admins.manage | [A](admin.md) | Resend the set-password e-mail |
+| POST | `v1/admin/admin-user/{id}/revoke-sessions` | admin:admins.manage | [A](admin.md) | End every session of an admin |
+| DELETE | `v1/admin/admin-user/{id}` | admin:admins.manage | [A](admin.md) | Delete an admin user |
+| GET | `v1/admin/audit` | admin:audit.view | [A](admin.md) | Audit log of admin writes |
+| GET | `v1/admin/dashboard` | admin:dashboard.view | [A](admin.md) | Dashboard counters |
+| GET | `v1/admin/user` | admin:users.read | [A](admin.md) | Search app users |
+| GET | `v1/admin/user/{id}` | admin:users.read | [A](admin.md) | App user detail |
+| POST | `v1/admin/user/{id}/suspend` | admin:users.suspend | [A](admin.md) | Suspend an app user |
+| POST | `v1/admin/user/{id}/unsuspend` | admin:users.suspend | [A](admin.md) | Lift a suspension |
+| DELETE | `v1/admin/user/{id}` | admin:users.delete | [A](admin.md) | Delete an app account |
+| PUT | `v1/admin/user/{id}/test-premium` | admin:users.grant | [A](admin.md) | Grant TEST premium |
+| DELETE | `v1/admin/user/{id}/test-premium` | admin:users.grant | [A](admin.md) | Revoke TEST premium |
+| POST | `v1/admin/user/{id}/credits` | admin:users.grant | [A](admin.md) | Add TEST credits |
+| GET | `v1/admin/library` | admin:content.manage | [A](admin.md) | Ready-made library items (admin) |
+| PUT | `v1/admin/library/{id}` | admin:content.manage | [A](admin.md) | Create or update a library item |
+| DELETE | `v1/admin/library/{id}` | admin:content.manage | [A](admin.md) | Retire a library item |
+| POST | `v1/admin/image/upload-url` | admin:image.upload | [A](admin.md) | Presigned upload for a catalog / content image |
+| GET | `v1/admin/setting` | admin:settings.manage | [A](admin.md) | Owner-editable Parameter Store settings |
+| PUT | `v1/admin/setting/{group}` | admin:settings.manage | [A](admin.md) | Update a settings group |
 
 ## Where the two halves meet
 
@@ -273,5 +325,6 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | Look ratings | Friends rate through `people/{handle}/look/{lookId}/rating`; the owner sees `rating { average, count }` on `GET v1/tenant/look` | W §4, S §6 |
 | Palette → shop | `GET v1/tenant/palette/products` = the catalog filtered by the palette colours | W §8 |
 | Morning reminder | The `morning_outfit` push is sent when a look is planned for the user's local day | S §9 |
+| Watch-list auto-add | A brand-site click (`checkout`) without a conversion within `Catalog:WatchAutoAddHours` (48) puts its products on the watch list unless they were bought, are in the wardrobe or were removed by the user since | S §4 |
 | Account deletion | `DELETE v1/auth/me` removes every tenant partition of both halves and every cross-tenant trace | S §7 |
 | Language | One supported-language list (`Localization` config); the profile language is set at registration from `Accept-Language` and changed with a partial `PUT v1/tenant/profile` | W §1, S §1, S §7 |

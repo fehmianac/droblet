@@ -10,8 +10,8 @@ export type TryOnTargetKind = 'item' | 'look' | 'product' | 'edit-look' | 'sugge
  * App targets → wire `{ kind, id, index }`:
  * `item` / `look` / `product` as is · `edit-look` → `editLook` (id forms in the docs) · `suggestion`
  * (`{stylistJobId}:{index}`) → `suggestion` + `index` · `plan-day` (ISO date) → the `look` planned that
- * day (404 `target_not_found` when none) · `trip-day` (`{tripId}:{date}`) has no wire target — trip
- * days are slot lists, not looks — and is refused on the device with `tryon_target_unsupported`.
+ * day (404 `target_not_found` when none) · `trip-day` (`{tripId}:{date}`) → `tripDay` with id
+ * `{tripId}/{date}` (the day's pieces of the packed trip).
  */
 export type TryOnTarget = { kind: TryOnTargetKind; id: string };
 

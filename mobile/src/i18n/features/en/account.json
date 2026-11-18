@@ -60,7 +60,21 @@
       "handleTooLong": "Your username can be up to {{max}} characters.",
       "handleInvalid": "Use only lower-case letters, numbers, dots and underscores.",
       "handleTaken": "This username is taken. Try another one."
-    }
+    },
+    "checking": "Checking…",
+    "available": "@{{handle}} is available.",
+    "current": "This is your username.",
+    "taken": "This username is taken.",
+    "reserved": "This username can't be used.",
+    "invalid": "Use 3–30 characters: lowercase letters, digits, dots and underscores.",
+    "checkFailed": "We couldn't check right now; it is checked again when you save.",
+    "cityLabel": "City",
+    "cityHint": "For the weather and suggestions.",
+    "cityNone": "No city chosen",
+    "citySearch": "Search for a city",
+    "cityEmpty": "No city found with this name.",
+    "cityError": "Cities couldn't be loaded right now.",
+    "cityClear": "Remove city"
   },
   "settings": {
     "visibilityEyebrow": "WHO CAN SEE MY CLOSET?",

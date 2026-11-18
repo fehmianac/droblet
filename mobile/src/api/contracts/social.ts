@@ -57,8 +57,31 @@ export type RateLookRequest = { handle: string; lookId: string; score: number; c
 /** PUT (save) / DELETE (remove) v1/tenant/people/{handle}/look/{lookId}/save → 204, no body. */
 export type SaveLookRequest = { handle: string; lookId: string; saved: boolean; clientMutationId: string };
 
-/** POST / DELETE v1/tenant/follow/{handle} → 204, no body. 422 `cannot_target_self`, `follow_limit_reached` (500). */
+/**
+ * This viewer's relation to a person: `requested` = a follow request waiting for their approval
+ * (followers-only / private accounts) — not following yet, the closet stays locked.
+ */
+export type FollowState = 'none' | 'requested' | 'following';
+
+/**
+ * POST v1/tenant/follow/{handle} → `{ state: 'following' | 'requested' }` (public accounts at once,
+ * the others by request). DELETE → 204: unfollow, and cancels a pending request.
+ * 422 `cannot_target_self`, `follow_limit_reached` (500).
+ */
 export type FollowRequest = { handle: string; follow: boolean; clientMutationId: string };
+
+/** GET v1/tenant/follow-request/incoming · /outgoing — `FollowRequestDto`. */
+export type FollowRequestEntry = { person: PersonSuggestion; createdAt: string };
+export type FollowRequestDirection = 'incoming' | 'outgoing';
+
+/**
+ * POST v1/tenant/follow-request/{handle}/approve · /decline (incoming) → 204; DELETE
+ * v1/tenant/follow-request/{handle} cancels my outgoing request (idempotent). 404 = no pending request.
+ */
+export type FollowRequestAnswer = { handle: string; action: 'approve' | 'decline' | 'cancel'; clientMutationId: string };
+
+/** DELETE v1/tenant/follower/{handle} → 204 — removes one of my followers (idempotent). */
+export type RemoveFollowerRequest = { handle: string; clientMutationId: string };
 
 /** GET v1/tenant/people/{handle} (mapped from `PersonProfileDto`). */
 export type PersonProfile = PersonRef & {
@@ -68,7 +91,13 @@ export type PersonProfile = PersonRef & {
   lookCount: number | null;
   /** 0–100 (`styleMatchPercent`). */
   styleMatch: number;
+  /** = `followState === 'following'`. */
   isFollowing: boolean;
+  followState: FollowState;
+  /** They asked to follow me (approve / decline on their profile). */
+  requestedYou: boolean;
+  /** Their closet setting — decides whether a follow is immediate (`public`) or a request. */
+  closetVisibility: 'public' | 'followers' | 'private';
   /** The server's decision for this viewer (`!closetLocked`; public / followers-only / private already applied). */
   closetVisible: boolean;
   isSelf?: boolean;
@@ -95,7 +124,11 @@ export type PersonTrip = { id: string; city: string; month: string };
  */
 export type PersonSuggestion = PersonRef & {
   styleMatch: number;
+  /** = `followState === 'following'`. */
   isFollowing: boolean;
+  followState: FollowState;
+  /** They have a pending follow request to me. */
+  requestedYou?: boolean;
   followsYou?: boolean;
   styleTags?: StyleTag[];
 };
@@ -134,3 +167,12 @@ export type ShareTarget =
   | { targetKind: 'app' }
   | { targetKind: 'profile'; ownerHandle: string }
   | { targetKind: 'look' | 'product' | 'edit'; targetId: string; ownerHandle?: string };
+
+/**
+ * Contacts matching (27, phase 1): `POST v1/tenant/contacts/salt` → a single-use salt (10 minutes).
+ * The app hashes the normalised e-mail addresses of the contacts ON THE DEVICE with it — raw
+ * contacts never leave the phone — and `POST v1/tenant/contacts/match` returns the people found.
+ */
+export type ContactSalt = { saltId: string; salt: string; prefixLength: number; maxHashes: number; expiresAt: string };
+/** One uploaded contact: `p` = prefix of the unsalted SHA-256, `h` = the salted hash. */
+export type ContactHash = { p: string; h: string };

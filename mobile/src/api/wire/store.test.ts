@@ -132,6 +132,8 @@ describe('store wire mappers', () => {
       imageUrl: null,
       sponsored: true,
     });
+    // A creator with a Droblet account carries its @handle (find-friends creator row).
+    expect(toCreatorCard({ ...collection, handle: '@ornek_stilist' }).handle).toBe('ornek_stilist');
     expect(toSeriesOutfit({ ...collection, kind: 'series', subtitle: 'Dizi' })).toEqual({
       id: 'creator-1',
       title: 'Editör 1',
@@ -215,10 +217,14 @@ describe('store wire mappers', () => {
       alertEnabled: true,
       source: { kind: 'manual' },
     });
-    const fromEdit = toWatchlistEntry({ ...watch, priceDropped: false, look: { kind: 'edit', id: 'e1' } }, new Set(['hs-white-shirt']));
+    const fromEdit = toWatchlistEntry({ ...watch, priceDropped: false, look: { kind: 'edit', id: 'e1' }, notify: false });
     expect(fromEdit.previousPrice).toBeNull();
     expect(fromEdit.alertEnabled).toBe(false);
     expect(fromEdit.source).toEqual({ kind: 'edit' });
+    // Added by the server 48 h after a brand visit without a purchase (bell off until the user turns it on).
+    const auto = toWatchlistEntry({ ...watch, origin: 'auto', notify: false, look: { kind: 'user', id: 'L1' } });
+    expect(auto.source).toEqual({ kind: 'auto' });
+    expect(auto.alertEnabled).toBe(false);
   });
 
   it('writes a builder look with wire slots and source', () => {

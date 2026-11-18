@@ -68,8 +68,13 @@ Tokens are in `src/app/globals.css` (`@theme`): ink `#1C1A17`, cream `#F4F1EC`, 
 `#6E5640`, muted `#665F56`, line `#DCD4C9`, sand `#E8E1D7`, danger `#9A3B2E`. Cormorant Garamond 500/600 and
 Jost 400/500 are downloaded by `next/font` at build time and served from `/_next/static` — the browser makes no
 request to Google. The logo (direction A) is copied from `mobile/assets/brand/` (`src/app/icon.svg`,
-`public/brand/icon.svg`, inline paths in `src/components/Logo.tsx`). Image areas are labelled sand
-placeholders, as in the canvas; there are no photos, statistics, testimonials or people's names.
+`public/brand/icon.svg`, inline paths in `src/components/Logo.tsx`). The canvas' image placeholders are replaced
+by **real app screenshots** (`public/screens/{tr,en}/*.webp`, each page shows its own language) in a CSS iPhone
+frame (`src/components/PhoneFrame.tsx`); there are no stock photos, statistics, testimonials or real people's
+names. How to regenerate the screenshots and `og.png`: [`scripts/capture/README.md`](scripts/capture/README.md).
+Scroll-in motion (`RevealOnScroll`, opacity/transform only) is off under `prefers-reduced-motion` and leaves the
+page fully visible without JavaScript. Images are plain `<img>` with `width`/`height` (no `next/image` loader in
+a static export); only the hero image loads eagerly.
 
 ## Legal pages are drafts
 
@@ -166,3 +171,5 @@ no HTML challenge, no "Always Online" page on `/.well-known/*` (Apple and Google
 - no `text-transform: uppercase` / `uppercase` class in the output; no runtime Google Fonts request;
 - every internal link points at a file the bucket can serve;
 - dictionaries have identical keys, list lengths and placeholders.
+- every screenshot the landing page references exists for every language, both languages have the same set,
+  each set stays under 2.5 MB and the hero image under 400 KB; every `<img>` has alt text and width/height.

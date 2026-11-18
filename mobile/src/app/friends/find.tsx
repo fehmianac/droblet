@@ -1,16 +1,15 @@
 import { router } from 'expo-router';
-import { Search, Users, X } from 'lucide-react-native';
+import { UserCheck, Users } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, ScrollView, Share, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Share, View } from 'react-native';
 
 import { track } from '@/analytics/track';
 import { PEOPLE_SEARCH_MIN, type PersonSuggestion } from '@/api/contracts/social';
-import { Avatar, Card } from '@/components/blocks/basics';
+import { Badge, Card, SearchField } from '@/components/blocks/basics';
+import { MenuRow } from '@/components/blocks/rows';
 import { SectionState } from '@/components/blocks/SectionState';
-import { Badge } from '@/components/ui/Bits';
 import { Button } from '@/components/ui/Button';
-import { Chip } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { ImageSlot } from '@/components/ui/ImageSlot';
 import { ListTabBar } from '@/components/navigation/TabBar';
@@ -18,103 +17,39 @@ import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
-import { useFollow } from '@/features/social/mutations';
-import { Notice, useNotice } from '@/features/social/Notice';
-import { useInviteLink, usePeopleSearch, useSuggestedPeople } from '@/features/social/queries';
-import { copyLink } from '@/features/social/ShareSheet';
+import { FollowChip, PersonListRow } from '@/features/social/PeopleRows';
+import { useIncomingRequestCount, useInviteLink, usePeopleSearch, useSuggestedPeople } from '@/features/social/queries';
 import { useCreators } from '@/features/store/queries';
-import { formatPercent } from '@/lib/format';
-import { useThemeColors } from '@/theme/useThemeColors';
-
-/** The search pill as drawn on 27: 48 high, fully rounded, magnifier 16 from the edge. */
-function PeopleSearch({ value, onChangeText }: { value: string; onChangeText: (value: string) => void }) {
-  const { t } = useTranslation();
-  const colors = useThemeColors();
-  return (
-    <View className="h-field flex-row items-center rounded-pill border border-line bg-paper pl-4">
-      <Icon icon={Search} size={18} tone="muted" />
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        accessibilityLabel={t('people.searchLabel')}
-        placeholder={t('people.searchLabel')}
-        placeholderTextColor={colors.muted}
-        selectionColor={colors.accent}
-        autoCapitalize="none"
-        autoCorrect={false}
-        returnKeyType="search"
-        maxFontSizeMultiplier={1.6}
-        className="h-full flex-1 pl-2 pr-3 font-sans text-button text-ink"
-      />
-      {value !== '' ? (
-        <Pressable
-          onPress={() => onChangeText('')}
-          accessibilityRole="button"
-          accessibilityLabel={t('shop.clearSearch')}
-          className="h-icon-btn w-icon-btn items-center justify-center"
-        >
-          <Icon icon={X} size={18} tone="muted" />
-        </Pressable>
-      ) : null}
-    </View>
-  );
-}
 
 function PersonRow({ person }: { person: PersonSuggestion }) {
-  const { t } = useTranslation();
-  const follow = useFollow();
-  const match = t('people.matchPercent', { percent: formatPercent(person.styleMatch) });
   return (
-    <View className="flex-row items-center gap-3 px-gutter">
-      <Pressable
-        onPress={() => router.push({ pathname: '/u/[handle]', params: { handle: person.handle } })}
-        accessibilityRole="button"
-        accessibilityLabel={`${person.displayName}, ${match}`}
-        className="min-h-icon-btn flex-1 flex-row items-center gap-3 active:opacity-80"
-      >
-        <Avatar name={person.displayName} uri={person.avatarUrl} size={44} />
-        <View className="flex-1">
-          <Text variant="bodyMedium" numberOfLines={1}>
-            {person.displayName}
-          </Text>
-          <Text variant="caption" tone="muted" numberOfLines={1}>
-            {match}
-          </Text>
-        </View>
-      </Pressable>
-      {/* Outlined in both states, as drawn; the text carries the state. */}
-      <Chip
-        label={t(person.isFollowing ? 'feed.following' : 'feed.follow')}
-        accessibilityHint={t(person.isFollowing ? 'feed.unfollowHint' : 'feed.followHint', { name: person.displayName })}
-        onPress={() => follow(person.handle, !person.isFollowing)}
-      />
-    </View>
+    <PersonListRow person={person}>
+      <FollowChip handle={person.handle} state={person.followState} />
+    </PersonListRow>
   );
 }
 
 function RowsSkeleton() {
   return (
-    <View className="gap-3.5 px-gutter">
+    <View className="gap-3 px-gutter">
       {[0, 1].map((i) => (
-        <Skeleton key={i} className="h-11 w-full rounded-card" />
+        <Skeleton key={i} className="h-14 w-full rounded-card" />
       ))}
     </View>
   );
 }
 
 /**
- * 27 Dolapları keşfet — @username search, the contacts card, invite link sharing, placeholder
- * influencer closets ("Örnek") and "Sana benzeyen dolaplar" with the style match %.
- *
- * Contacts matching is still an open product decision (A-8) and no contacts module is installed, so
- * "Rehbere izin ver" is drawn as on the canvas but never asks for a permission: it says the feature
- * is on its way and points at the invite link.
+ * 27 Dolapları keşfet — @username search, the contacts card (owner decision 13: opens the consent
+ * screen first; the permission is only asked there), invite link sharing, creator closets that have
+ * a Droblet account (hidden when there are none), "Sana benzeyen dolaplar" with the style match %,
+ * and the waiting follow requests.
  */
 export default function FindFriendsScreen() {
   const { t } = useTranslation();
   const [text, setText] = useState('');
   const [query, setQuery] = useState('');
-  const { notice, show } = useNotice();
+  const [inviteError, setInviteError] = useState(false);
 
   useEffect(() => {
     const handle = setTimeout(() => setQuery(text), 300);
@@ -125,31 +60,38 @@ export default function FindFriendsScreen() {
   const suggested = useSuggestedPeople();
   const creators = useCreators();
   const invite = useInviteLink();
+  const requestCount = useIncomingRequestCount();
+  const creatorAccounts = creators.data?.filter((c) => c.handle !== null) ?? [];
   // The server searches from 2 characters on (the leading @ does not count).
   const searching = query.trim().replace(/^@/, '').length >= PEOPLE_SEARCH_MIN;
 
   const shareInvite = async () => {
+    setInviteError(false);
     const link = invite.data ?? (await invite.refetch()).data;
     if (!link) {
-      show(t('share.linkUnavailable'), 'problem');
+      setInviteError(true);
       return;
     }
     try {
       await Share.share({ message: t('share.inviteMessage', { url: link.url }) });
       track('look_shared', { channel: 'link', kind: 'invite' });
     } catch {
-      // The system share sheet could not open: put the link on the clipboard instead.
-      if (await copyLink(link.url)) show(t('share.copied'));
-      else show(t('share.copyFailed'), 'problem');
+      setInviteError(true);
     }
   };
 
   return (
     <Screen>
       <ScreenHeader title={t('screens.friendsFind')} leading="back" />
-      <ScrollView contentContainerClassName="gap-3.5 pb-10 pt-1" keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerClassName="gap-6 pb-10" keyboardShouldPersistTaps="handled">
         <View className="px-gutter">
-          <PeopleSearch value={text} onChangeText={setText} />
+          <SearchField
+            value={text}
+            onChangeText={setText}
+            label={t('people.searchLabel')}
+            placeholder={t('people.searchLabel')}
+            clearLabel={t('shop.clearSearch')}
+          />
         </View>
 
         {searching ? (
@@ -161,7 +103,7 @@ export default function FindFriendsScreen() {
             errorText={t('people.searchError')}
           >
             {(list) => (
-              <View className="gap-3.5">
+              <View className="gap-2">
                 {list.map((p) => (
                   <PersonRow key={p.handle} person={p} />
                 ))}
@@ -170,51 +112,53 @@ export default function FindFriendsScreen() {
           </SectionState>
         ) : (
           <>
+            {requestCount > 0 ? (
+              <View className="px-gutter">
+                <Card>
+                  <MenuRow
+                    first
+                    icon={UserCheck}
+                    label={t('friends.requestsBanner', { count: requestCount })}
+                    onPress={() => router.push('/friends/requests')}
+                  />
+                </Card>
+              </View>
+            ) : null}
+
             <View className="px-gutter">
-              <Card className="gap-2.5 p-3.5">
-                <View className="flex-row items-center gap-3">
-                  <Icon icon={Users} size={22} />
-                  <View className="flex-1">
+              <Card className="gap-4 p-4">
+                <View className="flex-row gap-3">
+                  <View className="h-icon-btn w-icon-btn items-center justify-center rounded-pill bg-sand">
+                    <Icon icon={Users} size={20} tone="accent" />
+                  </View>
+                  <View className="flex-1 gap-1">
                     <Text variant="bodyMedium">{t('people.contactsTitle')}</Text>
                     <Text variant="caption" tone="muted">
                       {t('people.contactsBody')}
                     </Text>
                   </View>
                 </View>
-                <View className="flex-row gap-2">
-                  <Button
-                    size="md"
-                    className="flex-1 px-3"
-                    label={t('people.contactsAllow')}
-                    accessibilityHint={t('common.comingSoon')}
-                    onPress={() => show(t('people.contactsSoon'))}
-                  />
-                  <Button size="md" variant="secondary" className="flex-1 px-3" label={t('people.inviteLink')} onPress={() => void shareInvite()} />
+                <View className="gap-2">
+                  <Button label={t('people.contactsAllow')} onPress={() => router.push('/friends/contacts')} testID="find.contacts" />
+                  <Button variant="secondary" label={t('people.inviteLink')} onPress={() => void shareInvite()} testID="find.invite" />
                 </View>
+                {inviteError ? (
+                  <Text variant="caption" tone="danger" accessibilityLiveRegion="polite">
+                    {t('share.linkUnavailable')}
+                  </Text>
+                ) : null}
               </Card>
             </View>
 
-            <View className="flex-row items-center justify-between gap-3 px-gutter">
-              <Text variant="h3" className="flex-1" accessibilityRole="header">
-                {t('people.influencers')}
-              </Text>
-              <Badge label={t('people.sample')} />
-            </View>
-            <SectionState
-              query={{
-                data: creators.data?.filter((c) => c.handle !== null),
-                status: creators.status,
-                fetchStatus: creators.fetchStatus,
-                error: creators.error,
-                refetch: creators.refetch,
-              }}
-              skeleton={<RowsSkeleton />}
-              isEmpty={(list) => list.length === 0}
-              emptyText={t('people.influencersEmpty')}
-            >
-              {(list) => (
-                <View className="flex-row gap-2.5 px-gutter">
-                  {list.slice(0, 2).map((c) => (
+            {/* Creator closets with a Droblet account (`handle`); the row is hidden while there are none. */}
+            {creatorAccounts.length > 0 ? (
+              <View className="gap-3">
+                <View className="flex-row items-center gap-2 px-gutter">
+                  <Text variant="h3">{t('people.influencers')}</Text>
+                  <Badge label={t('people.sample')} />
+                </View>
+                <View className="flex-row gap-3 px-gutter">
+                  {creatorAccounts.slice(0, 2).map((c) => (
                     <Pressable
                       key={c.id}
                       onPress={() => c.handle && router.push({ pathname: '/u/[handle]', params: { handle: c.handle } })}
@@ -222,19 +166,16 @@ export default function FindFriendsScreen() {
                       accessibilityLabel={[c.displayName, c.role ? t('people.placeholderRole', { role: c.role }) : null]
                         .filter(Boolean)
                         .join(', ')}
+                      testID={`find.creator.${c.handle}`}
                       className="flex-1 active:opacity-80"
                     >
-                      <Card className="gap-1.5 p-2.5">
-                        <ImageSlot
-                          uri={c.imageUrl}
-                          className="h-[110px] w-full rounded-thumb"
-                          placeholder={{ kind: 'look', pieces: [], seed: c.id, figureHeight: 74 }}
-                        />
-                        <Text variant="segment" numberOfLines={1}>
+                      <Card className="gap-2 p-3">
+                        <ImageSlot uri={c.imageUrl} className="aspect-[4/5] w-full rounded-image" placeholder={{ kind: 'look', pieces: [], seed: c.id }} />
+                        <Text variant="bodyMedium" numberOfLines={1}>
                           {c.displayName}
                         </Text>
                         {c.role ? (
-                          <Text variant="caption" tone="muted" numberOfLines={2} className="text-[11.5px] leading-[16px]">
+                          <Text variant="caption" tone="muted" numberOfLines={2}>
                             {t('people.placeholderRole', { role: c.role })}
                           </Text>
                         ) : null}
@@ -242,30 +183,31 @@ export default function FindFriendsScreen() {
                     </Pressable>
                   ))}
                 </View>
-              )}
-            </SectionState>
+              </View>
+            ) : null}
 
-            <Text variant="h3" className="px-gutter" accessibilityRole="header">
-              {t('people.similar')}
-            </Text>
-            <SectionState
-              query={suggested}
-              skeleton={<RowsSkeleton />}
-              isEmpty={(list) => list.length === 0}
-              emptyText={t('people.similarEmpty')}
-            >
-              {(list) => (
-                <View className="gap-3.5">
-                  {list.map((p) => (
-                    <PersonRow key={p.handle} person={p} />
-                  ))}
-                </View>
-              )}
-            </SectionState>
+            <View className="gap-3">
+              <Text variant="h3" className="px-gutter">
+                {t('people.similar')}
+              </Text>
+              <SectionState
+                query={suggested}
+                skeleton={<RowsSkeleton />}
+                isEmpty={(list) => list.length === 0}
+                emptyText={t('people.similarEmpty')}
+              >
+                {(list) => (
+                  <View className="gap-2">
+                    {list.map((p) => (
+                      <PersonRow key={p.handle} person={p} />
+                    ))}
+                  </View>
+                )}
+              </SectionState>
+            </View>
           </>
         )}
       </ScrollView>
-      <Notice notice={notice} />
       <ListTabBar owner="discover" />
     </Screen>
   );

@@ -1,18 +1,17 @@
 import { useIsMutating, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { ChevronRight, Plus, Trash2, X } from 'lucide-react-native';
+import { Ban, Pencil, Plus, Trash2, X } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, ScrollView, View } from 'react-native';
 
 import { logout } from '@/api/auth';
-import { CLOSET_VISIBILITIES, type MyPhotos, type NotificationSettings } from '@/api/contracts/account';
+import { CLOSET_VISIBILITIES, type MyPhotos } from '@/api/contracts/account';
 import { useEnqueuePhotoUpload } from '@/api/photos';
 import { SectionState } from '@/components/blocks/SectionState';
-import { Badge, ImageTag } from '@/components/ui/Bits';
+import { ImageTag } from '@/components/ui/Bits';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
-import { Chip } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Screen } from '@/components/ui/Screen';
@@ -20,20 +19,15 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { photoDeleteLines } from '@/features/account/logic';
-import {
-  useDeleteAllPhotos,
-  useRemovePhoto,
-  useSaveNotificationSettings,
-  useSetVisibility,
-} from '@/features/account/mutations';
-import { accountKeys, useMyPhotos, useMyProfile, useNotificationSettings, usePalette } from '@/features/account/queries';
-import { ChoiceRow, RowCard } from '@/features/account/rows';
+import { useDeleteAllPhotos, useRemovePhoto, useSetVisibility } from '@/features/account/mutations';
+import { NotificationPrefsCard } from '@/features/account/NotificationPrefsCard';
+import { accountKeys, useMyPhotos, useMyProfile, usePalette } from '@/features/account/queries';
+import { ChoiceRow, ProfileMenuRow, RowCard } from '@/features/account/rows';
 import type { PreparedPhoto } from '@/features/photos/preparePhoto';
 import { usePhotoPicker } from '@/features/photos/usePhotoPicker';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { currentLanguage, LANGUAGES, SUPPORTED_LANGUAGES, type AppLanguage } from '@/i18n';
 import { setAppLanguage } from '@/i18n/preference';
-import { REMINDER_TIMES } from '@/notify/time';
 import { mutationKeys } from '@/sync/queryKeys';
 
 const MAX_BODY_PHOTOS = 3;
@@ -287,92 +281,6 @@ function DeletePhotosDialog({ visible, onClose }: { visible: boolean; onClose: (
 }
 
 /**
- * BİLDİRİMLER — one check box per notification type, as drawn. The reminder time (not on the board,
- * needed by the product: the push is sent at the user's local time) sits under its check box while it is on.
- * Saved through the versioned `PUT v1/tenant/user/me/notifications`; the server sends the pushes.
- */
-function NotificationsSection() {
-  const { t } = useTranslation();
-  const settings = useNotificationSettings();
-  const save = useSaveNotificationSettings();
-  const [timeOpen, setTimeOpen] = useState(false);
-
-  return (
-    <RowCard>
-      <SectionState
-        query={settings}
-        inset={false}
-        errorText={t('settings.notificationsError')}
-        skeleton={<Skeleton className="my-3.5 h-28 rounded-image" />}
-      >
-        {(data) => {
-          const change = (patch: Partial<NotificationSettings>) => save({ ...data, ...patch });
-          const localTime = data.morningTimeLocal;
-          return (
-            <>
-              <ChoiceRow
-                first
-                kind="checkbox"
-                label={t('settings.morning')}
-                checked={data.morningReminder}
-                onPress={() => change({ morningReminder: !data.morningReminder })}
-              />
-              {data.morningReminder ? (
-                <Pressable
-                  onPress={() => setTimeOpen(true)}
-                  accessibilityRole="button"
-                  accessibilityLabel={t('settings.morningTimeA11y', { time: localTime })}
-                  className="min-h-icon-btn flex-row items-center gap-3 border-t border-line py-1.5 active:opacity-70"
-                >
-                  <Text variant="body" tone="muted" className="flex-1 text-[14.5px]">
-                    {t('settings.morningTime')}
-                  </Text>
-                  <Badge label={localTime} />
-                  <Icon icon={ChevronRight} size={16} />
-                </Pressable>
-              ) : null}
-              <ChoiceRow
-                kind="checkbox"
-                label={t('settings.weeklyEdit')}
-                checked={data.weeklyEdit}
-                onPress={() => change({ weeklyEdit: !data.weeklyEdit })}
-              />
-              <ChoiceRow
-                kind="checkbox"
-                label={t('settings.friendRatings')}
-                checked={data.friendRatings}
-                onPress={() => change({ friendRatings: !data.friendRatings })}
-              />
-              <BottomSheet visible={timeOpen} onClose={() => setTimeOpen(false)} title={t('settings.timeTitle')}>
-                <View className="gap-4">
-                  <Text variant="body" tone="muted">
-                    {t('settings.timeBody')}
-                  </Text>
-                  <View className="flex-row flex-wrap gap-2">
-                    {REMINDER_TIMES.map((time) => (
-                      <Chip
-                        key={time}
-                        label={time}
-                        selected={time === localTime}
-                        onPress={() => {
-                          // Local wall-clock time; the device time zone travels with the PUT.
-                          change({ morningTimeLocal: time });
-                          setTimeOpen(false);
-                        }}
-                      />
-                    ))}
-                  </View>
-                </View>
-              </BottomSheet>
-            </>
-          );
-        }}
-      </SectionState>
-    </RowCard>
-  );
-}
-
-/**
  * 29 Gizlilik ve ayarlar — closet visibility (radios), photos (BOY / YÜZ thumbnails, add / replace /
  * remove, 29b delete everything), notification types (check boxes) + the morning reminder time, the
  * Türkçe / English switch (applies at once, is remembered on the device and saved to the profile),
@@ -417,12 +325,17 @@ export default function SettingsScreen() {
             )}
           </SectionState>
         </RowCard>
+        <RowCard>
+          <ProfileMenuRow first icon={Pencil} label={t('friends.menuEditProfile')} onPress={() => router.push('/edit-profile')} />
+          <ProfileMenuRow icon={Ban} label={t('friends.menuBlocked')} onPress={() => router.push('/friends/blocked')} />
+        </RowCard>
 
         <Text variant="eyebrow">{t('settings.photosEyebrow')}</Text>
         <PhotosSection onDeleteAll={() => setDeletePhotos(true)} />
 
         <Text variant="eyebrow">{t('settings.notificationsEyebrow')}</Text>
-        <NotificationsSection />
+        {/* Every notification switch, the morning time and the push permission prompt (main's prefs card). */}
+        <NotificationPrefsCard />
 
         <View className="flex-row flex-wrap items-center justify-between gap-3">
           <Text variant="eyebrow">{t('settings.languageEyebrow')}</Text>

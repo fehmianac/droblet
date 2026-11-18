@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Bookmark, Share, Users } from 'lucide-react-native';
+import { Bookmark, Share, UserCheck, UserPlus } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FlatList, Pressable, RefreshControl, ScrollView, View } from 'react-native';
@@ -9,7 +9,6 @@ import type { FeedLook, FeedStory } from '@/api/contracts/social';
 import { Avatar } from '@/components/blocks/basics';
 import { StarRating } from '@/components/blocks/rows';
 import { ListTabBar } from '@/components/navigation/TabBar';
-import { Chip } from '@/components/ui/Chip';
 import { IconButton } from '@/components/ui/IconButton';
 import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Screen } from '@/components/ui/Screen';
@@ -18,9 +17,10 @@ import { ScreenState } from '@/components/ui/ScreenState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { lookShareUrl } from '@/features/social/feedMath';
-import { useFollow, useRateLook, useSaveLook } from '@/features/social/mutations';
+import { useRateLook, useSaveLook } from '@/features/social/mutations';
 import { Notice, useNotice } from '@/features/social/Notice';
-import { useFeed, useInviteLink } from '@/features/social/queries';
+import { FollowChip } from '@/features/social/PeopleRows';
+import { useFeed, useIncomingRequestCount, useInviteLink } from '@/features/social/queries';
 import { ShareSheet } from '@/features/social/ShareSheet';
 import { formatNumber, relativeTime } from '@/lib/format';
 import { useThemeColors } from '@/theme/useThemeColors';
@@ -54,7 +54,6 @@ function LookPost({ look, onShare }: { look: FeedLook; onShare: () => void }) {
   const { t } = useTranslation();
   const rate = useRateLook();
   const save = useSaveLook();
-  const follow = useFollow();
   const { author } = look;
 
   const when = relativeTime(look.postedAt);
@@ -89,12 +88,7 @@ function LookPost({ look, onShare }: { look: FeedLook; onShare: () => void }) {
             </Text>
           </View>
         </Pressable>
-        {/* Outlined in both states, as drawn; the text carries the state. */}
-        <Chip
-          label={t(author.isFollowing ? 'feed.following' : 'feed.follow')}
-          accessibilityHint={t(author.isFollowing ? 'feed.unfollowHint' : 'feed.followHint', { name: author.displayName })}
-          onPress={() => follow(author.handle, !author.isFollowing)}
-        />
+        <FollowChip handle={author.handle} state={author.isFollowing ? 'following' : 'none'} />
       </View>
 
       {/* Another person's look is shown with its pieces — never a try-on image. */}
@@ -161,6 +155,7 @@ export default function FriendsFeedScreen() {
   const invite = useInviteLink();
   const [sharing, setSharing] = useState<FeedLook | null>(null);
   const { notice, show } = useNotice();
+  const requestCount = useIncomingRequestCount();
 
   const shareUrl = sharing && invite.data ? lookShareUrl(linkDomain(), sharing.lookId, invite.data.code) : null;
 
@@ -169,7 +164,22 @@ export default function FriendsFeedScreen() {
       <ScreenHeader
         title={t('feed.title')}
         leading="back"
-        right={<IconButton icon={Users} onPress={() => router.push('/friends/find')} accessibilityLabel={t('feed.findFriends')} />}
+        right={
+          <View className="flex-row">
+            <View>
+              <IconButton
+                icon={UserCheck}
+                onPress={() => router.push('/friends/requests')}
+                accessibilityLabel={t('friends.requestsA11y', { count: requestCount })}
+                testID="feed.requests"
+              />
+              {requestCount > 0 ? (
+                <View className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-pill bg-accent" pointerEvents="none" />
+              ) : null}
+            </View>
+            <IconButton icon={UserPlus} onPress={() => router.push('/friends/find')} accessibilityLabel={t('feed.findFriends')} testID="feed.find" />
+          </View>
+        }
       />
       <ScreenState
         query={feed}

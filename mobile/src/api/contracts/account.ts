@@ -35,6 +35,15 @@ export type MyProfile = {
 /** GET v1/tenant/profile/stats */
 export type ProfileStats = { itemCount: number; lookCount: number; followerCount: number; followingCount?: number; tripCount: number };
 
+/**
+ * GET v1/tenant/profile/handle/availability?handle= — live check while typing. `available` is also
+ * true for my own current handle. Codes: `handle_invalid`, `handle_reserved`, `handle_taken`.
+ */
+export type HandleAvailability = { handle: string; available: boolean; code: 'handle_invalid' | 'handle_reserved' | 'handle_taken' | null };
+
+/** PUT v1/tenant/profile — partial, versioned; carries only `displayName`. 400 `name_required`. */
+export type PutProfileNameRequest = { displayName: string; baseVersion: number; clientMutationId: string };
+
 /** PUT v1/tenant/profile/visibility → the updated profile; 409 + the current profile when the version moved on. */
 export type PutVisibilityRequest = { closetVisibility: ClosetVisibility; baseVersion: number; clientMutationId: string };
 
@@ -85,6 +94,10 @@ export type NotificationSettings = {
   morningTimeLocal: string;
   weeklyEdit: boolean;
   friendRatings: boolean;
+  /** A watched product got cheaper (only products whose bell is on). Off by default. */
+  priceDrop: boolean;
+  /** Somebody asked to follow me. Off by default. */
+  followRequests: boolean;
   baseVersion: number;
 };
 export type PutNotificationSettingsRequest = NotificationSettings & { clientMutationId: string };

@@ -13,7 +13,15 @@ public record PersonCardDto(
     IReadOnlyList<StyleTag> StyleTags,
     int StyleMatchPercent,
     bool IsFollowing,
-    bool FollowsYou);
+    bool FollowsYou,
+    // Decision 8: none / requested (pending, not following) / following. RequestedYou = they asked to follow me.
+    FollowState FollowState = FollowState.None,
+    bool RequestedYou = false);
+
+/// <summary>A pending follow request (incoming: the requester; outgoing: the account I asked).</summary>
+public record FollowRequestDto(PersonCardDto Person, DateTime CreatedAt);
+
+public record FollowResultDto(FollowState State);
 
 public record PersonProfileDto(
     string Handle,
@@ -29,7 +37,9 @@ public record PersonProfileDto(
     int? ItemCount,
     int? LookCount,
     int FollowerCount,
-    int FollowingCount);
+    int FollowingCount,
+    FollowState FollowState = FollowState.None,
+    bool RequestedYou = false);
 
 public record SocialLookPieceDto(OutfitSlot Slot, string? ItemId, string? ProductId, string? Name, string? ImageUrl, ProductDto? Product);
 
@@ -82,13 +92,18 @@ public sealed record PersonContext(
     TenantEntity Owner,
     bool ViewerFollowsOwner,
     bool OwnerFollowsViewer,
-    bool Blocked)
+    bool Blocked,
+    bool ViewerRequested = false,
+    bool OwnerRequestedViewer = false)
 {
+    public FollowState FollowState => ViewerFollowsOwner ? FollowState.Following : ViewerRequested ? FollowState.Requested : FollowState.None;
+
     public bool IsSelf => ViewerTenantId == Owner.Id;
 
     /// <summary>The only way social code decides a cross-tenant read. A block in either direction hides everything.</summary>
     public bool CanView(VisibleResource resource) => VisibilityPolicy.CanView(new VisibilityRequest(
-        ViewerTenantId, Owner.Id, Owner.ClosetVisibility, ViewerFollowsOwner, resource, Owner.Segment, OwnerBlockedViewer: Blocked));
+        ViewerTenantId, Owner.Id, Owner.ClosetVisibility, ViewerFollowsOwner, resource, Owner.Segment, OwnerBlockedViewer: Blocked,
+        OwnerFollowsViewer: OwnerFollowsViewer, OwnerRequestedViewer: OwnerRequestedViewer));
 }
 
 public enum SocialOutcome { Ok, NotFound, Self, LimitReached, RateLimited }
@@ -100,14 +115,23 @@ public interface ISocialService
 
     Task<IReadOnlyList<PersonCardDto>> SearchAsync(string viewerTenantId, string query, CancellationToken ct);
     Task<IReadOnlyList<PersonCardDto>> SuggestedAsync(string viewerTenantId, CancellationToken ct);
+    /// <summary>Cards of the given accounts that the viewer may see (visibility, blocks), in the given order.</summary>
+    Task<IReadOnlyList<PersonCardDto>> CardsForAsync(string viewerTenantId, IReadOnlyList<string> tenantIds, CancellationToken ct);
     Task<PersonProfileDto?> GetProfileAsync(string viewerTenantId, string handle, CancellationToken ct);
     Task<IReadOnlyList<SocialLookDto>?> GetLooksAsync(string viewerTenantId, string handle, CancellationToken ct);
     Task<IReadOnlyList<ClosetItemDto>?> GetItemsAsync(string viewerTenantId, string handle, CancellationToken ct);
     Task<IReadOnlyList<SocialTripDto>?> GetTripsAsync(string viewerTenantId, string handle, CancellationToken ct);
     Task<PagedDto<SocialLookDto>> GetFeedAsync(string viewerTenantId, string? pageToken, CancellationToken ct);
 
-    Task<SocialOutcome> FollowAsync(string viewerTenantId, string handle, CancellationToken ct);
+    /// <summary>Public owner → following at once; followers-only / private owner → a pending request (decision 8).</summary>
+    Task<(SocialOutcome Outcome, FollowState State)> FollowAsync(string viewerTenantId, string handle, CancellationToken ct);
+    /// <summary>Removes my follow and my pending request. Idempotent.</summary>
     Task<SocialOutcome> UnfollowAsync(string viewerTenantId, string handle, CancellationToken ct);
+    Task<IReadOnlyList<FollowRequestDto>> GetFollowRequestsAsync(string viewerTenantId, bool incoming, CancellationToken ct);
+    /// <summary>NotFound when that account has no pending request to me.</summary>
+    Task<SocialOutcome> AnswerFollowRequestAsync(string viewerTenantId, string requesterHandle, bool approve, CancellationToken ct);
+    Task<SocialOutcome> CancelFollowRequestAsync(string viewerTenantId, string handle, CancellationToken ct);
+    Task<SocialOutcome> RemoveFollowerAsync(string viewerTenantId, string followerHandle, CancellationToken ct);
     Task<IReadOnlyList<PersonCardDto>> GetFollowersAsync(string viewerTenantId, CancellationToken ct);
     Task<IReadOnlyList<PersonCardDto>> GetFollowingAsync(string viewerTenantId, CancellationToken ct);
 

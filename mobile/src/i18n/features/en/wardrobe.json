@@ -171,7 +171,8 @@
       "nameTooLong": "The name can be up to 80 characters.",
       "categoryRequired": "Choose a category.",
       "colorRequired": "Choose a colour.",
-      "seasonRequired": "Choose at least one season to save."
+      "seasonRequired": "Choose at least one season to save.",
+      "colorHexInvalid": "The colour code must look like #RRGGBB."
     },
     "categoryWithType": "{{category}} · {{type}}",
     "imageOriginalA11y": "Photo of the piece, original",
@@ -181,7 +182,7 @@
     "aiEyebrow": "AI GUESS · PLEASE CHECK",
     "useClean": "Use the cleaned photo",
     "useOriginal": "Back to the original",
-    "manualHint": "Fill in the details yourself; you can add a photo later.",
+    "manualHint": "Saved without a photo; it shows with its category icon in your wardrobe.",
     "manualPhotoHint": "Your photo is ready. Fill in the details yourself; the photo is saved with the piece.",
     "name": "Name",
     "category": "Category",
@@ -206,7 +207,9 @@
     "manual": "Fill in manually",
     "processingClean": "Removing the background…",
     "processingFields": "Filling in the fields…",
-    "processingBody": "Your photo is being processed; we'll suggest the type, colour and fabric in a moment. You can correct everything before saving."
+    "processingBody": "Your photo is being processed; we'll suggest the type, colour and fabric in a moment. You can correct everything before saving.",
+    "colorHex": "Colour code",
+    "colorHexPlaceholder": "#A1B2C3"
   },
   "bulkAdd": {
     "title": "Bulk add",

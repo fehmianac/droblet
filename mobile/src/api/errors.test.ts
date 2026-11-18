@@ -4,6 +4,7 @@ describe('extractApiError', () => {
   it('maps business codes to their translation key', () => {
     expect(extractApiError(new ApiError('http', 409, { code: 'email_taken' }))).toBe('email_taken');
     expect(extractApiError(new ApiError('http', 401, { code: 'invalid_credentials' }))).toBe('invalid_credentials');
+    expect(extractApiError(new ApiError('http', 403, { code: 'account_suspended' }))).toBe('account_suspended');
   });
 
   it('maps transport problems', () => {

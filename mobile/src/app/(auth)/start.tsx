@@ -5,6 +5,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View, type TextI
 
 import { useAppleSignIn, useGoogleSignIn, useLogin, useRegister } from '@/api/auth';
 import { extractApiError, fieldErrors, type KnownErrorCode } from '@/api/errors';
+import { useSession } from '@/auth/session';
 import { requestAppleCredential } from '@/auth/apple';
 import { AppleButton } from '@/components/auth/AppleButton';
 import { GoogleSignIn } from '@/components/auth/GoogleSignIn';
@@ -31,7 +32,11 @@ export default function AuthStartScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [errors, setErrors] = useState<Errors>({});
+  const session = useSession();
+  // Signed out because the account was suspended (403 `account_suspended` on refresh): say so at once.
+  const [errors, setErrors] = useState<Errors>(() =>
+    session.status === 'signedOut' && session.reason === 'suspended' ? { form: t('errors.account_suspended') } : {},
+  );
   const emailRef = useRef<TextInputInstance>(null);
   const passwordRef = useRef<TextInputInstance>(null);
 

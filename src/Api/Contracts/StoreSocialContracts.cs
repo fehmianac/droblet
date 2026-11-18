@@ -45,7 +45,7 @@ public class ProductCheckoutRequestValidator : AbstractValidator<ProductCheckout
     public ProductCheckoutRequestValidator() => RuleFor(x => x.Look).Must(LookRefRequest.IsValid).WithErrorCode("look_invalid");
 }
 
-public record WatchRequest(string? Size, LookRefRequest? Look);
+public record WatchRequest(string? Size, LookRefRequest? Look, bool? Notify = null);
 
 public class WatchRequestValidator : AbstractValidator<WatchRequest>
 {
@@ -167,9 +167,11 @@ public class UpdateVisibilityRequestValidator : AbstractValidator<UpdateVisibili
     }
 }
 
-public record UpdateNotificationPrefsRequest(bool MorningOutfit, string MorningOutfitLocalTime, bool WeeklyEdit, bool FriendRatings, string TimeZone, long BaseVersion)
+/// <summary>PriceDrop / FollowRequests are optional: omitted (null) keeps the stored value, so older clients do not switch them off.</summary>
+public record UpdateNotificationPrefsRequest(bool MorningOutfit, string MorningOutfitLocalTime, bool WeeklyEdit, bool FriendRatings, string TimeZone, long BaseVersion,
+    bool? PriceDrop = null, bool? FollowRequests = null)
 {
-    public NotificationPrefsInput ToInput() => new(MorningOutfit, MorningOutfitLocalTime, WeeklyEdit, FriendRatings, TimeZone, BaseVersion);
+    public NotificationPrefsInput ToInput() => new(MorningOutfit, MorningOutfitLocalTime, WeeklyEdit, FriendRatings, TimeZone, BaseVersion, PriceDrop, FollowRequests);
 }
 
 public class UpdateNotificationPrefsRequestValidator : AbstractValidator<UpdateNotificationPrefsRequest>
@@ -182,7 +184,7 @@ public class UpdateNotificationPrefsRequestValidator : AbstractValidator<UpdateN
     }
 }
 
-public record RegisterDeviceRequest(string DeviceId, DevicePlatform Platform, string? PushToken, string? TimeZone);
+public record RegisterDeviceRequest(string DeviceId, DevicePlatform Platform, string? PushToken, string? TimeZone, PushTokenType? PushTokenType = null);
 
 public class RegisterDeviceRequestValidator : AbstractValidator<RegisterDeviceRequest>
 {
@@ -191,6 +193,7 @@ public class RegisterDeviceRequestValidator : AbstractValidator<RegisterDeviceRe
         RuleFor(x => x.DeviceId).Must(DeviceRules.IsValidId).WithErrorCode("device_id_invalid");
         RuleFor(x => x.Platform).IsInEnum().WithErrorCode("platform_invalid");
         RuleFor(x => x.PushToken).MaximumLength(4096).WithErrorCode("push_token_invalid");
+        RuleFor(x => x.PushTokenType).IsInEnum().WithErrorCode("push_token_type_invalid").When(x => x.PushTokenType is not null);
         RuleFor(x => x.TimeZone).Must(tz => tz is null || ReminderRules.IsValidTimeZone(tz)).WithErrorCode("time_zone_invalid");
     }
 }

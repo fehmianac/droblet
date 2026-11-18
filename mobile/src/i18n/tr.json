@@ -91,7 +91,8 @@
     "emailInvalid": "Geçerli bir e-posta adresi yaz.",
     "passwordTooShort": "Şifre en az 8 karakter olmalı.",
     "googleUnavailable": "Google ile giriş şu an kullanılamıyor.",
-    "socialFailed": "Giriş tamamlanamadı. Tekrar dene."
+    "socialFailed": "Giriş tamamlanamadı. Tekrar dene.",
+    "account_suspended": "Bu hesap askıya alındı; şu an giriş yapılamıyor. Ayrıntı için destek ekibimize ulaş."
   },
   "welcome": {
     "eyebrow": "KİŞİSEL GARDIROP · STİL ASİSTANI · BAVUL",
@@ -279,7 +280,6 @@
     "restore": "Satın alımları geri yükle",
     "terms": "Kullanım Koşulları",
     "privacy": "Gizlilik Politikası",
-    "storeUnavailable": "Satın alma bu sürümde henüz açık değil. Üyelik çok yakında burada.",
     "active": "Droblet Üyeliğin aktif."
   },
   "subscription": {

@@ -32,6 +32,7 @@ const KNOWN_CODES = [
   'rate_limited',
   'session_expired',
   'monthly_limit_reached',
+  'account_suspended',
 ] as const;
 
 /** Server codes that share a translation with a known code. */

@@ -18,7 +18,8 @@ public enum JobStatus { Queued, Processing, Completed, Failed }
 
 public enum JobFailure { ProviderError, Timeout, GuardRejected, SourceDeleted, NoFaceDetected }
 
-public enum TryOnTargetKind { Item, Look, Product, EditLook, Suggestion }
+/// <summary>TripDay id = "{tripId}/{yyyy-MM-dd}": the look of one trip day (BavulDetay).</summary>
+public enum TryOnTargetKind { Item, Look, Product, EditLook, Suggestion, TripDay }
 
 public enum Tier { Free, Premium }
 
@@ -33,17 +34,26 @@ public enum Capability
     WardrobeItem,
 }
 
-public enum EntitlementSource { Store }
+// Admin = a TEST premium granted from the admin panel (audited; never sold).
+public enum EntitlementSource { Store, Admin }
 
 public enum StorePlatform { Apple, Google }
 
-public enum NotificationType { MorningOutfit, WeeklyEdit, FriendRatings }
+/// <summary>Store state of a subscription / purchase. Access: Active and GracePeriod only.</summary>
+public enum StoreSubscriptionState { Active, GracePeriod, BillingRetry, Expired, Revoked, Pending }
+
+public enum StoreProductKind { Subscription, Consumable }
+
+/// <summary>What a device registered as its push token: an FCM registration token (Android) or a raw APNs token (iOS).</summary>
+public enum PushTokenType { Fcm, Apns }
+
+public enum NotificationType { MorningOutfit, WeeklyEdit, FriendRatings, PriceDrop, FollowRequest }
 
 public enum AuthProvider { Email, Apple, Google }
 
 public enum CreditReservationStatus { Reserved, Committed }
 
-public enum CreditLedgerEntryKind { AllowanceReserved, PackReserved, Committed, Refunded, PackPurchased }
+public enum CreditLedgerEntryKind { AllowanceReserved, PackReserved, Committed, Refunded, PackPurchased, PackRevoked }
 
 public enum AffiliateSource { Network, Direct }
 
@@ -71,3 +81,6 @@ public enum VisibleResource
     NotificationPrefs,
     Email,
 }
+
+/// <summary>Admin panel roles (owner decision 2). Permissions per role: Domain.Services.Admin.AdminPermissions.</summary>
+public enum AdminRole { SuperAdmin, ContentEditor, Moderator }

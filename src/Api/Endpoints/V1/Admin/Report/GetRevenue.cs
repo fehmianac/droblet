@@ -1,3 +1,4 @@
+using Domain.Services.Admin;
 using System.Text.Json;
 using Api.Contracts;
 using Api.Infrastructure.Contract;
@@ -39,10 +40,8 @@ public class GetRevenue : IEndpoint
         return endpoints.MapGet("v1/admin/report/revenue", Handler)
             .Produces<RevenueReport>(StatusCodes.Status200OK)
             .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
-            .Produces(StatusCodes.Status401Unauthorized)
-            .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status500InternalServerError)
-            .RequireAuthorization(AdminOptions.Policy)
+            .RequireAdmin(AdminPermissions.AnalyticsView)
             .WithSummary("Conversion / revenue report")
             .WithDescription("from / to = yyyy-MM-dd (UTC, inclusive; default last 30 days, max 366). GMV and commission (kuruş, TRY) in total, by brand, by look (\"edit:<id>\", \"collection:<id>\", \"user:<id>\", \"none\") and by source. Rejected conversions are counted separately and add no money.")
             .WithTags("Admin Report");

@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,7 +16,9 @@ import { Text } from '@/components/ui/Text';
 import { TextField } from '@/components/ui/TextField';
 import { HANDLE_MAX, HANDLE_MIN, NAME_MAX, normalizeHandle, validateProfile } from '@/features/account/logic';
 import { AVATAR_EDIT_SUPPORTED, useUpdateProfile } from '@/features/account/mutations';
-import { useMyProfile } from '@/features/account/queries';
+import { CitySection } from '@/features/account/CitySection';
+import { handleStatus } from '@/features/account/profileEdit';
+import { useHandleAvailability, useMyProfile } from '@/features/account/queries';
 import type { PreparedPhoto } from '@/features/photos/preparePhoto';
 import { usePhotoPicker } from '@/features/photos/usePhotoPicker';
 import { useIsOnline } from '@/sync/network';
@@ -55,13 +57,48 @@ function Form({ profile }: { profile: MyProfile }) {
 
   const cleanHandle = normalizeHandle(handle);
   const errors = validateProfile({ displayName: name, handle });
-  const valid = !errors.displayName && !errors.handle;
+
+  // Live @handle check (`GET v1/tenant/profile/handle/availability`, debounced 400 ms) once the local rules pass.
+  const [checked, setChecked] = useState(cleanHandle);
+  useEffect(() => {
+    const timer = setTimeout(() => setChecked(cleanHandle), 400);
+    return () => clearTimeout(timer);
+  }, [cleanHandle]);
+  const handleChanged = cleanHandle !== (profile.handle ?? '');
+  const availability = useHandleAvailability(handleChanged && !errors.handle ? checked : '');
+  const live = handleStatus({
+    value: cleanHandle,
+    current: profile.handle,
+    checked,
+    availability: availability.data,
+    checking: availability.isFetching || checked !== cleanHandle,
+    failed: availability.isError,
+    saveError: null,
+  });
+  const liveRefused = handleChanged && !errors.handle && (live.kind === 'taken' || live.kind === 'reserved' || live.kind === 'invalid');
+  const valid = !errors.displayName && !errors.handle && !liveRefused;
   const dirty = name.trim() !== profile.displayName || cleanHandle !== (profile.handle ?? '') || avatar.kind !== 'keep';
   const avatarUri = avatar.kind === 'new' ? avatar.photo.localUri : avatar.kind === 'removed' ? null : profile.avatarUrl;
 
   const fieldError = (code: (typeof errors)['displayName']) =>
     code ? t(`profileEdit.errors.${code}`, { min: HANDLE_MIN, max: code === 'nameTooLong' ? NAME_MAX : HANDLE_MAX }) : null;
-  const handleError = takenHandle !== null && takenHandle === cleanHandle ? t('profileEdit.errors.handleTaken') : submitted ? fieldError(errors.handle) : null;
+  const handleError =
+    takenHandle !== null && takenHandle === cleanHandle
+      ? t('profileEdit.errors.handleTaken')
+      : liveRefused
+        ? t(live.kind === 'taken' ? 'profileEdit.taken' : live.kind === 'reserved' ? 'profileEdit.reserved' : 'profileEdit.invalid')
+        : submitted
+          ? fieldError(errors.handle)
+          : null;
+  const handleHint = !handleChanged
+    ? t('profileEdit.current')
+    : !errors.handle && live.kind === 'available'
+      ? t('profileEdit.available', { handle: cleanHandle })
+      : !errors.handle && live.kind === 'checking'
+        ? t('profileEdit.checking')
+        : cleanHandle
+          ? t('profileEdit.handleHint', { handle: cleanHandle })
+          : t('profileEdit.handleRules', { min: HANDLE_MIN, max: HANDLE_MAX });
   const saveError = save.isError && !isHandleRefusal(save.error) ? t(`errors.${extractApiError(save.error)}`) : null;
 
   const submit = () => {
@@ -124,8 +161,11 @@ function Form({ profile }: { profile: MyProfile }) {
           returnKeyType="done"
           onSubmitEditing={submit}
           error={handleError}
-          hint={cleanHandle ? t('profileEdit.handleHint', { handle: cleanHandle }) : t('profileEdit.handleRules', { min: HANDLE_MIN, max: HANDLE_MAX })}
+          hint={handleHint}
+          testID="profileEdit.handle"
         />
+
+        <CitySection profile={profile} />
       </ScrollView>
 
       <View className="gap-2 px-gutter pt-2" style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
@@ -134,7 +174,7 @@ function Form({ profile }: { profile: MyProfile }) {
             {!online ? t('profileEdit.offline') : saveError}
           </Text>
         ) : null}
-        <Button label={t('profileEdit.save')} onPress={submit} disabled={!dirty || !online} loading={save.isPending} testID="profile-save" />
+        <Button label={t('profileEdit.save')} onPress={submit} disabled={!dirty || !online || liveRefused} loading={save.isPending} testID="profile-save" />
       </View>
 
       <BottomSheet visible={photoOpen} onClose={() => setPhotoOpen(false)} title={t('profileEdit.photoTitle')}>

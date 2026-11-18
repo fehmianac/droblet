@@ -124,7 +124,7 @@ export default function ItemAddScreen() {
   };
   // "Elle gir" — always there: a piece can be saved without AI (12c with empty fields). A photo refused by the
   // recognition allowance is already a manual draft; otherwise the shot in the frame travels with it.
-  const manual = useManualEntry({ onError: () => setNotice('photoFailed') });
+  const manual = useManualEntry();
   const enterManually = () => manual.enter(captured && !draftId ? captured.localUri : null);
 
   const send = (photo: PreparedPhoto) => {
@@ -385,7 +385,6 @@ export default function ItemAddScreen() {
         <Shortcut icon={LayoutGrid} label={t('itemAdd.library')} a11y={t('itemAdd.libraryA11y')} onPress={() => router.push('/item/library')} testID="item-add-library" />
       </View>
       {picker.sheet}
-      {manual.sheet}
     </View>
   );
 }

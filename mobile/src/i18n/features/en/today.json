@@ -66,7 +66,12 @@
     "tryOnReady": "Ready on you",
     "tryOnRowLabel": "Preparing the image for {{day}}",
     "emptyMessage": "You don't have a look yet. Create your first one and we can plan your week.",
-    "emptyAction": "Create a look"
+    "emptyAction": "Create a look",
+    "bodyPhotoRequired": "Add a full-length photo first to see the looks on you.",
+    "bodyPhotoAction": "Add a photo",
+    "quoteChanged": "Your week changed and so did the credit amount. Confirm the new amount.",
+    "cachedDays_one": "{{count}} day already has its image and costs nothing.",
+    "cachedDays_other": "{{count}} days already have their images and cost nothing."
   },
   "weekEdit": {
     "eyebrow": "WEEKLY STYLE · {{range}} · {{weekday}} · {{occasion}}",

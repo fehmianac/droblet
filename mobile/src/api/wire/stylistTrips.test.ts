@@ -4,7 +4,7 @@ import i18n from '@/i18n';
 import type { ProductWire } from './catalog';
 import { fromAcceptSuggestion, fromDislikeReasons, fromStylistRequest, toAcceptedSuggestion, toStylistResult, type OutfitResultWire } from './stylist';
 import { mergeTrip, toMissingPiece, toTrip, toTripDetail, toTripPlan, type PackResultWire, type TripDetailWire, type TripWire } from './trips';
-import { cachedTryOnImageId, cachedTryOnJobId, toTryOnResult, toWireTarget } from './tryon';
+import { cachedTryOnImageId, cachedTryOnJobId, toTryOnResult, toWeekJobs, toWeekQuote, toWireTarget } from './tryon';
 import { toCity, toForecast, toWeatherGlyph } from './weather';
 
 jest.mock('../config', () => ({ apiBaseUrl: () => 'https://api.example.test' }));
@@ -265,7 +265,33 @@ describe('try-on wire mapping', () => {
     await expect(toWireTarget({ kind: 'edit-look', id: 'edit-1-d1@luxuryTouch' })).resolves.toEqual({ kind: 'editLook', id: 'edit-1-d1@luxuryTouch', index: null });
     await expect(toWireTarget({ kind: 'suggestion', id: '01JOB:2' })).resolves.toEqual({ kind: 'suggestion', id: '01JOB', index: 2 });
     await expect(toWireTarget({ kind: 'suggestion', id: 'nojob' })).rejects.toMatchObject({ code: 'target_index_invalid' });
-    await expect(toWireTarget({ kind: 'trip-day', id: 'T1:2027-03-01' })).rejects.toMatchObject({ code: 'tryon_target_unsupported' });
+    await expect(toWireTarget({ kind: 'trip-day', id: 'T1:2027-03-01' })).resolves.toEqual({ kind: 'tripDay', id: 'T1/2027-03-01', index: null });
+    await expect(toWireTarget({ kind: 'trip-day', id: 'T1' })).rejects.toMatchObject({ code: 'target_id_invalid' });
+  });
+
+  it('maps the week quote and the batch (cached days get a pseudo job id)', () => {
+    expect(
+      toWeekQuote({
+        weekStart: '2026-11-16',
+        requiredCredits: 1,
+        cachedCount: 1,
+        remainingCredits: 12,
+        sufficient: true,
+        items: [
+          { date: '2026-11-16', lookId: 'L1', cached: false, tryOnImageId: null },
+          { date: '2026-11-17', lookId: 'L2', cached: true, tryOnImageId: 'IMG2' },
+        ],
+      }),
+    ).toEqual({ weekStart: '2026-11-16', requiredCredits: 1, cachedCount: 1, dates: ['2026-11-16', '2026-11-17'] });
+    expect(
+      toWeekJobs({
+        chargedCredits: 1,
+        items: [
+          { date: '2026-11-16', lookId: 'L1', status: 'queued', image: null, job: { id: 'J1' } as never },
+          { date: '2026-11-17', lookId: 'L2', status: 'cached', image: { id: 'IMG2', url: 'u', urlExpiresAt: 'x', createdAt: 'y' }, job: null },
+        ],
+      }),
+    ).toEqual({ '2026-11-16': 'J1', '2026-11-17': cachedTryOnJobId('IMG2') });
   });
 
   it('a cached image travels as a pseudo job id', () => {

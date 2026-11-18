@@ -40,17 +40,20 @@ export async function peekDeviceId(): Promise<string | null> {
 
 /**
  * `PUT v1/tenant/user/me/device` — registers / refreshes this installation with its platform and
- * time zone. `pushToken` is sent when the app has one (no push SDK is installed yet, so today the
- * device is registered without a token and `pushEnabled` stays false). 422 `device_limit_reached` (10).
+ * time zone. `pushToken` + `pushTokenType` are sent when push is allowed (src/notify/push.ts: APNs token on
+ * iOS, FCM token on Android); without them `pushEnabled` stays false. 422 `device_limit_reached` (10).
  */
-export async function registerDevice(pushToken?: string): Promise<DeviceWire | null> {
+export async function registerDevice(pushToken?: string, pushTokenType?: 'apns' | 'fcm'): Promise<DeviceWire | null> {
   if (DATA_SOURCE.account !== 'api') return null;
   const body: PutDeviceWire = {
     deviceId: await getDeviceId(),
     platform: Platform.OS === 'android' ? 'android' : 'ios',
     timeZone: deviceTimeZone(),
   };
-  if (pushToken) body.pushToken = pushToken;
+  if (pushToken) {
+    body.pushToken = pushToken;
+    if (pushTokenType) body.pushTokenType = pushTokenType;
+  }
   return apiRequest<DeviceWire>('v1/tenant/user/me/device', { method: 'PUT', body });
 }
 

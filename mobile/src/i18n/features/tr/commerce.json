@@ -177,6 +177,20 @@
     "addToCart": "Sepete ekle",
     "viewProduct": "Ürünü gör",
     "empty": "İzleme listen boş. Beğendiğin bir ürünü izlemeye al, fiyatı düşünce haber verelim.",
-    "emptyAction": "Ürünleri keşfet"
+    "emptyAction": "Ürünleri keşfet",
+    "fromBrandVisit": "Markaya gittin, satın almadın; senin için takipte tutuyoruz"
+  },
+  "purchasePrompt": {
+    "eyebrow": "SATIN ALDIKLARIN",
+    "title": "Gardıroba ekleyelim mi?",
+    "body_one": "{{brand}} sitesinden aldığın parçayı gardırobuna ekleyelim; kombinlerde hemen kullanabilirsin.",
+    "body_other": "{{brand}} sitesinden aldığın {{count}} parçayı gardırobuna ekleyelim; kombinlerde hemen kullanabilirsin.",
+    "more_one": "ve {{count}} parça daha",
+    "more_other": "ve {{count}} parça daha",
+    "accept_one": "Gardıroba ekle",
+    "accept_other": "{{count}} parçayı gardıroba ekle",
+    "dismiss": "Hayır, teşekkürler",
+    "later": "Sonra",
+    "failed": "Şu an ekleyemedik. Tekrar dene."
   }
 }

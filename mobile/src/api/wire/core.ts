@@ -41,6 +41,8 @@ export type AppleAuthRequestWire = {
   identityToken: string;
   nonce: string;
   fullName?: { givenName: string | null; familyName: string | null };
+  /** One-time code from the same Apple sheet; the server exchanges it so account deletion can revoke the Apple token. */
+  authorizationCode?: string;
 };
 
 /** GET / PUT v1/tenant/profile (+ /visibility, /handle). */
@@ -141,7 +143,30 @@ export type EntitlementWire = {
     resetsAt: string | null;
   };
   itemRecognition: { limit: number | null; used: number; remaining: number | null };
+  /** Store state of the subscription (null = free / legacy row). */
+  state?: 'active' | 'gracePeriod' | 'billingRetry' | 'expired' | 'revoked' | 'pending' | null;
+  /** UUID passed to StoreKit (appAccountToken) / Play Billing (obfuscatedAccountId) so purchases map to this account. */
+  storeAccountToken?: string | null;
 };
+
+/** `POST v1/tenant/entitlement/purchase`. Apple: signedTransaction = StoreKit 2 JWS; Google: transactionId = purchaseToken. */
+export type PurchaseRequestWire = {
+  platform: 'apple' | 'google';
+  productId: string;
+  transactionId: string;
+  signedTransaction?: string;
+};
+
+/** 202 body of a purchase the store has not completed yet (Android pending / Ask to Buy). */
+export type PurchasePendingWire = { code: 'purchase_pending' };
+
+/** `POST v1/tenant/entitlement/restore`. */
+export type RestoreRequestWire = {
+  platform: 'apple' | 'google';
+  purchases: { productId: string; transactionId: string; signedTransaction?: string }[];
+};
+
+export type RestoreResponseWire = { entitlement: EntitlementWire; restored: number; ownedByAnotherAccount: number };
 
 function startOfNextMonth(): string {
   const now = new Date();
@@ -168,6 +193,8 @@ export function toEntitlement(wire: EntitlementWire): Entitlement {
       resetsAt: wire.credits.resetsAt ?? startOfNextMonth(),
     },
     itemRecognition: wire.itemRecognition,
+    storeAccountToken: wire.storeAccountToken ?? null,
+    inGracePeriod: wire.state === 'gracePeriod',
   };
 }
 

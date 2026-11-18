@@ -60,7 +60,21 @@
       "handleTooLong": "Kullanıcı adı en fazla {{max}} karakter olabilir.",
       "handleInvalid": "Yalnızca küçük harf, rakam, nokta ve alt çizgi kullan.",
       "handleTaken": "Bu kullanıcı adı alınmış. Başka bir tane dene."
-    }
+    },
+    "checking": "Kontrol ediliyor…",
+    "available": "@{{handle}} kullanılabilir.",
+    "current": "Bu senin kullanıcı adın.",
+    "taken": "Bu kullanıcı adı alınmış.",
+    "reserved": "Bu kullanıcı adı kullanılamaz.",
+    "invalid": "3–30 karakter; küçük harf, rakam, nokta ve alt çizgi kullan.",
+    "checkFailed": "Şu an kontrol edemedik; kaydederken tekrar denenir.",
+    "cityLabel": "Şehir",
+    "cityHint": "Hava durumu ve öneriler için.",
+    "cityNone": "Şehir seçilmedi",
+    "citySearch": "Şehir ara",
+    "cityEmpty": "Bu adla şehir bulunamadı.",
+    "cityError": "Şehirler şu an yüklenemedi.",
+    "cityClear": "Şehri kaldır"
   },
   "settings": {
     "visibilityEyebrow": "DOLABIMI KİMLER GÖREBİLİR?",

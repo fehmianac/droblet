@@ -11,6 +11,8 @@ import {
   toInviteLink,
   toItemTile,
   toLookTile,
+  followStateOf,
+  toFollowRequest,
   toPersonProfile,
   toPersonSuggestion,
   type PersonProfileWire,
@@ -140,6 +142,9 @@ describe('social wire mappers', () => {
       lookCount: null,
       styleMatch: 50,
       isFollowing: false,
+      followState: 'none',
+      requestedYou: false,
+      closetVisibility: 'followers',
       closetVisible: false,
       isSelf: false,
       followsYou: true,
@@ -151,7 +156,36 @@ describe('social wire mappers', () => {
       displayName: '@b',
       styleMatch: 20,
       isFollowing: true,
+      followState: 'following',
     });
+  });
+
+  it('maps the follow state: a pending request is not following', () => {
+    const card = { handle: 'elif', displayName: 'Elif', styleTags: [], styleMatchPercent: 0, isFollowing: false, followsYou: false };
+    expect(toPersonSuggestion({ ...card, followState: 'requested', requestedYou: true })).toMatchObject({
+      followState: 'requested',
+      isFollowing: false,
+      requestedYou: true,
+    });
+    expect(followStateOf({ isFollowing: false })).toBe('none');
+    expect(followStateOf({ isFollowing: true })).toBe('following');
+    expect(toFollowRequest({ person: { ...card, requestedYou: true }, createdAt: '2026-11-18T09:00:00Z' })).toEqual({
+      person: expect.objectContaining({ handle: 'elif', followState: 'none', requestedYou: true }),
+      createdAt: '2026-11-18T09:00:00Z',
+    });
+    expect(
+      toPersonProfile({
+        ...card,
+        followState: 'requested',
+        isSelf: false,
+        closetVisibility: 'private',
+        closetLocked: true,
+        itemCount: null,
+        lookCount: null,
+        followerCount: 0,
+        followingCount: 0,
+      }),
+    ).toMatchObject({ followState: 'requested', isFollowing: false, closetVisibility: 'private', closetVisible: false });
   });
 
   it('maps profile tiles, the invite link and report reasons', () => {

@@ -1,8 +1,13 @@
 import type {
+  ContactHash,
+  ContactSalt,
   FeedLook,
   FeedPiece,
   FeedPage,
   FeedStory,
+  FollowRequestDirection,
+  FollowRequestEntry,
+  FollowState,
   InviteLink,
   PersonProfile,
   PersonSuggestion,
@@ -18,10 +23,23 @@ import { applyRating } from '@/features/social/feedMath';
  * person's try-on image is never shown.
  */
 
-type Person = PersonProfile & { blocked: boolean };
+type Person = PersonProfile & { blocked: boolean; followsMe?: boolean };
+
+type Seed = Omit<PersonProfile, 'followState' | 'requestedYou' | 'closetVisibility'> & { blocked: boolean };
+
+/** Fixture people: a hidden closet is a followers-only account (follow = request); `elif` asked to follow me. */
+function withRelations(p: Seed): Person {
+  return {
+    ...p,
+    followState: p.isFollowing ? 'following' : 'none',
+    requestedYou: p.handle === 'elif',
+    followsMe: p.handle === 'selin',
+    closetVisibility: p.closetVisible ? 'public' : 'followers',
+  };
+}
 
 function seedPeople(): Person[] {
-  return [
+  const seed: Seed[] = [
     { handle: 'selin', displayName: 'Selin', avatarUrl: null, styleTags: ['minimal', 'quiet_luxury', 'office_chic'], itemCount: 142, lookCount: 38, styleMatch: 82, isFollowing: true, closetVisible: true, blocked: false },
     { handle: 'elif', displayName: 'Elif', avatarUrl: null, styleTags: ['classic', 'romantic', 'minimal'], itemCount: 96, lookCount: 21, styleMatch: 88, isFollowing: false, closetVisible: true, blocked: false },
     { handle: 'zeynep', displayName: 'Zeynep', avatarUrl: null, styleTags: ['street', 'sporty', 'colorful'], itemCount: 64, lookCount: 12, styleMatch: 81, isFollowing: false, closetVisible: true, blocked: false },
@@ -30,6 +48,7 @@ function seedPeople(): Person[] {
     { handle: 'ornek_stilist', displayName: '@ornek_stilist', avatarUrl: null, styleTags: ['quiet_luxury', 'office_chic', 'classic'], itemCount: 210, lookCount: 64, styleMatch: 77, isFollowing: false, closetVisible: true, blocked: false },
     { handle: 'ornek_editor', displayName: 'Stil editörü', avatarUrl: null, styleTags: ['minimal', 'classic', 'street'], itemCount: 180, lookCount: 52, styleMatch: 72, isFollowing: false, closetVisible: true, blocked: false },
   ];
+  return seed.map(withRelations);
 }
 
 /** A wardrobe piece of a sample look: no picture, so the collage draws its category on its colour. */
@@ -123,6 +142,20 @@ function visiblePerson(handle: string): Person {
 
 const ref = ({ handle, displayName, avatarUrl }: Person) => ({ handle, displayName, avatarUrl });
 
+const card = (p: Person): PersonSuggestion => ({
+  ...ref(p),
+  styleMatch: p.styleMatch,
+  isFollowing: p.followState === 'following',
+  followState: p.followState,
+  requestedYou: p.requestedYou,
+});
+
+const setState = (handle: string, patch: Partial<Person>) => {
+  people = people.map((p) => (p.handle === handle ? { ...p, ...patch } : p));
+};
+
+const REQUEST_AT = '2026-11-18T09:00:00.000Z';
+
 export const socialFixtures = {
   feed: (pageToken: string | null): FeedPage => {
     const following = people.filter((p) => p.isFollowing && !p.blocked);
@@ -145,16 +178,40 @@ export const socialFixtures = {
   save: (lookId: string, saved: boolean): void => {
     looks = looks.map((l) => (l.lookId === lookId ? { ...l, saved } : l));
   },
-  follow: (handle: string, follow: boolean): void => {
-    people = people.map((p) => (p.handle === handle ? { ...p, isFollowing: follow } : p));
+  /** Public closets are followed at once, the others get a request (like the server). */
+  follow: (handle: string, follow: boolean): FollowState => {
+    const p = person(handle);
+    const followState: FollowState = !follow ? 'none' : p.closetVisibility === 'public' ? 'following' : 'requested';
+    setState(handle, { followState, isFollowing: followState === 'following' });
+    return followState;
   },
   block: (handle: string): void => {
-    people = people.map((p) => (p.handle === handle ? { ...p, blocked: true, isFollowing: false } : p));
+    setState(handle, { blocked: true, isFollowing: false, followState: 'none', requestedYou: false, followsMe: false });
   },
+  followRequests: (direction: FollowRequestDirection): FollowRequestEntry[] =>
+    people
+      .filter((p) => !p.blocked && (direction === 'incoming' ? p.requestedYou : p.followState === 'requested'))
+      .map((p) => ({ person: card(p), createdAt: REQUEST_AT })),
+  answerRequest: (handle: string, action: 'approve' | 'decline' | 'cancel'): void => {
+    if (action === 'cancel') setState(handle, { followState: 'none', isFollowing: false });
+    else setState(handle, { requestedYou: false, ...(action === 'approve' ? { followsMe: true } : {}) });
+  },
+  removeFollower: (handle: string): void => setState(handle, { followsMe: false }),
+  contactSalt: (): ContactSalt => ({
+    saltId: 'salt_1',
+    salt: 'c2FsdA',
+    prefixLength: 3,
+    maxHashes: 1000,
+    expiresAt: new Date(Date.now() + 600_000).toISOString(),
+  }),
+  /** Fixture matching: every upload finds the two sample friends that are not followed yet. */
+  matchContacts: (hashes: ContactHash[]): PersonSuggestion[] =>
+    hashes.length === 0 ? [] : people.filter((p) => !p.blocked && ['zeynep', 'deniz'].includes(p.handle)).map(card),
 
   profile: (handle: string): PersonProfile => {
-    const { blocked: _blocked, ...profile } = person(handle);
+    const { blocked: _blocked, followsMe: _followsMe, ...profile } = person(handle);
     void _blocked;
+    void _followsMe;
     return profile;
   },
   looks: (handle: string): PersonTile[] => {
@@ -186,24 +243,19 @@ export const socialFixtures = {
     if (needle === '') return [];
     return people
       .filter((p) => !p.blocked && p.handle.startsWith(needle))
-      .map((p) => ({ ...ref(p), styleMatch: p.styleMatch, isFollowing: p.isFollowing }));
+      .map(card);
   },
   suggested: (): PersonSuggestion[] =>
     people
       .filter((p) => !p.blocked && !p.isFollowing && p.closetVisible && !p.handle.startsWith('ornek_'))
       .sort((a, b) => b.styleMatch - a.styleMatch)
-      .map((p) => ({ ...ref(p), styleMatch: p.styleMatch, isFollowing: p.isFollowing })),
+      .map(card),
 
   savedLooks: (): FeedLook[] => socialFixtures.feed(null).items.filter((l) => l.saved),
-  followers: (): PersonSuggestion[] =>
-    people.filter((p) => !p.blocked && p.handle === 'selin').map((p) => ({ ...ref(p), styleMatch: p.styleMatch, isFollowing: p.isFollowing })),
-  following: (): PersonSuggestion[] =>
-    people.filter((p) => !p.blocked && p.isFollowing).map((p) => ({ ...ref(p), styleMatch: p.styleMatch, isFollowing: true })),
-  blocked: (): PersonSuggestion[] =>
-    people.filter((p) => p.blocked).map((p) => ({ ...ref(p), styleMatch: p.styleMatch, isFollowing: false })),
-  unblock: (handle: string): void => {
-    people = people.map((p) => (p.handle === handle ? { ...p, blocked: false } : p));
-  },
+  followers: (): PersonSuggestion[] => people.filter((p) => !p.blocked && p.followsMe).map((p) => ({ ...card(p), followsYou: true })),
+  following: (): PersonSuggestion[] => people.filter((p) => !p.blocked && p.followState === 'following').map(card),
+  blocked: (): PersonSuggestion[] => people.filter((p) => p.blocked).map((p) => ({ ...card(p), isFollowing: false, followState: 'none' })),
+  unblock: (handle: string): void => setState(handle, { blocked: false }),
 
   inviteLink: (): InviteLink => ({ url: 'https://droblet.alatech.co/i/DAMLA24A', code: 'DAMLA24A', invitedCount: 0 }),
 };

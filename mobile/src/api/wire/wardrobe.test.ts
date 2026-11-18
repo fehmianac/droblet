@@ -6,6 +6,7 @@ import {
   fromItemFields,
   fromOccasion,
   fromSlotInput,
+  normalizeColorHex,
   toColorIds,
   toFabricId,
   toFabricLabel,
@@ -100,8 +101,28 @@ describe('wardrobe wire mappers', () => {
     expect(toColorIds('red', ['burgundy', 'navy'])).toEqual(['burgundy', 'navy']);
     expect(toColorIds('black', ['burgundy'])).toEqual(['black']);
     expect(toColorIds('blue')).toEqual(['cobalt']);
-    expect(toColorIds('other')).toEqual([]);
+    expect(toColorIds('other')).toEqual(['other']);
     expect(toColorIds('other', ['mustard'])).toEqual(['mustard']);
+    expect(toColorIds('other', ['black'])).toEqual(['other']);
+  });
+
+  it('keeps the lossy fields: subcategory, free-text fabric, colour other + hex', () => {
+    const wire: ItemWire = { ...itemWire, subcategory: 'blazer', colorIds: ['other'], colorHex: '#AABBCC', fabric: null, fabricText: 'Bambu karışım' };
+    const item = toItem(wire);
+    expect(item).toMatchObject({ subcategory: 'blazer', color: 'other', colorHex: '#AABBCC', fabric: 'Bambu karışım' });
+    expect(fromItemFields(item)).toMatchObject({
+      subcategory: 'blazer',
+      colorIds: ['other'],
+      colorHex: '#AABBCC',
+      fabric: null,
+      fabricText: 'Bambu karışım',
+    });
+    // A hex only travels with the `other` colour; malformed hex is not sent.
+    expect(fromItemFields({ ...item, color: 'black', colorIds: undefined }).colorHex).toBeNull();
+    expect(fromItemFields({ ...item, colorHex: 'nothex' }).colorHex).toBeNull();
+    expect(normalizeColorHex('aabbcc')).toBe('#AABBCC');
+    // A manual piece without a photo or name.
+    expect(toItem({ ...itemWire, name: null, imageUrl: null, source: 'manual' })).toMatchObject({ name: '', imageUrl: null });
   });
 
   it('fabric text ↔ reference id', async () => {
@@ -133,8 +154,11 @@ describe('wardrobe wire mappers', () => {
     expect(fromItemFields(fields)).toEqual({
       name: 'Krem kazak',
       category: 'top',
+      subcategory: null,
       colorIds: ['cream'],
+      colorHex: null,
       fabric: 'knit',
+      fabricText: null,
       seasons: ['winter'],
       size: 'M',
       brand: null,

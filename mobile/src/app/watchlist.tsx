@@ -49,7 +49,9 @@ function WatchCard({ entry, profileSize }: { entry: WatchlistEntry; profileSize:
       ? t('watchlist.fromLook', { name: entry.source.lookName })
       : entry.source.kind === 'edit'
         ? t('watchlist.fromEdit')
-        : null;
+        : entry.source.kind === 'auto'
+          ? t('watchlist.fromBrandVisit')
+          : null;
 
   const add = () => {
     const size = preferredSize(entry.sizes, profileSize);
@@ -114,6 +116,7 @@ function WatchCard({ entry, profileSize }: { entry: WatchlistEntry; profileSize:
           accessibilityRole="switch"
           accessibilityLabel={alertLabel}
           accessibilityState={{ checked: entry.alertEnabled }}
+          testID={`watch-bell-${entry.productId}`}
           className="h-icon-btn w-icon-btn items-center justify-center rounded-pill active:opacity-70"
         >
           <Icon icon={entry.alertEnabled ? Bell : BellOff} size={20} tone={entry.alertEnabled ? 'ink' : 'muted'} />

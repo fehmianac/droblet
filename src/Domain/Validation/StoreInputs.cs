@@ -64,7 +64,8 @@ public record ContentCollectionInput(
     string? ImageUrl,
     int SortOrder,
     IReadOnlyDictionary<string, string>? SponsorName,
-    bool Retired = false);
+    bool Retired = false,
+    string? Handle = null);
 
 public record ContentLookInput(string Id, IReadOnlyDictionary<string, string>? Title, IReadOnlyDictionary<string, string>? Note, string? ImageUrl, IReadOnlyList<string>? ProductIds, int SortOrder, bool Retired = false);
 
@@ -185,6 +186,9 @@ public class ContentCollectionInputValidator : AbstractValidator<ContentCollecti
         RuleFor(x => x.Subtitle).Localized(languages, required: false, 240, "subtitle_invalid");
         RuleFor(x => x.ImageUrl).OptionalHttps("image_url_invalid");
         RuleFor(x => x.SponsorName).Localized(languages, required: false, 80, "sponsor_name_invalid");
+        RuleFor(x => x.Handle)
+            .Must(h => string.IsNullOrWhiteSpace(h) || global::Domain.Services.HandleRules.IsValidFormat(global::Domain.Services.HandleRules.Normalize(h)))
+            .WithErrorCode("handle_invalid");
     }
 }
 

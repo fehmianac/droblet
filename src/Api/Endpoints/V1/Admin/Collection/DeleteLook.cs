@@ -1,3 +1,4 @@
+using Domain.Services.Admin;
 using System.Text.Json;
 using Api.Contracts;
 using Api.Infrastructure.Contract;
@@ -37,10 +38,9 @@ public class DeleteLook : IEndpoint
         return endpoints.MapDelete("v1/admin/collection/{kind}/{id}/look/{lookId}", Handler)
             .Produces(StatusCodes.Status204NoContent)
             .Produces<ProblemDetails>(StatusCodes.Status404NotFound)
-            .Produces(StatusCodes.Status401Unauthorized)
-            .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status500InternalServerError)
-            .RequireAuthorization(AdminOptions.Policy)
+            .RequireAdmin(AdminPermissions.ContentManage)
+            .Audited("collection_look.retire", "collection_look", "lookId", AdminAuditBefore.CollectionLook)
             .WithSummary("Retire a collection look")
             .WithDescription("The look leaves the public list.")
             .WithTags("Admin Content");

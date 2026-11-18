@@ -73,13 +73,18 @@ public static class PostbackSignature
 
 public sealed record RevenueBucket(string Key, int Conversions, long GmvMinor, long CommissionMinor);
 
+public sealed record RevenueDay(string Day, int Clicks, int Conversions, long GmvMinor, long CommissionMinor);
+
 public sealed record RevenueReport(
     string From, string To, string Currency,
     int Conversions, long GmvMinor, long CommissionMinor,
     int Pending, int Approved, int Rejected,
     IReadOnlyList<RevenueBucket> ByBrand,
     IReadOnlyList<RevenueBucket> ByLook,
-    IReadOnlyList<RevenueBucket> BySource);
+    IReadOnlyList<RevenueBucket> BySource,
+    int Clicks,
+    IReadOnlyList<RevenueDay> ByDay,
+    IReadOnlyList<RevenueBucket> ByNetwork);
 
 /// <summary>GMV and commission from the conversion ledger. Rejected conversions are counted but add no money.</summary>
 public static class RevenueReportRules
@@ -89,12 +94,28 @@ public static class RevenueReportRules
     public static string LookKey(LookRefKind? kind, string? lookId) =>
         kind is null || string.IsNullOrEmpty(lookId) ? NoLook : $"{kind.Value.ToString().ToLowerInvariant()}:{lookId}";
 
-    public static RevenueReport Build(IEnumerable<AffiliateConversionLedgerEntity> ledger, DateOnly from, DateOnly to, string currency = "TRY")
+    /// <summary>Network bucket key: the brand's affiliate network, "direct" for direct deals, "network" when unnamed.</summary>
+    public static string NetworkKey(AffiliateSource source, string? network) =>
+        source == AffiliateSource.Direct ? "direct" : string.IsNullOrWhiteSpace(network) ? "network" : network.Trim().ToLowerInvariant();
+
+    public static RevenueReport Build(IEnumerable<AffiliateConversionLedgerEntity> ledger, DateOnly from, DateOnly to, string currency = "TRY",
+        IEnumerable<AffiliateClickLedgerEntity>? clicks = null, IReadOnlyDictionary<string, string?>? brandNetworks = null)
     {
         var start = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
         var end = to.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
         var rows = ledger.Where(r => r.ReceivedAt >= start && r.ReceivedAt < end && r.Currency == currency).ToList();
         var counted = rows.Where(r => r.Status != AffiliateConversionStatus.Rejected).ToList();
+        var clickRows = (clicks ?? []).Where(c => c.CreatedAt >= start && c.CreatedAt < end).ToList();
+        string Day(DateTime at) => WeeklyEditRules.Format(DateOnly.FromDateTime(at));
+        var clicksByDay = clickRows.GroupBy(c => Day(c.CreatedAt)).ToDictionary(g => g.Key, g => g.Count(), StringComparer.Ordinal);
+        var conversionsByDay = counted.GroupBy(r => Day(r.ReceivedAt)).ToDictionary(g => g.Key, g => g.ToList(), StringComparer.Ordinal);
+        var byDay = new List<RevenueDay>();
+        for (var day = from; day <= to; day = day.AddDays(1))
+        {
+            var key = WeeklyEditRules.Format(day);
+            var dayRows = conversionsByDay.GetValueOrDefault(key) ?? [];
+            byDay.Add(new RevenueDay(key, clicksByDay.GetValueOrDefault(key), dayRows.Count, dayRows.Sum(r => r.AmountMinor), dayRows.Sum(r => r.CommissionMinor)));
+        }
 
         return new RevenueReport(
             WeeklyEditRules.Format(from), WeeklyEditRules.Format(to), currency,
@@ -104,7 +125,10 @@ public static class RevenueReportRules
             rows.Count(r => r.Status == AffiliateConversionStatus.Rejected),
             Buckets(counted, r => r.BrandId),
             Buckets(counted, r => LookKey(r.LookKind, r.LookId)),
-            Buckets(counted, r => r.Source.ToString().ToLowerInvariant()));
+            Buckets(counted, r => r.Source.ToString().ToLowerInvariant()),
+            clickRows.Count,
+            byDay,
+            Buckets(counted, r => NetworkKey(r.Source, brandNetworks?.GetValueOrDefault(r.BrandId))));
     }
 
     private static List<RevenueBucket> Buckets(IEnumerable<AffiliateConversionLedgerEntity> rows, Func<AffiliateConversionLedgerEntity, string> key) =>

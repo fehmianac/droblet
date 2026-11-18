@@ -23,6 +23,11 @@ public static class StoreSocialErrorCodes
     // Social
     public const string CannotTargetSelf = "cannot_target_self";
     public const string FollowLimitReached = "follow_limit_reached";
+
+    // Contact matching (decision 13)
+    public const string ContactSaltNotFound = "contact_salt_not_found";
+    public const string HashesOutOfRange = "hashes_out_of_range";
+    public const string HashInvalid = "hash_invalid";
     public const string InviteCodeNotFound = "invite_code_not_found";
     public const string InviteAlreadyAttributed = "invite_already_attributed";
     public const string InviteWindowClosed = "invite_window_closed";

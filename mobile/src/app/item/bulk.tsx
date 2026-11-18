@@ -164,7 +164,7 @@ export default function ItemBulkScreen() {
   };
   // "Elle gir" (no AI, no allowance), then form 12c: a manual draft a refused recognition left behind, else the
   // next unrecognised photo of the pick, else a photo picked now.
-  const manual = useManualEntry({ from: 'bulk', onError: () => setNotice({ kind: 'photoFailed' }) });
+  const manual = useManualEntry({ from: 'bulk' });
   const enterManually = () => {
     if (manual.hasPending) {
       manual.enter();
@@ -389,7 +389,6 @@ export default function ItemBulkScreen() {
         }}
       </ScreenState>
       {picker.sheet}
-      {manual.sheet}
     </Screen>
   );
 }

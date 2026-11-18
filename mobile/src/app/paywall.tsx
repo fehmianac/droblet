@@ -3,7 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Briefcase, Palette, Sparkles, X, type LucideIcon } from 'lucide-react-native';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { track } from '@/analytics/track';
@@ -21,6 +21,9 @@ import { useEntitlement } from '@/entitlement/useEntitlement';
 import { useStoreProducts } from '@/entitlement/useStoreProducts';
 import { CanvasGlyph } from '@/features/account/rows';
 import type { StoreProduct } from '@/fixtures/storeProducts';
+import { syncPushRegistration } from '@/notify/push';
+import { PurchaseStatus } from '@/purchases/PurchaseStatus';
+import { purchaseFlow, usePurchaseState } from '@/purchases/purchaseFlow';
 import { placeholderTones, type PlaceholderTone } from '@/theme/tokens';
 import { useThemeColors } from '@/theme/useThemeColors';
 
@@ -91,9 +94,10 @@ function PlanOption({
 }
 
 /** Underlined 11.5 footer link with a 44 pt target. */
-function FooterLink({ label, onPress }: { label: string; onPress: () => void }) {
+function FooterLink({ label, onPress, testID }: { label: string; onPress: () => void; testID?: string }) {
   return (
     <Pressable
+      testID={testID}
       onPress={onPress}
       accessibilityRole="link"
       accessibilityLabel={label}
@@ -118,8 +122,8 @@ function Dot() {
  * 05 Üyelik. Look tiles fading into cream, the promise as the headline, four benefits ("Ayda 30 AI görseli",
  * not unlimited — README §9), two plan cards and the fixed footer. Price, period and trial length always come
  * from the store products (useStoreProducts) — the canvas prices are representative and nothing is stored in
- * the app. The close (×) is always visible; restore, terms and privacy are always present. Purchases are
- * disabled until the billing bridge (E10).
+ * the app. The close (×) is always visible; restore, terms and privacy are always present. Buying goes
+ * through StoreKit 2 / Play Billing; a second tap while busy is ignored.
  */
 export default function PaywallScreen() {
   const { t } = useTranslation();
@@ -130,10 +134,18 @@ export default function PaywallScreen() {
   const store = useStoreProducts();
   const entitlement = useEntitlement();
   const [plan, setPlan] = useState<Plan>('year');
+  const flow = usePurchaseState();
 
   useEffect(() => {
     track('paywall_viewed', { from: from ?? 'unknown' });
+    purchaseFlow.reset();
+    return () => purchaseFlow.reset();
   }, [from]);
+
+  const subscribedProduct = flow.phase === 'success' ? flow.productId : null;
+  useEffect(() => {
+    if (subscribedProduct) track('subscribed', { productId: subscribedProduct });
+  }, [subscribedProduct]);
 
   const products = store.data?.products ?? [];
   const yearly = products.find((p) => p.kind === 'subscription' && p.period === 'year');
@@ -145,6 +157,8 @@ export default function PaywallScreen() {
     if (from === 'onboarding' && session.status === 'signedIn') {
       await onboardingStore.markDone(session.user.id);
       track('signup_step', { step: 'done' });
+      // Onboarding is over: the sensible moment to ask for push (morning outfit, weekly edit).
+      void syncPushRegistration({ ask: true });
       router.replace('/');
       return;
     }
@@ -152,12 +166,15 @@ export default function PaywallScreen() {
     else router.replace('/');
   };
 
-  const storeUnavailable = () => Alert.alert(t('paywall.title'), t('paywall.storeUnavailable'));
+  // StoreKit 2 / Play Billing, confirmed by the server before the store transaction is finished
+  // (purchases/purchaseFlow.ts); pending / cancelled / error states show under the button.
+  const busy = flow.phase === 'purchasing' || flow.phase === 'verifying' || flow.phase === 'restoring';
   const purchase = () => {
-    if (!store.data?.purchasesAvailable) storeUnavailable();
+    if (!chosen) return;
+    void purchaseFlow.buy(chosen, entitlement.data?.storeAccountToken ?? null, store.data?.purchasesAvailable ?? false);
   };
   const restore = () => {
-    if (!store.data?.purchasesAvailable) storeUnavailable();
+    if (!busy) void purchaseFlow.restore();
   };
 
   const trialDays = chosen?.trialDays ?? null;
@@ -170,17 +187,23 @@ export default function PaywallScreen() {
 
   let action: ReactNode;
   if (isMember) {
-    action = <Button variant="secondary" size="lg" label={t('paywall.manage')} onPress={() => router.replace('/subscription')} />;
+    action = (
+      <>
+        <Button variant="secondary" size="lg" label={t('paywall.manage')} onPress={() => router.replace('/subscription')} />
+        <PurchaseStatus state={flow} />
+      </>
+    );
   } else {
     action = (
       <>
         <Button
           label={trialDays ? t('paywall.startTrial', { count: trialDays }) : t('paywall.subscribe')}
           onPress={purchase}
-          disabled={!chosen}
-          loading={store.isPending}
-          testID="paywall-purchase"
+          disabled={!chosen || busy}
+          loading={store.isPending || flow.phase === 'purchasing' || flow.phase === 'verifying'}
+          testID="paywall.buy"
         />
+        <PurchaseStatus state={flow} />
         {finePrint ? (
           <Text variant="caption" tone="muted" className="text-center text-[11px] leading-[15px]">
             {finePrint}
@@ -240,8 +263,13 @@ export default function PaywallScreen() {
           </View>
 
           {isMember ? (
-            <View className="mt-0.5 rounded-card bg-sand p-4">
+            <View className="mt-0.5 gap-2 rounded-card bg-sand p-4">
               <Text variant="bodyMedium">{t('paywall.active')}</Text>
+              {entitlement.data?.inGracePeriod ? (
+                <Text variant="caption" tone="danger">
+                  {t('purchase.gracePeriod')}
+                </Text>
+              ) : null}
             </View>
           ) : (
             <View accessibilityRole="radiogroup" className="mt-0.5 flex-row gap-2.5">
@@ -259,7 +287,7 @@ export default function PaywallScreen() {
       <View className="gap-1.5 px-6 pt-3" style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
         {action}
         <View className="flex-row flex-wrap items-center justify-center gap-x-1">
-          <FooterLink label={t('paywall.restore')} onPress={restore} />
+          <FooterLink label={t('paywall.restore')} onPress={restore} testID="paywall.restore" />
           <Dot />
           <FooterLink label={t('paywall.termsShort')} onPress={openTerms} />
           <Dot />

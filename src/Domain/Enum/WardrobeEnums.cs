@@ -17,8 +17,8 @@ public enum ItemDraftStatus { Uploaded, Processing, Ready, Failed }
 /// <summary>Single = one garment photo; Outfit = "Kombin fotoğrafından parçaları ayır" source photo; Piece = a piece cut out of an Outfit draft.</summary>
 public enum ItemDraftKind { Single, Outfit, Piece }
 
-/// <summary>Brief §6 garment.kaynak: fotoğraf / kütüphane / satın alım.</summary>
-public enum ItemSource { Photo, Library, Purchase }
+/// <summary>Brief §6 garment.kaynak: fotoğraf / kütüphane / satın alım; Manual = entered by hand without a photo.</summary>
+public enum ItemSource { Photo, Library, Purchase, Manual }
 
 /// <summary>Phase 2 (second hand Jul 2027, rental Jan 2028). Phase 1 only ever stores None.</summary>
 public enum ItemListingStatus { None, ForSale, ForRent, Sold, Rented }

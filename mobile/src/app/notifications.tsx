@@ -1,10 +1,12 @@
 import { router } from 'expo-router';
-import { CalendarCheck, ChevronRight, Crown, Settings, Sparkles, Star, Tag, type LucideIcon } from 'lucide-react-native';
+import { CalendarCheck, Crown, Settings, Sparkles, Star, Tag, UserCheck, type LucideIcon } from 'lucide-react-native';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 
 import type { AppNotification, NotificationKind } from '@/api/contracts/notifications';
+import { Badge } from '@/components/blocks/basics';
+import { MenuRow } from '@/components/blocks/rows';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
@@ -12,10 +14,12 @@ import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
 import { Text } from '@/components/ui/Text';
+import { NotificationPrefsCard } from '@/features/account/NotificationPrefsCard';
 import { RowCard } from '@/features/account/rows';
 import { groupByDay, targetOf, unreadCount, type NotificationGroup } from '@/features/notifications/logic';
 import { useMarkNotificationsRead } from '@/features/notifications/mutations';
 import { useNotifications } from '@/features/notifications/queries';
+import { useIncomingRequestCount } from '@/features/social/queries';
 import { currentLanguage, type AppLanguage } from '@/i18n';
 import { formatDate, formatDayMonth, formatMoney, relativeTime } from '@/lib/format';
 import { suffixed } from '@/lib/trSuffix';
@@ -118,6 +122,8 @@ export default function NotificationsScreen() {
   const language = currentLanguage();
   const notifications = useNotifications();
   const markRead = useMarkNotificationsRead();
+  // What is waiting for the user: follow requests (followers-only accounts approve each one).
+  const requestCount = useIncomingRequestCount();
 
   const open = (n: AppNotification) => {
     if (n.readAt === null) markRead([n.id]);
@@ -134,8 +140,6 @@ export default function NotificationsScreen() {
       />
       <ScreenState
         query={notifications}
-        isEmpty={(data) => data.items.length === 0}
-        empty={{ message: t('notifCenter.empty'), actionLabel: t('notifCenter.settings'), onAction: openSettings }}
       >
         {(data) => {
           const unread = unreadCount(data.items);
@@ -154,6 +158,22 @@ export default function NotificationsScreen() {
                 {unread > 0 ? <Button variant="text" label={t('notifCenter.markAll')} onPress={() => markRead(null)} className="-mr-2" /> : null}
               </View>
 
+              <RowCard>
+                <MenuRow
+                  first
+                  icon={UserCheck}
+                  label={t('friends.menuRequests')}
+                  trailing={requestCount > 0 ? <Badge tone="accent" label={String(requestCount)} /> : undefined}
+                  onPress={() => router.push('/friends/requests')}
+                />
+              </RowCard>
+
+              {groups.length === 0 ? (
+                <Text variant="body" tone="muted" className="py-6 text-center" testID="notifications-empty">
+                  {t('notifCenter.empty')}
+                </Text>
+              ) : null}
+
               {groups.map((group) => (
                 <View key={group.day} className="gap-2.5">
                   <Text variant="eyebrow" accessibilityRole="header">
@@ -167,17 +187,10 @@ export default function NotificationsScreen() {
                 </View>
               ))}
 
-              <Pressable
-                onPress={openSettings}
-                accessibilityRole="button"
-                accessibilityLabel={t('notifCenter.settings')}
-                className="min-h-icon-btn flex-row items-center justify-between gap-3 active:opacity-70"
-              >
-                <Text variant="body" className="flex-1">
-                  {t('notifCenter.settings')}
-                </Text>
-                <Icon icon={ChevronRight} size={16} />
-              </Pressable>
+              <Text variant="eyebrow" accessibilityRole="header" className="pt-2">
+                {t('friends.notificationsPrefs')}
+              </Text>
+              <NotificationPrefsCard />
             </ScrollView>
           );
         }}

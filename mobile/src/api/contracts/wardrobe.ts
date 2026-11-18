@@ -21,13 +21,16 @@ export type Item = {
   id: string;
   name: string;
   category: ItemCategory;
-  /** Free-text type inside the category, e.g. "Gömlek". Device-only: the server has no such field (always null from the API). */
+  /** Free-text type inside the category, e.g. "Gömlek" (`ItemDto.subcategory`, ≤ 40 chars). */
   subcategory: string | null;
   brand: string | null;
   size: string | null;
   color: ItemColor;
   /** The server's reference colour ids behind `color` (`[0]` = main). Absent on fixture / optimistic records. */
   colorIds?: string[];
+  /** `#RRGGBB` of a colour the palette has no chip for (only with `color: 'other'`; `ItemDto.colorHex`). */
+  colorHex?: string | null;
+  /** Fabric as shown: the reference fabric's name, or the user's own text (`ItemDto.fabricText`). */
   fabric: string | null;
   /** At least one. */
   seasons: ItemSeason[];
@@ -53,7 +56,10 @@ export type LookRef = { id: string; name: string; occasion: string; imageUrl: st
 /** GET v1/tenant/item/{id} → `{ item, looks }` on the wire, flattened here. */
 export type ItemDetail = Item & { looks: LookRef[] };
 
-export type ItemFields = Pick<Item, 'name' | 'category' | 'subcategory' | 'brand' | 'size' | 'color' | 'colorIds' | 'fabric' | 'seasons' | 'useOriginalImage'>;
+export type ItemFields = Pick<
+  Item,
+  'name' | 'category' | 'subcategory' | 'brand' | 'size' | 'color' | 'colorIds' | 'colorHex' | 'fabric' | 'seasons' | 'useOriginalImage'
+>;
 
 /** PUT v1/tenant/item/{id} — versioned; 409 answers the current record. Sent as `PutItemWire` (colorIds, fabric id). */
 export type PutItemRequest = ItemFields & { baseVersion: number; clientMutationId: string };
@@ -109,7 +115,7 @@ export type ItemDraft = {
  */
 export type ConfirmItemDraftsRequest = {
   items: (ItemFields & {
-    /** Null for a piece added without AI (ready-made library / manual). */
+    /** Null for a piece added without AI: library rows go to `item/from-library`, the rest to `POST v1/tenant/item` (no photo). */
     draftId: string | null;
     /** The new Item's id (ULID from the device). */
     id: string;

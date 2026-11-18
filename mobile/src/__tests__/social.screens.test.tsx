@@ -226,9 +226,9 @@ describe('27 Dolapları keşfet', () => {
     await waitFor(() => expect(screen.getByText('88% style match')).toBeTruthy(), TIMEOUT);
     expect(screen.getByText('81% style match')).toBeTruthy();
 
-    // No contacts permission is requested (open decision A-8): the button explains instead.
-    await fireEvent.press(screen.getByText('Allow contacts'));
-    await waitFor(() => expect(screen.getByText(/coming soon/)).toBeTruthy(), TIMEOUT);
+    // Owner decision 13: the button opens the in-app consent screen first; the permission is asked only there.
+    await fireEvent.press(screen.getByTestId('find.contacts'));
+    await waitFor(() => expect(screen.getByTestId('contacts.agree')).toBeTruthy(), TIMEOUT);
   });
 
   it('follows from the list and finds people by username', async () => {

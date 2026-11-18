@@ -6,12 +6,14 @@
 import account from './account.json';
 import ai from './ai.json';
 import commerce from './commerce.json';
+import friends from './friends.json';
 import looks from './looks.json';
+import purchase from './purchase.json';
 import social from './social.json';
 import stylist from './stylist.json';
 import today from './today.json';
 import wardrobe from './wardrobe.json';
 
-const features = { ai, today, wardrobe, looks, stylist, commerce, social, account };
+const features = { ai, today, wardrobe, looks, stylist, commerce, social, account, friends, purchase };
 
 export default features;

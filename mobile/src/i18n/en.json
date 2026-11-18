@@ -91,7 +91,8 @@
     "emailInvalid": "Enter a valid email address.",
     "passwordTooShort": "Your password needs at least 8 characters.",
     "googleUnavailable": "Google sign-in isn't available right now.",
-    "socialFailed": "Sign-in couldn't be completed. Try again."
+    "socialFailed": "Sign-in couldn't be completed. Try again.",
+    "account_suspended": "This account has been suspended, so you can’t sign in right now. Please contact our support team."
   },
   "welcome": {
     "eyebrow": "PERSONAL WARDROBE · STYLE ASSISTANT · PACKING",
@@ -279,7 +280,6 @@
     "restore": "Restore purchases",
     "terms": "Terms of Use",
     "privacy": "Privacy Policy",
-    "storeUnavailable": "Purchases aren't open in this build yet. Membership is coming very soon.",
     "active": "Your Droblet Membership is active."
   },
   "subscription": {

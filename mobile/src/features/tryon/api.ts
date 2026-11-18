@@ -11,8 +11,14 @@ import {
   mapTryOnResult,
   requestExistingTryOn,
   requestTryOnImage,
+  toWeekJobs,
+  toWeekQuote,
   toWireTarget,
+  CREDIT_QUOTE_CHANGED,
   type TryOnStartWire,
+  type TryOnWeekQuote,
+  type TryOnWeekQuoteWire,
+  type TryOnWeekStartWire,
 } from '@/api/wire/tryon';
 import { routeAiStartError } from '@/features/credits/aiErrors';
 import { aiCreditsKey } from '@/features/credits/useAiCredits';
@@ -143,4 +149,68 @@ export function useExistingTryOn(target: TryOnTarget | null, options: { enabled?
       ),
     meta: { persist: false },
   });
+}
+
+type WeekQuoteVariables = {
+  weekStart: string;
+  /** Fixture mode: the days the device would render. */
+  fixtureDates: string[];
+};
+type WeekStartVariables = { requestId: string; quote: TryOnWeekQuote };
+
+/** True for 409 `credit_quote_changed`: the week changed since the quote — quote again and ask again. */
+export function isQuoteChanged(error: unknown): boolean {
+  return error instanceof ApiError && error.code === CREDIT_QUOTE_CHANGED;
+}
+
+/**
+ * "Üzerimde gör" for the planned week (07 → 07b): one quote (`POST v1/tenant/tryon/plan-week/quote`,
+ * free), ONE confirmation with the total credits, then one batch (`POST v1/tenant/tryon/plan-week` with
+ * the confirmed `expectedCredits`, all or nothing). Resolves with day → job id (cached days get a pseudo
+ * id). 409 `credit_quote_changed` is left to the screen (re-quote); 402 / 403 open the credit sheet / paywall.
+ */
+export function useWeekTryOn() {
+  const client = useQueryClient();
+  const quote = useMutation<TryOnWeekQuote, unknown, WeekQuoteVariables>({
+    mutationFn: ({ weekStart, fixtureDates }) =>
+      fromSource<TryOnWeekQuote>(
+        'jobs',
+        () => ({ weekStart, requiredCredits: fixtureDates.length * TRY_ON_CREDIT_COST, cachedCount: 0, dates: fixtureDates }),
+        async () => toWeekQuote(await apiRequest<TryOnWeekQuoteWire>('v1/tenant/tryon/plan-week/quote', { method: 'POST', body: { weekStart } })),
+      ),
+    onError: (error) => void routeAiStartError(error, 'tryon'),
+  });
+  const start = useMutation<Record<string, string>, unknown, WeekStartVariables>({
+    mutationFn: ({ requestId, quote: confirmed }) =>
+      fromSource<Record<string, string>>(
+        'jobs',
+        () =>
+          Object.fromEntries(
+            confirmed.dates.map((date) => [date, startFixtureTryOn({ requestId: `${requestId}-${date}`, target: { kind: 'plan-day', id: date } }).jobId]),
+          ),
+        async () =>
+          toWeekJobs(
+            await apiRequest<TryOnWeekStartWire>('v1/tenant/tryon/plan-week', {
+              method: 'POST',
+              body: { requestId, weekStart: confirmed.weekStart, expectedCredits: confirmed.requiredCredits },
+            }),
+          ),
+      ),
+    onError: (error) => {
+      if (!isQuoteChanged(error)) routeAiStartError(error, 'tryon');
+    },
+    onSettled: () => void client.invalidateQueries({ queryKey: aiCreditsKey }),
+  });
+  return {
+    isQuoting: quote.isPending,
+    isStarting: start.isPending,
+    error: start.error ?? quote.error,
+    reset: () => {
+      quote.reset();
+      start.reset();
+    },
+    quote: (weekStart: string, fixtureDates: string[]) => quote.mutateAsync({ weekStart, fixtureDates }),
+    /** The `requestId` is created here, once per confirmation. */
+    start: (confirmed: TryOnWeekQuote) => start.mutateAsync({ requestId: ulid(), quote: confirmed }),
+  };
 }

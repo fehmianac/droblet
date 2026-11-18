@@ -11,7 +11,9 @@ public record NotificationPrefsDto(
     bool FriendRatings,
     string TimeZone,
     long Version,
-    DateTime? UpdatedAt);
+    DateTime? UpdatedAt,
+    bool PriceDrop = false,
+    bool FollowRequests = false);
 
 public record DeviceDto(string DeviceId, DevicePlatform Platform, bool PushEnabled, DateTime UpdatedAt);
 
@@ -26,7 +28,8 @@ public record SettingsDto(
     IReadOnlyList<DeviceDto> Devices,
     long ProfileVersion);
 
-public sealed record NotificationPrefsInput(bool MorningOutfit, string MorningOutfitLocalTime, bool WeeklyEdit, bool FriendRatings, string TimeZone, long BaseVersion);
+public sealed record NotificationPrefsInput(bool MorningOutfit, string MorningOutfitLocalTime, bool WeeklyEdit, bool FriendRatings, string TimeZone, long BaseVersion,
+    bool? PriceDrop = null, bool? FollowRequests = null);
 
 public enum SettingsOutcome { Ok, NotFound, Conflict, LimitReached }
 
@@ -38,9 +41,9 @@ public interface ISettingsService
     Task<NotificationPrefsDto> GetNotificationPrefsAsync(string tenantId, string userId, CancellationToken ct);
     Task<(SettingsOutcome Outcome, NotificationPrefsDto Prefs)> SetNotificationPrefsAsync(string tenantId, string userId, NotificationPrefsInput input, CancellationToken ct);
 
-    /// <summary>Registers / refreshes a push token. The first registration with a token switches the three notification types on (proposal).</summary>
+    /// <summary>Registers / refreshes a push token. The first registration with a token switches on the morning outfit and the weekly edit (decision 9).</summary>
     Task<(SettingsOutcome Outcome, DeviceDto? Device)> RegisterDeviceAsync(
-        string tenantId, string userId, string deviceId, DevicePlatform platform, string? pushToken, string? timeZone, CancellationToken ct);
+        string tenantId, string userId, string deviceId, DevicePlatform platform, string? pushToken, PushTokenType? pushTokenType, string? timeZone, CancellationToken ct);
     Task RemoveDeviceAsync(string tenantId, string deviceId, CancellationToken ct);
 
     Task<SettingsDto?> GetSettingsAsync(string tenantId, string userId, CancellationToken ct);
@@ -91,7 +94,11 @@ public interface IWeatherProvider
 
 // ── Push ────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-public sealed record PushMessage(string Token, string Title, string Body, IReadOnlyDictionary<string, string> Data);
+public sealed record PushMessage(string Token, string Title, string Body, IReadOnlyDictionary<string, string> Data)
+{
+    /// <summary>Which provider can deliver to Token: FCM (Android / FCM tokens) or APNs (raw iOS device token).</summary>
+    public PushTokenType TokenType { get; init; } = PushTokenType.Fcm;
+}
 
 public enum PushResult { Sent, Unregistered, Failed, NotConfigured }
 

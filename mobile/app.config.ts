@@ -20,6 +20,17 @@ const INK = '#1C1A17';
 /** EAS project id (push registration, EAS services) — present only when the environment provides it. */
 const easProjectId = process.env.EAS_PROJECT_ID;
 
+/**
+ * Firebase Android config (FCM push token). EAS: a file environment variable GOOGLE_SERVICES_JSON;
+ * locally: GOOGLE_SERVICES_JSON=./google-services.json (the file is git-ignored). Without it Android builds
+ * still work, only without push.
+ */
+const googleServicesFile = process.env.GOOGLE_SERVICES_JSON || undefined;
+
+/** APNs environment of the build: production for store / TestFlight builds, development otherwise. */
+const apsMode: 'production' | 'development' =
+  process.env.EAS_BUILD_PROFILE === 'production' || process.env.EAS_BUILD_PROFILE === 'preview' ? 'production' : 'development';
+
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   // From app.json; the fallbacks only satisfy the type when the file is evaluated without it.
@@ -58,6 +69,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       monochromeImage: './assets/images/android-icon-monochrome.png',
     },
     predictiveBackGestureEnabled: false,
+    ...(googleServicesFile ? { googleServicesFile } : {}),
+    // expo-contacts also adds WRITE_CONTACTS; contacts matching only reads e-mail addresses.
+    blockedPermissions: ['android.permission.WRITE_CONTACTS'],
     intentFilters: [
       {
         action: 'VIEW',
@@ -86,6 +100,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-localization',
     'expo-apple-authentication',
     'expo-web-browser',
+    // StoreKit 2 / Google Play Billing (open-source native module, no hosted purchase service).
+    ['expo-iap', { module: 'expo-iap' }],
+    // Device push tokens: APNs on iOS (aps-environment), FCM on Android; the server sends directly.
+    ['expo-notifications', { mode: apsMode, color: INK, defaultChannel: 'default' }],
+    // Local iOS simulator purchases with ios-storekit/Droblet.storekit (Xcode runs only; skipped on EAS).
+    './plugins/withStoreKitConfig.js',
     [
       'expo-image-picker',
       {
@@ -106,6 +126,15 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         microphonePermission: false,
         recordAudioAndroid: false,
         barcodeScannerEnabled: false,
+      },
+    ],
+    [
+      'expo-contacts',
+      {
+        // Default (TR) string; per-language strings live in ./locales/ios/*.json. Asked only after
+        // the in-app consent screen (friends/contacts) — owner decision 13.
+        contactsPermission:
+          'Rehberindeki e-posta adreslerinden Droblet’te olan arkadaşlarını bulmak için. Adresler telefonunda karma değerine dönüştürülür; rehberin gönderilmez ve saklanmaz.',
       },
     ],
   ],

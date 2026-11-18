@@ -90,7 +90,7 @@
   "people": {
     "searchLabel": "Search usernames",
     "contactsTitle": "Find friends from your contacts",
-    "contactsBody": "We'll ask for contacts permission. Numbers are matched encrypted and never stored.",
+    "contactsBody": "We can find which of the e-mail addresses in your contacts are on Droblet. First we explain what is sent.",
     "contactsAllow": "Allow contacts",
     "contactsSoon": "Finding friends from your contacts is coming soon. For now you can share your invite link.",
     "inviteLink": "Invite link",

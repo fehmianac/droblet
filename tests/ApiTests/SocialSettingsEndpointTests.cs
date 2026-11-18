@@ -4,6 +4,7 @@ using System.Text.Json;
 using Domain.Entity;
 using Domain.Enum;
 using Domain.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ApiTests;
 
@@ -48,6 +49,10 @@ public class SocialVisibilityEndpointTests(StoreSocialApiFactory factory) : ICla
 
         var follow = await viewer.Client.PostAsync($"v1/tenant/follow/{owner.Handle}", null);
         var followAgain = await viewer.Client.PostAsync($"v1/tenant/follow/{owner.Handle}", null);
+        // Decision 8: a pending request is not following — the closet stays locked until the owner approves.
+        var pending = await (await viewer.Client.GetAsync($"v1/tenant/people/{owner.Handle}")).JsonAsync();
+        var looksPending = await Status(viewer.Client, $"v1/tenant/people/{owner.Handle}/look");
+        (await owner.Client.PostAsync($"v1/tenant/follow-request/{viewer.Handle}/approve", null)).EnsureSuccessStatusCode();
         var open = await (await viewer.Client.GetAsync($"v1/tenant/people/{owner.Handle}")).JsonAsync();
         var looksAfter = await viewer.Client.GetAsync($"v1/tenant/people/{owner.Handle}/look");
         var itemsAfter = await Status(viewer.Client, $"v1/tenant/people/{owner.Handle}/item");
@@ -58,7 +63,14 @@ public class SocialVisibilityEndpointTests(StoreSocialApiFactory factory) : ICla
         Assert.True(locked.GetProperty("closetLocked").GetBoolean());
         Assert.Equal(JsonValueKind.Null, locked.GetProperty("lookCount").ValueKind);   // not even the count leaks
         Assert.Equal((HttpStatusCode.NotFound, HttpStatusCode.NotFound), (looksBefore, itemsBefore));
-        Assert.Equal((HttpStatusCode.NoContent, HttpStatusCode.NoContent), (follow.StatusCode, followAgain.StatusCode));
+        Assert.Equal((HttpStatusCode.OK, HttpStatusCode.OK), (follow.StatusCode, followAgain.StatusCode));
+        Assert.Equal(("requested", "requested"), ((await follow.JsonAsync()).GetProperty("state").GetString(), (await followAgain.JsonAsync()).GetProperty("state").GetString()));
+        Assert.True(pending.GetProperty("closetLocked").GetBoolean());
+        Assert.Equal("requested", pending.GetProperty("followState").GetString());
+        Assert.False(pending.GetProperty("isFollowing").GetBoolean());
+        Assert.Equal(0, pending.GetProperty("followerCount").GetInt32());
+        Assert.Equal(HttpStatusCode.NotFound, looksPending);
+        Assert.Equal("following", open.GetProperty("followState").GetString());
         Assert.False(open.GetProperty("closetLocked").GetBoolean());
         Assert.True(open.GetProperty("isFollowing").GetBoolean());
         Assert.Equal((1, 1, 1), (open.GetProperty("lookCount").GetInt32(), open.GetProperty("itemCount").GetInt32(), open.GetProperty("followerCount").GetInt32()));
@@ -136,6 +148,7 @@ public class SocialVisibilityEndpointTests(StoreSocialApiFactory factory) : ICla
         var empty = await (await viewer.Client.GetAsync("v1/tenant/feed")).JsonAsync();
         await viewer.Client.PostAsync($"v1/tenant/follow/{friend.Handle}", null);
         await viewer.Client.PostAsync($"v1/tenant/follow/{other.Handle}", null);
+        (await other.Client.PostAsync($"v1/tenant/follow-request/{viewer.Handle}/approve", null)).EnsureSuccessStatusCode();
         var page1 = await (await viewer.Client.GetAsync("v1/tenant/feed")).JsonAsync();   // Social:FeedPageSize = 2 in tests
         var page2 = await (await viewer.Client.GetAsync($"v1/tenant/feed?pageToken={page1.GetProperty("pageToken").GetString()}")).JsonAsync();
 
@@ -149,7 +162,8 @@ public class SocialVisibilityEndpointTests(StoreSocialApiFactory factory) : ICla
         Assert.Equal(0, top.GetProperty("rating").GetProperty("count").GetInt64());
 
         // A followee who goes private disappears from the feed at once.
-        (await other.Client.PutJsonAsync("v1/tenant/profile/visibility", new { closetVisibility = "private", baseVersion = 3 })).EnsureSuccessStatusCode();
+        // followers-only is the default (decision 7): the profile is still at version 2 (register + handle).
+        (await other.Client.PutJsonAsync("v1/tenant/profile/visibility", new { closetVisibility = "private", baseVersion = 2 })).EnsureSuccessStatusCode();
         var afterPrivate = await (await viewer.Client.GetAsync("v1/tenant/feed")).JsonAsync();
         Assert.DoesNotContain(afterPrivate.GetProperty("items").EnumerateArray(), i => i.GetProperty("id").GetString() == middle);
     }
@@ -326,7 +340,7 @@ public class SocialVisibilityEndpointTests(StoreSocialApiFactory factory) : ICla
 public class SettingsAnalyticsWeatherEndpointTests(StoreSocialApiFactory factory) : IClassFixture<StoreSocialApiFactory>
 {
     [Fact]
-    public async Task Visibility_DefaultPrivate_Versioned_KeepsDiscoveryIndexInStep()
+    public async Task Visibility_DefaultFollowersOnly_Versioned_KeepsDiscoveryIndexInStep()
     {
         var (client, auth) = await factory.RegisterAsync();
         Task<PublicProfileIndexEntity?> Index() => factory.Repository.GetAsync<PublicProfileIndexEntity>(PublicProfileIndexEntity.GetPk(Segment.Women), PublicProfileIndexEntity.GetSk(auth.TenantId));
@@ -339,7 +353,7 @@ public class SettingsAnalyticsWeatherEndpointTests(StoreSocialApiFactory factory
         var followers = await client.PutJsonAsync("v1/tenant/profile/visibility", new { closetVisibility = "followersOnly", baseVersion = 2 });
         var invalid = await client.PutJsonAsync("v1/tenant/profile/visibility", new { closetVisibility = "everyone", baseVersion = 3 });
 
-        Assert.Equal("private", initial.GetProperty("closetVisibility").GetString());
+        Assert.Equal("followersOnly", initial.GetProperty("closetVisibility").GetString());   // decision 7
         Assert.Equal(HttpStatusCode.OK, made.StatusCode);
         Assert.NotNull(listed);
         Assert.Equal(HttpStatusCode.Conflict, stale.StatusCode);
@@ -402,8 +416,10 @@ public class SettingsAnalyticsWeatherEndpointTests(StoreSocialApiFactory factory
         Assert.False((await noToken.JsonAsync()).GetProperty("pushEnabled").GetBoolean());
         Assert.Equal(0, prefsBefore.GetProperty("version").GetInt64());
         Assert.True((await withToken.JsonAsync()).GetProperty("pushEnabled").GetBoolean());
-        Assert.Equal((true, true, true, "Europe/Berlin"), (prefsAfter.GetProperty("morningOutfit").GetBoolean(), prefsAfter.GetProperty("weeklyEdit").GetBoolean(),
+        // Decision 9: only the morning outfit and the weekly edit start on.
+        Assert.Equal((true, true, false, "Europe/Berlin"), (prefsAfter.GetProperty("morningOutfit").GetBoolean(), prefsAfter.GetProperty("weeklyEdit").GetBoolean(),
             prefsAfter.GetProperty("friendRatings").GetBoolean(), prefsAfter.GetProperty("timeZone").GetString()));
+        Assert.Equal((false, false), (prefsAfter.GetProperty("priceDrop").GetBoolean(), prefsAfter.GetProperty("followRequests").GetBoolean()));
         Assert.False(prefsKept.GetProperty("weeklyEdit").GetBoolean());              // a later device never overrides the user's choice
         Assert.Equal(2, settings.GetProperty("devices").GetArrayLength());
         Assert.Equal("tr", settings.GetProperty("language").GetString());
@@ -527,10 +543,19 @@ public class AccountDeletionCrossTenantTests(StoreSocialApiFactory factory) : IC
         await leaving.Client.PostJsonAsync($"v1/tenant/people/{blocked.Handle}/report", new { targetKind = "profile", reason = "harassment" });
         await friend.Client.PostJsonAsync($"v1/tenant/people/{leaving.Handle}/report", new { targetKind = "profile", reason = "spam" });
         await leaving.Client.PutAsync($"v1/tenant/block/{blocked.Handle}", null);
+        // Follow requests both ways (decision 8), contact directory and a contact salt (decision 13).
+        var asked = await factory.UserAsync(ClosetVisibility.FollowersOnly);
+        Assert.Equal("requested", (await (await leaving.Client.PostAsync($"v1/tenant/follow/{asked.Handle}", null)).JsonAsync()).GetProperty("state").GetString());
+        await factory.Repository.SaveAsync(new FollowRequestEntity { TenantId = inviteeAuth.TenantId, TargetTenantId = leaving.TenantId, CreatedAt = DateTime.UtcNow });
+        await factory.Repository.SaveAsync(new FollowRequestReceivedEntity { TenantId = leaving.TenantId, RequesterTenantId = inviteeAuth.TenantId, CreatedAt = DateTime.UtcNow });
+        await factory.Services.GetRequiredService<IContactDirectory>().ListVerifiedEmailAsync(leaving.TenantId, $"{leaving.Handle}@example.com", CancellationToken.None);
+        (await leaving.Client.PostAsync("v1/tenant/contacts/salt", null)).EnsureSuccessStatusCode();
         // Invite edges, settings, store.
         var code = (await (await leaving.Client.GetAsync("v1/tenant/invite/link")).JsonAsync()).GetProperty("code").GetString()!;
         (await invitee.PostJsonAsync("v1/tenant/invite/attribution", new { code })).EnsureSuccessStatusCode();
         await leaving.Client.PutJsonAsync("v1/tenant/user/me/device", new { deviceId = "device-0001", platform = "ios", pushToken = "fcm-token-1" });
+        await leaving.Client.PutJsonAsync($"v1/tenant/watch-list/{product}", new { });
+        await leaving.Client.DeleteAsync($"v1/tenant/watch-list/{product}");      // leaves the "removed by the user" marker (decision 10)
         await leaving.Client.PutJsonAsync($"v1/tenant/watch-list/{product}", new { });
         await leaving.Client.PostJsonAsync("v1/tenant/cart/line", new { lines = new[] { new { productId = product, size = "M" } } });
         var clickId = (await (await leaving.Client.PostAsync($"v1/tenant/cart/checkout/{brand}", null)).JsonAsync()).GetProperty("clickId").GetString()!;
@@ -561,6 +586,7 @@ public class AccountDeletionCrossTenantTests(StoreSocialApiFactory factory) : IC
             typeof(TripEntity), typeof(TripItemEntity), typeof(TripDayEntity), typeof(StylistFeedbackEntity), typeof(PaletteResultEntity), typeof(JobEntity),
             typeof(MutationReceiptEntity), typeof(LookRatingSummaryEntity), typeof(FollowingEntity), typeof(FollowerEntity), typeof(RatingGivenEntity),
             typeof(SavedLookEntity), typeof(BlockEntity), typeof(CartLineEntity), typeof(WatchItemEntity), typeof(DeviceEntity), typeof(AffiliateConversionEntity),
+            typeof(FollowRequestEntity), typeof(FollowRequestReceivedEntity), typeof(ContactDirectoryPointerEntity), typeof(ContactSaltEntity), typeof(WatchRemovedEntity),
         ];
         var partitions = DeletionPlan.TenantScopedEntityTypes.Zip(DeletionPlan.TenantPartitionKeys(leaving.TenantId)).ToDictionary(p => p.First, p => p.Second);
         foreach (var type in expected)

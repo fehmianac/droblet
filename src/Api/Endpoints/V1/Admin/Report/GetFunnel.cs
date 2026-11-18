@@ -1,3 +1,4 @@
+using Domain.Services.Admin;
 using System.Text.Json;
 using Api.Contracts;
 using Api.Infrastructure.Contract;
@@ -39,10 +40,8 @@ public class GetFunnel : IEndpoint
         return endpoints.MapGet("v1/admin/report/funnel", Handler)
             .Produces<FunnelReport>(StatusCodes.Status200OK)
             .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
-            .Produces(StatusCodes.Status401Unauthorized)
-            .Produces(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status500InternalServerError)
-            .RequireAuthorization(AdminOptions.Policy)
+            .RequireAdmin(AdminPermissions.AnalyticsView)
             .WithSummary("Funnel report")
             .WithDescription("from / to = yyyy-MM-dd (UTC, inclusive; default last 30 days, max 92). Per funnel step: events, distinct users, rate from the previous step and from the first step.")
             .WithTags("Admin Report");

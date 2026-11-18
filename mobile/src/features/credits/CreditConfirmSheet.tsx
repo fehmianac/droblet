@@ -17,6 +17,8 @@ type Props = {
   /** Called when the user accepts the spend. Start the try-on job(s) here. */
   onConfirm: () => void;
   confirming?: boolean;
+  /** A notice above the actions, e.g. "the amount changed — confirm the new one". */
+  note?: string | null;
 };
 
 /**
@@ -24,7 +26,7 @@ type Props = {
  * left now and after. When the balance is too low (or the user is not a member) the single action
  * becomes "Kredi yükle" / "Üye ol" instead — never a silent failure.
  */
-export function CreditConfirmSheet({ visible, onClose, cost, scope, onConfirm, confirming = false }: Props) {
+export function CreditConfirmSheet({ visible, onClose, cost, scope, onConfirm, confirming = false, note = null }: Props) {
   const { t } = useTranslation();
   const credits = useAiCredits();
   const remaining = credits.remaining;
@@ -59,6 +61,12 @@ export function CreditConfirmSheet({ visible, onClose, cost, scope, onConfirm, c
         <Text variant="caption" tone="muted" className="leading-[18px]">
           {t('creditConfirm.cacheNote')}
         </Text>
+
+        {note ? (
+          <Text variant="caption" tone="accent" accessibilityLiveRegion="polite">
+            {note}
+          </Text>
+        ) : null}
 
         <View className="gap-1.5">
           {affordable ? (

@@ -29,7 +29,6 @@ public static class StoreSocialDependencyInjection
         services.Configure<WeatherOptions>(configuration.GetSection(WeatherOptions.Section));
         services.Configure<NotificationOptions>(configuration.GetSection(NotificationOptions.Section));
         services.Configure<AffiliatePostbackOptions>(configuration.GetSection(AffiliatePostbackOptions.Section));
-        services.Configure<AdminOptions>(configuration.GetSection(AdminOptions.Section));
         services.Configure<LocalizationOptions>(configuration.GetSection(LocalizationOptions.Section));
         // The one language list: static helpers (Localized.*) used by rules, workers and prompts read the same config.
         void ApplyLanguages() =>
@@ -54,16 +53,26 @@ public static class StoreSocialDependencyInjection
         services.TryAddSingleton<IAnalyticsService, AnalyticsService>();
         services.TryAddSingleton<ICatalogService, CatalogService>();
         services.TryAddSingleton<IContentService, ContentService>();
+        services.TryAddSingleton<IWatchListAutoAdd, WatchListAutoAdd>();
 
         services.TryAddSingleton<IWeatherProvider>(sp => new OpenMeteoWeatherProvider(
             new HttpClient { Timeout = TimeSpan.FromSeconds(10) }, sp.GetRequiredService<IOptionsMonitor<WeatherOptions>>()));
         services.TryAddSingleton<IWeatherService, WeatherService>();
 
-        services.TryAddSingleton<IPushProvider>(sp => new FcmPushProvider(
+        // Android (FCM tokens) → FCM HTTP v1; iOS (raw APNs tokens from expo-notifications) → APNs HTTP/2. Each is off
+        // (NotConfigured) while its SSM secret is CHANGE_ME.
+        services.Configure<ApnsOptions>(configuration.GetSection(ApnsOptions.Section));
+        services.TryAddSingleton(sp => new FcmPushProvider(
             new HttpClient { Timeout = TimeSpan.FromSeconds(10) },
             sp.GetRequiredService<IOptionsMonitor<FirebaseServiceAccountOptions>>(),
             sp.GetRequiredService<TimeProvider>(),
             sp.GetRequiredService<ILogger<FcmPushProvider>>()));
+        services.TryAddSingleton(sp => new ApnsPushProvider(
+            new HttpClient(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(30) }) { Timeout = TimeSpan.FromSeconds(10) },
+            sp.GetRequiredService<IOptionsMonitor<ApnsOptions>>(),
+            sp.GetRequiredService<TimeProvider>(),
+            sp.GetRequiredService<ILogger<ApnsPushProvider>>()));
+        services.TryAddSingleton<IPushProvider, RoutingPushProvider>();
         return services;
     }
 
@@ -73,6 +82,7 @@ public static class StoreSocialDependencyInjection
         services.TryAddSingleton<ICartService, CartService>();
         services.TryAddSingleton<IAffiliateService, AffiliateService>();
         services.TryAddSingleton<ISocialService, SocialService>();
+        services.TryAddSingleton<IContactMatchService, ContactMatchService>();
         services.TryAddSingleton<IInviteService, InviteService>();
         services.TryAddSingleton<ISettingsService, SettingsService>();
         services.TryAddSingleton<ICrossTenantCleanup, CrossTenantCleanup>();

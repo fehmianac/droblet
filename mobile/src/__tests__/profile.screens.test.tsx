@@ -102,7 +102,7 @@ describe('Profili düzenle (derived)', () => {
 
     await fireEvent.changeText(screen.getByLabelText('Name'), '  Damla K ');
     await fireEvent.changeText(screen.getByLabelText('Username'), '@Damla_K');
-    expect(screen.getByText('Your profile appears as @damla_k.')).toBeTruthy();
+    await waitFor(() => expect(screen.getByText('@damla_k is available.')).toBeTruthy(), WAIT);
     await fireEvent.press(screen.getByTestId('profile-save'));
     await waitFor(() => expect(screen.getByText('@damla_k · Minimal · Quiet luxury')).toBeTruthy(), WAIT);
     expect(screen.getByText('Damla K')).toBeTruthy();

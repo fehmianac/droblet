@@ -85,12 +85,13 @@ describe('Bildirim merkezi (derived)', () => {
     await waitFor(() => expect(screen.getByText('Add to cart')).toBeTruthy(), WAIT);
   });
 
-  it('empty: one sentence and one action, which opens the notification settings on 29', async () => {
+  it('empty: one sentence, the follow requests row and the preferences; the gear opens 29', async () => {
     resetNotificationFixtures({ empty: true });
     await open('/notifications');
     await waitFor(() => expect(screen.getByText('No notifications yet; price drops and friend ratings will appear here.')).toBeTruthy(), WAIT);
     expect(screen.queryByText('Mark all as read')).toBeNull();
-    await fireEvent.press(screen.getByText('Notification settings'));
+    expect(screen.getByText('Follow requests')).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText('Notification settings'));
     await waitFor(() => expect(screen.getByText('NOTIFICATIONS')).toBeTruthy(), WAIT);
   });
 

@@ -45,7 +45,7 @@ public sealed record AuthTokens(
     string TenantId,
     bool IsNewUser);
 
-public enum AuthOutcome { Success, EmailTaken, InvalidCredentials, InvalidToken, TooManyAttempts }
+public enum AuthOutcome { Success, EmailTaken, InvalidCredentials, InvalidToken, TooManyAttempts, Suspended }
 
 public sealed record AuthResult(AuthOutcome Outcome, AuthTokens? Tokens = null)
 {

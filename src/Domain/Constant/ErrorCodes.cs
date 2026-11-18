@@ -16,6 +16,21 @@ public static partial class ErrorCodes
     public const string InvalidIdentityToken = "invalid_identity_token";
     public const string ProviderNotConfigured = "provider_not_configured";
     public const string SmsUnavailable = "sms_unavailable";
+    /// <summary>403: the account was suspended by an admin (sign-in, refresh, social sign-in).</summary>
+    public const string AccountSuspended = "account_suspended";
+
+    // Admin panel (docs/api/admin.md)
+    public const string InvalidCode = "invalid_code";
+    public const string ChallengeExpired = "challenge_expired";
+    public const string InvalidToken = "invalid_token";
+    public const string Forbidden = "forbidden";
+    public const string CannotChangeSelf = "cannot_change_self";
+    public const string LastSuperAdmin = "last_super_admin";
+    public const string SettingsUnavailable = "settings_unavailable";
+    public const string ImageStorageNotConfigured = "image_storage_not_configured";
+    public const string TooManyRequests = "too_many_requests";
+    /// <summary>503: the sign-in code e-mail could not be sent (SendGrid not configured or down).</summary>
+    public const string EmailUnavailable = "email_unavailable";
 
     // Profile
     public const string HandleTaken = "handle_taken";
@@ -35,4 +50,11 @@ public static partial class ErrorCodes
     /// <summary>402: a non-member used every free AI garment recognition. The client shows the paywall; manual entry stays possible.</summary>
     public const string ItemRecognitionLimitReached = "item_recognition_limit_reached";
     public const string PurchaseVerificationUnavailable = "purchase_verification_unavailable";
+    /// <summary>422: the store did not confirm the purchase (signature, bundle, product or environment).</summary>
+    public const string PurchaseInvalid = "purchase_invalid";
+    public const string ProductUnknown = "product_unknown";
+    /// <summary>409: this store purchase is already linked to another Droblet account (same Apple ID / Google account).</summary>
+    public const string PurchaseOwnedByAnotherAccount = "purchase_owned_by_another_account";
+    /// <summary>202: Android pending purchase / Ask to Buy — granted when the store completes it (notification).</summary>
+    public const string PurchasePending = "purchase_pending";
 }

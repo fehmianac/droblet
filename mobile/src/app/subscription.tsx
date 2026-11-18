@@ -11,13 +11,14 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
 import { Text } from '@/components/ui/Text';
 import { useEntitlement } from '@/entitlement/useEntitlement';
-import { useStoreProducts } from '@/entitlement/useStoreProducts';
 import { ProfileMenuRow, RowCard } from '@/features/account/rows';
 import { usedShare } from '@/features/credits/CreditPackSheet';
 import { openCreditTopUp } from '@/features/credits/useAiCredits';
 import { currentLanguage } from '@/i18n';
 import { formatDate, formatDayMonth } from '@/lib/format';
 import { suffixed } from '@/lib/trSuffix';
+import { PurchaseStatus } from '@/purchases/PurchaseStatus';
+import { purchaseFlow, usePurchaseState } from '@/purchases/purchaseFlow';
 import { useThemeColors } from '@/theme/useThemeColors';
 
 /** Where the store keeps the user's subscriptions; the app cannot cancel or change a plan itself. */
@@ -103,13 +104,14 @@ function CreditsCard({ credits }: { credits: Entitlement['credits'] }) {
 export default function SubscriptionScreen() {
   const { t } = useTranslation();
   const entitlement = useEntitlement();
-  const store = useStoreProducts();
 
   const manageInStore = () => {
     void Linking.openURL(storeSubscriptionsUrl()).catch(() => Alert.alert(t('subscription.title'), t('subscription.storeLinkFailed')));
   };
+  // Restore through StoreKit 2 / Play Billing; the server confirms and the entitlement refreshes.
+  const flow = usePurchaseState();
   const restore = () => {
-    if (!store.data?.purchasesAvailable) Alert.alert(t('subscription.title'), t('paywall.storeUnavailable'));
+    if (flow.phase !== 'restoring') void purchaseFlow.restore();
   };
 
   const billing = t(Platform.OS === 'ios' ? 'subscription.billingApple' : Platform.OS === 'android' ? 'subscription.billingGoogle' : 'subscription.billingStore');
@@ -161,6 +163,7 @@ export default function SubscriptionScreen() {
               <RowCard>
                 <ProfileMenuRow first icon={ExternalLink} label={t('subscription.manageInStore')} onPress={manageInStore} testID="subscription-manage" />
                 <ProfileMenuRow icon={RotateCcw} label={t('subscription.restore')} onPress={restore} testID="subscription-restore" />
+                <PurchaseStatus state={flow} />
               </RowCard>
               <Text variant="caption" tone="muted" className="leading-[18px]">
                 {t('subscription.storeNote')}

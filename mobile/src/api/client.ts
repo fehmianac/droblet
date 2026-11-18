@@ -60,8 +60,10 @@ export const refreshTokens = singleFlight(async (): Promise<string> => {
     body: JSON.stringify(body),
   });
   if (res.status === 400 || res.status === 401 || res.status === 403) {
-    await sessionStore.clear('expired');
-    throw new ApiError('session_expired', res.status, await parseProblem(res));
+    const problem = await parseProblem(res);
+    // 403 `account_suspended` (admin panel): signed out, and the auth screen says why.
+    await sessionStore.clear(problem?.code === 'account_suspended' ? 'suspended' : 'expired');
+    throw new ApiError('session_expired', res.status, problem);
   }
   if (!res.ok) throw new ApiError('http', res.status, await parseProblem(res));
   const auth = (await res.json()) as AuthResponse;

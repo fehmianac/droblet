@@ -1,9 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
-import { Alert, Linking } from 'react-native';
+import { Linking } from 'react-native';
 
 import { creditSheetStore } from '@/features/credits/creditSheetStore';
 import i18n from '@/i18n';
+import { purchaseFlow } from '@/purchases/purchaseFlow';
 
 const mockSession = {
   accessToken: 'a',
@@ -65,9 +66,9 @@ describe('/subscription — Üyelik yönetimi', () => {
     expect(creditSheetStore.get()).toBeNull();
   });
 
-  it('opens the store subscription settings and explains that restore is not available yet', async () => {
+  it('opens the store subscription settings and restores purchases through the store', async () => {
     const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
-    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+    const restore = jest.spyOn(purchaseFlow, 'restore').mockResolvedValue(undefined);
     await open('/subscription');
     await waitFor(() => expect(screen.getByText('Manage subscription in the store')).toBeTruthy(), WAIT);
 
@@ -75,9 +76,9 @@ describe('/subscription — Üyelik yönetimi', () => {
     expect(openURL).toHaveBeenCalledWith(expect.stringMatching(/^https:\/\/(apps\.apple\.com\/account\/subscriptions|play\.google\.com\/store\/account\/subscriptions)$/));
 
     await fireEvent.press(screen.getByTestId('subscription-restore'));
-    await waitFor(() => expect(alert).toHaveBeenCalled(), WAIT);
+    await waitFor(() => expect(restore).toHaveBeenCalled(), WAIT);
     openURL.mockRestore();
-    alert.mockRestore();
+    restore.mockRestore();
   });
 
   it('free: shows the free plan and leads to the paywall; no credit card', async () => {

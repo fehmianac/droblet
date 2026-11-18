@@ -11,6 +11,7 @@ using Infrastructure.Context;
 using Infrastructure.Manager;
 using Infrastructure.Services;
 using Infrastructure.Services.Providers;
+using Infrastructure.Services.Purchases;
 using Infrastructure.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -29,9 +30,20 @@ public static class DependencyInjection
         services.Configure<StoreOptions>(configuration.GetSection(StoreOptions.Section));
         services.Configure<AiOptions>(configuration.GetSection(AiOptions.Section));
         services.Configure<AffiliateOptions>(configuration.GetSection(AffiliateOptions.Section));
+        services.Configure<CatalogImageOptions>(configuration.GetSection(CatalogImageOptions.Section));
         // Secrets created by deploy-infra hold the literal CHANGE_ME until the owner fills them in: bind that as "not set".
         services.PostConfigure<AiOptions>(o => o.ApiKey = ConfigSecret.OrNull(o.ApiKey));
-        services.PostConfigure<StoreOptions>(o => o.NotificationKey = ConfigSecret.OrNull(o.NotificationKey));
+        services.PostConfigure<StoreOptions>(o =>
+        {
+            o.NotificationKey = ConfigSecret.OrNull(o.NotificationKey);
+            o.IapKeyId = ConfigSecret.OrNull(o.IapKeyId);
+            o.IssuerId = ConfigSecret.OrNull(o.IssuerId);
+            o.IapPrivateKey = ConfigSecret.OrNull(o.IapPrivateKey);
+            o.GooglePubSubAudience = ConfigSecret.OrNull(o.GooglePubSubAudience);
+            o.GooglePubSubServiceAccount = ConfigSecret.OrNull(o.GooglePubSubServiceAccount);
+            o.XcodeTestRootCertificate = ConfigSecret.OrNull(o.XcodeTestRootCertificate);
+            Infrastructure.Services.Purchases.GoogleServiceAccountBinder.Bind(configuration, o.GooglePlay);
+        });
 
         services.AddSingleton(TimeProvider.System);
 
@@ -48,6 +60,14 @@ public static class DependencyInjection
         services.AddSingleton<IJobLifecycle, JobLifecycle>();
         services.AddDrobletWardrobe(configuration);
         services.AddDrobletStoreSocialCore(configuration);
+        // Catalog:ImageHosts restricts where product images may be downloaded from; images uploaded through the admin
+        // panel live on the catalog image bucket, so its host is always allowed (an empty list already allows any host).
+        services.AddOptions<CatalogOptions>().PostConfigure<IOptionsMonitor<CatalogImageOptions>>((catalog, images) =>
+        {
+            if (catalog.ImageHosts.Count > 0 && images.CurrentValue.PublicHost is { } host
+                && !catalog.ImageHosts.Contains(host, StringComparer.OrdinalIgnoreCase))
+                catalog.ImageHosts.Add(host);
+        });
         return services;
     }
 
@@ -77,7 +97,13 @@ public static class DependencyInjection
         services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.Section));
         services.Configure<AppLinksOptions>(configuration.GetSection(AppLinksOptions.Section));
         services.Configure<AuthRateLimitOptions>(configuration.GetSection(AuthRateLimitOptions.Section));
-        services.PostConfigure<AppleAuthOptions>(o => o.PrivateKey = ConfigSecret.OrNull(o.PrivateKey));
+        services.PostConfigure<AppleAuthOptions>(o =>
+        {
+            o.PrivateKey = ConfigSecret.OrNull(o.PrivateKey);
+            o.KeyId = ConfigSecret.OrNull(o.KeyId);
+            o.TeamId = ConfigSecret.OrNull(o.TeamId);
+            o.TokenEncryptionKey = ConfigSecret.OrNull(o.TokenEncryptionKey);
+        });
         services.PostConfigure<EmailOptions>(o => o.SendGrid.ApiKey = ConfigSecret.OrNull(o.SendGrid.ApiKey));
 
         services.AddHttpContextAccessor();
@@ -86,11 +112,35 @@ public static class DependencyInjection
         services.AddSingleton<IPasswordHasher>(_ => new PasswordHasher());
         services.AddSingleton<ITokenService, TokenService>();
         services.AddSingleton<IRateLimiter, RateLimiter>();
+        services.AddSingleton<IContactDirectory, Infrastructure.Services.Social.ContactDirectory>();
         services.AddSingleton<IAuthService, AuthService>();
         services.AddSingleton<IAccountDeletionService, AccountDeletionService>();
         services.AddSingleton<IPhotoService, PhotoService>();
-        services.AddSingleton<IPurchaseVerifier, NotConfiguredPurchaseVerifier>();
+        // E10 in-app purchases: StoreKit 2 / Play Billing verified on the server, no third-party service.
+        services.AddSingleton<IAppleRootCertificates, AppleRootCertificates>();
+        services.AddSingleton<AppleJwsVerifier>();
+        services.AddSingleton<IAppStoreServerApi>(sp => new AppStoreServerApi(
+            new HttpClient { Timeout = TimeSpan.FromSeconds(10) },
+            sp.GetRequiredService<IOptionsMonitor<StoreOptions>>(), sp.GetRequiredService<TimeProvider>(),
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<AppStoreServerApi>>()));
+        services.AddSingleton<IGooglePlayDeveloperApi>(sp => new GooglePlayDeveloperApi(
+            new HttpClient { Timeout = TimeSpan.FromSeconds(10) },
+            sp.GetRequiredService<IOptionsMonitor<StoreOptions>>(), sp.GetRequiredService<TimeProvider>(),
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<GooglePlayDeveloperApi>>()));
+        services.AddSingleton<StorePurchaseVerifier>();
+        services.AddSingleton<IPurchaseVerifier>(sp => sp.GetRequiredService<StorePurchaseVerifier>());
         services.AddSingleton<IPurchaseService, PurchaseService>();
+        services.AddSingleton<IStoreSyncService, StoreSyncService>();
+        services.AddSingleton<IPubSubPushVerifier>(sp => new PubSubPushVerifier(
+            new OidcTokenValidator(OidcTokenValidator.ForMetadata("https://accounts.google.com/.well-known/openid-configuration"), sp.GetRequiredService<TimeProvider>()),
+            sp.GetRequiredService<IOptionsMonitor<StoreOptions>>()));
+        services.AddSingleton<IAppleSignInTokenService>(sp => new AppleSignInTokenService(
+            new HttpClient { Timeout = TimeSpan.FromSeconds(10) },
+            sp.GetRequiredService<Domain.Manager.IRepository>(),
+            sp.GetRequiredService<IOptionsMonitor<AppleAuthOptions>>(),
+            sp.GetRequiredService<IOptionsMonitor<JwtOptions>>(),
+            sp.GetRequiredService<TimeProvider>(),
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<AppleSignInTokenService>>()));
 
         services.AddSingleton(sp => new SendGridEmailService(
             new HttpClient { Timeout = TimeSpan.FromSeconds(10) },

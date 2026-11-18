@@ -1,6 +1,7 @@
 import { Sparkle, X } from 'lucide-react-native';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
@@ -11,6 +12,8 @@ import { Text } from '@/components/ui/Text';
 import { useEntitlement } from '@/entitlement/useEntitlement';
 import { useStoreProducts } from '@/entitlement/useStoreProducts';
 import { formatDayMonth } from '@/lib/format';
+import { PurchaseStatus } from '@/purchases/PurchaseStatus';
+import { purchaseFlow, usePurchaseState } from '@/purchases/purchaseFlow';
 
 import { creditSheetStore, useCreditSheetReason, type CreditSheetReason } from './creditSheetStore';
 
@@ -22,13 +25,22 @@ export function usedShare(monthlyAllowance: number, remaining: number): number {
 
 /**
  * 05b Ek kredi paketi. Opens when the month's AI image credits are used up (not the paywall) and
- * from Profil / Üyelik "Kredi yükle". Numbers come from the server (`GET v1/tenant/entitlement`), the
- * pack's price and size from the store products. Buying stays disabled until the billing bridge (E10).
+ * from Profil / Üyelik "Kredi yükle". Numbers come from the server (`GET v1/tenant/entitlement`), the pack's
+ * price and size from the store products. The pack is a consumable bought through StoreKit 2 / Play
+ * Billing; credits are added by the server (once per store transaction) before the transaction is
+ * finished, and the numbers above refresh from the server's answer.
  */
 export function CreditPackSheet({ reason }: { reason: CreditSheetReason }) {
   const { t } = useTranslation();
   const entitlement = useEntitlement();
   const store = useStoreProducts();
+  const flow = usePurchaseState();
+  const busy = flow.phase === 'purchasing' || flow.phase === 'verifying' || flow.phase === 'restoring';
+
+  useEffect(() => {
+    purchaseFlow.reset();
+    return () => purchaseFlow.reset();
+  }, []);
 
   const close = () => creditSheetStore.close();
   const pack = store.data?.products.find((p) => p.kind === 'consumable' && p.credits !== null);
@@ -36,7 +48,8 @@ export function CreditPackSheet({ reason }: { reason: CreditSheetReason }) {
   const used = credits ? Math.max(0, credits.monthlyAllowance - credits.remaining) : null;
 
   const buy = () => {
-    if (!store.data?.purchasesAvailable) Alert.alert(t('credits.titleTopUp'), t('paywall.storeUnavailable'));
+    if (!pack) return;
+    void purchaseFlow.buy(pack, entitlement.data?.storeAccountToken ?? null, store.data?.purchasesAvailable ?? false);
   };
 
   return (
@@ -110,10 +123,11 @@ export function CreditPackSheet({ reason }: { reason: CreditSheetReason }) {
           <Button
             label={pack ? t('credits.buy', { price: pack.localizedPrice }) : t('me.topUp')}
             onPress={buy}
-            disabled={!pack}
-            loading={store.isPending}
-            testID="credit-pack-buy"
+            disabled={!pack || busy}
+            loading={store.isPending || flow.phase === 'purchasing' || flow.phase === 'verifying'}
+            testID="credits.buy"
           />
+          <PurchaseStatus state={flow} />
           <Button variant="text" label={t('credits.notNow')} onPress={close} />
         </View>
       </View>

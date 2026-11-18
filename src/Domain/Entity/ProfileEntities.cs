@@ -59,6 +59,8 @@ public class DeviceEntity : IEntity
     [JsonPropertyName("deviceId")] public string DeviceId { get; set; } = null!;
     [JsonPropertyName("platform")] public string? Platform { get; set; }
     [JsonPropertyName("pushToken")] public string? PushToken { get; set; }
+    // fcm (Android, and any FCM token) | apns (raw iOS device token). Null on rows written before = fcm.
+    [JsonPropertyName("pushTokenType")] public PushTokenType? PushTokenType { get; set; }
     [JsonPropertyName("updatedAt")] public DateTime UpdatedAt { get; set; }
 
     public static string GetPk(string tenantId) => $"tenant#{tenantId}#device";

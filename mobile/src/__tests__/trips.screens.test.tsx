@@ -138,7 +138,7 @@ describe('19 Bavul detayı', () => {
     share.mockRestore();
   });
 
-  it('lists every piece with its category, tags the daily looks with the weekday and opens a look', async () => {
+  it('lists every piece with its category, tags the daily looks with the weekday and opens the day sheet', async () => {
     await renderRouter('./src/app', { initialUrl: '/trip/trip_londra' });
     await waitFor(() => expect(screen.getByText('Packing list')).toBeTruthy(), { timeout: 3000 });
     expect(screen.getByText('In your size, within your budget')).toBeTruthy();
@@ -151,7 +151,10 @@ describe('19 Bavul detayı', () => {
     const weekday = new Intl.DateTimeFormat('en', { weekday: 'short' }).format(new Date(`${first?.date}T12:00:00`));
     expect(screen.getAllByText(weekday.toUpperCase()).length).toBeGreaterThan(0);
     await fireEvent.press(screen.getByLabelText(`${weekday}: ${first?.look?.name}`));
-    await waitFor(() => expect(screen).toHavePathname(`/look/${first?.look?.id}`), { timeout: 3000 });
+    // A trip day is the trip's own slot list (not a saved look): it opens the day sheet (try on / save as a look).
+    await waitFor(() => expect(screen.getByTestId('trip-day-tryon')).toBeTruthy(), { timeout: 3000 });
+    expect(screen.getByTestId('trip-day-save-look')).toBeTruthy();
+    expect(screen).toHavePathname('/trip/trip_londra');
   });
 
   it('switches to the single cabin bag mode with the check box', async () => {

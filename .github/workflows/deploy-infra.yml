@@ -228,6 +228,10 @@ jobs:
           jwt=$(openssl rand -base64 48 | tr -d '\n'); echo "::add-mask::$jwt"
           ensure "api/Jwt" SecureString "{\"SecretKey\":\"$jwt\"}" \
             "JWT imza anahtari. Otomatik uretildi; degistirmek tum oturumlari dusurur."
+          # Admin paneli token imza anahtari: uygulama JWT anahtarindan AYRI (admin uclarinda kullanici token'i gecmez).
+          adminjwt=$(openssl rand -base64 48 | tr -d '\n'); echo "::add-mask::$adminjwt"
+          ensure "api/AdminJwt" SecureString "{\"SecretKey\":\"$adminjwt\"}" \
+            "Admin paneli JWT imza anahtari. Otomatik uretildi; degistirmek tum admin oturumlarini dusurur."
           ensure "api/Email/SendGrid/ApiKey" SecureString "${SENDGRID_API_KEY:-CHANGE_ME}" \
             "SendGrid API anahtari (yalniz Mail Send yetkili). CHANGE_ME ise e-posta gitmez."
           ensure "api/Email/SendGrid/BaseUrl" String "https://api.sendgrid.com" \
@@ -248,6 +252,16 @@ jobs:
             "AI saglayici (OpenAI) API anahtari. CHANGE_ME ise AI isleri calismaz."
           ensure "notifier/Push/ServiceAccountJson" SecureString "CHANGE_ME" \
             "Firebase (FCM) servis hesabi JSON'u. CHANGE_ME ise push gitmez."
+          # Uygulama ici satin alma (StoreKit 2 / Play Billing) ve magaza bildirimleri — docs/store-setup.md.
+          ensure "api/Store/IapPrivateKey" SecureString "CHANGE_ME" \
+            "App Store Connect In-App Purchase anahtari (.p8). CHANGE_ME ise App Store Server API kullanilmaz; StoreKit JWS yine dogrulanir."
+          ensure "api/Store/GooglePlayServiceAccountJson" SecureString "CHANGE_ME" \
+            "Play Developer API servis hesabi JSON'u. CHANGE_ME ise Android satin alma dogrulanamaz (501)."
+          apple_token_key=$(openssl rand -base64 32 | tr -d '\n'); echo "::add-mask::$apple_token_key"
+          ensure "api/AppleAuth/TokenEncryptionKey" SecureString "$apple_token_key" \
+            "Saklanan Apple refresh token'ini sifreleyen AES-256 anahtari. Otomatik uretildi; degistirmek eski token'lari iptal edilemez yapar."
+          ensure "notifier/Push/ApnsKey" SecureString "CHANGE_ME" \
+            "APNs .p8 anahtari (iOS push, token auth). CHANGE_ME ise iOS'a push gitmez."
 
           # --- Urun sahibinin duzenledigi ayarlar (String, JSON) ---
           ensure "api/Email" String \
@@ -259,6 +273,22 @@ jobs:
           ensure "api/AppleAuth" String \
             '{"BundleId":"com.alatech.droplet","AdditionalAudiences":[]}' \
             "Apple ile giris: identityToken aud = bundle id. TeamId/KeyId token iptali icin eklenir."
+          ensure "api/Store/IapKeyId" String "CHANGE_ME" \
+            "In-App Purchase anahtarinin Key ID'si (App Store Connect → Users and Access → Integrations → In-App Purchase)."
+          ensure "api/Store/IssuerId" String "CHANGE_ME" \
+            "App Store Connect API Issuer ID (ayni sayfanin ustunde)."
+          ensure "api/Store/GooglePubSubAudience" String "CHANGE_ME" \
+            "Play RTDN Pub/Sub push aboneliginin OIDC audience degeri (genelde bildirim URL'si)."
+          ensure "api/Store/GooglePubSubServiceAccount" String "CHANGE_ME" \
+            "Pub/Sub push aboneliginin kimlik dogruladigi servis hesabi e-postasi."
+          ensure "api/AppleAuth/KeyId" String "CHANGE_ME" \
+            "Sign in with Apple anahtarinin Key ID'si (token iptali icin)."
+          ensure "api/AppleAuth/TeamId" String "4LB4RD97A9" \
+            "Apple Developer Team ID (client secret iss)."
+          ensure "notifier/Push/ApnsKeyId" String "CHANGE_ME" \
+            "APNs anahtarinin Key ID'si."
+          ensure "notifier/Push/ApnsTeamId" String "4LB4RD97A9" \
+            "APNs provider token iss = Apple Developer Team ID."
           ensure "worker/Ai" String \
             '{"Enabled":false,"Provider":"OpenAI","TextModel":"gpt-6-astra","ImageModel":"gpt-image-2.5-sunburst"}' \
             "AI: acik/kapali, model kimlikleri. Model kimliklerini saglayicinin gercek adlariyla teyit et."

@@ -39,7 +39,7 @@ import { newClientMutation } from '@/sync/clientMutation';
 import { TENANT_WRITE_SCOPE } from '@/sync/queryKeys';
 
 import { addLinesToCart, removeLineFromCart, type NewCartLine } from './cartMath';
-import { localFavorites, mutedWatchAlerts } from './localState';
+import { localFavorites } from './localState';
 import { storeKeys } from './queries';
 
 export const storeMutationKeys = {
@@ -169,7 +169,6 @@ export function registerStoreMutations(client: QueryClient): void {
         async () => {
           const path = `v1/tenant/watch-list/${encodeURIComponent(request.productId)}`;
           if (!request.watching) {
-            mutedWatchAlerts.delete(request.productId);
             try {
               await apiRequest<void>(path, { method: 'DELETE' });
             } catch (e) {
@@ -178,12 +177,12 @@ export function registerStoreMutations(client: QueryClient): void {
             }
             return;
           }
-          // The alert switch is a device preference (the server flags every watcher on a price drop).
-          if (request.alertEnabled) mutedWatchAlerts.delete(request.productId);
-          else mutedWatchAlerts.add(request.productId);
           const size = fromProductSize(request.size);
-          // PUT is an upsert: replaying it for a product already watched changes nothing.
-          await apiRequest<unknown>(path, { method: 'PUT', body: { ...(size ? { size } : {}), ...(request.look ? { look: request.look } : {}) } });
+          // PUT is an upsert: on an entry already watched only the sent fields change (the bell = `notify`).
+          await apiRequest<unknown>(path, {
+            method: 'PUT',
+            body: { ...(size ? { size } : {}), ...(request.look ? { look: request.look } : {}), notify: request.alertEnabled },
+          });
         },
       );
     },

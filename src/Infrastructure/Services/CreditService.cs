@@ -153,6 +153,33 @@ public sealed class CreditService(
         throw new InvalidOperationException($"Credit pack for tenant {tenantId} could not be applied after {MaxAttempts} attempts.");
     }
 
+    public async Task<int> RemovePackCreditsAsync(string tenantId, int credits, string reference, CancellationToken ct)
+    {
+        for (var attempt = 0; attempt < MaxAttempts; attempt++)
+        {
+            var account = await repository.GetAsync<CreditAccountEntity>(CreditAccountEntity.GetPk(tenantId), CreditAccountEntity.GetSk(), ct)
+                          ?? new CreditAccountEntity { TenantId = tenantId };
+            var now = timeProvider.GetUtcNow().UtcDateTime;
+            var (state, removed) = CreditLedger.RemovePack(CreditContextLoader.StateOf(account), credits);
+            CreditContextLoader.Apply(account, state, now);
+            var result = await repository.TransactWriteAsync(
+            [
+                TransactWriteOperation.Create(new MutationReceiptEntity { TenantId = tenantId, ClientMutationId = $"creditpackrevoke#{reference}", CreatedAt = now }),
+                TransactWriteOperation.PutVersioned(account),
+                TransactWriteOperation.Put(LedgerEntry(tenantId, CreditLedgerEntryKind.PackRevoked, 0, -removed, null, reference, now)),
+            ], ct);
+            if (result.Applied)
+            {
+                logger.LogInformation("Revoked {Removed} of {Credits} pack credits for tenant {TenantId}", removed, credits, tenantId);
+                return removed;
+            }
+            if (result.Outcome == TransactOutcome.ConditionFailed && result.FailedIndex == 0)
+                return 0;
+        }
+
+        throw new InvalidOperationException($"Credit pack revocation for tenant {tenantId} could not be applied after {MaxAttempts} attempts.");
+    }
+
     private Task<CreditReservationEntity?> GetReservationAsync(string tenantId, string key, CancellationToken ct) =>
         repository.GetAsync<CreditReservationEntity>(CreditReservationEntity.GetPk(tenantId), CreditReservationEntity.GetSk(key), ct);
 

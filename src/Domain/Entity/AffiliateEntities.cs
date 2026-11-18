@@ -20,6 +20,8 @@ public class AffiliateClickEntity : IEntity
     [JsonPropertyName("source")] public AffiliateSource Source { get; set; }
     [JsonPropertyName("network")] public string? Network { get; set; }
     [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; }
+    /// <summary>When the watch-list auto-add candidate of this click falls due (decision 10); null = none was queued.</summary>
+    [JsonPropertyName("watchAutoAddDueAt")] public DateTime? WatchAutoAddDueAt { get; set; }
 
     public static string GetPk(string tenantId) => $"tenant#{tenantId}#affiliateclick";
     public static string GetSk(string clickId) => clickId;
@@ -115,4 +117,24 @@ public class AffiliateConversionLedgerEntity : IEntity
 
     public static string GetPk(string month) => $"affiliateledger#{month}";
     public static string GetSk(AffiliateSource source, string externalId) => $"{source.ToString().ToLowerInvariant()}#{externalId}";
+}
+
+/// <summary>
+/// Global, month-partitioned record of every affiliate click (written with the click) so the revenue report can count
+/// clicks per day / brand / network without reading every tenant. No user id: only brand, source and network.
+/// </summary>
+public class AffiliateClickLedgerEntity : IEntity
+{
+    [JsonPropertyName("pk")] public string Pk => GetPk(Month);
+    [JsonPropertyName("sk")] public string Sk => GetSk(ClickId);
+
+    [JsonPropertyName("month")] public string Month { get; set; } = null!;
+    [JsonPropertyName("clickId")] public string ClickId { get; set; } = null!;
+    [JsonPropertyName("brandId")] public string BrandId { get; set; } = null!;
+    [JsonPropertyName("source")] public AffiliateSource Source { get; set; }
+    [JsonPropertyName("network")] public string? Network { get; set; }
+    [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; }
+
+    public static string GetPk(string month) => $"affiliateclickledger#{month}";
+    public static string GetSk(string clickId) => clickId;
 }

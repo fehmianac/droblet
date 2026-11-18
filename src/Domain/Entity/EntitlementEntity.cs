@@ -20,6 +20,11 @@ public class EntitlementEntity : IEntity
     // Anchor of the monthly credit window ("subscription month"): original purchase instant.
     [JsonPropertyName("periodAnchor")] public DateTime PeriodAnchor { get; set; }
     [JsonPropertyName("updatedAt")] public DateTime UpdatedAt { get; set; }
+    // Store state behind ExpiresAt (grace period, billing retry, refund…); null on rows written before E10.
+    [JsonPropertyName("state")] public StoreSubscriptionState? State { get; set; }
+    [JsonPropertyName("environment")] public string? Environment { get; set; }
+    // Store time of the newest event applied (signedDate / eventTime): an older, late notification never rolls state back.
+    [JsonPropertyName("lastEventAt")] public DateTime? LastEventAt { get; set; }
 
     public static string GetPk(string tenantId) => $"tenant#{tenantId}#entitlement";
     public static string GetSk(EntitlementSource source, string id) => $"{source.ToString().ToLowerInvariant()}#{id}";
