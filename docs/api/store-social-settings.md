@@ -34,7 +34,8 @@ Not in this document: wardrobe items, looks, today/plan/calendar, stylist/trips,
 | `lookRef.kind` | `edit` (weekly edit look id), `collection` (creator / series look id), `user` (a user's look id) |
 | conversion `status` | `pending`, `approved`, `rejected` |
 | purchase prompt `status` | `none`, `pending`, `accepted`, `dismissed` |
-| `closetVisibility` | `public`, `followersOnly`, `private` (default) |
+| `closetVisibility` | `public`, `followersOnly` (default for new accounts, decision 7), `private` |
+| `followState` | `none`, `requested` (pending, not following), `following` |
 | share `channel` | `whatsapp`, `pinterest`, `link` |
 | share `targetKind` | `app`, `profile`, `look`, `product`, `edit` |
 | report `targetKind` | `profile`, `look`, `item` |
@@ -174,7 +175,12 @@ Rules the client can rely on:
   `GET v1/catalog/product/{id}` or from the catalog page. `PUT` is idempotent: marking a favourite again changes nothing,
   and a product retired after it was favourited stays in the list (a retired product cannot be added: `422 product_retired`).
   Ids whose product no longer exists are left out. Account deletion removes the list.
-- **Watch list** is separate from favourites. `priceDropped` compares the current price with the price when it was added; when an admin/feed lowers a price, every watcher is flagged server side (the price-drop push itself is not sent yet).
+- **Watch list** is separate from favourites. `priceDropped` compares the current price with the price when it was added; when an admin/feed lowers a price, every watcher is flagged server side and a `price_drop` push goes out (§9) when the user has `priceDrop` on **and** the item's bell (`notify`) is on.
+- **Auto-add (decision 10).** Every checkout click (`…/checkout`) is remembered for `Catalog:WatchAutoAddHours` (48). When no
+  conversion of that click arrives in time, its products are put on the watch list with `origin: "auto"` and `notify: false`
+  (the bell is the user's choice). Skipped: products already watched, bought (a conversion of the click or of the product),
+  already in the wardrobe, removed from the watch list by the user after the click, retired or unknown. Runs every 15 minutes
+  (Notifier), so an item appears between 48 h and 48 h 15 min after the click. Removing an auto-added item is permanent for that click.
 - **Purchase prompt**: created when a conversion postback arrives for the user's click. `PUT … { "accepted": true }` is the whole action: the **server** adds every purchased product to the wardrobe (`source: "purchase"`, same mapping as `POST v1/tenant/item/from-product`) and returns the created items. It is idempotent — answering twice, or retrying after a timeout, never adds a piece twice (`outcome: "alreadyApplied"`). The client must **not** also call `item/from-product` for these products.
 
 ## 5. Conversion postback (server to server — not for the app)
@@ -204,8 +210,8 @@ All reads go through `VisibilityPolicy`. What another user can see:
 | Owner's closet | Profile card (search, profile, follow) | Looks / Dolap tabs, ratings, feed | Trips tab |
 |---|---|---|---|
 | `public` | everyone | everyone | owner only (A-6 open) |
-| `followersOnly` | everyone (`closetLocked: true` for non-followers) | followers | owner only |
-| `private` (default) | nobody → `404` | nobody → `404` | owner only |
+| `followersOnly` (default) | everyone (`closetLocked: true` for non-followers) | approved followers | owner only |
+| `private` | only accounts in a relationship (either side follows the other, or the owner asked to follow the viewer); strangers → `404` | nobody → `404` (not even approved followers) | owner only |
 | blocked (either direction) | `404` everywhere | `404` | — |
 
 Never visible to anyone else, in any setting: body/face photos, try-on images, palette, height/weight/size, plan,
@@ -224,8 +230,17 @@ wear log, cart, watch list, notification settings, e-mail.
 | PUT | `v1/tenant/people/{handle}/look/{lookId}/save` | — | `204`. `404`, `422 cannot_target_self`. |
 | DELETE | `v1/tenant/people/{handle}/look/{lookId}/save` | — | `204`. `404` (unknown handle). |
 | GET | `v1/tenant/saved-look` | — | `SocialLookDto[]`, most recently saved first; looks no longer visible are omitted |
-| POST | `v1/tenant/follow/{handle}` | — | `204`. `404`, `422 cannot_target_self`, `422 follow_limit_reached` (500). Immediate, no approval. |
-| DELETE | `v1/tenant/follow/{handle}` | — | `204`. `404` (unknown handle). |
+| POST | `v1/tenant/follow/{handle}` | — | `200 { "state": "following" \| "requested" }`. `404`, `422 cannot_target_self`, `422 follow_limit_reached` (500, follows + pending requests). **Decision 8:** a `public` account is followed at once; a `followersOnly` / `private` account gets a request. Idempotent. |
+| DELETE | `v1/tenant/follow/{handle}` | — | `204`. Unfollows **and** withdraws a pending request. `404` (unknown handle). |
+| GET | `v1/tenant/follow-request/incoming` | — | `FollowRequestDto[]` — requests to follow me, newest first |
+| GET | `v1/tenant/follow-request/outgoing` | — | `FollowRequestDto[]` — my pending requests |
+| POST | `v1/tenant/follow-request/{handle}/approve` | — | `204` — the requester becomes a follower. `404` when that account has no pending request. |
+| POST | `v1/tenant/follow-request/{handle}/decline` | — | `204` — the requester is not told. `404` as above. |
+| DELETE | `v1/tenant/follow-request/{handle}` | — | `204` — withdraw my request (idempotent). `404` unknown handle. |
+| DELETE | `v1/tenant/follower/{handle}` | — | `204` — remove one of my followers (idempotent). `404` unknown handle. |
+| POST | `v1/tenant/contacts/salt` | — | `{ "saltId", "salt", "prefixLength": 3, "maxHashes": 1000, "expiresAt" }` — single use, 10 minutes |
+| POST | `v1/tenant/contacts/match` | `{ "saltId", "hashes": [{ "p", "h" }] }` (1–1000) | `{ "matches": PersonCardDto[] }`. `404 contact_salt_not_found`, `400 hashes_out_of_range` / `hash_invalid`, `429 too_many_attempts` (10 / day). See below. |
+| GET | `v1/tenant/profile/handle/availability?handle=` | — | `{ "handle", "available", "code": null \| "handle_invalid" \| "handle_reserved" \| "handle_taken" }` — always 200; my own handle is available. The claim stays `PUT v1/tenant/profile/handle` (409 `handle_taken` if somebody was faster). |
 | GET | `v1/tenant/follower` | — | `PersonCardDto[]` |
 | GET | `v1/tenant/following` | — | `PersonCardDto[]` |
 | PUT | `v1/tenant/block/{handle}` | — | `204`. `404`, `422 cannot_target_self`. Removes follows in both directions. |
@@ -236,7 +251,12 @@ wear log, cart, watch list, notification settings, e-mail.
 ```jsonc
 // PersonCardDto
 { "handle": "ayse", "displayName": "Ayşe", "styleTags": ["minimal","classic","boho"], "styleMatchPercent": 50,
-  "isFollowing": false, "followsYou": true }
+  "isFollowing": false, "followsYou": true,
+  "followState": "none",            // none | requested | following (isFollowing = following)
+  "requestedYou": false }           // they asked to follow me → approve / decline
+
+// FollowRequestDto
+{ "person": PersonCardDto, "createdAt": "…" }
 
 // PersonProfileDto
 { "handle": "ayse", "displayName": "Ayşe", "styleTags": [...], "styleMatchPercent": 50,
@@ -244,7 +264,8 @@ wear log, cart, watch list, notification settings, e-mail.
   "closetVisibility": "followersOnly",
   "closetLocked": true,                         // true → show the "gizli dolap" state; look/item calls would 404
   "itemCount": null, "lookCount": null,         // null while locked — counts do not leak
-  "followerCount": 12, "followingCount": 30 }
+  "followerCount": 12, "followingCount": 30,
+  "followState": "requested", "requestedYou": false }
 
 // SocialLookDto
 { "id": "01J…", "ownerHandle": "ayse", "ownerDisplayName": "Ayşe", "name": "Ofis", "occasion": "office", "createdAt": "…",
@@ -261,6 +282,27 @@ wear log, cart, watch list, notification settings, e-mail.
 - Looks, items and trips are the owner's real wardrobe data (the looks of `GET v1/tenant/look`, the items of `GET v1/tenant/item`), always behind the visibility table above. What a viewer gets is narrower than what the owner sees: a look lists only its existing pieces (a deleted item's slot is dropped); `imageUrl` is the cleaned (background-removed) item image or the public library / catalog image — **never the original photo** and never a try-on image, `null` when the piece only has an original; `pieces[].slot` is the wardrobe slot (`bagAccessory`, not `bag`).
 - The trips tab lists finished trips only (end date before today) as city + month. It stays owner-only.
 - The owner sees the same rating on her own looks: `GET v1/tenant/look` / `look/{id}` → `rating { average, count }` (other document).
+
+- **Follow requests (decision 8).** A pending request is never "following": the closet stays locked, the feed and ratings
+  stay closed, `followerCount` does not move. The two sides of a request see each other's card in the request lists even
+  when it is private (handle, name, style tags only). Blocking removes pending requests in both directions; account
+  deletion removes them on both sides. The owner gets a `follow_request` push when `followRequests` is on (§9).
+  A request to an account that later turns `public` is settled by following again (immediate).
+
+### Find friends from contacts (decision 13)
+
+Raw contacts never leave the phone. Privacy description: [`docs/privacy/contacts-matching.md`](../privacy/contacts-matching.md).
+
+1. `POST v1/tenant/contacts/salt` → a random 32-byte salt (base64url), single use, valid 10 minutes.
+2. On the device, for every e-mail address: `id = trim(lowercase(address))`, `h0 = hex(SHA-256(id))`,
+   `p = h0[0..3]`, `h = hex(SHA-256(salt + ":email:" + h0))` (lower-case hex). De-duplicate by `h0`.
+3. `POST v1/tenant/contacts/match { saltId, hashes: [{ p, h }] }`: the server reads the directory bucket of each `p` (members'
+   **verified** e-mails as `h0` — Apple / Google verified addresses and addresses proven by a password reset), salts them
+   with the same salt and compares. Matches come back as `PersonCardDto[]` filtered exactly like search: no blocked
+   accounts (either way), no private strangers, never yourself.
+
+Nothing of the upload is written or logged; the salt is deleted when used, so an uploaded hash is useless outside that one
+request. Phone numbers are not used in phase 1 (no member has one on file).
 
 ### Invite and share (flow 5.7)
 
@@ -282,7 +324,7 @@ sign-up. The code is 8 characters, case-insensitive. Phase 1 gives no reward.
 | GET | `v1/tenant/settings` | — | `SettingsDto` — everything screen 29 needs |
 | PUT | `v1/tenant/profile/visibility` | `{ "closetVisibility", "baseVersion" }` | `ProfileDto`. `409` + current `ProfileDto` when `baseVersion` is stale. Effective immediately. |
 | GET | `v1/tenant/user/me/notifications` | — | `NotificationPrefsDto` (`version: 0` = never saved, all off) |
-| PUT | `v1/tenant/user/me/notifications` | `{ "morningOutfit", "morningOutfitLocalTime": "07:30", "weeklyEdit", "friendRatings", "timeZone": "Europe/Istanbul", "baseVersion" }` | `NotificationPrefsDto`. `409` + current prefs. `400`: `local_time_invalid` (HH:mm, quarter hours only), `time_zone_invalid` (IANA id). |
+| PUT | `v1/tenant/user/me/notifications` | `{ "morningOutfit", "morningOutfitLocalTime": "07:30", "weeklyEdit", "friendRatings", "priceDrop"?, "followRequests"?, "timeZone": "Europe/Istanbul", "baseVersion" }` — `priceDrop` / `followRequests` omitted = unchanged | `NotificationPrefsDto`. `409` + current prefs. `400`: `local_time_invalid` (HH:mm, quarter hours only), `time_zone_invalid` (IANA id). |
 | PUT | `v1/tenant/user/me/device` | `{ "deviceId" (8–100 chars), "platform", "pushToken"?, "timeZone"? }` | `{ "deviceId", "platform", "pushEnabled", "updatedAt" }`. `422 device_limit_reached` (10). |
 | DELETE | `v1/tenant/user/me/device/{deviceId}` | — | `204` (idempotent) |
 | DELETE | `v1/tenant/photo/{kind}/{photoId}` | — | `204`. Deletes the active photo of one kind (`body` \| `face`; `photoId` = `GET v1/tenant/photo` → `body.id` / `face.id`) and what was made from it: **body** → the try-on images generated with that photo; **face** → the palette result. `404 not_found` when `photoId` is not the active photo of that kind (also after a replay — treat 404 as "already gone"). `DELETE v1/tenant/photo` (everything at once) is unchanged. |
@@ -293,20 +335,23 @@ sign-up. The code is 8 characters, case-insensitive. Phase 1 gives no reward.
 { "closetVisibility": "private", "language": "tr", "cityId": "745044",
   "city": { "id": "745044", "name": "İstanbul", "region": "İstanbul", "country": "Türkiye", "countryCode": "TR",
             "latitude": 41.01384, "longitude": 28.94966, "timeZone": "Europe/Istanbul" },   // null until the city was searched once
-  "notifications": { "morningOutfit": true, "morningOutfitLocalTime": "07:30", "weeklyEdit": true, "friendRatings": true,
+  "notifications": { "morningOutfit": true, "morningOutfitLocalTime": "07:30", "weeklyEdit": true, "friendRatings": false,
+                     "priceDrop": false, "followRequests": false,
                      "timeZone": "Europe/Istanbul", "version": 1, "updatedAt": "…" },
   "devices": [ { "deviceId": "…", "platform": "ios", "pushEnabled": true, "updatedAt": "…" } ],
   "profileVersion": 3 }                                    // baseVersion for profile and visibility PUTs
 ```
 
 - `morningOutfitLocalTime` is the user's **local** wall-clock time; with `timeZone` it stays correct across DST.
-- The first device registration **with a push token** creates the preferences with all three types on (proposal — owner
-  confirms). Later registrations never change the user's choices. Push tokens are never returned.
+- The first device registration **with a push token** creates the preferences with **only `morningOutfit` and `weeklyEdit`
+  on** (decision 9); `friendRatings`, `priceDrop` and `followRequests` start off. Later registrations never change the
+  user's choices. Push tokens are never returned.
 - Sign-out (`POST v1/auth/logout` with `deviceId`) already removes the device.
 - Account deletion (`DELETE v1/auth/me`) now also removes: follow edges on both sides, ratings given (averages are
   corrected) and received, saved looks in both directions, blocks, reports about the user (reports she filed stay
   without her), invite code and invite edges, watch-list index, discovery index, notification lists, and the user
-  link on clicks and conversions (the revenue rows stay, anonymous).
+  link on clicks and conversions (the revenue rows stay, anonymous); follow requests on both sides, queued pushes,
+  watch-list auto-add candidates and the contact-matching directory rows.
 
 ## 8. Analytics events
 
@@ -342,6 +387,8 @@ sentences in the recipient's profile language (`tr`, `en`; other languages fall 
 |---|---|---|---|
 | `weekly_edit` | `editId` | Weekly; `weeklyEdit` on and an edit for the current week is published | edit |
 | `friend_ratings` | `day` | Daily digest; `friendRatings` on and a look was rated today (no scores or names in the text) | day |
+| `follow_request` | `handle` (the requester, for the deep link) | Within 15 minutes of a new request; `followRequests` on and the request still pending. The text names nobody | requester (14 days) |
+| `price_drop` | `productId` | Within 15 minutes of a price drop on a watched product; `priceDrop` on **and** the item's `notify` bell on | product (14 days) |
 | `morning_outfit` | `day` | At `morningOutfitLocalTime`; `morningOutfit` on **and** a look that still exists is planned for the user's local day (`PUT v1/tenant/plan-day/{date}` with a `lookId`; an occasion alone does not count) | local day |
 
 ## 10. Weather
@@ -441,8 +488,8 @@ TABLE_NAME=droblet-dev-table dotnet run --project tools/Seed -- apply     # writ
 | `Admin` | `UserIds[]`, `Emails[]` | empty → nobody is admin |
 | `AffiliatePostback` (SecureString) | `NetworkSecret`, `DirectSecret`, `DirectBrandSecrets{}`, `DefaultClickIdParameter` | no secrets → postbacks answer 503 |
 | `Localization` | `SupportedLanguages[]`, `DefaultLanguage` | `tr`, `en` / `tr` |
-| `Catalog` | `PageSize`, `MaxPageSize`, `CacheSeconds`, `MaxCartLines`, `MaxWatchItems`, `MaxFavoriteProducts` (code default 500; not in the SSM default yet), `BulkUpsertMax`, `ImageHosts[]` (hosts product images may be downloaded from for try-on; empty = any https host), `MaxImageBytes` | 24, 60, 60, 100, 200, 200, empty, 10 MB |
-| `Social` | `MaxFollowing`, `FeedPageSize`, `SuggestedPageSize`, `SuggestedCandidateLimit`, `SearchPageSize`, `InviteUrl`, `InviteAttributionWindowDays`, `ReportsPerDay`, `InviteResolvePerIpPerHour` | 500, 20, 20, 100, 20, `https://droblet.alatech.co/i`, 30, 20, 60 |
+| `Catalog` | `PageSize`, `MaxPageSize`, `CacheSeconds`, `MaxCartLines`, `MaxWatchItems`, `MaxFavoriteProducts` (code default 500; not in the SSM default yet), `BulkUpsertMax`, `ImageHosts[]` (hosts product images may be downloaded from for try-on; empty = any https host), `MaxImageBytes`, `WatchAutoAddHours` (decision 10; 0 = off) | 24, 60, 60, 100, 200, 200, empty, 10 MB, 48 |
+| `Social` | `MaxFollowing`, `FeedPageSize`, `SuggestedPageSize`, `SuggestedCandidateLimit`, `SearchPageSize`, `InviteUrl`, `InviteAttributionWindowDays`, `ReportsPerDay`, `InviteResolvePerIpPerHour`, `ContactMatchesPerDay`, `ContactMatchMaxHashes` | 500, 20, 20, 100, 20, `https://droblet.alatech.co/i`, 30, 20, 60, 10, 1000 |
 | `Weather` | `Provider`, `CacheMinutes`, `ForecastBaseUrl`, `GeocodingBaseUrl`, `TimeoutSeconds` | `OpenMeteo`, 60 |
 | `Notifications` | `DefaultMorningLocal`, `DefaultTimeZone`, `MaxDevicesPerTenant` | `07:30`, `Europe/Istanbul`, 10 |
 | `/droblet/{stage}/notifier/Push/ServiceAccountJson` (SecureString) | the Firebase service-account JSON file as downloaded (`project_id`, `client_email`, `private_key`) | `CHANGE_ME` or empty → push disabled |

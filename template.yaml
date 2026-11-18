@@ -335,15 +335,15 @@ Resources:
     Properties:
       Name: !Sub /droblet/${Stage}/api/Catalog
       Type: String
-      Description: Catalog paging, cache and cart limits. ImageHosts = hosts product images may be fetched from (empty = any https host).
-      Value: '{"PageSize":24,"MaxPageSize":60,"CacheSeconds":60,"MaxCartLines":100,"MaxWatchItems":200,"BulkUpsertMax":200,"ImageHosts":[],"MaxImageBytes":10485760}'
+      Description: Catalog paging, cache and cart limits. ImageHosts = hosts product images may be fetched from (empty = any https host). WatchAutoAddHours = brand click without conversion goes on the watch list (0 = off).
+      Value: '{"PageSize":24,"MaxPageSize":60,"CacheSeconds":60,"MaxCartLines":100,"MaxWatchItems":200,"BulkUpsertMax":200,"ImageHosts":[],"MaxImageBytes":10485760,"WatchAutoAddHours":48}'
   SsmApiSocial:
     Type: AWS::SSM::Parameter
     Properties:
       Name: !Sub /droblet/${Stage}/api/Social
       Type: String
       Description: Social limits and the invite link base URL.
-      Value: '{"MaxFollowing":500,"FeedPageSize":20,"SuggestedPageSize":20,"SuggestedCandidateLimit":100,"SearchPageSize":20,"InviteUrl":"https://droblet.alatech.co/i","InviteAttributionWindowDays":30,"ReportsPerDay":20,"InviteResolvePerIpPerHour":60}'
+      Value: '{"MaxFollowing":500,"FeedPageSize":20,"SuggestedPageSize":20,"SuggestedCandidateLimit":100,"SearchPageSize":20,"InviteUrl":"https://droblet.alatech.co/i","InviteAttributionWindowDays":30,"ReportsPerDay":20,"InviteResolvePerIpPerHour":60,"ContactMatchesPerDay":10,"ContactMatchMaxHashes":1000}'
   SsmApiAffiliate:
     Type: AWS::SSM::Parameter
     Properties:
@@ -399,7 +399,7 @@ Resources:
       Name: !Sub /droblet/${Stage}/worker/Catalog
       Type: String
       Description: Same values as api/Catalog (the try-on job downloads product images).
-      Value: '{"PageSize":24,"MaxPageSize":60,"CacheSeconds":60,"MaxCartLines":100,"MaxWatchItems":200,"BulkUpsertMax":200,"ImageHosts":[],"MaxImageBytes":10485760}'
+      Value: '{"PageSize":24,"MaxPageSize":60,"CacheSeconds":60,"MaxCartLines":100,"MaxWatchItems":200,"BulkUpsertMax":200,"ImageHosts":[],"MaxImageBytes":10485760,"WatchAutoAddHours":48}'
   SsmNotifierLocalization:
     Type: AWS::SSM::Parameter
     Properties:
