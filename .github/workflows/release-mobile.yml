@@ -38,7 +38,7 @@ jobs:
     env:
       # The provisioning profile's name in Certificates, Identifiers & Profiles. Manual signing matches on this.
       # App Store profile for com.alatech.droplet. Droblet has no widget/extension target, so there is one profile.
-      PROFILE_NAME: droblet-appstore-ios
+      PROFILE_NAME: droplet-appstore-ios
       # app.config.ts adds expo.extra.eas.projectId only from this (push tokens and eas build need it)
       EAS_PROJECT_ID: ${{ vars.EAS_PROJECT_ID }}
     steps:

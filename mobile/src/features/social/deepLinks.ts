@@ -1,7 +1,7 @@
 /**
  * Incoming links → app routes (MOBILE_ENGINEER §Deep link).
  *
- *   droplet://invite/{code}  ·  https://droplet.alatech.co/invite/{code}   → 27 Dolapları keşfet
+ *   droplet://invite/{code}  ·  https://droblet.alatech.co/invite/{code}   → 27 Dolapları keşfet
  *   …/l/{lookId}[?invite=code]                                            → 25 Arkadaş akışı, that look first
  *   …/u/{handle}[?invite=code]                                            → 26 Kişi profili
  *   droplet://today                                                       → 06 Bugün

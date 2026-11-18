@@ -304,8 +304,8 @@ public class SocialVisibilityEndpointTests(StoreSocialApiFactory factory) : ICla
         var funnel = await (await admin.GetAsync("v1/admin/report/funnel")).JsonAsync();
 
         Assert.Equal(code, linkAgain.GetProperty("code").GetString());
-        Assert.Equal($"https://droplet.alatech.co/i/{code}", link.GetProperty("url").GetString());
-        Assert.Equal($"https://droplet.alatech.co/i/{code}?t=look&id=LOOK1&u={inviter.Handle}", share.GetProperty("url").GetString());
+        Assert.Equal($"https://droblet.alatech.co/i/{code}", link.GetProperty("url").GetString());
+        Assert.Equal($"https://droblet.alatech.co/i/{code}?t=look&id=LOOK1&u={inviter.Handle}", share.GetProperty("url").GetString());
         Assert.Equal(share.GetProperty("shareId").GetString(), shareReplay.GetProperty("shareId").GetString());
         Assert.Single(await factory.Repository.GetKeysAsync(ShareEntity.GetPk(inviter.TenantId)));
         Assert.Equal(HttpStatusCode.BadRequest, badShare.StatusCode);

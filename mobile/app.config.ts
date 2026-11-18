@@ -10,7 +10,7 @@ import type { ConfigContext, ExpoConfig } from 'expo/config';
  * never overrides those values.
  */
 const SCHEME = 'droplet';
-const LINK_DOMAIN = 'droplet.alatech.co';
+const LINK_DOMAIN = 'droblet.alatech.co';
 
 /** = `CREAM` in src/theme/tokens.ts (app config is evaluated by Node and cannot import app TS). */
 const CREAM = '#F4F1EC';

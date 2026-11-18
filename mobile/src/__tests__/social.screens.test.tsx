@@ -25,7 +25,7 @@ jest.mock('expo-clipboard', () => ({ setStringAsync: jest.fn(async () => true) }
 
 const clipboard = jest.requireMock('expo-clipboard') as { setStringAsync: jest.Mock };
 const TIMEOUT = { timeout: 4000 };
-const LOOK_LINK = 'https://droplet.alatech.co/l/flook_1?invite=DAMLA24';
+const LOOK_LINK = 'https://droblet.alatech.co/l/flook_1?invite=DAMLA24';
 
 async function open(url: string) {
   await AsyncStorage.setItem('droblet.onboarding.u1', 'done');
@@ -151,7 +151,7 @@ describe('26 Kişi profili', () => {
 
     await fireEvent.press(screen.getByText('Copy profile link'));
     await waitFor(
-      () => expect(clipboard.setStringAsync).toHaveBeenCalledWith('https://droplet.alatech.co/u/selin?invite=DAMLA24'),
+      () => expect(clipboard.setStringAsync).toHaveBeenCalledWith('https://droblet.alatech.co/u/selin?invite=DAMLA24'),
       TIMEOUT,
     );
     await waitFor(() => expect(screen.getByText('Profile link copied.')).toBeTruthy(), TIMEOUT);

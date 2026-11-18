@@ -251,7 +251,7 @@ jobs:
 
           # --- Urun sahibinin duzenledigi ayarlar (String, JSON) ---
           ensure "api/Email" String \
-            '{"Provider":"SendGrid","From":"Droblet <no-reply@droplet.alatech.co>"}' \
+            '{"Provider":"SendGrid","From":"Droblet <no-reply@droblet.alatech.co>"}' \
             "E-posta saglayicisi (SendGrid | Smtp) ve gonderen adresi."
           ensure "api/GoogleAuth" String \
             '{"AndroidPackage":"com.alatech.droplet","ClientIds":[]}' \

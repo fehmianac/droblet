@@ -824,7 +824,7 @@ Tenant kullanıcı uçları `RequireAuthorization("TenantUserJwt")` ister. **Pak
 Giriş seçenekleri (02 ekranı + brief §4.1): **Apple** (iOS'ta zorunlu), **Google**, **e-posta + şifre**. Telefon/SMS yok. Ürün sahibi kararı: handoff README §9.3.
 1. `POST v1/auth/register { name, email, password }` → şifre en az 8 karakter; karma **PBKDF2-SHA256** (≥ 600.000 tur, tuzlu) `CredentialEntity`'de. Kullanıcı **ve tenant'ı** oluşturulur → JWT + refresh. E-posta zaten kayıtlıysa `409 email_taken`.
 2. `POST v1/auth/login { email, password }` → JWT + refresh. Yanlış e-posta ya da şifre aynı cevabı verir (`401 invalid_credentials`); e-posta + IP başına hız sınırı.
-3. `POST v1/auth/password/forgot { email }` → her durumda `202`; hesap varsa tek kullanımlık, hash'lenmiş, 30 dk TTL'li sıfırlama token'ı (`PasswordResetEntity`) ve **deep link**'li e-posta (`https://droplet.alatech.co/reset-password?token=…` → uygulama açılır).
+3. `POST v1/auth/password/forgot { email }` → her durumda `202`; hesap varsa tek kullanımlık, hash'lenmiş, 30 dk TTL'li sıfırlama token'ı (`PasswordResetEntity`) ve **deep link**'li e-posta (`https://droblet.alatech.co/reset-password?token=…` → uygulama açılır).
 4. `POST v1/auth/password/reset { token, newPassword }` → şifre değişir, kullanıcının tüm refresh token'ları iptal edilir.
 
 **E-posta** `IEmailService` üzerinden gider ve iki uygulaması vardır (karar 2026-11-18: SES yerine **SendGrid**):

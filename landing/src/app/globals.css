@@ -1,0 +1,288 @@
+/* Scan only the site's own sources: a utility is generated for every class-like word Tailwind finds, and the
+   check script and docs mention classes the project forbids. */
+@import 'tailwindcss' source(none);
+@source '../components';
+@source '../app';
+@source '../lib';
+
+/*
+ * Design tokens — the same values as the mobile app (handoff README §7, mobile/src/theme/tokens.ts).
+ * Components use these names; no hex value appears outside this file.
+ * Rule: upper-case labels are typed upper-case in content/{locale}.json. Never text-transform here.
+ */
+@theme inline {
+  --color-ink: #1c1a17;
+  --color-cream: #f4f1ec;
+  --color-paper: #fbf9f5;
+  --color-accent: #6e5640;
+  --color-muted: #665f56;
+  --color-line: #dcd4c9;
+  --color-sand: #e8e1d7;
+  --color-danger: #9a3b2e;
+  /* Second placeholder tone of the canvas (mobile `placeholderTones.stage`). Image placeholders only. */
+  --color-stage: #ddd3c6;
+
+  --font-serif: var(--font-cormorant), Georgia, 'Times New Roman', serif;
+  --font-sans: var(--font-jost), system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --radius-card: 20px;
+  --radius-image: 14px;
+  --radius-field: 12px;
+  --radius-phone: 44px;
+
+  --container-page: 1200px;
+  --container-narrow: 880px;
+  --container-prose: 720px;
+
+  --ease-brand: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@layer base {
+  html {
+    background-color: var(--color-cream);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    min-width: 320px;
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Anchored sections do not hide under the browser chrome. */
+  [id] {
+    scroll-margin-top: 24px;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  .on-ink :focus-visible {
+    outline-color: var(--color-cream);
+  }
+
+  ::selection {
+    background-color: var(--color-ink);
+    color: var(--color-cream);
+  }
+}
+
+@layer components {
+  /* Eyebrow: Jost 500 11, tracking 14%. The text itself is upper-case in the dictionary. */
+  .eyebrow {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    line-height: 15px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    color: var(--color-muted);
+  }
+
+  .body-text {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--color-muted);
+  }
+
+  .small-text {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--color-muted);
+  }
+
+  .heading-3 {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: 24px;
+    line-height: 1.15;
+    font-weight: 600;
+  }
+
+  .section-title {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: clamp(32px, 4vw, 48px);
+    line-height: 1.05;
+    font-weight: 500;
+  }
+
+  /* Primary 52, secondary min 44 — both pills. */
+  .btn,
+  .btn-secondary,
+  .btn-disabled {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 52px;
+    padding: 0 22px;
+    border-radius: 9999px;
+    border: 1px solid var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 20px;
+    font-weight: 500;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+      background-color 180ms var(--ease-brand),
+      color 180ms var(--ease-brand),
+      border-color 180ms var(--ease-brand);
+  }
+
+  .btn {
+    background-color: var(--color-ink);
+    color: var(--color-cream);
+  }
+
+  .btn:hover {
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+
+  .btn-secondary {
+    background-color: transparent;
+    color: var(--color-ink);
+  }
+
+  .btn-secondary:hover {
+    background-color: var(--color-ink);
+    color: var(--color-cream);
+  }
+
+  .btn-danger {
+    background-color: var(--color-danger);
+    border-color: var(--color-danger);
+  }
+
+  .btn-danger:hover {
+    background-color: var(--color-ink);
+    border-color: var(--color-ink);
+  }
+
+  .btn-compact {
+    min-height: 44px;
+    padding: 0 20px;
+    font-size: 14px;
+  }
+
+  /* "Yakında": visibly not a link, still AA (ink on sand). */
+  .btn-disabled,
+  .btn:disabled,
+  .btn[aria-disabled='true'] {
+    background-color: var(--color-sand);
+    border: 1px dashed var(--color-muted);
+    color: var(--color-ink);
+    cursor: not-allowed;
+  }
+
+  .btn-secondary:disabled {
+    border-style: dashed;
+    color: var(--color-muted);
+    cursor: not-allowed;
+  }
+
+  .btn-secondary:disabled:hover {
+    background-color: transparent;
+  }
+
+  .tag {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 9999px;
+    background-color: var(--color-accent);
+    color: var(--color-cream);
+    font-size: 10.5px;
+    line-height: 14px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+  }
+
+  .card {
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    background-color: var(--color-paper);
+  }
+
+  .text-link {
+    color: var(--color-ink);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .text-link:hover {
+    color: var(--color-accent);
+  }
+
+  .field-label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 500;
+  }
+
+  .field {
+    display: block;
+    width: 100%;
+    min-height: 52px;
+    padding: 0 16px;
+    border: 1px solid var(--color-muted);
+    border-radius: var(--radius-field);
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    /* 16px keeps iOS Safari from zooming into the field. */
+    font-size: 16px;
+    line-height: 24px;
+  }
+
+  .field[aria-invalid='true'] {
+    border-color: var(--color-danger);
+  }
+
+  /* Entrance of the hero — off when the user asks for less motion. */
+  .rise {
+    animation: rise 700ms var(--ease-brand) both;
+  }
+
+  .rise-late {
+    animation: rise 700ms var(--ease-brand) 120ms both;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

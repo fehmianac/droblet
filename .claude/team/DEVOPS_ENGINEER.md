@@ -57,7 +57,7 @@ template.yaml
     ├── Networking    — Vpc, Subnets, IGW, NAT, RouteTables, SecurityGroup (isteğe bağlı)
     ├── DynamoDB      — DrobletTable
     ├── S3            — LandingBucket, PhotoBucket (özel), [CatalogImageBucket — A-2'ye bağlı]
-    ├── SES           — EmailIdentity (droplet.alatech.co — A-10), ConfigurationSet
+    ├── SES           — EmailIdentity (droblet.alatech.co — A-10), ConfigurationSet
     ├── SQS/SNS       — ItemProcessorRequestQueue, StylistRequestQueue, TryOnRequestQueue, PaletteRequestQueue,
     │                   her birinin DLQ'su, AlarmTopic
     ├── IAM           — ApiLambdaRole, ItemProcessorLambdaRole, StylistLambdaRole, TryOnLambdaRole,
@@ -230,17 +230,17 @@ Bu iki dosya yanlış content-type ile sunulursa link uygulamayı açmaz ve hata
 ---
 
 ### Alan adı
-Landing ve universal link dosyaları **`droplet.alatech.co`** altında. CloudFront ve Route 53 **yok**: `LandingBucket` S3 static website, önünde Cloudflare (proxy açık). Bucket adı alan adının kendisidir (`LandingDomain`), çünkü Cloudflare Host başlığını değiştirmeden gönderir ve S3 bucket'ı Host'tan bulur. Bucket politikası okumayı yalnız Cloudflare IPv4 aralıklarına açar; liste (https://www.cloudflare.com/ips-v4) değişirse `template.yaml` güncellenir.
+Landing ve universal link dosyaları **`droblet.alatech.co`** altında. CloudFront ve Route 53 **yok**: `LandingBucket` S3 static website, önünde Cloudflare (proxy açık). Bucket adı alan adının kendisidir (`LandingDomain`), çünkü Cloudflare Host başlığını değiştirmeden gönderir ve S3 bucket'ı Host'tan bulur. Bucket politikası okumayı yalnız Cloudflare IPv4 aralıklarına açar; liste (https://www.cloudflare.com/ips-v4) değişirse `template.yaml` güncellenir.
 
 Cloudflare'de (ilgili zone'da) elle kurulur:
-1. **DNS:** `droplet` CNAME → stack output'u `LandingWebsiteHost` (`droplet.alatech.co.s3-website.eu-central-1.amazonaws.com`), proxy **açık**
+1. **DNS:** `droplet` CNAME → stack output'u `LandingWebsiteHost` (`droblet.alatech.co.s3-website.eu-central-1.amazonaws.com`), proxy **açık**
 2. **SSL/TLS:** S3 website endpoint'i yalnız HTTP → bu ad için Configuration Rule ile SSL **Flexible** (zone'un geri kalanı etkilenmez). Always Use HTTPS + HSTS açık
 3. **URL Rewrite (Transform Rule):** dinamik yollu istemci sayfaları için (ör. `starts_with(http.request.uri.path, "/r/")` → path `/r/index.html`; statik rewrite, adres çubuğu değişmez, parametre istemcide yoldan okunur)
 4. **Response Header Transform:** `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`
 
 Dev stack'i aynı hesapta ayrı bir bucket ister: `dev` ortamında `LANDING_DOMAIN` değişkeni (ör. `droplet-dev.alatech.co`) tanımlanır.
 
-Droblet: alan adı `droplet.alatech.co`, Cloudflare zone'u `alatech.co`, alt alan `droplet`; API `api.droplet.alatech.co` (karar 2026-11-18, handoff README §9.4). Rewrite gerekebilecek yollar: web hesap silme sayfası (E12, mağaza zorunluluğu), davet linki (27 "davet linkini paylaş"), paylaşılabilir profil/look linki (**A-6** — karar verilmeden eklenmez).
+Droblet: alan adı `droblet.alatech.co`, Cloudflare zone'u `alatech.co`, alt alan `droplet`; API `api.droblet.alatech.co` (karar 2026-11-18, handoff README §9.4). Rewrite gerekebilecek yollar: web hesap silme sayfası (E12, mağaza zorunluluğu), davet linki (27 "davet linkini paylaş"), paylaşılabilir profil/look linki (**A-6** — karar verilmeden eklenmez).
 
 ---
 
@@ -250,7 +250,7 @@ Droblet: alan adı `droplet.alatech.co`, Cloudflare zone'u `alatech.co`, alt ala
 
 | Adım | Kim | Not |
 |---|---|---|
-| SendGrid hesabı, `droplet.alatech.co` için **Domain Authentication** (DKIM/SPF CNAME kayıtları Cloudflare'e, proxy kapalı) | Ürün sahibi | Gönderen: `Droblet <no-reply@droplet.alatech.co>` (`Email.From`) |
+| SendGrid hesabı, `droblet.alatech.co` için **Domain Authentication** (DKIM/SPF CNAME kayıtları Cloudflare'e, proxy kapalı) | Ürün sahibi | Gönderen: `Droblet <no-reply@droblet.alatech.co>` (`Email.From`) |
 | API anahtarı — yalnız **Mail Send** yetkili | Ürün sahibi → GitHub secret `SENDGRID_API_KEY` (ortam bazında) | `deploy-infra.yml` SSM SecureString `/droblet/{Stage}/api/Email` = `{"SendGrid":{"ApiKey":"…"}}` olarak yazar; secret yoksa dokunmaz |
 | AB veri yerleşimi (isteğe bağlı) | Ürün sahibi + Security | AB'ye sabitlenmiş subuser kullanılırsa `Email.SendGrid.BaseUrl = https://api.eu.sendgrid.com` |
 | Tıklama / açılma takibi | Kodda mesaj başına **kapalı** | Takip linki yeniden yazar: şifre sıfırlama universal link'i bozulur ve token yönlendirmeden geçer. Hesap düzeyinde de kapalı tutulur |
@@ -298,7 +298,7 @@ Her Lambda'nın kendi rolü var — rol paylaşılmaz.
 
 | Rol | İzinler |
 |---|---|
-| `ApiLambdaRole` | DynamoDB CRUD → tablo · `sqs:SendMessage` → 4 istek kuyruğu · `ses:SendEmail` → `droplet.alatech.co` kimliği · `ssm:GetParameter*` → `/droblet/{Stage}/api*` · S3 → `PhotoBucket`: `PutObject` (presigned POST imzası; `uploads/tmp/*`, kalıcılaştırma), `GetObject` (presigned GET + EXIF temizleme; `uploads/tmp/*`, `tenant/*`), `DeleteObject` + `ListBucket` (silme akışları; `uploads/tmp/*`, `tenant/*`) |
+| `ApiLambdaRole` | DynamoDB CRUD → tablo · `sqs:SendMessage` → 4 istek kuyruğu · `ses:SendEmail` → `droblet.alatech.co` kimliği · `ssm:GetParameter*` → `/droblet/{Stage}/api*` · S3 → `PhotoBucket`: `PutObject` (presigned POST imzası; `uploads/tmp/*`, kalıcılaştırma), `GetObject` (presigned GET + EXIF temizleme; `uploads/tmp/*`, `tenant/*`), `DeleteObject` + `ListBucket` (silme akışları; `uploads/tmp/*`, `tenant/*`) |
 | `ItemProcessorLambdaRole` | SQS receive/delete → `ItemProcessorRequestQueue` · DynamoDB (yalnız gerekenler) · S3 `GetObject` → `uploads/tmp/*`, `PutObject` → `tenant/*/items/*` · `ssm:GetParameter*` → `/droblet/{Stage}/worker*` |
 | `StylistLambdaRole` | SQS receive/delete → `StylistRequestQueue` · DynamoDB (yalnız gerekenler) · **S3 yok** (metin aday listesiyle çalışır) · `ssm:GetParameter*` → `/droblet/{Stage}/worker*` |
 | `TryOnLambdaRole` | SQS receive/delete → `TryOnRequestQueue` · DynamoDB (yalnız gerekenler) · S3 `GetObject` → `tenant/*/body/*`, `tenant/*/items/*` (+ katalog bucket'ı varsa), `PutObject` → `tenant/*/tryon/*` · `ssm:GetParameter*` → `/droblet/{Stage}/worker*` |
@@ -633,18 +633,18 @@ Submit ayrı bir adımdır: reddedilen bir yükleme başarısız bir build gibi 
 
 ### Kurulum — bunlar sende
 
-0. **Kimlikler:** bundle id / package **`com.alatech.droplet`**, scheme `droplet`, universal link alanı `droplet.alatech.co`. Mağaza kaydı açıldıktan sonra bundle id değiştirilemez.
+0. **Kimlikler:** bundle id / package **`com.alatech.droplet`**, scheme `droplet`, universal link alanı `droblet.alatech.co`. Mağaza kaydı açıldıktan sonra bundle id değiştirilemez.
 1. **EAS projesi:** `cd mobile && npx eas init`
 2. **GitHub ortamı:** `mobile-release`, **required reviewer** ile. Tag bir sürüm önerir, bir insan onu dışarı bırakır.
 3. **Secret'lar:** `EXPO_TOKEN`, `PLAY_SERVICE_ACCOUNT_JSON`
 4. **iOS imzalama (yerel derleme, `release-mobile.yml`):** ana uygulama için App Store profili `com.alatech.droplet` (gereken yetkiler: Push, Sign in with Apple, Associated Domains, varsa App Groups `group.com.alatech.droplet`; adı `PROFILE_NAME`). Proje widget/extension içeriyorsa her extension için ayrı profil (ör. `com.alatech.droplet.ExpoWidgetsTarget`, App Groups; adı `WIDGET_PROFILE_NAME`). Hepsi `IOS_DIST_P12`'deki Apple Distribution sertifikasıyla üretilir; base64 hâlleri `IOS_PROVISIONING_PROFILE` (ve `IOS_WIDGET_PROVISIONING_PROFILE`) secret'larına. Workflow ad, App ID, yetkiler ve sertifika eşleşmesini arşivden önce denetler.
-5. **API alan adı (`api.droplet.alatech.co`):** eu-central-1'de ACM sertifikası (DNS doğrulaması Cloudflare'de) → repo değişkenleri `API_DOMAIN`, `API_CERTIFICATE_ARN` → deploy-infra → çıktıdaki `ApiDomainTarget`'a Cloudflare'de CNAME (proxy kapalı, "DNS only"). `ApiBaseUrl` çıktısı o zaman `https://api.droplet.alatech.co` olur.
+5. **API alan adı (`api.droblet.alatech.co`):** eu-central-1'de ACM sertifikası (DNS doğrulaması Cloudflare'de) → repo değişkenleri `API_DOMAIN`, `API_CERTIFICATE_ARN` → deploy-infra → çıktıdaki `ApiDomainTarget`'a Cloudflare'de CNAME (proxy kapalı, "DNS only"). `ApiBaseUrl` çıktısı o zaman `https://api.droblet.alatech.co` olur.
 6. **`mobile/eas.json`:** `build.production.env.EXPO_PUBLIC_API_BASE_URL` (SAM çıktısı `ApiBaseUrl`, https) ve `submit.production.ios` içindeki `appleId`, `ascAppId`, `appleTeamId` — köşeli parantezli yer tutucular doluysa release başlar; `app.config.ts` API adresini ve `EAS_PROJECT_ID`yi buradan uygulamaya yazar
 7. **Android track:** `internal` → beta'da `closed testing`; `production` bir karardır, varsayılan değil.
 8. **Apple Developer ve Google Play hesapları — projenin başında başvur.** Kurumsal hesap doğrulaması günler/haftalar sürebilir; abonelik ürünleri ve vergi/banka bilgileri ödeme özelliklerini bekletir.
 9. **Native extension'lar (proje gerektirirse):** her iOS extension (widget, Live Activity, App Intents) kendi bundle id'sini, App Group yetkisini ve provisioning profile'ını ister; release hattının imzalama adımı buna göre genişletilir.
 
-Droblet: bundle id / package, scheme ve alan adları **Açık karar (A-10)** — `com.alatech.droplet`, `droplet`, `droplet.alatech.co`, `api.droplet.alatech.co`, `droplet.alatech.co` karar verilene kadar yer tutucu kalır; release hattı `eas.json` yer tutucuları doluncaya kadar başlamaz. Profil adları (`PROFILE_NAME`) bundle id'den sonra. **Extension yok** (tasarımda widget / Live Activity yok) → `WIDGET_PROFILE_NAME` ve `IOS_WIDGET_PROVISIONING_PROFILE` kullanılmaz; App Groups gerekmez. Gereken iOS yetkileri: Push, Sign in with Apple, Associated Domains (davet/paylaşım linki), In-App Purchase. Sürüm hattı adları: `release-mobile.yml`, tag'ler `mobile-v*`, `ios-v*`, `android-v*`, GitHub ortamı `mobile-release`.
+Droblet: bundle id / package, scheme ve alan adları **Açık karar (A-10)** — `com.alatech.droplet`, `droplet`, `droblet.alatech.co`, `api.droblet.alatech.co`, `droblet.alatech.co` karar verilene kadar yer tutucu kalır; release hattı `eas.json` yer tutucuları doluncaya kadar başlamaz. Profil adları (`PROFILE_NAME`) bundle id'den sonra. **Extension yok** (tasarımda widget / Live Activity yok) → `WIDGET_PROFILE_NAME` ve `IOS_WIDGET_PROVISIONING_PROFILE` kullanılmaz; App Groups gerekmez. Gereken iOS yetkileri: Push, Sign in with Apple, Associated Domains (davet/paylaşım linki), In-App Purchase. Sürüm hattı adları: `release-mobile.yml`, tag'ler `mobile-v*`, `ios-v*`, `android-v*`, GitHub ortamı `mobile-release`.
 
 ### Bilinmesi gerekenler
 - `play-service-account.json` `.gitignore`'da ve iş sonunda `if: always()` ile siliniyor.

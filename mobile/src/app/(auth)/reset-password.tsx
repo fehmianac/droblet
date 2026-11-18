@@ -20,7 +20,7 @@ type Errors = { password?: string; repeat?: string };
 
 /**
  * 02d Yeni şifre — opened from the e-mail link: `droplet://reset-password?token=…` or
- * `https://droplet.alatech.co/reset-password?token=…` (optionally `&email=…`). Two fields that must
+ * `https://droblet.alatech.co/reset-password?token=…` (optionally `&email=…`). Two fields that must
  * match; close (×) on the right. When the link carries the e-mail the user is signed in right after
  * saving ("Şifreyi kaydet ve giriş yap"); otherwise the saved state leads to the sign-in screen.
  */
