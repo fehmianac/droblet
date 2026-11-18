@@ -537,6 +537,35 @@ public class AccountDeletionCrossTenantTests(StoreSocialApiFactory factory) : IC
         (await factory.CreateClient().SendAsync(StoreSocialApiFactory.SignedPostback("network",
             new { clickId, orderId = "ORD-DEL-1", amountMinor = 250_000, status = "approved" }, StoreSocialApiFactory.NetworkSecret))).EnsureSuccessStatusCode();
 
+        // Wardrobe side (E2–E7): uploads, drafts, items, looks, plan, wear log, trips, stylist feedback, palette, jobs —
+        // through the API where one call does it, otherwise as the rows the workers / accept endpoints write.
+        var now = DateTime.UtcNow;
+        var today = CalendarDay.ToText(DateOnly.FromDateTime(now));
+        var tripId = Domain.Extensions.Ulid.New();
+        (await leaving.Client.PostJsonAsync("v1/tenant/item/upload-url", new { count = 1, contentType = "image/jpeg" })).EnsureSuccessStatusCode();
+        (await leaving.Client.PostJsonAsync("v1/tenant/item/from-product", new { clientMutationId = Domain.Extensions.Ulid.New(), productId = product })).EnsureSuccessStatusCode();
+        (await leaving.Client.PutJsonAsync($"v1/tenant/plan-day/{today}", new { lookId = leavingLook, baseVersion = 0 })).EnsureSuccessStatusCode();
+        (await leaving.Client.PostJsonAsync("v1/tenant/wear-log", new { clientMutationId = Domain.Extensions.Ulid.New(), date = today, occurredAt = now, lookId = leavingLook })).EnsureSuccessStatusCode();
+        (await leaving.Client.PostJsonAsync("v1/tenant/trip", new { id = tripId, cityId = "2988507", cityName = "Paris", startDate = today, endDate = today })).EnsureSuccessStatusCode();
+        await factory.Repository.SaveAsync(new ItemDraftEntity { Id = "draft-1", TenantId = leaving.TenantId, Status = ItemDraftStatus.Ready, CreatedAt = now, UpdatedAt = now });
+        await factory.Repository.SaveAsync(new TripItemEntity { TenantId = leaving.TenantId, TripId = tripId, ItemId = ClosetSeeder.SharedItemId, PlannedWears = 1 });
+        await factory.Repository.SaveAsync(new TripDayEntity { TenantId = leaving.TenantId, TripId = tripId, Date = today });
+        await factory.Repository.SaveAsync(new StylistFeedbackEntity { TenantId = leaving.TenantId, JobId = "job-1", Index = 0, CreatedAt = now });
+        await factory.Repository.SaveAsync(new PaletteResultEntity { TenantId = leaving.TenantId, SeasonTypeId = "cool-winter", AnalyzedAt = now });
+        await factory.Repository.SaveAsync(new JobEntity { Id = "job-1", TenantId = leaving.TenantId, Kind = JobKind.StylistOutfit, Status = JobStatus.Completed, CreatedAt = now, UpdatedAt = now });
+
+        // Every tenant-scoped entity type of both halves that this scenario can produce really has a row before the deletion.
+        Type[] expected =
+        [
+            typeof(ItemEntity), typeof(ItemUploadEntity), typeof(ItemDraftEntity), typeof(LookEntity), typeof(PlanDayEntity), typeof(WearLogEntity),
+            typeof(TripEntity), typeof(TripItemEntity), typeof(TripDayEntity), typeof(StylistFeedbackEntity), typeof(PaletteResultEntity), typeof(JobEntity),
+            typeof(MutationReceiptEntity), typeof(LookRatingSummaryEntity), typeof(FollowingEntity), typeof(FollowerEntity), typeof(RatingGivenEntity),
+            typeof(SavedLookEntity), typeof(BlockEntity), typeof(CartLineEntity), typeof(WatchItemEntity), typeof(DeviceEntity), typeof(AffiliateConversionEntity),
+        ];
+        var partitions = DeletionPlan.TenantScopedEntityTypes.Zip(DeletionPlan.TenantPartitionKeys(leaving.TenantId)).ToDictionary(p => p.First, p => p.Second);
+        foreach (var type in expected)
+            Assert.True((await factory.Repository.GetKeysAsync(partitions[type])).Count > 0, $"{type.Name} has no row before the deletion — the test would prove nothing for it.");
+
         var deleted = await leaving.Client.DeleteAsync("v1/auth/me");
 
         Assert.Equal(HttpStatusCode.NoContent, deleted.StatusCode);
@@ -546,6 +575,8 @@ public class AccountDeletionCrossTenantTests(StoreSocialApiFactory factory) : IC
             .Where(k => k.Pk.Contains(leaving.TenantId) || k.Sk.Contains(leaving.TenantId) || factory.Repository.Raw(k.Pk, k.Sk).Contains(leaving.TenantId))
             .Select(k => $"{k.Pk} | {k.Sk}").ToList();
         Assert.True(leftovers.Count == 0, "Still references the deleted tenant:\n" + string.Join("\n", leftovers));
+        foreach (var pk in DeletionPlan.TenantPartitionKeys(leaving.TenantId))
+            Assert.Empty(await factory.Repository.GetKeysAsync(pk));
 
         // The friend's world is consistent: no edge, the average no longer contains the deleted rating, the handle is free.
         var friendProfile = await (await friend.Client.GetAsync($"v1/tenant/people/{friend.Handle}")).JsonAsync();
