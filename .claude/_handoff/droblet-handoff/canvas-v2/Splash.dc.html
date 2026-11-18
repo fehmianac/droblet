@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Splash</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/e8430258669fc54f0b61d262bce30fdd">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&amp;family=Jost:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1C1A17;text-decoration:none}a:hover{color:#6E5640}
+.sp-out{fill:none;stroke:#1C1A17;stroke-width:1.4;stroke-dasharray:100;stroke-dashoffset:0;animation:spDraw .9s cubic-bezier(0.2,0.8,0.2,1) 0s both}
+.sp-fill{fill:#1C1A17;opacity:1;animation:spFade .5s cubic-bezier(0.2,0.8,0.2,1) .7s both}
+.sp-hook{fill:none;stroke:#F4F1EC;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:100;stroke-dashoffset:0;animation:spDraw .5s cubic-bezier(0.2,0.8,0.2,1) 1s both}
+.sp-mark{transform-origin:50% 60%;animation:spSettle .8s cubic-bezier(0.2,0.8,0.2,1) 1.8s both}
+.sp-l{display:inline-block;opacity:1;transform:none;animation:spRise .5s cubic-bezier(0.2,0.8,0.2,1) both}
+.sp-line{transform-origin:50% 50%;animation:spLine .4s cubic-bezier(0.2,0.8,0.2,1) 2s both}
+.sp-tag{animation:spFade .5s cubic-bezier(0.2,0.8,0.2,1) 2.1s both}
+@keyframes spDraw{from{stroke-dashoffset:100}to{stroke-dashoffset:0}}
+@keyframes spFade{from{opacity:0}to{opacity:1}}
+@keyframes spRise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes spLine{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes spSettle{0%{transform:scale(1.04)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion: reduce){.sp-out,.sp-fill,.sp-hook,.sp-mark,.sp-l,.sp-line,.sp-tag{animation:none !important}}
+</style>
+</helmet>
+<div class="scr" style="align-items:center">
+
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding-top:40px">
+  <sc-if value="{{ show }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:18px">
+      <svg class="sp-mark" role="img" aria-label="Droblet logosu" width="92" height="108" viewBox="8 4 36 42"><path class="sp-fill" d="M26 6C26 6 10 24 10 36a16 16 0 0 0 32 0C42 24 26 6 26 6z"/><path class="sp-out" pathLength="100" d="M26 6C26 6 10 24 10 36a16 16 0 0 0 32 0C42 24 26 6 26 6z"/><path class="sp-hook" pathLength="100" d="M23.4 27a2.7 2.7 0 1 1 3.8 2.5c-.8.3-1.2.9-1.2 1.7v1.5M26 32.7 15.8 40.6h20.4z"/></svg>
+      <p class="serif" aria-label="Droblet" style="margin:0;font-size:54px;font-weight:500;letter-spacing:-.01em;line-height:1"><span class="sp-l" aria-hidden="true" style="animation-delay:1.2s">D</span><span class="sp-l" aria-hidden="true" style="animation-delay:1.26s">r</span><span class="sp-l" aria-hidden="true" style="animation-delay:1.32s">o</span><span class="sp-l" aria-hidden="true" style="animation-delay:1.38s">b</span><span class="sp-l" aria-hidden="true" style="animation-delay:1.44s">l</span><span class="sp-l" aria-hidden="true" style="animation-delay:1.5s">e</span><span class="sp-l" aria-hidden="true" style="animation-delay:1.56s">t</span></p>
+      <span class="sp-line" style="width:40px;height:1.5px;background:#6E5640;display:block"></span>
+      <p class="sp-tag p" style="color:#665F56;font-size:15px">Dolabın artık senin için düşünüyor.</p>
+    </div>
+  </sc-if>
+</div>
+<div style="width:100%;padding:0 24px 40px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:4px">
+  <a href="Main.dc.html" class="btn" style="width:100%">Devam et</a>
+  <button onClick="{{ replay }}" style="height:44px;background:transparent;border:0;font-family:inherit;font-size:12.5px;color:#665F56;display:flex;align-items:center;gap:6px;cursor:pointer;padding:0 12px"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7L4 8.5M4 4v4.5h4.5"/></svg>Tekrar oynat</button>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+componentWillUnmount() { if (this.t) clearTimeout(this.t); }
+renderVals() {
+  const show = !(this.state && this.state.hidden);
+  return {
+    show,
+    replay: () => {
+      this.setState({ hidden: true });
+      if (this.t) clearTimeout(this.t);
+      this.t = setTimeout(() => this.setState({ hidden: false }), 40);
+    }
+  };
+}
+}
+</script>
+</body>
+</html>

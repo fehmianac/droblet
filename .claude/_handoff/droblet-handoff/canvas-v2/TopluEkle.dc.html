@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Toplu ekle</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/e8430258669fc54f0b61d262bce30fdd">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&amp;family=Jost:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1C1A17;text-decoration:none}a:hover{color:#6E5640}
+.ai-bar{position:relative;overflow:hidden}
+.ai-bar::after{content:"";position:absolute;top:0;bottom:0;width:40%;background:linear-gradient(100deg,rgba(251,249,245,0),rgba(251,249,245,.55),rgba(251,249,245,0));animation:aiSweep 1.8s linear infinite}
+@keyframes aiSweep{from{transform:translateX(-110%)}to{transform:translateX(260%)}}
+@media (prefers-reduced-motion: reduce){.ai-bar::after{animation:none !important;display:none}}
+</style>
+</helmet>
+<div class="scr">
+
+<header class="row" style="height:48px;padding:0 20px;justify-content:space-between;position:relative;flex:none;margin-top:50px"><a href="Ekle.dc.html" class="ib" aria-label="Geri" style="border:0;width:44px;margin-left:-10px"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></a><div style="position:absolute;left:70px;right:70px;text-align:center;font-size:15px;font-weight:500">Toplu ekle</div></header>
+<div style="padding:4px 20px 0;display:flex;flex-direction:column;gap:12px;flex:1;overflow:hidden">
+  <div class="row" style="background:#E8E1D7;border-radius:22px;padding:3px;gap:3px">
+    <button class="chip on" aria-pressed="true" style="flex:1;justify-content:center;border:0;height:38px;background:#FBF9F5;color:#1C1A17;box-shadow:0 1px 3px rgba(28,26,23,.12)">Tek tek fotoğraflar</button>
+    <button class="chip" aria-pressed="false" style="flex:1;justify-content:center;border:0;height:38px">Kombin fotoğrafından ayır</button>
+  </div>
+  <div class="card" style="padding:14px;display:flex;flex-direction:column;gap:10px">
+    <div class="row" style="justify-content:space-between"><p style="margin:0;font-size:14px;font-weight:500">12 fotoğraf işleniyor</p><span class="sm">8 / 12 · en fazla 30</span></div>
+    <div style="height:4px;border-radius:2px;background:#E8E1D7"><div class="ai-bar" style="width:66%;height:4px;border-radius:2px;background:#6E5640"></div></div>
+    <p class="sm" style="line-height:1.45">AI arka planı temizliyor, kadrajı düzeltiyor ve alanları dolduruyor. Ekrandan çıkabilirsin; bitince bildirim göndeririz.</p>
+  </div>
+  <div class="row" style="justify-content:space-between"><p class="h3">Kontrol et</p><button class="sm" style="background:none;border:0;font-family:inherit;font-weight:500;color:#1C1A17;cursor:pointer;min-height:44px">Tümünü seç</button></div>
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div class="card row" style="gap:12px;padding:10px;border-radius:16px"><div class="ph" style="width:52px;height:62px;background:#E8E1D7;border-radius:10px;"><svg aria-hidden="true" width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#1C1A17" stroke-width="1.1" stroke-linejoin="round" style="opacity:.5"><path d="M8 3 3 6l2 4 3-1v12h8V9l3 1 2-4-5-3c-.5 1.5-2 2.5-4 2.5S8.5 4.5 8 3z"/></svg></div><div style="flex:1"><p style="margin:0;font-size:14px;font-weight:500">Beyaz poplin gömlek</p><p class="sm">Üst · Beyaz</p></div><input type="checkbox" checked aria-label="Beyaz poplin gömleği ekle" style="width:22px;height:22px;accent-color:#1C1A17"></div>
+    <div class="card row" style="gap:12px;padding:10px;border-radius:16px"><div class="ph" style="width:52px;height:62px;background:#A89582;border-radius:10px;"><svg aria-hidden="true" width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#1C1A17" stroke-width="1.1" stroke-linejoin="round" style="opacity:.5"><path d="M7 3h10l1 18h-4.2L12 10l-1.8 11H6z"/></svg></div><div style="flex:1"><p style="margin:0;font-size:14px;font-weight:500">Düz jean</p><p class="sm">Alt · Mavi</p></div><input type="checkbox" checked aria-label="Düz jeanı ekle" style="width:22px;height:22px;accent-color:#1C1A17"></div>
+    <div class="card row" style="gap:12px;padding:10px;border-radius:16px"><div class="ph" style="width:52px;height:62px;background:#D6CBBE;border-radius:10px;"><svg aria-hidden="true" width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#1C1A17" stroke-width="1.1" stroke-linejoin="round" style="opacity:.5"><path d="M3 16c0-2 .8-4.5 2-6.5l3 1c1 2 3 3 6 3l5 1c1.2.3 2 1.2 2 2.3V18H3z"/></svg></div><div style="flex:1"><p style="margin:0;font-size:14px;font-weight:500">Kroko babet</p><p class="sm">Ayakkabı · Siyah</p><span class="badge" style="margin-top:4px;background:#F3E3CF">Kategoriyi kontrol et</span></div><input type="checkbox" aria-label="Kroko babeti ekle" style="width:22px;height:22px;accent-color:#1C1A17"></div>
+    <div class="card row" style="gap:12px;padding:10px;border-radius:16px"><div class="ph" style="width:52px;height:62px;background:#3A342E;border-radius:10px;"><svg aria-hidden="true" width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#F4F1EC" stroke-width="1.1" stroke-linejoin="round" style="opacity:.5"><path d="M5 9h14l-1.2 11H6.2z"/><path d="M9 9V7a3 3 0 0 1 6 0v2"/></svg></div><div style="flex:1"><p style="margin:0;font-size:14px;font-weight:500">Siyah deri çanta</p><p class="sm">Çanta · Siyah</p></div><input type="checkbox" checked aria-label="Siyah deri çantayı ekle" style="width:22px;height:22px;accent-color:#1C1A17"></div>
+  </div>
+</div>
+<div class="bar" style="position:relative"><a href="Gardirop.dc.html" class="btn" style="flex:1">3 parçayı gardıroba ekle</a></div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Şikayet et veya engelle</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/e8430258669fc54f0b61d262bce30fdd">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&amp;family=Jost:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1C1A17;text-decoration:none}a:hover{color:#6E5640}
+</style>
+</helmet>
+<div class="scr">
+
+<div aria-hidden="true" style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:110px 20px 0">
+  <span style="width:84px;height:84px;border-radius:42px;background:#BFAE99"></span>
+  <p class="h2">Selin</p>
+</div>
+<a href="Kisi.dc.html" class="scrim" aria-label="Kapat"></a>
+<div class="sheet" role="dialog" aria-label="Şikayet et veya engelle" style="padding:0 20px 34px;display:flex;flex-direction:column;gap:12px">
+  <div class="grab"></div>
+  <div class="row" style="justify-content:space-between;padding-top:4px"><p class="h3">Selin'i şikayet et</p><a href="Kisi.dc.html" class="ib" aria-label="Kapat" style="border:0;margin-right:-10px"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"/></svg></a></div>
+  <p class="sm">Neden? Şikayetin gizli kalır; ekibimiz 24 saat içinde inceler.</p>
+  <fieldset style="border:0;margin:0;padding:0;display:flex;flex-direction:column">
+    <legend style="position:absolute;left:-9999px">Şikayet nedeni</legend>
+    <label class="row" style="gap:12px;min-height:44px;border-bottom:1px solid #DCD4C9;font-size:14px;cursor:pointer"><input type="radio" name="n" checked style="width:18px;height:18px;accent-color:#1C1A17">Uygunsuz içerik</label>
+    <label class="row" style="gap:12px;min-height:44px;border-bottom:1px solid #DCD4C9;font-size:14px;cursor:pointer"><input type="radio" name="n" style="width:18px;height:18px;accent-color:#1C1A17">Taciz veya zorbalık</label>
+    <label class="row" style="gap:12px;min-height:44px;border-bottom:1px solid #DCD4C9;font-size:14px;cursor:pointer"><input type="radio" name="n" style="width:18px;height:18px;accent-color:#1C1A17">Sahte hesap</label>
+    <label class="row" style="gap:12px;min-height:44px;border-bottom:1px solid #DCD4C9;font-size:14px;cursor:pointer"><input type="radio" name="n" style="width:18px;height:18px;accent-color:#1C1A17">İzinsiz paylaşılan fotoğraf</label>
+    <label class="row" style="gap:12px;min-height:44px;border-bottom:1px solid #DCD4C9;font-size:14px;cursor:pointer"><input type="radio" name="n" style="width:18px;height:18px;accent-color:#1C1A17">Spam</label>
+    <label class="row" style="gap:12px;min-height:44px;font-size:14px;cursor:pointer"><input type="radio" name="n" style="width:18px;height:18px;accent-color:#1C1A17">Diğer</label>
+  </fieldset>
+  <a href="Kisi.dc.html" class="btn">Şikayeti gönder</a>
+  <hr class="div">
+  <div class="row" style="gap:12px;align-items:flex-start">
+    <div style="flex:1"><p style="margin:0;font-size:14px;font-weight:500">Engelle</p><p class="sm" style="line-height:1.45">Selin seni göremez, looklarını puanlayamaz; sen de onun içeriğini görmezsin. Haber verilmez.</p></div>
+    <a href="Akis.dc.html" class="btn2" style="height:44px;font-size:14px;color:#9A3B2E;border-color:#9A3B2E;padding:0 18px">Engelle</a>
+  </div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

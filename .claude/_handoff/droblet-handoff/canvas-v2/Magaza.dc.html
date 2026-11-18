@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Stil mağazası</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/e8430258669fc54f0b61d262bce30fdd">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&amp;family=Jost:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1C1A17;text-decoration:none}a:hover{color:#6E5640}
+</style>
+</helmet>
+<div class="scr">
+
+<header class="row" style="height:48px;padding:0 20px;justify-content:space-between;position:relative;flex:none;margin-top:50px"><a href="Kesfet.dc.html" class="ib" aria-label="Geri" style="border:0;width:44px;margin-left:-10px"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></a><div style="position:absolute;left:70px;right:70px;text-align:center;font-size:15px;font-weight:500">Stil mağazası</div><a href="Sepet.dc.html" class="ib" aria-label="Sepet, 4 ürün"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1 13H6z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><span class="dot" style="top:-4px;right:-4px">4</span></a></header>
+<div style="flex:1;overflow:hidden;display:flex;flex-direction:column;gap:12px;padding-top:4px">
+  <div style="padding:0 20px;position:relative"><label for="ms" style="position:absolute;left:-9999px">Mağazada ara</label><input id="ms" class="inp" placeholder="Ürün, marka veya renk ara" style="border-radius:24px;padding-left:42px"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#665F56" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:36px;top:15px"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></div>
+  <div class="row" style="margin:0 20px;gap:10px">
+    <a href="KombinOlusturucu.dc.html" class="card row" style="flex:1;padding:12px;gap:10px;border-radius:16px"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/></svg><span style="font-size:13px;font-weight:500;line-height:1.25">Kombin<br>oluşturucu</span></a>
+    <button onClick="{{ openTamamla }}" class="card row" style="flex:1;padding:12px;gap:10px;border-radius:16px;font-family:inherit;color:#1C1A17;cursor:pointer;text-align:left"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6.5a2 2 0 1 1 2.6 1.9c-.4.2-.6.6-.6 1V10.5"/><path d="M12 10.5 3.4 17.4c-.6.5-.3 1.6.5 1.6h16.2c.8 0 1.1-1.1.5-1.6z"/></svg><span style="font-size:13px;font-weight:500;line-height:1.25">Parçamı<br>tamamla</span></button>
+  </div>
+  <div class="scrollx" style="padding:0 20px;"><button class="chip on">Tümü</button><button class="chip">Tişörtler</button><button class="chip">Gömlekler</button><button class="chip">Kazaklar</button><button class="chip">Ceketler</button><button class="chip">Pantolonlar</button><button class="chip">Elbiseler</button><button class="chip">Aksesuarlar</button></div>
+  <div class="row" style="gap:6px;padding:0 20px">
+    <button class="chip" onClick="{{ openMarka }}">Marka<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button><button class="chip" onClick="{{ openMarka }}">Renk<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button><button class="chip" onClick="{{ openMarka }}">Beden<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button><span class="sm" style="margin-left:auto">En yeni</span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 12px;padding:0 20px">
+    <a href="Urun.dc.html" style="display:flex;flex-direction:column;gap:5px"><div style="position:relative"><div class="ph" style="width:100%;height:180px;background:#E8E1D7;border-radius:12px;"><svg aria-hidden="true" width="70" height="70" viewBox="0 0 24 24" fill="none" stroke="#1C1A17" stroke-width="1.1" stroke-linejoin="round" style="opacity:.5"><path d="M8 3 3 6l2 4 3-1v12h8V9l3 1 2-4-5-3c-.5 1.5-2 2.5-4 2.5S8.5 4.5 8 3z"/></svg></div><span style="position:absolute;top:8px;right:8px;width:32px;height:32px;border-radius:16px;background:rgba(251,249,245,.92);display:flex;align-items:center;justify-content:center"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/></svg></span></div><p class="brand">MARKS &amp; SPENCER</p><p style="margin:-2px 0 0;font-size:13px;line-height:1.3">Beyaz Poplin Gömlek</p><p class="price">₺3.000</p></a>
+    <a href="Urun.dc.html" style="display:flex;flex-direction:column;gap:5px"><div style="position:relative"><div class="ph" style="width:100%;height:180px;background:#A89582;border-radius:12px;"><svg aria-hidden="true" width="70" height="70" viewBox="0 0 24 24" fill="none" stroke="#1C1A17" stroke-width="1.1" stroke-linejoin="round" style="opacity:.5"><path d="M8 3 4 6v15h6V9l2 3 2-3v12h6V6l-4-3-2 4z"/></svg></div><span style="position:absolute;top:8px;right:8px;width:32px;height:32px;border-radius:16px;background:rgba(251,249,245,.92);display:flex;align-items:center;justify-content:center"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/></svg></span></div><p class="brand">VAKKO</p><p style="margin:-2px 0 0;font-size:13px;line-height:1.3">Yün Karışımlı Blazer</p><p class="price">[FİYAT]</p></a>
+    <div style="display:flex;flex-direction:column;gap:6px" aria-hidden="true"><span class="skel" style="height:120px"></span><span class="skel" style="height:9px;width:50%;border-radius:5px"></span><span class="skel" style="height:9px;width:80%;border-radius:5px"></span></div>
+    <div style="display:flex;flex-direction:column;gap:6px" aria-hidden="true"><span class="skel" style="height:120px"></span><span class="skel" style="height:9px;width:40%;border-radius:5px"></span><span class="skel" style="height:9px;width:70%;border-radius:5px"></span></div>
+  </div>
+</div>
+
+<sc-if value="{{ marka }}" hint-placeholder-val="{{ false }}">
+  <button class="scrim" aria-label="Kapat" onClick="{{ close }}"></button>
+  <div class="sheet" style="padding:0 20px 34px;display:flex;flex-direction:column;gap:14px">
+    <div class="grab"></div>
+    <div class="row" style="justify-content:space-between"><p class="h3">Filtrele</p><button style="background:transparent;border:0;font-family:inherit;font-size:13px;color:#1C1A17;text-decoration:underline;min-height:44px;cursor:pointer">Temizle</button></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><p class="eb">MARKA</p><div class="row" style="gap:8px;flex-wrap:wrap"><button class="chip">Lululemon</button><button class="chip">Gap</button><button class="chip on">Marks &amp; Spencer</button><button class="chip">Vakko</button><button class="chip">Beymen</button><button class="chip">Communité</button></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><p class="eb">BEDEN</p><div class="row" style="gap:8px"><button class="chip">XS</button><button class="chip on">S · senin bedenin</button><button class="chip">M</button><button class="chip">L</button></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><p class="eb">SIRALAMA</p><div class="row" style="gap:8px;flex-wrap:wrap"><button class="chip on">En yeni</button><button class="chip">Fiyat artan</button><button class="chip">Fiyat azalan</button></div></div>
+    <button class="btn" onClick="{{ close }}">Sonuçları göster</button>
+  </div>
+</sc-if>
+<sc-if value="{{ tamamla }}" hint-placeholder-val="{{ false }}">
+  <button class="scrim" aria-label="Kapat" onClick="{{ close }}"></button>
+  <div class="sheet" style="padding:0 20px 34px;display:flex;flex-direction:column;gap:14px">
+    <div class="grab"></div>
+    <p class="h3" style="padding-top:4px">Hangi parçanı tamamlayalım?</p>
+    <p class="sm">Gardırobundan bir parça seç; onunla uyumlu ürünleri bedeninde gösterelim.</p>
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
+      <a href="Urun.dc.html" style="display:flex;flex-direction:column;gap:5px"><span class="ph" style="width:100%;height:92px;background:#3A342E;border-radius:12px"><svg aria-hidden="true" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#F4F1EC" stroke-width="1.1" stroke-linejoin="round" style="opacity:.5"><path d="M8 3 4 6v15h6V9l2 3 2-3v12h6V6l-4-3-2 4z"/></svg></span><span style="font-size:12px">Lacivert blazer</span></a>
+      <a href="Urun.dc.html" style="display:flex;flex-direction:column;gap:5px"><span class="ph" style="width:100%;height:92px;background:#A89582;border-radius:12px"><svg aria-hidden="true" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#1C1A17" stroke-width="1.1" stroke-linejoin="round" style="opacity:.5"><path d="M7 3h10l1 18h-4.2L12 10l-1.8 11H6z"/></svg></span><span style="font-size:12px">Düz jean</span></a>
+      <a href="Urun.dc.html" style="display:flex;flex-direction:column;gap:5px"><span class="ph" style="width:100%;height:92px;background:#3A342E;border-radius:12px"><svg aria-hidden="true" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#F4F1EC" stroke-width="1.1" stroke-linejoin="round" style="opacity:.5"><path d="M9 2.5h6l-1 5.5 4.5 13h-13L10 8z"/></svg></span><span style="font-size:12px">Siyah midi elbise</span></a>
+    </div>
+  </div>
+</sc-if>
+
+<nav class="tabbar" aria-label="Ana gezinme"><a href="Home.dc.html" class="tab"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z"/></svg><span>Bugün</span></a><a href="Gardirop.dc.html" class="tab"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6.5a2 2 0 1 1 2.6 1.9c-.4.2-.6.6-.6 1V10.5"/><path d="M12 10.5 3.4 17.4c-.6.5-.3 1.6.5 1.6h16.2c.8 0 1.1-1.1.5-1.6z"/></svg><span>Gardırop</span></a><a href="Stilist.dc.html" class="fab" aria-label="Stilist"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15.5l.6 1.9 1.9.6-1.9.6-.6 1.9-.6-1.9-1.9-.6 1.9-.6z"/></svg></a><a href="Kesfet.dc.html" class="tab on" aria-current="page"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg><span>Keşfet</span></a><a href="Profil.dc.html" class="tab"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg><span>Profil</span></a></nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+  const s = (this.state && this.state.sheet) || null;
+  return {
+    marka: s === 'marka', tamamla: s === 'tamamla',
+    openMarka: () => this.setState({ sheet: 'marka' }),
+    openTamamla: () => this.setState({ sheet: 'tamamla' }),
+    close: () => this.setState({ sheet: null })
+  };
+}
+}
+</script>
+</body>
+</html>

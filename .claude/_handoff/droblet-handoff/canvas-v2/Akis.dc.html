@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Arkadaş akışı</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/e8430258669fc54f0b61d262bce30fdd">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&amp;family=Jost:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1C1A17;text-decoration:none}a:hover{color:#6E5640}
+</style>
+</helmet>
+<div class="scr">
+
+<header class="row" style="height:48px;padding:0 20px;justify-content:space-between;position:relative;flex:none;margin-top:50px"><a href="Kesfet.dc.html" class="ib" aria-label="Geri" style="border:0;width:44px;margin-left:-10px"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></a><div style="position:absolute;left:70px;right:70px;text-align:center;font-size:15px;font-weight:500">Arkadaşların ne giyiyor?</div><a href="Arkadaslar.dc.html" class="ib" aria-label="Arkadaş bul"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1-3.5 3.5-5.5 6.5-5.5s5.5 2 6.5 5.5"/><path d="M15.5 4.8a3.5 3.5 0 0 1 0 6.4M17.5 14.8c2 .7 3.3 2.5 4 5.2"/></svg></a></header>
+<div style="flex:1;overflow:hidden;display:flex;flex-direction:column;gap:12px;padding-top:4px">
+  <div class="scrollx" style="padding:0 20px;gap:14px"><a href="Kisi.dc.html" aria-label="Elif, yeni look" style="display:flex;flex-direction:column;align-items:center;gap:5px;width:62px;flex:none"><span style="width:58px;height:58px;border-radius:29px;padding:2px;border:2px solid #6E5640;box-sizing:border-box"><span style="display:block;width:100%;height:100%;border-radius:50%;background:#CDBFAE"></span></span><span style="font-size:11px">Elif</span></a><a href="Kisi.dc.html" aria-label="Selin, yeni look" style="display:flex;flex-direction:column;align-items:center;gap:5px;width:62px;flex:none"><span style="width:58px;height:58px;border-radius:29px;padding:2px;border:2px solid #6E5640;box-sizing:border-box"><span style="display:block;width:100%;height:100%;border-radius:50%;background:#E8E1D7"></span></span><span style="font-size:11px">Selin</span></a><a href="Kisi.dc.html" aria-label="Zeynep, yeni look" style="display:flex;flex-direction:column;align-items:center;gap:5px;width:62px;flex:none"><span style="width:58px;height:58px;border-radius:29px;padding:2px;border:2px solid #6E5640;box-sizing:border-box"><span style="display:block;width:100%;height:100%;border-radius:50%;background:#BFAE99"></span></span><span style="font-size:11px">Zeynep</span></a><a href="Kisi.dc.html" style="display:flex;flex-direction:column;align-items:center;gap:5px;width:62px;flex:none"><span style="width:58px;height:58px;border-radius:29px;padding:2px;border:2px solid #DCD4C9;box-sizing:border-box"><span style="display:block;width:100%;height:100%;border-radius:50%;background:#3A342E"></span></span><span style="font-size:11px">Ayşe</span></a><a href="Kisi.dc.html" style="display:flex;flex-direction:column;align-items:center;gap:5px;width:62px;flex:none"><span style="width:58px;height:58px;border-radius:29px;padding:2px;border:2px solid #DCD4C9;box-sizing:border-box"><span style="display:block;width:100%;height:100%;border-radius:50%;background:#D6CBBE"></span></span><span style="font-size:11px">Deniz</span></a></div>
+  <div style="padding:0 20px;display:flex;flex-direction:column;gap:10px">
+    <div class="row" style="gap:10px"><span style="width:36px;height:36px;border-radius:18px;background:#BFAE99"></span><div style="flex:1"><p style="margin:0;font-size:14px;font-weight:500">Selin</p><p class="sm">Düğün · 2 saat önce</p></div><button class="chip">Takip ediyorsun</button></div>
+    <div class="ph" style="width:100%;height:290px;background:#BFAE99;border-radius:18px;"><svg aria-hidden="true" width="110" height="184" viewBox="0 0 60 100" fill="#1C1A17" stroke="none" style="opacity:.16"><circle cx="30" cy="13" r="8"/><path d="M17 30c4-4 22-4 26 0l4 32h-7l-2 34h-6l-2-30-2 30h-6l-2-34h-7z"/></svg></div>
+    <div class="row" style="justify-content:space-between">
+      <div class="row" style="gap:0" role="group" aria-label="Puan ver, 1 ile 5 arası">
+        <sc-for list="{{ stars }}" as="s" hint-placeholder-count="5"><button class="ib" aria-label="{{ s.label }}" aria-pressed="{{ s.on }}" onClick="{{ s.pick }}" style="border:0;color:{{ s.color }}"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="{{ s.fill }}" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg></button></sc-for>
+      </div>
+      <div class="row" style="gap:0"><button class="ib" aria-label="Kaydet" style="border:0"><svg aria-hidden="true" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v17l-6-4-6 4z"/></svg></button><button class="ib" aria-label="Paylaş" style="border:0" onClick="{{ openShare }}"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7.5 8.5 12 4l4.5 4.5M5 14v6h14v-6"/></svg></button></div>
+    </div>
+    <p class="sm" style="color:#1C1A17"><span style="font-weight:500">4,7</span> ortalama · 12 arkadaş puanladı · <a href="Magaza.dc.html" class="lnk" style="font-weight:500">Parçaları gör</a></p>
+  </div>
+</div>
+
+<sc-if value="{{ share }}" hint-placeholder-val="{{ false }}">
+  <button class="scrim" aria-label="Kapat" onClick="{{ closeShare }}"></button>
+  <div class="sheet" style="padding:0 20px 34px;display:flex;flex-direction:column;gap:14px">
+    <div class="grab"></div>
+    <p class="h3" style="padding-top:4px">Look'u paylaş</p>
+    <p class="sm">Link davet kodun ile paylaşılır; uygulama yüklü değilse mağazaya yönlendirir.</p>
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
+      <button class="card" style="height:84px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-family:inherit;font-size:12.5px;color:#1C1A17;cursor:pointer" onClick="{{ closeShare }}"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1.3-4A8 8 0 1 1 8 19z"/></svg>WhatsApp</button>
+      <button class="card" style="height:84px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-family:inherit;font-size:12.5px;color:#1C1A17;cursor:pointer" onClick="{{ closeShare }}"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M11 8h2.5a2.5 2.5 0 0 1 0 5H11M11 8l-2 12"/></svg>Pinterest</button>
+      <button class="card" style="height:84px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-family:inherit;font-size:12.5px;color:#1C1A17;cursor:pointer" onClick="{{ closeShare }}"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>Link kopyala</button>
+    </div>
+  </div>
+</sc-if>
+
+<nav class="tabbar" aria-label="Ana gezinme"><a href="Home.dc.html" class="tab"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z"/></svg><span>Bugün</span></a><a href="Gardirop.dc.html" class="tab"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6.5a2 2 0 1 1 2.6 1.9c-.4.2-.6.6-.6 1V10.5"/><path d="M12 10.5 3.4 17.4c-.6.5-.3 1.6.5 1.6h16.2c.8 0 1.1-1.1.5-1.6z"/></svg><span>Gardırop</span></a><a href="Stilist.dc.html" class="fab" aria-label="Stilist"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15.5l.6 1.9 1.9.6-1.9.6-.6 1.9-.6-1.9-1.9-.6 1.9-.6z"/></svg></a><a href="Kesfet.dc.html" class="tab on" aria-current="page"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg><span>Keşfet</span></a><a href="Profil.dc.html" class="tab"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg><span>Profil</span></a></nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+  const s = this.state || {};
+  const rating = s.rating != null ? s.rating : 4;
+  const stars = [1, 2, 3, 4, 5].map((n) => ({
+    label: n + ' yıldız', on: n <= rating,
+    color: n <= rating ? '#6E5640' : '#8A8073',
+    fill: n <= rating ? '#6E5640' : 'none',
+    pick: () => this.setState({ rating: n })
+  }));
+  return { stars, share: !!s.share, openShare: () => this.setState({ share: true }), closeShare: () => this.setState({ share: false }) };
+}
+}
+</script>
+</body>
+</html>

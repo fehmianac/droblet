@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>AI yükleniyor, üzerimde gör</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/e8430258669fc54f0b61d262bce30fdd">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&amp;family=Jost:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1C1A17;text-decoration:none}a:hover{color:#6E5640}
+.ai-sh{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.ai-sh::after{content:"";position:absolute;top:0;bottom:0;width:45%;background:linear-gradient(100deg,rgba(251,249,245,0),rgba(251,249,245,.42),rgba(251,249,245,0));animation:aiSweep 1.8s linear infinite}
+.ai-trace{fill:none;stroke:#6E5640;stroke-width:.9;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:100;animation:aiTrace 3.2s cubic-bezier(0.2,0.8,0.2,1) infinite}
+.ai-piece{opacity:0;animation:aiAssemble 4.8s cubic-bezier(0.2,0.8,0.2,1) infinite}
+.ai-line{position:absolute;left:0;right:0;opacity:0;animation:aiLine 8s ease-in-out infinite}
+@keyframes aiSweep{from{transform:translateX(-110%)}to{transform:translateX(250%)}}
+@keyframes aiTrace{0%{stroke-dashoffset:100;opacity:1}70%{stroke-dashoffset:0;opacity:1}100%{stroke-dashoffset:0;opacity:0}}
+@keyframes aiAssemble{0%{opacity:0;transform:translateY(14px) scale(.9)}25%{opacity:1;transform:translate(0,0) scale(1)}75%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(0,0) scale(1)}}
+@keyframes aiLine{0%{opacity:0;transform:translateY(4px)}4%,21%{opacity:1;transform:none}25%,100%{opacity:0;transform:translateY(-4px)}}
+@media (prefers-reduced-motion: reduce){.ai-sh::after,.ai-trace,.ai-piece,.ai-line{animation:none !important}.ai-trace{stroke-dashoffset:0}.ai-piece{opacity:1}.ai-line{opacity:0}.ai-line.first{opacity:1}}
+</style>
+</helmet>
+<div class="scr">
+
+<div style="position:relative;height:470px;flex:none;background:#DDD3C6;overflow:hidden" aria-busy="true">
+  <div class="ai-sh" aria-hidden="true"></div>
+  <svg aria-hidden="true" width="190" height="317" viewBox="0 0 60 100" style="position:absolute;left:100px;top:96px"><circle cx="30" cy="13" r="8" fill="#1C1A17" opacity=".08"/><path d="M17 30c4-4 22-4 26 0l4 32h-7l-2 34h-6l-2-30-2 30h-6l-2-34h-7z" fill="#1C1A17" opacity=".08"/><path class="ai-trace" pathLength="100" d="M17 30c4-4 22-4 26 0l4 32h-7l-2 34h-6l-2-30-2 30h-6l-2-34h-7z"/></svg>
+  <span class="ai-piece ph" style="position:absolute;left:24px;top:120px;width:58px;height:70px;background:#E8E1D7;border-radius:10px;animation-delay:0s"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1C1A17" stroke-width="1.1" stroke-linejoin="round"><path d="M8 3 3 6l2 4 3-1v12h8V9l3 1 2-4-5-3c-.5 1.5-2 2.5-4 2.5S8.5 4.5 8 3z"/></svg></span>
+  <span class="ai-piece ph" style="position:absolute;right:24px;top:140px;width:58px;height:70px;background:#3A342E;border-radius:10px;animation-delay:.3s"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F4F1EC" stroke-width="1.1" stroke-linejoin="round"><path d="M8 3 4 6v15h6V9l2 3 2-3v12h6V6l-4-3-2 4z"/></svg></span>
+  <span class="ai-piece ph" style="position:absolute;left:30px;top:290px;width:58px;height:70px;background:#A89582;border-radius:10px;animation-delay:.6s"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1C1A17" stroke-width="1.1" stroke-linejoin="round"><path d="M7 3h10l1 18h-4.2L12 10l-1.8 11H6z"/></svg></span>
+  <span class="ai-piece ph" style="position:absolute;right:30px;top:310px;width:58px;height:70px;background:#D6CBBE;border-radius:10px;animation-delay:.9s"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1C1A17" stroke-width="1.1" stroke-linejoin="round"><path d="M3 16c0-2 .8-4.5 2-6.5l3 1c1 2 3 3 6 3l5 1c1.2.3 2 1.2 2 2.3V18H3z"/></svg></span>
+  <div class="row" style="position:absolute;top:54px;left:20px;right:20px;justify-content:space-between">
+    <a href="Urun.dc.html" class="ib" aria-label="Geri" style="background:rgba(251,249,245,.92);border:0"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></a>
+    <span class="badge" style="background:#1C1A17;color:#F4F1EC;gap:4px;height:28px;padding:0 10px"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>AI önizleme</span>
+  </div>
+  <span class="tag" style="left:16px;bottom:16px">SENİN ÜZERİNDE · HAZIRLANIYOR</span>
+</div>
+<div style="padding:22px 24px 0;display:flex;flex-direction:column;gap:14px;flex:1">
+  <p class="eb">ÜZERİMDE GÖR</p>
+  <div role="status" aria-live="polite" style="position:relative;height:30px">
+    <p class="ai-line first h3" style="animation-delay:0s">Parçalar hazırlanıyor…</p>
+    <p class="ai-line h3" style="animation-delay:2s">Renkler eşleştiriliyor…</p>
+    <p class="ai-line h3" style="animation-delay:4s">Üzerine yerleştiriliyor…</p>
+    <p class="ai-line h3" style="animation-delay:6s">Son dokunuşlar…</p>
+  </div>
+  <p class="p">Beyaz Poplin Gömlek senin fotoğrafında hazırlanıyor. Genelde 20–40 saniye sürer.</p>
+  <p class="sm row" style="gap:6px"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="3" width="12" height="15" rx="6"/></svg>1 kredi · kalan 11</p>
+</div>
+<div style="padding:0 24px 36px">
+  <a href="Urun.dc.html" class="btn2" style="border-color:#DCD4C9;font-size:14px;height:auto;min-height:52px;padding:10px 20px;text-align:center;line-height:1.35">Arka planda devam et — bitince haber veririz</a>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

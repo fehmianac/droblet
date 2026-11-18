@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Hazır ürün kütüphanesi</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/e8430258669fc54f0b61d262bce30fdd">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&amp;family=Jost:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1C1A17;text-decoration:none}a:hover{color:#6E5640}
+</style>
+</helmet>
+<div class="scr">
+
+<header class="row" style="height:48px;padding:0 20px;justify-content:space-between;position:relative;flex:none;margin-top:50px"><a href="Ekle.dc.html" class="ib" aria-label="Geri" style="border:0;width:44px;margin-left:-10px"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></a><div style="position:absolute;left:70px;right:70px;text-align:center;font-size:15px;font-weight:500">Hazır kütüphane</div></header>
+<div style="padding:4px 20px 0;display:flex;flex-direction:column;gap:12px;flex:1;overflow:hidden">
+  <p class="p">Fotoğraf çekmeden ekle: gardırobundakine en çok benzeyeni seç, rengini ve bedenini sonra düzenle.</p>
+  <div style="position:relative"><label for="ks" class="sm" style="position:absolute;left:-9999px">Kütüphanede ara</label><input id="ks" class="inp" placeholder="Ara: trençkot, jean, babet" style="padding-left:40px"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#665F56" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:14px;top:15px"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></div>
+  <div class="scrollx"><button class="chip on">Tümü</button><button class="chip">Üst</button><button class="chip">Alt</button><button class="chip">Elbise</button><button class="chip">Dış giyim</button><button class="chip">Ayakkabı</button><button class="chip">Çanta</button></div>
+  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 10px">
+    <sc-for list="{{ items }}" as="it" hint-placeholder-count="12">
+      <button aria-pressed="{{ it.on }}" onClick="{{ it.toggle }}" style="display:flex;flex-direction:column;gap:5px;background:transparent;border:0;padding:0;font-family:inherit;text-align:left;cursor:pointer;color:#1C1A17">
+        <span class="ph" style="width:100%;height:96px;background:#E8E1D7;border-radius:12px;box-sizing:border-box;border:{{ it.ring }}"><svg aria-hidden="true" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#1C1A17" stroke-width="1.1" stroke-linejoin="round"><path d="{{ it.d }}"/></svg>
+          <span style="position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:11px;background:{{ it.dotBg }};color:{{ it.dotFg }};display:flex;align-items:center;justify-content:center;border:1px solid #DCD4C9;box-sizing:border-box"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{ it.icon }}"/></svg></span>
+        </span>
+        <span style="font-size:12px;line-height:1.25">{{ it.label }}</span>
+      </button>
+    </sc-for>
+  </div>
+</div>
+<div class="bar" style="position:relative">
+  <div style="flex:1"><p style="margin:0;font-size:15px;font-weight:500">{{ count }} parça seçildi</p><p class="sm">Renk ve bedeni sonra düzenle</p></div>
+  <a href="Gardirop.dc.html" class="btn" style="height:48px">Gardıroba ekle</a>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+  const top = 'M8 3 3 6l2 4 3-1v12h8V9l3 1 2-4-5-3c-.5 1.5-2 2.5-4 2.5S8.5 4.5 8 3z';
+  const knit = 'M8 4 3 7l1.5 6L7 12v8h10v-8l2.5 1L21 7l-5-3a4 4 0 0 1-8 0z';
+  const outer = 'M8 3 4 6v15h6V9l2 3 2-3v12h6V6l-4-3-2 4z';
+  const pants = 'M7 3h10l1 18h-4.2L12 10l-1.8 11H6z';
+  const dress = 'M9 2.5h6l-1 5.5 4.5 13h-13L10 8z';
+  const shoe = 'M3 16c0-2 .8-4.5 2-6.5l3 1c1 2 3 3 6 3l5 1c1.2.3 2 1.2 2 2.3V18H3z';
+  const bag = 'M5 9h14l-1.2 11H6.2zM9 9V7a3 3 0 0 1 6 0v2';
+  const all = [
+    ['Basic tişört', top], ['Poplin gömlek', top], ['Bisiklet yaka triko', knit],
+    ['Blazer ceket', outer], ['Trençkot', outer], ['Kaban', outer],
+    ['Düz paça jean', pants], ['Kumaş pantolon', pants], ['Midi elbise', dress],
+    ['Babet', shoe], ['Sneaker', shoe], ['Omuz çantası', bag]
+  ];
+  const sel = (this.state && this.state.sel) || ['Trençkot', 'Düz paça jean', 'Babet'];
+  const items = all.map(([label, d]) => {
+    const on = sel.indexOf(label) >= 0;
+    return { label, d, on,
+      ring: on ? '2px solid #1C1A17' : '2px solid transparent',
+      dotBg: on ? '#1C1A17' : '#FBF9F5', dotFg: on ? '#F4F1EC' : '#1C1A17',
+      icon: on ? 'M5 12.5l4.5 4.5L19 7.5' : 'M12 5v14M5 12h14',
+      toggle: () => this.setState({ sel: on ? sel.filter((x) => x !== label) : sel.concat([label]) }) };
+  });
+  return { items, count: sel.length };
+}
+}
+</script>
+</body>
+</html>

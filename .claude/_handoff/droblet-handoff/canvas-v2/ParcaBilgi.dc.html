@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Parça bilgileri</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/e8430258669fc54f0b61d262bce30fdd">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&amp;family=Jost:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1C1A17;text-decoration:none}a:hover{color:#6E5640}
+</style>
+</helmet>
+<div class="scr">
+
+<header class="row" style="height:48px;padding:0 20px;justify-content:space-between;position:relative;flex:none;margin-top:50px"><a href="Ekle.dc.html" class="ib" aria-label="Geri" style="border:0;width:44px;margin-left:-10px"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></a><div style="position:absolute;left:70px;right:70px;text-align:center;font-size:15px;font-weight:500">Parça bilgileri</div></header>
+<div style="padding:4px 20px 0;display:flex;flex-direction:column;gap:12px;flex:1;overflow:hidden">
+  <div class="row" style="gap:14px;align-items:stretch">
+    <div class="ph" style="width:132px;height:164px;background:{{ imgBg }};border-radius:14px"><svg aria-hidden="true" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#1C1A17" stroke-width="1.1" stroke-linejoin="round" style="opacity:.5"><path d="M8 3 3 6l2 4 3-1v12h8V9l3 1 2-4-5-3c-.5 1.5-2 2.5-4 2.5S8.5 4.5 8 3z"/></svg><span class="tag">{{ imgTag }}</span></div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+      <p class="eb">AI TAHMİNİ · KONTROL ET</p>
+      <div class="row" style="gap:6px;flex-wrap:wrap"><span class="badge">Gömlek</span><span class="badge">Beyaz</span><span class="badge">Pamuk</span></div>
+      <button class="chip" style="align-self:flex-start;margin-top:auto" onClick="{{ toggle }}"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7L4 8.5M4 4v4.5h4.5"/></svg>{{ toggleLabel }}</button>
+    </div>
+  </div>
+  <div class="fld"><label for="ad">Ad</label><input id="ad" class="inp" value="Beyaz poplin gömlek"></div>
+  <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+    <div class="fld"><label for="kat">Kategori</label><input id="kat" class="inp" value="Üst · Gömlek"></div>
+    <div class="fld"><label for="mrk">Marka</label><input id="mrk" class="inp" placeholder="İsteğe bağlı"></div>
+    <div class="fld"><label for="bdn">Beden</label><input id="bdn" class="inp" value="S"></div>
+    <div class="fld"><label for="rnk">Renk</label><input id="rnk" class="inp" value="Beyaz"></div>
+  </div>
+  <div class="fld"><label for="kms">Kumaş</label><input id="kms" class="inp" value="Pamuk"></div>
+  <div style="display:flex;flex-direction:column;gap:8px"><p style="margin:0;font-size:12px;font-weight:500">Sezon <span class="sm">· en az bir sezon seç</span></p><div class="row" style="gap:8px"><button class="chip on" aria-pressed="true">İlkbahar</button><button class="chip" aria-pressed="false">Yaz</button><button class="chip on" aria-pressed="true">Sonbahar</button><button class="chip" aria-pressed="false">Kış</button></div></div>
+</div>
+<div class="bar" style="position:relative">
+  <a href="Gardirop.dc.html" class="btn" style="flex:1">Gardıroba kaydet</a>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+  const orig = !!(this.state && this.state.orig);
+  return {
+    imgBg: orig ? '#B9AC9C' : '#E8E1D7',
+    imgTag: orig ? 'ORİJİNAL' : 'ARKA PLAN YOK',
+    toggleLabel: orig ? 'Temizlenmişi kullan' : 'Orijinale dön',
+    toggle: () => this.setState({ orig: !orig })
+  };
+}
+}
+</script>
+</body>
+</html>

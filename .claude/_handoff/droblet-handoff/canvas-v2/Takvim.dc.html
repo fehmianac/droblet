@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Takvim</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/e8430258669fc54f0b61d262bce30fdd">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&amp;family=Jost:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1C1A17;text-decoration:none}a:hover{color:#6E5640}
+</style>
+</helmet>
+<div class="scr">
+
+<header class="row" style="height:48px;padding:0 20px;justify-content:space-between;position:relative;flex:none;margin-top:50px"><a href="Hafta.dc.html" class="ib" aria-label="Geri" style="border:0;width:44px;margin-left:-10px"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></a></header>
+<div style="padding:4px 20px 0;display:flex;flex-direction:column;gap:14px;flex:1;overflow:hidden">
+  <div><p class="eb">NE GİYECEĞİM, NE GİYDİM</p><div class="row" style="justify-content:space-between;margin-top:6px"><h1 class="h1">Kasım 2026</h1><div class="row" style="gap:6px"><button class="ib" aria-label="Önceki ay"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><button class="ib" aria-label="Sonraki ay"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button></div></div></div>
+  <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;font-size:10.5px;color:#665F56;text-align:center"><span>Pzt</span><span>Sal</span><span>Çar</span><span>Per</span><span>Cum</span><span>Cmt</span><span>Paz</span></div>
+  <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px">
+    <div></div><div></div><div></div><div></div><div></div><div></div>
+    <sc-for list="{{ days }}" as="d" hint-placeholder-count="30">
+      <button onClick="{{ d.open }}" aria-label="{{ d.label }}" style="display:flex;flex-direction:column;gap:3px;align-items:center;background:transparent;border:0;padding:0;font-family:inherit;cursor:pointer">
+        <span style="font-size:11px;color:{{ d.numColor }};font-weight:{{ d.numWeight }}">{{ d.n }}</span>
+        <span style="width:100%;height:52px;border-radius:8px;box-sizing:border-box;background:{{ d.bg }};border:{{ d.border }};display:flex;align-items:center;justify-content:center"><sc-if value="{{ d.has }}" hint-placeholder-val="{{ false }}"><svg aria-hidden="true" width="20" height="34" viewBox="0 0 60 100" fill="{{ d.fg }}" stroke="none" style="opacity:.16"><circle cx="30" cy="13" r="8"/><path d="M17 30c4-4 22-4 26 0l4 32h-7l-2 34h-6l-2-30-2 30h-6l-2-34h-7z"/></svg></sc-if></span>
+      </button>
+    </sc-for>
+  </div>
+  <div class="card row" style="padding:14px;gap:14px">
+    <div style="flex:1"><p class="eb">BU AY</p><p style="margin:4px 0 0;font-size:15px;font-weight:500">10 gün kayıtlı</p><p class="sm">En çok giyilen: Lacivert blazer</p></div>
+    <button class="chip">Rapor<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+  </div>
+</div>
+
+<sc-if value="{{ sheetOpen }}" hint-placeholder-val="{{ false }}">
+  <button class="scrim" aria-label="Kapat" onClick="{{ close }}"></button>
+  <div class="sheet" style="padding:0 20px 34px;display:flex;flex-direction:column;gap:14px">
+    <div class="grab"></div>
+    <div class="row" style="justify-content:space-between"><p class="eb">{{ sel.title }}</p><button class="ib" aria-label="Kapat" style="border:0" onClick="{{ close }}"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <sc-if value="{{ sel.has }}" hint-placeholder-val="{{ true }}">
+      <div class="row" style="gap:14px">
+        <div class="ph" style="width:96px;height:124px;background:{{ sel.bg }};border-radius:12px"><svg aria-hidden="true" width="44" height="74" viewBox="0 0 60 100" fill="{{ sel.fg }}" stroke="none" style="opacity:.16"><circle cx="30" cy="13" r="8"/><path d="M17 30c4-4 22-4 26 0l4 32h-7l-2 34h-6l-2-30-2 30h-6l-2-34h-7z"/></svg></div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:6px"><span class="badge" style="align-self:flex-start">{{ sel.status }}</span><p class="h3">{{ sel.name }}</p><p class="sm">Ofis · 3 parça</p></div>
+      </div>
+      <div class="row" style="gap:8px"><a href="DanismanSonuc.dc.html" class="btn2" style="flex:1;height:44px;font-size:14px">Look'u aç</a><a href="Stilist.dc.html" class="btn" style="flex:1;height:44px;font-size:14px">Değiştir</a></div>
+    </sc-if>
+    <sc-if value="{{ sel.empty }}" hint-placeholder-val="{{ false }}">
+      <p class="p">Bu gün için look yok. Stilist ortama ve havaya göre önersin.</p>
+      <a href="Stilist.dc.html" class="btn"><svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>Bu gün için öner</a>
+    </sc-if>
+  </div>
+</sc-if>
+
+<nav class="tabbar" aria-label="Ana gezinme"><a href="Home.dc.html" class="tab on" aria-current="page"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z"/></svg><span>Bugün</span></a><a href="Gardirop.dc.html" class="tab"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6.5a2 2 0 1 1 2.6 1.9c-.4.2-.6.6-.6 1V10.5"/><path d="M12 10.5 3.4 17.4c-.6.5-.3 1.6.5 1.6h16.2c.8 0 1.1-1.1.5-1.6z"/></svg><span>Gardırop</span></a><a href="Stilist.dc.html" class="fab" aria-label="Stilist"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15.5l.6 1.9 1.9.6-1.9.6-.6 1.9-.6-1.9-1.9-.6 1.9-.6z"/></svg></a><a href="Kesfet.dc.html" class="tab"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg><span>Keşfet</span></a><a href="Profil.dc.html" class="tab"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg><span>Profil</span></a></nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+  const looks = { 2: ['#CDBFAE', '#1C1A17'], 3: ['#3A342E', '#F4F1EC'], 5: ['#A89582', '#1C1A17'], 9: ['#CDBFAE', '#1C1A17'], 10: ['#3A342E', '#F4F1EC'], 11: ['#A89582', '#1C1A17'], 12: ['#DDD3C6', '#1C1A17'], 16: ['#CDBFAE', '#1C1A17'], 17: ['#3A342E', '#F4F1EC'], 18: ['#A89582', '#1C1A17'] };
+  const names = { 16: 'Beyaz Gömlek, Net Çizgi', 17: 'Siyah Düz Elbise', 18: 'Lacivert Blazer' };
+  const picked = this.state && this.state.day;
+  const days = [];
+  for (let n = 1; n <= 30; n++) {
+    const l = looks[n];
+    days.push({
+      n, has: !!l,
+      label: n + ' Kasım' + (l ? ', look var' : ', boş'),
+      bg: l ? l[0] : 'transparent', fg: l ? l[1] : '#1C1A17',
+      border: l ? '0' : '1px dashed #C9C0B4',
+      numColor: n === 18 ? '#1C1A17' : '#665F56', numWeight: n === 18 ? 600 : 400,
+      open: () => this.setState({ day: n })
+    });
+  }
+  const l = picked ? looks[picked] : null;
+  const sel = {
+    title: picked ? (picked + ' KASIM') : '',
+    has: !!l, empty: !l,
+    bg: l ? l[0] : '#E8E1D7', fg: l ? l[1] : '#1C1A17',
+    name: names[picked] || 'Kayıtlı look',
+    status: picked && picked > 18 ? 'Planlandı' : 'Giyildi'
+  };
+  return { days, sel, sheetOpen: !!picked, close: () => this.setState({ day: null }) };
+}
+}
+</script>
+</body>
+</html>

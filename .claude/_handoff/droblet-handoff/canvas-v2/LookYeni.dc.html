@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Look oluştur</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/e8430258669fc54f0b61d262bce30fdd">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&amp;family=Jost:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1C1A17;text-decoration:none}a:hover{color:#6E5640}
+</style>
+</helmet>
+<div class="scr">
+
+<header class="row" style="height:48px;padding:0 20px;justify-content:space-between;position:relative;flex:none;margin-top:50px"><a href="Looklar.dc.html" class="ib" aria-label="Kapat"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"/></svg></a><div style="position:absolute;left:70px;right:70px;text-align:center;font-size:15px;font-weight:500">Look oluştur</div></header>
+<div style="padding:4px 20px 0;display:flex;flex-direction:column;gap:12px;flex:1;overflow:hidden">
+  <div class="row" style="gap:12px;align-items:stretch">
+    <div class="ph" style="width:140px;height:228px;background:#DDD3C6;border-radius:14px;"><svg aria-hidden="true" width="86" height="143" viewBox="0 0 60 100" fill="#1C1A17" stroke="none" style="opacity:.16"><circle cx="30" cy="13" r="8"/><path d="M17 30c4-4 22-4 26 0l4 32h-7l-2 34h-6l-2-30-2 30h-6l-2-34h-7z"/></svg><span class="tag">ÖNİZLEME</span></div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:10px;justify-content:space-between">
+      <div class="fld"><label for="lad">Look adı</label><input id="lad" class="inp" value="Lacivert Blazer"></div>
+      <div class="fld"><span style="font-size:12px;font-weight:500">Ortam</span><div class="row" style="gap:6px;flex-wrap:wrap"><button class="chip on" style="height:36px">Ofis</button><button class="chip" style="height:36px">Akşam</button><button class="chip" style="height:36px">Seyahat</button></div></div>
+      <a href="KrediOnay.dc.html" class="btn2" style="height:44px;font-size:14px"><svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="3" width="12" height="15" rx="6"/><path d="M12 18v3M8 21h8"/></svg>Üzerimde gör</a>
+    </div>
+  </div>
+  <div class="row" style="justify-content:space-between"><p class="eb">3 / 5 PARÇA SEÇİLDİ</p><span class="sm">En az 2 parça</span></div>
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div class="card row" style="gap:12px;padding:8px 10px;border-radius:16px"><div class="ph" style="width:44px;height:52px;background:#E8E1D7;border-radius:10px;"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1C1A17" stroke-width="1.1" stroke-linejoin="round" style="opacity:.5"><path d="M8 3 3 6l2 4 3-1v12h8V9l3 1 2-4-5-3c-.5 1.5-2 2.5-4 2.5S8.5 4.5 8 3z"/></svg></div><div style="flex:1"><p class="sm" style="font-size:11px">Üst</p><p style="margin:2px 0 0;font-size:14px;font-weight:500">Beyaz poplin gömlek</p></div><button class="ib" aria-label="Üst parçayı değiştir" style="border:0" onClick="{{ open }}"><svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.5-4.5L4 8M4 4v4h4M4 13a8 8 0 0 0 14.5 4.5L20 16M20 20v-4h-4"/></svg></button></div>
+    <div class="card row" style="gap:12px;padding:8px 10px;border-radius:16px"><div class="ph" style="width:44px;height:52px;background:#3A342E;border-radius:10px;"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F4F1EC" stroke-width="1.1" stroke-linejoin="round" style="opacity:.5"><path d="M7 3h10l1 18h-4.2L12 10l-1.8 11H6z"/></svg></div><div style="flex:1"><p class="sm" style="font-size:11px">Alt</p><p style="margin:2px 0 0;font-size:14px;font-weight:500">Siyah kumaş pantolon</p></div><button class="ib" aria-label="Alt parçayı değiştir" style="border:0" onClick="{{ open }}"><svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.5-4.5L4 8M4 4v4h4M4 13a8 8 0 0 0 14.5 4.5L20 16M20 20v-4h-4"/></svg></button></div>
+    <div class="card row" style="gap:12px;padding:8px 10px;border-radius:16px"><div class="ph" style="width:44px;height:52px;background:#A89582;border-radius:10px;"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1C1A17" stroke-width="1.1" stroke-linejoin="round" style="opacity:.5"><path d="M8 3 4 6v15h6V9l2 3 2-3v12h6V6l-4-3-2 4z"/></svg></div><div style="flex:1"><p class="sm" style="font-size:11px">Dış giyim</p><p style="margin:2px 0 0;font-size:14px;font-weight:500">Lacivert yün blazer</p></div><button class="ib" aria-label="Dış giyimi değiştir" style="border:0" onClick="{{ open }}"><svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.5-4.5L4 8M4 4v4h4M4 13a8 8 0 0 0 14.5 4.5L20 16M20 20v-4h-4"/></svg></button></div>
+    <button onClick="{{ open }}" class="row" style="gap:12px;padding:8px 10px;border-radius:16px;border:1.5px dashed #A69B8E;background:transparent;font-family:inherit;text-align:left;cursor:pointer;color:#1C1A17"><span class="ph" style="width:44px;height:52px;border-radius:10px;background:#E8E1D7"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span><span style="flex:1"><span class="sm" style="display:block;font-size:11px">Ayakkabı</span><span style="font-size:14px;color:#665F56">Gardıroptan ya da mağazadan seç</span></span></button>
+    <button onClick="{{ open }}" class="row" style="gap:12px;padding:8px 10px;border-radius:16px;border:1.5px dashed #A69B8E;background:transparent;font-family:inherit;text-align:left;cursor:pointer;color:#1C1A17"><span class="ph" style="width:44px;height:52px;border-radius:10px;background:#E8E1D7"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span><span style="flex:1"><span class="sm" style="display:block;font-size:11px">Çanta / Aksesuar</span><span style="font-size:14px;color:#665F56">Gardıroptan ya da mağazadan seç</span></span></button>
+  </div>
+</div>
+<div class="bar" style="position:relative"><p class="sm" style="flex:1">Kaydet, en az 2 parça seçilince açılır.</p><a href="Looklar.dc.html" class="btn" style="height:48px;padding:0 28px">Kaydet</a></div>
+
+<sc-if value="{{ sheet }}" hint-placeholder-val="{{ false }}">
+  <button class="scrim" aria-label="Kapat" onClick="{{ close }}"></button>
+  <div class="sheet" style="padding:0 20px 34px;display:flex;flex-direction:column;gap:14px">
+    <div class="grab"></div>
+    <p class="h3" style="padding-top:4px">Ayakkabı seç</p>
+    <div class="row" style="background:#E8E1D7;border-radius:22px;padding:3px;gap:3px"><button class="chip on" style="flex:1;justify-content:center;border:0;height:38px;background:#FBF9F5;color:#1C1A17">Gardırobum</button><button class="chip" style="flex:1;justify-content:center;border:0;height:38px">Mağaza</button></div>
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
+      <button onClick="{{ close }}" style="display:flex;flex-direction:column;gap:5px;background:transparent;border:0;padding:0;font-family:inherit;text-align:left;cursor:pointer;color:#1C1A17"><span class="ph" style="width:100%;height:92px;background:#D6CBBE;border-radius:12px"><svg aria-hidden="true" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#1C1A17" stroke-width="1.1" stroke-linejoin="round" style="opacity:.5"><path d="M3 16c0-2 .8-4.5 2-6.5l3 1c1 2 3 3 6 3l5 1c1.2.3 2 1.2 2 2.3V18H3z"/></svg></span><span style="font-size:12px">Kroko babet</span></button>
+      <button onClick="{{ close }}" style="display:flex;flex-direction:column;gap:5px;background:transparent;border:0;padding:0;font-family:inherit;text-align:left;cursor:pointer;color:#1C1A17"><span class="ph" style="width:100%;height:92px;background:#3A342E;border-radius:12px"><svg aria-hidden="true" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#F4F1EC" stroke-width="1.1" stroke-linejoin="round" style="opacity:.5"><path d="M3 16c0-2 .8-4.5 2-6.5l3 1c1 2 3 3 6 3l5 1c1.2.3 2 1.2 2 2.3V18H3z"/></svg></span><span style="font-size:12px">Siyah bot</span></button>
+      <button onClick="{{ close }}" style="display:flex;flex-direction:column;gap:5px;background:transparent;border:0;padding:0;font-family:inherit;text-align:left;cursor:pointer;color:#1C1A17"><span class="ph" style="width:100%;height:92px;background:#E8E1D7;border-radius:12px"><svg aria-hidden="true" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#1C1A17" stroke-width="1.1" stroke-linejoin="round" style="opacity:.5"><path d="M3 16c0-2 .8-4.5 2-6.5l3 1c1 2 3 3 6 3l5 1c1.2.3 2 1.2 2 2.3V18H3z"/></svg></span><span style="font-size:12px">Beyaz sneaker</span></button>
+    </div>
+  </div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+  const sheet = !!(this.state && this.state.sheet);
+  return { sheet, open: () => this.setState({ sheet: true }), close: () => this.setState({ sheet: false }) };
+}
+}
+</script>
+</body>
+</html>

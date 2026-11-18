@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Gardırop</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/e8430258669fc54f0b61d262bce30fdd">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&amp;family=Jost:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1C1A17;text-decoration:none}a:hover{color:#6E5640}
+</style>
+</helmet>
+<div class="scr">
+
+<header class="row" style="height:48px;padding:0 20px;justify-content:space-between;position:relative;flex:none;margin-top:50px"><span class="row" style="gap:7px"><svg aria-hidden="true" width="20" height="24" viewBox="8 4 36 42"><path d="M26 6C26 6 10 24 10 36a16 16 0 0 0 32 0C42 24 26 6 26 6z" fill="#1C1A17"/><path d="M23.4 27a2.7 2.7 0 1 1 3.8 2.5c-.8.3-1.2.9-1.2 1.7v1.5M26 32.7 15.8 40.6h20.4z" fill="none" stroke="#F4F1EC" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="serif" style="font-size:26px;font-weight:500;letter-spacing:.01em">Droblet</span></span><div class="row" style="gap:8px"><button class="ib" aria-label="Gardıropta ara" onClick="{{ toggleSearch }}"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></button><a href="Ekle.dc.html" class="ib" aria-label="Parça ekle" style="background:#1C1A17;color:#F4F1EC;border-color:#1C1A17"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></a></div></header>
+<div style="flex:1;overflow:hidden;display:flex;flex-direction:column;gap:12px;padding-top:6px">
+  <sc-if value="{{ search }}" hint-placeholder-val="{{ false }}">
+    <div style="padding:0 20px"><label for="gs" class="sm" style="display:block;margin-bottom:4px">Gardıropta ara</label><input id="gs" class="inp" placeholder="Örn. siyah blazer, yün, Vakko"></div>
+  </sc-if>
+  <div style="padding:0 20px" class="row"><div style="flex:1"><p class="eb">GARDIROBUN</p><h1 class="h1" style="margin-top:4px">86 parça</h1></div><button class="chip" style="height:36px" onClick="{{ toggleSelect }}">{{ selectLabel }}</button></div>
+  <div class="row" style="margin:0 20px;background:#E8E1D7;border-radius:22px;padding:4px;gap:4px"><a href="Gardirop.dc.html" aria-current="page" style="flex:1;height:36px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:500;background:#FBF9F5;box-shadow:0 1px 3px rgba(28,26,23,.12)">Parçalar</a><a href="Looklar.dc.html" style="flex:1;height:36px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:500;color:#665F56">Looklar</a><a href="Bavul.dc.html" style="flex:1;height:36px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:500;color:#665F56">Bavullar</a></div>
+  <div class="row" style="gap:8px;padding:0 20px">
+    <div class="scrollx" style="flex:1"><button class="chip on">Tümü</button><button class="chip">Üst</button><button class="chip">Alt</button><button class="chip">Elbise</button><button class="chip">Dış giyim</button><button class="chip">Ayakkabı</button><button class="chip">Çanta</button><button class="chip">Aksesuar</button><button class="chip">Plaj giyim</button><button class="chip">Kayak giyim</button></div>
+    <button class="ib" aria-label="Filtrele ve sırala" onClick="{{ openFilter }}"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M7 12h10M10 17h4"/></svg></button>
+  </div>
+  <div class="row" style="gap:6px;padding:0 20px"><span class="badge">Sonbahar</span><span class="badge" style="background:transparent;border:1px solid #DCD4C9">Tüm renkler</span><span class="sm" style="margin-left:auto">En yeni · Uzun bas: çoklu seçim</span></div>
+  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 10px;padding:0 20px">
+    <sc-for list="{{ items }}" as="it" hint-placeholder-count="9">
+      <sc-if value="{{ it.plain }}" hint-placeholder-val="{{ true }}">
+        <a href="Parca.dc.html" style="display:flex;flex-direction:column;gap:6px"><span class="ph" style="width:100%;height:128px;background:{{ it.bg }};border-radius:12px;"><svg aria-hidden="true" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="{{ it.fg }}" stroke-width="1.1" stroke-linejoin="round" style="opacity:.5"><path d="{{ it.d }}"/></svg></span><span style="font-size:12px;line-height:1.3">{{ it.name }}</span></a>
+      </sc-if>
+      <sc-if value="{{ it.selecting }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ it.toggle }}" aria-pressed="{{ it.on }}" style="display:flex;flex-direction:column;gap:6px;background:transparent;border:0;padding:0;font-family:inherit;text-align:left;color:#1C1A17;cursor:pointer"><span class="ph" style="width:100%;height:128px;background:{{ it.bg }};border-radius:12px;box-sizing:border-box;border:{{ it.ring }}"><svg aria-hidden="true" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="{{ it.fg }}" stroke-width="1.1" stroke-linejoin="round" style="opacity:.5"><path d="{{ it.d }}"/></svg><span style="position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:11px;background:{{ it.dotBg }};border:1.5px solid #FBF9F5;box-sizing:border-box"></span></span><span style="font-size:12px;line-height:1.3">{{ it.name }}</span></button>
+      </sc-if>
+    </sc-for>
+  </div>
+</div>
+
+<sc-if value="{{ selecting }}" hint-placeholder-val="{{ false }}">
+  <div class="bar" style="flex-direction:column;align-items:stretch;gap:8px">
+    <p class="sm" style="color:#1C1A17;font-weight:500">{{ selCount }} parça seçildi</p>
+    <div class="row" style="gap:8px"><a href="LookYeni.dc.html" class="btn" style="flex:1;height:44px;font-size:14px">Look oluştur</a><button class="btn2" style="height:44px;font-size:14px;padding:0 14px">Sezon</button><button class="btn2" style="height:44px;font-size:14px;padding:0 14px;color:#9A3B2E;border-color:#9A3B2E">Sil</button></div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ filter }}" hint-placeholder-val="{{ false }}">
+  <button class="scrim" aria-label="Kapat" onClick="{{ closeFilter }}"></button>
+  <div class="sheet" style="padding:0 20px 34px;display:flex;flex-direction:column;gap:16px">
+    <div class="grab"></div>
+    <div class="row" style="justify-content:space-between"><p class="h3">Filtrele ve sırala</p><button style="background:transparent;border:0;font-family:inherit;font-size:13px;color:#1C1A17;text-decoration:underline;min-height:44px;cursor:pointer">Temizle</button></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><p class="eb">SEZON</p><div class="row" style="gap:8px;flex-wrap:wrap"><button class="chip">İlkbahar</button><button class="chip">Yaz</button><button class="chip on">Sonbahar</button><button class="chip">Kış</button></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><p class="eb">RENK</p><div class="row" style="gap:10px"><button class="ib" aria-label="Siyah" style="background:#1C1A17"></button><button class="ib" aria-label="Beyaz" style="background:#FBF9F5"></button><button class="ib" aria-label="Bej" style="background:#CDBFAE"></button><button class="ib" aria-label="Lacivert" style="background:#2E3A52"></button><button class="ib" aria-label="Kahve" style="background:#6E5640"></button><button class="ib" aria-label="Gri" style="background:#9A958E"></button></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><p class="eb">MARKA</p><div class="row" style="gap:8px;flex-wrap:wrap"><button class="chip">Marks &amp; Spencer</button><button class="chip">Vakko</button><button class="chip">Gap</button><button class="chip">Diğer</button></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><p class="eb">SIRALAMA</p><div class="row" style="gap:8px;flex-wrap:wrap"><button class="chip on">En yeni</button><button class="chip">En çok giyilen</button><button class="chip">En az giyilen</button></div></div>
+    <button class="btn" onClick="{{ closeFilter }}">86 parçayı göster</button>
+  </div>
+</sc-if>
+
+<sc-if value="{{ showTabs }}" hint-placeholder-val="{{ true }}">
+<nav class="tabbar" aria-label="Ana gezinme"><a href="Home.dc.html" class="tab"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z"/></svg><span>Bugün</span></a><a href="Gardirop.dc.html" class="tab on" aria-current="page"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6.5a2 2 0 1 1 2.6 1.9c-.4.2-.6.6-.6 1V10.5"/><path d="M12 10.5 3.4 17.4c-.6.5-.3 1.6.5 1.6h16.2c.8 0 1.1-1.1.5-1.6z"/></svg><span>Gardırop</span></a><a href="Stilist.dc.html" class="fab" aria-label="Stilist"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15.5l.6 1.9 1.9.6-1.9.6-.6 1.9-.6-1.9-1.9-.6 1.9-.6z"/></svg></a><a href="Kesfet.dc.html" class="tab"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg><span>Keşfet</span></a><a href="Profil.dc.html" class="tab"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg><span>Profil</span></a></nav>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+  const s = this.state || {};
+  const selecting = !!s.selecting;
+  const sel = s.sel || [];
+  const top = 'M8 3 3 6l2 4 3-1v12h8V9l3 1 2-4-5-3c-.5 1.5-2 2.5-4 2.5S8.5 4.5 8 3z';
+  const outer = 'M8 3 4 6v15h6V9l2 3 2-3v12h6V6l-4-3-2 4z';
+  const data = [
+    ['Beyaz poplin gömlek', '#E8E1D7', '#1C1A17', top],
+    ['Lacivert yün blazer', '#3A342E', '#F4F1EC', outer],
+    ['Siyah midi elbise', '#3A342E', '#F4F1EC', 'M9 2.5h6l-1 5.5 4.5 13h-13L10 8z'],
+    ['Düz jean', '#A89582', '#1C1A17', 'M7 3h10l1 18h-4.2L12 10l-1.8 11H6z'],
+    ['Krem triko', '#E8E1D7', '#1C1A17', 'M8 4 3 7l1.5 6L7 12v8h10v-8l2.5 1L21 7l-5-3a4 4 0 0 1-8 0z'],
+    ['Kroko babet', '#D6CBBE', '#1C1A17', 'M3 16c0-2 .8-4.5 2-6.5l3 1c1 2 3 3 6 3l5 1c1.2.3 2 1.2 2 2.3V18H3z'],
+    ['Siyah deri çanta', '#3A342E', '#F4F1EC', 'M5 9h14l-1.2 11H6.2zM9 9V7a3 3 0 0 1 6 0v2'],
+    ['Tüvit ceket', '#CDBFAE', '#1C1A17', outer],
+    ['Bej trençkot', '#BFAE99', '#1C1A17', outer]
+  ];
+  const items = data.map(([name, bg, fg, d], i) => {
+    const on = sel.indexOf(i) >= 0;
+    return { name, bg, fg, d, on, plain: !selecting, selecting,
+      ring: on ? '2px solid #1C1A17' : '2px solid transparent',
+      dotBg: on ? '#1C1A17' : 'rgba(251,249,245,.7)',
+      toggle: () => this.setState({ sel: on ? sel.filter((x) => x !== i) : sel.concat([i]) }) };
+  });
+  return {
+    items, selecting, selCount: sel.length,
+    showTabs: !selecting,
+    selectLabel: selecting ? 'Bitti' : 'Seç',
+    search: !!s.search, filter: !!s.filter,
+    toggleSearch: () => this.setState({ search: !s.search }),
+    toggleSelect: () => this.setState({ selecting: !selecting, sel: selecting ? [] : [0, 4] }),
+    openFilter: () => this.setState({ filter: true }),
+    closeFilter: () => this.setState({ filter: false })
+  };
+}
+}
+</script>
+</body>
+</html>

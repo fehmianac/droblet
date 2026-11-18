@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Yeni şifre</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/e8430258669fc54f0b61d262bce30fdd">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&amp;family=Jost:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1C1A17;text-decoration:none}a:hover{color:#6E5640}
+</style>
+</helmet>
+<div class="scr">
+
+<header class="row" style="height:48px;padding:0 20px;justify-content:flex-end;position:relative;flex:none;margin-top:50px"><a href="Kayit.dc.html" class="ib" aria-label="Kapat" style="border:0"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"/></svg></a></header>
+<div style="padding:8px 24px 0;display:flex;flex-direction:column;gap:22px;flex:1">
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <p class="eb">ŞİFRE SIFIRLAMA</p>
+    <h1 class="h1">Yeni şifreni belirle</h1>
+    <p class="p">damla@ornek.com için yeni bir şifre seç.</p>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div class="fld"><label for="n1">Yeni şifre</label><input id="n1" class="inp" type="password" value="sonbahar2026" autocomplete="new-password"><p class="sm">En az 8 karakter</p></div>
+    <div class="fld"><label for="n2">Yeni şifre (tekrar)</label><input id="n2" class="inp bad" type="password" value="sonbahar202" autocomplete="new-password" aria-describedby="n2err"><p id="n2err" class="err">Şifreler eşleşmiyor.</p></div>
+  </div>
+</div>
+<div style="padding:0 24px 40px"><a href="Home.dc.html" class="btn">Şifreyi kaydet ve giriş yap</a></div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

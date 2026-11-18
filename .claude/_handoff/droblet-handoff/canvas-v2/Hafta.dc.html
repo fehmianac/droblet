@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Haftalık plan</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/e8430258669fc54f0b61d262bce30fdd">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&amp;family=Jost:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1C1A17;text-decoration:none}a:hover{color:#6E5640}
+</style>
+</helmet>
+<div class="scr">
+
+<header class="row" style="height:48px;padding:0 20px;justify-content:space-between;position:relative;flex:none;margin-top:50px"><a href="Home.dc.html" class="ib" aria-label="Geri" style="border:0;width:44px;margin-left:-10px"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></a><div class="row" style="gap:8px"><a href="Takvim.dc.html" class="ib" aria-label="Takvim"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg></a></div></header>
+<div style="padding:4px 20px 0;display:flex;flex-direction:column;gap:14px;flex:1;overflow:hidden">
+  <div><p class="eb">ÖNÜMÜZDEKİ 7 GÜN</p><h1 class="h1" style="margin-top:6px">Haftalık plan</h1></div>
+  <div class="card" style="padding:14px;display:flex;flex-direction:column;gap:10px">
+    <p class="eb">HAFTANIN ORTAMI</p>
+    <div class="row" style="gap:6px;flex-wrap:wrap"><button class="chip on" style="height:36px">Ofis ×4</button><button class="chip" style="height:36px">Akşam yemeği ×1</button><button class="chip" style="height:36px">Hafta sonu ×2</button></div>
+    <div class="row" style="gap:8px"><button class="btn" style="height:44px;flex:1;font-size:14px"><svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15.5l.6 1.9 1.9.6-1.9.6-.6 1.9-.6-1.9-1.9-.6 1.9-.6z"/></svg>Haftamı planla</button><a href="KrediOnay.dc.html" class="btn2" style="height:44px;flex:1;font-size:14px"><svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="3" width="12" height="15" rx="6"/><path d="M12 18v3M8 21h8"/></svg>Üzerimde gör</a></div>
+    <p class="sm">Üzerimde gör AI kredisi harcar; önce kaç kredi gideceğini gösteririz.</p>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <sc-for list="{{ rows }}" as="r" hint-placeholder-count="3">
+      <div class="card row" style="gap:12px;padding:10px;align-items:center;position:relative">
+        <div class="ph" style="width:56px;height:72px;background:{{ r.bg }};border-radius:10px;"><svg aria-hidden="true" width="27" height="45" viewBox="0 0 60 100" fill="{{ r.fg }}" stroke="none" style="opacity:.16"><circle cx="30" cy="13" r="8"/><path d="M17 30c4-4 22-4 26 0l4 32h-7l-2 34h-6l-2-30-2 30h-6l-2-34h-7z"/></svg></div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:3px"><p class="eb">{{ r.day }}</p><p style="margin:0;font-size:15px;font-weight:500">{{ r.name }}</p><p class="sm">{{ r.date }}</p></div>
+        <button class="ib" aria-label="Gün seçenekleri" aria-expanded="{{ r.open }}" style="border:0" onClick="{{ r.toggle }}"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg></button>
+        <sc-if value="{{ r.open }}" hint-placeholder-val="{{ false }}">
+          <div class="menu" style="right:12px;top:58px">
+            <a href="Stilist.dc.html" class="mi"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.5-4.5L4 8M4 4v4h4M4 13a8 8 0 0 0 14.5 4.5L20 16M20 20v-4h-4"/></svg>Değiştir</a>
+            <button class="mi dg" onClick="{{ r.toggle }}"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>Kaldır</button>
+          </div>
+        </sc-if>
+      </div>
+    </sc-for>
+    <div class="row" style="gap:12px;padding:10px;align-items:center;border:1.5px dashed #CFC6BA;border-radius:20px"><div class="ph" style="width:56px;height:72px;background:#E8E1D7;border-radius:10px"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></div><div style="flex:1;display:flex;flex-direction:column;gap:3px"><p class="eb">PERŞEMBE · AKŞAM YEMEĞİ</p><p style="margin:0;font-size:15px;font-weight:500;color:#665F56">Kombin seçilmedi</p></div><a href="Stilist.dc.html" class="chip"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15.5l.6 1.9 1.9.6-1.9.6-.6 1.9-.6-1.9-1.9-.6 1.9-.6z"/></svg>Öner</a></div>
+    <div class="row" style="gap:12px;padding:10px;align-items:center;border:1.5px dashed #CFC6BA;border-radius:20px"><div class="ph" style="width:56px;height:72px;background:#E8E1D7;border-radius:10px"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></div><div style="flex:1;display:flex;flex-direction:column;gap:3px"><p class="eb">CUMA · OFİS</p><p style="margin:0;font-size:15px;font-weight:500;color:#665F56">Kombin seçilmedi</p></div><a href="Stilist.dc.html" class="chip"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15.5l.6 1.9 1.9.6-1.9.6-.6 1.9-.6-1.9-1.9-.6 1.9-.6z"/></svg>Öner</a></div>
+  </div>
+</div>
+
+<nav class="tabbar" aria-label="Ana gezinme"><a href="Home.dc.html" class="tab on" aria-current="page"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z"/></svg><span>Bugün</span></a><a href="Gardirop.dc.html" class="tab"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6.5a2 2 0 1 1 2.6 1.9c-.4.2-.6.6-.6 1V10.5"/><path d="M12 10.5 3.4 17.4c-.6.5-.3 1.6.5 1.6h16.2c.8 0 1.1-1.1.5-1.6z"/></svg><span>Gardırop</span></a><a href="Stilist.dc.html" class="fab" aria-label="Stilist"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15.5l.6 1.9 1.9.6-1.9.6-.6 1.9-.6-1.9-1.9-.6 1.9-.6z"/></svg></a><a href="Kesfet.dc.html" class="tab"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg><span>Keşfet</span></a><a href="Profil.dc.html" class="tab"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg><span>Profil</span></a></nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+  const open = this.state && this.state.open != null ? this.state.open : -1;
+  const data = [
+    ['PAZARTESİ · OFİS', 'Beyaz Gömlek, Net Çizgi', '16 Kasım', '#CDBFAE', '#1C1A17'],
+    ['SALI · OFİS', 'Siyah Düz Elbise', '17 Kasım', '#3A342E', '#F4F1EC'],
+    ['ÇARŞAMBA · OFİS', 'Lacivert Blazer', '18 Kasım', '#A89582', '#1C1A17']
+  ];
+  const rows = data.map(([day, name, date, bg, fg], i) => ({
+    day, name, date, bg, fg, open: open === i,
+    toggle: () => this.setState({ open: open === i ? -1 : i })
+  }));
+  return { rows };
+}
+}
+</script>
+</body>
+</html>

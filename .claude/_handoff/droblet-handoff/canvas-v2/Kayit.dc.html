@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Hesap oluştur</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/e8430258669fc54f0b61d262bce30fdd">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&amp;family=Jost:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1C1A17;text-decoration:none}a:hover{color:#6E5640}
+</style>
+</helmet>
+<div class="scr">
+
+<header class="row" style="height:48px;padding:0 20px;justify-content:space-between;position:relative;flex:none;margin-top:50px"><a href="Main.dc.html" class="ib" aria-label="Geri" style="border:0;width:44px;margin-left:-10px"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></a></header>
+<div style="padding:8px 24px 0;display:flex;flex-direction:column;gap:20px;flex:1">
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <sc-if value="{{ isKayit }}" hint-placeholder-val="{{ true }}"><h1 class="h1">Hesabını oluştur</h1></sc-if>
+    <sc-if value="{{ isGiris }}" hint-placeholder-val="{{ false }}"><h1 class="h1">Tekrar hoş geldin</h1></sc-if>
+    <p class="p">Gardırobun, lookların ve bavulların her cihazda seninle.</p>
+  </div>
+  <div class="row" style="background:#E8E1D7;border-radius:24px;padding:4px;gap:4px">
+    <button class="{{ kayitCls }}" style="flex:1;justify-content:center;border:0;height:40px" onClick="{{ setKayit }}">Kayıt ol</button>
+    <button class="{{ girisCls }}" style="flex:1;justify-content:center;border:0;height:40px" onClick="{{ setGiris }}">Giriş yap</button>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <button class="btn2" style="border-color:#DCD4C9;background:#FBF9F5">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24"><path fill="#1C1A17" d="M16.4 12.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9-1.7 0-3.3 1-4.2 2.6-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8 1.6 0 2 .8 3.4.8s2.3-1.3 3.1-2.5c1-1.4 1.4-2.8 1.4-2.9-.1 0-2.7-1-2.7-4.1zM13.9 5c.7-.9 1.2-2 1.1-3.2-1 0-2.3.7-3 1.6-.7.8-1.2 2-1.1 3.1 1.2.1 2.3-.6 3-1.5z"/></svg>
+      Apple ile devam et</button>
+    <button class="btn2" style="border-color:#DCD4C9;background:#FBF9F5">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.6a4.8 4.8 0 0 1-2.1 3.1v2.6h3.4c2-1.8 3.1-4.5 3.1-7.5z"/><path fill="#34A853" d="M12 22c2.8 0 5.2-.9 6.9-2.5l-3.4-2.6c-.9.6-2.1 1-3.5 1-2.7 0-5-1.8-5.8-4.3H2.7v2.7A10 10 0 0 0 12 22z"/><path fill="#FBBC05" d="M6.2 13.6a6 6 0 0 1 0-3.8V7.1H2.7a10 10 0 0 0 0 9z"/><path fill="#EA4335" d="M12 6c1.5 0 2.9.5 4 1.5l3-3A10 10 0 0 0 2.7 7.1l3.5 2.7C7 7.8 9.3 6 12 6z"/></svg>
+      Google ile devam et</button>
+  </div>
+  <div class="row" style="gap:12px"><hr class="div" style="flex:1"><span class="eb">VEYA E-POSTA</span><hr class="div" style="flex:1"></div>
+  <sc-if value="{{ isKayit }}" hint-placeholder-val="{{ true }}">
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <div class="fld"><label for="ad">Ad</label><input id="ad" class="inp" value="Damla"></div>
+    <div class="fld"><label for="ep">E-posta</label><input id="ep" class="inp" type="email" placeholder="ornek@mail.com"></div>
+    <div class="fld"><label for="pw">Şifre</label><input id="pw" class="inp bad" type="password" value="1234567" aria-describedby="pwerr"><p id="pwerr" class="err">Şifre en az 8 karakter olmalı.</p></div>
+  </div>
+  </sc-if>
+  <sc-if value="{{ isGiris }}" hint-placeholder-val="{{ false }}">
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <div class="fld"><label for="ep2">E-posta</label><input id="ep2" class="inp" type="email" value="damla@ornek.com"></div>
+    <div class="fld"><label for="pw2">Şifre</label><input id="pw2" class="inp bad" type="password" value="parola12" aria-describedby="pw2err"><p id="pw2err" class="err">E-posta veya şifre hatalı.</p></div>
+    <a href="SifreUnuttum.dc.html" class="sm" style="align-self:flex-end;color:#1C1A17;font-weight:500;min-height:44px;display:flex;align-items:center">Şifremi unuttum</a>
+  </div>
+  </sc-if>
+  <sc-if value="{{ isKayit }}" hint-placeholder-val="{{ true }}"><a href="OnbStil.dc.html" class="btn">Devam et</a></sc-if>
+  <sc-if value="{{ isGiris }}" hint-placeholder-val="{{ false }}"><a href="Home.dc.html" class="btn">Giriş yap</a></sc-if>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+  const k = ((this.state && this.state.mode) || 'kayit') === 'kayit';
+  return {
+    isKayit: k, isGiris: !k,
+    kayitCls: k ? 'chip on' : 'chip', girisCls: k ? 'chip' : 'chip on',
+    setKayit: () => this.setState({ mode: 'kayit' }),
+    setGiris: () => this.setState({ mode: 'giris' })
+  };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>AI görseli üretiliyor</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/e8430258669fc54f0b61d262bce30fdd">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&amp;family=Jost:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1C1A17;text-decoration:none}a:hover{color:#6E5640}
+.ai-sh{position:relative;overflow:hidden}
+.ai-sh::after{content:"";position:absolute;top:0;bottom:0;width:45%;background:linear-gradient(100deg,rgba(251,249,245,0),rgba(251,249,245,.42),rgba(251,249,245,0));animation:aiSweep 1.8s linear infinite}
+.ai-line{position:absolute;left:0;right:0;opacity:0;animation:aiLine 8s ease-in-out infinite}
+@keyframes aiSweep{from{transform:translateX(-110%)}to{transform:translateX(250%)}}
+@keyframes aiLine{0%{opacity:0;transform:translateY(4px)}4%,21%{opacity:1;transform:none}25%,100%{opacity:0;transform:translateY(-4px)}}
+@media (prefers-reduced-motion: reduce){.ai-sh::after,.ai-line{animation:none !important}.ai-line{opacity:0}.ai-line.first{opacity:1}}
+</style>
+</helmet>
+<div class="scr">
+
+<header class="row" style="height:48px;padding:0 20px;justify-content:space-between;position:relative;flex:none;margin-top:50px"><a href="Stilist.dc.html" class="ib" aria-label="Geri" style="border:0;width:44px;margin-left:-10px"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></a><div style="position:absolute;left:70px;right:70px;text-align:center;font-size:15px;font-weight:500">Akşam yemeği</div></header>
+<div style="flex:1;overflow:hidden;display:flex;flex-direction:column;gap:14px;padding:4px 20px 0" aria-busy="true">
+  <div class="row" style="gap:10px;align-items:stretch">
+    <div class="skel ai-sh" style="width:200px;height:264px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;box-sizing:border-box">
+      <svg aria-hidden="true" width="26" height="31" viewBox="8 4 36 42"><path d="M26 6C26 6 10 24 10 36a16 16 0 0 0 32 0C42 24 26 6 26 6z" fill="#1C1A17"/><path d="M23.4 27a2.7 2.7 0 1 1 3.8 2.5c-.8.3-1.2.9-1.2 1.7v1.5M26 32.7 15.8 40.6h20.4z" fill="none" stroke="#E8E1D7" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div role="status" aria-live="polite" style="position:relative;height:20px;width:100%;text-align:center;font-size:13px;font-weight:500">
+        <span class="ai-line first" style="animation-delay:0s">Parçalar hazırlanıyor…</span>
+        <span class="ai-line" style="animation-delay:2s">Renkler eşleştiriliyor…</span>
+        <span class="ai-line" style="animation-delay:4s">Üzerine yerleştiriliyor…</span>
+        <span class="ai-line" style="animation-delay:6s">Son dokunuşlar…</span>
+      </div>
+      <p class="sm" style="text-align:center">1 kredi · kalan 11</p>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:8px"><div class="ph" style="width:100%;height:82px;background:#3A342E;border-radius:12px;"><svg aria-hidden="true" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#F4F1EC" stroke-width="1.1" stroke-linejoin="round" style="opacity:.5"><path d="M9 2.5h6l-1 5.5 4.5 13h-13L10 8z"/></svg></div><div class="ph" style="width:100%;height:82px;background:#A89582;border-radius:12px;"><svg aria-hidden="true" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1C1A17" stroke-width="1.1" stroke-linejoin="round" style="opacity:.5"><path d="M8 3 4 6v15h6V9l2 3 2-3v12h6V6l-4-3-2 4z"/></svg></div><div class="ph" style="width:100%;height:82px;background:#D6CBBE;border-radius:12px;"><svg aria-hidden="true" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1C1A17" stroke-width="1.1" stroke-linejoin="round" style="opacity:.5"><path d="M3 16c0-2 .8-4.5 2-6.5l3 1c1 2 3 3 6 3l5 1c1.2.3 2 1.2 2 2.3V18H3z"/></svg></div></div>
+  </div>
+  <div><p class="eb">ÖNERİ 1 / 3</p><h1 class="h2" style="margin-top:4px">Gece Laciverti</h1></div>
+  <p class="p" style="font-size:13.5px">Siyah midi elbisenin üzerine lacivert blazer at; yağmura karşı kapalı burunlu babet seç.</p>
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <div class="row" style="gap:12px"><span class="skel" style="width:40px;height:48px;border-radius:8px"></span><div style="flex:1;display:flex;flex-direction:column;gap:6px"><span class="skel" style="height:10px;width:70%;border-radius:5px"></span><span class="skel" style="height:10px;width:40%;border-radius:5px"></span></div></div>
+    <div class="row" style="gap:12px"><span class="skel" style="width:40px;height:48px;border-radius:8px"></span><div style="flex:1;display:flex;flex-direction:column;gap:6px"><span class="skel" style="height:10px;width:60%;border-radius:5px"></span><span class="skel" style="height:10px;width:35%;border-radius:5px"></span></div></div>
+  </div>
+  <div class="info"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg><p class="sm" style="color:#1C1A17;line-height:1.45">Ekrandan çıkabilirsin; görsel hazır olunca bildirim göndeririz.</p></div>
+</div>
+<div class="bar" style="position:relative">
+  <a href="DanismanSonuc.dc.html" class="btn2" style="flex:1">Görselsiz devam et</a>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

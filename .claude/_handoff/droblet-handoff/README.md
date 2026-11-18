@@ -217,3 +217,13 @@ Tasarım tuvali başka hesapta; eksikler **burada spec olarak** tutulur ve kodda
 ### 10.1 Tipografi notu
 
 Brief'te üst etiket ve marka adı **büyük harf**. Proje kuralı gereği büyük harf CSS/`textTransform` ile **verilmez**; çeviri dosyasına büyük harfle yazılır (TR'de `i → İ`; ör. "HAFTALIK STİL"). Dinamik metinler (marka adı API'den) sunucuda/istemcide `toLocaleUpperCase('tr-TR')` ile bir kez çevrilip öyle gösterilir. Başlıklar Dynamic Type ile %130'a kadar büyür. Fontlar gömülü (latin-ext). Alt menü 86 (güvenli alan dahil), orta Stilist butonu 56 çap, 18 yukarı taşar. Çip 36, ikon buton 44×44, alt sayfa köşesi 28. İkonlar Lucide, 1,5 çizgi; emoji yok.
+
+---
+
+## 11. Tuval v2 (2026-11-18) — güncel tasarım kaynağı
+
+Ürün sahibinin hesabındaki yeni tuval: https://claude.ai/artifact/PJtvF68fe3N9XvEP8D4pgo ("Droblet — Uygulama UX/UI v2"). §10'daki eksikler bu tuvalde çizildi; **kod için güncel kaynak budur**. Board kaynakları: [`canvas-v2/`](canvas-v2/) (`canvas.json` + her board için `.dc.html`).
+
+Eklenenler: logo (öneri: **A — iç boşluğu askı kancası olan damla**; `Logo`, `LogoIkon`, `LogoKullanim`), animasyonlu splash (`Splash`, `SplashKareler`; toplam 2,6 sn, `cubic-bezier(0.2,0.8,0.2,1)`), yeni ekranlar (02b–d şifre sıfırlama, 04b İlk 5 parça, 05b ek kredi, 07b kredi onayı, 12b hazır kütüphane, 12c parça bilgisi, 17b kredi bitti, 17c görsel üretiliyor, 24b izleme listem, 26b şikayet/engelle, 29b–c silme onayları), durum board'ları (`Durum*`, `BugunPlanYok`, `EditFotoYok`, `SepetBos`, `KisiGizli`, `PaletBos`), web landing (`Landing`, `LandingMobil`) ve AI bekleme dili (`AiYukleniyor`, `AiYukleniyorStilist`, `AiYukleniyorVaryantlar`: çark yok; parlama 1,8 sn, siluet çizimi 3,2 sn, parçalar 300 ms arayla, metinler 2 sn'de bir geçiş; hareket azaltmada durağan hal). Hata hali: "Şu an oluşturamadık. Kredin iade edildi." + "Tekrar dene".
+
+Dev ortamı (2026-11-18): `https://b8lvaj4r5e.execute-api.eu-central-1.amazonaws.com/dev` (stack `droblet-dev`, eu-central-1).

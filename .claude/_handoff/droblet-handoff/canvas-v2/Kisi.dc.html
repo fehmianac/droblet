@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Kişi profili</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/e8430258669fc54f0b61d262bce30fdd">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&amp;family=Jost:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1C1A17;text-decoration:none}a:hover{color:#6E5640}
+</style>
+</helmet>
+<div class="scr">
+
+<header class="row" style="height:48px;padding:0 20px;justify-content:space-between;position:relative;flex:none;margin-top:50px"><a href="Akis.dc.html" class="ib" aria-label="Geri" style="border:0;width:44px;margin-left:-10px"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></a><button class="ib" aria-label="Daha fazla" aria-expanded="{{ menu }}" onClick="{{ toggle }}"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg></button>
+  <sc-if value="{{ menu }}" hint-placeholder-val="{{ false }}">
+    <div class="menu" style="right:20px;top:52px">
+      <button class="mi" onClick="{{ toggle }}"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>Profil linkini kopyala</button>
+      <a href="Sikayet.dc.html" class="mi dg"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4h11l-1.5 4L16 12H5"/></svg>Şikayet et</a>
+      <a href="Sikayet.dc.html" class="mi dg"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>Engelle</a>
+    </div>
+  </sc-if>
+</header>
+<div style="flex:1;overflow:hidden;display:flex;flex-direction:column;gap:14px;padding:4px 0 0">
+  <div style="padding:0 20px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center">
+    <span style="width:84px;height:84px;border-radius:42px;background:#BFAE99"></span>
+    <h1 class="h2">Selin</h1><p class="sm">@selin · Minimal · Quiet luxury · Ofis şıklığı</p>
+    <div class="row" style="gap:28px;margin-top:4px"><div><p style="margin:0;font-size:17px;font-weight:500">142</p><p class="sm">Parça</p></div><div><p style="margin:0;font-size:17px;font-weight:500">38</p><p class="sm">Look</p></div><div><p style="margin:0;font-size:17px;font-weight:500">%82</p><p class="sm">Stil uyumu</p></div></div>
+    <div class="row" style="gap:8px;width:100%;margin-top:6px"><button class="btn" style="flex:1;height:44px;font-size:14px">Takip et</button><button class="btn2" style="flex:1;height:44px;font-size:14px">Dolabını keşfet</button></div>
+  </div>
+  <div class="row" style="padding:0 20px;justify-content:center;gap:8px"><button class="chip on">Looklar</button><button class="chip">Dolap</button><button class="chip">Seyahatler</button></div>
+  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:0 4px"><div class="ph" style="width:100%;height:170px;background:#BFAE99;border-radius:4px;"><svg aria-hidden="true" width="63" height="105" viewBox="0 0 60 100" fill="#1C1A17" stroke="none" style="opacity:.16"><circle cx="30" cy="13" r="8"/><path d="M17 30c4-4 22-4 26 0l4 32h-7l-2 34h-6l-2-30-2 30h-6l-2-34h-7z"/></svg></div><div class="ph" style="width:100%;height:170px;background:#DDD3C6;border-radius:4px;"><svg aria-hidden="true" width="63" height="105" viewBox="0 0 60 100" fill="#1C1A17" stroke="none" style="opacity:.16"><circle cx="30" cy="13" r="8"/><path d="M17 30c4-4 22-4 26 0l4 32h-7l-2 34h-6l-2-30-2 30h-6l-2-34h-7z"/></svg></div><div class="ph" style="width:100%;height:170px;background:#A89582;border-radius:4px;"><svg aria-hidden="true" width="63" height="105" viewBox="0 0 60 100" fill="#1C1A17" stroke="none" style="opacity:.16"><circle cx="30" cy="13" r="8"/><path d="M17 30c4-4 22-4 26 0l4 32h-7l-2 34h-6l-2-30-2 30h-6l-2-34h-7z"/></svg></div><div class="ph" style="width:100%;height:170px;background:#CDBFAE;border-radius:4px;"><svg aria-hidden="true" width="63" height="105" viewBox="0 0 60 100" fill="#1C1A17" stroke="none" style="opacity:.16"><circle cx="30" cy="13" r="8"/><path d="M17 30c4-4 22-4 26 0l4 32h-7l-2 34h-6l-2-30-2 30h-6l-2-34h-7z"/></svg></div><div class="ph" style="width:100%;height:170px;background:#3A342E;border-radius:4px;"><svg aria-hidden="true" width="63" height="105" viewBox="0 0 60 100" fill="#F4F1EC" stroke="none" style="opacity:.16"><circle cx="30" cy="13" r="8"/><path d="M17 30c4-4 22-4 26 0l4 32h-7l-2 34h-6l-2-30-2 30h-6l-2-34h-7z"/></svg></div><div class="ph" style="width:100%;height:170px;background:#E8E1D7;border-radius:4px;"><svg aria-hidden="true" width="63" height="105" viewBox="0 0 60 100" fill="#1C1A17" stroke="none" style="opacity:.16"><circle cx="30" cy="13" r="8"/><path d="M17 30c4-4 22-4 26 0l4 32h-7l-2 34h-6l-2-30-2 30h-6l-2-34h-7z"/></svg></div></div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+  const menu = !!(this.state && this.state.menu);
+  return { menu, toggle: () => this.setState({ menu: !menu }) };
+}
+}
+</script>
+</body>
+</html>
