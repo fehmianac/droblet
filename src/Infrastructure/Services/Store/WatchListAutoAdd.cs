@@ -1,4 +1,5 @@
 using Domain.Entity;
+using Domain.Enum;
 using Domain.Manager;
 using Domain.Options;
 using Domain.Services;
@@ -92,5 +93,8 @@ public sealed class WatchListAutoAdd(
         ProductId = product.Id,
         PriceAtAddMinor = product.PriceMinor,
         AddedAt = now,
+        Origin = WatchOrigin.Auto,
+        // The user did not ask for alerts on this one; the bell on screen 24b switches them on.
+        Notify = false,
     };
 }

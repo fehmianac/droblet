@@ -12,7 +12,7 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 
 **Auth** column: `user` = signed-in user (tenant from the token) · `admin` = signed-in user listed in `Admin:UserIds` / `Admin:Emails` · `anonymous` = no token (postbacks are authenticated by signature).
 
-166 endpoints.
+167 endpoints.
 
 ## Auth and account (foundation)
 
@@ -62,6 +62,7 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | Method | Path | Auth | Doc | What |
 |---|---|---|---|---|
 | GET | `v1/tenant/item` | user | [W](wardrobe-looks-plan-stylist.md) | Get wardrobe items |
+| POST | `v1/tenant/item` | user | [W](wardrobe-looks-plan-stylist.md) | Add a piece without a photo |
 | GET | `v1/tenant/item-draft` | user | [W](wardrobe-looks-plan-stylist.md) | Get pending item drafts |
 | POST | `v1/tenant/item-draft` | user | [W](wardrobe-looks-plan-stylist.md) | Start AI processing of uploaded garment photos |
 | POST | `v1/tenant/item-draft/confirm` | user | [W](wardrobe-looks-plan-stylist.md) | Confirm drafts into wardrobe items |

@@ -179,7 +179,7 @@ public sealed class NotificationJobs(
     }
 
     /// <summary>The per-product bell of the watch list (screen 24b).</summary>
-    private static bool WantsPriceDropPush(WatchItemEntity item) => true;
+    private static bool WantsPriceDropPush(WatchItemEntity item) => item.NotifyEnabled;
 
     /// <summary>Sends to every registered device of the tenant unless this (type, key) was already sent. True when at least one device accepted it.</summary>
     private async Task<bool> SendOnceAsync(string tenantId, NotificationType type, string key, Dictionary<string, string> data, DateTime now, CancellationToken ct)
