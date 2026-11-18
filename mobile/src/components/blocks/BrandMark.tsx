@@ -1,9 +1,7 @@
 import { Image } from 'expo-image';
-import { useTranslation } from 'react-i18next';
 
 import { Text, type TextTone } from '@/components/ui/Text';
-import { currentLanguage } from '@/i18n';
-import { toDisplayUpper } from '@/lib/upper';
+import { toBrandUpper } from '@/lib/upper';
 
 type Props = {
   name: string;
@@ -19,7 +17,6 @@ type Props = {
  * brand's logo itself.
  */
 export function BrandMark({ name, logoUrl, tone = 'muted', className }: Props) {
-  useTranslation(); // re-render on language change (casing depends on it)
   if (logoUrl) {
     return (
       <Image
@@ -35,7 +32,7 @@ export function BrandMark({ name, logoUrl, tone = 'muted', className }: Props) {
   }
   return (
     <Text variant="brand" tone={tone} numberOfLines={1} className={className}>
-      {toDisplayUpper(name, currentLanguage())}
+      {toBrandUpper(name)}
     </Text>
   );
 }

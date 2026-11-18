@@ -1,10 +1,8 @@
 import { Pressable, View } from 'react-native';
 import type { ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
 
-import { currentLanguage } from '@/i18n';
 import { formatMoney, type Money } from '@/lib/format';
-import { toDisplayUpper } from '@/lib/upper';
+import { toBrandUpper } from '@/lib/upper';
 
 import { PlaceholderImage } from './PlaceholderImage';
 import { Text } from './Text';
@@ -21,8 +19,7 @@ type Props = {
 
 /** Small image + BRAND + name (one line, ellipsis) + price. */
 export function ProductRow({ brand, name, price, imageUri, onPress, trailing }: Props) {
-  useTranslation(); // re-render on language change (brand casing depends on it)
-  const brandLabel = toDisplayUpper(brand, currentLanguage());
+  const brandLabel = toBrandUpper(brand);
   return (
     <Pressable
       onPress={onPress}
