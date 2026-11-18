@@ -17,7 +17,17 @@
     },
     "seeEdit": "Haftanın edit'ini aç",
     "editTag": "{{weekday}} · {{name}}",
-    "editCardA11y": "{{weekday}}, {{name}}"
+    "editCardA11y": "{{weekday}}, {{name}}",
+    "greetingNoName": {
+      "Morning": "Günaydın,",
+      "Day": "İyi günler,",
+      "Evening": "İyi akşamlar,"
+    },
+    "greetingAloneNoName": {
+      "Morning": "Günaydın.",
+      "Day": "İyi günler.",
+      "Evening": "İyi akşamlar."
+    }
   },
   "weekPlan": {
     "eyebrowThisWeek": "BU HAFTA · {{range}}",

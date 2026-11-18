@@ -17,7 +17,17 @@
     },
     "seeEdit": "Open the edit of the week",
     "editTag": "{{weekday}} · {{name}}",
-    "editCardA11y": "{{weekday}}, {{name}}"
+    "editCardA11y": "{{weekday}}, {{name}}",
+    "greetingNoName": {
+      "Morning": "Good morning,",
+      "Day": "Good afternoon,",
+      "Evening": "Good evening,"
+    },
+    "greetingAloneNoName": {
+      "Morning": "Good morning.",
+      "Day": "Good afternoon.",
+      "Evening": "Good evening."
+    }
   },
   "weekPlan": {
     "eyebrowThisWeek": "THIS WEEK · {{range}}",

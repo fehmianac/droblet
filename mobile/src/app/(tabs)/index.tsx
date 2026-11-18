@@ -14,7 +14,9 @@ import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenState } from '@/components/ui/ScreenState';
 import { Text } from '@/components/ui/Text';
+import { useMyProfile } from '@/features/account/queries';
 import { useRefreshTodayLook, useSetLookFavorite } from '@/features/today/api';
+import { dayPart, todayGreeting } from '@/features/today/logic';
 import { TodayLookCard } from '@/features/today/TodayLookCard';
 import { TodaySkeleton } from '@/features/today/TodaySkeleton';
 import { WeekStrip } from '@/features/today/WeekStrip';
@@ -22,15 +24,6 @@ import { currentLanguage } from '@/i18n';
 import { formatLongDate, formatTemperature, parseLocalDate, seasonOf, weekdayShort } from '@/lib/format';
 import { toDisplayUpper } from '@/lib/upper';
 import { useThemeColors } from '@/theme/useThemeColors';
-
-type DayPart = 'Morning' | 'Day' | 'Evening';
-
-function dayPart(now: Date): DayPart {
-  const h = now.getHours();
-  if (h < 12) return 'Morning';
-  if (h < 18) return 'Day';
-  return 'Evening';
-}
 
 /**
  * 06 Bugün — logo + notifications, date · season + weather, greeting + today's occasion, 7-day strip,
@@ -44,6 +37,8 @@ export default function TodayScreen() {
   const wear = useWearToday();
   const favorite = useSetLookFavorite();
   const refresh = useRefreshTodayLook();
+  // The greeting follows the profile: an edited name shows at once.
+  const profile = useMyProfile();
 
   return (
     <Screen>
@@ -57,13 +52,13 @@ export default function TodayScreen() {
           const lang = currentLanguage();
           const meta = [formatLongDate(date, t), t(`season.${seasonOf(date)}`)].join(' · ');
           const look = data.look;
-          const part = dayPart(new Date());
-          // With a plan the greeting runs into the day's occasion ("Günaydın Damla, / bugün ofis günü.");
-          // without one it stands alone ("Günaydın Damla.") — the no-plan card says the rest.
-          const greeting =
-            look && data.occasion
-              ? `${t(`today.greeting${part}`, { name: data.firstName })}\n${t(`today.occasionLine.${data.occasion}`)}`
-              : t(`todayHome.greetingAlone.${part}`, { name: data.firstName });
+          // Without a plan the greeting stands alone — the no-plan card says the rest.
+          const greeting = todayGreeting(
+            t,
+            dayPart(new Date()),
+            { profileName: profile.data?.displayName, cardName: data.firstName },
+            look ? data.occasion : null,
+          );
           return (
             <ScrollView
               contentContainerClassName="gap-[18px] pb-8 pt-1.5"

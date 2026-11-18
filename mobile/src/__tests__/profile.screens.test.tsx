@@ -109,6 +109,19 @@ describe('Profili düzenle (derived)', () => {
     expect(accountFixtures.profile()).toMatchObject({ displayName: 'Damla K', handle: 'damla_k' });
   });
 
+  it('a changed name is the Bugün greeting at once', async () => {
+    await open('/profile');
+    await waitFor(() => expect(screen.getByLabelText('Edit profile')).toBeTruthy(), WAIT);
+    await fireEvent.press(screen.getByLabelText('Edit profile'));
+    await waitFor(() => expect(screen.getByLabelText('Name')).toBeTruthy(), WAIT);
+    await fireEvent.changeText(screen.getByLabelText('Name'), 'Ayşe Kaya');
+    await fireEvent.press(screen.getByTestId('profile-save'));
+    await waitFor(() => expect(screen.getByText('Ayşe Kaya')).toBeTruthy(), WAIT);
+    await fireEvent.press(screen.getByTestId('tab.today'));
+    await waitFor(() => expect(screen.getByText(/^Good (morning|afternoon|evening) Ayşe,/)).toBeTruthy(), WAIT);
+    expect(screen.queryByText(/Damla/)).toBeNull();
+  });
+
   it('requires a name', async () => {
     await open('/edit-profile');
     await waitFor(() => expect(screen.getByLabelText('Name')).toBeTruthy(), WAIT);

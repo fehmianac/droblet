@@ -5,7 +5,17 @@ import type { EditProduct, PlanDay, WearLog } from '@/api/contracts/today';
 import type { Item } from '@/api/contracts/wardrobe';
 
 import { addDays, monthBounds, monthGrid, monthOf, shiftMonth, weekDates, weekStartOf } from './dates';
-import { buildMonthReport, buildWeekRows, daysToPlan, dayStatus, editSummary, occasionCounts, todayThumbs, weekTryOnTargets } from './logic';
+import {
+  buildMonthReport,
+  buildWeekRows,
+  daysToPlan,
+  dayStatus,
+  editSummary,
+  occasionCounts,
+  todayGreeting,
+  todayThumbs,
+  weekTryOnTargets,
+} from './logic';
 
 const look = (id: string, extra: Partial<Look> = {}): Look => ({
   id,
@@ -218,5 +228,23 @@ describe('buildMonthReport', () => {
 
   it('is empty for a month without records', () => {
     expect(buildMonthReport('2026-10', logs, looks, items)).toMatchObject({ daysLogged: 0, daysInMonth: 31, piecesWorn: 0, looksWorn: 0, topItems: [], occasions: [] });
+  });
+});
+
+describe('06 greeting', () => {
+  const t = ((key: string, options?: { name?: string }) => (options?.name ? `${key}:${options.name}` : key)) as unknown as Parameters<typeof todayGreeting>[0];
+
+  it("uses the profile's own first name before the name the card was built with", () => {
+    expect(todayGreeting(t, 'Morning', { profileName: 'Ayşe Kaya', cardName: 'Damla' }, null)).toBe('todayHome.greetingAlone.Morning:Ayşe');
+    expect(todayGreeting(t, 'Evening', { profileName: undefined, cardName: 'Damla Y' }, 'office')).toBe(
+      'today.greetingEvening:Damla\ntoday.occasionLine.office',
+    );
+  });
+
+  it('is neutral without any name', () => {
+    expect(todayGreeting(t, 'Day', { profileName: '  ', cardName: '' }, null)).toBe('todayHome.greetingAloneNoName.Day');
+    expect(todayGreeting(t, 'Morning', { profileName: null, cardName: null }, 'weekend')).toBe(
+      'todayHome.greetingNoName.Morning\ntoday.occasionLine.weekend',
+    );
   });
 });

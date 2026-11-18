@@ -348,7 +348,9 @@ export function useUpdateProfile() {
         },
       ),
     onSuccess: (saved) => {
+      // Every screen reads the name from the profile query; the session copy follows for the rest.
       client.setQueryData(accountKeys.profile, saved);
+      void sessionStore.updateUser({ name: saved.displayName });
     },
   });
 }

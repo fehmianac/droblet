@@ -1,3 +1,6 @@
+import type { TFunction } from 'i18next';
+
+import { firstNameOf } from '@/api/wire/today';
 import { sumMoney } from '@/lib/format';
 import type { LookPiece, Occasion } from '@/api/contracts';
 import type { Look } from '@/api/contracts/looks';
@@ -124,4 +127,35 @@ export function buildMonthReport(month: string, wearLogs: WearLog[], looks: Look
     occasions: [...occasionCountsMap.entries()].map(([occasion, count]) => ({ occasion, count })).sort((a, b) => b.count - a.count),
     unworn: items.filter((i) => !itemCounts.has(i.id) && i.createdAt.slice(0, 10) <= monthEnd),
   };
+}
+
+// ---------- 06 greeting ----------
+
+export type DayPart = 'Morning' | 'Day' | 'Evening';
+
+export function dayPart(now: Date): DayPart {
+  const h = now.getHours();
+  if (h < 12) return 'Morning';
+  if (h < 18) return 'Day';
+  return 'Evening';
+}
+
+/**
+ * The Bugün greeting. The name is the signed-in profile's own `displayName` (first word) — the
+ * profile query is the source of truth, so a name edited on "Profili düzenle" shows at once — with
+ * the name the card was built with as the fallback; without any name the greeting is neutral
+ * ("Günaydın."). With a plan it runs into the day's occasion ("Günaydın Damla, / bugün ofis günü.").
+ */
+export function todayGreeting(
+  t: TFunction,
+  part: DayPart,
+  names: { profileName: string | null | undefined; cardName: string | null | undefined },
+  occasion: Occasion | null,
+): string {
+  const name = firstNameOf(names.profileName) || firstNameOf(names.cardName);
+  if (occasion) {
+    const head = name ? t(`today.greeting${part}`, { name }) : t(`todayHome.greetingNoName.${part}`);
+    return `${head}\n${t(`today.occasionLine.${occasion}`)}`;
+  }
+  return name ? t(`todayHome.greetingAlone.${part}`, { name }) : t(`todayHome.greetingAloneNoName.${part}`);
 }
