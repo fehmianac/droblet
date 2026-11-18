@@ -214,6 +214,14 @@ jobs:
             "Sign in with Apple .p8 anahtari (token iptali icin; giris dogrulamasi icin gerekmez)."
           ensure "api/Store/NotificationKey" SecureString "CHANGE_ME" \
             "Magaza sunucu bildirimlerini dogrulama anahtari (uyelik satin alma acilinca)."
+          # Affiliate donusum bildirimlerini (postback) imzalayan ortak sirlar: ag ve dogrudan marka anlasmalari.
+          # Uretilen deger ilgili aga / markaya verilir; yoksa her postback reddedilir.
+          net=$(openssl rand -hex 32); echo "::add-mask::$net"
+          dir=$(openssl rand -hex 32); echo "::add-mask::$dir"
+          ensure "api/AffiliatePostback/NetworkSecret" SecureString "$net" \
+            "Affiliate agi postback imza sirri (HMAC). Otomatik uretildi; aga bu deger verilir."
+          ensure "api/AffiliatePostback/DirectSecret" SecureString "$dir" \
+            "Dogrudan marka anlasmalari icin varsayilan postback imza sirri. Otomatik uretildi."
           ensure "worker/Ai/ApiKey" SecureString "CHANGE_ME" \
             "AI saglayici (OpenAI) API anahtari. CHANGE_ME ise AI isleri calismaz."
           ensure "notifier/Push/ServiceAccountJson" SecureString "CHANGE_ME" \
