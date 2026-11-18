@@ -16,6 +16,21 @@ public static partial class ErrorCodes
     public const string InvalidIdentityToken = "invalid_identity_token";
     public const string ProviderNotConfigured = "provider_not_configured";
     public const string SmsUnavailable = "sms_unavailable";
+    /// <summary>403: the account was suspended by an admin (sign-in, refresh, social sign-in).</summary>
+    public const string AccountSuspended = "account_suspended";
+
+    // Admin panel (docs/api/admin.md)
+    public const string InvalidCode = "invalid_code";
+    public const string ChallengeExpired = "challenge_expired";
+    public const string InvalidToken = "invalid_token";
+    public const string Forbidden = "forbidden";
+    public const string CannotChangeSelf = "cannot_change_self";
+    public const string LastSuperAdmin = "last_super_admin";
+    public const string SettingsUnavailable = "settings_unavailable";
+    public const string ImageStorageNotConfigured = "image_storage_not_configured";
+    public const string TooManyRequests = "too_many_requests";
+    /// <summary>503: the sign-in code e-mail could not be sent (SendGrid not configured or down).</summary>
+    public const string EmailUnavailable = "email_unavailable";
 
     // Profile
     public const string HandleTaken = "handle_taken";

@@ -1,15 +1,5 @@
 namespace Domain.Options;
 
-/// <summary>Admins of v1/admin/* (README §9.2). Listed in config/SSM (/droblet/{stage}/api/Admin); never in code.</summary>
-public sealed class AdminOptions
-{
-    public const string Section = "Admin";
-    public const string Policy = "AdminJwt";
-    public List<string> UserIds { get; set; } = [];
-    /// <summary>E-mails (case-insensitive); compared with the user's stored e-mail.</summary>
-    public List<string> Emails { get; set; } = [];
-}
-
 public sealed class CatalogOptions
 {
     public const string Section = "Catalog";

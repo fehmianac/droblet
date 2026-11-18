@@ -33,7 +33,8 @@ public enum Capability
     WardrobeItem,
 }
 
-public enum EntitlementSource { Store }
+// Admin = a TEST premium granted from the admin panel (audited; never sold).
+public enum EntitlementSource { Store, Admin }
 
 public enum StorePlatform { Apple, Google }
 
@@ -71,3 +72,6 @@ public enum VisibleResource
     NotificationPrefs,
     Email,
 }
+
+/// <summary>Admin panel roles (owner decision 2). Permissions per role: Domain.Services.Admin.AdminPermissions.</summary>
+public enum AdminRole { SuperAdmin, ContentEditor, Moderator }
