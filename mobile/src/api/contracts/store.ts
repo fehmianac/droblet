@@ -244,19 +244,19 @@ export type WatchlistEntry = {
   category: ProductCategory;
   colors: string[];
   sizes: ProductSize[];
-  /**
-   * The server has no per-product alert switch (watching = being flagged on a price drop), so this
-   * is a device-only preference: true unless the user muted the entry in this session.
-   */
+  /** The bell: a price drop is pushed for this product (`WatchItemDto.notify`; also needs the `priceDrop` preference). */
   alertEnabled: boolean;
-  /** Where the entry came from: a look's missing piece, the weekly edit, or added by hand. */
-  source: { kind: 'look'; lookName: string } | { kind: 'edit' } | { kind: 'manual' };
+  /**
+   * Where the entry came from: a look's missing piece, the weekly edit, added by hand, or put there by
+   * the server after a brand visit without a purchase (`origin: "auto"`, 48 h after the checkout click).
+   */
+  source: { kind: 'look'; lookName: string } | { kind: 'edit' } | { kind: 'manual' } | { kind: 'auto' };
 };
 /** GET v1/tenant/watch-list → `WatchItemDto[]`, newest first. */
 export type Watchlist = { items: WatchlistEntry[] };
 /**
- * PUT v1/tenant/watch-list/{productId} `{ size?, look? }` (404 `product_not_found`, 422 `product_retired` /
- * `watch_list_full`) · DELETE v1/tenant/watch-list/{productId} → 204.
+ * PUT v1/tenant/watch-list/{productId} `{ size?, look?, notify }` (404 `product_not_found`, 422 `product_retired` /
+ * `watch_list_full`; on an existing entry only the sent fields change) · DELETE v1/tenant/watch-list/{productId} → 204.
  */
 export type SetWatchRequest = {
   productId: string;

@@ -49,7 +49,12 @@
     "tryOnReady": "Senin üzerinde hazır",
     "tryOnRowLabel": "{{day}} görseli hazırlanıyor",
     "emptyMessage": "Henüz look'un yok. İlk look'unu oluşturunca haftanı planlayabiliriz.",
-    "emptyAction": "Look oluştur"
+    "emptyAction": "Look oluştur",
+    "bodyPhotoRequired": "Üzerinde görmek için önce bir boy fotoğrafı ekle.",
+    "bodyPhotoAction": "Fotoğraf ekle",
+    "quoteChanged": "Haftan değişti, kredi tutarı güncellendi. Yeni tutarı onayla.",
+    "cachedDays_one": "{{count}} günün görseli hazır, kredi harcamaz.",
+    "cachedDays_other": "{{count}} günün görseli hazır, kredi harcamaz."
   },
   "weekEdit": {
     "eyebrow": "HAFTALIK STİL · {{range}} · {{weekday}} · {{occasion}}",

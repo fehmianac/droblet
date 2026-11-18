@@ -54,7 +54,7 @@ import {
 } from '@/api/wire/store';
 import { storeFixtures } from '@/fixtures/store';
 
-import { localFavorites, mutedWatchAlerts, pendingProductTryOns } from './localState';
+import { localFavorites, pendingProductTryOns } from './localState';
 import { lookSlotCategories, slotCategories } from './slots';
 
 /** Query keys for E8. Global catalogue/content data and tenant data are kept under separate roots. */
@@ -321,7 +321,7 @@ export function useWatchlist() {
     queryKey: storeKeys.watchlist,
     queryFn: () =>
       fromSource<Watchlist>('watchlist', storeFixtures.watchlist, async () =>
-        toWatchlist(await apiRequest<WatchItemWire[]>('v1/tenant/watch-list'), mutedWatchAlerts),
+        toWatchlist(await apiRequest<WatchItemWire[]>('v1/tenant/watch-list')),
       ),
   });
 }
@@ -331,6 +331,9 @@ export function usePurchasePrompts(enabled = true) {
   return useQuery({
     queryKey: storeKeys.purchasePrompts,
     enabled,
+    // "On the next app open": read again whenever the app comes to the foreground.
+    refetchOnWindowFocus: 'always',
+    meta: { persist: false },
     queryFn: () =>
       fromSource<PurchasePrompt[]>('cart', () => [], async () =>
         (await apiRequest<PurchasePromptWire[]>('v1/tenant/purchase-prompt')).map(toPurchasePrompt),

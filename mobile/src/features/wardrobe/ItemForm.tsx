@@ -175,7 +175,28 @@ export function ItemForm({ mode, initial, imageUrl, originalImageUrl, hasOrigina
           warning={lowConfidence.includes('color') ? t('itemForm.checkField') : null}
           onPress={() => setSheet('color')}
         />
-        <TextField label={t('itemForm.fabric')} placeholder={t('itemForm.optional')} value={values.fabric} onChangeText={(fabric) => set({ fabric })} />
+        {values.color === 'other' ? (
+          <TextField
+            label={t('itemForm.colorHex')}
+            placeholder={t('itemForm.colorHexPlaceholder')}
+            hint={t('itemForm.optional')}
+            value={values.colorHex}
+            onChangeText={(colorHex) => set({ colorHex })}
+            error={errorText('colorHex')}
+            autoCapitalize="characters"
+            autoCorrect={false}
+            maxLength={7}
+            testID="item-form-color-hex"
+          />
+        ) : null}
+        <TextField
+          label={t('itemForm.fabric')}
+          placeholder={t('itemForm.optional')}
+          value={values.fabric}
+          onChangeText={(fabric) => set({ fabric })}
+          maxLength={60}
+          testID="item-form-fabric"
+        />
 
         <View className="gap-2">
           <View className="flex-row flex-wrap items-baseline gap-x-1.5">
@@ -212,6 +233,7 @@ export function ItemForm({ mode, initial, imageUrl, originalImageUrl, hasOrigina
             value={values.subcategory}
             onChangeText={(subcategory) => set({ subcategory })}
             hint={t('itemForm.optional')}
+            maxLength={40}
           />
           <Button label={t('common.ok')} onPress={() => setSheet('none')} />
         </View>

@@ -173,8 +173,8 @@ export default function ItemBulkScreen() {
     void recognition.refresh();
     openRecognitionPaywall();
   };
-  // "Elle gir": a photo sent as a manual draft (no AI, no allowance), then form 12c.
-  const manual = useManualEntry({ from: 'bulk', onError: () => setNotice({ kind: 'photoFailed' }) });
+  // "Elle gir": a refused photo as a manual draft, otherwise form 12c without a photo (no AI, no allowance).
+  const manual = useManualEntry({ from: 'bulk' });
   const enterManually = manual.enter;
 
   const onPicked = (photos: PreparedPhoto[]) => {
@@ -367,7 +367,6 @@ export default function ItemBulkScreen() {
         }}
       </ScreenState>
       {picker.sheet}
-      {manual.sheet}
     </Screen>
   );
 }

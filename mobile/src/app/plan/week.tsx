@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { RefreshControl, ScrollView, View } from 'react-native';
 
 import type { Occasion } from '@/api/contracts';
-import { extractApiError } from '@/api/errors';
+import { ApiError, extractApiError, isCreditsExhausted, isPaywallError } from '@/api/errors';
+import type { TryOnWeekQuote } from '@/api/wire/tryon';
 import { AiDropPulse, AiFailure, AiProgressLines } from '@/components/ui/ai';
 import { Badge, PopoverMenu } from '@/components/ui/Bits';
 import { BottomSheet } from '@/components/ui/BottomSheet';
@@ -23,7 +24,7 @@ import { combineQueries } from '@/features/today/combineQueries';
 import { weekDates } from '@/features/today/dates';
 import { buildWeekRows, daysToPlan, occasionCounts, weekTryOnTargets, type WeekRow } from '@/features/today/logic';
 import { WeekDayRow } from '@/features/today/WeekDayRow';
-import { useStartTryOn } from '@/features/tryon/api';
+import { isQuoteChanged, useStartTryOn, useWeekTryOn } from '@/features/tryon/api';
 import { formatDate, parseLocalDate, toIsoDate } from '@/lib/format';
 import { useThemeColors } from '@/theme/useThemeColors';
 
@@ -67,11 +68,15 @@ export default function PlanWeekScreen() {
   const query = combineQueries(plan, looks);
   const putPlanDay = usePutPlanDay();
   const tryOn = useStartTryOn();
+  const weekTryOn = useWeekTryOn();
   const startPlanWeek = useStartPlanWeek();
   const acceptPlanWeek = useAcceptPlanWeek();
 
   const [menu, setMenu] = useState<{ date: string; top: number } | null>(null);
-  const [creditSheet, setCreditSheet] = useState(false);
+  // 07b: the quote being confirmed (null = sheet closed) and why it is shown again.
+  const [weekQuote, setWeekQuote] = useState<TryOnWeekQuote | null>(null);
+  const [quoteChanged, setQuoteChanged] = useState(false);
+  const [weekNote, setWeekNote] = useState<'bodyPhoto' | 'failed' | null>(null);
   const [tryOnJobs, setTryOnJobs] = useState<Record<string, string>>({});
   const [hint, setHint] = useState<'nothingToTryOn' | 'nothingToPlan' | null>(null);
   const [planJobId, setPlanJobId] = useState<string | null>(null);
@@ -82,6 +87,7 @@ export default function PlanWeekScreen() {
     router.navigate({ pathname: '/stylist', params: occasion ? { date: row.date, occasion } : { date: row.date } });
   };
 
+  // One day again (row "Tekrar dene"): a single try-on, 1 credit.
   const startTryOns = async (dayIds: string[]) => {
     try {
       const started = await tryOn.startMany(dayIds.map((id) => ({ kind: 'plan-day' as const, id })));
@@ -95,8 +101,47 @@ export default function PlanWeekScreen() {
       });
     } catch {
       // The error is shown under the buttons from `tryOn.error`.
-    } finally {
-      setCreditSheet(false);
+    }
+  };
+
+  /** Errors the screen explains itself; 402 / 403 already opened the credit sheet / paywall. */
+  const weekFailed = (error: unknown) => {
+    setWeekQuote(null);
+    if (error instanceof ApiError && error.code === 'body_photo_required') setWeekNote('bodyPhoto');
+    else if (!isPaywallError(error) && !isCreditsExhausted(error)) setWeekNote('failed');
+  };
+
+  // The whole week: one batch for the confirmed total (cached days are free).
+  const confirmWeek = async (confirmed: TryOnWeekQuote) => {
+    try {
+      const jobs = await weekTryOn.start(confirmed);
+      setTryOnJobs((prev) => ({ ...prev, ...jobs }));
+      setWeekQuote(null);
+      setQuoteChanged(false);
+    } catch (error) {
+      if (!isQuoteChanged(error)) return weekFailed(error);
+      // 409 credit_quote_changed: the week changed since the quote — quote again and ask again.
+      try {
+        const fresh = await weekTryOn.quote(confirmed.weekStart, confirmed.dates);
+        setQuoteChanged(true);
+        setWeekQuote(fresh);
+      } catch (again) {
+        weekFailed(again);
+      }
+    }
+  };
+
+  const askWeek = async (fixtureDates: string[]) => {
+    setWeekNote(null);
+    setQuoteChanged(false);
+    weekTryOn.reset();
+    try {
+      const quoted = await weekTryOn.quote(from, fixtureDates);
+      if (quoted.dates.length === 0) setHint('nothingToTryOn');
+      else if (quoted.requiredCredits === 0) await confirmWeek(quoted); // every day is cached: nothing to spend
+      else setWeekQuote(quoted);
+    } catch (error) {
+      weekFailed(error);
     }
   };
 
@@ -188,11 +233,13 @@ export default function PlanWeekScreen() {
                           className="h-btn-primary"
                           label={t('weekPlan.tryOn')}
                           icon={User}
+                          loading={weekTryOn.isQuoting}
+                          testID="week-tryon"
                           onPress={() => {
                             if (targets.length === 0) return setHint('nothingToTryOn');
                             setHint(null);
                             tryOn.reset();
-                            setCreditSheet(true);
+                            void askWeek(targets.map((target) => target.id));
                           }}
                         />
                       </View>
@@ -201,6 +248,18 @@ export default function PlanWeekScreen() {
                   {hint ? (
                     <Text variant="caption" tone="accent" accessibilityLiveRegion="polite">
                       {t(`weekPlan.${hint}`)}
+                    </Text>
+                  ) : null}
+                  {weekNote === 'bodyPhoto' ? (
+                    <View className="gap-1" accessibilityLiveRegion="polite">
+                      <Text variant="caption" tone="danger">
+                        {t('weekPlan.bodyPhotoRequired')}
+                      </Text>
+                      <Button variant="text" label={t('weekPlan.bodyPhotoAction')} onPress={() => router.push('/settings')} testID="week-body-photo" />
+                    </View>
+                  ) : weekNote === 'failed' ? (
+                    <Text variant="caption" tone="danger" accessibilityLiveRegion="polite">
+                      {t(`errors.${extractApiError(weekTryOn.error)}`)}
                     </Text>
                   ) : null}
                   {tryOn.error || startPlanWeek.error ? (
@@ -246,12 +305,13 @@ export default function PlanWeekScreen() {
               />
 
               <CreditConfirmSheet
-                visible={creditSheet}
-                onClose={() => setCreditSheet(false)}
-                cost={targets.length}
+                visible={weekQuote !== null}
+                onClose={() => setWeekQuote(null)}
+                cost={weekQuote?.requiredCredits ?? 0}
                 scope={t('weekPlan.scopeTag')}
-                confirming={tryOn.isStarting}
-                onConfirm={() => void startTryOns(targets.map((target) => target.id))}
+                confirming={weekTryOn.isStarting || weekTryOn.isQuoting}
+                note={quoteChanged ? t('weekPlan.quoteChanged') : weekQuote && weekQuote.cachedCount > 0 ? t('weekPlan.cachedDays', { count: weekQuote.cachedCount }) : null}
+                onConfirm={() => weekQuote && void confirmWeek(weekQuote)}
               />
 
               <BottomSheet visible={planJob.isDone && planJobId !== null} onClose={closeProposal}>
