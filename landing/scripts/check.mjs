@@ -3,6 +3,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { legalDocsDir, legalMarkdownFiles } from './legal-markdown.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const out = join(root, 'out');
@@ -191,7 +192,16 @@ for (const file of files.filter((path) => path.endsWith('.html'))) {
   }
 }
 
-// ── 5. App screenshots ─────────────────────────────────────────────────────────────────────────────
+// ── 5. Legal Markdown for review (docs/legal/) matches the dictionaries ────────────────────────────
+// Only inside the full repository: a deploy that checks out landing/ alone has no docs/ folder.
+if (existsSync(legalDocsDir)) {
+  for (const [path, content] of legalMarkdownFiles()) {
+    const label = relative(join(root, '..'), path);
+    expect(existsSync(path) && readFileSync(path, 'utf8') === content, `${label} is out of date — run \`npm run legal:md\``);
+  }
+}
+
+// ── 6. App screenshots ─────────────────────────────────────────────────────────────────────────────
 // Every language has the same set of screenshots; each page shows its own language's set, and every
 // screenshot a page references is in out/. Weight budgets keep the landing page light.
 const screensDir = join(out, 'screens');
