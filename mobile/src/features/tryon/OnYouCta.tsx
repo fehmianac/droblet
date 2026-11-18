@@ -13,7 +13,7 @@ import { openCreditSheetIfExhausted } from '@/features/credits/creditSheetStore'
 import { openCreditTopUp, useAiCredits } from '@/features/credits/useAiCredits';
 import { useIsOnline } from '@/sync/network';
 
-import { TRY_ON_CREDIT_COST, useStartTryOn } from './api';
+import { ensureTryOnConsent, isConsentDeclined, TRY_ON_CREDIT_COST, useStartTryOn } from './api';
 
 export type OnYouState = 'photo' | 'member' | 'credits' | 'tryOn';
 
@@ -105,7 +105,7 @@ export function OnYouCta({ target, title, feature, hasBodyPhoto }: Props) {
         router.push({ pathname: '/tryon/[jobId]', params: { jobId, title, kind: target.kind, id: target.id } });
       } catch (error) {
         setConfirm(false);
-        if (!openCreditSheetIfExhausted(error, feature)) setNote('failed');
+        if (!isConsentDeclined(error) && !openCreditSheetIfExhausted(error, feature)) setNote('failed');
       }
     })();
   };
@@ -124,7 +124,8 @@ export function OnYouCta({ target, title, feature, hasBodyPhoto }: Props) {
             return;
           }
           setNote(null);
-          setConfirm(true);
+          // Consent first (its own sheet), then the credit confirmation.
+          void ensureTryOnConsent().then((ok) => ok && setConfirm(true));
         }}
       />
       <CreditConfirmSheet visible={confirm} onClose={() => setConfirm(false)} cost={TRY_ON_CREDIT_COST} onConfirm={start} confirming={tryOn.isStarting} />

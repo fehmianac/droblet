@@ -1,56 +1,35 @@
-import type { Money } from '@/lib/format';
-
 /**
- * Bildirim merkezi (`/notifications`, opened by the bell on 06 Bugün).
- *
- * ⚠ PROVISIONAL — there is no backend contract yet. Shapes are assumed from the notification types the
- * product already has (29 Ayarlar toggles, 24b price alerts, 25 friend ratings, 05 membership).
- * The server sends data only; every sentence is built in the app, per language.
+ * Bildirim merkezi (`/notifications`, the bell on 06 Bugün) — `GET v1/tenant/notification` and
+ * `POST v1/tenant/notification/read`. The inbox holds the same events the Notifier pushes (follow
+ * requests, ratings summary, price drops, weekly edit, morning outfit), newest first, kept 90 days.
+ * The server sends codes and ids only; every sentence is built in the app, per language.
  */
 
-type Base = {
+export const NOTIFICATION_TYPES = ['morning_outfit', 'weekly_edit', 'friend_ratings', 'price_drop', 'follow_request'] as const;
+export type NotificationKind = (typeof NOTIFICATION_TYPES)[number];
+
+/** The ids the event carries (the same keys as the push `data`). */
+export type NotificationData = {
+  /** `yyyy-MM-dd` — morning outfit / ratings day. */
+  day?: string;
+  editId?: string;
+  productId?: string;
+  /** Requester of a follow request (without @). */
+  handle?: string;
+};
+
+export type AppNotification = {
   id: string;
+  kind: NotificationKind;
   /** UTC ISO-8601. */
   createdAt: string;
   /** null = unread. */
   readAt: string | null;
+  data: NotificationData;
 };
 
-/** A watched product got cheaper (24b) → 22 Ürün. */
-export type PriceDropNotification = Base & {
-  kind: 'price_drop';
-  productId: string;
-  productName: string;
-  brandName: string;
-  price: Money;
-  previousPrice: Money;
-};
-/** A friend rated one of the user's looks (25) → 25 Arkadaş akışı. */
-export type FriendRatingNotification = Base & {
-  kind: 'friend_rating';
-  person: { handle: string; displayName: string };
-  lookId: string;
-  /** 1–5. */
-  score: number;
-};
-/** The weekly plan was prepared (07) → 07 Haftalık plan. */
-export type WeeklyPlanNotification = Base & { kind: 'weekly_plan'; weekStart: string };
-/** Few AI image credits left this month → Üyelik. */
-export type CreditsLowNotification = Base & { kind: 'credits_low'; remaining: number };
-/** The membership renews soon → Üyelik. */
-export type RenewalNotification = Base & { kind: 'renewal'; renewsAt: string };
+/** GET v1/tenant/notification?pageToken=&limit= (default 30, max 100). */
+export type NotificationList = { items: AppNotification[]; pageToken: string | null; unreadCount: number };
 
-export type AppNotification =
-  | PriceDropNotification
-  | FriendRatingNotification
-  | WeeklyPlanNotification
-  | CreditsLowNotification
-  | RenewalNotification;
-
-export type NotificationKind = AppNotification['kind'];
-
-/** GET v1/tenant/notification — newest first. Assumption: the last 30 days in one page. */
-export type NotificationList = { items: AppNotification[] };
-
-/** PUT v1/tenant/notification/read — `ids: null` marks everything read. Idempotent on `clientMutationId`. */
+/** POST v1/tenant/notification/read `{ ids }` — `null` marks everything read → `{ unreadCount }`. Idempotent. */
 export type MarkNotificationsReadRequest = { ids: string[] | null; clientMutationId: string };

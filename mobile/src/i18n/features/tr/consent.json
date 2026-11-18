@@ -1,0 +1,77 @@
+{
+  "consent": {
+    "sheetTitle": "Açık rıza",
+    "lead": "Bu özellik için ayrı bir açık rızan gerekiyor. Metni okuyup onay kutusunu işaretlersen devam ederiz; vermezsen yalnızca bu özellik çalışmaz.",
+    "leadMany": "Bu özellik için aşağıdaki {{count}} ayrı açık rıza gerekiyor. Her birini ayrı ayrı işaretle; vermezsen yalnızca bu özellik çalışmaz.",
+    "readMore": "Metnin tamamı",
+    "readLess": "Metni gizle",
+    "statementLabel": "Onay metni",
+    "agree": "Onaylıyorum",
+    "notNow": "Şimdi değil",
+    "allTexts": "Tüm açık rıza metinleri",
+    "failed": "Rızan kaydedilemedi. Bağlantını kontrol edip yeniden dene.",
+    "outdated": "Bu metnin yeni bir sürümü var. Uygulamayı güncelleyip yeniden dene.",
+    "privacyEyebrow": "AÇIK RIZALARIM",
+    "privacyNote": "Her rıza ayrıdır; istediğin an kapatabilirsin. Kapatman, önceki işlemlerin hukuka uygunluğunu etkilemez.",
+    "grantedOn": "{{date}} tarihinde verildi",
+    "withdrawnOn": "{{date}} tarihinde geri alındı",
+    "neverGiven": "Verilmedi",
+    "outdatedState": "Metin güncellendi, yeniden onay gerekiyor",
+    "listError": "Rızaların yüklenemedi.",
+    "withdrawBodyTitle": "Boy fotoğrafın da silinsin mi?",
+    "withdrawBodyBody": "Rızanı geri aldın. İstersen boy fotoğrafını ve ondan üretilen “Üzerimde gör” görsellerini de şimdi silebiliriz.",
+    "withdrawFaceTitle": "Yüz fotoğrafın da silinsin mi?",
+    "withdrawFaceBody": "Rızanı geri aldın. İstersen yüz fotoğrafını ve renk paleti sonucunu da şimdi silebiliriz.",
+    "deletePhotos": "Evet, sil",
+    "keepPhotos": "Hayır, kalsın",
+    "weightDisabled": "Kilo isteğe bağlıdır. Girebilmen için ayrı açık rızan gerekiyor.",
+    "weightGive": "Rıza ver",
+    "marketingTitle": "Haftanın edit’i bildirimleri",
+    "marketingBody": "Editörün seçtiği look’lar ve izleme listendeki fiyat düşüşleri ürün ve kampanya içerebilir. Yalnızca onay verirsen göndeririz.",
+    "marketingYes": "Evet, gönder",
+    "marketingNo": "Hayır, teşekkürler",
+    "marketingNote": "Haftanın edit’i ve fiyat düşüşü pazarlama bildirimidir; açmak için ayrı onayın gerekir.",
+    "texts": {
+      "bodyPhotoAi": {
+        "title": "Boy fotoğrafı ve “Üzerimde gör”",
+        "body": "Ne için: Kombinleri ve mağaza ürünlerini senin üzerinde gösteren görselleri (“Üzerimde gör”) üretmek.\n\nHangi veriler: Yüklediğin boy (tam boy) fotoğrafı ve bu fotoğraftan üretilen görseller. Fotoğrafın konum ve cihaz bilgisi yüklemeden sonraki ilk işlemde silinir.\n\nKim işler ve nerede: Droblet Ltd; fotoğraf AWS'nin Frankfurt (Almanya) sunucularında saklanır ve görsel üretmek için OpenAI'ye (ABD) gönderilir.\n\nNe kadar: Fotoğrafı ya da üretilen görselleri silene veya hesabını silene kadar. Fotoğraf ve görseller hiçbir ayarda başka kullanıcılara gösterilmez.\n\nVermezsen: “Üzerimde gör” özelliğini kullanamazsın; gardırop, look, stilist ve diğer özellikler çalışmaya devam eder.",
+        "statement": "Boy fotoğrafımın, ‘Üzerimde gör’ görsellerini üretmek amacıyla Droblet Ltd tarafından işlenmesine ve bu amaçla AWS (Almanya) ile OpenAI'ye (ABD) aktarılmasına açık rıza veriyorum."
+      },
+      "facePhotoPalette": {
+        "title": "Yüz fotoğrafı ve renk paleti analizi",
+        "body": "Ne için: Yüz fotoğrafındaki ten, saç ve göz renklerine bakarak sana uyan renk sezonunu ve tonları belirlemek (renk paleti analizi).\n\nHangi veriler: Yüklediğin yüz fotoğrafı ve ondan çıkarılan palet sonucu (sezon tipi, uyan ve kaçınılacak tonlar). Kimlik tespiti, doğrulama ya da yüz tanıma yapılmaz; seni benzersiz biçimde tanımlayan bir yüz şablonu çıkarılmaz ve saklanmaz.\n\nKim işler ve nerede: Droblet Ltd; fotoğraf AWS'nin Frankfurt (Almanya) sunucularında saklanır ve analiz için OpenAI'ye (ABD) gönderilir.\n\nNe kadar: Fotoğrafı silene veya hesabını silene kadar. Yüz fotoğrafını sildiğinde palet sonucu da silinir. Fotoğraf ve palet hiçbir ayarda başka kullanıcılara gösterilmez.\n\nVermezsen: Renk paleti analizini kullanamazsın; diğer özellikler çalışmaya devam eder.",
+        "statement": "Yüz fotoğrafımın, yalnızca renk paleti analizi amacıyla ve kimlik tespiti yapılmaksızın Droblet Ltd tarafından işlenmesine ve bu amaçla AWS (Almanya) ile OpenAI'ye (ABD) aktarılmasına açık rıza veriyorum."
+      },
+      "weight": {
+        "title": "Kilo bilgisi",
+        "body": "Ne için: Beden profilini tamamlamak. Kilo bilgisi isteğe bağlıdır.\n\nHangi veriler: Girdiğin kilo. Kilo bilgisi yapay zekâ sağlayıcısına gönderilmez ve başka kullanıcılara gösterilmez.\n\nKim işler ve nerede: Droblet Ltd; AWS'nin Frankfurt (Almanya) sunucularında saklanır.\n\nNe kadar: Bilgiyi silene ya da hesabını silene kadar.\n\nVermezsen: Kilo alanını boş bırakırsın; hiçbir özellik etkilenmez.",
+        "statement": "Kilo bilgimin, beden profilimin bir parçası olarak Droblet Ltd tarafından saklanmasına açık rıza veriyorum."
+      },
+      "contacts": {
+        "title": "Rehberden arkadaş bulma",
+        "body": "Ne için: Rehberindeki kişilerden Droblet kullananları bulmak.\n\nHangi veriler: Rehberindeki e-posta adresleri telefonunda, her istekte değişen tek kullanımlık bir tuzla SHA-256 karmasına dönüştürülür; yalnızca bu karmalar gönderilir. Adlar, telefon numaraları ve e-posta adreslerinin kendisi telefonundan çıkmaz.\n\nKim işler ve nerede: Droblet Ltd; karmalar AWS'nin Frankfurt (Almanya) sunucularında yalnızca eşleştirme süresince bellekte tutulur.\n\nNe kadar: Karmalar kaydedilmez ve loglanmaz; tuz kullanıldıktan sonra silinir ve en geç 10 dakikada geçersiz olur.\n\nVermezsen: Telefonun rehber izni hiç sorulmaz; arkadaşlarını kullanıcı adıyla arayarak ya da davet bağlantısıyla bulabilirsin.",
+        "statement": "Rehberimdeki e-posta adreslerinin telefonumda karma değerlere dönüştürülerek, Droblet'teki arkadaşlarımı bulmak amacıyla Droblet Ltd'ye gönderilmesine açık rıza veriyorum."
+      },
+      "marketingNotifications": {
+        "title": "Pazarlama bildirimleri",
+        "body": "Ne için: Haftanın edit'i (editörün seçtiği look'lar ve ürünler) ve izleme listendeki ürünlerde fiyat düşüşü gibi ürün ve kampanya içerebilen bildirimleri göndermek.\n\nHangi veriler: Bildirim tercihlerin, cihazının bildirim anahtarı, dil ve saat dilimin, izleme listen.\n\nKim işler ve nerede: Droblet Ltd; bildirimler iOS'ta Apple Push Notification service, Android'de Google Firebase Cloud Messaging (ABD) üzerinden iletilir.\n\nNe kadar: Rızanı geri alana ya da hesabını silene kadar.\n\nVermezsen: Bu bildirimler gönderilmez. Sabah kombin hatırlatması ve takip isteği gibi hizmet bildirimleri bu rızadan bağımsızdır ve ayrı ayrı kapatılabilir.",
+        "statement": "Haftanın edit'i ve fiyat düşüşü gibi ürün ve kampanya içerebilen bildirimlerin tarafıma gönderilmesine onay veriyorum."
+      },
+      "crossBorderTransfer": {
+        "title": "Yurt dışına aktarım",
+        "body": "Ne için: Droblet'in Birleşik Krallık'ta kurulu olması ve hizmet sağlayıcılarının yurt dışında bulunması nedeniyle, Hizmet'in sunulması için kişisel verilerinin Türkiye dışına aktarılması.\n\nHangi veriler ve alıcılar: Hesap, profil, gardırop ve kullanım verilerin Droblet Ltd'ye (Birleşik Krallık) ve AWS'ye (Almanya); yapay zekâ işlemleri için fotoğrafların ve gardırop özelliklerin OpenAI'ye (ABD); e-posta adresin Twilio SendGrid'e (ABD); bildirim anahtarın Apple ve Google'a (ABD).\n\nDayanak: Bu aktarımlar öncelikle KVKK m. 9'daki uygun güvencelere (ör. standart sözleşme) dayanır. Bu rıza, söz konusu güvencelerin bulunmadığı arızi aktarımlar için KVKK m. 9/6-a kapsamında istenir.\n\nNe kadar: Rızanı geri alana ya da hesabını silene kadar.\n\nVermezsen ya da geri alırsan: Uygun güvencesi olmayan aktarımlar yapılmaz; buna bağlı özellikler (ör. yapay zekâ) kullanılamayabilir.",
+        "statement": "Kişisel verilerimin, yukarıda belirtilen alıcılara ve amaçlarla, KVKK m. 9'daki güvencelerin bulunmadığı arızi hâllerde yurt dışına aktarılmasına açık rıza veriyorum."
+      }
+    }
+  },
+  "age": {
+    "label": "18 yaşından büyüğüm",
+    "links": "<terms>Kullanım Koşulları</terms> · <privacy>Gizlilik Politikası</privacy>",
+    "required": "Devam etmek için 18 yaşından büyük olduğunu onayla.",
+    "title": "Bir adım kaldı",
+    "body": "Droblet’i 18 yaşından büyükler kullanabilir. Devam etmek için onayla.",
+    "confirm": "Onayla ve devam et",
+    "signOut": "Çıkış yap",
+    "failed": "Onayın kaydedilemedi. Bağlantını kontrol edip yeniden dene."
+  }
+}

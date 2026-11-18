@@ -55,6 +55,6 @@ describe('per-tab error boundary', () => {
     await waitFor(() => expect(screen.queryByTestId('screen-error-boundary')).toBeNull(), WAIT);
 
     await fireEvent.press(screen.getByTestId('tab.today'));
-    await waitFor(() => expect(screen.getByLabelText('Notifications')).toBeTruthy(), WAIT);
+    await waitFor(() => expect(screen.getByLabelText(/^Notifications/)).toBeTruthy(), WAIT);
   });
 });

@@ -24,7 +24,8 @@ public sealed class SocialService(
     IRateLimiter rateLimiter,
     IOptionsMonitor<SocialOptions> options,
     TimeProvider timeProvider,
-    ILogger<SocialService> logger) : ISocialService
+    ILogger<SocialService> logger,
+    IAvatarService avatars) : ISocialService
 {
     private const int RatingRetries = 5;
     private const int FeedParallelism = 10;
@@ -188,7 +189,9 @@ public sealed class SocialService(
             FollowerCount: (await repository.GetKeysAsync(FollowerEntity.GetPk(owner.Id), ct)).Count,
             FollowingCount: (await repository.GetKeysAsync(FollowingEntity.GetPk(owner.Id), ct)).Count,
             FollowState: context.IsSelf ? FollowState.None : context.FollowState,
-            RequestedYou: context.OwnerRequestedViewer);
+            RequestedYou: context.OwnerRequestedViewer,
+            // Public to whoever may see the closet (decision 7: followers by default).
+            AvatarUrl: context.IsSelf || (canItems && canLooks) ? (await avatars.GetAsync(owner.Id, ct))?.Url : null);
     }
 
     public async Task<IReadOnlyList<SocialLookDto>?> GetLooksAsync(string viewerTenantId, string handle, CancellationToken ct)
@@ -698,8 +701,24 @@ public sealed class SocialService(
             TransactWriteOperation.Delete(openPk, ReportEntity.GetSk(reportId)),
             TransactWriteOperation.Put(open),
         ], ct);
+        // Retention: the tenant pointers expire with the report (2 years after resolution, ReportRetention).
+        await StampResolvedAsync<ReportFiledEntity>(open.ReporterTenantId is { } reporter ? ReportFiledEntity.GetPk(reporter) : null, ReportFiledEntity.GetSk(reportId), open.ResolvedAt, ct);
+        await StampResolvedAsync<ReportReceivedEntity>(ReportReceivedEntity.GetPk(open.TargetTenantId), ReportReceivedEntity.GetSk(reportId), open.ResolvedAt, ct);
         logger.LogInformation("Report {ReportId} resolved as {Resolution} by admin {UserId}", reportId, resolution, adminUserId);
         return await ToDtoAsync(open, ct);
+    }
+
+    private async Task StampResolvedAsync<T>(string? pk, string sk, DateTime? resolvedAt, CancellationToken ct) where T : Domain.Entity.Base.IEntity, new()
+    {
+        if (pk is null || await repository.GetAsync<T>(pk, sk, ct) is not { } pointer)
+            return;
+        switch (pointer)
+        {
+            case ReportFiledEntity filed: filed.ResolvedAt = resolvedAt; break;
+            case ReportReceivedEntity received: received.ResolvedAt = resolvedAt; break;
+            default: return;
+        }
+        await repository.SaveAsync(pointer, ct);
     }
 
     private async Task<ModerationReportDto> ToDtoAsync(ReportEntity report, CancellationToken ct)

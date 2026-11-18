@@ -122,6 +122,24 @@ describe('Profili düzenle (derived)', () => {
     expect(screen.queryByText(/Damla/)).toBeNull();
   });
 
+  it('profile photo: "Change photo" is back; the sheet offers camera, library and removal, and removing saves', async () => {
+    accountFixtures.updateProfile(
+      { displayName: 'Damla', handle: 'damla', baseVersion: 1, clientMutationId: 'm' },
+      'https://example.com/avatar.jpg',
+    );
+    await open('/edit-profile');
+    await waitFor(() => expect(screen.getByTestId('profileEdit.photo')).toBeTruthy(), WAIT);
+    expect(screen.getByText('Change photo')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('profileEdit.photo'));
+    await waitFor(() => expect(screen.getByText('Profile photo')).toBeTruthy(), WAIT);
+    expect(screen.getByText('Take a photo')).toBeTruthy();
+    expect(screen.getByText('Choose from library')).toBeTruthy();
+    await fireEvent.press(screen.getByText('Remove photo'));
+    await waitFor(() => expect(screen.getByText('Add photo')).toBeTruthy(), WAIT);
+    await fireEvent.press(screen.getByTestId('profile-save'));
+    await waitFor(() => expect(accountFixtures.profile().avatarUrl).toBeNull(), WAIT);
+  });
+
   it('requires a name', async () => {
     await open('/edit-profile');
     await waitFor(() => expect(screen.getByLabelText('Name')).toBeTruthy(), WAIT);
@@ -211,7 +229,8 @@ describe('30 Renk paletim', () => {
     await waitFor(() => expect(screen.getByText('Upload a face photo first')).toBeTruthy(), WAIT);
     expect(screen.getByText('Your photo is visible only to you.')).toBeTruthy();
     await fireEvent.press(screen.getByText('Upload face photo'));
-    expect(screen.getByText('Take a photo')).toBeTruthy();
+    // Consents 2 + 6 are on record (fixture account): no consent sheet, the source sheet opens.
+    await waitFor(() => expect(screen.getByText('Take a photo')).toBeTruthy(), WAIT);
     expect(screen.getByText('Choose from library')).toBeTruthy();
   });
 });

@@ -15,6 +15,8 @@ import { Screen } from '@/components/ui/Screen';
 import { ScreenState } from '@/components/ui/ScreenState';
 import { Text } from '@/components/ui/Text';
 import { useMyProfile } from '@/features/account/queries';
+import { MarketingOptInCard } from '@/features/consent/MarketingOptIn';
+import { useUnreadNotificationCount } from '@/features/notifications/queries';
 import { useRefreshTodayLook, useSetLookFavorite } from '@/features/today/api';
 import { dayPart, todayGreeting } from '@/features/today/logic';
 import { TodayLookCard } from '@/features/today/TodayLookCard';
@@ -38,12 +40,32 @@ export default function TodayScreen() {
   const refresh = useRefreshTodayLook();
   // The greeting follows the profile: an edited name shows at once.
   const profile = useMyProfile();
+  const unread = useUnreadNotificationCount();
 
   return (
     <Screen>
       <View className="h-12 flex-row items-center justify-between px-gutter">
         <Logo />
-        <IconButton icon={Bell} onPress={() => router.push('/notifications')} accessibilityLabel={t('todayHome.notifications')} />
+        <View>
+          <IconButton
+            icon={Bell}
+            onPress={() => router.push('/notifications')}
+            accessibilityLabel={unread > 0 ? t('notifCenter.bellUnread', { count: unread }) : t('todayHome.notifications')}
+          />
+          {unread > 0 ? (
+            // Unread badge (accent, paper ring) on the bell's corner; the count is in the label for screen readers.
+            <View
+              pointerEvents="none"
+              accessible={false}
+              testID="bell-badge"
+              className="absolute right-1 top-1 h-[18px] min-w-[18px] items-center justify-center rounded-pill border-2 border-cream bg-accent px-1"
+            >
+              <Text variant="tab" tone="paper" className="font-sans-medium text-[10px] leading-[12px]">
+                {unread > 9 ? '9+' : String(unread)}
+              </Text>
+            </View>
+          ) : null}
+        </View>
       </View>
       <ScreenState query={today}>
         {(data) => {
@@ -83,6 +105,9 @@ export default function TodayScreen() {
               <View className="px-gutter">
                 <WeekStrip week={data.week} today={data.date} />
               </View>
+
+              {/* Marketing notifications are opt-in (explicit consent 5): one card, once. */}
+              <MarketingOptInCard className="mx-gutter" />
 
               <View className="gap-2 px-gutter">
                 {look ? (

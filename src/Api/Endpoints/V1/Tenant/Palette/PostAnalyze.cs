@@ -31,6 +31,7 @@ public class PostAnalyze : IEndpoint
     public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints)
     {
         return endpoints.MapPost("v1/tenant/palette/analyze", Handler)
+            .RequireConsent(ConsentRules.FacePhoto)
             .Produces<PaletteStartDto>(StatusCodes.Status200OK)
             .Produces<PaletteStartDto>(StatusCodes.Status202Accepted)
             .Problems(StatusCodes.Status403Forbidden, StatusCodes.Status409Conflict, StatusCodes.Status422UnprocessableEntity)

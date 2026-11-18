@@ -38,7 +38,7 @@ import { groupByCategory, readiness, tripLengthDays, tripShareText } from '@/fea
 import { ReadinessRing } from '@/features/trips/ReadinessRing';
 import { TripDaySheet } from '@/features/trips/TripDaySheet';
 import { TripPacking } from '@/features/trips/TripPacking';
-import { useStartTryOn } from '@/features/tryon/api';
+import { ensureTryOnConsent, useStartTryOn } from '@/features/tryon/api';
 import { ItemThumb } from '@/features/wardrobe/ItemThumb';
 import { useItems } from '@/features/wardrobe/queries';
 import { currentLanguage } from '@/i18n';
@@ -220,7 +220,8 @@ function PackedTrip({ trip }: { trip: TripDetail }) {
       return;
     }
     setTryOnNote(null);
-    setConfirm(scope);
+    // Consent first (its own sheet), then the credit confirmation.
+    void ensureTryOnConsent().then((ok) => ok && setConfirm(scope));
   };
 
   const startTryOn = () => {

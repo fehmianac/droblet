@@ -27,6 +27,21 @@ public enum ActivatePhotoOutcome { Activated, AlreadyApplied, UploadNotFound, Ki
 
 public sealed record ActivatePhotoResult(ActivatePhotoOutcome Outcome, PhotoView? Photo = null);
 
+public sealed record AvatarView(string Url, DateTime UrlExpiresAt);
+
+public enum ActivateAvatarOutcome { Activated, AlreadyApplied, UploadNotFound, UploadMissing, UnsupportedImage, TooLarge, DimensionsTooLarge }
+
+/// <summary>Profile picture: separate from body / face photos in storage keys, partitions and upload slots.</summary>
+public interface IAvatarService
+{
+    Task<PhotoUploadSlot> CreateUploadAsync(string tenantId, string contentType, CancellationToken ct);
+    /// <summary>Validates (magic bytes, size, longest side ≤ Photos:AvatarMaxDimension), strips metadata, replaces the previous avatar. Idempotent by clientMutationId.</summary>
+    Task<ActivateAvatarOutcome> ActivateAsync(string tenantId, string uploadId, string clientMutationId, CancellationToken ct);
+    Task DeleteAsync(string tenantId, CancellationToken ct);
+    /// <summary>Short-lived presigned GET of the current avatar; null when there is none.</summary>
+    Task<AvatarView?> GetAsync(string tenantId, CancellationToken ct);
+}
+
 public interface IPhotoService
 {
     Task<PhotoUploadSlot> CreateUploadAsync(string tenantId, PhotoKind kind, string contentType, CancellationToken ct);

@@ -45,6 +45,44 @@ public class PhotoUploadEntity : IEntity
     public static string GetSk(string uploadId) => uploadId;
 }
 
+/// <summary>
+/// The profile picture (public to whoever may see the closet). Stored apart from the private body / face photos: own
+/// partition, own S3 prefix (StorageKeys.Avatar), own upload slots — a photo upload can never become an avatar or back.
+/// </summary>
+public class AvatarEntity : IEntity
+{
+    [JsonPropertyName("pk")] public string Pk => GetPk(TenantId);
+    [JsonPropertyName("sk")] public string Sk => GetSk();
+
+    [JsonPropertyName("id")] public string Id { get; set; } = null!;
+    [JsonPropertyName("tenantId")] public string TenantId { get; set; } = null!;
+    [JsonPropertyName("s3Key")] public string S3Key { get; set; } = null!;
+    [JsonPropertyName("contentType")] public string ContentType { get; set; } = null!;
+    [JsonPropertyName("width")] public int Width { get; set; }
+    [JsonPropertyName("height")] public int Height { get; set; }
+    [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; }
+
+    public static string GetPk(string tenantId) => $"tenant#{tenantId}#avatar";
+    public static string GetSk() => "current";
+}
+
+/// <summary>An avatar upload slot issued by POST v1/tenant/profile/avatar/upload-url (uploads/tmp/, 1 day).</summary>
+public class AvatarUploadEntity : IEntity
+{
+    [JsonPropertyName("pk")] public string Pk => GetPk(TenantId);
+    [JsonPropertyName("sk")] public string Sk => GetSk(UploadId);
+
+    [JsonPropertyName("uploadId")] public string UploadId { get; set; } = null!;
+    [JsonPropertyName("tenantId")] public string TenantId { get; set; } = null!;
+    [JsonPropertyName("contentType")] public string ContentType { get; set; } = null!;
+    [JsonPropertyName("s3Key")] public string S3Key { get; set; } = null!;
+    [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; }
+    [JsonPropertyName("ttl")] public long Ttl => CreatedAt.AddDays(1).ToUnixTimeSeconds();
+
+    public static string GetPk(string tenantId) => $"tenant#{tenantId}#avatarupload";
+    public static string GetSk(string uploadId) => uploadId;
+}
+
 // Tenant-internal try-on cache. Never global. Deleted with the source body photo.
 public class TryOnImageEntity : IEntity
 {

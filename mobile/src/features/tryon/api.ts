@@ -20,6 +20,8 @@ import {
   type TryOnWeekQuoteWire,
   type TryOnWeekStartWire,
 } from '@/api/wire/tryon';
+import { CONSENTS_FOR } from '@/api/contracts/consents';
+import { ensureConsents } from '@/features/consent/store';
 import { routeAiStartError } from '@/features/credits/aiErrors';
 import { aiCreditsKey } from '@/features/credits/useAiCredits';
 import { fixtureDb } from '@/fixtures/db';
@@ -57,6 +59,32 @@ function startFixtureTryOn(request: StartTryOnRequest): StartTryOnResponse {
 }
 
 /**
+ * "Üzerimde gör" sends the full-body photo to OpenAI (US): explicit consents 1 + 6 (`bodyPhotoAi`,
+ * `crossBorderTransfer`). Call it on the CTA BEFORE the credit confirmation opens (one sheet at a time);
+ * resolves false when the user said "Şimdi değil".
+ */
+export function ensureTryOnConsent(): Promise<boolean> {
+  return ensureConsents(CONSENTS_FOR.tryOn, 'tryon');
+}
+
+/** The user declined the try-on consent: nothing was started and nothing is to be reported. */
+export class ConsentDeclinedError extends Error {
+  constructor() {
+    super('consent_declined');
+    this.name = 'ConsentDeclinedError';
+  }
+}
+
+export function isConsentDeclined(error: unknown): boolean {
+  return error instanceof ConsentDeclinedError;
+}
+
+/** Every start re-checks (no UI when the CTA already asked); a decline rejects with `ConsentDeclinedError`. */
+async function requireTryOnConsent(): Promise<void> {
+  if (!(await ensureTryOnConsent())) throw new ConsentDeclinedError();
+}
+
+/**
  * Starts "Üzerimde gör" (`POST v1/tenant/tryon`). Not queued offline: AI calls need a connection
  * (MOBILE_ENGINEER §Neler çevrimdışı çalışmaz). Each call carries a stable `requestId`, so a retried
  * request opens one job. An image that already exists answers 200 without a job or a credit: the
@@ -89,9 +117,15 @@ export function useStartTryOn() {
     isStarting: mutation.isPending,
     error: mutation.error,
     reset: mutation.reset,
-    start: (target: TryOnTarget) => mutation.mutateAsync({ requestId: ulid(), target }),
+    start: async (target: TryOnTarget) => {
+      await requireTryOnConsent();
+      return mutation.mutateAsync({ requestId: ulid(), target });
+    },
     /** Several targets under one confirmation (07b "7 kredi harcanacak"); resolves with the job ids in order. */
-    startMany: (targets: TryOnTarget[]) => Promise.all(targets.map((target) => mutation.mutateAsync({ requestId: ulid(), target }))),
+    startMany: async (targets: TryOnTarget[]) => {
+      await requireTryOnConsent();
+      return Promise.all(targets.map((target) => mutation.mutateAsync({ requestId: ulid(), target })));
+    },
   };
 }
 
@@ -209,8 +243,15 @@ export function useWeekTryOn() {
       quote.reset();
       start.reset();
     },
-    quote: (weekStart: string, fixtureDates: string[]) => quote.mutateAsync({ weekStart, fixtureDates }),
+    /** Asks for the try-on consent first (before any credit is quoted or confirmed). */
+    quote: async (weekStart: string, fixtureDates: string[]) => {
+      await requireTryOnConsent();
+      return quote.mutateAsync({ weekStart, fixtureDates });
+    },
     /** The `requestId` is created here, once per confirmation. */
-    start: (confirmed: TryOnWeekQuote) => start.mutateAsync({ requestId: ulid(), quote: confirmed }),
+    start: async (confirmed: TryOnWeekQuote) => {
+      await requireTryOnConsent();
+      return start.mutateAsync({ requestId: ulid(), quote: confirmed });
+    },
   };
 }

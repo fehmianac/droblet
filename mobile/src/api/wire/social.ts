@@ -55,6 +55,8 @@ export type PersonProfileWire = PersonCardWire & {
   lookCount: number | null;
   followerCount: number;
   followingCount: number;
+  /** Profile photo (presigned GET), only when this viewer may see the closet; older servers omit it. */
+  avatarUrl?: string | null;
 };
 
 const styleTags = (tags: string[] | null | undefined): StyleTag[] => (tags ?? []).map((t) => toSnake<StyleTag>(t));
@@ -94,7 +96,7 @@ export function toPersonProfile(wire: PersonProfileWire): PersonProfile {
   return {
     handle: wire.handle,
     displayName: wire.displayName ?? `@${wire.handle}`,
-    avatarUrl: null,
+    avatarUrl: wire.avatarUrl ?? null,
     styleTags: styleTags(wire.styleTags),
     itemCount: wire.itemCount,
     lookCount: wire.lookCount,

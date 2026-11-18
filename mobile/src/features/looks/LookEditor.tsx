@@ -19,7 +19,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Text } from '@/components/ui/Text';
 import { TextField } from '@/components/ui/TextField';
 import { CreditConfirmSheet } from '@/features/credits/CreditConfirmSheet';
-import { useStartTryOn } from '@/features/tryon/api';
+import { ensureTryOnConsent, useStartTryOn } from '@/features/tryon/api';
 import { formatMoney } from '@/lib/format';
 import { useIsOnline } from '@/sync/network';
 
@@ -86,7 +86,8 @@ export function LookEditor({ look, initialSlots, skippedCount = 0, items }: Prop
       return;
     }
     setTryOnNote(null);
-    setConfirm(true);
+    // Consent first (its own sheet), then the credit confirmation.
+    void ensureTryOnConsent().then((ok) => ok && setConfirm(true));
   };
 
   const onTryOnConfirm = () => {

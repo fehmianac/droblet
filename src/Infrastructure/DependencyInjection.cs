@@ -31,6 +31,7 @@ public static class DependencyInjection
         services.Configure<AiOptions>(configuration.GetSection(AiOptions.Section));
         services.Configure<AffiliateOptions>(configuration.GetSection(AffiliateOptions.Section));
         services.Configure<CatalogImageOptions>(configuration.GetSection(CatalogImageOptions.Section));
+        services.Configure<ConsentOptions>(configuration.GetSection(ConsentOptions.Section));
         // Secrets created by deploy-infra hold the literal CHANGE_ME until the owner fills them in: bind that as "not set".
         services.PostConfigure<AiOptions>(o => o.ApiKey = ConfigSecret.OrNull(o.ApiKey));
         services.PostConfigure<StoreOptions>(o =>
@@ -58,6 +59,8 @@ public static class DependencyInjection
         services.AddSingleton<ICreditService, CreditService>();
         services.AddSingleton<IItemRecognitionQuotaService, ItemRecognitionQuotaService>();
         services.AddSingleton<IJobLifecycle, JobLifecycle>();
+        services.AddSingleton<IConsentService, ConsentService>();
+        services.AddSingleton<IAvatarService, AvatarService>();
         services.AddDrobletWardrobe(configuration);
         services.AddDrobletStoreSocialCore(configuration);
         // Catalog:ImageHosts restricts where product images may be downloaded from; images uploaded through the admin

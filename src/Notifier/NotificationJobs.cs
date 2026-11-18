@@ -29,6 +29,9 @@ public interface INotificationJobs
 ///   watch-list auto-add pass (decision 10) for checkout clicks that saw no conversion in time.
 /// A notification goes out only when there is something to do, at most once per key (NotificationSentEntity),
 /// in the recipient's profile language; an UNREGISTERED token is deleted on the spot. No photos, no personal text.
+/// Every handled event is also written to the in-app inbox (INotificationInbox, 90 days) — with or without a device.
+/// The weekly edit and price drops are marketing (legal consent 5): neither the push nor the inbox row without a valid
+/// marketingNotifications consent. Follow requests and the ratings digest reach the inbox even with their push switched off.
 /// </summary>
 public sealed class NotificationJobs(
     IRepository repository,
@@ -36,6 +39,8 @@ public sealed class NotificationJobs(
     IMorningOutfitCheck morningOutfit,
     IOptionsMonitor<LocalizationOptions> localization,
     IWatchListAutoAdd watchListAutoAdd,
+    INotificationInbox inbox,
+    IConsentService consents,
     ILogger<NotificationJobs> logger) : INotificationJobs
 {
     private const int PageSize = 100;
@@ -76,6 +81,7 @@ public sealed class NotificationJobs(
                 var localDay = ReminderRules.LocalDay(row.TimeZone, now);
                 if (!await morningOutfit.HasOutfitForTodayAsync(row.SubscriberTenantId, localDay, ct))
                     continue; // nothing to do today → no notification
+                await inbox.AddAsync(row.SubscriberTenantId, NotificationType.MorningOutfit, localDay, new Dictionary<string, string> { ["day"] = localDay }, now, ct);
                 if (await SendOnceAsync(row.SubscriberTenantId, NotificationType.MorningOutfit, localDay, new() { ["day"] = localDay }, now, ct))
                     sent++;
             }
@@ -100,7 +106,10 @@ public sealed class NotificationJobs(
                 NotificationSubscriberEntity.GetPk(NotificationType.WeeklyEdit), token, PageSize, ct);
             foreach (var subscriber in subscribers)
             {
+                if (!await HasMarketingConsentAsync(subscriber.SubscriberTenantId, ct))
+                    continue; // switched on before consents existed, or the consent text changed: nothing goes out
                 candidates++;
+                await inbox.AddAsync(subscriber.SubscriberTenantId, NotificationType.WeeklyEdit, edit.Id, new Dictionary<string, string> { ["editId"] = edit.Id }, now, ct);
                 if (await SendOnceAsync(subscriber.SubscriberTenantId, NotificationType.WeeklyEdit, edit.Id, new() { ["editId"] = edit.Id }, now, ct))
                     sent++;
             }
@@ -115,6 +124,8 @@ public sealed class NotificationJobs(
         int candidates = 0, sent = 0;
         foreach (var marker in await repository.GetAllAsync<RatingDigestEntity>(RatingDigestEntity.GetPk(day), ct))
         {
+            // The digest is a service message about the user's own looks: always in the inbox, pushed only when switched on.
+            await inbox.AddAsync(marker.OwnerTenantId, NotificationType.FriendRatings, day, new Dictionary<string, string> { ["day"] = day }, now, ct);
             var subscribed = await repository.GetAsync<NotificationSubscriberEntity>(
                 NotificationSubscriberEntity.GetPk(NotificationType.FriendRatings), NotificationSubscriberEntity.GetSk(marker.OwnerTenantId), ct);
             if (subscribed is null)
@@ -139,8 +150,10 @@ public sealed class NotificationJobs(
                 queued++;
                 var subscribed = await repository.GetAsync<NotificationSubscriberEntity>(
                     NotificationSubscriberEntity.GetPk(type), NotificationSubscriberEntity.GetSk(row.TenantId), ct) is not null;
-                var data = await OutboxDataAsync(row, subscribed, ct);
-                if (data is not null && await SendOnceAsync(row.TenantId, type, row.Key, data, now, ct))
+                var (data, push) = await OutboxDataAsync(row, subscribed, ct);
+                if (data is not null)
+                    await inbox.AddAsync(row.TenantId, type, row.Key, data, now, ct);
+                if (data is not null && push && await SendOnceAsync(row.TenantId, type, row.Key, new Dictionary<string, string>(data), now, ct))
                     sent++;
                 await repository.DeleteAsync(row.Pk, row.Sk, ct);
             }
@@ -148,35 +161,40 @@ public sealed class NotificationJobs(
         return (queued, sent);
     }
 
-    /// <summary>The push data when the reason still exists and the recipient wants it; null otherwise.</summary>
-    private async Task<Dictionary<string, string>?> OutboxDataAsync(NotificationQueueEntity row, bool subscribed, CancellationToken ct)
+    /// <summary>
+    /// The event data when its reason still exists (null otherwise) and whether it is pushed. A pending follow request always
+    /// reaches the inbox; a price drop only with the push switched on and a valid marketing consent.
+    /// </summary>
+    private async Task<(Dictionary<string, string>? Data, bool Push)> OutboxDataAsync(NotificationQueueEntity row, bool subscribed, CancellationToken ct)
     {
         switch (row.Type)
         {
             case NotificationType.FollowRequest:
             {
-                if (!subscribed)
-                    return null;
                 var pending = await repository.GetAsync<FollowRequestReceivedEntity>(
                     FollowRequestReceivedEntity.GetPk(row.TenantId), FollowRequestReceivedEntity.GetSk(row.Key), ct);
                 var requester = pending is null ? null : await repository.GetAsync<TenantEntity>(TenantEntity.GetPk(), TenantEntity.GetSk(row.Key), ct);
                 // Only the handle travels (for the deep link); the sentence never names anybody.
-                return requester?.Handle is { } handle ? new() { ["handle"] = handle } : null;
+                return requester?.Handle is { } handle ? (new() { ["handle"] = handle }, subscribed) : (null, false);
             }
             case NotificationType.PriceDrop:
             {
                 var item = await repository.GetAsync<WatchItemEntity>(WatchItemEntity.GetPk(row.TenantId), WatchItemEntity.GetSk(row.Key), ct);
                 if (item is null || !item.PriceDropped || !item.NotifyPending)
-                    return null;
+                    return (null, false);
                 // The drop is handled either way: the flag is cleared so it is not announced again.
                 item.NotifyPending = false;
                 await repository.SaveAsync(item, ct);
-                return subscribed && WantsPriceDropPush(item) ? new() { ["productId"] = row.Key } : null;
+                var wanted = subscribed && WantsPriceDropPush(item) && await HasMarketingConsentAsync(row.TenantId, ct);
+                return wanted ? (new() { ["productId"] = row.Key }, true) : (null, false);
             }
             default:
-                return null;
+                return (null, false);
         }
     }
+
+    private async Task<bool> HasMarketingConsentAsync(string tenantId, CancellationToken ct) =>
+        (await consents.MissingAsync(tenantId, ConsentRules.Marketing, ct)).Count == 0;
 
     /// <summary>The per-product bell of the watch list (screen 24b).</summary>
     private static bool WantsPriceDropPush(WatchItemEntity item) => item.NotifyEnabled;
@@ -266,14 +284,7 @@ public static class NotificationTexts
         return texts.TryGetValue(defaultLanguage, out var fallback) ? fallback : texts.Values.First();
     }
 
-    public static string Code(NotificationType type) => type switch
-    {
-        NotificationType.MorningOutfit => "morning_outfit",
-        NotificationType.WeeklyEdit => "weekly_edit",
-        NotificationType.PriceDrop => "price_drop",
-        NotificationType.FollowRequest => "follow_request",
-        _ => "friend_ratings",
-    };
+    public static string Code(NotificationType type) => Infrastructure.Services.NotificationCodes.Code(type);
 
     public static IReadOnlyCollection<string> Languages(NotificationType type) => Templates[type].Keys;
 }

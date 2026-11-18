@@ -8,6 +8,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { track } from '@/analytics/track';
 import { SIZES, type Size } from '@/api/contracts';
+import { CONSENTS_FOR } from '@/api/contracts/consents';
+import { recordOf, useConsents } from '@/features/consent/api';
+import { ensureConsents } from '@/features/consent/store';
 import { useEnqueuePhotoUpload } from '@/api/photos';
 import { useBodyProfile, useSaveBodyProfile } from '@/api/profile';
 import { StepHeader } from '@/components/auth/StepHeader';
@@ -71,6 +74,9 @@ export default function BodyScreen() {
   const existing = useBodyProfile();
   const save = useSaveBodyProfile();
   const enqueueUpload = useEnqueuePhotoUpload();
+  const consents = useConsents();
+  /** Weight is optional and needs its own explicit consent (3); without it the field stays disabled. */
+  const weightAllowed = recordOf(consents.data, 'weight')?.valid === true;
 
   const [height, setHeight] = useState('');
   const [weight, setWeight] = useState('');
@@ -127,7 +133,9 @@ export default function BodyScreen() {
 
   const chooseBodyFromLibrary = () => bodyPicker.chooseFromLibrary(MAX_BODY_PHOTOS - bodyPhotos.length);
 
-  const addBodyPhoto = () => {
+  const addBodyPhoto = async () => {
+    // Explicit consents 1 + 6 before the first body photo (their own sheet); "Şimdi değil" leaves the slot empty.
+    if (!(await ensureConsents(CONSENTS_FOR.bodyPhoto, 'onboarding'))) return;
     void isCameraBlocked().then((blocked) => {
       setCameraBlocked(blocked);
       // Blocked: the inline card explains why; the slot still works through the library.
@@ -146,14 +154,15 @@ export default function BodyScreen() {
     const w = parseNumber(weight);
     const next: typeof errors = {};
     if (h === null || h < 120 || h > 220) next.height = t('body.heightInvalid');
-    if (weight.trim() !== '' && (w === null || w < 30 || w > 250)) next.weight = t('body.weightInvalid');
+    if (weightAllowed && weight.trim() !== '' && (w === null || w < 30 || w > 250)) next.weight = t('body.weightInvalid');
     if (!size) next.size = t('body.sizeRequired');
     setErrors(next);
     if (Object.keys(next).length > 0 || h === null || !size) return;
 
     save.save({
       heightCm: Math.round(h),
-      weightKg: w === null ? null : Math.round(w),
+      // Without the weight consent nothing is stored (the server refuses a weight then: 403 consent_required).
+      weightKg: !weightAllowed || w === null ? null : Math.round(w),
       size,
       baseVersion: existing.data?.baseVersion ?? 0,
     });
@@ -213,6 +222,8 @@ export default function BodyScreen() {
                   keyboardType="number-pad"
                   maxLength={3}
                   placeholder={t('body.weightPlaceholder')}
+                  editable={weightAllowed}
+                  accessibilityState={{ disabled: !weightAllowed }}
                 />
               </View>
               <View className="flex-1 gap-1.5">
@@ -232,6 +243,21 @@ export default function BodyScreen() {
                 </Pressable>
               </View>
             </View>
+            {consents.data && !weightAllowed ? (
+              <View className="flex-row flex-wrap items-center gap-x-2" testID="body.weightConsent">
+                <Text variant="caption" tone="muted" className="flex-shrink">
+                  {t('consent.weightDisabled')}
+                </Text>
+                <Button
+                  variant="text"
+                  size="md"
+                  label={t('consent.weightGive')}
+                  onPress={() => void ensureConsents(CONSENTS_FOR.weight, 'weight')}
+                  className="-ml-2"
+                  testID="body.weightGive"
+                />
+              </View>
+            ) : null}
             {fieldError ? (
               <View className="flex-row items-center gap-1.5" accessibilityLiveRegion="polite" accessibilityRole="alert">
                 <Icon icon={CircleAlert} size={14} tone="danger" />
@@ -268,7 +294,7 @@ export default function BodyScreen() {
                 ) : (
                   <Pressable
                     key={`empty${slot}`}
-                    onPress={addBodyPhoto}
+                    onPress={() => void addBodyPhoto()}
                     accessibilityRole="button"
                     accessibilityLabel={t('body.addBodyPhoto')}
                     className="h-[104px] flex-1 items-center justify-center rounded-image border-[1.5px] border-dashed border-muted/60 active:opacity-70"
@@ -289,7 +315,9 @@ export default function BodyScreen() {
                 />
               ) : (
                 <Pressable
-                  onPress={() => facePicker.chooseFromLibrary(1)}
+                  onPress={() =>
+                    void ensureConsents(CONSENTS_FOR.facePhoto, 'onboarding').then((ok) => ok && facePicker.chooseFromLibrary(1))
+                  }
                   accessibilityRole="button"
                   accessibilityLabel={t('body.addFacePhoto')}
                   accessibilityHint={t('body.facePhotoHint')}
@@ -314,7 +342,10 @@ export default function BodyScreen() {
               </View>
               <View className="flex-row flex-wrap gap-2">
                 <Chip label={t('common.openSettings')} onPress={() => void Linking.openSettings()} />
-                <Chip label={t('permission.useGallery')} onPress={chooseBodyFromLibrary} />
+                <Chip
+                  label={t('permission.useGallery')}
+                  onPress={() => void ensureConsents(CONSENTS_FOR.bodyPhoto, 'onboarding').then((ok) => ok && chooseBodyFromLibrary())}
+                />
               </View>
             </View>
           ) : null}

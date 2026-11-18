@@ -209,9 +209,15 @@ public sealed class StylistJobService(
         var seasons = dates.Select(d => SeasonRules.For(CalendarDay.Parse(d))).ToHashSet();
         var maxTemp = forecast.Count == 0 ? (int?)null : forecast.Min(f => WeatherRules.WholeDegrees(f.MaxC)); // outerwear stays unless every day is hot
         var candidates = StylistCandidateSelector.Select(wardrobe, new CandidateCriteria(seasons, null, maxTemp, true, settings.MaxCandidates, settings.HotFromC));
-        var context = new PackingContext(candidates.ToDictionary(c => c.Id, StringComparer.Ordinal), dates, trip.CabinOnly, packing.CabinMaxItems);
-        var wantsOuter = forecast.Any(f => WantsOuterLayer(f, settings));
         var occasions = trip.TripTypes.Select(PackingRules.OccasionFor).ToList();
+        var dayOccasions = CapsuleRules.DayOccasions(dates.Count, occasions);
+        // Cold or wet trip days: the outer layer is packed and worn on those days (forecast per date when known).
+        var layerDates = forecast.Where(f => WantsOuterLayer(f, settings)).Select(f => f.Date).Where(dates.Contains).ToHashSet(StringComparer.Ordinal);
+        var context = new PackingContext(candidates.ToDictionary(c => c.Id, StringComparer.Ordinal), dates, trip.CabinOnly, packing.CabinMaxItems,
+            dayOccasions, layerDates);
+        var wantsOuter = layerDates.Count > 0;
+        var target = CapsuleRules.TargetFor(context)!;
+        var range = CapsuleRules.PieceRange(context)!.Value;
         var missing = PackingRules.MissingPieces(wardrobe, forecast, settings.ColdBelowC);
 
         PackResult Result(PackPlan? plan, string source, string? refusal, bool trimmed = false, IReadOnlyList<string>? dropped = null)
@@ -244,7 +250,11 @@ public sealed class StylistJobService(
                 cabinMaxItems = context.CabinLimit ?? 0,
                 weather = dates.Select(d => byDate.TryGetValue(d, out var f) ? new { date = d, MinTempC = WeatherRules.WholeDegrees(f.MinC), MaxTempC = WeatherRules.WholeDegrees(f.MaxC), f.Condition } : null).Where(w => w is not null),
             },
-            minWearsPerPiece = PackingRules.RequiresMinWears(dates.Count) ? PackingRules.MinWearsPerPiece : 1,
+            // One look per date for that date's occasion; outerLayer = cold or wet (wear the outer layer that day).
+            days = dates.Select((d, i) => new { date = d, occasion = dayOccasions[i], outerLayer = layerDates.Contains(d) }),
+            // The capsule the rules expect (CapsuleRules): about `pieces` in total, never more than maxPieces.
+            capsule = new { target.Tops, target.Bottoms, target.Shoes, target.Outerwear, target.Bags, pieces = target.Pieces, minPieces = range.Min, maxPieces = range.Max },
+            minRewearRatio = PackingRules.RequiresMinWears(dates.Count) ? CapsuleRules.MinRewearRatio : 1.0,
             candidates = candidates.Select(Describe),
         });
 
@@ -252,7 +262,10 @@ public sealed class StylistJobService(
         if (StylistOutputGuard.ViolatesContentPolicy(StylistOutputGuard.Texts(output?.Days)))
             return Outcome.Fail(JobFailure.GuardRejected);
 
-        var plan = PackingRules.FromModel(output);
+        // Each date's occasion is the rule's (trip types in turn), whatever the model wrote.
+        var plan = PackingRules.FromModel(output) is { } parsed
+            ? parsed with { Days = parsed.Days.Select(d => d with { Occasion = context.OccasionOn(d.Date) ?? d.Occasion }).ToList() }
+            : null;
         var labelsFit = plan is not null && plan.Days.All(d => (d.Label?.Length ?? 0) <= settings.MaxTitleLength);
         if (plan is null || !labelsFit)
             return new Outcome(StylingJson.Serialize(Result(fallback, StylistOutputGuard.SourceRule, null, fallbackTrimmed)));

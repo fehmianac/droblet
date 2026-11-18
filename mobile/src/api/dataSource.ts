@@ -45,6 +45,8 @@ const LIVE = {
    * request is made); fixture builds show the sample list.
    */
   notifications: true,
+  /** Açık rıza kayıtları (`v1/tenant/consents`) and the 18+ confirmation. */
+  consents: true,
 } satisfies Record<string, boolean>;
 
 export const DATA_SOURCE = Object.fromEntries(

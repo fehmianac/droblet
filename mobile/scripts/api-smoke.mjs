@@ -155,7 +155,7 @@ async function postToPresigned(upload) {
 
 async function registerUser(label) {
   const email = `smoke+${STAMP}${label}@example.com`;
-  const res = await step('auth', `v1/auth/register (${label})`, 'POST', 'v1/auth/register', { body: { name: `Smoke ${label.toUpperCase()}`, email, password: PASSWORD } }, [201], (j) => {
+  const res = await step('auth', `v1/auth/register (${label})`, 'POST', 'v1/auth/register', { body: { name: `Smoke ${label.toUpperCase()}`, email, password: PASSWORD, ageConfirmed: true } }, [201], (j) => {
     has(j, 'accessToken', 'accessTokenExpiresAt', 'refreshToken', 'refreshTokenExpiresAt', 'userId', 'tenantId', 'isNewUser');
     need(j.isNewUser === true, 'isNewUser must be true on register');
   });
@@ -178,7 +178,11 @@ async function main() {
 
   try {
     // ----- auth -----
-    await step('auth', 'v1/auth/register (same e-mail)', 'POST', 'v1/auth/register', { body: { name: 'Smoke', email: a.email, password: PASSWORD } }, [409], (j) => need(j.code === 'email_taken', 'code'));
+    await step('auth', 'v1/auth/register (same e-mail)', 'POST', 'v1/auth/register', { body: { name: 'Smoke', email: a.email, password: PASSWORD, ageConfirmed: true } }, [409], (j) => need(j.code === 'email_taken', 'code'));
+    // 18+ (Terms §3): the sign-up box is required.
+    await step('age', 'v1/auth/register (no age confirmation)', 'POST', 'v1/auth/register', { body: { name: 'Smoke', email: `smoke+${STAMP}minor@example.com`, password: PASSWORD } }, [400], (j) =>
+      need(JSON.stringify(j.errors ?? {}).includes('age_confirmation_required'), 'age_confirmation_required'),
+    );
     const login = await step('auth', 'v1/auth/login', 'POST', 'v1/auth/login', { body: { email: a.email, password: PASSWORD } }, [200], (j) => need(j.isNewUser === false, 'isNewUser must be false on login'));
     await step('auth', 'v1/auth/login (wrong password)', 'POST', 'v1/auth/login', { body: { email: a.email, password: 'wrong-password-1' } }, [401], (j) => need(j.code === 'invalid_credentials', 'code'));
     if (login.json?.refreshToken) {
@@ -190,7 +194,40 @@ async function main() {
     await step('auth', 'v1/auth/password/forgot', 'POST', 'v1/auth/password/forgot', { body: { email: a.email } }, [202, 204]);
 
     // ----- profile / onboarding -----
-    const profile = await step('profile', 'v1/tenant/profile', 'GET', 'v1/tenant/profile', A, [200], (j) => has(j, 'tenantId', 'displayName', 'handle', 'email', 'closetVisibility', 'language', 'cityId', 'version'));
+    const profile = await step('profile', 'v1/tenant/profile', 'GET', 'v1/tenant/profile', A, [200], (j) => {
+      has(j, 'tenantId', 'displayName', 'handle', 'email', 'closetVisibility', 'language', 'cityId', 'version', 'ageConfirmedAt', 'avatarUrl');
+      need(j.ageConfirmedAt !== null, 'e-mail sign-up confirmed the age');
+    });
+    await step('age', 'v1/tenant/profile/age-confirmation (idempotent)', 'POST', 'v1/tenant/profile/age-confirmation', A, [200], (j) =>
+      need(j.ageConfirmedAt === profile.json?.ageConfirmedAt, 'keeps the first timestamp'),
+    );
+
+    // ----- explicit consents (Açık rıza 1–6) -----
+    const CONSENT_VERSION = '2026-11-19';
+    const consentTypes = ['bodyPhotoAi', 'facePhotoPalette', 'weight', 'contacts', 'marketingNotifications', 'crossBorderTransfer'];
+    await step('consents', 'v1/tenant/consents (new user)', 'GET', 'v1/tenant/consents', A, [200], (j) => {
+      need(consentTypes.every((t) => j.consents.some((c) => c.type === t)), 'all six types');
+      need(j.consents.every((c) => c.valid === false), 'nothing given yet');
+      return `currentVersion ${j.consents[0]?.currentVersion}`;
+    });
+    await step('consents', 'v1/tenant/photo/upload-url (no consent)', 'POST', 'v1/tenant/photo/upload-url', { ...A, body: { kind: 'body', contentType: 'image/jpeg' } }, [403], (j) =>
+      need(j.code === 'consent_required' && j.missing.includes('bodyPhotoAi') && j.missing.includes('crossBorderTransfer'), 'consent_required + missing'),
+    );
+    await step('consents', 'v1/tenant/body-profile (weight, no consent)', 'PUT', 'v1/tenant/body-profile', { ...A, body: { heightCm: 170, weightKg: 60, size: 'M', baseVersion: 0 } }, [403], (j) =>
+      need(j.code === 'consent_required' && j.missing.includes('weight'), 'weight consent'),
+    );
+    await step('consents', 'v1/tenant/consents (outdated text version)', 'PUT', 'v1/tenant/consents', { ...A, body: { consents: [{ type: 'weight', granted: true, version: '2000-01-01' }], source: 'weight', locale: 'tr' } }, [409], (j) =>
+      need(j.code === 'consent_version_outdated', 'code'),
+    );
+    const given = ['bodyPhotoAi', 'facePhotoPalette', 'contacts', 'crossBorderTransfer', 'weight'];
+    await step('consents', 'v1/tenant/consents (grant)', 'PUT', 'v1/tenant/consents', { ...A, body: { consents: given.map((type) => ({ type, granted: true, version: CONSENT_VERSION })), source: 'onboarding', locale: 'tr' } }, [200], (j) =>
+      need(given.every((t) => j.consents.find((c) => c.type === t)?.valid === true), 'granted'),
+    );
+    await step('consents', 'v1/tenant/consents (withdraw weight)', 'PUT', 'v1/tenant/consents', { ...A, body: { consents: [{ type: 'weight', granted: false, version: CONSENT_VERSION }], source: 'settings', locale: 'tr' } }, [200], (j) => {
+      const weight = j.consents.find((c) => c.type === 'weight');
+      need(weight.valid === false && weight.withdrawnAt !== null, 'withdrawn');
+    });
+    await step('consents', 'v1/tenant/consents/history', 'GET', 'v1/tenant/consents/history', A, [200], (j) => need(j.items.length >= given.length + 1, 'append-only history'));
     let profileVersion = profile.json?.version ?? 1;
     void profileVersion;
     await step('profile', 'v1/tenant/style-profile (new user)', 'GET', 'v1/tenant/style-profile', A, [404], () => 'no style profile → onboarding');
@@ -527,8 +564,38 @@ async function main() {
     profileVersion = settings.json?.profileVersion ?? profileVersion;
     await step('settings', 'v1/tenant/profile (language)', 'PUT', 'v1/tenant/profile', { ...A, body: { language: 'en', baseVersion: settings.json?.profileVersion ?? (await profileVersionOf(A)) } }, [200], (j) => need(j.language === 'en', 'language saved'));
     const prefs = await step('notifications', 'v1/tenant/user/me/notifications', 'GET', 'v1/tenant/user/me/notifications', A, [200], (j) => has(j, 'morningOutfit', 'morningOutfitLocalTime', 'weeklyEdit', 'friendRatings', 'timeZone', 'version'));
-    const prefsBody = { morningOutfit: true, morningOutfitLocalTime: '07:30', weeklyEdit: true, friendRatings: false, timeZone: 'Europe/Istanbul' };
+    const prefsBody = { morningOutfit: true, morningOutfitLocalTime: '07:30', weeklyEdit: false, friendRatings: false, timeZone: 'Europe/Istanbul' };
+    // The weekly edit / price drops are marketing (explicit consent 5): refused until the consent is recorded.
+    await step('notifications', 'v1/tenant/user/me/notifications (weekly edit, no consent)', 'PUT', 'v1/tenant/user/me/notifications', { ...A, body: { ...prefsBody, weeklyEdit: true, baseVersion: prefs.json?.version ?? 0 } }, [403], (j) =>
+      need(j.code === 'consent_required' && j.missing.includes('marketingNotifications'), 'marketing consent'),
+    );
     await step('notifications', 'v1/tenant/user/me/notifications', 'PUT', 'v1/tenant/user/me/notifications', { ...A, body: { ...prefsBody, baseVersion: prefs.json?.version ?? 0 } }, [200], (j) => need(j.morningOutfit === true, 'saved'));
+    await step('consents', 'v1/tenant/consents (marketing)', 'PUT', 'v1/tenant/consents', { ...A, body: { consents: [{ type: 'marketingNotifications', granted: true, version: '2026-11-19' }], source: 'notifications', locale: 'tr' } }, [200]);
+    const weekly = await step('notifications', 'v1/tenant/user/me/notifications (weekly edit, consented)', 'PUT', 'v1/tenant/user/me/notifications', { ...A, body: { ...prefsBody, weeklyEdit: true, baseVersion: (prefs.json?.version ?? 0) + 1 } }, [200], (j) => need(j.weeklyEdit === true, 'weekly edit on'));
+    await step('consents', 'v1/tenant/consents (withdraw marketing)', 'PUT', 'v1/tenant/consents', { ...A, body: { consents: [{ type: 'marketingNotifications', granted: false, version: '2026-11-19' }], source: 'settings', locale: 'tr' } }, [200]);
+    await step('notifications', 'v1/tenant/user/me/notifications (after withdrawal)', 'GET', 'v1/tenant/user/me/notifications', A, [200], (j) => need(j.weeklyEdit === false, 'withdrawal switched the weekly edit off'));
+    void weekly;
+
+    // ----- notification inbox -----
+    const inbox = await step('inbox', 'v1/tenant/notification', 'GET', 'v1/tenant/notification?limit=30', A, [200], (j) => {
+      has(j, 'items', 'pageToken', 'unreadCount');
+      return `${j.items.length} item(s), ${j.unreadCount} unread`;
+    });
+    await step('inbox', 'v1/tenant/notification (B: follow request events)', 'GET', 'v1/tenant/notification', B, [200], (j) => `${j.items.length} item(s): ${[...new Set(j.items.map((n) => n.type))].join(', ') || 'none'}`);
+    const firstId = inbox.json?.items?.[0]?.id;
+    if (firstId) await step('inbox', 'v1/tenant/notification/read (one)', 'POST', 'v1/tenant/notification/read', { ...A, body: { ids: [firstId] } }, [200], (j) => has(j, 'unreadCount'));
+    await step('inbox', 'v1/tenant/notification/read (all)', 'POST', 'v1/tenant/notification/read', { ...A, body: { ids: null } }, [200], (j) => need(j.unreadCount === 0, 'all read'));
+
+    // ----- profile photo (avatar): its own storage, never the body / face photos -----
+    const avatarUp = await step('avatar', 'v1/tenant/profile/avatar/upload-url', 'POST', 'v1/tenant/profile/avatar/upload-url', { ...A, body: { contentType: 'image/jpeg' } }, [200], (j) => has(j, 'uploadId', 'url', 'fields', 'expiresAt', 'maxBytes'));
+    if (avatarUp.json?.url) {
+      const s3 = await postToPresigned(avatarUp.json);
+      record('avatar', 'POST presigned S3 form (avatar)', s3, s3.status === 204 || s3.status === 201);
+      await step('avatar', 'v1/tenant/profile/avatar', 'PUT', 'v1/tenant/profile/avatar', { ...A, body: { uploadId: avatarUp.json.uploadId, clientMutationId: ulid() } }, [200], (j) => need(typeof j.avatarUrl === 'string', 'avatarUrl'));
+      await step('avatar', 'v1/tenant/photo (avatar is not a body / face photo)', 'GET', 'v1/tenant/photo', A, [200], (j) => need(!JSON.stringify(j).includes(avatarUp.json.uploadId), 'separate'));
+      await step('avatar', 'v1/tenant/profile/avatar', 'DELETE', 'v1/tenant/profile/avatar', A, [204]);
+      await step('avatar', 'v1/tenant/profile (photo removed)', 'GET', 'v1/tenant/profile', A, [200], (j) => need(j.avatarUrl === null, 'no avatar'));
+    }
     await step('notifications', 'v1/tenant/user/me/notifications (07:10)', 'PUT', 'v1/tenant/user/me/notifications', { ...A, body: { ...prefsBody, morningOutfitLocalTime: '07:10', baseVersion: (prefs.json?.version ?? 0) + 1 } }, [400], (j) => need(j.code === 'validation_failed', 'code'));
     const deviceId = `smoke-device-${STAMP}`;
     await step('devices', 'v1/tenant/user/me/device', 'PUT', 'v1/tenant/user/me/device', { ...A, body: { deviceId, platform: 'ios', timeZone: 'Europe/Istanbul' } }, [200], (j) => has(j, 'deviceId', 'platform', 'pushEnabled', 'updatedAt'));

@@ -11,8 +11,10 @@ import { storeFixtures } from './store';
 
 const HOUR = 3_600_000;
 
+type Base = { id: string; createdAt: string; readAt: string | null };
+
 /** `daysAgo: 0` = today, `hoursAgo` before now (never before midnight); older days are placed at noon. */
-type Seed = { daysAgo: number; hoursAgo?: number; read: boolean; build: (base: { id: string; createdAt: string; readAt: string | null }) => AppNotification | null };
+type Seed = { daysAgo: number; hoursAgo?: number; read: boolean; build: (base: Base) => AppNotification | null };
 
 const SEEDS: Seed[] = [
   {
@@ -21,43 +23,29 @@ const SEEDS: Seed[] = [
     read: false,
     build: (base) => {
       const drop = storeFixtures.watchlist().items.find((i) => i.price && i.previousPrice);
-      if (!drop?.price || !drop.previousPrice) return null;
-      return {
-        ...base,
-        kind: 'price_drop',
-        productId: drop.productId,
-        productName: drop.name,
-        brandName: drop.brandName,
-        price: drop.price,
-        previousPrice: drop.previousPrice,
-      };
+      return drop ? { ...base, kind: 'price_drop', data: { productId: drop.productId } } : null;
     },
   },
   {
     daysAgo: 0,
     hoursAgo: 3,
     read: false,
-    build: (base) => ({ ...base, kind: 'friend_rating', person: { handle: 'selin', displayName: 'Selin' }, lookId: 'look_office_1', score: 5 }),
+    build: (base) => ({ ...base, kind: 'follow_request', data: { handle: 'selin' } }),
   },
   {
     daysAgo: 1,
     read: false,
-    build: (base) => ({ ...base, kind: 'weekly_plan', weekStart: toIsoDate(new Date()) }),
+    build: (base) => ({ ...base, kind: 'morning_outfit', data: { day: toIsoDate(new Date(Date.now() - 24 * HOUR)) } }),
   },
   {
     daysAgo: 1,
     read: true,
-    build: (base) => ({ ...base, kind: 'friend_rating', person: { handle: 'ayse', displayName: 'Ayşe' }, lookId: 'look_weekend_1', score: 4 }),
+    build: (base) => ({ ...base, kind: 'friend_ratings', data: { day: toIsoDate(new Date(Date.now() - 24 * HOUR)) } }),
   },
   {
     daysAgo: 3,
     read: true,
-    build: (base) => ({ ...base, kind: 'credits_low', remaining: 3 }),
-  },
-  {
-    daysAgo: 4,
-    read: true,
-    build: (base) => ({ ...base, kind: 'renewal', renewsAt: new Date(Date.now() + 7 * 24 * HOUR).toISOString() }),
+    build: (base) => ({ ...base, kind: 'weekly_edit', data: { editId: 'edit_current' } }),
   },
 ];
 
@@ -72,7 +60,7 @@ export function resetNotificationFixtures(overrides: { empty?: boolean } = {}): 
 
 export const notificationFixtures = {
   list: (): NotificationList => {
-    if (state.empty) return { items: [] };
+    if (state.empty) return { items: [], pageToken: null, unreadCount: 0 };
     const now = new Date();
     const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
     const items = SEEDS.map((seed, index) => {
@@ -85,7 +73,7 @@ export const notificationFixtures = {
       const read = seed.read || state.read.has(id) || state.allReadAt !== null;
       return seed.build({ id, createdAt, readAt: read ? createdAt : null });
     }).filter((n): n is AppNotification => n !== null);
-    return { items };
+    return { items, pageToken: null, unreadCount: items.filter((n) => n.readAt === null).length };
   },
   markRead: (request: MarkNotificationsReadRequest): void => {
     if (request.ids === null) state.allReadAt = Date.now();

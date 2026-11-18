@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Domain.Entity;
 using Domain.Enum;
+using Domain.Extensions;
 using Domain.Services;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -289,6 +290,13 @@ public class SocialVisibilityEndpointTests(StoreSocialApiFactory factory) : ICla
         Assert.DoesNotContain(openAfter.GetProperty("items").EnumerateArray(), r => r.GetProperty("id").GetString() == reportId);
         Assert.Contains(done.GetProperty("items").EnumerateArray(), r => r.GetProperty("id").GetString() == reportId);
         Assert.Equal(HttpStatusCode.NotFound, (await admin.PostJsonAsync("v1/admin/moderation/report/NOPE/resolve", new { resolution = "dismissed" })).StatusCode);
+
+        // Retention: the resolved report and both tenant pointers expire 2 years after resolution.
+        var stored = await factory.Repository.GetAsync<ReportEntity>(ReportEntity.GetPk(ReportStatus.Resolved), ReportEntity.GetSk(reportId));
+        var filed = await factory.Repository.GetAsync<ReportFiledEntity>(ReportFiledEntity.GetPk(reporter.TenantId), ReportFiledEntity.GetSk(reportId));
+        var received = await factory.Repository.GetAsync<ReportReceivedEntity>(ReportReceivedEntity.GetPk(target.TenantId), ReportReceivedEntity.GetSk(reportId));
+        var expires = stored!.ResolvedAt!.Value.AddYears(2).ToUnixTimeSeconds();
+        Assert.Equal((expires, expires, expires), (stored.Ttl, filed!.Ttl, received!.Ttl));
     }
 
     [Fact]
@@ -416,11 +424,11 @@ public class SettingsAnalyticsWeatherEndpointTests(StoreSocialApiFactory factory
         Assert.False((await noToken.JsonAsync()).GetProperty("pushEnabled").GetBoolean());
         Assert.Equal(0, prefsBefore.GetProperty("version").GetInt64());
         Assert.True((await withToken.JsonAsync()).GetProperty("pushEnabled").GetBoolean());
-        // Decision 9: only the morning outfit and the weekly edit start on.
-        Assert.Equal((true, true, false, "Europe/Berlin"), (prefsAfter.GetProperty("morningOutfit").GetBoolean(), prefsAfter.GetProperty("weeklyEdit").GetBoolean(),
+        // Decision 9 as amended by the legal review (G2): only the morning outfit starts on; the weekly edit is marketing (opt-in).
+        Assert.Equal((true, false, false, "Europe/Berlin"), (prefsAfter.GetProperty("morningOutfit").GetBoolean(), prefsAfter.GetProperty("weeklyEdit").GetBoolean(),
             prefsAfter.GetProperty("friendRatings").GetBoolean(), prefsAfter.GetProperty("timeZone").GetString()));
         Assert.Equal((false, false), (prefsAfter.GetProperty("priceDrop").GetBoolean(), prefsAfter.GetProperty("followRequests").GetBoolean()));
-        Assert.False(prefsKept.GetProperty("weeklyEdit").GetBoolean());              // a later device never overrides the user's choice
+        Assert.False(prefsKept.GetProperty("morningOutfit").GetBoolean());           // a later device never overrides the user's choice
         Assert.Equal(2, settings.GetProperty("devices").GetArrayLength());
         Assert.Equal("tr", settings.GetProperty("language").GetString());
         Assert.DoesNotContain("fcm-token", settings.GetRawText());                    // tokens are never returned

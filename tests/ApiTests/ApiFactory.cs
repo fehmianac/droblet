@@ -55,15 +55,29 @@ public sealed class ApiFactory : WebApplicationFactory<Entrypoint>
 
     public CapturingEventManager Events { get; } = new();
 
-    public async Task<(HttpClient Client, AuthResponse Auth)> RegisterAsync(string? email = null, string password = "Sifre1234")
+    /// <summary>
+    /// A signed-in test user. grantConsents (default): every explicit consent is given on the current text version, so tests of
+    /// other features are not stopped by the consent guards; ConsentEndpointTests register with grantConsents: false.
+    /// </summary>
+    public async Task<(HttpClient Client, AuthResponse Auth)> RegisterAsync(string? email = null, string password = "Sifre1234", bool grantConsents = true)
     {
         var client = CreateClient();
         var response = await client.PostAsJsonAsync("v1/auth/register",
-            new { name = "Ayşe", email = email ?? $"{Guid.NewGuid():N}@example.com", password }, Json);
+            new { name = "Ayşe", email = email ?? $"{Guid.NewGuid():N}@example.com", password, ageConfirmed = true }, Json);
         response.EnsureSuccessStatusCode();
         var auth = (await response.Content.ReadFromJsonAsync<AuthResponse>(Json))!;
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.AccessToken);
+        if (grantConsents)
+            await GrantAllConsentsAsync(client);
         return (client, auth);
+    }
+
+    public static async Task GrantAllConsentsAsync(HttpClient client)
+    {
+        var consents = Enum.GetValues<Domain.Enum.ConsentType>()
+            .Select(t => new { type = t, granted = true, version = Domain.Options.ConsentOptions.DefaultVersion }).ToArray();
+        var response = await client.PutAsJsonAsync("v1/tenant/consents", new { consents, source = "test" }, Json);
+        response.EnsureSuccessStatusCode();
     }
 }
 

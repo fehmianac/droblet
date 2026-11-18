@@ -23,7 +23,11 @@ public sealed class CrossTenantCleanup(IRepository repository, TimeProvider time
 
         // Follow edges: my followees' Follower rows, my followers' Following rows.
         foreach (var f in await repository.GetAllAsync<FollowingEntity>(FollowingEntity.GetPk(tenantId), ct))
+        {
             keys.Add((FollowerEntity.GetPk(f.FolloweeTenantId), FollowerEntity.GetSk(tenantId)));
+            // The "new follow request" inbox row I left in their inbox (it carries my handle).
+            keys.Add((NotificationInboxEntity.GetPk(f.FolloweeTenantId), NotificationInboxEntity.GetSk(NotificationType.FollowRequest, tenantId)));
+        }
         foreach (var f in await repository.GetAllAsync<FollowerEntity>(FollowerEntity.GetPk(tenantId), ct))
             keys.Add((FollowingEntity.GetPk(f.FollowerTenantId), FollowingEntity.GetSk(tenantId)));
 
@@ -32,6 +36,7 @@ public sealed class CrossTenantCleanup(IRepository repository, TimeProvider time
         {
             keys.Add((FollowRequestReceivedEntity.GetPk(r.TargetTenantId), FollowRequestReceivedEntity.GetSk(tenantId)));
             keys.Add((NotificationQueueEntity.GetPk(NotificationType.FollowRequest), NotificationQueueEntity.GetSk(r.TargetTenantId, tenantId)));
+            keys.Add((NotificationInboxEntity.GetPk(r.TargetTenantId), NotificationInboxEntity.GetSk(NotificationType.FollowRequest, tenantId)));
         }
         foreach (var r in await repository.GetAllAsync<FollowRequestReceivedEntity>(FollowRequestReceivedEntity.GetPk(tenantId), ct))
             keys.Add((FollowRequestEntity.GetPk(r.RequesterTenantId), FollowRequestEntity.GetSk(tenantId)));

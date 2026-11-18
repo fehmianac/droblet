@@ -219,6 +219,17 @@ public class BlockedByEntity : IEntity
 }
 
 /// <summary>Moderation queue (global, admin only). The free-text note is never logged.</summary>
+/// <summary>
+/// Retention of reports (implemented default, lawyer to confirm — docs/legal/REVIEW.md §Retention): a resolved report and
+/// its two tenant pointers expire 2 years after resolution (DynamoDB TTL). Open reports stay until resolved.
+/// </summary>
+public static class ReportRetention
+{
+    public const int YearsAfterResolution = 2;
+
+    public static long? Ttl(DateTime? resolvedAt) => resolvedAt?.AddYears(YearsAfterResolution).ToUnixTimeSeconds();
+}
+
 public class ReportEntity : IEntity
 {
     [JsonPropertyName("pk")] public string Pk => GetPk(Status);
@@ -237,6 +248,7 @@ public class ReportEntity : IEntity
     [JsonPropertyName("resolutionNote")] public string? ResolutionNote { get; set; }
     [JsonPropertyName("resolvedByUserId")] public string? ResolvedByUserId { get; set; }
     [JsonPropertyName("resolvedAt")] public DateTime? ResolvedAt { get; set; }
+    [JsonPropertyName("ttl")] public long? Ttl => ReportRetention.Ttl(ResolvedAt);
 
     public static string GetPk(ReportStatus status) => $"report#{status.ToString().ToLowerInvariant()}";
     public static string GetSk(string reportId) => reportId;
@@ -250,6 +262,9 @@ public class ReportFiledEntity : IEntity
     [JsonPropertyName("tenantId")] public string TenantId { get; set; } = null!;
     [JsonPropertyName("reportId")] public string ReportId { get; set; } = null!;
     [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; }
+    /// <summary>Copied from the report when it is resolved, so the pointer expires with it.</summary>
+    [JsonPropertyName("resolvedAt")] public DateTime? ResolvedAt { get; set; }
+    [JsonPropertyName("ttl")] public long? Ttl => ReportRetention.Ttl(ResolvedAt);
 
     public static string GetPk(string tenantId) => $"tenant#{tenantId}#reportfiled";
     public static string GetSk(string reportId) => reportId;
@@ -263,6 +278,9 @@ public class ReportReceivedEntity : IEntity
     [JsonPropertyName("tenantId")] public string TenantId { get; set; } = null!;
     [JsonPropertyName("reportId")] public string ReportId { get; set; } = null!;
     [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; }
+    /// <summary>Copied from the report when it is resolved, so the pointer expires with it.</summary>
+    [JsonPropertyName("resolvedAt")] public DateTime? ResolvedAt { get; set; }
+    [JsonPropertyName("ttl")] public long? Ttl => ReportRetention.Ttl(ResolvedAt);
 
     public static string GetPk(string tenantId) => $"tenant#{tenantId}#reportreceived";
     public static string GetSk(string reportId) => reportId;

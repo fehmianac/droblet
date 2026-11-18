@@ -1,4 +1,5 @@
-import type { AppNotification, NotificationKind, NotificationList } from '@/api/contracts/notifications';
+import { NOTIFICATION_TYPES, type AppNotification, type NotificationKind, type NotificationList } from '@/api/contracts/notifications';
+import { routeForPush, type PushRoute } from '@/notify/routes';
 
 export type DayBucket = 'today' | 'yesterday' | 'earlier';
 
@@ -43,31 +44,23 @@ export function unreadCount(items: AppNotification[]): number {
 /** The list as it looks once `ids` (or everything, with `null`) is read — the optimistic value of "mark read". */
 export function markRead(list: NotificationList | undefined, ids: string[] | null, at: string): NotificationList | undefined {
   if (!list) return list;
-  return {
-    ...list,
-    items: list.items.map((n) => (n.readAt === null && (ids === null || ids.includes(n.id)) ? { ...n, readAt: at } : n)),
-  };
+  let newlyRead = 0;
+  const items = list.items.map((n) => {
+    if (n.readAt !== null || (ids !== null && !ids.includes(n.id))) return n;
+    newlyRead += 1;
+    return { ...n, readAt: at };
+  });
+  // Everything read: nothing is unread on later pages either.
+  const unreadCount = ids === null ? 0 : Math.max(0, list.unreadCount - newlyRead);
+  return { ...list, items, unreadCount };
 }
 
-export type NotificationTarget =
-  | { pathname: '/shop/product/[id]'; params: { id: string } }
-  | '/friends/feed'
-  | '/plan/week'
-  | '/subscription';
+export type NotificationTarget = PushRoute;
 
-/** Where a notification takes the user: product (22), friend feed (25), weekly plan (07) or membership. */
+/** Where a notification takes the user — the same place its push opens (`notify/routes`). */
 export function targetOf(notification: AppNotification): NotificationTarget {
-  switch (notification.kind) {
-    case 'price_drop':
-      return { pathname: '/shop/product/[id]', params: { id: notification.productId } };
-    case 'friend_rating':
-      return '/friends/feed';
-    case 'weekly_plan':
-      return '/plan/week';
-    case 'credits_low':
-    case 'renewal':
-      return '/subscription';
-  }
+  if (notification.kind === 'morning_outfit') return '/';
+  return routeForPush({ type: notification.kind, ...notification.data });
 }
 
-export const NOTIFICATION_KINDS: NotificationKind[] = ['price_drop', 'friend_rating', 'weekly_plan', 'credits_low', 'renewal'];
+export const NOTIFICATION_KINDS: readonly NotificationKind[] = NOTIFICATION_TYPES;

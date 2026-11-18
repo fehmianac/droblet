@@ -104,7 +104,7 @@ public sealed class TryOnJobService(
                     image = new ImageInput(data, key.EndsWith(".webp", StringComparison.Ordinal) ? "image/webp" : key.EndsWith(".png", StringComparison.Ordinal) ? "image/png" : "image/jpeg");
                 // A piece added from the ready library or the catalog has no own photo: its image is the global
                 // https asset (GlobalImageKey), fetched with the same allow-listed downloader as catalog products.
-                else if (key is null && item?.GlobalImageKey is { } global && global.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                else if (key is null && item is not null && await GlobalImageAsync(item, ct) is { } global)
                     image = await products.ReadImageAsync(
                         new ProductSnapshot(item.Id, item.Name ?? "", null, null, item.Category, item.ColorIds, item.Fabric, item.Seasons, global, false), ct);
             }
@@ -118,6 +118,21 @@ public sealed class TryOnJobService(
             garments.Add(image);
         }
         return garments;
+    }
+
+    /// <summary>
+    /// The piece's global https image. Run-on-read fallback for pieces added from the library before its images existed
+    /// (GlobalImageKey still the seed placeholder): the library item's current image is used instead. The stored piece is
+    /// not rewritten here (a worker never writes user items); ops migrate-library-item-images fixes the rows once.
+    /// </summary>
+    private async Task<string?> GlobalImageAsync(ItemEntity item, CancellationToken ct)
+    {
+        if (LibraryItemImageRules.IsResolvable(item.GlobalImageKey))
+            return item.GlobalImageKey;
+        if (!LibraryItemImageRules.NeedsLibraryImage(item))
+            return null;
+        var source = await repository.GetAsync<LibraryItemEntity>(LibraryItemEntity.GetPk(), LibraryItemEntity.GetSk(item.LibraryItemId!), ct);
+        return LibraryItemImageRules.CurrentImageFor(item, source);
     }
 
     private async Task<PhotoEntity?> ActiveBodyPhotoAsync(string tenantId, string photoId, CancellationToken ct)

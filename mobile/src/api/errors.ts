@@ -1,4 +1,5 @@
 import type { ProblemDetails } from './contracts';
+import { isConsentType, type ConsentType } from './contracts/consents';
 
 export type ApiErrorKind = 'http' | 'network' | 'config' | 'session_expired';
 
@@ -96,4 +97,16 @@ export function isPaywallError(error: unknown): boolean {
 /** 402 `credits_exhausted` → the credit-pack sheet (05b), never the paywall. */
 export function isCreditsExhausted(error: unknown): boolean {
   return apiErrorCode(error) === 'credits_exhausted';
+}
+
+/** 403 `consent_required`: an explicit consent is missing (see `missingConsents`). */
+export function isConsentRequired(error: unknown): error is ApiError {
+  return error instanceof ApiError && error.status === 403 && error.code === 'consent_required';
+}
+
+/** The consent types a `consent_required` answer lists (unknown values are dropped); [] for any other error. */
+export function missingConsents(error: unknown): ConsentType[] {
+  if (!isConsentRequired(error)) return [];
+  const missing = error.problem?.missing;
+  return Array.isArray(missing) ? missing.filter(isConsentType) : [];
 }

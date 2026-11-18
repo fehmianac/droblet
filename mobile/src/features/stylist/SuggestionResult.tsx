@@ -33,7 +33,7 @@ import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { CreditConfirmSheet } from '@/features/credits/CreditConfirmSheet';
 import { aiCreditsKey, openCreditTopUp, useAiCredits } from '@/features/credits/useAiCredits';
-import { TRY_ON_CREDIT_COST, useStartTryOn, useTryOnJob } from '@/features/tryon/api';
+import { ensureTryOnConsent, TRY_ON_CREDIT_COST, useStartTryOn, useTryOnJob } from '@/features/tryon/api';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { formatDate, parseLocalDate } from '@/lib/format';
 import { useIsOnline } from '@/sync/network';
@@ -297,12 +297,12 @@ export function SuggestionResult({ jobId, title, result, focused, onAskAgain, as
                     mode={media.mode}
                     imageUrl={media.imageUrl}
                     creditLine={creditLine}
-                    onTryOn={() => setSheet('credit')}
+                    onTryOn={() => void ensureTryOnConsent().then((ok) => ok && setSheet('credit'))}
                     tryOnDisabled={!online}
                     creditRefunded={media.creditRefunded}
                     onRetry={() => {
                       tryOns.set(s.index, null);
-                      setSheet('credit');
+                      void ensureTryOnConsent().then((ok) => ok && setSheet('credit'));
                     }}
                     retrying={startTryOn.isStarting}
                   />

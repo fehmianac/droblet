@@ -7,6 +7,8 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, View } from 'react-native';
 
 import type { Palette, PaletteTone } from '@/api/contracts/account';
+import { CONSENTS_FOR } from '@/api/contracts/consents';
+import { ensureConsents } from '@/features/consent/store';
 import { useEnqueuePhotoUpload } from '@/api/photos';
 import { SectionState } from '@/components/blocks/SectionState';
 import { BottomSheet } from '@/components/ui/BottomSheet';
@@ -236,7 +238,9 @@ export default function PaletteScreen() {
     onError: () => setPhotoFailed(true),
   });
 
-  const startAnalysis = () => gate('palette', analyze, { costsCredit: false });
+  // Face photo + palette analysis go to OpenAI (US): explicit consents 2 + 6 first (their own sheet).
+  const startAnalysis = () => void ensureConsents(CONSENTS_FOR.palette, 'palette').then((ok) => ok && gate('palette', analyze, { costsCredit: false }));
+  const choosePhoto = () => void ensureConsents(CONSENTS_FOR.facePhoto, 'face_photo').then((ok) => ok && setSourceOpen(true));
 
   return (
     <Screen bottom>
@@ -276,7 +280,7 @@ export default function PaletteScreen() {
               title={t('palette.emptyTitle')}
               body={t('palette.emptyBody')}
               action={t('palette.emptyAction')}
-              onAction={() => setSourceOpen(true)}
+              onAction={choosePhoto}
               note={t('palette.emptyNote')}
               error={photoFailed ? t('settings.photoFailed') : null}
             />

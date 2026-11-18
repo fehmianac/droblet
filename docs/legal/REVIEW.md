@@ -158,17 +158,49 @@ change the text.
 
 | # | Gap | Text that depends on it |
 |---|---|---|
-| G1 | **No consent screens** for body photo/try-on, face photo/palette, weight or marketing pushes (only contacts has one: `mobile/src/app/friends/contacts.tsx`). | Consents 1, 2, 3, 5; privacy §4–5; KVKK §4 |
-| G2 | Weekly edit push defaults **on** (decision 9) without Consent 5. | Consent 5; privacy §16 |
-| G3 | **No age confirmation** at sign-up. | Terms §3; privacy §17 |
-| G4 | **No server-side consent record** (date, text version, which consent). | Consents §1 |
-| G5 | No in-app withdrawal for consents other than deleting photos / clearing weight / OS permission / notification toggles; no "do not match me" switch for contact matching. | Consents §8; privacy §7 |
-| G6 | No retention (TTL) on reports, affiliate clicks/conversions; no CloudWatch log retention. | Privacy §13; KVKK §7 |
+| G1 | ~~No consent screens~~ **Implemented (2026-11-19):** just-in-time consent screens with the exact texts of `/consents` (TR + EN) before the first body photo / try-on (consent 1 + 6), face photo / palette (2 + 6), weight (3), contacts (4, mapped onto the existing screen) and the weekly-edit / price-drop opt-in (5); the server answers `403 consent_required` without them (docs/api/consents-age-inbox-avatar.md). Open: consent 6 is asked only with the photo features — garment recognition and the stylist also call OpenAI (US) without it; decide whether they need it too (Q3). | Consents 1, 2, 3, 5; privacy §4–5; KVKK §4 |
+| G2 | ~~Weekly edit push defaults on~~ **Implemented:** the weekly edit (and price drops) start **off** and need Consent 5; one opt-in card after onboarding and in Bildirimler; the Notifier re-checks the consent before sending. The morning outfit reminder stays a service notification (default on). | Consent 5; privacy §16 |
+| G3 | ~~No age confirmation~~ **Implemented:** required "18 yaşından büyüğüm / I am 18 or older" box on e-mail sign-up and a one-time confirmation after the first Apple / Google sign-in, stored as `ageConfirmedAt`; unconfirmed accounts see the confirmation before anything else. Self-declaration only (no age verification) — confirm with Q6. | Terms §3; privacy §17 |
+| G4 | ~~No server-side consent record~~ **Implemented:** per-user records `{ type, granted, version, grantedAt, withdrawnAt, locale, source }` plus an append-only audit log; text versions come from config (`Consents:Versions`), a new version re-prompts. Kept until account deletion (deleted with the account). **There is no data-export (portability) endpoint yet** — the records are not in any export. | Consents §1 |
+| G5 | **Mostly implemented:** Ayarlar › Gizlilik lists every consent with on/off and its date; withdrawing a photo consent offers to delete the photo and generated images; withdrawing weight clears it; withdrawing marketing switches those pushes off; deleting a photo counts as withdrawal (as the text says). Still open: a "do not match me" switch for contact matching (others can still find the user by e-mail hash). | Consents §8; privacy §7 |
+| G6 | ~~No retention~~ **Implemented defaults** (lawyer to confirm): Lambda log retention, TTLs on resolved reports and unconverted affiliate clicks — see §5a. Conversions / revenue ledger still have no period. | Privacy §13; KVKK §7 |
 | G7 | No automated objectionable-content filter on item photos beyond AI garment detection; "content removed" is a recorded resolution — confirm the admin action really removes/hides the item or look. | Community guidelines §8; Apple 1.2 |
 | G8 | Paywall: check the subscription terms link and the 24-hour auto-renew disclosure; mobile `LegalLinks` currently links Terms and Privacy only. | Subscription terms |
 | G9 | Analytics rows survive account deletion (hashed actor). | Privacy §9, §14 |
 | G10 | OpenAI data retention / ZDR not configured in code; confirm at account level. | Privacy §6 |
 | G11 | Footer contact link appears only when `NEXT_PUBLIC_CONTACT_EMAIL` is set. | All pages |
+
+## 5a. Retention — implemented defaults, lawyer to confirm
+
+Every period below is what the code and `template.yaml` do **today** (2026-11-19). They are engineering defaults chosen to
+close G6, not legal decisions: the lawyer confirms or changes each one (Q5), and privacy §13 / KVKK §7 must then match
+this table. "Account deletion" = `DELETE v1/auth/me`, which removes every tenant partition and S3 prefix immediately,
+whatever the period.
+
+| Data | Period | Where it is enforced |
+|---|---|---|
+| **Lambda logs** (every function: Api, ItemProcessor, Stylist, TryOn, Palette, four Notifier jobs) | **90 days on dev, 400 days on prod** (stack parameter `LogRetentionDays`, 0 = these defaults) | `template.yaml` → one `AWS::Logs::LogGroup` per function (`/droblet/{stage}/lambda/{fn}`) with `RetentionInDays`, wired through `LoggingConfig`. The old auto-created `/aws/lambda/droblet-{stage}-{fn}` groups keep their history without retention until deleted by hand after the deploy (see the template comment). Logs never contain prompts, photos, image URLs or e-mail addresses. |
+| **Reports** (moderation record + the reporter's and the reported person's pointers) | Open: until resolved. Resolved: **2 years after resolution** | DynamoDB TTL `ReportRetention` (`ReportEntity`, `ReportFiledEntity`, `ReportReceivedEntity`), set on resolve. Reports about a deleted account are removed with it; a deleted reporter is removed from the report. |
+| **Affiliate clicks not linked to a conversion** (the user's click row + the global click index) | **13 months after the click** | DynamoDB TTL `AffiliateClickRetention`; a conversion postback removes the TTL from both rows. |
+| Affiliate conversions and the revenue ledger | No period (financial / commission records; the ledger loses the person on account deletion) | — · *lawyer: tax / commercial retention period?* |
+| Anonymous click ledger (brand, source, network, click id; no user id) | No period (revenue report) | — · *after 13 months the click id no longer resolves to a person* |
+| Analytics events (salted hash of the account, allow-listed properties) | 400 days | DynamoDB TTL (`AnalyticsEventEntity`); survive account deletion (G9) |
+| AI jobs (inputs / results of stylist, try-on, palette, item jobs) | 7 days | DynamoDB TTL (`JobEntity`, `ItemDraftEntity`) |
+| Credit reservations and ledger entries | 400 days | DynamoDB TTL |
+| Stylist "Beğenmedim" feedback | 400 days | DynamoDB TTL |
+| In-app notification inbox (Bildirimler: ids only — day, edit id, product id, requester handle) | 90 days | DynamoDB TTL (`NotificationInboxEntity`); a deleted account's follow-request row is removed from the other person's inbox |
+| Consent records and their audit log (type, granted / withdrawn, text version, time, locale, source) | until account deletion (legal text: consents §1) | account deletion · *lawyer: keep a minimal proof after deletion?* |
+| Push send receipts | 14 days | DynamoDB TTL (`NotificationSentEntity`); queued events 3 days, rating digest markers 3 days |
+| Offline-sync mutation receipts | 30 days | DynamoDB TTL |
+| Uploads not yet confirmed (photos, garment photos) | 1 day | S3 lifecycle `uploads/tmp/` + DynamoDB TTL on the upload slots |
+| Contact-matching salt | ≤ 10 minutes, deleted on use; hashes never stored | DynamoDB TTL (`ContactSaltEntity`) |
+| Watch-list auto-add candidates / "removed by me" markers | due date + 7 days / 30 days | DynamoDB TTL |
+| App Store / Play notification receipts | 90 days | DynamoDB TTL |
+| Refresh tokens, password-reset tokens, admin sign-in codes / tokens | until they expire (admin codes + 1 day) | DynamoDB TTL |
+| Weather cache | short-lived cache | DynamoDB TTL |
+| Account data, wardrobe, looks, photos, generated images, profile picture, 18+ confirmation time | until the user deletes them or the account | account deletion |
+
+Rows written before these TTLs existed (dev data only; prod has no users yet) keep no expiry; nothing back-fills them.
 
 ## 6. Going live (after approval)
 

@@ -323,8 +323,8 @@ sign-up. The code is 8 characters, case-insensitive. Phase 1 gives no reward.
 |---|---|---|---|
 | GET | `v1/tenant/settings` | — | `SettingsDto` — everything screen 29 needs |
 | PUT | `v1/tenant/profile/visibility` | `{ "closetVisibility", "baseVersion" }` | `ProfileDto`. `409` + current `ProfileDto` when `baseVersion` is stale. Effective immediately. |
-| GET | `v1/tenant/user/me/notifications` | — | `NotificationPrefsDto` (`version: 0` = never saved, all off) |
-| PUT | `v1/tenant/user/me/notifications` | `{ "morningOutfit", "morningOutfitLocalTime": "07:30", "weeklyEdit", "friendRatings", "priceDrop"?, "followRequests"?, "timeZone": "Europe/Istanbul", "baseVersion" }` — `priceDrop` / `followRequests` omitted = unchanged | `NotificationPrefsDto`. `409` + current prefs. `400`: `local_time_invalid` (HH:mm, quarter hours only), `time_zone_invalid` (IANA id). |
+| GET | `v1/tenant/user/me/notifications` | — | `NotificationPrefsDto` (`version: 0` = never saved, all off). `weeklyEdit` / `priceDrop` are reported as effectively sent: on **and** a valid `marketingNotifications` consent ([C §2](consents-age-inbox-avatar.md)). |
+| PUT | `v1/tenant/user/me/notifications` | `{ "morningOutfit", "morningOutfitLocalTime": "07:30", "weeklyEdit", "friendRatings", "priceDrop"?, "followRequests"?, "timeZone": "Europe/Istanbul", "baseVersion" }` — `priceDrop` / `followRequests` omitted = unchanged | `NotificationPrefsDto`. `409` + current prefs. `400`: `local_time_invalid` (HH:mm, quarter hours only), `time_zone_invalid` (IANA id). `403 consent_required` (`missing: ["marketingNotifications"]`) when `weeklyEdit` or `priceDrop` is `true` without the marketing consent. |
 | PUT | `v1/tenant/user/me/device` | `{ "deviceId" (8–100 chars), "platform", "pushToken"?, "timeZone"? }` | `{ "deviceId", "platform", "pushEnabled", "updatedAt" }`. `422 device_limit_reached` (10). |
 | DELETE | `v1/tenant/user/me/device/{deviceId}` | — | `204` (idempotent) |
 | DELETE | `v1/tenant/photo/{kind}/{photoId}` | — | `204`. Deletes the active photo of one kind (`body` \| `face`; `photoId` = `GET v1/tenant/photo` → `body.id` / `face.id`) and what was made from it: **body** → the try-on images generated with that photo; **face** → the palette result. `404 not_found` when `photoId` is not the active photo of that kind (also after a replay — treat 404 as "already gone"). `DELETE v1/tenant/photo` (everything at once) is unchanged. |
@@ -335,7 +335,7 @@ sign-up. The code is 8 characters, case-insensitive. Phase 1 gives no reward.
 { "closetVisibility": "private", "language": "tr", "cityId": "745044",
   "city": { "id": "745044", "name": "İstanbul", "region": "İstanbul", "country": "Türkiye", "countryCode": "TR",
             "latitude": 41.01384, "longitude": 28.94966, "timeZone": "Europe/Istanbul" },   // null until the city was searched once
-  "notifications": { "morningOutfit": true, "morningOutfitLocalTime": "07:30", "weeklyEdit": true, "friendRatings": false,
+  "notifications": { "morningOutfit": true, "morningOutfitLocalTime": "07:30", "weeklyEdit": false, "friendRatings": false,
                      "priceDrop": false, "followRequests": false,
                      "timeZone": "Europe/Istanbul", "version": 1, "updatedAt": "…" },
   "devices": [ { "deviceId": "…", "platform": "ios", "pushEnabled": true, "updatedAt": "…" } ],
@@ -343,9 +343,12 @@ sign-up. The code is 8 characters, case-insensitive. Phase 1 gives no reward.
 ```
 
 - `morningOutfitLocalTime` is the user's **local** wall-clock time; with `timeZone` it stays correct across DST.
-- The first device registration **with a push token** creates the preferences with **only `morningOutfit` and `weeklyEdit`
-  on** (decision 9); `friendRatings`, `priceDrop` and `followRequests` start off. Later registrations never change the
-  user's choices. Push tokens are never returned.
+- The first device registration **with a push token** creates the preferences with **only `morningOutfit` on** (decision 9,
+  amended by the legal review — REVIEW §5 G2: the weekly edit is a marketing message and needs consent 5, so it starts
+  **off** until the user opts in); `weeklyEdit`, `friendRatings`, `priceDrop` and `followRequests` start off. Later
+  registrations never change the user's choices. Push tokens are never returned.
+- Withdrawing `marketingNotifications` (`PUT v1/tenant/consents`) switches `weeklyEdit` and `priceDrop` off and removes the
+  user from both send lists.
 - Sign-out (`POST v1/auth/logout` with `deviceId`) already removes the device.
 - Account deletion (`DELETE v1/auth/me`) now also removes: follow edges on both sides, ratings given (averages are
   corrected) and received, saved looks in both directions, blocks, reports about the user (reports she filed stay
@@ -385,11 +388,15 @@ sentences in the recipient's profile language (`tr`, `en`; other languages fall 
 
 | `data.type` | Extra `data` | When | Once per |
 |---|---|---|---|
-| `weekly_edit` | `editId` | Weekly; `weeklyEdit` on and an edit for the current week is published | edit |
+| `weekly_edit` | `editId` | Weekly; `weeklyEdit` on, a valid `marketingNotifications` consent, and an edit for the current week is published | edit |
 | `friend_ratings` | `day` | Daily digest; `friendRatings` on and a look was rated today (no scores or names in the text) | day |
 | `follow_request` | `handle` (the requester, for the deep link) | Within 15 minutes of a new request; `followRequests` on and the request still pending. The text names nobody | requester (14 days) |
-| `price_drop` | `productId` | Within 15 minutes of a price drop on a watched product; `priceDrop` on **and** the item's `notify` bell on | product (14 days) |
+| `price_drop` | `productId` | Within 15 minutes of a price drop on a watched product; `priceDrop` on, the item's `notify` bell on **and** a valid `marketingNotifications` consent | product (14 days) |
 | `morning_outfit` | `day` | At `morningOutfitLocalTime`; `morningOutfit` on **and** a look that still exists is planned for the user's local day (`PUT v1/tenant/plan-day/{date}` with a `lookId`; an occasion alone does not count) | local day |
+
+Every handled event is also written to the in-app inbox (`GET v1/tenant/notification`, [C §4](consents-age-inbox-avatar.md)),
+with or without a registered device: `morning_outfit`, `weekly_edit` and `price_drop` under the same conditions as the push;
+`follow_request` and `friend_ratings` even when their push is switched off.
 
 ## 10. Weather
 

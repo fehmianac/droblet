@@ -7,6 +7,8 @@ import { Linking, ScrollView, Share, View } from 'react-native';
 
 import { legalUrls, linkDomain } from '@/api/config';
 import { ApiError } from '@/api/errors';
+import { recordOf, useConsents, useSaveConsents } from '@/features/consent/api';
+import { ConsentBlock } from '@/features/consent/ConsentSheet';
 import { Card } from '@/components/blocks/basics';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
@@ -51,6 +53,22 @@ export default function ContactsMatchScreen() {
   const run = useRunContactMatch();
   const matches = useContactMatches();
   const invite = useInviteLink();
+  const consents = useConsents();
+  const saveConsent = useSaveConsents();
+  /** Explicit consent 4: an unticked box; a consent recorded earlier shows as given. */
+  const given = recordOf(consents.data, 'contacts')?.valid === true;
+  const [ticked, setTicked] = useState(false);
+  const agreed = given || ticked;
+
+  /** Records consent 4 (`PUT v1/tenant/consents`, source `contacts`), then asks for the system permission. */
+  const agree = () => {
+    if (!agreed) return;
+    if (given) {
+      void allow();
+      return;
+    }
+    saveConsent.mutate({ decisions: [{ type: 'contacts', granted: true }], source: 'contacts' }, { onSuccess: () => void allow() });
+  };
 
   const allow = async () => {
     const permission = await requestContactsPermission().catch(() => ({ granted: false, canAskAgain: false }));
@@ -88,6 +106,12 @@ export default function ContactsMatchScreen() {
             <Bullet>{t('contacts.consentStore')}</Bullet>
             <Bullet>{t('contacts.consentOptional')}</Bullet>
           </Card>
+          <ConsentBlock type="contacts" checked={agreed} onToggle={() => !given && setTicked((v) => !v)} />
+          {saveConsent.isError ? (
+            <Text variant="caption" tone="danger" accessibilityLiveRegion="polite">
+              {t('consent.failed')}
+            </Text>
+          ) : null}
           <Button
             variant="text"
             label={t('contacts.privacy')}
@@ -96,7 +120,13 @@ export default function ContactsMatchScreen() {
             className="self-start"
           />
           <View className="gap-2">
-            <Button label={t('contacts.agree')} onPress={() => void allow()} disabled={!online} testID="contacts.agree" />
+            <Button
+              label={t('contacts.agree')}
+              onPress={agree}
+              disabled={!online || !agreed}
+              loading={saveConsent.isPending}
+              testID="contacts.agree"
+            />
             <Button variant="secondary" label={t('contacts.notNow')} onPress={() => router.back()} testID="contacts.notNow" />
           </View>
           {!online ? (

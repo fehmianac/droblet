@@ -65,6 +65,13 @@ public static class DeletionPlan
         typeof(ReportReceivedEntity),
         typeof(NotificationPrefEntity),
         typeof(NotificationSentEntity),
+        typeof(NotificationInboxEntity),
+        // Consent records (current + append-only audit log): kept until the account is deleted (legal: consents §1).
+        typeof(ConsentEntity),
+        typeof(ConsentHistoryEntity),
+        // Profile picture (own prefix tenant/{id}/avatar/, removed with TenantRoot).
+        typeof(AvatarEntity),
+        typeof(AvatarUploadEntity),
     ];
 
     public static IReadOnlyList<string> TenantPartitionKeys(string tenantId) =>

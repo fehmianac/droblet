@@ -192,31 +192,32 @@
     "allRead": "All read",
     "markAll": "Mark all as read",
     "settings": "Notification settings",
-    "empty": "No notifications yet; price drops and friend ratings will appear here.",
+    "empty": "No notifications yet; follow requests, look ratings, price drops and the weekly edit show up here.",
     "rowA11y": "{{title}}. {{body}}. {{time}}",
     "rowUnreadA11y": "Unread. {{title}}. {{body}}. {{time}}",
+    "morningOutfit": {
+      "title": "Today’s outfit is ready",
+      "body": "The look you planned is waiting"
+    },
+    "weeklyEdit": {
+      "title": "This week’s edit is live",
+      "body": "Take a look at this week’s looks"
+    },
+    "friendRatings": {
+      "title": "New ratings on your looks",
+      "body": "Your friends rated your looks"
+    },
     "priceDrop": {
-      "title": "Price drop on {{name}}",
-      "body": "{{brand}} · {{price}}, was {{previous}}"
+      "title": "A price dropped on your watch list",
+      "body": "Something you are watching now costs less"
     },
-    "friendRating": {
-      "title_one": "{{name}} gave your look {{count}} star",
-      "title_other": "{{name}} gave your look {{count}} stars",
-      "body": "See it in the friend feed"
+    "followRequest": {
+      "title": "@{{handle}} would like to follow you",
+      "titleAnonymous": "New follow request",
+      "body": "Approve or decline the request"
     },
-    "weeklyPlan": {
-      "title": "Your weekly plan is ready",
-      "body": "Take a look at this week's outfits"
-    },
-    "creditsLow": {
-      "title_one": "{{count}} AI image left this month",
-      "title_other": "{{count}} AI images left this month",
-      "body": "You can top up credits or wait for the renewal"
-    },
-    "renewal": {
-      "title": "Your membership renews on {{date}}",
-      "body": "See your membership details"
-    }
+    "bellUnread_one": "Notifications, {{count}} unread",
+    "bellUnread_other": "Notifications, {{count}} unread"
   },
   "credits": {
     "eyebrow": "AI IMAGES · THIS MONTH",

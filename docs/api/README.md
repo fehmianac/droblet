@@ -7,6 +7,7 @@ Every HTTP endpoint of the Api Lambda (`src/Api/Endpoints/V1`), with the contrac
 | **W** — [wardrobe-looks-plan-stylist.md](wardrobe-looks-plan-stylist.md) | Wardrobe items, drafts and library; looks; today / plan / wear log; stylist and trips; try-on; palette; profile counters; AI recognition allowance; job result shapes |
 | **S** — [store-social-settings.md](store-social-settings.md) | Keşfet content, catalog, cart, watch list, affiliate checkout and postback; feed, people, follow, block, report, rating, save; invite and share; settings, notifications, devices; analytics events; weather; admin content shapes (§11) |
 | **A** — [admin.md](admin.md) | Admin panel: admin sign-in (password + e-mailed code), roles and permissions, admin users, audit log, dashboard, app users and moderation actions, library, catalog images, Parameter Store settings |
+| **C** — [consents-age-inbox-avatar.md](consents-age-inbox-avatar.md) | Explicit consents (records, audit log, versions, `403 consent_required` enforcement, withdrawal), 18+ confirmation, notification inbox, profile picture |
 | **P** — [purchases-push.md](purchases-push.md) | In-app purchases (StoreKit 2 / Play Billing verified on the server), restore, App Store / Play store notifications, device push tokens (APNs / FCM) and notification deep links, Sign in with Apple token revocation |
 | **—** | Foundation endpoints (sign-in, profile basics, photos, style / body profile, purchases, jobs). No contract document yet: the request / response records sit next to each endpoint in `src/Api/Endpoints/V1/Auth` and `src/Api/Endpoints/V1/Tenant/{Profile,Photo,StyleProfile,BodyProfile,Entitlement}`; the one-line summary below is the endpoint's own (`WithSummary`). |
 
@@ -14,7 +15,7 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 
 **Auth** column: `user` = signed-in user (tenant from the token) · `admin:<permission>` = signed-in **admin panel** account (separate admin token, never an app token) whose role holds that permission ([A §2](admin.md)); `admin` = any signed-in admin · `anonymous` = no token (postbacks and store notifications are authenticated by signature / OIDC token; admin sign-in routes are rate limited per IP).
 
-200 endpoints.
+209 endpoints.
 
 ## Auth and account (foundation)
 
@@ -28,7 +29,7 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | POST | `v1/auth/password/forgot` | anonymous | — | Request a password reset e-mail |
 | POST | `v1/auth/password/reset` | anonymous | — | Set a new password with a reset token |
 | POST | `v1/auth/refresh` | anonymous | — | Rotate the refresh token |
-| POST | `v1/auth/register` | anonymous | — | Register with e-mail and password |
+| POST | `v1/auth/register` | anonymous | [C](consents-age-inbox-avatar.md) | Register with e-mail and password (18+ box required) |
 
 ## Profile, photos, style, body (foundation + additions)
 
@@ -47,6 +48,18 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | GET | `v1/tenant/profile/handle/availability` | user | [S](store-social-settings.md) | Check an @handle |
 | GET | `v1/tenant/profile/stats` | user | [W](wardrobe-looks-plan-stylist.md) | Get my profile counters |
 | PUT | `v1/tenant/profile/visibility` | user | [S](store-social-settings.md) | Change closet visibility |
+| POST | `v1/tenant/profile/age-confirmation` | user | [C](consents-age-inbox-avatar.md) | Confirm I am 18 or older |
+| POST | `v1/tenant/profile/avatar/upload-url` | user | [C](consents-age-inbox-avatar.md) | Get a presigned upload for my profile picture |
+| PUT | `v1/tenant/profile/avatar` | user | [C](consents-age-inbox-avatar.md) | Make an uploaded image my profile picture |
+| DELETE | `v1/tenant/profile/avatar` | user | [C](consents-age-inbox-avatar.md) | Remove my profile picture |
+
+## Consents
+
+| Method | Path | Auth | Doc | What |
+|---|---|---|---|---|
+| GET | `v1/tenant/consents` | user | [C](consents-age-inbox-avatar.md) | Get my consents |
+| PUT | `v1/tenant/consents` | user | [C](consents-age-inbox-avatar.md) | Give or withdraw consents |
+| GET | `v1/tenant/consents/history` | user | [C](consents-age-inbox-avatar.md) | My consent history |
 | GET | `v1/tenant/style-profile` | user | — | Get style profile |
 | PUT | `v1/tenant/style-profile` | user | — | Create or update style profile |
 
@@ -241,6 +254,8 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | Method | Path | Auth | Doc | What |
 |---|---|---|---|---|
 | POST | `v1/tenant/event` | user | [S](store-social-settings.md) | Analytics events (batch) |
+| GET | `v1/tenant/notification` | user | [C](consents-age-inbox-avatar.md) | My notifications (inbox) |
+| POST | `v1/tenant/notification/read` | user | [C](consents-age-inbox-avatar.md) | Mark notifications read |
 | GET | `v1/tenant/settings` | user | [S](store-social-settings.md) | Settings (screen 29) in one call |
 | PUT | `v1/tenant/user/me/device` | user | [S](store-social-settings.md) · [P](purchases-push.md) | Register / refresh a device |
 | DELETE | `v1/tenant/user/me/device/{deviceId}` | user | [S](store-social-settings.md) | Remove a device |
@@ -326,5 +341,6 @@ Admin panel at `https://droblet-admin.alatech.co` ([admin.md](admin.md)). Admin 
 | Palette → shop | `GET v1/tenant/palette/products` = the catalog filtered by the palette colours | W §8 |
 | Morning reminder | The `morning_outfit` push is sent when a look is planned for the user's local day | S §9 |
 | Watch-list auto-add | A brand-site click (`checkout`) without a conversion within `Catalog:WatchAutoAddHours` (48) puts its products on the watch list unless they were bought, are in the wardrobe or were removed by the user since | S §4 |
-| Account deletion | `DELETE v1/auth/me` removes every tenant partition of both halves and every cross-tenant trace | S §7 |
+| Account deletion | `DELETE v1/auth/me` removes every tenant partition of both halves and every cross-tenant trace (incl. consent records and audit log, inbox, profile picture) | S §7, C |
+| Consent guards | Photo, try-on, palette, contacts, weight and marketing-push endpoints answer `403 consent_required` with the missing types; the Notifier re-checks the marketing consent | C §2 |
 | Language | One supported-language list (`Localization` config); the profile language is set at registration from `Accept-Language` and changed with a partial `PUT v1/tenant/profile` | W §1, S §1, S §7 |

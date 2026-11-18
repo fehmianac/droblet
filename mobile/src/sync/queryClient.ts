@@ -1,8 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
-import { defaultShouldDehydrateQuery, QueryClient, type Query } from '@tanstack/react-query';
+import { defaultShouldDehydrateQuery, MutationCache, QueryCache, QueryClient, type Query } from '@tanstack/react-query';
 
-import { ApiError } from '@/api/errors';
+import { ApiError, isConsentRequired, missingConsents } from '@/api/errors';
+import { consentRequests } from '@/features/consent/store';
 
 import { registerMutationDefaults } from './mutationFns';
 
@@ -24,8 +25,21 @@ function shouldRetry(failureCount: number, error: unknown): boolean {
   return failureCount < 3;
 }
 
+/**
+ * 403 `consent_required` from ANY request (a queued photo upload, a try-on, the palette…): the server
+ * says which consents are missing, and the consent sheet asks for exactly those. The request itself is
+ * not replayed — the user starts the feature again once the consent is recorded.
+ */
+function askForMissingConsents(error: unknown): void {
+  if (!isConsentRequired(error)) return;
+  const missing = missingConsents(error);
+  if (missing.length > 0) void consentRequests.request(missing, 'server');
+}
+
 export function createQueryClient(): QueryClient {
   const client = new QueryClient({
+    queryCache: new QueryCache({ onError: askForMissingConsents }),
+    mutationCache: new MutationCache({ onError: askForMissingConsents }),
     defaultOptions: {
       queries: {
         staleTime: 60_000,

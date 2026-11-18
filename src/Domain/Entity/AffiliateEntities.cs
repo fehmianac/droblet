@@ -1,8 +1,22 @@
 using System.Text.Json.Serialization;
 using Domain.Entity.Base;
 using Domain.Enum;
+using Domain.Extensions;
 
 namespace Domain.Entity;
+
+/// <summary>
+/// Retention of affiliate clicks (implemented default, lawyer to confirm — docs/legal/REVIEW.md §Retention): a click that
+/// never led to a conversion expires 13 months after it was made (DynamoDB TTL); once a conversion links it, the TTL is
+/// removed and it stays with the conversion (financial record).
+/// </summary>
+public static class AffiliateClickRetention
+{
+    public const int UnconvertedMonths = 13;
+
+    public static long? Ttl(DateTime createdAt, DateTime? convertedAt) =>
+        convertedAt is null ? createdAt.AddMonths(UnconvertedMonths).ToUnixTimeSeconds() : null;
+}
 
 // Owner decision 2026-11-18: affiliate network AND direct brand deals. Every outbound click carries click_id.
 public class AffiliateClickEntity : IEntity
@@ -22,6 +36,9 @@ public class AffiliateClickEntity : IEntity
     [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; }
     /// <summary>When the watch-list auto-add candidate of this click falls due (decision 10); null = none was queued.</summary>
     [JsonPropertyName("watchAutoAddDueAt")] public DateTime? WatchAutoAddDueAt { get; set; }
+    /// <summary>Set when a conversion postback links this click: the click is then kept (no TTL).</summary>
+    [JsonPropertyName("convertedAt")] public DateTime? ConvertedAt { get; set; }
+    [JsonPropertyName("ttl")] public long? Ttl => AffiliateClickRetention.Ttl(CreatedAt, ConvertedAt);
 
     public static string GetPk(string tenantId) => $"tenant#{tenantId}#affiliateclick";
     public static string GetSk(string clickId) => clickId;
@@ -42,6 +59,8 @@ public class AffiliateClickIndexEntity : IEntity
     [JsonPropertyName("lookId")] public string? LookId { get; set; }
     [JsonPropertyName("source")] public AffiliateSource Source { get; set; }
     [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; }
+    [JsonPropertyName("convertedAt")] public DateTime? ConvertedAt { get; set; }
+    [JsonPropertyName("ttl")] public long? Ttl => AffiliateClickRetention.Ttl(CreatedAt, ConvertedAt);
 
     public static string GetPk(string clickId) => $"affiliateclick#{clickId}";
     public static string GetSk() => "index";

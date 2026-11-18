@@ -1,0 +1,77 @@
+{
+  "consent": {
+    "sheetTitle": "Explicit consent",
+    "lead": "This feature needs a separate explicit consent. Read the text and tick the box to continue; if you don’t, only this feature does not work.",
+    "leadMany": "This feature needs the {{count}} separate consents below. Tick each one; if you don’t, only this feature does not work.",
+    "readMore": "Full text",
+    "readLess": "Hide text",
+    "statementLabel": "Consent statement",
+    "agree": "I agree",
+    "notNow": "Not now",
+    "allTexts": "All consent texts",
+    "failed": "Your consent could not be saved. Check your connection and try again.",
+    "outdated": "There is a newer version of this text. Update the app and try again.",
+    "privacyEyebrow": "MY CONSENTS",
+    "privacyNote": "Each consent is separate; you can switch it off at any time. Switching off does not affect the lawfulness of earlier processing.",
+    "grantedOn": "Given on {{date}}",
+    "withdrawnOn": "Withdrawn on {{date}}",
+    "neverGiven": "Not given",
+    "outdatedState": "The text changed, consent needed again",
+    "listError": "Your consents could not be loaded.",
+    "withdrawBodyTitle": "Delete your full-body photo too?",
+    "withdrawBodyBody": "You withdrew your consent. We can also delete your full-body photo and the “See it on me” images made from it now.",
+    "withdrawFaceTitle": "Delete your face photo too?",
+    "withdrawFaceBody": "You withdrew your consent. We can also delete your face photo and your colour palette result now.",
+    "deletePhotos": "Yes, delete",
+    "keepPhotos": "No, keep them",
+    "weightDisabled": "Weight is optional. Entering it needs a separate explicit consent.",
+    "weightGive": "Give consent",
+    "marketingTitle": "Weekly edit notifications",
+    "marketingBody": "The editor’s looks and price drops on your watch list may contain products and offers. We only send them if you agree.",
+    "marketingYes": "Yes, send them",
+    "marketingNo": "No, thanks",
+    "marketingNote": "The weekly edit and price drops are marketing notifications; turning them on needs your separate consent.",
+    "texts": {
+      "bodyPhotoAi": {
+        "title": "Full-body photo and “See it on me”",
+        "body": "Purpose: to generate images that show outfits and shop products on you (“See it on me”).\n\nData: the full-body photo you upload and the images generated from it. The photo's location and device information is removed in the first processing step after upload.\n\nWho processes it and where: Droblet Ltd; the photo is stored on AWS servers in Frankfurt (Germany) and sent to OpenAI (US) to generate the images.\n\nHow long: until you delete the photo or the generated images, or your account. The photo and the images are never shown to other users in any setting.\n\nIf you do not consent: you cannot use “See it on me”; wardrobe, looks, the stylist and the other features keep working.",
+        "statement": "I give my explicit consent to Droblet Ltd processing my full-body photo to generate ‘See it on me’ images, and transferring it for that purpose to AWS (Germany) and OpenAI (US)."
+      },
+      "facePhotoPalette": {
+        "title": "Face photo and colour palette analysis",
+        "body": "Purpose: to find the colour season and shades that suit you by looking at the skin, hair and eye colours in your face photo (colour palette analysis).\n\nData: the face photo you upload and the palette result derived from it (season type, shades that suit you and shades to avoid). No identification, verification or face recognition takes place; no face template that uniquely identifies you is extracted or stored.\n\nWho processes it and where: Droblet Ltd; the photo is stored on AWS servers in Frankfurt (Germany) and sent to OpenAI (US) for the analysis.\n\nHow long: until you delete the photo or your account. When you delete your face photo, the palette result is deleted too. The photo and the palette are never shown to other users in any setting.\n\nIf you do not consent: you cannot use the colour palette analysis; the other features keep working.",
+        "statement": "I give my explicit consent to Droblet Ltd processing my face photo only for colour palette analysis and without identifying me, and transferring it for that purpose to AWS (Germany) and OpenAI (US)."
+      },
+      "weight": {
+        "title": "Weight",
+        "body": "Purpose: to complete your body profile. Weight is optional.\n\nData: the weight you enter. It is not sent to the AI provider and is not shown to other users.\n\nWho processes it and where: Droblet Ltd; stored on AWS servers in Frankfurt (Germany).\n\nHow long: until you remove it or delete your account.\n\nIf you do not consent: you leave the weight field empty; no feature is affected.",
+        "statement": "I give my explicit consent to Droblet Ltd storing my weight as part of my body profile."
+      },
+      "contacts": {
+        "title": "Finding friends from your contacts",
+        "body": "Purpose: to find people in your contacts who use Droblet.\n\nData: on your phone, the e-mail addresses in your contacts are turned into SHA-256 hashes with a single-use salt that changes on every request; only these hashes are sent. Names, phone numbers and the e-mail addresses themselves never leave your phone.\n\nWho processes it and where: Droblet Ltd; the hashes are held in memory on AWS servers in Frankfurt (Germany) only while the match runs.\n\nHow long: the hashes are neither saved nor logged; the salt is deleted after use and expires within 10 minutes at the latest.\n\nIf you do not consent: your phone never asks for contacts permission; you can find friends by searching for their username or with an invite link.",
+        "statement": "I give my explicit consent to the e-mail addresses in my contacts being turned into hashes on my phone and sent to Droblet Ltd to find my friends on Droblet."
+      },
+      "marketingNotifications": {
+        "title": "Marketing notifications",
+        "body": "Purpose: to send notifications that may contain products and offers, such as the weekly edit (looks and products picked by the editor) and price drops on products in your watch list.\n\nData: your notification preferences, your device's push token, your language and time zone, your watch list.\n\nWho processes it and where: Droblet Ltd; notifications are delivered through the Apple Push Notification service on iOS and Google Firebase Cloud Messaging on Android (US).\n\nHow long: until you withdraw your consent or delete your account.\n\nIf you do not consent: these notifications are not sent. Service notifications such as the morning outfit reminder and follow requests do not depend on this consent and can be switched off one by one.",
+        "statement": "I agree to receive notifications that may contain products and offers, such as the weekly edit and price drops."
+      },
+      "crossBorderTransfer": {
+        "title": "Transfers abroad",
+        "body": "Purpose: transferring your personal data outside Türkiye to provide the Service, because Droblet is established in the UK and its service providers are abroad.\n\nData and recipients: your account, profile, wardrobe and usage data to Droblet Ltd (UK) and AWS (Germany); your photos and wardrobe attributes to OpenAI (US) for AI processing; your e-mail address to Twilio SendGrid (US); your push token to Apple and Google (US).\n\nBasis: these transfers rely first on the appropriate safeguards in KVKK art. 9 (for example standard contracts). This consent is asked under KVKK art. 9/6-a for incidental transfers where those safeguards are not in place.\n\nHow long: until you withdraw your consent or delete your account.\n\nIf you do not consent or withdraw: transfers without appropriate safeguards are not made; features that depend on them (for example AI) may not be available.",
+        "statement": "I give my explicit consent to my personal data being transferred abroad to the recipients and for the purposes above, in incidental cases where the safeguards of KVKK art. 9 are not in place."
+      }
+    }
+  },
+  "age": {
+    "label": "I am 18 or older",
+    "links": "<terms>Terms of Use</terms> · <privacy>Privacy Policy</privacy>",
+    "required": "Confirm that you are 18 or older to continue.",
+    "title": "One more step",
+    "body": "Droblet is for people aged 18 and over. Confirm to continue.",
+    "confirm": "Confirm and continue",
+    "signOut": "Sign out",
+    "failed": "Your confirmation could not be saved. Check your connection and try again."
+  }
+}

@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 
 import { resetAccountFixtures } from '@/fixtures/account';
+import { consentFixtures, resetConsentFixtures } from '@/fixtures/consents';
 import { resetSocialFixtures } from '@/fixtures/social';
 import { resetStoreFixtures } from '@/fixtures/store';
 import i18n from '@/i18n';
@@ -86,13 +87,22 @@ describe('friends: follow requests, lists, contacts, profile edit (fixtures, EN)
     await waitFor(() => expect(screen.getByText('You have no followers yet.')).toBeTruthy(), TIMEOUT);
   });
 
-  it('27 contacts: consent first, then the permission, then the matches', async () => {
+  it('27 contacts: consent first (explicit consent 4, recorded), then the permission, then the matches', async () => {
+    resetConsentFixtures({ granted: [] });
     const contacts = jest.requireMock('expo-contacts/legacy') as ContactsMock;
     contacts.getContactsAsync.mockResolvedValueOnce({ data: [{ id: 'c1', emails: [{ email: 'Zeynep@Example.com' }] }] });
     await open('/friends/contacts');
     await waitFor(() => expect(screen.getByText(/Only these hashes are sent/)).toBeTruthy(), TIMEOUT);
+    // The consent statement is an unticked box; "Allow" stays off until it is ticked.
+    await waitFor(() => expect(screen.getByTestId('consent.check.contacts')).not.toBeChecked(), TIMEOUT);
+    expect(screen.getByTestId('contacts.agree')).toBeDisabled();
     expect(contacts.requestPermissionsAsync).not.toHaveBeenCalled();
+    await fireEvent.press(screen.getByTestId('consent.check.contacts'));
     await fireEvent.press(screen.getByTestId('contacts.agree'));
+    await waitFor(() => expect(consentFixtures.isValid('contacts')).toBe(true), TIMEOUT);
+    expect(consentFixtures.requests()[0]).toEqual(
+      expect.objectContaining({ source: 'contacts', consents: [{ type: 'contacts', granted: true, version: '2026-11-19' }] }),
+    );
     await waitFor(() => expect(screen.getByText('2 people from your contacts are on Droblet')).toBeTruthy(), TIMEOUT);
     expect(contacts.requestPermissionsAsync).toHaveBeenCalledTimes(1);
     expect(screen.getByText('Zeynep')).toBeTruthy();
@@ -102,7 +112,9 @@ describe('friends: follow requests, lists, contacts, profile edit (fixtures, EN)
     const contacts = jest.requireMock('expo-contacts/legacy') as ContactsMock;
     contacts.requestPermissionsAsync.mockResolvedValueOnce({ status: 'denied', canAskAgain: false, granted: false });
     await open('/friends/contacts');
-    await waitFor(() => expect(screen.getByTestId('contacts.agree')).toBeTruthy(), TIMEOUT);
+    // Consent 4 was given earlier: the box shows it and "Allow" goes straight to the permission.
+    await waitFor(() => expect(screen.getByTestId('contacts.agree')).toBeEnabled(), TIMEOUT);
+    expect(screen.getByTestId('consent.check.contacts')).toBeChecked();
     await fireEvent.press(screen.getByTestId('contacts.agree'));
     await waitFor(() => expect(screen.getByText('Contacts permission is off')).toBeTruthy(), TIMEOUT);
     expect(screen.getByText('Open Settings')).toBeTruthy();

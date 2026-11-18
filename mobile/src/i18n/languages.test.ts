@@ -45,7 +45,7 @@ describe('language registry', () => {
   });
 
   it('covers the base file and every feature file', () => {
-    expect(fileNames).toEqual(['account', 'ai', 'base', 'commerce', 'friends', 'looks', 'purchase', 'social', 'stylist', 'today', 'wardrobe']);
+    expect(fileNames).toEqual(['account', 'ai', 'base', 'commerce', 'consent', 'friends', 'looks', 'purchase', 'social', 'stylist', 'today', 'wardrobe']);
   });
 
   it.each(others)('%s has the same locale files as Turkish', (code) => {

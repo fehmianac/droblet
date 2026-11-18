@@ -41,22 +41,21 @@ beforeEach(async () => {
   await i18n.changeLanguage('en');
 });
 
-describe('Bildirim merkezi (derived)', () => {
-  it('lists the notifications grouped by day with their unread state', async () => {
+describe('Bildirim merkezi (inbox)', () => {
+  it('lists the inbox grouped by day with the server unread count, phrased in the app', async () => {
     await open('/notifications');
     await waitFor(() => expect(screen.getByText('TODAY')).toBeTruthy(), WAIT);
     expect(screen.getByText('YESTERDAY')).toBeTruthy();
     expect(screen.getByText('3 unread notifications')).toBeTruthy();
-    expect(screen.getByText(/^Price drop on /)).toBeTruthy();
-    expect(screen.getByText(/^Marks & Spencer · .*, was /)).toBeTruthy();
-    expect(screen.getByText('Selin gave your look 5 stars')).toBeTruthy();
-    expect(screen.getByText('Your weekly plan is ready')).toBeTruthy();
-    expect(screen.getByText('3 AI images left this month')).toBeTruthy();
-    expect(screen.getByText(/^Your membership renews on /)).toBeTruthy();
+    expect(screen.getByText('A price dropped on your watch list')).toBeTruthy();
+    expect(screen.getByText('@selin would like to follow you')).toBeTruthy();
+    expect(screen.getByText('Today’s outfit is ready')).toBeTruthy();
+    expect(screen.getByText('New ratings on your looks')).toBeTruthy();
+    expect(screen.getByText('This week’s edit is live')).toBeTruthy();
     // Unread rows carry the dot; read ones do not.
     expect(screen.getByTestId('unread-notif_1')).toBeTruthy();
     expect(screen.queryByTestId('unread-notif_4')).toBeNull();
-    expect(screen.getByLabelText(/^Unread\. Selin gave your look 5 stars\./)).toBeTruthy();
+    expect(screen.getByLabelText(/^Unread\. @selin would like to follow you\./)).toBeTruthy();
   });
 
   it('"Tümünü okundu say" marks everything read at once', async () => {
@@ -69,18 +68,18 @@ describe('Bildirim merkezi (derived)', () => {
     await waitFor(() => expect(isRead('notif_1') && isRead('notif_2') && isRead('notif_3')).toBe(true), WAIT);
   });
 
-  it('a notification marks itself read and opens its subject', async () => {
+  it('a notification marks itself read and opens what its push opens', async () => {
     await open('/notifications');
-    await waitFor(() => expect(screen.getByText('Your weekly plan is ready')).toBeTruthy(), WAIT);
-    await fireEvent.press(screen.getByTestId('notification-notif_3'));
-    await waitFor(() => expect(screen.getByText('Weekly plan')).toBeTruthy(), WAIT);
-    await waitFor(() => expect(isRead('notif_3')).toBe(true), WAIT);
+    await waitFor(() => expect(screen.getByText('@selin would like to follow you')).toBeTruthy(), WAIT);
+    await fireEvent.press(screen.getByTestId('notification-notif_2'));
+    await waitFor(() => expect(screen.getByText('Follow requests')).toBeTruthy(), WAIT);
+    await waitFor(() => expect(isRead('notif_2')).toBe(true), WAIT);
     expect(isRead('notif_1')).toBe(false);
   });
 
   it('the price drop opens the product', async () => {
     await open('/notifications');
-    await waitFor(() => expect(screen.getByText(/^Price drop on /)).toBeTruthy(), WAIT);
+    await waitFor(() => expect(screen.getByText('A price dropped on your watch list')).toBeTruthy(), WAIT);
     await fireEvent.press(screen.getByTestId('notification-notif_1'));
     await waitFor(() => expect(screen.getByText('Add to cart')).toBeTruthy(), WAIT);
   });
@@ -88,17 +87,29 @@ describe('Bildirim merkezi (derived)', () => {
   it('empty: one sentence, the follow requests row and the preferences; the gear opens 29', async () => {
     resetNotificationFixtures({ empty: true });
     await open('/notifications');
-    await waitFor(() => expect(screen.getByText('No notifications yet; price drops and friend ratings will appear here.')).toBeTruthy(), WAIT);
+    await waitFor(
+      () => expect(screen.getByText('No notifications yet; follow requests, look ratings, price drops and the weekly edit show up here.')).toBeTruthy(),
+      WAIT,
+    );
     expect(screen.queryByText('Mark all as read')).toBeNull();
     expect(screen.getByText('Follow requests')).toBeTruthy();
     await fireEvent.press(screen.getByLabelText('Notification settings'));
     await waitFor(() => expect(screen.getByText('NOTIFICATIONS')).toBeTruthy(), WAIT);
   });
 
-  it('the bell on 06 Bugün opens the notification centre', async () => {
+  it('the bell on 06 Bugün carries the unread badge and opens the notification centre', async () => {
+    await open('/');
+    await waitFor(() => expect(screen.getByLabelText('Notifications, 3 unread')).toBeTruthy(), WAIT);
+    expect(screen.getByTestId('bell-badge')).toBeTruthy();
+    expect(screen.getByText('3')).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText('Notifications, 3 unread'));
+    await waitFor(() => expect(screen.getByText('TODAY')).toBeTruthy(), WAIT);
+  });
+
+  it('no badge when everything is read', async () => {
+    notificationFixtures.markRead({ ids: null, clientMutationId: 'm' });
     await open('/');
     await waitFor(() => expect(screen.getByLabelText('Notifications')).toBeTruthy(), WAIT);
-    await fireEvent.press(screen.getByLabelText('Notifications'));
-    await waitFor(() => expect(screen.getByText('TODAY')).toBeTruthy(), WAIT);
+    expect(screen.queryByTestId('bell-badge')).toBeNull();
   });
 });

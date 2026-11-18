@@ -15,6 +15,7 @@ public sealed class SettingsService(
     IRepository repository,
     IWeatherService weather,
     IOptionsMonitor<NotificationOptions> options,
+    IConsentService consents,
     TimeProvider timeProvider) : ISettingsService
 {
     private const int VisibilityAttempts = 1;
@@ -69,8 +70,9 @@ public sealed class SettingsService(
         repository.GetAsync<NotificationPrefEntity>(NotificationPrefEntity.GetPk(tenantId), NotificationPrefEntity.GetSk(userId), ct);
 
     /// <summary>
-    /// <paramref name="enabled"/> = the first device registration with a push token. Decision 9 (2026-11-19): only the morning
-    /// outfit and the weekly edit start on; friend ratings, price drops and follow requests start off.
+    /// <paramref name="enabled"/> = the first device registration with a push token. Decision 9 (2026-11-19) as amended by the
+    /// legal review (REVIEW §5 G2): only the morning outfit (a service message) starts on. The weekly edit and price drops are
+    /// marketing (consent 5) and stay off until the user opts in; friend ratings and follow requests start off.
     /// </summary>
     private NotificationPrefEntity DefaultPref(string tenantId, string userId, bool enabled, string? timeZone) => new()
     {
@@ -78,7 +80,7 @@ public sealed class SettingsService(
         UserId = userId,
         MorningOutfit = enabled,
         MorningOutfitLocalTime = ReminderRules.IsValidLocalTime(options.CurrentValue.DefaultMorningLocal) ? options.CurrentValue.DefaultMorningLocal : "07:30",
-        WeeklyEdit = enabled,
+        WeeklyEdit = false,
         FriendRatings = false,
         PriceDrop = false,
         FollowRequests = false,
@@ -88,8 +90,18 @@ public sealed class SettingsService(
     private static NotificationPrefsDto ToDto(NotificationPrefEntity p) =>
         new(p.MorningOutfit, p.MorningOutfitLocalTime, p.WeeklyEdit, p.FriendRatings, p.TimeZone, p.Version, p.Version == 0 ? null : p.UpdatedAt, p.PriceDrop, p.FollowRequests);
 
-    public async Task<NotificationPrefsDto> GetNotificationPrefsAsync(string tenantId, string userId, CancellationToken ct) =>
-        ToDto(await PrefAsync(tenantId, userId, ct) ?? DefaultPref(tenantId, userId, enabled: false, timeZone: null));
+    /// <summary>
+    /// weeklyEdit / priceDrop are reported as they are effectively sent: switched on AND a valid marketing consent (consent 5).
+    /// A switch stored before consents existed, or left on after a new consent text version, reads as off.
+    /// </summary>
+    public async Task<NotificationPrefsDto> GetNotificationPrefsAsync(string tenantId, string userId, CancellationToken ct)
+    {
+        var dto = ToDto(await PrefAsync(tenantId, userId, ct) ?? DefaultPref(tenantId, userId, enabled: false, timeZone: null));
+        if (!dto.WeeklyEdit && !dto.PriceDrop)
+            return dto;
+        var marketing = (await consents.MissingAsync(tenantId, ConsentRules.Marketing, ct)).Count == 0;
+        return marketing ? dto : dto with { WeeklyEdit = false, PriceDrop = false };
+    }
 
     public async Task<(SettingsOutcome Outcome, NotificationPrefsDto Prefs)> SetNotificationPrefsAsync(
         string tenantId, string userId, NotificationPrefsInput input, CancellationToken ct)
@@ -171,7 +183,7 @@ public sealed class SettingsService(
         };
         await repository.SaveAsync(device, ct);
 
-        // Decision 9: when push permission is first granted, the morning outfit and the weekly edit start switched on.
+        // Decision 9 (amended): when push permission is first granted, the morning outfit starts switched on.
         if (device.PushToken is not null && await PrefAsync(tenantId, userId, ct) is null)
         {
             var pref = DefaultPref(tenantId, userId, enabled: true, timeZone);

@@ -1,12 +1,12 @@
 import { router } from "expo-router";
 import {
-  CalendarCheck,
-  Crown,
   Settings,
+  Shirt,
   Sparkles,
   Star,
   Tag,
   UserCheck,
+  UserPlus,
   type LucideIcon,
 } from "lucide-react-native";
 import type { TFunction } from "i18next";
@@ -31,75 +31,56 @@ import { RowCard } from "@/features/account/rows";
 import {
   groupByDay,
   targetOf,
-  unreadCount,
   type NotificationGroup,
 } from "@/features/notifications/logic";
 import { useMarkNotificationsRead } from "@/features/notifications/mutations";
 import { useNotifications } from "@/features/notifications/queries";
 import { useIncomingRequestCount } from "@/features/social/queries";
 import { currentLanguage, type AppLanguage } from "@/i18n";
-import {
-  formatDate,
-  formatDayMonth,
-  formatMoney,
-  relativeTime,
-} from "@/lib/format";
-import { suffixed } from "@/lib/trSuffix";
+import { formatDate, relativeTime } from "@/lib/format";
 import { toDisplayUpper } from "@/lib/upper";
 import { useThemeColors } from "@/theme/useThemeColors";
 
 const ICONS: Record<NotificationKind, LucideIcon> = {
+  morning_outfit: Shirt,
+  weekly_edit: Sparkles,
+  friend_ratings: Star,
   price_drop: Tag,
-  friend_rating: Star,
-  weekly_plan: CalendarCheck,
-  credits_low: Sparkles,
-  renewal: Crown,
+  follow_request: UserPlus,
 };
 
-/** The two lines of a notification, built in the app's language from the data the server sent. */
+/** The two lines of a notification, built in the app's language from the codes and ids the server sent. */
 function describe(
   n: AppNotification,
   t: TFunction,
-  language: AppLanguage,
 ): { title: string; body: string } {
   switch (n.kind) {
+    case "morning_outfit":
+      return {
+        title: t("notifCenter.morningOutfit.title"),
+        body: t("notifCenter.morningOutfit.body"),
+      };
+    case "weekly_edit":
+      return {
+        title: t("notifCenter.weeklyEdit.title"),
+        body: t("notifCenter.weeklyEdit.body"),
+      };
+    case "friend_ratings":
+      return {
+        title: t("notifCenter.friendRatings.title"),
+        body: t("notifCenter.friendRatings.body"),
+      };
     case "price_drop":
       return {
-        title: t("notifCenter.priceDrop.title", { name: n.productName }),
-        body: t("notifCenter.priceDrop.body", {
-          brand: n.brandName,
-          price: formatMoney(n.price),
-          previous: formatMoney(n.previousPrice),
-        }),
+        title: t("notifCenter.priceDrop.title"),
+        body: t("notifCenter.priceDrop.body"),
       };
-    case "friend_rating":
+    case "follow_request":
       return {
-        title: t("notifCenter.friendRating.title", {
-          name: n.person.displayName,
-          count: n.score,
-        }),
-        body: t("notifCenter.friendRating.body"),
-      };
-    case "weekly_plan":
-      return {
-        title: t("notifCenter.weeklyPlan.title"),
-        body: t("notifCenter.weeklyPlan.body"),
-      };
-    case "credits_low":
-      return {
-        title: t("notifCenter.creditsLow.title", { count: n.remaining }),
-        body: t("notifCenter.creditsLow.body"),
-      };
-    case "renewal":
-      return {
-        title: t("notifCenter.renewal.title", {
-          date: suffixed(
-            formatDayMonth(new Date(n.renewsAt)),
-            "locative",
-            language,
-          ),
-        }),
-        body: t("notifCenter.renewal.body"),
+        title: n.data.handle
+          ? t("notifCenter.followRequest.title", { handle: n.data.handle })
+          : t("notifCenter.followRequest.titleAnonymous"),
+        body: t("notifCenter.followRequest.body"),
       };
   }
 }
@@ -146,9 +127,8 @@ type RowProps = {
 /** One notification: 36 pt sand glyph · title (medium while unread) + muted line · time and the unread dot. */
 function NotificationRow({ notification, group, first, onOpen }: RowProps) {
   const { t } = useTranslation();
-  const language = currentLanguage();
   const unread = notification.readAt === null;
-  const { title, body } = describe(notification, t, language);
+  const { title, body } = describe(notification, t);
   const time = timeLabel(notification, group, t);
   return (
     <Pressable
@@ -195,8 +175,9 @@ function NotificationRow({ notification, group, first, onOpen }: RowProps) {
 /**
  * Bildirim merkezi — the bell on 06 Bugün. No board exists; derived from the canvas vocabulary of
  * 24b İzleme listem, 25 Arkadaş akışı and 29 Ayarlar (centred header, eyebrow group labels, paper row
- * cards with inset hairlines, accent dot for "new"). Grouped by day; a row marks itself read and opens
- * its subject (product / friend feed / weekly plan / membership). Detail screen: no bottom menu.
+ * cards with inset hairlines, accent dot for "new"). The inbox of `GET v1/tenant/notification` (the
+ * events the Notifier sends, 90 days), grouped by day; a row marks itself read and opens its subject
+ * — the same place its push opens. Detail screen: no bottom menu.
  */
 export default function NotificationsScreen() {
   const { t } = useTranslation();
@@ -230,7 +211,8 @@ export default function NotificationsScreen() {
       />
       <ScreenState query={notifications}>
         {(data) => {
-          const unread = unreadCount(data.items);
+          // The server's count: it covers every page, not only the loaded one.
+          const unread = data.unreadCount;
           const groups = groupByDay(data.items);
           return (
             <ScrollView

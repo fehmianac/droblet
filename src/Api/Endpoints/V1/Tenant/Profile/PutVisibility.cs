@@ -23,6 +23,7 @@ public class PutVisibility : IEndpoint
         [FromBody] UpdateVisibilityRequest request,
         [FromServices] IValidator<UpdateVisibilityRequest> validator,
         [FromServices] IApiContext apiContext,
+        [FromServices] Domain.Services.IAvatarService avatars,
         [FromServices] IRepository repository,
         [FromServices] ISettingsService settings,
         CancellationToken cancellationToken)
@@ -36,7 +37,7 @@ public class PutVisibility : IEndpoint
             return Results.NotFound();
 
         var user = await repository.GetAsync<UserEntity>(UserEntity.GetPk(), UserEntity.GetSk(apiContext.UserId), cancellationToken);
-        return outcome == SettingsOutcome.Conflict ? Results.Conflict(tenant.ToDto(user?.Email)) : Results.Ok(tenant.ToDto(user?.Email));
+        return outcome == SettingsOutcome.Conflict ? Results.Conflict(await tenant.ToProfileDtoAsync(user, avatars, cancellationToken)) : Results.Ok(await tenant.ToProfileDtoAsync(user, avatars, cancellationToken));
     }
 
     public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints)

@@ -16,13 +16,22 @@
 // ---------- Auth ----------
 
 /** The signed-in user as the app keeps it. `name` / `email` come from the form or `GET v1/tenant/profile`. */
-export type AuthUser = { id: string; name: string; email: string };
+export type AuthUser = {
+  id: string;
+  name: string;
+  email: string;
+  /**
+   * 18+ confirmed (`ageConfirmedAt` on the profile). `false` → the confirmation screen comes before
+   * anything else; absent on sessions stored before the check (`AgeCheckHost` asks the profile once).
+   */
+  ageConfirmed?: boolean;
+};
 
 /** Wire body of register / login / apple / google / refresh — see `./wire/core`. */
 export type { AuthResponseWire as AuthResponse } from './wire/core';
 
-/** POST v1/auth/register → 201. 409 `email_taken`, 429 `too_many_attempts`. */
-export type RegisterRequest = { name: string; email: string; password: string };
+/** POST v1/auth/register → 201. 409 `email_taken`, 429 `too_many_attempts`, 400 `age_confirmation_required`. */
+export type RegisterRequest = { name: string; email: string; password: string; ageConfirmed: true };
 /** POST v1/auth/login. 401 `invalid_credentials`, 429 `too_many_attempts`. */
 export type LoginRequest = { email: string; password: string };
 /**
@@ -133,6 +142,8 @@ export type ProblemDetails = {
   errors?: Record<string, string[]>;
   /** On 409: the server's current record. */
   current?: unknown;
+  /** On 403 `consent_required`: the consent types that are missing (`ConsentType`). */
+  missing?: string[];
 };
 
 // ---------- NOT YET AGREED (fixture-backed in this slice) ----------
