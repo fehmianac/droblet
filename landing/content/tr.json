@@ -1,0 +1,520 @@
+{
+  "meta": {
+    "siteName": "Droblet",
+    "homeTitle": "Droblet — Dolabın artık senin için düşünüyor",
+    "homeDescription": "Kıyafetlerini fotoğrafla; Droblet her gün ve her seyahat için kombinini hazırlasın. Kişisel gardırop, stil asistanı ve akıllı bavul.",
+    "ogImageAlt": "Droblet logosu: iç boşluğu askı kancası olan damla"
+  },
+  "common": {
+    "skipToContent": "İçeriğe geç",
+    "appStore": "App Store'dan indir",
+    "googlePlay": "Google Play'den indir",
+    "appStoreSoon": "App Store · Yakında",
+    "googlePlaySoon": "Google Play · Yakında",
+    "openInApp": "Uygulamada aç",
+    "backHome": "Ana sayfaya dön",
+    "unavailableTitle": "Şu an kullanılamıyor"
+  },
+  "header": {
+    "homeAria": "Droblet ana sayfa",
+    "navAria": "Site",
+    "how": "Nasıl çalışır",
+    "features": "Özellikler",
+    "membership": "Üyelik",
+    "cta": "Uygulamayı indir"
+  },
+  "home": {
+    "hero": {
+      "eyebrow": "KİŞİSEL GARDIROP · STİL ASİSTANI · BAVUL",
+      "title": "Sabah \"ne giysem\" derdi ve saatler süren bavul hazırlığı bitti.",
+      "body": "Dolabın artık senin için düşünüyor. Kıyafetlerini fotoğrafla; Droblet her gün ve her seyahat için kombinini hazırlasın.",
+      "platforms": "iOS ve Android · Türkçe ve İngilizce",
+      "phoneAlt": "Uygulama ekranı yer tutucusu: Bugün",
+      "phoneLabel": "Uygulama ekranı: Bugün"
+    },
+    "how": {
+      "eyebrow": "NASIL ÇALIŞIR",
+      "title": "Üç adımda hazır bir gardırop.",
+      "steps": [
+        {
+          "title": "Dijitalleştir",
+          "body": "Kıyafetlerini fotoğrafla ya da hazır kütüphaneden seç. Droblet türünü, rengini ve kumaşını tanır; gardırobunu kategori ve sezona göre düzenler."
+        },
+        {
+          "title": "Kombinle",
+          "body": "Sezon, hava durumu, takvimin ve renk paletine göre günlük ve haftalık look'lar hazırlanır."
+        },
+        {
+          "title": "Tamamla",
+          "body": "Look'ta eksik bir parça varsa bedeninde ve bütçende öneririz; tek dokunuşla markanın mağazasına geçersin."
+        }
+      ]
+    },
+    "features": {
+      "eyebrow": "ÖZELLİKLER",
+      "title": "Her sabahı ve her seyahati kısaltır.",
+      "items": [
+        {
+          "title": "Stil danışmanı",
+          "body": "Her sabah günün kombini hazır: hava durumuna ve takvimindeki ortama göre, kendi gardırobundan.",
+          "tag": "UYGULAMA EKRANI: STİLİST",
+          "alt": "Görsel yer tutucusu: Stilist ekranı"
+        },
+        {
+          "title": "Üzerimde gör",
+          "body": "Kombinleri ve mağaza ürünlerini kendi fotoğrafında gör. AI görselleri her zaman \"Senin üzerinde\" etiketiyle gösterilir.",
+          "tag": "SENİN ÜZERİNDE",
+          "alt": "Görsel yer tutucusu: Senin üzerinde AI görseli"
+        },
+        {
+          "title": "Akıllı bavul",
+          "body": "Şehir ve tarihi gir; günlük looklar ve her parçanın birden fazla kez giyildiği bir bavul listesi hazırlanır.",
+          "tag": "UYGULAMA EKRANI: BAVUL",
+          "alt": "Görsel yer tutucusu: Bavul ekranı"
+        },
+        {
+          "title": "Renk paleti",
+          "body": "Yüz fotoğrafından sezon tipini ve sana en çok yakışan tonları çıkarır; gardırobunun paletinle uyumunu gösterir.",
+          "tag": "UYGULAMA EKRANI: RENK PALETİ",
+          "alt": "Görsel yer tutucusu: Renk paleti ekranı"
+        },
+        {
+          "title": "Stil mağazası",
+          "body": "Look'unu tamamlayan parçaları bedeninde bul. Ödeme ve teslimat markanın kendi mağazasında.",
+          "tag": "UYGULAMA EKRANI: MAĞAZA",
+          "alt": "Görsel yer tutucusu: Stil mağazası ekranı"
+        },
+        {
+          "title": "Arkadaşlar",
+          "body": "Arkadaşlarının look'larını 1–5 yıldızla puanla, kendi look'larına puan al; dolaplara göz at.",
+          "tag": "UYGULAMA EKRANI: ARKADAŞLAR",
+          "alt": "Görsel yer tutucusu: Arkadaş akışı ekranı"
+        }
+      ]
+    },
+    "privacy": {
+      "eyebrow": "GİZLİLİK",
+      "title": "Fotoğrafların ve senin üzerinde üretilen görseller yalnızca sana açıktır. İstediğin an silebilirsin.",
+      "points": [
+        "Yüz ve boy fotoğrafların hiçbir görünürlük ayarında başkasına gösterilmez.",
+        "Fotoğraflarını ve üretilen görselleri Profil › Gizlilik'ten tek dokunuşla silersin.",
+        "Dolabını kimin göreceğini sen seçersin: herkese açık, yalnızca takipçiler ya da gizli."
+      ]
+    },
+    "membership": {
+      "eyebrow": "DROBLET ÜYELİK",
+      "title": "Her sabah hazır bir kombin. Her seyahatte hazır bir bavul.",
+      "body": "Aylık ya da yıllık; ücretsiz deneme ile başla. Gardırop, look'lar, takvim, mağaza ve arkadaşlar üyeliksiz de açık.",
+      "benefits": [
+        {
+          "title": "Ayda 30 AI görseli",
+          "body": "Ürünleri ve kombinleri kendi fotoğrafında gör"
+        },
+        {
+          "title": "Kişisel stil danışmanı",
+          "body": "Ortama ve havaya göre günlük kombin"
+        },
+        {
+          "title": "Akıllı bavul",
+          "body": "Şehir ve tarihe göre liste ve günlük looklar"
+        },
+        {
+          "title": "Renk paleti analizi",
+          "body": "Yüzüne en çok yakışan tonlar"
+        }
+      ],
+      "priceTitle": "Fiyat mağazada gösterilir",
+      "priceNote": "Güncel fiyat ve deneme süresi App Store ve Google Play'de yer alır. Fazlası için ek AI görseli paketi.",
+      "cta": "Ücretsiz denemeyi başlat"
+    },
+    "final": {
+      "title": "Dolabın artık senin için düşünüyor."
+    }
+  },
+  "footer": {
+    "company": "Droblet Ltd",
+    "navAria": "Yasal ve iletişim",
+    "terms": "Kullanım Koşulları",
+    "privacy": "Gizlilik Politikası",
+    "kvkk": "KVKK Aydınlatma Metni",
+    "subscription": "Abonelik Koşulları",
+    "cookies": "Çerez Bildirimi",
+    "deleteAccount": "Hesabımı sil",
+    "contact": "İletişim",
+    "langAria": "Dil"
+  },
+  "notFound": {
+    "metaTitle": "Sayfa bulunamadı — Droblet",
+    "eyebrow": "404",
+    "title": "Bu sayfayı bulamadık.",
+    "body": "Bağlantı eski ya da yanlış yazılmış olabilir.",
+    "cta": "Ana sayfaya dön"
+  },
+  "legal": {
+    "draftBadge": "TASLAK",
+    "draftTitle": "Taslak — hukuk onayı bekliyor",
+    "draftBody": "Bu sayfa yapı ve başlık taslağıdır; bağlayıcı bir metin değildir. Nihai metin hukuk onayından sonra yayınlanacak.",
+    "tocLabel": "İÇİNDEKİLER",
+    "controllerLabel": "Veri sorumlusu",
+    "controller": "Droblet Ltd (Londra, Birleşik Krallık)",
+    "docs": {
+      "terms": {
+        "eyebrow": "YASAL",
+        "title": "Kullanım Koşulları",
+        "description": "Droblet Kullanım Koşulları — taslak, hukuk onayı bekliyor.",
+        "intro": "Bu koşullar, Droblet mobil uygulamasının ve bu web sitesinin kullanımını düzenler. Hizmeti Droblet Ltd (Londra, Birleşik Krallık) sunar.",
+        "sections": [
+          {
+            "heading": "Hizmetin kapsamı",
+            "paragraphs": [
+              "Droblet; kıyafetlerini dijitalleştirdiğin, kombin önerileri aldığın ve seyahat bavulunu planladığın kişisel bir gardırop uygulamasıdır.",
+              "Taslak — hukuk onayı bekliyor: hizmetin tam tanımı ve sınırları."
+            ]
+          },
+          {
+            "heading": "Hesap",
+            "paragraphs": [
+              "Uygulamayı kullanmak için bir hesap oluşturursun. Hesabını istediğin an uygulamadan (Profil › Ayarlar › Hesabımı sil) ya da bu sitedeki Hesabımı sil sayfasından silebilirsin.",
+              "Taslak — hukuk onayı bekliyor: yaş koşulu, hesap güvenliği ve kullanıcı yükümlülükleri."
+            ]
+          },
+          {
+            "heading": "İçeriğin ve fotoğrafların",
+            "paragraphs": [
+              "Fotoğrafların ve senin üzerinde üretilen görseller yalnızca sana açıktır. İstediğin an Profil › Gizlilik'ten silebilirsin.",
+              "Taslak — hukuk onayı bekliyor: içerik lisansı, yasak kullanımlar ve şikayet süreci."
+            ]
+          },
+          {
+            "heading": "AI ile üretilen içerik",
+            "paragraphs": [
+              "Kombin önerileri ve \"Senin üzerinde\" etiketli görseller yapay zekâ ile üretilir ve bir fikir vermek içindir.",
+              "Taslak — hukuk onayı bekliyor: AI çıktılarına ilişkin sorumluluk sınırları."
+            ]
+          },
+          {
+            "heading": "Mağaza ve üçüncü taraf markalar",
+            "paragraphs": [
+              "Droblet ödeme almaz. Bir ürünü satın almak istediğinde markanın kendi mağazasına yönlendirilirsin; ödeme ve teslimat orada tamamlanır.",
+              "Taslak — hukuk onayı bekliyor: üçüncü taraf mağazalara ilişkin sorumluluk ve komisyon bilgilendirmesi."
+            ]
+          },
+          {
+            "heading": "Üyelik",
+            "paragraphs": [
+              "Droblet Üyelik'in koşulları Abonelik Koşulları sayfasında yer alır.",
+              "Taslak — hukuk onayı bekliyor."
+            ]
+          },
+          {
+            "heading": "Sorumluluk, değişiklikler ve uygulanacak hukuk",
+            "paragraphs": [
+              "Taslak — hukuk onayı bekliyor: sorumluluğun sınırlandırılması, koşullardaki değişikliklerin bildirimi, uygulanacak hukuk ve yetkili merciler."
+            ]
+          },
+          {
+            "heading": "İletişim",
+            "paragraphs": [
+              "Taslak — hukuk onayı bekliyor: iletişim adresi ve başvuru kanalları."
+            ]
+          }
+        ]
+      },
+      "privacy": {
+        "eyebrow": "YASAL",
+        "title": "Gizlilik Politikası",
+        "description": "Droblet Gizlilik Politikası — taslak, hukuk onayı bekliyor.",
+        "intro": "Bu politika, Droblet'in kişisel verileri nasıl işlediğini anlatır. Veri sorumlusu Droblet Ltd'dir (Londra, Birleşik Krallık). Türkiye'deki kullanıcılar için KVKK, ayrıca UK GDPR uygulanır.",
+        "sections": [
+          {
+            "heading": "Temel gizlilik vaatlerimiz",
+            "paragraphs": [
+              "Fotoğrafların ve senin üzerinde üretilen görseller yalnızca sana açıktır.",
+              "Yüz ve boy fotoğrafların hiçbir görünürlük ayarında başkasına gösterilmez.",
+              "Fotoğraflarını ve üretilen görselleri istediğin an Profil › Gizlilik'ten silebilirsin; bu, hesabını silmeden de çalışır.",
+              "Dolabını kimin göreceğini sen seçersin: herkese açık, yalnızca takipçiler ya da gizli."
+            ]
+          },
+          {
+            "heading": "İşlediğimiz veriler",
+            "paragraphs": [
+              "Hesap bilgilerin (e-posta adresi gibi), gardırobuna eklediğin parçalar ve fotoğrafları, boy ve yüz fotoğrafların, oluşturduğun look'lar, takvim ve bavul planların.",
+              "Taslak — hukuk onayı bekliyor: veri kategorilerinin tam listesi ve her birinin hukuki sebebi."
+            ]
+          },
+          {
+            "heading": "Verileri ne için kullanırız",
+            "paragraphs": [
+              "Gardırobunu düzenlemek, kombin ve bavul önerileri hazırlamak, renk paleti analizini yapmak ve \"Senin üzerinde\" görsellerini üretmek için.",
+              "Taslak — hukuk onayı bekliyor: işleme amaçları ve hukuki dayanaklar."
+            ]
+          },
+          {
+            "heading": "Yapay zekâ ile işleme",
+            "paragraphs": [
+              "\"Senin üzerinde\" görselleri ve renk paleti analizi, yüklediğin fotoğraflardan yapay zekâ ile üretilir.",
+              "Taslak — hukuk onayı bekliyor: hizmet sağlayıcılar, yurt dışına aktarım ve açık rıza kapsamı."
+            ]
+          },
+          {
+            "heading": "Paylaşım ve aktarım",
+            "paragraphs": [
+              "Bir ürünü satın almak için markanın mağazasına geçtiğinde ödeme ve teslimat orada tamamlanır; Droblet ödeme bilgisi almaz.",
+              "Taslak — hukuk onayı bekliyor: veri işleyenler, alıcı grupları ve yurt dışına aktarım güvenceleri."
+            ]
+          },
+          {
+            "heading": "Saklama ve silme",
+            "paragraphs": [
+              "Fotoğraflarını ve üretilen görselleri Profil › Gizlilik'ten, hesabının tamamını uygulamadan ya da bu sitedeki Hesabımı sil sayfasından silebilirsin.",
+              "Taslak — hukuk onayı bekliyor: saklama süreleri."
+            ]
+          },
+          {
+            "heading": "Hakların",
+            "paragraphs": [
+              "Taslak — hukuk onayı bekliyor: KVKK madde 11 ve UK GDPR kapsamındaki hakların ve başvuru yolu."
+            ]
+          },
+          {
+            "heading": "İletişim",
+            "paragraphs": [
+              "Taslak — hukuk onayı bekliyor: veri sorumlusu iletişim bilgileri ve başvuru kanalları."
+            ]
+          }
+        ]
+      },
+      "kvkk": {
+        "eyebrow": "YASAL",
+        "title": "KVKK Aydınlatma Metni",
+        "description": "Droblet KVKK Aydınlatma Metni — taslak, hukuk onayı bekliyor.",
+        "intro": "6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) madde 10 uyarınca hazırlanan aydınlatma metninin taslağıdır. Bu metnin aslı Türkçedir.",
+        "sections": [
+          {
+            "heading": "Veri sorumlusu",
+            "paragraphs": [
+              "Droblet Ltd (Londra, Birleşik Krallık).",
+              "Taslak — hukuk onayı bekliyor: sicil ve adres bilgileri, varsa Türkiye'deki temsilci."
+            ]
+          },
+          {
+            "heading": "İşlenen kişisel veriler",
+            "paragraphs": [
+              "Kimlik ve iletişim verileri (e-posta adresi gibi), görsel veriler (parça fotoğrafları, boy ve yüz fotoğrafı, senin üzerinde üretilen görseller), kullanım verileri (gardırop, look, takvim ve bavul kayıtları).",
+              "Taslak — hukuk onayı bekliyor: yüz fotoğrafı ve renk paleti analizinin veri kategorisi ve kapsamı."
+            ]
+          },
+          {
+            "heading": "İşleme amaçları",
+            "paragraphs": [
+              "Taslak — hukuk onayı bekliyor: her veri kategorisi için işleme amaçları."
+            ]
+          },
+          {
+            "heading": "Hukuki sebepler ve toplama yöntemi",
+            "paragraphs": [
+              "Taslak — hukuk onayı bekliyor: KVKK madde 5 ve 6 kapsamındaki hukuki sebepler; verilerin uygulama üzerinden elektronik ortamda toplanması."
+            ]
+          },
+          {
+            "heading": "Açık rıza",
+            "paragraphs": [
+              "Taslak — hukuk onayı bekliyor: boy ve yüz fotoğrafının işlenmesi, renk paleti analizi ve yurt dışına aktarım için açık rıza metni ve rızanın geri alınması."
+            ]
+          },
+          {
+            "heading": "Aktarım",
+            "paragraphs": [
+              "Taslak — hukuk onayı bekliyor: verilerin aktarıldığı alıcı grupları ve yurt dışına aktarımın dayanağı."
+            ]
+          },
+          {
+            "heading": "KVKK madde 11 kapsamındaki hakların",
+            "paragraphs": [
+              "Taslak — hukuk onayı bekliyor: hakların listesi ve başvuru yöntemi."
+            ]
+          }
+        ]
+      },
+      "subscriptionTerms": {
+        "eyebrow": "YASAL",
+        "title": "Abonelik Koşulları",
+        "description": "Droblet Üyelik abonelik koşulları — taslak, hukuk onayı bekliyor.",
+        "intro": "Bu sayfa, Droblet Üyelik aboneliğinin koşullarını özetler.",
+        "sections": [
+          {
+            "heading": "Droblet Üyelik neleri kapsar",
+            "paragraphs": [
+              "Ayda 30 AI görseli, kişisel stil danışmanı, akıllı bavul ve renk paleti analizi.",
+              "Gardırop, look'lar, takvim, mağaza ve arkadaşlar üyeliksiz de açıktır."
+            ]
+          },
+          {
+            "heading": "AI görseli hakkı",
+            "paragraphs": [
+              "Üyelik ayda 30 AI görseli içerir. Hak her ay yenilenir; kullanılmayan görseller sonraki aya devretmez.",
+              "Fazlası için uygulama içinden ek AI görseli paketi alınabilir."
+            ]
+          },
+          {
+            "heading": "Fiyat ve ücretsiz deneme",
+            "paragraphs": [
+              "Üyelik aylık ya da yıllıktır. Güncel fiyat ve deneme süresi App Store ve Google Play'de gösterilir.",
+              "Taslak — hukuk onayı bekliyor: deneme sonunda ücretlendirme ve vergiler."
+            ]
+          },
+          {
+            "heading": "Yenileme ve iptal",
+            "paragraphs": [
+              "Üyeliğin App Store / Google Play üzerinden yönetilir ve oradan iptal edilir. Hesabı silmek aboneliği iptal etmez; önce mağaza ayarlarından iptal et.",
+              "Taslak — hukuk onayı bekliyor: otomatik yenileme koşulları."
+            ]
+          },
+          {
+            "heading": "İade ve cayma hakkı",
+            "paragraphs": [
+              "Taslak — hukuk onayı bekliyor: iade koşulları ve cayma hakkı."
+            ]
+          },
+          {
+            "heading": "Değişiklikler",
+            "paragraphs": [
+              "Taslak — hukuk onayı bekliyor: fiyat ve kapsam değişikliklerinin bildirimi."
+            ]
+          }
+        ]
+      },
+      "cookies": {
+        "eyebrow": "YASAL",
+        "title": "Çerez Bildirimi",
+        "description": "Droblet Çerez Bildirimi — taslak, hukuk onayı bekliyor.",
+        "intro": "Bu bildirim, bu web sitesinde çerezlerin ve benzeri teknolojilerin kullanımını anlatır.",
+        "sections": [
+          {
+            "heading": "Bu sitede çerez kullanımı",
+            "paragraphs": [
+              "Bu sitenin kendi kodu çerez yazmaz, tarayıcı deposuna veri kaydetmez ve analitik ya da reklam aracı içermez.",
+              "Taslak — hukuk onayı bekliyor: altyapı sağlayıcısının güvenlik amacıyla kullanabileceği zorunlu çerezlerin listesi."
+            ]
+          },
+          {
+            "heading": "Çerez türleri",
+            "paragraphs": [
+              "Taslak — hukuk onayı bekliyor: zorunlu, işlevsel, analitik ve pazarlama çerezlerinin tanımı ve bu sitedeki durumu."
+            ]
+          },
+          {
+            "heading": "Tercihlerini yönetme",
+            "paragraphs": [
+              "Çerezleri tarayıcının ayarlarından silebilir ya da engelleyebilirsin.",
+              "Taslak — hukuk onayı bekliyor: rıza gerektiren çerez eklenirse tercih yönetimi."
+            ]
+          },
+          {
+            "heading": "Değişiklikler ve iletişim",
+            "paragraphs": [
+              "Taslak — hukuk onayı bekliyor."
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "deleteAccount": {
+    "metaTitle": "Hesabımı sil — Droblet",
+    "metaDescription": "Droblet hesabını uygulamayı açmadan kalıcı olarak sil. Neyin silindiğini ve aboneliğin nasıl iptal edildiğini öğren.",
+    "eyebrow": "HESAP SİLME",
+    "title": "Hesabını sil",
+    "intro": "Droblet hesabını uygulamayı yüklemeden, bu sayfadan kalıcı olarak silebilirsin.",
+    "whatTitle": "Kalıcı olarak silinenler",
+    "whatItems": [
+      "Gardırobundaki parçalar ve look'ların",
+      "Fotoğrafların ve tüm AI görselleri",
+      "Takvim, bavullar, takip ve puanlar",
+      "Profilin ve hesap bilgilerin"
+    ],
+    "irreversible": "Bu işlem geri alınamaz.",
+    "subscriptionTitle": "Aktif üyeliğin varsa",
+    "subscriptionNote": "Üyeliğin App Store / Google Play üzerinden yönetilir. Hesabı silmek aboneliği iptal etmez; önce mağaza ayarlarından iptal et.",
+    "manageApple": "App Store aboneliklerini yönet",
+    "manageGoogle": "Google Play aboneliklerini yönet",
+    "socialTitle": "Apple ya da Google ile mi giriş yapıyorsun?",
+    "socialBody": "Bu hesaplar uygulamadan silinir: Profil › Ayarlar › Hesabımı sil.",
+    "unavailableBody": "Web üzerinden hesap silme şu an kullanılamıyor. Hesabını uygulamadan silebilirsin: Profil › Ayarlar › Hesabımı sil.",
+    "signInTitle": "Önce giriş yap",
+    "signInBody": "Hesabın sana ait olduğunu doğrulamak için e-posta adresin ve şifrenle giriş yap. Oturum bilgin bu sayfada saklanmaz.",
+    "email": "E-posta",
+    "password": "Şifre",
+    "signIn": "Giriş yap",
+    "signingIn": "Giriş yapılıyor…",
+    "confirmTitle": "Hesabını silmek üzeresin",
+    "confirmBody": "Bu işlem geri alınamaz. Yukarıdakilerin tümü kalıcı olarak silinir.",
+    "confirmLabel": "Onaylamak için SİL yaz",
+    "confirmWord": "SİL",
+    "deleteButton": "Hesabımı kalıcı olarak sil",
+    "deleting": "Siliniyor…",
+    "cancel": "Vazgeç",
+    "successTitle": "Hesabın silindi",
+    "successBody": "Hesabın ve yukarıda sayılan tüm verilerin silindi. Aktif bir üyeliğin varsa mağaza ayarlarından iptal etmeyi unutma.",
+    "errors": {
+      "invalid_credentials": "E-posta ya da şifre hatalı.",
+      "too_many_attempts": "Çok fazla deneme yapıldı. Lütfen bir süre sonra yeniden dene.",
+      "validation": "E-posta adresini ve şifreni kontrol et.",
+      "session_expired": "Oturumun süresi doldu. Lütfen yeniden giriş yap.",
+      "network": "Bağlantı kurulamadı. İnternetini kontrol edip yeniden dene.",
+      "unknown": "Bir şeyler ters gitti. Lütfen yeniden dene."
+    }
+  },
+  "resetPassword": {
+    "metaTitle": "Şifre sıfırlama — Droblet",
+    "metaDescription": "Droblet hesabın için yeni bir şifre belirle.",
+    "eyebrow": "ŞİFRE SIFIRLAMA",
+    "title": "Yeni şifreni belirle",
+    "intro": "Droblet uygulaması yüklüyse şifreni orada belirleyebilirsin. Ya da aşağıdaki formu kullan.",
+    "orWeb": "Ya da buradan belirle",
+    "newPassword": "Yeni şifre",
+    "passwordHint": "En az 8 karakter",
+    "repeatPassword": "Yeni şifre (tekrar)",
+    "submit": "Şifreyi kaydet",
+    "submitting": "Kaydediliyor…",
+    "missingTitle": "Bağlantı eksik ya da geçersiz",
+    "missingBody": "Bu sayfa e-postandaki şifre sıfırlama bağlantısıyla açılır. Uygulamadan \"Şifremi unuttum\" ile yeni bir bağlantı isteyebilirsin.",
+    "unavailableBody": "Web üzerinden şifre belirleme şu an kullanılamıyor. Bağlantıyı Droblet uygulamasının yüklü olduğu telefonda aç.",
+    "successTitle": "Şifren güncellendi",
+    "successBody": "Artık uygulamada yeni şifrenle giriş yapabilirsin.",
+    "errors": {
+      "too_short": "Şifre en az 8 karakter olmalı.",
+      "mismatch": "Şifreler eşleşmiyor.",
+      "invalid_or_expired_token": "Bu bağlantının süresi dolmuş ya da daha önce kullanılmış. Uygulamadan yeni bir bağlantı iste.",
+      "too_many_attempts": "Çok fazla deneme yapıldı. Lütfen bir süre sonra yeniden dene.",
+      "validation": "Bu şifre kabul edilmedi. 8 ile 128 karakter arasında bir şifre seç.",
+      "network": "Bağlantı kurulamadı. İnternetini kontrol edip yeniden dene.",
+      "unknown": "Bir şeyler ters gitti. Lütfen yeniden dene."
+    }
+  },
+  "invite": {
+    "metaTitle": "Droblet daveti",
+    "metaDescription": "Droblet'e davet edildin. Uygulamayı indir ve gardırobunu oluştur.",
+    "eyebrow": "DAVET",
+    "title": "Droblet'e davet edildin",
+    "titleWithName": "{name} seni Droblet'e davet ediyor",
+    "body": "Droblet yüklüyse daveti uygulamada aç. Yüklü değilse önce indir.",
+    "genericTitle": "Droblet'i keşfet",
+    "genericBody": "Kıyafetlerini fotoğrafla; Droblet her gün ve her seyahat için kombinini hazırlasın.",
+    "codeLabel": "DAVET KODUN",
+    "codeHint": "Uygulamayı yükledikten sonra bu bağlantıyı yeniden açarsan davet uygulamada açılır.",
+    "copy": "Kodu kopyala",
+    "copied": "Kopyalandı",
+    "storeTitle": "Uygulama yüklü değil mi?"
+  },
+  "look": {
+    "metaTitle": "Paylaşılan look — Droblet",
+    "metaDescription": "Bu look Droblet uygulamasında açılır. Uygulamayı indir ve look'u gör.",
+    "eyebrow": "PAYLAŞILAN LOOK",
+    "title": "Bu look Droblet'te açılır",
+    "body": "Droblet yüklüyse look'u uygulamada aç. Yüklü değilse önce indir.",
+    "genericTitle": "Droblet'i keşfet",
+    "genericBody": "Kıyafetlerini fotoğrafla; Droblet her gün ve her seyahat için kombinini hazırlasın.",
+    "storeTitle": "Uygulama yüklü değil mi?"
+  }
+}
