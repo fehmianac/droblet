@@ -60,19 +60,6 @@ jobs:
             --query "Stacks[0].Outputs[].[OutputKey,OutputValue]" --output text \
             | awk -F'\t' 'BEGIN{print "| Anahtar | Deger |\n|---|---|"} {printf "| %s | `%s` |\n", $1, $2}' >> "$GITHUB_STEP_SUMMARY"
 
-      # Ilk kurulumda bucket yanlis adla (droblet.alatech.co) acilmisti. Stack artik dogru adli bucket'i
-      # kullaniyor; eski bucket Retain politikasi yuzunden kalir. Icinde yalniz bu workflow'un yukledigi
-      # build ciktisi var: bosaltilip silinir. Bucket yoksa ya da baska hesaba aitse adim sessizce gecer.
-      - name: Eski (yanlis adli) bucket temizligi
-        run: |
-          legacy="droblet.alatech.co"
-          if [ "$legacy" != "$LANDING_DOMAIN" ] && aws s3api head-bucket --bucket "$legacy" 2>/dev/null; then
-            aws s3 rb "s3://$legacy" --force
-            echo "Eski bucket silindi: $legacy" | tee -a "$GITHUB_STEP_SUMMARY"
-          else
-            echo "Eski bucket yok; atlandi."
-          fi
-
       - name: Site var mi
         id: site
         run: |
