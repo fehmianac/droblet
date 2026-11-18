@@ -11,6 +11,8 @@ export const planKeys = {
   /** Prefix of every weekly-edit query. */
   edits: ['content', 'edit'] as const,
   edit: (id: string) => ['content', 'edit', id] as const,
+  /** The dates a `stylist-week` job was asked to plan (the proposal lists only those). */
+  weekRequest: (jobId: string) => ['tenant', 'stylist', 'week-request', jobId] as const,
 };
 
 /** Keys of this slice's queued writes (registered in `mutations.ts`). */

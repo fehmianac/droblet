@@ -12,8 +12,10 @@ import type {
   SaveEditLookRequest,
   WeeklyEdit,
 } from '@/api/contracts/today';
-import { isConflict } from '@/api/errors';
+import { ApiError, isConflict, isGone } from '@/api/errors';
 import { fromSource } from '@/api/dataSource';
+import { editLookSlots, fromPriceBand, toPlanDay, type EditWire, type PlanDayWire, type PutPlanDayWire } from '@/api/wire/today';
+import { fromOccasion, type LookSlotInputWire, type LookWire } from '@/api/wire/wardrobe';
 import { lookKeys } from '@/features/looks/queries';
 import { fixtureAddToWatchlist, fixturePutPlanDay, fixtureSaveEditLook, fixtureSetLookFavorite } from '@/fixtures/today';
 import { ulid } from '@/lib/ids';
@@ -43,6 +45,46 @@ export function patchPlanCaches(client: QueryClient, vars: PutPlanDayVariables):
   });
 }
 
+/** PUT body of a look with only `favorite` changed (every user field is replaced, so all are sent back). */
+function favoriteBody(look: LookWire, favorite: boolean) {
+  const slots: LookSlotInputWire[] = look.slots.map((s) =>
+    s.itemId ? { slot: s.slot, itemId: s.itemId } : { slot: s.slot, productId: s.productId ?? undefined },
+  );
+  return { name: look.name, occasion: look.occasion, slots, favorite, baseVersion: look.version };
+}
+
+/**
+ * Heart: there is no narrow favourite endpoint, so the look is read and written back with the
+ * versioned `PUT v1/tenant/look/{id}`. A 409 carries the current look — the heart is re-applied to it
+ * once (the user only toggled the heart; nothing else of theirs can be lost).
+ */
+export async function putLookFavorite(lookId: string, favorite: boolean): Promise<void> {
+  const path = `v1/tenant/look/${lookId}`;
+  const look = await apiRequest<LookWire>(path);
+  if (look.favorite === favorite) return;
+  try {
+    await apiRequest<LookWire>(path, { method: 'PUT', body: favoriteBody(look, favorite) });
+  } catch (e) {
+    if (!isConflict(e) || !e.current) throw e;
+    await apiRequest<LookWire>(path, { method: 'PUT', body: favoriteBody(e.current as LookWire, favorite) });
+  }
+}
+
+/** The wire edit that contains `editLookId`: the named edit, else the current one. */
+async function findEditLook(editLookId: string, editId: string | undefined) {
+  const ids = editId && editId !== 'current' ? [editId, 'current'] : ['current'];
+  for (const id of ids) {
+    try {
+      const edit = await apiRequest<EditWire>(`v1/content/edit/${encodeURIComponent(id)}`);
+      const look = edit.looks.find((l) => l.id === editLookId);
+      if (look) return look;
+    } catch (e) {
+      if (!isGone(e)) throw e;
+    }
+  }
+  return null;
+}
+
 /**
  * Queued writes of the Bugün slice. Paused mutations are persisted without their function, so every
  * write registers its `mutationFn` here by key to resume after an app restart.
@@ -53,7 +95,8 @@ export function registerTodayMutations(client: QueryClient): void {
     void client.invalidateQueries({ queryKey: queryKeys.today });
   };
 
-  // 07 / 09 — PUT v1/tenant/plan-day/{date} (versioned).
+  // 07 / 09 — PUT v1/tenant/plan-day/{date} { occasion, lookId, baseVersion } (versioned; 409 = the current record,
+  // 422 `look_not_found`). Clearing the day is DELETE v1/tenant/plan-day/{date} (204; 404 = already clear).
   client.setMutationDefaults(todayMutationKeys.putPlanDay, {
     scope: TENANT_WRITE_SCOPE,
     mutationFn: (vars: PutPlanDayVariables) => {
@@ -61,7 +104,19 @@ export function registerTodayMutations(client: QueryClient): void {
       return fromSource<PlanDay | null>(
         'today',
         () => fixturePutPlanDay(vars.date, body.occasion, body.lookId),
-        () => apiRequest<PlanDay | null>(`v1/tenant/plan-day/${vars.date}`, { method: 'PUT', body }),
+        async () => {
+          const path = `v1/tenant/plan-day/${vars.date}`;
+          if (body.occasion === null && body.lookId === null) {
+            try {
+              await apiRequest<void>(path, { method: 'DELETE' });
+            } catch (e) {
+              if (!isGone(e)) throw e;
+            }
+            return null;
+          }
+          const wire: PutPlanDayWire = { occasion: fromOccasion(body.occasion), lookId: body.lookId, baseVersion: body.baseVersion };
+          return toPlanDay(await apiRequest<PlanDayWire>(path, { method: 'PUT', body: wire }));
+        },
       );
     },
     onMutate: async (vars: PutPlanDayVariables) => {
@@ -71,7 +126,7 @@ export function registerTodayMutations(client: QueryClient): void {
     onSuccess: refreshPlans,
     onError: (error: unknown, vars: PutPlanDayVariables) => {
       if (isConflict(error)) {
-        const current = error.problem?.current as PlanDay | undefined;
+        const current = error.current ? toPlanDay(error.current as PlanDayWire) : undefined;
         conflictStore.push({
           id: vars.clientMutationId,
           kind: 'changed',
@@ -89,7 +144,7 @@ export function registerTodayMutations(client: QueryClient): void {
     },
   });
 
-  // 06 heart — ASSUMPTION: PUT v1/tenant/look/{id}/favorite.
+  // 06 heart — GET + versioned PUT v1/tenant/look/{id} with only `favorite` changed (see `putLookFavorite`).
   client.setMutationDefaults(todayMutationKeys.setLookFavorite, {
     scope: TENANT_WRITE_SCOPE,
     mutationFn: (vars: SetLookFavoriteVariables) => {
@@ -97,7 +152,7 @@ export function registerTodayMutations(client: QueryClient): void {
       return fromSource<void>(
         'today',
         () => fixtureSetLookFavorite(vars.lookId, body.isFavorite),
-        () => apiRequest<void>(`v1/tenant/look/${vars.lookId}/favorite`, { method: 'PUT', body }),
+        () => putLookFavorite(vars.lookId, body.isFavorite),
       );
     },
     onMutate: (vars: SetLookFavoriteVariables) => {
@@ -114,15 +169,22 @@ export function registerTodayMutations(client: QueryClient): void {
     },
   });
 
-  // 08 "İzleme listeme ekle" — ASSUMPTION: POST v1/tenant/watchlist (screen 24b is the store slice's).
+  // 08 "İzleme listeme ekle" — PUT v1/tenant/watch-list/{productId} { look: { kind: "edit", id } } (replay-safe;
+  // 404 `product_not_found`, 422 `product_retired` / `watch_list_full`). Screen 24b is the store slice's.
+  const watchlistKey = ['tenant', 'watchlist'] as const;
   client.setMutationDefaults(todayMutationKeys.addToWatchlist, {
     scope: TENANT_WRITE_SCOPE,
     mutationFn: (vars: AddWatchlistVariables) => {
-      const body: AddWatchlistRequest = { productId: vars.productId, clientMutationId: vars.clientMutationId };
+      const body: AddWatchlistRequest = { productId: vars.productId, editLookId: vars.editLookId, clientMutationId: vars.clientMutationId };
       return fromSource<void>(
         'today',
         () => fixtureAddToWatchlist(body.productId),
-        () => apiRequest<void>('v1/tenant/watchlist', { method: 'POST', body }),
+        async () => {
+          await apiRequest<unknown>(`v1/tenant/watch-list/${encodeURIComponent(body.productId)}`, {
+            method: 'PUT',
+            body: body.editLookId ? { look: { kind: 'edit', id: body.editLookId } } : {},
+          });
+        },
       );
     },
     onMutate: (vars: AddWatchlistVariables) => {
@@ -141,18 +203,35 @@ export function registerTodayMutations(client: QueryClient): void {
           : prev,
       );
     },
+    onSuccess: () => void client.invalidateQueries({ queryKey: watchlistKey }),
     onError: () => void client.invalidateQueries({ queryKey: planKeys.edits }),
   });
 
-  // 08 heart — ASSUMPTION: POST v1/tenant/look/from-edit.
+  // 08 heart — POST v1/tenant/look { id, name, occasion, slots, favorite, source: "edit" } with one catalogue product
+  // per slot of the chosen price band (201; 200 when the same id is sent again; 422 `look_min_pieces`, …).
   client.setMutationDefaults(todayMutationKeys.saveEditLook, {
     scope: TENANT_WRITE_SCOPE,
     mutationFn: (vars: SaveEditLookVariables) => {
-      const body: SaveEditLookRequest = { id: vars.id, editLookId: vars.editLookId, band: vars.band, clientMutationId: vars.clientMutationId };
+      const body: SaveEditLookRequest = { id: vars.id, editLookId: vars.editLookId, band: vars.band, editId: vars.editId, clientMutationId: vars.clientMutationId };
       return fromSource<void>(
         'today',
         () => fixtureSaveEditLook(body),
-        () => apiRequest<void>('v1/tenant/look/from-edit', { method: 'POST', body }),
+        async () => {
+          const look = await findEditLook(body.editLookId, body.editId);
+          // The edit was retired while the write was queued: nothing to save any more.
+          if (!look) throw new ApiError('http', 404, { code: 'not_found' });
+          await apiRequest<LookWire>('v1/tenant/look', {
+            method: 'POST',
+            body: {
+              id: body.id,
+              name: look.title.slice(0, 60),
+              occasion: null,
+              slots: editLookSlots(look, fromPriceBand(body.band)),
+              favorite: false,
+              source: 'edit',
+            },
+          });
+        },
       );
     },
     onMutate: (vars: SaveEditLookVariables) => {

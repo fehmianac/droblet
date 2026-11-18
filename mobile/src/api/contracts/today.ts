@@ -1,5 +1,6 @@
 /**
- * E4 Bugün, haftalık plan, takvim — PROVISIONAL contract (BACKEND_ENGINEER §Uç nokta haritası, E4).
+ * E4 Bugün, haftalık plan, takvim — the APP types the screens render. The wire shapes of the real
+ * endpoints and the mappers are in `../wire/today.ts` (docs/api/wardrobe-looks-plan-stylist.md §5).
  * Calendar dates are `YYYY-MM-DD` in the user's local calendar.
  */
 import type { Money } from '@/lib/format';
@@ -16,7 +17,10 @@ export type PlanDay = {
   baseVersion: number;
 };
 
-/** PUT v1/tenant/plan-day/{date} — versioned (409). `lookId: null` + `occasion: null` clears the day. */
+/**
+ * PUT v1/tenant/plan-day/{date} `{ occasion, lookId, baseVersion }` — versioned (409 + the current record);
+ * `lookId: null` + `occasion: null` clears the day, sent as DELETE v1/tenant/plan-day/{date}.
+ */
 export type PutPlanDayRequest = { occasion: Occasion | null; lookId: string | null; baseVersion: number; clientMutationId: string };
 
 /** A "Bunu giyiyorum" record. GET v1/tenant/wear-log?month=yyyy-MM → `WearLog[]`. */
@@ -28,37 +32,44 @@ export type WearLog = {
   occurredAt: string;
 };
 
-/** POST v1/tenant/wear-log — event; idempotent on `clientMutationId`. */
+/** POST v1/tenant/wear-log — event; idempotent on `clientMutationId` (= the log id). Exactly one of `lookId` / `itemIds`. */
 export type CreateWearLogRequest = { id: string; date: string; occurredAt: string; lookId: string | null; itemIds: string[]; clientMutationId: string };
 
 // ---------- 06 Bugün ----------
 
-/** GET v1/tenant/today?date= — the shape in `../contracts` (`TodayResponse`), unchanged. */
+/** GET v1/tenant/today?date= mapped to the card's shape in `../contracts` (`TodayResponse`). */
 export type Today = TodayResponse;
 
 /**
- * "Başka öneri" on 06 — ASSUMPTION: `POST v1/tenant/today/refresh { date, requestId }` → `TodayResponse`
- * with another look for the day (text suggestion, no credit). May become a `stylist/outfit` job instead.
+ * "Başka öneri" on 06 — there is no `today/refresh`: the app starts a stylist job for the day
+ * (`POST v1/tenant/stylist/outfit { requestId, date, occasion, onlyMyWardrobe }` → 202, members only)
+ * and opens the suggestions screen (17) for it.
  */
 export type RefreshTodayRequest = { date: string; requestId: string };
 
 /**
- * Heart on 06 — the look's `isFavorite`. ASSUMPTION: `PUT v1/tenant/look/{id}/favorite { isFavorite,
- * clientMutationId }` (a narrow, idempotent write so the card does not need the whole versioned look).
+ * Heart on 06 — the look's `favorite`. There is no narrow endpoint: the app reads the look and sends
+ * the versioned `PUT v1/tenant/look/{id}` with only `favorite` changed.
  */
 export type PutLookFavoriteRequest = { isFavorite: boolean; clientMutationId: string };
 
 // ---------- 07 Haftalık plan ----------
 
-/** POST v1/tenant/stylist/week → 202. The result is a draft: nothing is planned until the user accepts. */
+/**
+ * POST v1/tenant/stylist/week `{ requestId, weekStart, days?, onlyMyWardrobe }` → 202 job (members only, no credit).
+ * The result is a draft: nothing is planned until `POST v1/tenant/stylist/week/{jobId}/accept { clientMutationId, dates }`.
+ */
 export type PlanWeekRequest = { requestId: string; weekStart: string; days: { date: string; occasion: Occasion | null }[] };
 export type PlanWeekResponse = JobAccepted;
-/** Result of a `stylist-week` job: one proposed look per day that had none. */
-export type PlanWeekResult = { days: { date: string; occasion: Occasion; lookId: string; lookName: string }[] };
+/**
+ * Result of a `stylist-week` job: one proposed look per day that had none. `lookId` is empty for a
+ * server draft (the look is created at accept); `jobId` is what the accept call needs.
+ */
+export type PlanWeekResult = { jobId?: string; days: { date: string; occasion: Occasion; lookId: string; lookName: string }[] };
 
 // ---------- 09 Takvim ----------
 
-/** GET v1/tenant/wear-log/summary?month=yyyy-MM */
+/** GET v1/tenant/wear-log/summary?month=yyyy-MM (`loggedDays`, top-5 `mostWorn` on the wire; the screen shows the first). */
 export type WearSummary = {
   month: string;
   daysLogged: number;
@@ -110,8 +121,11 @@ export type WeeklyEdit = {
   hasBodyPhoto: boolean;
 };
 
-/** ASSUMPTION (24b belongs to the store slice): POST v1/tenant/watchlist — idempotent on clientMutationId. */
-export type AddWatchlistRequest = { productId: string; clientMutationId: string };
+/** PUT v1/tenant/watch-list/{productId} `{ look: { kind: "edit", id } }` — replay-safe. `editLookId` = the edit look it was added from. */
+export type AddWatchlistRequest = { productId: string; editLookId?: string; clientMutationId: string };
 
-/** ASSUMPTION: POST v1/tenant/look/from-edit — saves an edit look to the lookbook as a Look with id `id`. */
-export type SaveEditLookRequest = { id: string; editLookId: string; band: PriceBand; clientMutationId: string };
+/**
+ * Saving an edit look to the lookbook = `POST v1/tenant/look` with `source: "edit"`, id `id` and one
+ * catalogue product per slot of the chosen price band (there is no `look/from-edit`). `editId` = the edit to read.
+ */
+export type SaveEditLookRequest = { id: string; editLookId: string; band: PriceBand; editId?: string; clientMutationId: string };

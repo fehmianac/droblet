@@ -44,6 +44,7 @@
     "proposalTitle_other": "Suggestions for {{count}} days are ready",
     "proposalBody": "You can change any day later, one by one.",
     "proposalRow": "{{day}} · {{look}}",
+    "proposalUntitled": "Outfit of the day",
     "proposalAccept": "Add to plan",
     "tryOnReady": "Ready on you",
     "tryOnRowLabel": "Preparing the image for {{day}}",

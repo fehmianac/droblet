@@ -44,6 +44,7 @@
     "proposalTitle_other": "{{count}} gün için öneri hazır",
     "proposalBody": "Plana eklediğin günleri sonra tek tek değiştirebilirsin.",
     "proposalRow": "{{day}} · {{look}}",
+    "proposalUntitled": "Günün kombini",
     "proposalAccept": "Plana ekle",
     "tryOnReady": "Senin üzerinde hazır",
     "tryOnRowLabel": "{{day}} görseli hazırlanıyor",
