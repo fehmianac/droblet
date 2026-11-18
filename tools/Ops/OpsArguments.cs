@@ -1,0 +1,176 @@
+using System.Text.RegularExpressions;
+
+namespace Ops;
+
+/// <summary>
+/// Command line of the operator tool:  Ops &lt;command&gt; --stage dev [--option value] [--flag]
+/// Pure (no AWS, no network) so the guards are unit-tested: prod refusal, the image-call cap, id and range checks.
+/// </summary>
+internal sealed partial record OpsArguments(string Command, string Stage, IReadOnlyDictionary<string, string> Options, IReadOnlySet<string> Flags)
+{
+    public const string GrantTestPremium = "grant-test-premium";
+    public const string RevokeTestPremium = "revoke-test-premium";
+    public const string GenerateLibraryImages = "generate-library-images";
+    public const string AiSmoke = "ai-smoke";
+    public const string AiProbe = "ai-probe";
+    public const string Logs = "logs";
+
+    /// <summary>Hard ceiling of image-model calls in one run (library images and synthetic fixtures together).</summary>
+    public const int MaxImageCallsPerRun = 30;
+
+    public static readonly IReadOnlyList<string> Commands = [GrantTestPremium, RevokeTestPremium, GenerateLibraryImages, AiSmoke, AiProbe, Logs];
+
+    /// <summary>Commands that create or change test accounts or spend AI credit on a throw-away user: never on prod.</summary>
+    public static readonly IReadOnlySet<string> DevOnly = new HashSet<string>(StringComparer.Ordinal) { GrantTestPremium, RevokeTestPremium, AiSmoke, AiProbe };
+
+    private static readonly IReadOnlyDictionary<string, string[]> AllowedOptions = new Dictionary<string, string[]>(StringComparer.Ordinal)
+    {
+        [GrantTestPremium] = ["email", "credits", "days"],
+        [RevokeTestPremium] = ["email"],
+        [GenerateLibraryImages] = ["only", "max-calls", "quality", "price-per-image"],
+        [AiSmoke] = ["api-url", "price-per-image"],
+        [AiProbe] = [],
+        [Logs] = ["function", "minutes", "filter", "limit"],
+    };
+
+    private static readonly IReadOnlyDictionary<string, string[]> AllowedFlags = new Dictionary<string, string[]>(StringComparer.Ordinal)
+    {
+        [GrantTestPremium] = [],
+        [RevokeTestPremium] = [],
+        [GenerateLibraryImages] = ["dry-run", "force"],
+        [AiSmoke] = ["keep-user"],
+        [AiProbe] = [],
+        [Logs] = [],
+    };
+
+    [GeneratedRegex("^lib-[a-z0-9]+(-[a-z0-9]+)*$")]
+    private static partial Regex LibraryIdPattern();
+
+    [GeneratedRegex("^[a-z0-9-]{1,64}$")]
+    private static partial Regex FunctionPattern();
+
+    public string? Option(string name) => Options.TryGetValue(name, out var value) ? value : null;
+    public bool Flag(string name) => Flags.Contains(name);
+    public bool DryRun => Flag("dry-run");
+    public bool Force => Flag("force");
+
+    public int IntOption(string name, int fallback) => Option(name) is { } raw && int.TryParse(raw, out var value) ? value : fallback;
+
+    public decimal DecimalOption(string name, decimal fallback) =>
+        Option(name) is { } raw && decimal.TryParse(raw, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var value) ? value : fallback;
+
+    /// <summary>--only a,b,c → the ids (empty = every item).</summary>
+    public IReadOnlyList<string> OnlyIds =>
+        (Option("only") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Distinct(StringComparer.Ordinal).ToList();
+
+    /// <summary>Image-call budget of this run: --max-calls, never above <see cref="MaxImageCallsPerRun"/>.</summary>
+    public int MaxImageCalls => Math.Clamp(IntOption("max-calls", MaxImageCallsPerRun), 0, MaxImageCallsPerRun);
+
+    public static (OpsArguments? Arguments, string? Error) Parse(IReadOnlyList<string> args)
+    {
+        if (args.Count == 0 || args[0].StartsWith("--", StringComparison.Ordinal))
+            return (null, "missing command");
+        var command = args[0].Trim().ToLowerInvariant();
+        if (!Commands.Contains(command))
+            return (null, $"unknown command '{args[0]}'");
+
+        var options = new Dictionary<string, string>(StringComparer.Ordinal);
+        var flags = new HashSet<string>(StringComparer.Ordinal);
+        for (var i = 1; i < args.Count; i++)
+        {
+            var token = args[i];
+            if (!token.StartsWith("--", StringComparison.Ordinal) || token.Length <= 2)
+                return (null, $"unexpected argument '{token}'");
+            var name = token[2..].ToLowerInvariant();
+            string? value = null;
+            var eq = name.IndexOf('=', StringComparison.Ordinal);
+            if (eq > 0)
+            {
+                value = token[(2 + eq + 1)..];
+                name = name[..eq];
+            }
+            if (name == "stage" || AllowedOptions[command].Contains(name))
+            {
+                if (value is null)
+                {
+                    if (i + 1 >= args.Count || args[i + 1].StartsWith("--", StringComparison.Ordinal))
+                        return (null, $"--{name} needs a value");
+                    value = args[++i];
+                }
+                if (!options.TryAdd(name, value))
+                    return (null, $"--{name} given twice");
+            }
+            else if (AllowedFlags[command].Contains(name) && value is null)
+                flags.Add(name);
+            else
+                return (null, $"unknown option --{name} for {command}");
+        }
+
+        if (!options.Remove("stage", out var stage) || string.IsNullOrWhiteSpace(stage))
+            return (null, "--stage is required (dev | prod)");
+        var parsed = new OpsArguments(command, stage.Trim().ToLowerInvariant(), options, flags);
+        var error = parsed.Validate();
+        return error is null ? (parsed, null) : (null, error);
+    }
+
+    /// <summary>Guards that hold before anything touches AWS.</summary>
+    public string? Validate()
+    {
+        if (Stage is not ("dev" or "prod"))
+            return $"unknown stage '{Stage}' (dev | prod)";
+        if (Stage == "prod" && DevOnly.Contains(Command))
+            return $"{Command} is dev only — refused on prod";
+
+        switch (Command)
+        {
+            case GrantTestPremium or RevokeTestPremium:
+                if (Option("email") is not { } email || !email.Contains('@', StringComparison.Ordinal) || email.Length > 254)
+                    return "--email is required";
+                if (Option("credits") is { } credits && (!int.TryParse(credits, out var c) || c is < 1 or > 500))
+                    return "--credits must be 1–500";
+                if (Option("days") is { } days && (!int.TryParse(days, out var d) || d is < 1 or > 90))
+                    return "--days must be 1–90";
+                break;
+            case GenerateLibraryImages:
+                if (OnlyIds.FirstOrDefault(id => !LibraryIdPattern().IsMatch(id)) is { } bad)
+                    return $"--only: '{bad}' is not a library id (lib-…)";
+                if (Option("max-calls") is { } max && (!int.TryParse(max, out var m) || m is < 0 or > MaxImageCallsPerRun))
+                    return $"--max-calls must be 0–{MaxImageCallsPerRun}";
+                if (Option("quality") is { } quality && quality is not ("low" or "medium" or "high" or "auto"))
+                    return "--quality must be low | medium | high | auto";
+                break;
+            case Logs:
+                if (Option("function") is not { } fn || !FunctionPattern().IsMatch(fn))
+                    return "--function is required (e.g. stylist, tryon, palette, item-processor, api)";
+                if (Option("minutes") is { } minutes && (!int.TryParse(minutes, out var mi) || mi is < 1 or > 1440))
+                    return "--minutes must be 1–1440";
+                break;
+        }
+        return null;
+    }
+
+    public const string Usage =
+        "Usage: Ops <command> --stage dev [options]\n" +
+        "  grant-test-premium      --email <e> [--credits N] [--days N]   (dev only)\n" +
+        "  revoke-test-premium     --email <e>                            (dev only)\n" +
+        "  generate-library-images [--only id,id] [--dry-run] [--force] [--max-calls N<=30] [--quality high]\n" +
+        "  ai-smoke                [--api-url URL] [--keep-user]          (dev only)\n" +
+        "  ai-probe                                                        (dev only; one direct text-model call)\n" +
+        "  logs                    --function stylist [--minutes 30] [--filter OpenAI] [--limit 200]";
+}
+
+/// <summary>Counts image-model calls of one run and refuses the call that would cross the cap.</summary>
+internal sealed class ImageCallBudget(int max)
+{
+    public int Max { get; } = Math.Clamp(max, 0, OpsArguments.MaxImageCallsPerRun);
+    public int Used { get; private set; }
+    public int Remaining => Max - Used;
+
+    public bool TryTake()
+    {
+        if (Used >= Max)
+            return false;
+        Used++;
+        return true;
+    }
+}

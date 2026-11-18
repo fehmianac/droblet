@@ -16,6 +16,9 @@ public sealed class AiProviderException(string message, Exception? inner = null)
 
 public sealed record ImageInput(byte[] Data, string ContentType);
 
+/// <summary>Text-to-image request for operator tooling (library images, synthetic fixtures). Size e.g. "1024x1024"; format png | jpeg | webp.</summary>
+public sealed record ImageGenerationRequest(string Prompt, string Size = "1024x1024", string OutputFormat = "webp", int? OutputCompression = null, string? Quality = null);
+
 public sealed record GarmentSuggestion(ItemCategoryHint? Category, IReadOnlyList<string> ColorIds, string? Fabric, IReadOnlyList<Season> Seasons, IReadOnlyDictionary<string, double> Confidence, string? Name = null, bool IsGarment = true, int GarmentCount = 1);
 
 public enum ItemCategoryHint { Top, Bottom, Dress, Outerwear, Shoes, Bag, Accessory, Beachwear, Skiwear }
