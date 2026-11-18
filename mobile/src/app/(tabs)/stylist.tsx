@@ -13,7 +13,6 @@ import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
-import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { openCreditTopUp, useAiCredits } from '@/features/credits/useAiCredits';
@@ -141,7 +140,6 @@ export default function StylistTab() {
 
   return (
     <Screen>
-      <OfflineBanner />
       <View className="h-12 flex-row items-center justify-between px-gutter">
         <Logo />
         <IconButton icon={LayoutGrid} iconSize={19} onPress={() => router.navigate('/wardrobe/looks')} accessibilityLabel={t('stylistHome.history')} />
@@ -301,3 +299,6 @@ export default function StylistTab() {
     </Screen>
   );
 }
+
+/** A render error in this tab shows the error state with "Tekrar dene"; the tab bar and the other tabs keep working. */
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';

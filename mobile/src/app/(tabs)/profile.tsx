@@ -11,7 +11,6 @@ import { Badge } from '@/components/ui/Bits';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
-import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Screen } from '@/components/ui/Screen';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -164,7 +163,6 @@ export default function ProfileTab() {
         <Logo />
         <IconButton icon={Settings} onPress={() => router.push('/settings')} accessibilityLabel={t('me.settings')} testID="profile.settings" />
       </View>
-      <OfflineBanner />
       <ScrollView
         contentContainerClassName="gap-3 px-gutter pb-8 pt-1"
         refreshControl={<RefreshControl refreshing={profile.isRefetching} onRefresh={refresh} tintColor={colors.muted} />}
@@ -251,3 +249,6 @@ export default function ProfileTab() {
     </Screen>
   );
 }
+
+/** A render error in this tab shows the error state with "Tekrar dene"; the tab bar and the other tabs keep working. */
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';
