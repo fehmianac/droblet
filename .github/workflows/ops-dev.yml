@@ -6,6 +6,11 @@ name: Ops (dev)
 #   gh workflow run ops-dev.yml --ref <branch> -f command=generate-library-images -f args="--only lib-white-tshirt,lib-navy-blazer"
 
 on:
+  # TEMPORARY (remove before merging to main): a push of this file on the ops branch registers the workflow so that
+  # workflow_dispatch works on the branch before the file exists on main; such a push runs the cheap ai-probe.
+  push:
+    branches: ['ops/ai-library-images']
+    paths: ['.github/workflows/ops-dev.yml']
   workflow_dispatch:
     inputs:
       command:
@@ -22,7 +27,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ops-dev-${{ inputs.command }}
+  group: ops-dev-${{ inputs.command || 'ai-probe' }}
   cancel-in-progress: false
 
 env:
@@ -32,7 +37,7 @@ env:
 
 jobs:
   ops:
-    name: ${{ inputs.command }}
+    name: ${{ inputs.command || 'ai-probe' }}
     runs-on: ubuntu-latest
     environment: dev
     timeout-minutes: 60
@@ -58,7 +63,7 @@ jobs:
 
       - name: Run
         env:
-          OPS_COMMAND: ${{ inputs.command }}
+          OPS_COMMAND: ${{ inputs.command || 'ai-probe' }}
           OPS_ARGS: ${{ inputs.args }}
           OPS_OUTPUT_DIR: ${{ runner.temp }}/ops-output
         run: |
@@ -76,7 +81,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ops-${{ inputs.command }}-${{ github.run_id }}
+          name: ops-${{ inputs.command || 'ai-probe' }}-${{ github.run_id }}
           path: ${{ runner.temp }}/ops-output
           if-no-files-found: ignore
           retention-days: 14
