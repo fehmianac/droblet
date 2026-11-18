@@ -1,0 +1,82 @@
+name: Ops (dev)
+
+# Operator commands on DEV only (tools/Ops): test premium for a test account, AI end-to-end smoke test, ready-library
+# image generation, Lambda logs. Manual only. The tool refuses prod for account / smoke commands on its own as well.
+#   gh workflow run ops-dev.yml --ref <branch> -f command=ai-smoke
+#   gh workflow run ops-dev.yml --ref <branch> -f command=generate-library-images -f args="--only lib-white-tshirt,lib-navy-blazer"
+
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: Komut
+        type: choice
+        options: [ai-smoke, generate-library-images, grant-test-premium, revoke-test-premium, ai-probe, logs]
+        default: ai-smoke
+      args:
+        description: 'Ek argumanlar (or. --email a@b.c --credits 10 · --only lib-a,lib-b --dry-run · --function stylist --minutes 30)'
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ops-dev-${{ inputs.command }}
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'eu-central-1' }}
+  DOTNET_NOLOGO: 'true'
+  DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+
+jobs:
+  ops:
+    name: ${{ inputs.command }}
+    runs-on: ubuntu-latest
+    environment: dev
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: libwebp tools (re-encode fallback for library images)
+        if: inputs.command == 'generate-library-images'
+        run: sudo apt-get install -y -qq webp >/dev/null
+
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Build
+        run: dotnet build tools/Ops -c Release
+
+      - name: Run
+        env:
+          OPS_COMMAND: ${{ inputs.command }}
+          OPS_ARGS: ${{ inputs.args }}
+          OPS_OUTPUT_DIR: ${{ runner.temp }}/ops-output
+        run: |
+          set -euo pipefail
+          # Arguments are split on whitespace only (never evaluated by the shell).
+          read -r -a extra <<< "$OPS_ARGS"
+          set +e
+          dotnet run --project tools/Ops -c Release --no-build -- "$OPS_COMMAND" --stage dev "${extra[@]}"
+          code=$?
+          set -e
+          if [ -f "$OPS_OUTPUT_DIR/summary.md" ]; then cat "$OPS_OUTPUT_DIR/summary.md" >> "$GITHUB_STEP_SUMMARY"; fi
+          exit $code
+
+      - name: Upload output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ops-${{ inputs.command }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/ops-output
+          if-no-files-found: ignore
+          retention-days: 14

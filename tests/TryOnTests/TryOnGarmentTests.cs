@@ -27,6 +27,24 @@ public class TryOnGarmentTests
         }
     }
 
+    /// <summary>Global images (library / catalog): only https://catalog.test/… is "downloadable".</summary>
+    private sealed class FakeGlobalImages : ICatalogProductLookup
+    {
+        public List<string?> Requested { get; } = [];
+
+        public Task<ProductSnapshot?> GetAsync(string productId, CancellationToken ct) => Task.FromResult<ProductSnapshot?>(null);
+
+        public Task<ImageInput?> ReadImageAsync(ProductSnapshot product, CancellationToken ct)
+        {
+            Requested.Add(product.ImageKey);
+            return Task.FromResult(product.ImageKey?.StartsWith("https://catalog.test/", StringComparison.Ordinal) == true
+                ? new ImageInput([5], "image/webp")
+                : null);
+        }
+    }
+
+    private static readonly FakeGlobalImages GlobalImages = new();
+
     private static async Task<(WorkerTestHost Host, CapturingRenderer Renderer, JobEntity Job, TryOnRequestedEvent Message)> ArrangeAsync(params OutfitPiece[] pieces)
     {
         var renderer = new CapturingRenderer();
@@ -35,6 +53,8 @@ public class TryOnGarmentTests
             services.AddSingleton<ITryOnJobService, TryOnJobService>();
             services.RemoveAll<ITryOnRenderer>();
             services.AddSingleton<ITryOnRenderer>(renderer);
+            services.RemoveAll<ICatalogProductLookup>();
+            services.AddSingleton<ICatalogProductLookup>(GlobalImages);
         });
         await host.MakePremiumAsync(Tenant);
         var body = await host.AddPhotoAsync(Tenant, PhotoKind.Body);
@@ -101,6 +121,40 @@ public class TryOnGarmentTests
         await host.Get<ITryOnJobService>().ProcessAsync(message, false, default);
 
         Assert.Equal(JobFailure.SourceDeleted, (await host.JobAsync(job))!.Failure);
+        Assert.Equal(30, await host.RemainingCreditsAsync(Tenant));
+    }
+
+    [Fact]
+    public async Task Process_LibraryPieceWithoutOwnPhoto_UsesItsGlobalHttpsImage()
+    {
+        var (host, renderer, job, message) = await ArrangeAsync(new OutfitPiece("own", null), new OutfitPiece("lib", null));
+        await AddItemAsync(host, Tenant, "own", 1);
+        await host.Repository.SaveAsync(new ItemEntity
+        {
+            Id = "lib", TenantId = Tenant, Category = ItemCategory.Bottom, Source = ItemSource.Library, LibraryItemId = "lib-blue-jeans",
+            GlobalImageKey = "https://catalog.test/catalog/library/lib-blue-jeans.webp", Version = 1,
+        });
+
+        await host.Get<ITryOnJobService>().ProcessAsync(message, false, default);
+
+        Assert.Equal(JobStatus.Completed, (await host.JobAsync(job))!.Status);
+        Assert.Equal([[1], [5]], Assert.Single(renderer.Garments).Select(g => g.Data));
+        Assert.Contains("https://catalog.test/catalog/library/lib-blue-jeans.webp", GlobalImages.Requested);
+    }
+
+    [Fact]
+    public async Task Process_LibraryPieceWithOnlyAPlaceholderKey_SourceDeleted_Refunds()
+    {
+        var (host, renderer, job, message) = await ArrangeAsync(new OutfitPiece("lib", null));
+        await host.Repository.SaveAsync(new ItemEntity
+        {
+            Id = "lib", TenantId = Tenant, Category = ItemCategory.Top, Source = ItemSource.Library, GlobalImageKey = "library/white-tshirt.webp", Version = 1,
+        });
+
+        await host.Get<ITryOnJobService>().ProcessAsync(message, false, default);
+
+        Assert.Equal(JobFailure.SourceDeleted, (await host.JobAsync(job))!.Failure);
+        Assert.Empty(renderer.Garments);
         Assert.Equal(30, await host.RemainingCreditsAsync(Tenant));
     }
 }

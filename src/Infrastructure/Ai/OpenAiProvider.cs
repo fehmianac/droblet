@@ -31,6 +31,7 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
     public const string ProviderName = "OpenAI";
     public const string ChatPath = "/v1/chat/completions";
     public const string ImageEditPath = "/v1/images/edits";
+    public const string ImageGenerationPath = "/v1/images/generations";
 
     public string Name => ProviderName;
 
@@ -74,6 +75,22 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
 
     public Task<ImageInput> RenderAsync(ImageInput bodyPhoto, IReadOnlyList<ImageInput> garments, CancellationToken ct) =>
         EditImageAsync(OpenAiPrompts.TryOn(garments.Count), [bodyPhoto, .. garments], ct);
+
+    /// <summary>
+    /// Text-to-image with the configured image model (POST /v1/images/generations). Used by operator tooling only
+    /// (ready-library images, synthetic test fixtures) — never with user content.
+    /// </summary>
+    public async Task<ImageInput> GenerateImageAsync(ImageGenerationRequest request, CancellationToken ct)
+    {
+        var settings = Require(o => o.ImageModel);
+        var body = OpenAiPayloads.ImageGenerationRequest(settings.ImageModel!, request);
+        using var message = new HttpRequestMessage(HttpMethod.Post, Url(settings, ImageGenerationPath))
+        {
+            Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json"),
+        };
+        var response = await SendAsync(message, settings, "image_generation", ct);
+        return OpenAiPayloads.ParseImage(response);
+    }
 
     // ── HTTP ──────────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -121,12 +138,14 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
             var body = await response.Content.ReadAsStringAsync(ct);
             if (response.IsSuccessStatusCode)
             {
-                logger.LogInformation("OpenAI {Operation} ok, total tokens {Tokens}", operation, OpenAiPayloads.TotalTokens(body));
+                logger.LogInformation("OpenAI {Operation} ok, model {Model}, total tokens {Tokens}", operation, OpenAiPayloads.ResponseModel(body) ?? "-", OpenAiPayloads.TotalTokens(body));
                 return body;
             }
 
             var code = OpenAiPayloads.ErrorCode(body);
-            logger.LogWarning("OpenAI {Operation} failed: {Status} {Code}", operation, (int)response.StatusCode, code);
+            // error.param names the rejected request field (e.g. "model", "response_format") — never user content.
+            logger.LogWarning("OpenAI {Operation} failed: {Status} {Code} (param {Param}, model {Model})",
+                operation, (int)response.StatusCode, code, OpenAiPayloads.ErrorParam(body) ?? "-", operation.StartsWith("image", StringComparison.Ordinal) ? settings.ImageModel : settings.TextModel);
             if (response.StatusCode is HttpStatusCode.RequestTimeout or HttpStatusCode.TooManyRequests || (int)response.StatusCode >= 500)
                 throw new HttpRequestException($"OpenAI {operation} returned {(int)response.StatusCode} ({code}).", null, response.StatusCode);
             throw new AiProviderException($"OpenAI {operation} returned {(int)response.StatusCode} ({code}).");
@@ -176,6 +195,23 @@ public static class OpenAiPayloads
                 ["json_schema"] = new JsonObject { ["name"] = schemaName, ["strict"] = true, ["schema"] = schema },
             },
         };
+    }
+
+    public static JsonObject ImageGenerationRequest(string model, ImageGenerationRequest request)
+    {
+        var body = new JsonObject
+        {
+            ["model"] = model,
+            ["prompt"] = request.Prompt,
+            ["size"] = request.Size,
+            ["n"] = 1,
+            ["output_format"] = request.OutputFormat,
+        };
+        if (request.Quality is { Length: > 0 } quality)
+            body["quality"] = quality;
+        if (request.OutputCompression is { } compression && request.OutputFormat is "webp" or "jpeg")
+            body["output_compression"] = Math.Clamp(compression, 0, 100);
+        return body;
     }
 
     public static MultipartFormDataContent ImageEditRequest(string model, string prompt, string size, IReadOnlyList<ImageInput> images)
@@ -253,6 +289,32 @@ public static class OpenAiPayloads
         try
         {
             return JsonNode.Parse(responseBody)?["usage"]?["total_tokens"]?.GetValue<long>();
+        }
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException or FormatException or ArgumentOutOfRangeException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>The model id the API answered with (top-level "model"; image responses may not carry it).</summary>
+    public static string? ResponseModel(string responseBody)
+    {
+        try
+        {
+            return Text(JsonNode.Parse(responseBody)?["model"]);
+        }
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException or FormatException or ArgumentOutOfRangeException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>error.param — the name of the rejected request field (never a value).</summary>
+    public static string? ErrorParam(string responseBody)
+    {
+        try
+        {
+            return Text(JsonNode.Parse(responseBody)?["error"]?["param"]);
         }
         catch (Exception ex) when (ex is JsonException or InvalidOperationException or FormatException or ArgumentOutOfRangeException)
         {
