@@ -1,3 +1,4 @@
+import { AI_NEUTRAL_TONES, AiProgressLines, AiSwatchReveal, toneColor } from '@/components/ui/ai';
 import { router } from 'expo-router';
 import { ChevronRight, ScanFace } from 'lucide-react-native';
 import { useState } from 'react';
@@ -191,12 +192,13 @@ export default function PaletteScreen() {
         {(data) => {
           if (data?.status === 'ready') return <ReadyView palette={data} />;
           if (data?.status === 'pending') {
-            // AI loading component — replace this skeleton with the shared "AiYukleniyor" wait when it lands.
+            // The shared AI wait (canvas `AiYukleniyor`): tones appearing one by one + calm progress sentences.
             return (
-              <View accessible accessibilityLabel={t('palette.analyzing')} accessibilityLiveRegion="polite">
-                <PaletteSkeleton />
-                <Text variant="caption" tone="muted" className="pt-4 text-center">
-                  {t('palette.analyzing')}
+              <View className="gap-6 px-gutter pt-6" testID="palette-ai-wait">
+                <AiSwatchReveal colors={[...AI_NEUTRAL_TONES, ...AI_NEUTRAL_TONES.slice(0, 3)].map(toneColor)} />
+                <AiProgressLines lines={[t('palette.analyzing'), t('ai.paletteLines.tones'), t('ai.paletteLines.wardrobe')]} align="center" />
+                <Text variant="caption" tone="muted" className="text-center">
+                  {t('ai.leaveHint')}
                 </Text>
               </View>
             );

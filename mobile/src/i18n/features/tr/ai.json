@@ -35,7 +35,11 @@
     "continueInBackground": "Arka planda devam et — bitince haber veririz",
     "showWhenReady": "Hazır olunca göster",
     "leaveHint": "Ekrandan çıkabilirsin; görsel hazır olunca bildirim göndeririz.",
-    "progressCount": "{{done}} / {{total}}"
+    "progressCount": "{{done}} / {{total}}",
+    "paletteLines": {
+      "tones": "Sana yakışan tonlar seçiliyor…",
+      "wardrobe": "Gardırobunla eşleştiriliyor…"
+    }
   },
   "creditConfirm": {
     "eyebrow": "ÜZERİMDE GÖR",

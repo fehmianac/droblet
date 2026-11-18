@@ -6,6 +6,8 @@ import type { Entitlement } from '@/api/contracts';
 import { fromSource } from '@/api/dataSource';
 import { clone, fixtureDb } from '@/fixtures/db';
 
+import { creditSheetStore } from './creditSheetStore';
+
 /** Separate from `queryKeys.entitlement` (the paywall's live query) so fixture data never lands in that cache entry. */
 export const aiCreditsKey = ['tenant', 'entitlement', 'ai-credits'] as const;
 
@@ -48,9 +50,9 @@ export function useAiCredits(): AiCredits {
 
 /**
  * Where "Kredi yükle" / a locked AI feature leads.
- * Non-members → 05 paywall. Members out of credits → the 05b extra-credit sheet, which is owned by the
- * store/profile slice; until it lands this opens the subscription screen.
+ * Non-members → 05 paywall. Members → the 05b extra-credit sheet (`CreditPackSheet`, mounted once in `AppHosts`).
  */
 export function openCreditTopUp(isMember: boolean): void {
-  router.push(isMember ? '/subscription' : '/paywall');
+  if (isMember) creditSheetStore.open('topUp');
+  else router.push('/paywall');
 }

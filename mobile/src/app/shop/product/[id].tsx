@@ -1,3 +1,4 @@
+import { AiDropPulse, AiProgressLines, AiShimmerImage } from '@/components/ui/ai';
 import { useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Bookmark, Check, ChevronLeft, CircleAlert, Heart } from 'lucide-react-native';
@@ -142,16 +143,16 @@ function ProductBody({ product }: { product: ProductDetail }) {
       </View>
     );
   } else {
-    // AI loading component — replace this skeleton with the shared "AiYukleniyor" wait when it lands.
+    // The shared AI wait (canvas `AiYukleniyor`): shimmer image slot + the drop + rotating progress sentences.
     image = (
-      <View accessible accessibilityLabel={t('productDetail.tryOnPreparing')} accessibilityLiveRegion="polite">
-        <Skeleton className="aspect-[4/5] w-full" />
-        <View className="absolute bottom-16 left-0 right-0 items-center">
-          <Text variant="caption" tone="muted">
-            {t('productDetail.tryOnPreparing')}
-          </Text>
-        </View>
-      </View>
+      <AiShimmerImage className="aspect-[4/5] w-full gap-3 px-8">
+        <AiDropPulse />
+        <AiProgressLines
+          lines={[t('productDetail.tryOnPreparing'), t('ai.tryOnLines.pieces'), t('ai.tryOnLines.colors'), t('ai.tryOnLines.placing'), t('ai.tryOnLines.finishing')]}
+          size="compact"
+          align="center"
+        />
+      </AiShimmerImage>
     );
   }
 
