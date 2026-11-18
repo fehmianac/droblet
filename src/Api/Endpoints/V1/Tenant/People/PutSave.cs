@@ -35,10 +35,11 @@ public class PutSave : IEndpoint
         return endpoints.MapPut("v1/tenant/people/{handle}/look/{lookId}/save", Handler)
             .Produces(StatusCodes.Status204NoContent)
             .Produces<ProblemDetails>(StatusCodes.Status404NotFound)
+            .Produces<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)
             .ProducesProblem(StatusCodes.Status500InternalServerError)
             .RequireAuthorization(ClaimNames.TenantUserPolicy)
             .WithSummary("Save a look")
-            .WithDescription("Idempotent.")
+            .WithDescription("Idempotent. Own looks cannot be saved (422 cannot_target_self).")
             .WithTags("Tenant Social");
     }
 }
