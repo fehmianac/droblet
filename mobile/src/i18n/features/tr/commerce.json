@@ -32,7 +32,16 @@
       "dress": "Elbiseler",
       "accessory": "Aksesuarlar",
       "shoes": "Ayakkabılar",
-      "bag": "Çantalar"
+      "bag": "Çantalar",
+      "blouse": "Bluzlar",
+      "sweatshirt": "Sweatshirtler",
+      "coat": "Kabanlar",
+      "jeans": "Jeanler",
+      "skirt": "Etekler",
+      "shorts": "Şortlar",
+      "swimwear": "Plaj giyim",
+      "skiwear": "Kayak giyim",
+      "activewear": "Spor giyim"
     },
     "filterBrand": "Marka",
     "filterColor": "Renk",

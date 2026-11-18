@@ -1,4 +1,4 @@
-import type { Cart, CartGroup, ProductSize, ProductSummary } from '@/api/contracts/store';
+import type { Cart, CartGroup, ProductSize, ProductSummary, StoreLookRef } from '@/api/contracts/store';
 import { sumMoney, type Money } from '@/lib/format';
 
 function totals(groups: CartGroup[]): Cart {
@@ -12,7 +12,7 @@ function totals(groups: CartGroup[]): Cart {
   };
 }
 
-export type NewCartLine = { clientMutationId: string; product: ProductSummary; size: ProductSize };
+export type NewCartLine = { clientMutationId: string; product: ProductSummary; size: ProductSize; look?: StoreLookRef };
 
 /**
  * Optimistic cart after "Sepete ekle": lines join their brand's group (new brands go last).

@@ -32,7 +32,16 @@
       "dress": "Dresses",
       "accessory": "Accessories",
       "shoes": "Shoes",
-      "bag": "Bags"
+      "bag": "Bags",
+      "blouse": "Blouses",
+      "sweatshirt": "Sweatshirts",
+      "coat": "Coats",
+      "jeans": "Jeans",
+      "skirt": "Skirts",
+      "shorts": "Shorts",
+      "swimwear": "Swimwear",
+      "skiwear": "Skiwear",
+      "activewear": "Activewear"
     },
     "filterBrand": "Brand",
     "filterColor": "Colour",

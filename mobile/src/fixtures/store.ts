@@ -154,10 +154,10 @@ export function filterProducts(all: ProductSummary[], query: ProductQuery): Prod
   const matches = all.filter((p) => {
     if (query.categories.length > 0 && !query.categories.includes(p.category)) return false;
     if (query.brandIds.length > 0 && !query.brandIds.includes(p.brandId)) return false;
-    if (query.colors.length > 0 && !p.colors.some((c) => query.colors.includes(c))) return false;
+    if (query.colors.length > 0 && !p.colors.some((c) => (query.colors as string[]).includes(c))) return false;
     if (query.sizes.length > 0 && !p.sizes.some((s) => query.sizes.includes(s))) return false;
     if (q !== '') {
-      const haystack = fold([p.name, p.brandName, ...p.colors.map((c) => COLOR_WORDS[c])].join(' '));
+      const haystack = fold([p.name, p.brandName, ...p.colors.map((c) => (COLOR_WORDS as Record<string, string>)[c] ?? c)].join(' '));
       if (!haystack.includes(q)) return false;
     }
     return true;
@@ -319,7 +319,7 @@ export const storeFixtures = {
     for (const line of request.lines) {
       // Idempotent on clientMutationId, like the server.
       if (state.cart.some((row) => row.lineId === line.clientMutationId)) continue;
-      state.cart.push({ lineId: line.clientMutationId, productId: line.productId, size: line.size });
+      state.cart.push({ lineId: line.clientMutationId, productId: line.productId, size: line.size ?? ONE_SIZE });
     }
   },
   removeCartLine: (lineId: string): void => {
