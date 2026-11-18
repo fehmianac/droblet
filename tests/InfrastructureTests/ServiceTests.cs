@@ -30,7 +30,9 @@ public class AccountDeletionServiceTests
         await storage.PutAsync("uploads/tmp/t1/u", [1], "image/jpeg", default);
         await storage.PutAsync("tenant/t2/body/p.jpg", [1], "image/jpeg", default);
 
-        await new AccountDeletionService(repository, storage, NullLogger<AccountDeletionService>.Instance).DeleteAccountAsync(user, tenant, default);
+        await new AccountDeletionService(repository, storage,
+            new Infrastructure.Services.Social.CrossTenantCleanup(repository, TimeProvider.System, NullLogger<Infrastructure.Services.Social.CrossTenantCleanup>.Instance),
+            NullLogger<AccountDeletionService>.Instance).DeleteAccountAsync(user, tenant, default);
 
         Assert.Equal([(HandleEntity.GetPk(), "someone")], repository.Keys.ToArray());
         Assert.Equal(["tenant/t2/body/p.jpg"], storage.Objects.Keys.ToArray());

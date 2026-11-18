@@ -42,6 +42,7 @@ public static class DependencyInjection
         services.AddSingleton<IEntitlementService, EntitlementService>();
         services.AddSingleton<ICreditService, CreditService>();
         services.AddSingleton<IJobLifecycle, JobLifecycle>();
+        services.AddDrobletStoreSocialCore(configuration);
         return services;
     }
 
@@ -96,6 +97,7 @@ public static class DependencyInjection
             sp.GetRequiredService<IOptionsMonitor<GoogleAuthOptions>>(),
             sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<GoogleIdentityVerifier>>()));
 
+        services.AddDrobletStoreSocialApi();
         return services;
     }
 }

@@ -9,12 +9,19 @@ namespace Infrastructure.Services;
 /// "Hesabımı sil": every tenant partition (DeletionPlan), the tenant's S3 prefixes, then global records
 /// (handle, identities, credential, tenant, user). Global records go last so a failed run can be retried.
 /// Refresh tokens become unusable once the user record is gone and expire by TTL.
-/// Cross-tenant edges (follow, ratings) join this list when E9 lands.
+/// Cross-tenant edges and global indexes (follows, ratings, blocks, reports, invite, watch list, click linkage) are
+/// removed first by <see cref="ICrossTenantCleanup"/> — the tenant partitions are their only index.
 /// </summary>
-public sealed class AccountDeletionService(IRepository repository, IObjectStorage storage, ILogger<AccountDeletionService> logger) : IAccountDeletionService
+public sealed class AccountDeletionService(
+    IRepository repository,
+    IObjectStorage storage,
+    ICrossTenantCleanup crossTenantCleanup,
+    ILogger<AccountDeletionService> logger) : IAccountDeletionService
 {
     public async Task DeleteAccountAsync(string userId, string tenantId, CancellationToken ct)
     {
+        await crossTenantCleanup.CleanAsync(tenantId, ct);
+
         foreach (var prefix in DeletionPlan.AccountS3Prefixes(tenantId))
             await storage.DeletePrefixAsync(prefix, ct);
 
