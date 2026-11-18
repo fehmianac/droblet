@@ -32,6 +32,8 @@ describe('item recognition quota', () => {
 
   it('recognises the 402 problem code only', () => {
     expect(isRecognitionLimitReached(new ApiError('http', 402, { status: 402, code: 'item_recognition_limit_reached' }))).toBe(true);
+    // Limit configured as 0 (members only) reads exactly like an exhausted allowance: paywall + manual entry.
+    expect(isRecognitionLimitReached(new ApiError('http', 403, { status: 403, code: 'premium_required' }))).toBe(true);
     expect(isRecognitionLimitReached(new ApiError('http', 402, { code: 'monthly_limit_reached' }))).toBe(false);
     expect(isRecognitionLimitReached(new ApiError('network', null, null))).toBe(false);
     expect(isRecognitionLimitReached(new Error('x'))).toBe(false);
