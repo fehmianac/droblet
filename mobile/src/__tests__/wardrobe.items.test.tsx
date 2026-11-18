@@ -1,0 +1,186 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { userEvent } from '@testing-library/react-native';
+import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
+
+import { fixtureDb, resetFixtureDb } from '@/fixtures/db';
+import { fixtureCreateDrafts, fixtureDraftOptions, resetFixtureDrafts } from '@/fixtures/wardrobe';
+
+const mockSession = {
+  accessToken: 'a',
+  refreshToken: 'r',
+  expiresAt: Date.now() + 3_600_000,
+  user: { id: 'u1', name: 'Damla', email: 'damla@example.com' },
+};
+
+jest.mock('expo-secure-store', () => ({
+  getItemAsync: jest.fn(async () => JSON.stringify(mockSession)),
+  setItemAsync: jest.fn(async () => undefined),
+  deleteItemAsync: jest.fn(async () => undefined),
+  AFTER_FIRST_UNLOCK: 0,
+}));
+jest.mock('expo-font', () => ({ ...jest.requireActual('expo-font'), useFonts: () => [true, null] }));
+
+const WAIT = { timeout: 4000 };
+
+async function open(initialUrl: string) {
+  // A fresh persisted cache per test (same user id): otherwise the previous test's wardrobe is restored.
+  await AsyncStorage.removeItem('droblet.query.u1');
+  await AsyncStorage.setItem('droblet.onboarding.u1', 'done');
+  await renderRouter('./src/app', { initialUrl });
+}
+
+beforeEach(() => {
+  resetFixtureDb();
+  resetFixtureDrafts();
+});
+
+describe('10 Parçalar', () => {
+  it('shows the seeded wardrobe with its count, filters by category chip and selects pieces', async () => {
+    await open('/wardrobe');
+    await waitFor(() => expect(screen.getByText('Lacivert yün blazer')).toBeTruthy(), WAIT);
+    expect(screen.getByText('YOUR WARDROBE')).toBeTruthy();
+    expect(screen.getByText(`${fixtureDb.items.length} pieces`)).toBeTruthy();
+    expect(screen.getByLabelText('Filter and sort')).toBeTruthy();
+
+    await fireEvent.press(screen.getByText('Shoes'));
+    await waitFor(() => expect(screen.queryByText('Lacivert yün blazer')).toBeNull());
+    expect(screen.getByText('Kroko babet')).toBeTruthy();
+
+    await fireEvent.press(screen.getByText('Select'));
+    await waitFor(() => expect(screen.getByText('0 pieces selected')).toBeTruthy());
+    await fireEvent.press(screen.getByLabelText('Select Kroko babet'));
+    await waitFor(() => expect(screen.getByText('1 piece selected')).toBeTruthy(), WAIT);
+    expect(screen.getByText('Create look')).toBeTruthy();
+    expect(screen.getByText('Done')).toBeTruthy();
+  });
+
+  it('enters multi-select on long-press', async () => {
+    await open('/wardrobe');
+    await waitFor(() => expect(screen.getByText('Kroko babet')).toBeTruthy(), WAIT);
+    await userEvent.setup().longPress(screen.getByLabelText('Kroko babet'), { duration: 800 });
+    await waitFor(() => expect(screen.getByText('1 piece selected')).toBeTruthy(), WAIT);
+    expect(screen.getByLabelText('Kroko babet, selected')).toBeTruthy();
+  });
+
+  it('filter sheet previews the result count and applies season + sort', async () => {
+    await open('/wardrobe');
+    await waitFor(() => expect(screen.getByText('Lacivert yün blazer')).toBeTruthy(), WAIT);
+    await fireEvent.press(screen.getByLabelText('Filter and sort'));
+    await waitFor(() => expect(screen.getByText('SORT BY')).toBeTruthy());
+    expect(screen.getByText(`Show ${fixtureDb.items.length} pieces`)).toBeTruthy();
+    await fireEvent.press(screen.getByText('Summer'));
+    const summer = fixtureDb.items.filter((i) => i.seasons.includes('summer')).length;
+    await waitFor(() => expect(screen.getByText(`Show ${summer} pieces`)).toBeTruthy());
+    await fireEvent.press(screen.getByText('Most worn'));
+    await fireEvent.press(screen.getByTestId('filter-apply'));
+    await waitFor(() => expect(screen.queryByText('Lacivert yün blazer')).toBeNull());
+    expect(screen.getByText('Düz jean')).toBeTruthy();
+    expect(screen.getByLabelText('Filter and sort, 2 filters active')).toBeTruthy();
+  });
+
+  it('shows the empty state with both ways to add a piece', async () => {
+    resetFixtureDb({ empty: true });
+    await open('/wardrobe');
+    await waitFor(() => expect(screen.getByText('Your wardrobe is empty')).toBeTruthy(), WAIT);
+    expect(screen.getByText('0 pieces')).toBeTruthy();
+    expect(screen.getByText('Add your first piece')).toBeTruthy();
+    expect(screen.getByText('Choose from the ready-made library')).toBeTruthy();
+  });
+
+  it('offers to clear filters when nothing matches', async () => {
+    await open('/wardrobe');
+    await waitFor(() => expect(screen.getByText('Lacivert yün blazer')).toBeTruthy(), WAIT);
+    await fireEvent.press(screen.getByText('Skiwear'));
+    await waitFor(() => expect(screen.getByText('No pieces match this search or filter.')).toBeTruthy());
+    await fireEvent.press(screen.getByText('Clear filters'));
+    await waitFor(() => expect(screen.getByText('Lacivert yün blazer')).toBeTruthy());
+  });
+});
+
+describe('11 Parça detayı', () => {
+  it('shows the piece, its facts and looks, and the ⋯ menu', async () => {
+    await open('/item/item_navy_blazer');
+    await waitFor(() => expect(screen.getByText('Lacivert yün blazer')).toBeTruthy(), WAIT);
+    expect(screen.getByText('OUTERWEAR · AUTUMN, WINTER')).toBeTruthy();
+    expect(screen.getByText('6 times')).toBeTruthy();
+    expect(screen.getByText('Looks with this piece')).toBeTruthy();
+    expect(screen.getByText('Lacivert Blazer')).toBeTruthy();
+    expect(screen.getByText('Style an outfit with this')).toBeTruthy();
+    expect(screen.getByLabelText('Products that complete this piece')).toBeTruthy();
+
+    await fireEvent.press(screen.getByLabelText('More'));
+    await waitFor(() => expect(screen.getByText('Change season')).toBeTruthy());
+    expect(screen.getByText('Delete from wardrobe')).toBeTruthy();
+  });
+
+  it('deletes the piece after an explicit confirmation', async () => {
+    await open('/item/item_silk_scarf');
+    await waitFor(() => expect(screen.getByText('İpek fular')).toBeTruthy(), WAIT);
+    await fireEvent.press(screen.getByLabelText('More'));
+    await fireEvent.press(await screen.findByText('Delete from wardrobe'));
+    await waitFor(() => expect(screen.getByText('Delete this piece?')).toBeTruthy());
+    expect(fixtureDb.items.some((i) => i.id === 'item_silk_scarf')).toBe(true);
+    await fireEvent.press(screen.getByLabelText('Delete from wardrobe'));
+    await waitFor(() => expect(fixtureDb.items.some((i) => i.id === 'item_silk_scarf')).toBe(false), WAIT);
+  });
+
+  it('explains a piece that no longer exists', async () => {
+    await open('/item/item_missing');
+    await waitFor(() => expect(screen.getByText('This piece is no longer in your wardrobe.')).toBeTruthy(), { timeout: 15000 });
+  }, 20000);
+});
+
+describe('12c Parça bilgisi', () => {
+  it('blocks saving until at least one season is selected', async () => {
+    await open('/item/form?itemId=item_navy_blazer');
+    await waitFor(() => expect(screen.getByDisplayValue('Lacivert yün blazer')).toBeTruthy(), WAIT);
+    const save = () => screen.getByTestId('item-form-save');
+    expect(save().props.accessibilityState.disabled).toBe(false);
+
+    await fireEvent.press(screen.getByText('Autumn'));
+    await fireEvent.press(screen.getByText('Winter'));
+    await waitFor(() => expect(screen.getByText('Choose at least one season to save.')).toBeTruthy());
+    expect(save().props.accessibilityState.disabled).toBe(true);
+
+    await fireEvent.press(screen.getByText('Spring'));
+    await waitFor(() => expect(screen.queryByText('Choose at least one season to save.')).toBeNull());
+    expect(save().props.accessibilityState.disabled).toBe(false);
+  });
+});
+
+describe('12c Parça bilgisi — AI draft', () => {
+  it('shows the suggestion for review and saves nothing until confirmed', async () => {
+    fixtureDraftOptions.baseMs = 0;
+    const { draftIds } = fixtureCreateDrafts({ requestId: 'req1', photoKeys: ['file:///photo.jpg'] });
+    const before = fixtureDb.items.length;
+    await open(`/item/form?draftId=${draftIds[0]}`);
+    await waitFor(() => expect(screen.getByText('AI GUESS · PLEASE CHECK')).toBeTruthy(), WAIT);
+    expect(screen.getByDisplayValue('Beyaz poplin gömlek')).toBeTruthy();
+    expect(fixtureDb.items).toHaveLength(before);
+    await fireEvent.press(screen.getByTestId('item-form-save'));
+    await waitFor(() => expect(fixtureDb.items).toHaveLength(before + 1), WAIT);
+    expect(fixtureDb.items[0]).toMatchObject({ name: 'Beyaz poplin gömlek', category: 'top', imageUrl: 'file:///photo.jpg' });
+  });
+});
+
+describe('12b Hazır kütüphane', () => {
+  it('counts the selection and enables "Add to wardrobe"', async () => {
+    await open('/item/library');
+    await waitFor(() => expect(screen.getByText('Bej trençkot')).toBeTruthy(), WAIT);
+    expect(screen.getByText('0 pieces selected')).toBeTruthy();
+    expect(screen.getByTestId('library-add').props.accessibilityState.disabled).toBe(true);
+    await fireEvent.press(screen.getByText('Bej trençkot'));
+    await waitFor(() => expect(screen.getByText('1 piece selected')).toBeTruthy());
+    expect(screen.getByTestId('library-add').props.accessibilityState.disabled).toBe(false);
+  });
+});
+
+describe('13 Toplu ekle', () => {
+  it('starts empty with the limit explained', async () => {
+    await open('/item/bulk');
+    await waitFor(() => expect(screen.getByText('Add several pieces at once')).toBeTruthy(), WAIT);
+    expect(screen.getByText('Choose photos')).toBeTruthy();
+    expect(screen.getByText(/up to 30 photos/i)).toBeTruthy();
+    expect(screen.getByText('Split an outfit photo')).toBeTruthy();
+  });
+});

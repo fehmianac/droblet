@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { apiRequest } from '@/api/client';
-import type { Item, ItemDetail } from '@/api/contracts/wardrobe';
+import type { Item, ItemDetail, ItemDraft } from '@/api/contracts/wardrobe';
+import { jobPollInterval } from '@/api/jobs';
 import { fromSource } from '@/api/source';
 import { clone, fixtureDb, FixtureNotFound } from '@/fixtures/db';
+import { fixtureListDrafts } from '@/fixtures/wardrobe';
 
 /** Query keys of the wardrobe feature (E2). */
 export const wardrobeKeys = {
@@ -38,11 +40,34 @@ export function useItems() {
 export function useItemDetail(id: string) {
   return useQuery({
     queryKey: wardrobeKeys.item(id),
+    enabled: Boolean(id),
     queryFn: () =>
       fromSource<ItemDetail>(
         'wardrobe',
         () => fixtureItemDetail(id),
         () => apiRequest<ItemDetail>(`v1/tenant/item/${id}`),
       ),
+  });
+}
+
+/**
+ * 12c / 13 — pending AI drafts (they live on the server, so a reopened screen shows them again).
+ * Polls with back-off while any draft is still processing; a screen that is not focused passes
+ * `enabled: false`.
+ */
+export function useItemDrafts(options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: wardrobeKeys.drafts,
+    enabled: options.enabled ?? true,
+    queryFn: () =>
+      fromSource<ItemDraft[]>(
+        'wardrobe',
+        () => fixtureListDrafts(),
+        () => apiRequest<ItemDraft[]>('v1/tenant/item-draft'),
+      ),
+    refetchInterval: (q) =>
+      q.state.data?.some((d) => d.status === 'processing') ? jobPollInterval(Math.min(q.state.dataUpdateCount - 1, 1)) : false,
+    refetchIntervalInBackground: false,
+    staleTime: 0,
   });
 }

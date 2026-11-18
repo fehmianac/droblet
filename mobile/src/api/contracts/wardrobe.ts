@@ -83,6 +83,13 @@ export type ItemDraft = {
   lowConfidence: DraftField[];
 };
 
+/** DELETE v1/tenant/item-draft/{id} — no body; discards the draft and its photo. */
+
+/**
+ * POST v1/tenant/item-draft/{id}/retry → 202, no body. ASSUMED (not in the endpoint map): re-runs the
+ * ItemProcessor for a failed draft without uploading the photo again.
+ */
+
 /** POST v1/tenant/item-draft/confirm */
 export type ConfirmItemDraftsRequest = {
   items: (ItemFields & {
