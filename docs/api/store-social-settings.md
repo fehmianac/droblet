@@ -380,7 +380,7 @@ never fail the batch; do not retry rejected events.
 
 ## 9. Push notifications
 
-Sent by the Notifier through FCM HTTP v1 (iOS via APNs). `data.type` tells the app where to go; title/body are
+Sent by the Notifier per device token type: FCM HTTP v1 for `fcm` tokens (Android), APNs HTTP/2 for `apns` tokens (iOS) — [purchases-push.md §5](purchases-push.md). `data.type` tells the app where to go; title/body are
 sentences in the recipient's profile language (`tr`, `en`; other languages fall back to `tr`).
 
 | `data.type` | Extra `data` | When | Once per |

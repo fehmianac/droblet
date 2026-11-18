@@ -15,7 +15,7 @@ public class Get : IEndpoint
         CancellationToken cancellationToken)
     {
         var snapshot = await entitlementService.GetAsync(apiContext.TenantId, cancellationToken);
-        return Results.Ok(snapshot.ToDto());
+        return Results.Ok(snapshot.ToDto(apiContext.TenantId));
     }
 
     public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints)
@@ -25,7 +25,7 @@ public class Get : IEndpoint
             .ProducesProblem(StatusCodes.Status500InternalServerError)
             .RequireAuthorization(ClaimNames.TenantUserPolicy)
             .WithSummary("Get tier and AI credits")
-            .WithDescription("Tier (free | premium), monthly allowance, remaining allowance + pack credits and when the allowance resets (subscription month). itemRecognition = AI garment recognitions of the account: { limit, used, remaining } — limit / remaining null = unlimited (members); for non-members the limit is lifetime (Entitlements:Free:ItemRecognitionLimit), 0 = members only.")
+            .WithDescription("Tier (free | premium), monthly allowance, remaining allowance + pack credits and when the allowance resets (subscription month). itemRecognition = AI garment recognitions of the account: { limit, used, remaining } — limit / remaining null = unlimited (members); for non-members the limit is lifetime (Entitlements:Free:ItemRecognitionLimit), 0 = members only. state = store state of the subscription (active | gracePeriod | billingRetry | expired | revoked); storeAccountToken = UUID the app passes as StoreKit appAccountToken / Play obfuscatedAccountId.")
             .WithTags("Tenant Entitlement");
     }
 }

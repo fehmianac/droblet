@@ -29,7 +29,13 @@ export type LoginRequest = { email: string; password: string };
  * What the Apple sheet gives the app. `nonce` is the RAW nonce; the app passes SHA-256(nonce) to Apple.
  * The name arrives only on the very first authorization (sent as `fullName { givenName, familyName }`).
  */
-export type AppleAuthRequest = { identityToken: string; nonce: string; givenName?: string | null; familyName?: string | null };
+export type AppleAuthRequest = {
+  identityToken: string;
+  nonce: string;
+  givenName?: string | null;
+  familyName?: string | null;
+  authorizationCode?: string | null;
+};
 /** POST v1/auth/google */
 export type GoogleAuthRequest = { idToken: string; name?: string };
 /** POST v1/auth/refresh — rotates: returns a new pair and invalidates the old refresh token. 401 `invalid_refresh_token`. */
@@ -106,6 +112,10 @@ export type Entitlement = {
    * Optional until every environment sends it — absent means "ask the server".
    */
   itemRecognition?: ItemRecognitionQuota;
+  /** StoreKit appAccountToken / Play obfuscatedAccountId for this account (null until the server sends it). */
+  storeAccountToken?: string | null;
+  /** Member whose renewal payment failed: access continues for the store's grace period. */
+  inGracePeriod?: boolean;
 };
 
 export type ItemRecognitionQuota = { limit: number | null; used: number; remaining: number | null };

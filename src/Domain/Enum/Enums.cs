@@ -39,13 +39,21 @@ public enum EntitlementSource { Store, Admin }
 
 public enum StorePlatform { Apple, Google }
 
+/// <summary>Store state of a subscription / purchase. Access: Active and GracePeriod only.</summary>
+public enum StoreSubscriptionState { Active, GracePeriod, BillingRetry, Expired, Revoked, Pending }
+
+public enum StoreProductKind { Subscription, Consumable }
+
+/// <summary>What a device registered as its push token: an FCM registration token (Android) or a raw APNs token (iOS).</summary>
+public enum PushTokenType { Fcm, Apns }
+
 public enum NotificationType { MorningOutfit, WeeklyEdit, FriendRatings, PriceDrop, FollowRequest }
 
 public enum AuthProvider { Email, Apple, Google }
 
 public enum CreditReservationStatus { Reserved, Committed }
 
-public enum CreditLedgerEntryKind { AllowanceReserved, PackReserved, Committed, Refunded, PackPurchased }
+public enum CreditLedgerEntryKind { AllowanceReserved, PackReserved, Committed, Refunded, PackPurchased, PackRevoked }
 
 public enum AffiliateSource { Network, Direct }
 

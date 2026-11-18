@@ -4,6 +4,7 @@ import { LanguageSyncHost } from '@/features/account/LanguageSyncHost';
 import { CreditSheetHost } from '@/features/credits/CreditPackSheet';
 import { InviteHost } from '@/features/social/InviteHost';
 import { PurchasePromptHost } from '@/features/store/PurchasePromptHost';
+import { PurchaseHost } from '@/purchases/PurchaseHost';
 
 /**
  * App-wide hosts that live inside the QueryProvider next to the navigator: analytics batching,
@@ -21,6 +22,8 @@ export function AppHosts({ userId }: { userId: string | null }) {
       {userId ? <DeviceHost key={`device-${userId}`} /> : null}
       {/* "Gardıroba ekleyelim mi?" after a purchase on a brand site, on the next app open. */}
       {userId ? <PurchasePromptHost key={`purchase-${userId}`} /> : null}
+      {/* StoreKit / Play Billing listener: verifies late or unfinished purchases with the server. */}
+      {userId ? <PurchaseHost key={`iap-${userId}`} /> : null}
     </>
   );
 }

@@ -41,3 +41,7 @@ example
 # generated native folders
 /ios
 /android
+
+# Firebase config (FCM push) — provided by the EAS file variable GOOGLE_SERVICES_JSON
+google-services.json
+GoogleService-Info.plist

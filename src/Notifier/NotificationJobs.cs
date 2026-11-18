@@ -203,7 +203,7 @@ public sealed class NotificationJobs(
         var delivered = false;
         foreach (var device in devices)
         {
-            switch (await push.SendAsync(new PushMessage(device.PushToken!, title, body, data), ct))
+            switch (await push.SendAsync(new PushMessage(device.PushToken!, title, body, data) { TokenType = device.PushTokenType ?? PushTokenType.Fcm }, ct))
             {
                 case PushResult.Sent:
                     delivered = true;
@@ -212,7 +212,7 @@ public sealed class NotificationJobs(
                     await repository.DeleteAsync(device.Pk, device.Sk, ct);
                     break;
                 case PushResult.NotConfigured:
-                    return false; // push is switched off: nothing was sent, keep no receipt
+                    break; // this channel (APNs / FCM) is switched off; another device may still get it, else no receipt
             }
         }
 

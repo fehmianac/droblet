@@ -31,7 +31,7 @@ public class Put : IEndpoint
             return Results.BadRequest(validation.Errors.ToProblemDetails());
 
         var (outcome, device) = await settings.RegisterDeviceAsync(apiContext.TenantId, apiContext.UserId, request.DeviceId, request.Platform,
-            request.PushToken, request.TimeZone, cancellationToken);
+            request.PushToken, request.PushTokenType, request.TimeZone, cancellationToken);
         return outcome == SettingsOutcome.LimitReached
             ? ApiResults.Problem(StatusCodes.Status422UnprocessableEntity, StoreSocialErrorCodes.DeviceLimitReached)
             : Results.Ok(device);
@@ -46,7 +46,7 @@ public class Put : IEndpoint
             .ProducesProblem(StatusCodes.Status500InternalServerError)
             .RequireAuthorization(ClaimNames.TenantUserPolicy)
             .WithSummary("Register / refresh a device")
-            .WithDescription("platform = ios | android; pushToken = FCM registration token (null when push permission is not granted). The first registration with a token creates notification preferences with the three types on.")
+            .WithDescription("platform = ios | android; pushToken = the device push token (null when push permission is not granted); pushTokenType = fcm (Android FCM registration token) | apns (iOS APNs device token, hex) — inferred from platform + token when omitted. Notifier sends apns tokens through APNs and fcm tokens through FCM. The first registration with a token creates notification preferences with the three types on.")
             .WithTags("Tenant Settings");
     }
 }

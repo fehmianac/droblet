@@ -138,7 +138,14 @@ export function fromNotificationSettings(settings: NotificationSettings, timeZon
 }
 
 /** PUT v1/tenant/user/me/device (`deviceId` 8–100 chars). 422 `device_limit_reached` (10). Push tokens are never returned. */
-export type PutDeviceWire = { deviceId: string; platform: 'ios' | 'android'; pushToken?: string; timeZone?: string };
+export type PutDeviceWire = {
+  deviceId: string;
+  platform: 'ios' | 'android';
+  pushToken?: string;
+  /** apns = iOS APNs device token, fcm = Android FCM registration token (the server picks the channel by it). */
+  pushTokenType?: 'apns' | 'fcm';
+  timeZone?: string;
+};
 export type DeviceWire = { deviceId: string; platform: 'ios' | 'android'; pushEnabled: boolean; updatedAt: string };
 
 /** GET v1/weather/city?q= rows, and `SettingsWire.city`. */

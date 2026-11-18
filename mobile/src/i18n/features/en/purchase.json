@@ -1,0 +1,26 @@
+{
+  "purchase": {
+    "purchasing": "Opening the store…",
+    "verifying": "Confirming your purchase…",
+    "restoring": "Checking your purchases…",
+    "successMember": "Welcome. Your Droblet membership is active.",
+    "successPack_one": "{{count}} AI image added to your account.",
+    "successPack_other": "{{count}} AI images added to your account.",
+    "pending": "Your purchase is waiting for approval. It unlocks on its own once approved; you can close this screen.",
+    "cancelled": "Purchase cancelled. You were not charged.",
+    "errorTitle": "Purchase not completed",
+    "errorUnavailable": "The store can't be reached right now. Check your App Store / Google Play sign-in and connection, then try again.",
+    "errorNetwork": "No connection. Your payment is safe; it is confirmed automatically once you're back online.",
+    "errorInvalid": "The store couldn't confirm this purchase. If you were charged, tap \"Restore purchases\".",
+    "errorOwnedElsewhere": "This purchase belongs to another Droblet account. Sign in with that account to use it.",
+    "errorNotConfigured": "Purchases can't be confirmed right now. Your payment is safe and completes on its own shortly.",
+    "errorStore": "The store reported an error. Please try again in a moment.",
+    "restoredMember": "Your purchases are restored. Your Droblet membership is active.",
+    "restoredNone": "No membership to restore was found for this account.",
+    "restoredElsewhere": "The membership found belongs to another Droblet account.",
+    "gracePeriod": "Your last payment didn't go through. Your membership continues for now; update your payment method in the store settings."
+  },
+  "push": {
+    "denied": "Notifications are off. To get reminders, turn on Droblet notifications in Settings."
+  }
+}

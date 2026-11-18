@@ -18,6 +18,7 @@ public static class DeletionPlan
         typeof(CreditAccountEntity),
         typeof(CreditReservationEntity),
         typeof(CreditLedgerEntryEntity),
+        typeof(StorePurchaseEntity),
         typeof(StyleProfileEntity),
         typeof(BodyProfileEntity),
         typeof(DeviceEntity),

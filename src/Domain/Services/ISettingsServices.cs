@@ -43,7 +43,7 @@ public interface ISettingsService
 
     /// <summary>Registers / refreshes a push token. The first registration with a token switches on the morning outfit and the weekly edit (decision 9).</summary>
     Task<(SettingsOutcome Outcome, DeviceDto? Device)> RegisterDeviceAsync(
-        string tenantId, string userId, string deviceId, DevicePlatform platform, string? pushToken, string? timeZone, CancellationToken ct);
+        string tenantId, string userId, string deviceId, DevicePlatform platform, string? pushToken, PushTokenType? pushTokenType, string? timeZone, CancellationToken ct);
     Task RemoveDeviceAsync(string tenantId, string deviceId, CancellationToken ct);
 
     Task<SettingsDto?> GetSettingsAsync(string tenantId, string userId, CancellationToken ct);
@@ -94,7 +94,11 @@ public interface IWeatherProvider
 
 // ── Push ────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-public sealed record PushMessage(string Token, string Title, string Body, IReadOnlyDictionary<string, string> Data);
+public sealed record PushMessage(string Token, string Title, string Body, IReadOnlyDictionary<string, string> Data)
+{
+    /// <summary>Which provider can deliver to Token: FCM (Android / FCM tokens) or APNs (raw iOS device token).</summary>
+    public PushTokenType TokenType { get; init; } = PushTokenType.Fcm;
+}
 
 public enum PushResult { Sent, Unregistered, Failed, NotConfigured }
 

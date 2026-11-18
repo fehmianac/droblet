@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Check, X } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Pressable, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 
 import { track } from '@/analytics/track';
 import { onboardingStore } from '@/auth/onboarding';
@@ -17,6 +17,9 @@ import { Text } from '@/components/ui/Text';
 import { useEntitlement } from '@/entitlement/useEntitlement';
 import { useStoreProducts } from '@/entitlement/useStoreProducts';
 import type { StoreProduct } from '@/fixtures/storeProducts';
+import { syncPushRegistration } from '@/notify/push';
+import { PurchaseStatus } from '@/purchases/PurchaseStatus';
+import { purchaseFlow, usePurchaseState } from '@/purchases/purchaseFlow';
 
 type Plan = 'year' | 'month';
 
@@ -66,7 +69,9 @@ function PlanOption({
 /**
  * 05 Üyelik. Copy per README §9: "Ayda 30 AI görseli" (not unlimited). Price, period and trial length
  * always come from the store products (useStoreProducts); the close (×) is always visible; restore,
- * terms and privacy links are always present. Purchases are disabled until the billing bridge (E10).
+ * terms and privacy links are always present. Buying goes through StoreKit 2 / Play Billing and is
+ * confirmed by the server before the store transaction is finished (purchases/purchaseFlow.ts);
+ * pending / cancelled / error states are shown under the button. A second tap while busy is ignored.
  */
 export default function PaywallScreen() {
   const { t } = useTranslation();
@@ -75,10 +80,18 @@ export default function PaywallScreen() {
   const store = useStoreProducts();
   const entitlement = useEntitlement();
   const [plan, setPlan] = useState<Plan>('year');
+  const flow = usePurchaseState();
 
   useEffect(() => {
     track('paywall_viewed', { from: from ?? 'unknown' });
+    purchaseFlow.reset();
+    return () => purchaseFlow.reset();
   }, [from]);
+
+  const subscribedProduct = flow.phase === 'success' ? flow.productId : null;
+  useEffect(() => {
+    if (subscribedProduct) track('subscribed', { productId: subscribedProduct });
+  }, [subscribedProduct]);
 
   const products = store.data?.products ?? [];
   const yearly = products.find((p) => p.kind === 'subscription' && p.period === 'year');
@@ -90,6 +103,8 @@ export default function PaywallScreen() {
     if (from === 'onboarding' && session.status === 'signedIn') {
       await onboardingStore.markDone(session.user.id);
       track('signup_step', { step: 'done' });
+      // Onboarding is over: the sensible moment to ask for push (morning outfit, weekly edit).
+      void syncPushRegistration({ ask: true });
       router.replace('/');
       return;
     }
@@ -97,13 +112,12 @@ export default function PaywallScreen() {
     else router.replace('/');
   };
 
-  const storeUnavailable = () => Alert.alert(t('paywall.title'), t('paywall.storeUnavailable'));
+  const busy = flow.phase === 'purchasing' || flow.phase === 'verifying' || flow.phase === 'restoring';
   const purchase = () => {
-    if (!store.data?.purchasesAvailable) storeUnavailable();
+    if (!chosen) return;
+    void purchaseFlow.buy(chosen, entitlement.data?.storeAccountToken ?? null, store.data?.purchasesAvailable ?? false);
   };
-  const restore = () => {
-    if (!store.data?.purchasesAvailable) storeUnavailable();
-  };
+  const restore = () => void purchaseFlow.restore();
 
   const pricePerPeriod = chosen
     ? t(plan === 'year' ? 'paywall.perYear' : 'paywall.perMonth', { price: chosen.localizedPrice })
@@ -141,8 +155,14 @@ export default function PaywallScreen() {
         </View>
 
         {isMember ? (
-          <View className="rounded-card bg-sand p-4">
+          <View className="gap-2 rounded-card bg-sand p-4">
             <Text variant="bodyMedium">{t('paywall.active')}</Text>
+            {entitlement.data?.inGracePeriod ? (
+              <Text variant="caption" tone="danger">
+                {t('purchase.gracePeriod')}
+              </Text>
+            ) : null}
+            <PurchaseStatus state={flow} />
           </View>
         ) : (
           <View className="gap-4">
@@ -154,9 +174,11 @@ export default function PaywallScreen() {
             <Button
               label={trialDays ? t('paywall.startTrial', { count: trialDays }) : t('paywall.subscribe')}
               onPress={purchase}
-              disabled={!chosen}
-              loading={store.isPending}
+              disabled={!chosen || busy}
+              loading={store.isPending || flow.phase === 'purchasing' || flow.phase === 'verifying'}
+              testID="paywall.buy"
             />
+            <PurchaseStatus state={flow} />
             {pricePerPeriod ? (
               <Text variant="caption" tone="muted" className="text-center">
                 {t(trialDays ? 'paywall.renewalTrial' : 'paywall.renewal', { price: pricePerPeriod })}
@@ -171,7 +193,7 @@ export default function PaywallScreen() {
         )}
 
         <View className="items-center gap-1">
-          <Button variant="text" label={t('paywall.restore')} onPress={restore} />
+          <Button variant="text" label={t('paywall.restore')} onPress={restore} disabled={busy} loading={flow.phase === 'restoring'} testID="paywall.restore" />
           <View className="flex-row items-center gap-1">
             <Button variant="text" label={t('paywall.terms')} onPress={openTerms} />
             <Text variant="caption" tone="muted">

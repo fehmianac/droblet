@@ -117,6 +117,15 @@ public static class CreditLedger
         return state with { PackBalance = state.PackBalance + credits };
     }
 
+    /// <summary>Refunded pack: its credits come off the remaining pack balance, never below zero (spent credits stay spent).</summary>
+    public static (CreditState State, int Removed) RemovePack(CreditState state, int credits)
+    {
+        if (credits <= 0)
+            throw new ArgumentOutOfRangeException(nameof(credits), "Pack credits must be positive.");
+        var removed = StoreRules.PackCreditsToRemove(state.PackBalance, credits);
+        return (state with { PackBalance = state.PackBalance - removed }, removed);
+    }
+
     /// <summary>
     /// Idempotency key of one try-on image: same body photo + same target + same target version = same image,
     /// so a repeat request returns the cached image and is never charged twice.

@@ -50,4 +50,11 @@ public static partial class ErrorCodes
     /// <summary>402: a non-member used every free AI garment recognition. The client shows the paywall; manual entry stays possible.</summary>
     public const string ItemRecognitionLimitReached = "item_recognition_limit_reached";
     public const string PurchaseVerificationUnavailable = "purchase_verification_unavailable";
+    /// <summary>422: the store did not confirm the purchase (signature, bundle, product or environment).</summary>
+    public const string PurchaseInvalid = "purchase_invalid";
+    public const string ProductUnknown = "product_unknown";
+    /// <summary>409: this store purchase is already linked to another Droblet account (same Apple ID / Google account).</summary>
+    public const string PurchaseOwnedByAnotherAccount = "purchase_owned_by_another_account";
+    /// <summary>202: Android pending purchase / Ask to Buy — granted when the store completes it (notification).</summary>
+    public const string PurchasePending = "purchase_pending";
 }

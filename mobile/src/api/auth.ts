@@ -87,8 +87,9 @@ export function useLogin() {
 
 export function useAppleSignIn() {
   return useMutation({
-    mutationFn: ({ identityToken, nonce, givenName, familyName }: AppleAuthRequest) => {
+    mutationFn: ({ identityToken, nonce, givenName, familyName, authorizationCode }: AppleAuthRequest) => {
       const body: AppleAuthRequestWire = { identityToken, nonce };
+      if (authorizationCode) body.authorizationCode = authorizationCode;
       if (givenName || familyName) body.fullName = { givenName: givenName ?? null, familyName: familyName ?? null };
       const name = [givenName, familyName].filter(Boolean).join(' ');
       return signIn('v1/auth/apple', body, 'apple', name ? { name } : {});

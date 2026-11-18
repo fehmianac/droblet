@@ -9,6 +9,7 @@ import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Chip, ChipWrap } from '@/components/ui/Chip';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
+import { syncPushRegistration } from '@/notify/push';
 import { REMINDER_TIMES } from '@/notify/time';
 
 import { useSaveNotificationSettings } from './mutations';
@@ -24,6 +25,7 @@ export function NotificationPrefsCard() {
   const settings = useNotificationSettings();
   const save = useSaveNotificationSettings();
   const [timeOpen, setTimeOpen] = useState(false);
+  const [pushOff, setPushOff] = useState(false);
 
   return (
     <Card>
@@ -34,7 +36,11 @@ export function NotificationPrefsCard() {
         skeleton={<Skeleton className="m-4 h-28 rounded-image" />}
       >
         {(data) => {
-          const change = (patch: Partial<NotificationSettings>) => save({ ...data, ...patch });
+          const change = (patch: Partial<NotificationSettings>) => {
+            // Switching a notification on is the moment to ask for push permission (and register the token).
+            if (Object.values(patch).includes(true)) void syncPushRegistration({ ask: true }).then((on) => setPushOff(!on));
+            save({ ...data, ...patch });
+          };
           const localTime = data.morningTimeLocal;
           return (
             <>
@@ -51,6 +57,11 @@ export function NotificationPrefsCard() {
                 </Text>
               ) : null}
               <ToggleRow label={t('friends.followRequests')} value={data.followRequests} onChange={(v) => change({ followRequests: v })} />
+              {pushOff ? (
+                <Text variant="caption" tone="muted" className="px-4 pb-3">
+                  {t('push.denied')}
+                </Text>
+              ) : null}
               <BottomSheet visible={timeOpen} onClose={() => setTimeOpen(false)} title={t('settings.timeTitle')}>
                 <ChipWrap>
                   {REMINDER_TIMES.map((time) => (

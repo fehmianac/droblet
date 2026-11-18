@@ -178,4 +178,20 @@ public class NotificationJobsTests
             Assert.DoesNotContain("!", NotificationTexts.For(type, "tr", "tr").Body);  // tone: no exclamation
         }
     }
+
+    [Fact]
+    public async Task EachDevice_IsSentThroughItsOwnChannel_ApnsOrFcm()
+    {
+        await PublishEditAsync("edit-47", "2026-11-16");
+        await AddTenantAsync("t1", subscriptions: [NotificationType.WeeklyEdit]);       // legacy row: no type = fcm
+        await _host.Repository.SaveAsync(new DeviceEntity
+        {
+            TenantId = "t1", DeviceId = "device-t1-iphone", Platform = "ios", PushToken = "a1b2c3", PushTokenType = PushTokenType.Apns,
+        });
+
+        await _jobs.RunAsync(NotificationJob.WeeklyEdit, Now, default);
+
+        Assert.Equal(PushTokenType.Apns, _push.Sent.Single(m => m.Token == "a1b2c3").TokenType);
+        Assert.Equal(PushTokenType.Fcm, _push.Sent.Single(m => m.Token == "token-t1").TokenType);
+    }
 }

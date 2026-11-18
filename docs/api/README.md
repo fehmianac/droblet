@@ -7,23 +7,24 @@ Every HTTP endpoint of the Api Lambda (`src/Api/Endpoints/V1`), with the contrac
 | **W** — [wardrobe-looks-plan-stylist.md](wardrobe-looks-plan-stylist.md) | Wardrobe items, drafts and library; looks; today / plan / wear log; stylist and trips; try-on; palette; profile counters; AI recognition allowance; job result shapes |
 | **S** — [store-social-settings.md](store-social-settings.md) | Keşfet content, catalog, cart, watch list, affiliate checkout and postback; feed, people, follow, block, report, rating, save; invite and share; settings, notifications, devices; analytics events; weather; admin content shapes (§11) |
 | **A** — [admin.md](admin.md) | Admin panel: admin sign-in (password + e-mailed code), roles and permissions, admin users, audit log, dashboard, app users and moderation actions, library, catalog images, Parameter Store settings |
+| **P** — [purchases-push.md](purchases-push.md) | In-app purchases (StoreKit 2 / Play Billing verified on the server), restore, App Store / Play store notifications, device push tokens (APNs / FCM) and notification deep links, Sign in with Apple token revocation |
 | **—** | Foundation endpoints (sign-in, profile basics, photos, style / body profile, purchases, jobs). No contract document yet: the request / response records sit next to each endpoint in `src/Api/Endpoints/V1/Auth` and `src/Api/Endpoints/V1/Tenant/{Profile,Photo,StyleProfile,BodyProfile,Entitlement}`; the one-line summary below is the endpoint's own (`WithSummary`). |
 
 Shared conventions (both documents, §1): camelCase JSON and enum strings; `Authorization: Bearer <accessToken>`; errors are ProblemDetails with a stable snake_case `code`; calendar days are `yyyy-MM-dd`, instants UTC ISO-8601; the API returns codes, never sentences; text content is resolved to the request language (profile language → `Accept-Language` → `tr`, languages from `Localization:SupportedLanguages`).
 
-**Auth** column: `user` = signed-in user (tenant from the token) · `admin:<permission>` = signed-in **admin panel** account (separate admin token, never an app token) whose role holds that permission ([A §2](admin.md)); `admin` = any signed-in admin · `anonymous` = no token (postbacks are authenticated by signature; admin sign-in routes are rate limited per IP).
+**Auth** column: `user` = signed-in user (tenant from the token) · `admin:<permission>` = signed-in **admin panel** account (separate admin token, never an app token) whose role holds that permission ([A §2](admin.md)); `admin` = any signed-in admin · `anonymous` = no token (postbacks and store notifications are authenticated by signature / OIDC token; admin sign-in routes are rate limited per IP).
 
-198 endpoints.
+200 endpoints.
 
 ## Auth and account (foundation)
 
 | Method | Path | Auth | Doc | What |
 |---|---|---|---|---|
-| POST | `v1/auth/apple` | anonymous | — | Sign in with Apple |
+| POST | `v1/auth/apple` | anonymous | [P](purchases-push.md) | Sign in with Apple |
 | POST | `v1/auth/google` | anonymous | — | Sign in with Google |
 | POST | `v1/auth/login` | anonymous | — | Sign in with e-mail and password |
 | POST | `v1/auth/logout` | user | — | Sign out |
-| DELETE | `v1/auth/me` | user | — | Delete my account |
+| DELETE | `v1/auth/me` | user | [P](purchases-push.md) | Delete my account |
 | POST | `v1/auth/password/forgot` | anonymous | — | Request a password reset e-mail |
 | POST | `v1/auth/password/reset` | anonymous | — | Set a new password with a reset token |
 | POST | `v1/auth/refresh` | anonymous | — | Rotate the refresh token |
@@ -54,8 +55,8 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | Method | Path | Auth | Doc | What |
 |---|---|---|---|---|
 | GET | `v1/tenant/entitlement` | user | [W](wardrobe-looks-plan-stylist.md) | Get tier and AI credits |
-| POST | `v1/tenant/entitlement/purchase` | user | — | Verify a store purchase |
-| POST | `v1/tenant/entitlement/restore` | user | — | Restore purchases |
+| POST | `v1/tenant/entitlement/purchase` | user | [P](purchases-push.md) | Verify a store purchase |
+| POST | `v1/tenant/entitlement/restore` | user | [P](purchases-push.md) | Restore purchases |
 | GET | `v1/tenant/job/{id}` | user | [W](wardrobe-looks-plan-stylist.md) | Get job status |
 
 ## Wardrobe: reference, library, items, drafts
@@ -180,6 +181,13 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | PUT | `v1/tenant/watch-list/{productId}` | user | [S](store-social-settings.md) | Watch a product |
 | DELETE | `v1/tenant/watch-list/{productId}` | user | [S](store-social-settings.md) | Stop watching a product |
 
+## Store server notifications (server to server)
+
+| Method | Path | Auth | Doc | What |
+|---|---|---|---|---|
+| POST | `v1/store/apple/notifications` | anonymous | [P](purchases-push.md) | App Store Server Notifications v2 |
+| POST | `v1/store/google/notifications` | anonymous | [P](purchases-push.md) | Google Play Real-time developer notifications (Pub/Sub push) |
+
 ## Affiliate postback (server to server)
 
 | Method | Path | Auth | Doc | What |
@@ -234,7 +242,7 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 |---|---|---|---|---|
 | POST | `v1/tenant/event` | user | [S](store-social-settings.md) | Analytics events (batch) |
 | GET | `v1/tenant/settings` | user | [S](store-social-settings.md) | Settings (screen 29) in one call |
-| PUT | `v1/tenant/user/me/device` | user | [S](store-social-settings.md) | Register / refresh a device |
+| PUT | `v1/tenant/user/me/device` | user | [S](store-social-settings.md) · [P](purchases-push.md) | Register / refresh a device |
 | DELETE | `v1/tenant/user/me/device/{deviceId}` | user | [S](store-social-settings.md) | Remove a device |
 | GET | `v1/tenant/user/me/notifications` | user | [S](store-social-settings.md) | Notification preferences |
 | PUT | `v1/tenant/user/me/notifications` | user | [S](store-social-settings.md) | Update notification preferences |

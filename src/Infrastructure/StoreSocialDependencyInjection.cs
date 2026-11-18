@@ -59,11 +59,20 @@ public static class StoreSocialDependencyInjection
             new HttpClient { Timeout = TimeSpan.FromSeconds(10) }, sp.GetRequiredService<IOptionsMonitor<WeatherOptions>>()));
         services.TryAddSingleton<IWeatherService, WeatherService>();
 
-        services.TryAddSingleton<IPushProvider>(sp => new FcmPushProvider(
+        // Android (FCM tokens) → FCM HTTP v1; iOS (raw APNs tokens from expo-notifications) → APNs HTTP/2. Each is off
+        // (NotConfigured) while its SSM secret is CHANGE_ME.
+        services.Configure<ApnsOptions>(configuration.GetSection(ApnsOptions.Section));
+        services.TryAddSingleton(sp => new FcmPushProvider(
             new HttpClient { Timeout = TimeSpan.FromSeconds(10) },
             sp.GetRequiredService<IOptionsMonitor<FirebaseServiceAccountOptions>>(),
             sp.GetRequiredService<TimeProvider>(),
             sp.GetRequiredService<ILogger<FcmPushProvider>>()));
+        services.TryAddSingleton(sp => new ApnsPushProvider(
+            new HttpClient(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(30) }) { Timeout = TimeSpan.FromSeconds(10) },
+            sp.GetRequiredService<IOptionsMonitor<ApnsOptions>>(),
+            sp.GetRequiredService<TimeProvider>(),
+            sp.GetRequiredService<ILogger<ApnsPushProvider>>()));
+        services.TryAddSingleton<IPushProvider, RoutingPushProvider>();
         return services;
     }
 

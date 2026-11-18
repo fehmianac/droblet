@@ -342,16 +342,70 @@ public class JobAndEntitlementEndpointTests(ApiFactory factory) : IClassFixture<
     }
 
     [Fact]
-    public async Task Purchase_And_Restore_501UntilStoreConfigured()
+    public async Task Purchase_501UntilTheStoreCanBeRead_RestoreAnswersWithTheEntitlement()
     {
         var (client, _) = await factory.RegisterAsync();
 
-        var purchase = await client.PostJsonAsync("v1/tenant/entitlement/purchase", new { platform = "apple", productId = "com.alatech.droplet.credits.20", transactionId = "2000000123" });
-        var restore = await client.PostAsync("v1/tenant/entitlement/restore", null);
+        // A bare Apple transaction id needs the App Store Server API key; Google needs the Play service account.
+        var apple = await client.PostJsonAsync("v1/tenant/entitlement/purchase", new { platform = "apple", productId = "com.alatech.droplet.credits.20", transactionId = "2000000123" });
+        var google = await client.PostJsonAsync("v1/tenant/entitlement/purchase", new { platform = "google", productId = "com.alatech.droplet.credits.20", transactionId = "tok" });
+        var restore = await client.PostJsonAsync("v1/tenant/entitlement/restore", new { platform = "apple", purchases = Array.Empty<object>() });
 
-        Assert.Equal(HttpStatusCode.NotImplemented, purchase.StatusCode);
-        Assert.Equal("purchase_verification_unavailable", await purchase.CodeAsync());
-        Assert.Equal(HttpStatusCode.NotImplemented, restore.StatusCode);
+        Assert.Equal(HttpStatusCode.NotImplemented, apple.StatusCode);
+        Assert.Equal("purchase_verification_unavailable", await apple.CodeAsync());
+        Assert.Equal(HttpStatusCode.NotImplemented, google.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, restore.StatusCode);
+        Assert.Equal("free", (await restore.JsonAsync()).GetProperty("entitlement").GetProperty("tier").GetString());
+    }
+
+    [Fact]
+    public async Task Purchase_ForgedSignedTransaction_Is422()
+    {
+        var (client, _) = await factory.RegisterAsync();
+        var response = await client.PostJsonAsync("v1/tenant/entitlement/purchase", new
+        {
+            platform = "apple", productId = "com.alatech.droplet.premium.monthly", transactionId = "1",
+            signedTransaction = "eyJhbGciOiJFUzI1NiJ9.eyJ0cmFuc2FjdGlvbklkIjoiMSJ9.c2ln",
+        });
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        Assert.Equal("purchase_invalid", await response.CodeAsync());
+    }
+
+    [Fact]
+    public async Task Device_RecordsThePushTokenType_DeclaredOrInferred()
+    {
+        var (client, auth) = await factory.RegisterAsync();
+        const string apnsToken = "a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90";
+
+        var declared = await client.PutJsonAsync("v1/tenant/user/me/device", new { deviceId = "device-apns-1", platform = "ios", pushToken = apnsToken, pushTokenType = "apns" });
+        var inferred = await client.PutJsonAsync("v1/tenant/user/me/device", new { deviceId = "device-apns-2", platform = "ios", pushToken = apnsToken });
+        var android = await client.PutJsonAsync("v1/tenant/user/me/device", new { deviceId = "device-fcm-1", platform = "android", pushToken = "fcm:APA91b-token" });
+        var invalid = await client.PutJsonAsync("v1/tenant/user/me/device", new { deviceId = "device-x-1", platform = "ios", pushToken = "t", pushTokenType = "sms" });
+
+        Assert.Equal(HttpStatusCode.OK, declared.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, inferred.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, android.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
+        var devices = await factory.Repository.GetAllAsync<DeviceEntity>(DeviceEntity.GetPk(auth.TenantId));
+        Assert.Equal(PushTokenType.Apns, devices.Single(d => d.DeviceId == "device-apns-1").PushTokenType);
+        Assert.Equal(PushTokenType.Apns, devices.Single(d => d.DeviceId == "device-apns-2").PushTokenType);
+        Assert.Equal(PushTokenType.Fcm, devices.Single(d => d.DeviceId == "device-fcm-1").PushTokenType);
+    }
+
+    [Fact]
+    public async Task StoreNotifications_RejectUnsignedPayloads_AndGoogleIsOffUntilConfigured()
+    {
+        var client = factory.CreateClient();
+
+        var apple = await client.PostJsonAsync("v1/store/apple/notifications", new { signedPayload = "a.b.c" });
+        var empty = await client.PostJsonAsync("v1/store/apple/notifications", new { });
+        var google = await client.PostJsonAsync("v1/store/google/notifications", new { message = new { data = "e30=", messageId = "1" } });
+
+        Assert.Equal(HttpStatusCode.BadRequest, apple.StatusCode);
+        Assert.Equal("invalid_notification", await apple.CodeAsync());
+        Assert.Equal(HttpStatusCode.BadRequest, empty.StatusCode);
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, google.StatusCode);
     }
 
     [Theory]
