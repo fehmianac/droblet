@@ -1,5 +1,6 @@
 import { singleFlight } from '@/auth/singleFlight';
 import { sessionStore } from '@/auth/session';
+import { currentLanguage } from '@/i18n';
 
 import { apiBaseUrl } from './config';
 import type { AuthResponse, ProblemDetails, RefreshRequest } from './contracts';
@@ -77,7 +78,8 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   const { method = 'GET', body, auth = true, signal } = options;
 
   const send = async (token: string | null) => {
-    const headers: Record<string, string> = { Accept: 'application/json' };
+    // The server localizes content, e-mails and error text to the active app language.
+    const headers: Record<string, string> = { Accept: 'application/json', 'Accept-Language': currentLanguage() };
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     if (token) headers.Authorization = `Bearer ${token}`;
     return rawFetch(path, {
