@@ -1,5 +1,6 @@
 import { singleFlight } from '@/auth/singleFlight';
 import { sessionStore } from '@/auth/session';
+import { currentLocaleTag } from '@/i18n';
 
 import { apiBaseUrl } from './config';
 import type { AuthResponse, ProblemDetails, RefreshRequest } from './contracts';
@@ -53,7 +54,7 @@ export const refreshTokens = singleFlight(async (): Promise<string> => {
   const body: RefreshRequest = { refreshToken: tokens.refreshToken };
   const res = await rawFetch('v1/auth/refresh', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'Accept-Language': currentLocaleTag() },
     body: JSON.stringify(body),
   });
   if (res.status === 400 || res.status === 401 || res.status === 403) {
@@ -77,7 +78,8 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   const { method = 'GET', body, auth = true, signal } = options;
 
   const send = async (token: string | null) => {
-    const headers: Record<string, string> = { Accept: 'application/json' };
+    // The server localizes its text content (AI notes, library names, error details) to the app language.
+    const headers: Record<string, string> = { Accept: 'application/json', 'Accept-Language': currentLocaleTag() };
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     if (token) headers.Authorization = `Bearer ${token}`;
     return rawFetch(path, {
