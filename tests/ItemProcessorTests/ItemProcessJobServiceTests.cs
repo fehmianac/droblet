@@ -20,8 +20,18 @@ public class ItemProcessJobServiceTests
     private sealed class FakeAi(GarmentSuggestion? suggestion = null, IReadOnlyList<GarmentSuggestion>? pieces = null) : IImageCleanup, IGarmentVision, IOutfitSplitter
     {
         public List<string> Languages { get; } = [];
+        public int Calls { get; private set; }
+        /// <summary>Runs in the middle of the AI work — e.g. the user deleting the draft while it is being processed.</summary>
+        public Func<Task>? DuringCleanup { get; set; }
+        public Func<Task>? DuringExtract { get; set; }
 
-        public Task<ImageInput> CleanupAsync(ImageInput garmentPhoto, CancellationToken ct) => Task.FromResult(new ImageInput([1, 2, 3], "image/webp"));
+        public async Task<ImageInput> CleanupAsync(ImageInput garmentPhoto, CancellationToken ct)
+        {
+            Calls++;
+            if (DuringCleanup is not null)
+                await DuringCleanup();
+            return new ImageInput([1, 2, 3], "image/webp");
+        }
 
         public Task<GarmentSuggestion> DescribeAsync(ImageInput garmentImage, string language, CancellationToken ct)
         {
@@ -35,8 +45,13 @@ public class ItemProcessJobServiceTests
             return Task.FromResult(pieces ?? []);
         }
 
-        public Task<ImageInput> ExtractPieceAsync(ImageInput outfitPhoto, GarmentSuggestion piece, CancellationToken ct) =>
-            Task.FromResult(new ImageInput([9, 9], "image/webp"));
+        public async Task<ImageInput> ExtractPieceAsync(ImageInput outfitPhoto, GarmentSuggestion piece, CancellationToken ct)
+        {
+            Calls++;
+            if (DuringExtract is not null)
+                await DuringExtract();
+            return new ImageInput([9, 9], "image/webp");
+        }
     }
 
     private static WorkerTestHost Host(FakeAi? ai = null) => new(services =>
@@ -211,5 +226,96 @@ public class ItemProcessJobServiceTests
         Assert.Equal(JobKind.ItemSplit, new ItemProcessRequestedEvent(Tenant, "j", "d", Split: true).Kind);
         Assert.Equal(JobKind.ItemProcess, new ItemProcessRequestedEvent(Tenant, "j", "d").Kind);
         Assert.Equal("item-queue", queues.UrlFor(JobKind.ItemSplit));
+    }
+
+    // ── The user deletes the draft while the worker is busy: the worker must never bring it back ────────────────
+
+    /// <summary>What DELETE v1/tenant/item-draft/{id} does: the draft row and every object it knows about.</summary>
+    private static async Task UserDeletesDraftAsync(WorkerTestHost host)
+    {
+        var draft = await DraftAsync(host);
+        foreach (var key in new[] { draft?.OriginalKey, draft?.ProcessedKey, StorageKeys.Upload(Tenant, DraftId) })
+        {
+            if (key is not null)
+                await host.Storage.DeleteAsync(key, default);
+        }
+        await host.Repository.DeleteAsync(ItemDraftEntity.GetPk(Tenant), ItemDraftEntity.GetSk(DraftId));
+    }
+
+    private static async Task AssertNothingLeftAsync(WorkerTestHost host, JobEntity job)
+    {
+        Assert.Empty(await host.Repository.GetAllAsync<ItemDraftEntity>(ItemDraftEntity.GetPk(Tenant)));
+        Assert.DoesNotContain(host.Storage.Objects.Keys, k => k.StartsWith(StorageKeys.TenantRoot(Tenant), StringComparison.Ordinal));
+        var stored = await host.Repository.GetAsync<JobEntity>(JobEntity.GetPk(Tenant), JobEntity.GetSk(job.Id));
+        Assert.Equal((JobStatus.Failed, JobFailure.SourceDeleted), (stored!.Status, stored.Failure));
+    }
+
+    [Fact]
+    public async Task Process_DraftDeletedBeforeTheWorkerStarts_NoAiCall_NothingWritten()
+    {
+        var ai = new FakeAi(new GarmentSuggestion(ItemCategoryHint.Top, ["white"], "cotton", [Season.Summer], Sure, "Beyaz tişört"));
+        var host = Host(ai);
+        var (job, _) = await ArrangeAsync(host);
+        await host.Repository.DeleteAsync(ItemDraftEntity.GetPk(Tenant), ItemDraftEntity.GetSk(DraftId));
+
+        await host.Get<IItemProcessJobService>().ProcessAsync(new ItemProcessRequestedEvent(Tenant, job.Id, DraftId), true, default);
+
+        Assert.Equal(0, ai.Calls);
+        Assert.Empty(ai.Languages);
+        await host.Storage.DeleteAsync(StorageKeys.Upload(Tenant, DraftId), default);
+        await AssertNothingLeftAsync(host, job);
+    }
+
+    [Fact]
+    public async Task Process_DraftDeletedWhileTheAiRuns_IsNotSavedAgain_AndItsImagesAreRemoved()
+    {
+        var ai = new FakeAi(new GarmentSuggestion(ItemCategoryHint.Top, ["white"], "cotton", [Season.Summer], Sure, "Beyaz tişört"));
+        var host = Host(ai);
+        var (job, _) = await ArrangeAsync(host);
+        ai.DuringCleanup = () => UserDeletesDraftAsync(host);
+
+        await host.Get<IItemProcessJobService>().ProcessAsync(new ItemProcessRequestedEvent(Tenant, job.Id, DraftId), true, default);
+
+        Assert.Equal(1, ai.Calls);
+        await AssertNothingLeftAsync(host, job);
+    }
+
+    [Fact]
+    public async Task Process_DraftDeletedWhileTheAiFails_StaysDeleted()
+    {
+        var ai = new FakeAi(new GarmentSuggestion(ItemCategoryHint.Top, ["white"], "cotton", [Season.Summer], Sure, "Beyaz tişört"));
+        var host = Host(ai);
+        var (job, _) = await ArrangeAsync(host);
+        ai.DuringCleanup = async () =>
+        {
+            await UserDeletesDraftAsync(host);
+            throw new AiProviderException("provider down");
+        };
+
+        await host.Get<IItemProcessJobService>().ProcessAsync(new ItemProcessRequestedEvent(Tenant, job.Id, DraftId), true, default);
+
+        Assert.Null(await DraftAsync(host)); // the Failed status write is conditional too
+        var stored = await host.Repository.GetAsync<JobEntity>(JobEntity.GetPk(Tenant), JobEntity.GetSk(job.Id));
+        Assert.Equal(JobStatus.Failed, stored!.Status);
+    }
+
+    [Fact]
+    public async Task Split_OutfitDraftDeletedWhilePiecesAreCut_LeavesNoPieceDrafts()
+    {
+        GarmentSuggestion Piece(ItemCategoryHint category) => new(category, ["black"], "cotton", [Season.Winter], Sure, "Parça");
+        var ai = new FakeAi(pieces: [Piece(ItemCategoryHint.Top), Piece(ItemCategoryHint.Bottom)]);
+        var host = Host(ai);
+        var (job, _) = await ArrangeAsync(host, split: true);
+        var extracted = 0;
+        ai.DuringExtract = async () =>
+        {
+            if (++extracted == 2)
+                await UserDeletesDraftAsync(host);
+        };
+
+        await host.Get<IItemProcessJobService>().ProcessAsync(new ItemProcessRequestedEvent(Tenant, job.Id, DraftId, true), true, default);
+
+        Assert.Equal(2, ai.Calls);
+        await AssertNothingLeftAsync(host, job);
     }
 }
