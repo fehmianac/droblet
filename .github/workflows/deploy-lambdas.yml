@@ -1,0 +1,139 @@
+name: Deploy lambdas
+
+# main = prod. src/** degisince otomatik calisir; elle calistirmada ortam secilebilir.
+# Yalniz MEVCUT fonksiyonun kodunu gunceller; fonksiyonu deploy-infra.yml (template.yaml) olusturur.
+# Yeni bir Lambda iki yere eklenir: template.yaml VE asagidaki matris.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'Directory.Build.props'
+      - '.github/workflows/deploy-lambdas.yml'
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: Ortam
+        type: choice
+        options: [prod, dev]
+        default: prod
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'eu-central-1' }}
+  STAGE: ${{ inputs.stage || 'prod' }}
+
+jobs:
+  test:
+    name: Build + test
+    runs-on: ${{ vars.DEPLOY_RUNNER || 'ubuntu-latest' }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet restore Droblet.sln
+      - run: dotnet build Droblet.sln -c Release --no-restore
+      - run: dotnet test Droblet.sln -c Release --no-build
+
+  deploy:
+    name: ${{ matrix.name }}
+    needs: test
+    runs-on: ${{ vars.DEPLOY_RUNNER || 'ubuntu-latest' }}
+    environment: ${{ inputs.stage || 'prod' }}
+    # Stack guncellenirken update-function-code calismaz; deploy-infra ile ayni grupta sirayla beklerler.
+    concurrency:
+      group: deploy-backend-${{ inputs.stage || 'prod' }}
+      cancel-in-progress: false
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include:
+          - name: api
+            project: src/Api
+            functions: api
+          - name: item-processor
+            project: src/ItemProcessor
+            functions: item-processor
+          - name: stylist
+            project: src/Stylist
+            functions: stylist
+          - name: tryon
+            project: src/TryOn
+            functions: tryon
+          - name: palette
+            project: src/Palette
+            functions: palette
+          # Dort Notifier fonksiyonu ayni zip'i paylasir.
+          - name: notifier
+            project: src/Notifier
+            functions: notifier-reminder notifier-weekly-edit notifier-friend-ratings notifier-lifecycle
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Mimariyi fonksiyondan oku
+        id: arch
+        env:
+          FUNCTIONS: ${{ matrix.functions }}
+        run: |
+          set -euo pipefail
+          first="droblet-$STAGE-${FUNCTIONS%% *}"
+          arch=$(aws lambda get-function-configuration --function-name "$first" \
+            --query "Architectures[0]" --output text 2>/dev/null || echo "")
+          case "$arch" in
+            arm64)  rid=linux-arm64 ;;
+            x86_64) rid=linux-x64 ;;
+            *)
+              echo "::warning::$first henuz yok; once Deploy infra calismali. Bu paket atlandi."
+              echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0 ;;
+          esac
+          echo "rid=$rid" >> "$GITHUB_OUTPUT"
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - name: Publish + zip
+        if: steps.arch.outputs.skip == 'false'
+        env:
+          PROJECT: ${{ matrix.project }}
+          RID: ${{ steps.arch.outputs.rid }}
+        run: |
+          set -euo pipefail
+          dotnet publish "$PROJECT" -c Release -r "$RID" --self-contained false \
+            -p:GenerateRuntimeConfigurationFiles=true -o "$RUNNER_TEMP/publish"
+          (cd "$RUNNER_TEMP/publish" && zip -q -r "$RUNNER_TEMP/function.zip" .)
+          ls -lh "$RUNNER_TEMP/function.zip"
+
+      - name: update-function-code
+        if: steps.arch.outputs.skip == 'false'
+        env:
+          FUNCTIONS: ${{ matrix.functions }}
+        run: |
+          set -euo pipefail
+          for suffix in $FUNCTIONS; do
+            fn="droblet-$STAGE-$suffix"
+            if ! aws lambda get-function-configuration --function-name "$fn" >/dev/null 2>&1; then
+              echo "::warning::$fn yok; atlandi (template.yaml'a eklenip Deploy infra calismali)."
+              continue
+            fi
+            aws lambda update-function-code --function-name "$fn" \
+              --zip-file "fileb://$RUNNER_TEMP/function.zip" --no-cli-pager >/dev/null
+            aws lambda wait function-updated-v2 --function-name "$fn"
+            sha=$(aws lambda get-function-configuration --function-name "$fn" --query CodeSha256 --output text)
+            echo "| \`$fn\` | \`$sha\` |" >> "$RUNNER_TEMP/summary.md"
+          done
+          if [ -f "$RUNNER_TEMP/summary.md" ]; then
+            { echo "| Fonksiyon | CodeSha256 |"; echo "|---|---|"; cat "$RUNNER_TEMP/summary.md"; } >> "$GITHUB_STEP_SUMMARY"
+          fi

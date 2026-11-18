@@ -1,0 +1,800 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Droblet backend — Api (HTTP API), AI workers (ItemProcessor, Stylist, TryOn, Palette; SQS + DLQ),
+  Notifier (EventBridge Scheduler), single DynamoDB table, private photo bucket. Region: eu-central-1.
+  Secrets are never template values. deploy-infra writes two SecureString SSM parameters: api/Jwt (generated
+  once, never overwritten) and api/Email (SendGrid API key, from the SENDGRID_API_KEY secret). The owner writes
+  the rest by hand when they exist: AppleAuth, GoogleAuth, Store, worker/Ai, notifier/Push. E-mail goes through
+  SendGrid (HTTPS), so there is no SES resource here.
+
+Parameters:
+  Stage:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, prod]
+    Description: Suffix of every resource name (droblet-{Stage}-...).
+  DeploymentBucket:
+    Type: String
+    Description: S3 bucket holding the Lambda zip used when a function is first created.
+  DeploymentKey:
+    Type: String
+    Default: deploy.zip
+    Description: Object key of that zip. Later code updates go through deploy-lambdas, not this template.
+  AlarmEmail:
+    Type: String
+    Default: ''
+    Description: Optional e-mail subscribed to the alarm topic (the address must confirm the subscription).
+  ItemProcessorMaxConcurrency:
+    Type: Number
+    Default: 5
+    MinValue: 2
+    Description: SQS MaximumConcurrency — bulk add peak vs. provider rate limit. Re-measure after A-3.
+  StylistMaxConcurrency:
+    Type: Number
+    Default: 5
+    MinValue: 2
+  TryOnMaxConcurrency:
+    Type: Number
+    Default: 2
+    MinValue: 2
+    Description: Tightest limit — the most expensive call (image generation).
+  PaletteMaxConcurrency:
+    Type: Number
+    Default: 2
+    MinValue: 2
+
+Conditions:
+  IsProd: !Equals [!Ref Stage, prod]
+  HasAlarmEmail: !Not [!Equals [!Ref AlarmEmail, '']]
+
+Globals:
+  Function:
+    Runtime: dotnet10
+    Architectures: [arm64]
+    MemorySize: 512
+    Timeout: 30
+    Tracing: Active
+    CodeUri:
+      Bucket: !Ref DeploymentBucket
+      Key: !Ref DeploymentKey
+    Environment:
+      Variables:
+        STAGE: !Ref Stage
+        TABLE_NAME: !Ref DrobletTable
+    Tags:
+      project: droblet
+      stage: !Ref Stage
+
+Resources:
+  # ── DynamoDB ──────────────────────────────────────────────────────────────
+  DrobletTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub droblet-${Stage}-table
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: pk, AttributeType: S }
+        - { AttributeName: sk, AttributeType: S }
+      KeySchema:
+        - { AttributeName: pk, KeyType: HASH }
+        - { AttributeName: sk, KeyType: RANGE }
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !If [IsProd, true, false]
+        # Must match the "deleted from backups within N days" promise of account deletion.
+        RecoveryPeriodInDays: !If [IsProd, 30, !Ref AWS::NoValue]
+      Tags:
+        - { Key: project, Value: droblet }
+        - { Key: stage, Value: !Ref Stage }
+
+  # ── S3: private photo bucket (no CDN, presigned URLs only) ────────────────
+  PhotoBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub droblet-${Stage}-photos
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      # Versioning stays OFF: a kept old version would break the "delete my photos" promise.
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-temp-uploads
+            Status: Enabled
+            Prefix: uploads/tmp/
+            ExpirationInDays: 1
+          - Id: abort-incomplete-multipart
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 1
+      CorsConfiguration:
+        CorsRules:
+          - AllowedMethods: [POST, GET]
+            AllowedOrigins: ['*']
+            AllowedHeaders: ['*']
+            MaxAge: 3000
+      Tags:
+        - { Key: project, Value: droblet }
+        - { Key: stage, Value: !Ref Stage }
+
+  PhotoBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref PhotoBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource:
+              - !GetAtt PhotoBucket.Arn
+              - !Sub '${PhotoBucket.Arn}/*'
+            Condition:
+              Bool:
+                'aws:SecureTransport': 'false'
+
+  # ── SQS: request queues + DLQs (maxReceiveCount 3: an AI call is billed per attempt) ──
+  ItemProcessorRequestDlq:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub droblet-${Stage}-item-process-request-dlq
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+  ItemProcessorRequestQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub droblet-${Stage}-item-process-request
+      VisibilityTimeout: 150
+      SqsManagedSseEnabled: true
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt ItemProcessorRequestDlq.Arn
+        maxReceiveCount: 3
+
+  StylistRequestDlq:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub droblet-${Stage}-stylist-request-dlq
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+  StylistRequestQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub droblet-${Stage}-stylist-request
+      VisibilityTimeout: 150
+      SqsManagedSseEnabled: true
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt StylistRequestDlq.Arn
+        maxReceiveCount: 3
+
+  TryOnRequestDlq:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub droblet-${Stage}-tryon-request-dlq
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+  TryOnRequestQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub droblet-${Stage}-tryon-request
+      VisibilityTimeout: 150
+      SqsManagedSseEnabled: true
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt TryOnRequestDlq.Arn
+        maxReceiveCount: 3
+
+  PaletteRequestDlq:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub droblet-${Stage}-palette-request-dlq
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+  PaletteRequestQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub droblet-${Stage}-palette-request
+      VisibilityTimeout: 150
+      SqsManagedSseEnabled: true
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt PaletteRequestDlq.Arn
+        maxReceiveCount: 3
+
+  AlarmTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub droblet-${Stage}-alarms
+  AlarmEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Condition: HasAlarmEmail
+    Properties:
+      TopicArn: !Ref AlarmTopic
+      Protocol: email
+      Endpoint: !Ref AlarmEmail
+
+  # ── SSM (non-secret config; String). Parameter name = config section, value = JSON ──
+  SsmApiEntitlements:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/api/Entitlements
+      Type: String
+      Value: '{"Premium":{"TryOnCreditsPerMonth":30}}'
+  SsmApiPhotos:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/api/Photos
+      Type: String
+      Value: '{"UploadUrlTtlSeconds":300,"ReadUrlTtlSeconds":300,"MaxUploadBytes":10485760,"AllowedContentTypes":["image/jpeg","image/png"]}'
+  SsmApiApp:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/api/App
+      Type: String
+      Value: '{"PasswordResetUrl":"https://droplet.alatech.co/reset-password","Scheme":"droplet","BundleId":"com.alatech.droplet"}'
+  SsmApiAi:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/api/Ai
+      Type: String
+      Value: '{"Enabled":false}'
+  SsmWorkerEntitlements:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/worker/Entitlements
+      Type: String
+      Value: '{"Premium":{"TryOnCreditsPerMonth":30}}'
+  SsmNotifierNotifications:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/notifier/Notifications
+      Type: String
+      Value: '{"DefaultMorningLocal":"07:30","DefaultWeeklyEditLocal":"Mon 09:00","DefaultFriendRatingsLocal":"19:00"}'
+
+  # ── IAM: one role per Lambda ───────────────────────────────────────────────
+  ApiLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub droblet-${Stage}-api-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+      Policies:
+        - PolicyName: api
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Query
+                  - dynamodb:BatchGetItem
+                  - dynamodb:BatchWriteItem
+                  - dynamodb:ConditionCheckItem
+                Resource:
+                  - !GetAtt DrobletTable.Arn
+                  - !Sub '${DrobletTable.Arn}/index/*'
+              - Effect: Allow
+                Action: sqs:SendMessage
+                Resource:
+                  - !GetAtt ItemProcessorRequestQueue.Arn
+                  - !GetAtt StylistRequestQueue.Arn
+                  - !GetAtt TryOnRequestQueue.Arn
+                  - !GetAtt PaletteRequestQueue.Arn
+              - Effect: Allow
+                Action: [ssm:GetParameter, ssm:GetParameters, ssm:GetParametersByPath]
+                Resource:
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/api
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/api/*
+              - Effect: Allow
+                Action: [s3:PutObject, s3:GetObject, s3:DeleteObject]
+                Resource:
+                  - !Sub '${PhotoBucket.Arn}/uploads/tmp/*'
+                  - !Sub '${PhotoBucket.Arn}/tenant/*'
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource: !GetAtt PhotoBucket.Arn
+                Condition:
+                  StringLike:
+                    's3:prefix': ['uploads/tmp/*', 'tenant/*']
+
+  ItemProcessorLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub droblet-${Stage}-item-processor-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+      Policies:
+        - PolicyName: item-processor
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [sqs:ReceiveMessage, sqs:DeleteMessage, sqs:GetQueueAttributes, sqs:ChangeMessageVisibility]
+                Resource: !GetAtt ItemProcessorRequestQueue.Arn
+              - Effect: Allow
+                Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:DeleteItem, dynamodb:Query]
+                Resource: !GetAtt DrobletTable.Arn
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub '${PhotoBucket.Arn}/uploads/tmp/*'
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub '${PhotoBucket.Arn}/tenant/*/items/*'
+              - Effect: Allow
+                Action: [ssm:GetParameter, ssm:GetParameters, ssm:GetParametersByPath]
+                Resource:
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/worker
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/worker/*
+
+  StylistLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub droblet-${Stage}-stylist-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+      Policies:
+        - PolicyName: stylist
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [sqs:ReceiveMessage, sqs:DeleteMessage, sqs:GetQueueAttributes, sqs:ChangeMessageVisibility]
+                Resource: !GetAtt StylistRequestQueue.Arn
+              - Effect: Allow
+                Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:DeleteItem, dynamodb:Query]
+                Resource: !GetAtt DrobletTable.Arn
+              # No S3: the stylist works on item attributes, never on photos.
+              - Effect: Allow
+                Action: [ssm:GetParameter, ssm:GetParameters, ssm:GetParametersByPath]
+                Resource:
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/worker
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/worker/*
+
+  TryOnLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub droblet-${Stage}-tryon-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+      Policies:
+        - PolicyName: tryon
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [sqs:ReceiveMessage, sqs:DeleteMessage, sqs:GetQueueAttributes, sqs:ChangeMessageVisibility]
+                Resource: !GetAtt TryOnRequestQueue.Arn
+              - Effect: Allow
+                # TransactWriteItems for credit commit/refund (account + reservation + ledger).
+                Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:DeleteItem, dynamodb:Query, dynamodb:ConditionCheckItem]
+                Resource: !GetAtt DrobletTable.Arn
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource:
+                  - !Sub '${PhotoBucket.Arn}/tenant/*/body/*'
+                  - !Sub '${PhotoBucket.Arn}/tenant/*/items/*'
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub '${PhotoBucket.Arn}/tenant/*/tryon/*'
+              - Effect: Allow
+                Action: [ssm:GetParameter, ssm:GetParameters, ssm:GetParametersByPath]
+                Resource:
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/worker
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/worker/*
+
+  PaletteLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub droblet-${Stage}-palette-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+      Policies:
+        - PolicyName: palette
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [sqs:ReceiveMessage, sqs:DeleteMessage, sqs:GetQueueAttributes, sqs:ChangeMessageVisibility]
+                Resource: !GetAtt PaletteRequestQueue.Arn
+              - Effect: Allow
+                Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:DeleteItem, dynamodb:Query]
+                Resource: !GetAtt DrobletTable.Arn
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub '${PhotoBucket.Arn}/tenant/*/face/*'
+              - Effect: Allow
+                Action: [ssm:GetParameter, ssm:GetParameters, ssm:GetParametersByPath]
+                Resource:
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/worker
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/worker/*
+
+  NotifierLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub droblet-${Stage}-notifier-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+      Policies:
+        - PolicyName: notifier
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [dynamodb:Query, dynamodb:GetItem, dynamodb:PutItem, dynamodb:DeleteItem]
+                Resource: !GetAtt DrobletTable.Arn
+              # No S3: notifications never carry photos or try-on images.
+              - Effect: Allow
+                Action: [ssm:GetParameter, ssm:GetParameters, ssm:GetParametersByPath]
+                Resource:
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/notifier
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/notifier/*
+
+  # ── API Gateway ───────────────────────────────────────────────────────────
+  HttpApiGateway:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: !Ref Stage
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 200
+        ThrottlingRateLimit: 100
+      CorsConfiguration:
+        AllowOrigins: ['*']
+        AllowMethods: [GET, POST, PUT, DELETE, OPTIONS, PATCH]
+        AllowHeaders: ['*']
+      Tags:
+        project: droblet
+        stage: !Ref Stage
+
+  # ── Lambdas ───────────────────────────────────────────────────────────────
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub droblet-${Stage}-api
+      Handler: Api
+      Role: !GetAtt ApiLambdaRole.Arn
+      MemorySize: 1024   # PBKDF2 (600k iterations) on sign-in is CPU bound
+      Environment:
+        Variables:
+          ASPNETCORE_ENVIRONMENT: !If [IsProd, Production, Development]
+          SYSTEMS_MANAGER_PATH: !Sub /droblet/${Stage}/api
+          ITEM_PROCESSOR_REQUEST_QUEUE_URL: !Ref ItemProcessorRequestQueue
+          STYLIST_REQUEST_QUEUE_URL: !Ref StylistRequestQueue
+          TRYON_REQUEST_QUEUE_URL: !Ref TryOnRequestQueue
+          PALETTE_REQUEST_QUEUE_URL: !Ref PaletteRequestQueue
+          PHOTO_BUCKET: !Ref PhotoBucket
+      Events:
+        ProxyRoute:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApiGateway
+            Path: /{proxy+}
+            Method: ANY
+        RootRoute:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApiGateway
+            Path: /
+            Method: ANY
+
+  ItemProcessorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub droblet-${Stage}-item-processor
+      Handler: ItemProcessor::ItemProcessor.Entrypoint::FunctionHandler
+      Role: !GetAtt ItemProcessorLambdaRole.Arn
+      Timeout: 120
+      MemorySize: 1024
+      Environment:
+        Variables:
+          SYSTEMS_MANAGER_PATH: !Sub /droblet/${Stage}/worker
+          PHOTO_BUCKET: !Ref PhotoBucket
+      Events:
+        Queue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt ItemProcessorRequestQueue.Arn
+            BatchSize: 1
+            FunctionResponseTypes: [ReportBatchItemFailures]
+            ScalingConfig:
+              MaximumConcurrency: !Ref ItemProcessorMaxConcurrency
+
+  StylistFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub droblet-${Stage}-stylist
+      Handler: Stylist::Stylist.Entrypoint::FunctionHandler
+      Role: !GetAtt StylistLambdaRole.Arn
+      Timeout: 120
+      Environment:
+        Variables:
+          SYSTEMS_MANAGER_PATH: !Sub /droblet/${Stage}/worker
+      Events:
+        Queue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt StylistRequestQueue.Arn
+            BatchSize: 1
+            FunctionResponseTypes: [ReportBatchItemFailures]
+            ScalingConfig:
+              MaximumConcurrency: !Ref StylistMaxConcurrency
+
+  TryOnFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub droblet-${Stage}-tryon
+      Handler: TryOn::TryOn.Entrypoint::FunctionHandler
+      Role: !GetAtt TryOnLambdaRole.Arn
+      Timeout: 120
+      MemorySize: 1024
+      Environment:
+        Variables:
+          SYSTEMS_MANAGER_PATH: !Sub /droblet/${Stage}/worker
+          PHOTO_BUCKET: !Ref PhotoBucket
+      Events:
+        Queue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt TryOnRequestQueue.Arn
+            BatchSize: 1
+            FunctionResponseTypes: [ReportBatchItemFailures]
+            ScalingConfig:
+              MaximumConcurrency: !Ref TryOnMaxConcurrency
+
+  PaletteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub droblet-${Stage}-palette
+      Handler: Palette::Palette.Entrypoint::FunctionHandler
+      Role: !GetAtt PaletteLambdaRole.Arn
+      Timeout: 120
+      Environment:
+        Variables:
+          SYSTEMS_MANAGER_PATH: !Sub /droblet/${Stage}/worker
+          PHOTO_BUCKET: !Ref PhotoBucket
+      Events:
+        Queue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt PaletteRequestQueue.Arn
+            BatchSize: 1
+            FunctionResponseTypes: [ReportBatchItemFailures]
+            ScalingConfig:
+              MaximumConcurrency: !Ref PaletteMaxConcurrency
+
+  # Notifier: one zip, four functions (a Lambda has one handler). Schedules are UTC; Turkey is UTC+3.
+  NotifierReminderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub droblet-${Stage}-notifier-reminder
+      Handler: Notifier::Notifier.Entrypoint::Reminder
+      Role: !GetAtt NotifierLambdaRole.Arn
+      Timeout: 300
+      Environment:
+        Variables:
+          SYSTEMS_MANAGER_PATH: !Sub /droblet/${Stage}/notifier
+      Events:
+        Every15Minutes:
+          Type: ScheduleV2
+          Properties:
+            Name: !Sub droblet-${Stage}-notifier-reminder
+            ScheduleExpression: cron(0/15 * * * ? *)
+
+  NotifierWeeklyEditFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub droblet-${Stage}-notifier-weekly-edit
+      Handler: Notifier::Notifier.Entrypoint::WeeklyEdit
+      Role: !GetAtt NotifierLambdaRole.Arn
+      Timeout: 300
+      Environment:
+        Variables:
+          SYSTEMS_MANAGER_PATH: !Sub /droblet/${Stage}/notifier
+      Events:
+        MondayMorning:
+          Type: ScheduleV2
+          Properties:
+            Name: !Sub droblet-${Stage}-notifier-weekly-edit
+            ScheduleExpression: cron(0 6 ? * MON *)   # Mon 09:00 TR (proposal, owner confirms)
+
+  NotifierFriendRatingsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub droblet-${Stage}-notifier-friend-ratings
+      Handler: Notifier::Notifier.Entrypoint::FriendRatings
+      Role: !GetAtt NotifierLambdaRole.Arn
+      Timeout: 300
+      Environment:
+        Variables:
+          SYSTEMS_MANAGER_PATH: !Sub /droblet/${Stage}/notifier
+      Events:
+        DailyEvening:
+          Type: ScheduleV2
+          Properties:
+            Name: !Sub droblet-${Stage}-notifier-friend-ratings
+            ScheduleExpression: cron(0 16 * * ? *)   # 19:00 TR daily digest (proposal)
+
+  NotifierLifecycleFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub droblet-${Stage}-notifier-lifecycle
+      Handler: Notifier::Notifier.Entrypoint::Lifecycle
+      Role: !GetAtt NotifierLambdaRole.Arn
+      Timeout: 300
+      Environment:
+        Variables:
+          SYSTEMS_MANAGER_PATH: !Sub /droblet/${Stage}/notifier
+      Events:
+        Daily:
+          Type: ScheduleV2
+          Properties:
+            Name: !Sub droblet-${Stage}-notifier-lifecycle
+            ScheduleExpression: cron(0 3 * * ? *)
+
+  # ── Alarms (all to AlarmTopic) ─────────────────────────────────────────────
+  ItemProcessorDlqAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub droblet-${Stage}-item-processor-dlq
+      AlarmDescription: A user is stuck on the item processing screen.
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions: [{ Name: QueueName, Value: !GetAtt ItemProcessorRequestDlq.QueueName }]
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+  StylistDlqAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub droblet-${Stage}-stylist-dlq
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions: [{ Name: QueueName, Value: !GetAtt StylistRequestDlq.QueueName }]
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+  TryOnDlqAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub droblet-${Stage}-tryon-dlq
+      AlarmDescription: A try-on request died — the user may hold an unrefunded credit reservation.
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions: [{ Name: QueueName, Value: !GetAtt TryOnRequestDlq.QueueName }]
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+  PaletteDlqAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub droblet-${Stage}-palette-dlq
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions: [{ Name: QueueName, Value: !GetAtt PaletteRequestDlq.QueueName }]
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+  ReminderNotInvokedAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub droblet-${Stage}-notifier-reminder-not-invoked
+      AlarmDescription: The 15-minute reminder job silently stopped.
+      Namespace: AWS/Lambda
+      MetricName: Invocations
+      Dimensions: [{ Name: FunctionName, Value: !Ref NotifierReminderFunction }]
+      Statistic: Sum
+      Period: 3600
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: breaching
+      AlarmActions: [!Ref AlarmTopic]
+  LifecycleNotInvokedAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub droblet-${Stage}-notifier-lifecycle-not-invoked
+      Namespace: AWS/Lambda
+      MetricName: Invocations
+      Dimensions: [{ Name: FunctionName, Value: !Ref NotifierLifecycleFunction }]
+      Statistic: Sum
+      Period: 86400
+      EvaluationPeriods: 2
+      Threshold: 1
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: breaching
+      AlarmActions: [!Ref AlarmTopic]
+
+Outputs:
+  ApiUrl:
+    Description: HTTP API base URL (map api.droplet.alatech.co to it).
+    Value: !Sub https://${HttpApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}
+  TableName:
+    Value: !Ref DrobletTable
+  PhotoBucketName:
+    Value: !Ref PhotoBucket
+  ItemProcessorRequestQueueUrl:
+    Value: !Ref ItemProcessorRequestQueue
+  StylistRequestQueueUrl:
+    Value: !Ref StylistRequestQueue
+  TryOnRequestQueueUrl:
+    Value: !Ref TryOnRequestQueue
+  PaletteRequestQueueUrl:
+    Value: !Ref PaletteRequestQueue
+  AlarmTopicArn:
+    Value: !Ref AlarmTopic

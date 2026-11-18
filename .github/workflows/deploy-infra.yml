@@ -1,0 +1,226 @@
+name: Deploy infra
+
+# Altyapi (template.yaml) yalniz tag ile cikar:  infra-{dev|prod}-vX.Y.Z   (or. infra-prod-v0.1.0)
+# Elle calistirma varsayilan olarak yalniz change set olusturur (onizleme); "execute" isaretlenirse uygular.
+
+on:
+  push:
+    tags:
+      - 'infra-dev-v*'
+      - 'infra-prod-v*'
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: Ortam
+        type: choice
+        options: [dev, prod]
+        default: dev
+      execute:
+        description: Change set'i uygula (kapaliysa yalniz onizleme)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'eu-central-1' }}
+
+jobs:
+  resolve:
+    name: Ortami belirle
+    runs-on: ubuntu-latest
+    outputs:
+      stage: ${{ steps.r.outputs.stage }}
+      execute: ${{ steps.r.outputs.execute }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - id: r
+        env:
+          EVENT: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          IN_STAGE: ${{ inputs.stage }}
+          IN_EXECUTE: ${{ inputs.execute }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" = "push" ]; then
+            if [[ ! "$REF_NAME" =~ ^infra-(dev|prod)-v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "::error::Tag bicimi yanlis: $REF_NAME (beklenen: infra-{dev|prod}-vX.Y.Z)"; exit 1
+            fi
+            stage="${BASH_REMATCH[1]}"
+            git fetch origin main --quiet
+            if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+              echo "::error::Tag'lenen commit main'de degil; deploy durduruldu."; exit 1
+            fi
+            execute=true
+          else
+            stage="$IN_STAGE"
+            execute="$IN_EXECUTE"
+          fi
+          echo "stage=$stage" >> "$GITHUB_OUTPUT"
+          echo "execute=$execute" >> "$GITHUB_OUTPUT"
+          echo "Ortam: **$stage** · uygula: **$execute**" >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    name: Deploy (${{ needs.resolve.outputs.stage }})
+    needs: resolve
+    runs-on: ${{ vars.DEPLOY_RUNNER || 'ubuntu-latest' }}
+    environment: ${{ needs.resolve.outputs.stage }}
+    concurrency:
+      group: deploy-backend-${{ needs.resolve.outputs.stage }}
+      cancel-in-progress: false
+    env:
+      STAGE: ${{ needs.resolve.outputs.stage }}
+      EXECUTE: ${{ needs.resolve.outputs.execute }}
+      STACK_NAME: droblet-${{ needs.resolve.outputs.stage }}
+      BOOTSTRAP_STACK: droblet-${{ needs.resolve.outputs.stage }}-bootstrap
+      DEPLOY_BUCKET_VAR: ${{ vars.DEPLOY_BUCKET }}
+      DEPLOY_KEY: deploy.zip
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+
+      - name: sam validate --lint
+        run: sam validate --lint --template-file template.yaml --region "$AWS_REGION"
+
+      - name: Deploy bucket (bootstrap)
+        id: bucket
+        run: |
+          set -euo pipefail
+          if [ -n "$DEPLOY_BUCKET_VAR" ]; then
+            bucket="$DEPLOY_BUCKET_VAR"
+            echo "DEPLOY_BUCKET degiskeni dolu; bootstrap atlandi."
+          else
+            aws cloudformation deploy \
+              --stack-name "$BOOTSTRAP_STACK" \
+              --template-file infra/bootstrap.yaml \
+              --parameter-overrides "Stage=$STAGE" \
+              --no-fail-on-empty-changeset \
+              --tags project=droblet "stage=$STAGE"
+            bucket=$(aws cloudformation describe-stacks --stack-name "$BOOTSTRAP_STACK" \
+              --query "Stacks[0].Outputs[?OutputKey=='DeployBucketName'].OutputValue" --output text)
+          fi
+          # Lambda kodu stack ile ayni bolgedeki bucket'tan okunur.
+          loc=$(aws s3api get-bucket-location --bucket "$bucket" --query LocationConstraint --output text)
+          [ "$loc" = "None" ] && loc="us-east-1"
+          if [ "$loc" != "$AWS_REGION" ]; then
+            echo "::error::Deploy bucket'i $loc bolgesinde, stack $AWS_REGION bolgesinde. Ayni bolgede bir bucket kullan."; exit 1
+          fi
+          echo "name=$bucket" >> "$GITHUB_OUTPUT"
+
+      - name: Stack durumu
+        run: |
+          set -euo pipefail
+          status=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" \
+            --query "Stacks[0].StackStatus" --output text 2>/dev/null || echo "NOT_FOUND")
+          echo "Stack durumu: $status"
+          case "$status" in
+            ROLLBACK_COMPLETE|ROLLBACK_FAILED|CREATE_FAILED|DELETE_FAILED|UPDATE_ROLLBACK_FAILED)
+              echo "::error::Stack $status durumunda. Retain'li kaynaklar oldugu icin otomatik silinmez; konsoldan incele."; exit 1 ;;
+            *_IN_PROGRESS)
+              echo "::error::Stack uzerinde baska bir islem suruyor ($status)."; exit 1 ;;
+          esac
+
+      - name: Ilk kod paketi (deploy.zip)
+        env:
+          BUCKET: ${{ steps.bucket.outputs.name }}
+        run: |
+          set -euo pipefail
+          if aws s3api head-object --bucket "$BUCKET" --key "$DEPLOY_KEY" >/dev/null 2>&1; then
+            echo "deploy.zip mevcut."
+          else
+            # Fonksiyonlar bu yer tutucuyla dogar; gercek kod deploy-lambdas.yml'den gelir.
+            mkdir -p /tmp/placeholder
+            echo "Droblet placeholder - gercek kod deploy-lambdas.yml ile yuklenir." > /tmp/placeholder/README.txt
+            (cd /tmp/placeholder && zip -q -r /tmp/deploy.zip .)
+            aws s3 cp /tmp/deploy.zip "s3://$BUCKET/$DEPLOY_KEY"
+            echo "deploy.zip yoktu; yer tutucu yuklendi." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: sam deploy
+        env:
+          BUCKET: ${{ steps.bucket.outputs.name }}
+          ALARM_EMAIL: ${{ vars.ALARM_EMAIL }}
+        run: |
+          set -euo pipefail
+          overrides=("Stage=$STAGE" "DeploymentBucket=$BUCKET" "DeploymentKey=$DEPLOY_KEY")
+          # Bos degiskenler gonderilmez: ilk kurulumda sablon varsayilani, sonra onceki deger kalir.
+          add() { if [ -n "$2" ] && grep -qE "^  $1:" template.yaml; then overrides+=("$1=$2"); fi; }
+          add AlarmEmail "$ALARM_EMAIL"
+
+          args=(
+            --template-file template.yaml
+            --stack-name "$STACK_NAME"
+            --region "$AWS_REGION"
+            --s3-bucket "$BUCKET" --s3-prefix "sam/$STAGE"
+            --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM
+            --parameter-overrides "${overrides[@]}"
+            --tags project=droblet "stage=$STAGE"
+            --no-fail-on-empty-changeset
+            --no-confirm-changeset
+          )
+          if [ "$EXECUTE" != "true" ]; then
+            args+=(--no-execute-changeset)
+            echo "Yalniz change set olusturuldu (onizleme). CloudFormation konsolundan incele." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          sam deploy "${args[@]}"
+
+      # API, JWT imza anahtari olmadan token uretemez. Yoksa bir kez uretilir; var olan asla ezilmez.
+      - name: JWT imza anahtari (SSM SecureString)
+        if: env.EXECUTE == 'true'
+        run: |
+          set -euo pipefail
+          name="/droblet/$STAGE/api/Jwt"
+          if aws ssm get-parameter --name "$name" >/dev/null 2>&1; then
+            echo "$name mevcut; dokunulmadi."
+          else
+            key=$(openssl rand -base64 48 | tr -d '\n')
+            echo "::add-mask::$key"
+            aws ssm put-parameter --name "$name" --type SecureString --no-overwrite \
+              --value "{\"SecretKey\":\"$key\"}" >/dev/null
+            echo "$name olusturuldu." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # E-posta SendGrid'den gider. Secret tanimliysa her deploy'da yazilir (anahtar donusumu icin);
+      # tanimli degilse dokunulmaz ve e-posta gonderimi (sifre sifirlama) calismaz.
+      - name: SendGrid API anahtari (SSM SecureString)
+        if: env.EXECUTE == 'true'
+        env:
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+        run: |
+          set -euo pipefail
+          name="/droblet/$STAGE/api/Email"
+          if [ -z "$SENDGRID_API_KEY" ]; then
+            echo "::warning::SENDGRID_API_KEY secret'i yok; $name yazilmadi. Sifre sifirlama e-postalari gitmez."
+            exit 0
+          fi
+          value=$(jq -cn --arg k "$SENDGRID_API_KEY" '{SendGrid:{ApiKey:$k}}')
+          aws ssm put-parameter --name "$name" --type SecureString --overwrite --value "$value" >/dev/null
+          echo "$name guncellendi." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Output'lar
+        if: env.EXECUTE == 'true'
+        run: |
+          {
+            echo "### $STACK_NAME output'lari"
+            echo
+            echo "| Anahtar | Deger |"
+            echo "|---|---|"
+            aws cloudformation describe-stacks --stack-name "$STACK_NAME" \
+              --query "Stacks[0].Outputs[].[OutputKey,OutputValue]" --output text \
+              | awk -F'\t' '{printf "| %s | `%s` |\n", $1, $2}'
+            echo
+            echo "Sonraki adim: **Deploy lambdas** workflow'unu calistir (fonksiyonlar yer tutucu kodla dogdu)."
+          } >> "$GITHUB_STEP_SUMMARY"

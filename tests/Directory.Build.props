@@ -1,0 +1,21 @@
+<Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <!-- Test method names follow {Class}_{Condition}_{Expected} (QA_ENGINEER.md). -->
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.11.0" />
+  </ItemGroup>
+
+  <!-- Shared fakes (in-memory repository, object storage) for every test project that references Infrastructure. -->
+  <ItemGroup Condition="'$(MSBuildProjectName)' != 'DomainTests'">
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/**/*.cs" Link="Shared/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'DomainTests'">
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/TestImages.cs" Link="Shared/TestImages.cs" />
+  </ItemGroup>
+</Project>

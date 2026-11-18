@@ -1,0 +1,5 @@
+{
+  "CFBundleDisplayName": "Droblet",
+  "NSCameraUsageDescription": "Boy fotoğrafını ve parçalarını çekebilmen için kameraya erişmemiz gerekiyor.",
+  "NSPhotoLibraryUsageDescription": "Boy ve yüz fotoğrafını seçebilmen için galerine erişmemiz gerekiyor. Fotoğrafların yalnızca sana açıktır."
+}

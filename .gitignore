@@ -1,0 +1,32 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.userprefs
+.vs/
+.idea/
+*.DotSettings.user
+TestResults/
+coverage*.xml
+*.coverage
+
+# AWS SAM / Lambda packaging
+.aws-sam/
+samconfig.toml.bak
+deploy.zip
+publish/
+
+# Local secrets / env
+.env
+.env.*
+!.env.example
+appsettings.*.local.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Mobile (managed by the mobile engineer)
+mobile/node_modules/
+mobile/.expo/

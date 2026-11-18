@@ -1,0 +1,5 @@
+{
+  "CFBundleDisplayName": "Droblet",
+  "NSCameraUsageDescription": "We need camera access so you can take your full-length photo and photos of your pieces.",
+  "NSPhotoLibraryUsageDescription": "We need access to your photos so you can choose your full-length and face photos. Your photos are visible only to you."
+}

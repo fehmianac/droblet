@@ -1,0 +1,30 @@
+using System.Text.Json.Serialization;
+using Domain.Entity.Base;
+using Domain.Enum;
+using Domain.Extensions;
+
+namespace Domain.Entity;
+
+public class JobEntity : IEntity
+{
+    public const int RetentionDays = 7;
+
+    [JsonPropertyName("pk")] public string Pk => GetPk(TenantId);
+    [JsonPropertyName("sk")] public string Sk => GetSk(Id);
+
+    [JsonPropertyName("id")] public string Id { get; set; } = null!;
+    [JsonPropertyName("tenantId")] public string TenantId { get; set; } = null!;
+    [JsonPropertyName("kind")] public JobKind Kind { get; set; }
+    [JsonPropertyName("status")] public JobStatus Status { get; set; }
+    [JsonPropertyName("failure")] public JobFailure? Failure { get; set; }
+    // Worker output (draft) as JSON; schema per JobKind (AI_ENGINEER.md).
+    [JsonPropertyName("result")] public string? Result { get; set; }
+    [JsonPropertyName("creditIdempotencyKey")] public string? CreditIdempotencyKey { get; set; }
+    [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; }
+    [JsonPropertyName("updatedAt")] public DateTime UpdatedAt { get; set; }
+
+    [JsonPropertyName("ttl")] public long Ttl => CreatedAt.AddDays(RetentionDays).ToUnixTimeSeconds();
+
+    public static string GetPk(string tenantId) => $"tenant#{tenantId}#job";
+    public static string GetSk(string id) => id;
+}

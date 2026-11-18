@@ -1,0 +1,51 @@
+import { Star } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
+import { Pressable, View } from 'react-native';
+
+import { Icon } from './Icon';
+import { PlaceholderImage } from './PlaceholderImage';
+import { Text } from './Text';
+
+type Props = {
+  name: string;
+  /** Occasion / day label shown above the name. */
+  tag: string;
+  imageUri?: string | null;
+  /** Friends' average rating, when present. */
+  rating?: number | null;
+  onPress: () => void;
+  className?: string;
+};
+
+/** Image + occasion tag + name + optional friends' rating. */
+export function LookCard({ name, tag, imageUri, rating, onPress, className }: Props) {
+  const { t, i18n } = useTranslation();
+  const ratingText =
+    rating != null ? new Intl.NumberFormat(i18n.language === 'en' ? 'en-GB' : 'tr-TR', { maximumFractionDigits: 1 }).format(rating) : null;
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={[tag, name, ratingText ? t('a11y.rating', { rating: ratingText }) : null].filter(Boolean).join(', ')}
+      className={`gap-2 ${className ?? ''}`}
+    >
+      <PlaceholderImage uri={imageUri} className="aspect-[4/5] w-full rounded-image-lg" />
+      <View className="gap-0.5">
+        <Text variant="caption" tone="muted" numberOfLines={1}>
+          {tag}
+        </Text>
+        <View className="flex-row items-center justify-between gap-2">
+          <Text variant="bodyMedium" numberOfLines={1} className="flex-1">
+            {name}
+          </Text>
+          {ratingText ? (
+            <View className="flex-row items-center gap-1">
+              <Icon icon={Star} size={14} tone="accent" filled />
+              <Text variant="caption">{ratingText}</Text>
+            </View>
+          ) : null}
+        </View>
+      </View>
+    </Pressable>
+  );
+}

@@ -1,0 +1,35 @@
+import { Directory, File, Paths } from 'expo-file-system';
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
+
+import { ulid } from '@/lib/ids';
+
+const MAX_EDGE = 2048;
+
+export type PreparedPhoto = { uploadId: string; localUri: string; width: number; height: number };
+
+/**
+ * Downscales and re-encodes the picked image as JPEG (re-encoding drops EXIF, including location —
+ * it never leaves the device), then copies it into the app's own `documents/uploads/` folder so the
+ * queued upload survives even if the user deletes the original from their library.
+ */
+export async function preparePhoto(sourceUri: string, width: number, height: number): Promise<PreparedPhoto> {
+  const context = ImageManipulator.manipulate(sourceUri);
+  const longest = Math.max(width, height);
+  if (longest > MAX_EDGE) {
+    context.resize(width >= height ? { width: MAX_EDGE } : { height: MAX_EDGE });
+  }
+  const image = await context.renderAsync();
+  const result = await image.saveAsync({ format: SaveFormat.JPEG, compress: 0.85 });
+
+  const dir = new Directory(Paths.document, 'uploads');
+  dir.create({ intermediates: true, idempotent: true });
+  const uploadId = ulid();
+  const target = new File(dir, `${uploadId}.jpg`);
+  new File(result.uri).moveSync(target);
+  return { uploadId, localUri: target.uri, width: result.width, height: result.height };
+}
+
+export function deleteLocalPhoto(localUri: string): void {
+  const file = new File(localUri);
+  if (file.exists) file.delete();
+}
