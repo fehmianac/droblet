@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Bookmark, Share2, UserCheck, UserPlus } from 'lucide-react-native';
+import { Bookmark, Share, UserCheck, UserPlus } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FlatList, Pressable, RefreshControl, ScrollView, View } from 'react-native';
@@ -8,9 +8,9 @@ import { linkDomain } from '@/api/config';
 import type { FeedLook, FeedStory } from '@/api/contracts/social';
 import { Avatar } from '@/components/blocks/basics';
 import { StarRating } from '@/components/blocks/rows';
-import { Button } from '@/components/ui/Button';
+import { ListTabBar } from '@/components/navigation/TabBar';
 import { IconButton } from '@/components/ui/IconButton';
-import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
+import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
@@ -18,45 +18,30 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { lookShareUrl } from '@/features/social/feedMath';
 import { useRateLook, useSaveLook } from '@/features/social/mutations';
+import { Notice, useNotice } from '@/features/social/Notice';
 import { FollowChip } from '@/features/social/PeopleRows';
 import { useFeed, useIncomingRequestCount, useInviteLink } from '@/features/social/queries';
 import { ShareSheet } from '@/features/social/ShareSheet';
-import { relativeTime , formatNumber } from '@/lib/format';
+import { formatNumber, relativeTime } from '@/lib/format';
 import { useThemeColors } from '@/theme/useThemeColors';
 
-function FeedSkeleton() {
-  return (
-    <View className="gap-5 pt-2">
-      <View className="flex-row gap-4 px-gutter">
-        {[0, 1, 2, 3, 4].map((i) => (
-          <Skeleton key={i} className="h-16 w-16 rounded-pill" />
-        ))}
-      </View>
-      <View className="gap-3 px-gutter">
-        <Skeleton className="h-11 w-48 rounded-field" />
-        <Skeleton className="aspect-[4/5] w-full rounded-image-lg" />
-        <Skeleton className="h-11 w-full rounded-field" />
-      </View>
-    </View>
-  );
-}
-
+/** Story row: 58 rings, 14 apart, the first name under each (accent ring = a new look). */
 function Stories({ stories }: { stories: FeedStory[] }) {
   const { t } = useTranslation();
   if (stories.length === 0) return null;
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-4 px-gutter pb-2">
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-3.5 px-gutter pb-3">
       {stories.map((s) => (
         <Pressable
           key={s.handle}
           onPress={() => router.push({ pathname: '/u/[handle]', params: { handle: s.handle } })}
           accessibilityRole="button"
           accessibilityLabel={s.hasNew ? t('feed.storyNew', { name: s.displayName }) : s.displayName}
-          className="w-[68px] items-center gap-1.5 active:opacity-80"
+          className="w-[62px] items-center gap-[5px] active:opacity-80"
         >
           {/* New look = accent ring; the label says so too, colour is not the only signal. */}
-          <Avatar name={s.displayName} uri={s.avatarUrl} size={56} ring={s.hasNew ? 'new' : 'seen'} />
-          <Text variant="caption" numberOfLines={1}>
+          <Avatar name={s.displayName} uri={s.avatarUrl} size={50} ring={s.hasNew ? 'new' : 'seen'} />
+          <Text variant="caption" numberOfLines={1} className="text-[11px] leading-[14px]">
             {s.displayName}
           </Text>
         </Pressable>
@@ -82,17 +67,18 @@ function LookPost({ look, onShare }: { look: FeedLook; onShare: () => void }) {
           : t('feed.timeDays', { count: when.count });
   const meta = look.occasion ? t('feed.meta', { occasion: t(`occasion.${look.occasion}`), time }) : time;
   const openProfile = () => router.push({ pathname: '/u/[handle]', params: { handle: author.handle } });
+  const rated = look.averageRating !== null && look.ratingCount > 0;
 
   return (
-    <View className="gap-3 px-gutter">
-      <View className="flex-row items-center gap-3">
+    <View className="gap-2.5 px-gutter">
+      <View className="flex-row items-center gap-2.5">
         <Pressable
           onPress={openProfile}
           accessibilityRole="button"
           accessibilityLabel={`${author.displayName}, ${meta}`}
-          className="min-h-icon-btn flex-1 flex-row items-center gap-3 active:opacity-80"
+          className="min-h-icon-btn flex-1 flex-row items-center gap-2.5 active:opacity-80"
         >
-          <Avatar name={author.displayName} uri={author.avatarUrl} size={40} />
+          <Avatar name={author.displayName} uri={author.avatarUrl} size={36} />
           <View className="flex-1">
             <Text variant="bodyMedium" numberOfLines={1}>
               {author.displayName}
@@ -106,35 +92,51 @@ function LookPost({ look, onShare }: { look: FeedLook; onShare: () => void }) {
       </View>
 
       {/* Another person's look is shown with its pieces — never a try-on image. */}
-      <PlaceholderImage
+      <ImageSlot
         uri={look.imageUrl}
-        className="aspect-[4/5] w-full rounded-image-lg"
+        className="h-[290px] w-full rounded-tile"
         accessibilityLabel={t('feed.lookImage', { name: author.displayName })}
+        placeholder={{ kind: 'look', pieces: look.pieces ?? [], seed: look.lookId, figureHeight: 184 }}
       />
 
       <View className="flex-row items-center justify-between">
         <StarRating value={look.myRating} onRate={(score) => rate(author.handle, look.lookId, score)} />
-        <View className="flex-row gap-2">
+        <View className="flex-row">
           <IconButton
             icon={Bookmark}
+            variant="plain"
+            iconSize={21}
             active={look.saved}
             onPress={() => save(author.handle, look.lookId, !look.saved)}
             accessibilityLabel={t(look.saved ? 'feed.unsave' : 'feed.save')}
           />
-          <IconButton icon={Share2} onPress={onShare} accessibilityLabel={t('feed.share')} />
+          <IconButton icon={Share} variant="plain" onPress={onShare} accessibilityLabel={t('feed.share')} />
         </View>
       </View>
 
-      <View className="flex-row flex-wrap items-center gap-x-1">
-        <Text variant="caption" tone="muted" accessibilityLiveRegion="polite">
-          {look.averageRating !== null && look.ratingCount > 0
-            ? t('feed.ratingSummary', { average: formatNumber(look.averageRating, { maximumFractionDigits: 1 }), count: look.ratingCount })
-            : t('feed.noRatings')}
+      <View className="flex-row flex-wrap items-center">
+        <Text variant="caption" accessibilityLiveRegion="polite">
+          {rated ? (
+            <>
+              <Text variant="label">{formatNumber(look.averageRating ?? 0, { maximumFractionDigits: 1 })}</Text>
+              {` ${t('feed.ratingRest', { count: look.ratingCount })}`}
+            </>
+          ) : (
+            t('feed.noRatings')
+          )}
+          {' · '}
         </Text>
-        <Text variant="caption" tone="muted">
-          ·
-        </Text>
-        <Button variant="text" label={t('feed.viewPieces')} onPress={() => router.push('/shop')} />
+        <Pressable
+          onPress={() => router.push('/shop')}
+          accessibilityRole="link"
+          accessibilityLabel={t('feed.viewPieces')}
+          hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
+          className="active:opacity-70"
+        >
+          <Text variant="label" className="underline">
+            {t('feed.viewPieces')}
+          </Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -142,7 +144,7 @@ function LookPost({ look, onShare }: { look: FeedLook; onShare: () => void }) {
 
 /**
  * 25 Arkadaş akışı — story rings (accent = new look), look cards with a 1–5 star rating, save and
- * the share sheet (WhatsApp / Pinterest / link, each carrying the invite code), "Parçaları gör".
+ * the share sheet (WhatsApp / Pinterest / "Link kopyala", each carrying the invite code), "Parçaları gör".
  * `?look=` (from a shared link) puts that look first.
  */
 export default function FriendsFeedScreen() {
@@ -152,12 +154,13 @@ export default function FriendsFeedScreen() {
   const feed = useFeed();
   const invite = useInviteLink();
   const [sharing, setSharing] = useState<FeedLook | null>(null);
+  const { notice, show } = useNotice();
   const requestCount = useIncomingRequestCount();
 
   const shareUrl = sharing && invite.data ? lookShareUrl(linkDomain(), sharing.lookId, invite.data.code) : null;
 
   return (
-    <Screen bottom>
+    <Screen>
       <ScreenHeader
         title={t('feed.title')}
         leading="back"
@@ -180,7 +183,6 @@ export default function FriendsFeedScreen() {
       />
       <ScreenState
         query={feed}
-        skeleton={<FeedSkeleton />}
         isEmpty={(data) => data.pages.every((p) => p.items.length === 0)}
         empty={{ message: t('feed.empty'), actionLabel: t('feed.emptyAction'), onAction: () => router.push('/friends/find') }}
       >
@@ -193,8 +195,9 @@ export default function FriendsFeedScreen() {
             <FlatList
               data={ordered}
               keyExtractor={(item) => item.lookId}
-              contentContainerClassName="gap-7 pb-8 pt-2"
+              contentContainerClassName="pb-8 pt-1"
               ListHeaderComponent={<Stories stories={data.pages[0]?.stories ?? []} />}
+              ItemSeparatorComponent={PostGap}
               onEndReachedThreshold={0.6}
               onEndReached={() => {
                 if (feed.hasNextPage && !feed.isFetchingNextPage) void feed.fetchNextPage();
@@ -209,8 +212,8 @@ export default function FriendsFeedScreen() {
               renderItem={({ item }) => <LookPost look={item} onShare={() => setSharing(item)} />}
               ListFooterComponent={
                 feed.isFetchingNextPage ? (
-                  <View className="px-gutter" accessible accessibilityLabel={t('a11y.loading')}>
-                    <Skeleton className="aspect-[4/5] w-full rounded-image-lg" />
+                  <View className="px-gutter pt-7" accessible accessibilityLabel={t('a11y.loading')}>
+                    <Skeleton className="h-[290px] w-full rounded-tile" />
                   </View>
                 ) : undefined
               }
@@ -226,7 +229,14 @@ export default function FriendsFeedScreen() {
         message={shareUrl ? t('share.lookMessage', { url: shareUrl }) : ''}
         kind="look"
         target={sharing ? { targetKind: 'look', targetId: sharing.lookId, ownerHandle: sharing.author.handle } : undefined}
+        onCopied={show}
       />
+      <Notice notice={notice} />
+      <ListTabBar owner="discover" />
     </Screen>
   );
+}
+
+function PostGap() {
+  return <View className="h-7" />;
 }

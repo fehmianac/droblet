@@ -17,6 +17,9 @@ describe('navigation (signed out)', () => {
 
     await waitFor(() => expect(screen.getByText('Get started')).toBeTruthy());
     expect(screen.getByText('I already have an account')).toBeTruthy();
+    // The horizontal logo lock-up (mark + wordmark) and the eyebrow, as on the canvas.
+    expect(screen.getByLabelText('Droblet')).toBeTruthy();
+    expect(screen.getByText('PERSONAL WARDROBE · STYLE ASSISTANT · PACKING')).toBeTruthy();
 
     const routeWarnings = [...warn.mock.calls, ...error.mock.calls]
       .map((c) => String(c[0]))

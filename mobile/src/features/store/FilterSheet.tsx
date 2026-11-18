@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View } from 'react-native';
+import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 
 import { SIZES } from '@/api/contracts';
 import { CATALOG_COLORS, PRODUCT_SORTS, type ProductQuery } from '@/api/contracts/store';
@@ -11,23 +11,10 @@ import { Chip, ChipWrap } from '@/components/ui/Chip';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 
+import { clearSheetFilters, toggleValue as toggle } from './filters';
 import { useBrands } from './queries';
 
-export type FilterKind = 'brand' | 'color' | 'size' | 'sort';
-
-function toggle<T>(list: T[], value: T): T[] {
-  return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
-}
-
-/** Number of active values for a filter chip ("Marka · 2"). */
-export function filterCount(query: ProductQuery, kind: Exclude<FilterKind, 'sort'>): number {
-  if (kind === 'brand') return query.brandIds.length;
-  if (kind === 'color') return query.colors.length;
-  return query.sizes.length;
-}
-
 type Props = {
-  kind: FilterKind;
   initial: ProductQuery;
   /** The size on the body profile, marked "senin bedenin". */
   profileSize: string | null;
@@ -35,40 +22,53 @@ type Props = {
   onClose: () => void;
 };
 
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <View className="gap-2">
+      <Text variant="eyebrow">{title}</Text>
+      {children}
+    </View>
+  );
+}
+
 /**
- * 21 filter sheets — Marka / Renk / Beden / Sıralama. Choices are a draft until "Sonuçları göster";
- * "Temizle" empties the dimension being edited. Mounted only while open, so the draft starts from
- * the applied filters each time.
+ * 21 "Filtrele" — ONE sheet for everything the Marka · Renk · Beden chips and the sort label open:
+ * MARKA, RENK, BEDEN and SIRALAMA as chip groups, "Temizle" in the title row and "Sonuçları göster"
+ * at the foot. Choices are a draft until "Sonuçları göster". Mounted only while open, so the draft
+ * starts from the applied filters each time.
  */
-export function FilterSheet({ kind, initial, profileSize, onApply, onClose }: Props) {
+export function FilterSheet({ initial, profileSize, onApply, onClose }: Props) {
   const { t } = useTranslation();
+  const { height } = useWindowDimensions();
   const brands = useBrands();
   const [draft, setDraft] = useState(initial);
 
-  const clear = () =>
-    setDraft((d) => {
-      if (kind === 'brand') return { ...d, brandIds: [] };
-      if (kind === 'color') return { ...d, colors: [] };
-      if (kind === 'size') return { ...d, sizes: [] };
-      return { ...d, sort: 'newest' };
-    });
-
   return (
     <BottomSheet visible onClose={onClose}>
-      <View className="gap-5">
-        <View className="flex-row items-center justify-between">
+      <View className="gap-3.5" testID="filter-sheet">
+        <View className="-mt-2 flex-row items-center justify-between">
           <Text variant="h3">{t('shop.filterTitle')}</Text>
-          <Button variant="text" label={t('shop.filterClear')} onPress={clear} />
+          <Pressable
+            onPress={() => setDraft(clearSheetFilters)}
+            accessibilityRole="button"
+            accessibilityLabel={t('shop.filterClear')}
+            hitSlop={8}
+            className="min-h-icon-btn justify-center active:opacity-70"
+          >
+            <Text variant="chip" className="underline">
+              {t('shop.filterClear')}
+            </Text>
+          </Pressable>
         </View>
 
-        {kind === 'brand' ? (
-          <View className="gap-3">
-            <Text variant="eyebrow">{t('shop.brandEyebrow')}</Text>
+        {/* The four groups scroll when they do not fit (small phones, large text); the action stays in view. */}
+        <ScrollView style={{ maxHeight: height * 0.56 }} contentContainerClassName="gap-3.5" showsVerticalScrollIndicator={false}>
+          <Section title={t('shop.brandEyebrow')}>
             <SectionState
               query={brands}
               skeleton={<Skeleton className="h-chip w-full rounded-pill" />}
               isEmpty={(list) => list.length === 0}
-              emptyText={t('shop.empty')}
+              emptyText={t('shop.brandsEmpty')}
               inset={false}
             >
               {(list) => (
@@ -84,12 +84,9 @@ export function FilterSheet({ kind, initial, profileSize, onApply, onClose }: Pr
                 </ChipWrap>
               )}
             </SectionState>
-          </View>
-        ) : null}
+          </Section>
 
-        {kind === 'color' ? (
-          <View className="gap-3">
-            <Text variant="eyebrow">{t('shop.colorEyebrow')}</Text>
+          <Section title={t('shop.colorEyebrow')}>
             <ChipWrap>
               {CATALOG_COLORS.map((c) => (
                 <Chip
@@ -100,12 +97,9 @@ export function FilterSheet({ kind, initial, profileSize, onApply, onClose }: Pr
                 />
               ))}
             </ChipWrap>
-          </View>
-        ) : null}
+          </Section>
 
-        {kind === 'size' ? (
-          <View className="gap-3">
-            <Text variant="eyebrow">{t('shop.sizeEyebrow')}</Text>
+          <Section title={t('shop.sizeEyebrow')}>
             <ChipWrap>
               {SIZES.map((s) => (
                 <Chip
@@ -116,19 +110,16 @@ export function FilterSheet({ kind, initial, profileSize, onApply, onClose }: Pr
                 />
               ))}
             </ChipWrap>
-          </View>
-        ) : null}
+          </Section>
 
-        {kind === 'sort' ? (
-          <View className="gap-3">
-            <Text variant="eyebrow">{t('shop.sortEyebrow')}</Text>
+          <Section title={t('shop.sortEyebrow')}>
             <ChipWrap>
               {PRODUCT_SORTS.map((s) => (
                 <Chip key={s} label={t(`shop.sort.${s}`)} selected={draft.sort === s} onPress={() => setDraft((d) => ({ ...d, sort: s }))} />
               ))}
             </ChipWrap>
-          </View>
-        ) : null}
+          </Section>
+        </ScrollView>
 
         <Button label={t('shop.showResults')} onPress={() => onApply(draft)} />
       </View>

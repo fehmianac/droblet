@@ -14,7 +14,7 @@ import type { LibraryItem, TodayResponse, WearLogRequest } from './contracts';
 import { DATA_SOURCE, fromSource } from './dataSource';
 import type { ProfileWire } from './wire/core';
 import { firstNameOf, toToday, toWeeklyEditCards, type EditWire, type TodayWire } from './wire/today';
-import { ITEMS_QUERY_KEY, loadLookContext, type ItemWire } from './wire/wardrobe';
+import { ITEMS_QUERY_KEY, loadLookContext, toItemColor, type ItemWire } from './wire/wardrobe';
 
 /** A side read of the Bugün card: its failure never fails the card. */
 async function optional<T>(request: Promise<T>): Promise<T | null> {
@@ -93,7 +93,7 @@ export function useWearToday() {
 }
 
 /** Wire row of `GET v1/tenant/library/item`. */
-type LibraryItemWire = {
+export type LibraryItemWire = {
   id: string;
   name: string;
   category: string;
@@ -102,6 +102,17 @@ type LibraryItemWire = {
   seasons: string[];
   imageUrl: string | null;
 };
+
+/** Library row → app shape: the picture URL is kept as sent (null = no picture yet) and the main colour tints its placeholder. */
+export function toLibraryItem(wire: LibraryItemWire): LibraryItem {
+  return {
+    id: wire.id,
+    name: wire.name,
+    category: wire.category,
+    imageUrl: wire.imageUrl ?? null,
+    color: wire.colorIds && wire.colorIds.length > 0 ? toItemColor(wire.colorIds[0]) : null,
+  };
+}
 
 /** Ready-made piece library (04b / 12b) — `GET v1/tenant/library/item`. */
 export function useItemLibrary() {
@@ -112,12 +123,7 @@ export function useItemLibrary() {
         'library',
         () => withLatency(libraryFixture),
         async () =>
-          (await apiRequest<LibraryItemWire[]>('v1/tenant/library/item')).map((i) => ({
-            id: i.id,
-            name: i.name,
-            category: i.category,
-            imageUrl: i.imageUrl,
-          })),
+          (await apiRequest<LibraryItemWire[]>('v1/tenant/library/item')).map(toLibraryItem),
       ),
   });
 }

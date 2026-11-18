@@ -68,6 +68,50 @@ describe('10 Parçalar', () => {
     expect(screen.getByText('Done')).toBeTruthy();
   });
 
+  it('draws the row of applied filters: outlined "all" badges, the sort and the long-press hint', async () => {
+    await open('/wardrobe');
+    await waitFor(() => expect(screen.getByText('Lacivert yün blazer')).toBeTruthy(), WAIT);
+    expect(screen.getByText('All seasons')).toBeTruthy();
+    expect(screen.getByText('All colours')).toBeTruthy();
+    expect(screen.getByText('Newest · Long-press to select several')).toBeTruthy();
+    expect(screen.getByLabelText('Search your wardrobe')).toBeTruthy();
+    expect(screen.getByTestId('wardrobe-add').props.accessibilityState.disabled).toBe(false);
+
+    await fireEvent.press(screen.getByLabelText('Filter and sort'));
+    await fireEvent.press(await screen.findByText('Autumn'));
+    await fireEvent.press(screen.getByTestId('filter-apply'));
+    // The applied season replaces "All seasons" as a filled badge.
+    await waitFor(() => expect(screen.queryByText('All seasons')).toBeNull());
+    expect(screen.getByText('Autumn')).toBeTruthy();
+  });
+
+  it('multi-select: the selection bar takes the place of the bottom menu and holds Create look · Season · Delete', async () => {
+    await open('/wardrobe');
+    await waitFor(() => expect(screen.getByText('Kroko babet')).toBeTruthy(), WAIT);
+    expect(screen.getByTestId('tab-bar')).toBeTruthy();
+    expect(screen.queryByTestId('selection-bar')).toBeNull();
+
+    await fireEvent.press(screen.getByText('Select'));
+    await waitFor(() => expect(screen.getByTestId('selection-bar')).toBeTruthy());
+    await waitFor(() => expect(screen.queryByTestId('tab-bar')).toBeNull());
+    // Nothing chosen yet: the three actions are there but disabled.
+    expect(screen.getByLabelText('Create look').props.accessibilityState.disabled).toBe(true);
+    expect(screen.getByLabelText('Season').props.accessibilityState.disabled).toBe(true);
+    expect(screen.getByTestId('selection-delete').props.accessibilityState.disabled).toBe(true);
+
+    await fireEvent.press(screen.getByLabelText('Select Kroko babet'));
+    await waitFor(() => expect(screen.getByText('1 piece selected')).toBeTruthy(), WAIT);
+    expect(screen.getByTestId('selection-delete').props.accessibilityState.disabled).toBe(false);
+    await fireEvent.press(screen.getByTestId('selection-delete'));
+    await waitFor(() => expect(screen.getByText('Delete 1 piece?')).toBeTruthy());
+    await fireEvent.press(screen.getByLabelText('Delete from wardrobe'));
+    await waitFor(() => expect(fixtureDb.items.some((i) => i.name === 'Kroko babet')).toBe(false), WAIT);
+
+    // Leaving selection brings the bottom menu back.
+    await waitFor(() => expect(screen.queryByTestId('selection-bar')).toBeNull());
+    await waitFor(() => expect(screen.getByTestId('tab-bar')).toBeTruthy());
+  });
+
   it('enters multi-select on long-press', async () => {
     await open('/wardrobe');
     await waitFor(() => expect(screen.getByText('Kroko babet')).toBeTruthy(), WAIT);
@@ -99,6 +143,12 @@ describe('10 Parçalar', () => {
     expect(screen.getByText('0 pieces')).toBeTruthy();
     expect(screen.getByText('Add your first piece')).toBeTruthy();
     expect(screen.getByText('Choose from the ready-made library')).toBeTruthy();
+    // Through the shared ScreenState; no search / select while there is nothing to search.
+    expect(screen.getByTestId('state-empty')).toBeTruthy();
+    expect(screen.queryByText('Select')).toBeNull();
+    expect(screen.queryByTestId('wardrobe.searchToggle')).toBeNull();
+    await fireEvent.press(screen.getByText('Choose from the ready-made library'));
+    await waitFor(() => expect(screen).toHavePathname('/item/library'), WAIT);
   });
 
   it('offers to clear filters when nothing matches', async () => {
@@ -118,7 +168,9 @@ describe('11 Parça detayı', () => {
     expect(screen.getByText('OUTERWEAR · AUTUMN, WINTER')).toBeTruthy();
     expect(screen.getByText('6 times')).toBeTruthy();
     expect(screen.getByText('Looks with this piece')).toBeTruthy();
-    expect(screen.getByText('Lacivert Blazer')).toBeTruthy();
+    // Canvas: the look tiles carry only the occasion tag; the name is the tile's accessible name.
+    expect(screen.getByLabelText('Lacivert Blazer')).toBeTruthy();
+    expect(screen.getByText('Soon')).toBeTruthy();
     expect(screen.getByText('Style an outfit with this')).toBeTruthy();
     expect(screen.getByLabelText('Products that complete this piece')).toBeTruthy();
 
@@ -218,6 +270,8 @@ describe('AI recognition quota (12, 13)', () => {
     await fireEvent.press(screen.getByTestId('item-add-manual'));
     await waitFor(() => expect(screen).toHavePathname('/item/form'), WAIT);
     await waitFor(() => expect(screen.getByText('Piece details')).toBeTruthy(), WAIT);
+    // The photo handed over before the paywall travels into the manual form.
+    expect(screen.getByText(/Your photo is ready/)).toBeTruthy();
   }, 20_000);
 
   it('12: a 402 item_recognition_limit_reached from the server opens the paywall and keeps the manual path', async () => {
@@ -264,5 +318,24 @@ describe('AI recognition quota (12, 13)', () => {
     await fireEvent.press(screen.getByTestId('bulk-pick'));
     await waitFor(() => expect(screen).toHavePathname('/paywall'), WAIT);
     expect(fixtureListDrafts()).toHaveLength(0);
+  }, 20_000);
+
+  it('13: photos picked before a 402 from the server are not lost — "Enter manually" opens the form with the photo', async () => {
+    setFixtureItemRecognition(2, 1);
+    await open('/item/bulk');
+    await waitFor(() => expect(screen.getByTestId('bulk-pick')).toBeTruthy(), WAIT);
+    await settle();
+    // The last free recognition is used elsewhere: the app still believes one is left, the server says 402.
+    setFixtureItemRecognition(2, 2);
+    await fireEvent.press(screen.getByTestId('bulk-pick'));
+    await waitFor(() => expect(screen).toHavePathname('/paywall'), WAIT);
+    expect(fixtureListDrafts()).toHaveLength(0);
+
+    await act(async () => router.back());
+    await waitFor(() => expect(screen.getByTestId('bulk-manual')).toBeTruthy(), WAIT);
+    await fireEvent.press(screen.getByTestId('bulk-manual'));
+    await waitFor(() => expect(screen).toHavePathname('/item/form'), WAIT);
+    await waitFor(() => expect(screen.getByText(/Your photo is ready/)).toBeTruthy(), WAIT);
+    expect(screen.getByText('ORIGINAL')).toBeTruthy();
   }, 20_000);
 });

@@ -4,8 +4,11 @@ import { fixtureDb, resetFixtureDb } from '@/fixtures/db';
 import {
   assignItemsToSlots,
   canSaveLook,
+  coverTone,
   filledCount,
   filterLooks,
+  lookPieceNames,
+  missingPieceCount,
   parseItemIds,
   sameSlots,
   slotForCategory,
@@ -99,5 +102,27 @@ describe('filterLooks', () => {
     expect(filterLooks(looks, 'favorites').map((l) => l.id)).toEqual(['look_lacivert_blazer']);
     expect(filterLooks(looks, 'office').map((l) => l.id)).toEqual(['look_lacivert_blazer', 'look_krem_katmanlar']);
     expect(filterLooks(looks, 'travel')).toEqual([]);
+  });
+});
+
+describe('look detail helpers', () => {
+  it('lists the piece names in slot order, without deleted or unnamed pieces', () => {
+    const look = fixtureDb.looks.find((l) => l.id === 'look_lacivert_blazer') as Look;
+    expect(lookPieceNames(look)).toEqual(['Beyaz poplin gömlek', 'Siyah kumaş pantolon', 'Lacivert yün blazer']);
+    const shuffled = { slots: [...look.slots].reverse().map((s, i) => ({ ...s, deleted: i === 0 })) };
+    expect(lookPieceNames(shuffled)).toEqual(['Beyaz poplin gömlek', 'Siyah kumaş pantolon']);
+  });
+
+  it('counts the store pieces as missing', () => {
+    const look = fixtureDb.looks[0] as Look;
+    expect(missingPieceCount(look)).toBe(0);
+    const withStore = { slots: [...look.slots, { ...(look.slots[0] as Look['slots'][number]), slot: 'shoes' as const, source: 'store' as const }] };
+    expect(missingPieceCount(withStore)).toBe(1);
+  });
+
+  it('gives a look the same placeholder tone every time', () => {
+    expect(coverTone('look_lacivert_blazer')).toBe(coverTone('look_lacivert_blazer'));
+    const tones = new Set(['a', 'b', 'c', 'd', 'e', 'f', 'g'].map(coverTone));
+    expect(tones.size).toBeGreaterThan(1);
   });
 });

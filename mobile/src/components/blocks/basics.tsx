@@ -1,11 +1,12 @@
 import { Info, Search, X } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Pressable, TextInput, View } from 'react-native';
+import { Pressable, TextInput, View } from 'react-native';
 
 import { Icon } from '@/components/ui/Icon';
-import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
+import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Text } from '@/components/ui/Text';
+import { DropLoader } from '@/components/brand/DropLoader';
 import { useThemeColors } from '@/theme/useThemeColors';
 
 /** Small pill label: "Yakında", "Örnek", "1 fiyat düştü". `accent` = filled espresso. */
@@ -101,18 +102,11 @@ type AvatarProps = {
   ring?: 'new' | 'seen' | null;
 };
 
-/** Round avatar; without a photo it shows the first letter on sand. Decorative — the name is next to it. */
+/** Round avatar through `ImageSlot`; without a photo (or when it fails to load) the person's initials on sand. Decorative — the name is next to it. */
 export function Avatar({ name, uri, size = 44, ring = null }: AvatarProps) {
-  const letter = name.replace(/^@/, '').charAt(0).toLocaleUpperCase('tr-TR');
   const inner = (
-    <View style={{ width: size, height: size }} className="items-center justify-center overflow-hidden rounded-pill bg-sand">
-      {uri ? (
-        <PlaceholderImage uri={uri} className="h-full w-full" />
-      ) : (
-        <Text variant={size >= 64 ? 'h2' : 'bodyMedium'} tone="accent" accessible={false}>
-          {letter}
-        </Text>
-      )}
+    <View style={{ width: size, height: size }}>
+      <ImageSlot uri={uri} className="h-full w-full rounded-pill" placeholder={{ kind: 'avatar', name }} />
     </View>
   );
   if (!ring) return inner;
@@ -132,7 +126,6 @@ type DangerButtonProps = { label: string; onPress: () => void; loading?: boolean
 
 /** Destructive primary action (52 high, danger fill). Always labelled with text — colour never carries the meaning alone. */
 export function DangerButton({ label, onPress, loading = false, disabled = false }: DangerButtonProps) {
-  const colors = useThemeColors();
   const inactive = disabled || loading;
   return (
     <Pressable
@@ -146,7 +139,7 @@ export function DangerButton({ label, onPress, loading = false, disabled = false
       }`}
     >
       {loading ? (
-        <ActivityIndicator color={colors.paper} />
+        <DropLoader size="inline" tone="cream" accessibilityLabel={label} />
       ) : (
         <Text variant="button" tone="paper" numberOfLines={1}>
           {label}

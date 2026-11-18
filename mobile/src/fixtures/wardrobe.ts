@@ -145,8 +145,9 @@ export function fixtureConfirmDrafts(request: ConfirmItemDraftsRequest): Confirm
       color: entry.color,
       fabric: entry.fabric,
       seasons: entry.seasons,
-      imageUrl: draft?.localUri ?? null,
-      originalImageUrl: draft?.localUri ?? null,
+      // A manual entry may carry its own photo (`photoKey` is the local URI in fixture mode).
+      imageUrl: draft?.localUri ?? entry.photoKey ?? null,
+      originalImageUrl: draft?.localUri ?? entry.photoKey ?? null,
       useOriginalImage: entry.useOriginalImage,
       wearCount: 0,
       lastWornAt: null,

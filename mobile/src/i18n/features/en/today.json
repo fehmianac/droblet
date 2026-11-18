@@ -4,15 +4,33 @@
     "weather": "{{temperature}} {{city}}",
     "lookImageA11y": "{{name}}, on you",
     "pieceMissingA11y": "{{name}}, missing piece",
-    "missingPieceTag": "MISSING PIECE",
     "refreshing": "Preparing another suggestion",
     "refreshFailed": "We couldn't get another suggestion. Try again.",
     "noPlanTitle": "Nothing planned for today",
     "noPlanBody": "We know your occasion and the weather; let the stylist put together three outfits.",
-    "noPlanAction": "Ask the stylist"
+    "noPlanAction": "Ask the stylist",
+    "lookEyebrow": "TODAY'S OUTFIT · {{occasion}}",
+    "greetingAlone": {
+      "Morning": "Good morning {{name}}.",
+      "Day": "Good afternoon {{name}}.",
+      "Evening": "Good evening {{name}}."
+    },
+    "seeEdit": "Open the edit of the week",
+    "editTag": "{{weekday}} · {{name}}",
+    "editCardA11y": "{{weekday}}, {{name}}",
+    "greetingNoName": {
+      "Morning": "Good morning,",
+      "Day": "Good afternoon,",
+      "Evening": "Good evening,"
+    },
+    "greetingAloneNoName": {
+      "Morning": "Good morning.",
+      "Day": "Good afternoon.",
+      "Evening": "Good evening."
+    }
   },
   "weekPlan": {
-    "eyebrow": "THE NEXT 7 DAYS",
+    "eyebrowThisWeek": "THIS WEEK · {{range}}",
     "title": "Weekly plan",
     "calendar": "Calendar",
     "loading": "Loading the weekly plan",
@@ -26,7 +44,6 @@
     "nothingToTryOn": "Plan at least one day first to see it on you.",
     "nothingToPlan": "There are no empty days left to plan this week.",
     "dayEyebrow": "{{weekday}} · {{occasion}}",
-    "todayBadge": "Today",
     "dayOptions": "Options for {{day}}",
     "change": "Change",
     "remove": "Remove",
@@ -71,10 +88,10 @@
       "high_street": "High street",
       "luxury_touch": "Luxury touch"
     },
-    "ownedHidden_one": "{{count}} piece is already in your wardrobe · hidden",
-    "ownedHidden_other": "{{count}} pieces are already in your wardrobe · hidden",
-    "ownedShown_one": "{{count}} piece is already in your wardrobe",
-    "ownedShown_other": "{{count}} pieces are already in your wardrobe",
+    "ownedCount_one": "{{count}} piece is already in your wardrobe",
+    "ownedCount_other": "{{count}} pieces are already in your wardrobe",
+    "hiddenSuffix": " · hidden",
+    "sponsoredBy": "Made in partnership with {{brand}}.",
     "show": "Show",
     "hide": "Hide",
     "ownedBadge": "In your wardrobe",
@@ -107,6 +124,7 @@
     "noLogs": "Nothing logged this month yet",
     "mostWorn": "Most worn: {{name}}",
     "report": "Report",
+    "reportA11y": "Open the report for {{month}}",
     "statusWorn": "Worn",
     "statusPlanned": "Planned",
     "lookMeta": "{{occasion}} · {{pieces}}",
@@ -115,5 +133,25 @@
     "change": "Change",
     "emptyDay": "No look for this day. Let the stylist suggest one for the occasion and the weather.",
     "suggestForDay": "Suggest for this day"
+  },
+  "monthReport": {
+    "eyebrow": "MONTHLY REPORT",
+    "statDays_one": "day logged",
+    "statDays_other": "days logged",
+    "statPieces_one": "different piece worn",
+    "statPieces_other": "different pieces worn",
+    "statLooks_one": "different look",
+    "statLooks_other": "different looks",
+    "coverage": "{{logged}} of the month's {{total}} days are logged.",
+    "topItems": "Most worn",
+    "wornTimes_one": "{{count}} time",
+    "wornTimes_other": "{{count}} times",
+    "occasions": "Occasions",
+    "unworn": "Not worn this month",
+    "unwornCount_one": "{{count}} piece in your wardrobe was not worn this month.",
+    "unwornCount_other": "{{count}} pieces in your wardrobe were not worn this month.",
+    "allWorn": "You wore every piece in your wardrobe this month.",
+    "emptyMessage": "Nothing is logged for this month. The days you tap \"I'm wearing this\" are collected here.",
+    "emptyAction": "Back to the calendar"
   }
 }

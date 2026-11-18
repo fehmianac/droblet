@@ -91,6 +91,8 @@ describe('social wire mappers', () => {
       imageUrl: 'https://cdn.example/bag.jpg',
       brandName: 'Vakko',
       price: { amountMinor: 1250000, currency: 'TRY' },
+      category: 'bag',
+      color: 'black',
     });
   });
 
@@ -192,6 +194,8 @@ describe('social wire mappers', () => {
       id: 'i1',
       name: 'Beyaz tişört',
       imageUrl: null,
+      category: 'top',
+      color: 'white',
     });
     expect(toInviteLink({ code: 'ABCDEFGH', url: 'https://droblet.alatech.co/i/ABCDEFGH', invitedCount: 1 })).toEqual({
       code: 'ABCDEFGH',

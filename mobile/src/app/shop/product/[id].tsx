@@ -1,71 +1,78 @@
-import { AiDropPulse, AiProgressLines, AiShimmerImage } from '@/components/ui/ai';
+import { AiDropPulse, AiFailure, AiProgressLines, AiTryOnStage } from '@/components/ui/ai';
 import { useQueryClient } from '@tanstack/react-query';
-import { router, useLocalSearchParams } from 'expo-router';
-import { Bookmark, Check, ChevronLeft, CircleAlert, Heart } from 'lucide-react-native';
-import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { router, useIsFocused, useLocalSearchParams } from 'expo-router';
+import { BookmarkCheck, BookmarkPlus, Check, ChevronLeft, CircleAlert, Heart, Plus, ShoppingBag } from 'lucide-react-native';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ONE_SIZE, type ProductDetail, type ProductSize } from '@/api/contracts/store';
 import { useBodyProfile } from '@/api/profile';
-import { Card } from '@/components/blocks/basics';
 import { BrandMark } from '@/components/blocks/BrandMark';
 import { CartButton } from '@/components/blocks/SectionState';
-import { AiImage } from '@/components/ui/AiBadge';
+import { AiBadge } from '@/components/ui/AiBadge';
 import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { Button } from '@/components/ui/Button';
-import { Chip, ChipWrap } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
-import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
+import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { useMyPhotos } from '@/features/account/queries';
-import { useAiGate } from '@/features/credits/useAiGate';
+import { CreditConfirmSheet } from '@/features/credits/CreditConfirmSheet';
+import { openCreditSheetIfExhausted } from '@/features/credits/creditSheetStore';
+import { aiCreditsKey } from '@/features/credits/useAiCredits';
 import { preferredSize } from '@/features/store/cartMath';
+import { HangerGlyph, MirrorGlyph } from '@/features/store/icons';
+import { useAddItemFromProduct, useAddToCart, useSetFavorite, useSetWatch } from '@/features/store/mutations';
 import {
-  useAddItemFromProduct,
-  useAddToCart,
-  useRequestTryOn,
-  useSetFavorite,
-  useSetWatch,
-} from '@/features/store/mutations';
-import {
-  productTryOnOptions,
   useFavoriteProducts,
   useProduct,
   useProductMatch,
-  useProductTryOn,
+  useProductTryOnJobId,
   useWatchlist,
 } from '@/features/store/queries';
+import { TRY_ON_CREDIT_COST, useStartTryOn, useTryOnJob } from '@/features/tryon/api';
 import { currentLanguage } from '@/i18n';
 import { formatMoney } from '@/lib/format';
 import { suffixed } from '@/lib/trSuffix';
+import { useIsOnline } from '@/sync/network';
 
 type ProductView = 'product' | 'onMe';
 
-function DetailSkeleton() {
+/** Height of the image area on the board (it runs under the status bar). */
+const HERO_CLASS = 'h-[390px]';
+
+/** One side of the Ürün / Üzerimde switch: a borderless 36 chip inside the paper pill. */
+function ViewOption({ label, selected, onPress, glyph }: { label: string; selected: boolean; onPress: () => void; glyph?: ReactNode }) {
   return (
-    <View className="gap-5">
-      <Skeleton className="aspect-[4/5] w-full" />
-      <View className="gap-3 px-gutter">
-        <Skeleton className="h-3 w-24 rounded-field" />
-        <Skeleton className="h-7 w-56 rounded-field" />
-        <Skeleton className="h-chip w-full rounded-pill" />
-        <Skeleton className="h-16 w-full rounded-card" />
-      </View>
-    </View>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="tab"
+      accessibilityLabel={label}
+      accessibilityState={{ selected }}
+      hitSlop={{ top: 4, bottom: 4 }}
+      className={`h-chip flex-row items-center gap-1.5 rounded-pill px-[15px] active:opacity-80 ${selected ? 'bg-ink' : ''}`}
+    >
+      {glyph}
+      <Text variant="chip" tone={selected ? 'cream' : 'ink'} numberOfLines={1}>
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
 function ProductBody({ product }: { product: ProductDetail }) {
   const { t } = useTranslation();
   const language = currentLanguage();
+  const insets = useSafeAreaInsets();
   const client = useQueryClient();
-  const gate = useAiGate();
+  const online = useIsOnline();
+  const focused = useIsFocused();
 
   const bodyProfile = useBodyProfile();
   const photos = useMyPhotos();
@@ -76,16 +83,24 @@ function ProductBody({ product }: { product: ProductDetail }) {
   const setWatch = useSetWatch();
   const addToCart = useAddToCart();
   const addToWardrobe = useAddItemFromProduct();
-  const requestTryOn = useRequestTryOn();
 
   const [view, setView] = useState<ProductView>('product');
-  /** True once a try-on was asked for in this visit; a `none` answer after that means it was declined. */
-  const [requested, setRequested] = useState(false);
   const [pickedSize, setPickedSize] = useState<ProductSize | null>(null);
   const [sizeError, setSizeError] = useState(false);
   const [addedToWardrobe, setAddedToWardrobe] = useState(false);
 
-  const tryOn = useProductTryOn(product.id, view === 'onMe');
+  // "Üzerimde": the same job flow as every other try-on — confirm the credit, start the job, poll it.
+  const tryOn = useStartTryOn();
+  const [jobId, rememberJob] = useProductTryOnJobId(product.id);
+  const job = useTryOnJob(jobId, { enabled: focused && view === 'onMe' });
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [tryOnNote, setTryOnNote] = useState<'offline' | 'failed' | null>(null);
+
+  const settled = job.isDone || job.isFailed;
+  useEffect(() => {
+    // A finished image spent the credit; a failed job returned it.
+    if (settled) void client.invalidateQueries({ queryKey: aiCreditsKey });
+  }, [client, settled]);
 
   const profileSize = bodyProfile.data?.size ?? null;
   const defaultSize = preferredSize(product.sizes, profileSize);
@@ -95,20 +110,34 @@ function ProductBody({ product }: { product: ProductDetail }) {
   const favorite = favorites.data?.productIds.includes(product.id) ?? false;
   const watching = watchlist.data?.items.some((i) => i.productId === product.id) ?? false;
   const needsPhoto = photos.data !== undefined && photos.data.body.length === 0;
-  const shownView: ProductView = view === 'onMe' && requested && tryOn.data?.status === 'none' ? 'product' : view;
 
-  const showOnMe = async () => {
-    // Not a member → paywall. Viewing an image that already exists costs nothing.
-    if (!gate('product_try_on', () => undefined, { costsCredit: false })) return;
-    setRequested(false);
-    setView('onMe');
-    if (needsPhoto) return;
-    const state = await client.fetchQuery(productTryOnOptions(product.id)).catch(() => null);
-    if (state?.status !== 'none') return;
-    // A new image costs one credit; with none left the 05b sheet opens instead.
-    const started = gate('product_try_on', () => requestTryOn(product.id));
-    setRequested(true);
-    if (!started) setView('product');
+  const startTryOn = async () => {
+    try {
+      const started = await tryOn.start({ kind: 'product', id: product.id });
+      rememberJob(started.jobId);
+      setTryOnNote(null);
+      setView('onMe');
+    } catch (error) {
+      // Out of credits → the 05b sheet (never a silent failure); anything else → one calm sentence.
+      if (!openCreditSheetIfExhausted(error, 'product_try_on')) setTryOnNote('failed');
+    } finally {
+      setConfirmOpen(false);
+    }
+  };
+
+  const showOnMe = () => {
+    // An image (or a wait) from this session, or the "add a photo first" panel: nothing is spent.
+    if (jobId || needsPhoto) {
+      setTryOnNote(null);
+      setView('onMe');
+      return;
+    }
+    if (!online) {
+      setTryOnNote('offline');
+      return;
+    }
+    setTryOnNote(null);
+    setConfirmOpen(true);
   };
 
   const requireSize = (action: (chosen: ProductSize) => void) => {
@@ -119,49 +148,69 @@ function ProductBody({ product }: { product: ProductDetail }) {
     action(size);
   };
 
-  let image;
-  if (shownView === 'product') {
-    image = <PlaceholderImage uri={product.imageUrl} className="aspect-[4/5] w-full" accessibilityLabel={product.name} />;
-  } else if (needsPhoto) {
-    image = (
-      <View className="aspect-[4/5] w-full items-center justify-center gap-4 bg-sand px-8">
-        <Text variant="body" className="text-center">
-          {t('productDetail.tryOnNeedsPhoto')}
-        </Text>
-        <Button variant="secondary" label={t('productDetail.tryOnAddPhoto')} onPress={() => router.push('/settings')} />
-      </View>
-    );
-  } else if (tryOn.data?.status === 'done') {
-    image = <AiImage kind="onYou" uri={tryOn.data.imageUrl} className="aspect-[4/5] w-full" accessibilityLabel={product.name} />;
-  } else if (tryOn.data?.status === 'failed' || tryOn.status === 'error') {
-    image = (
-      <View className="aspect-[4/5] w-full items-center justify-center gap-4 bg-sand px-8" accessibilityLiveRegion="polite">
-        <Text variant="body" className="text-center">
-          {t('productDetail.tryOnFailed')}
-        </Text>
-        <Button variant="secondary" label={t('common.retry')} onPress={() => void showOnMe()} />
-      </View>
-    );
-  } else {
-    // The shared AI wait (canvas `AiYukleniyor`): shimmer image slot + the drop + rotating progress sentences.
-    image = (
-      <AiShimmerImage className="aspect-[4/5] w-full gap-3 px-8">
-        <AiDropPulse />
-        <AiProgressLines
-          lines={[t('productDetail.tryOnPreparing'), t('ai.tryOnLines.pieces'), t('ai.tryOnLines.colors'), t('ai.tryOnLines.placing'), t('ai.tryOnLines.finishing')]}
-          size="compact"
-          align="center"
-        />
-      </AiShimmerImage>
-    );
+  const garment = { category: product.category, color: product.colors[0], imageUrl: product.imageUrl };
+  let onMe: ReactNode = null;
+  if (view === 'onMe') {
+    if (needsPhoto) {
+      onMe = (
+        <View className="flex-1 items-center justify-center gap-3 bg-sand px-4">
+          <Text variant="caption" className="text-center">
+            {t('productDetail.tryOnNeedsPhoto')}
+          </Text>
+          <Button variant="secondary" label={t('productDetail.tryOnAddPhoto')} onPress={() => router.push('/settings')} className="px-4" />
+        </View>
+      );
+    } else if (job.isFailed) {
+      onMe = (
+        <View className="flex-1 justify-center bg-sand px-3">
+          <AiFailure layout="inline" creditRefunded={job.creditRefunded} onRetry={() => void startTryOn()} retrying={tryOn.isStarting} />
+        </View>
+      );
+    } else if (job.isDone) {
+      const uri = job.result?.imageUrl ?? null;
+      // The marker only sits on a generated image. A finished job without one shows the piece itself
+      // ("Parça kolajı"), never a bare figure under "SENİN ÜZERİNDE".
+      onMe = (
+        <ImageSlot
+          uri={uri}
+          className="flex-1"
+          accessibilityLabel={uri ? t('productDetail.onMeA11y', { name: product.name }) : t('aiBadge.collageA11y', { name: product.name })}
+          placeholder={{ kind: 'look', pieces: [garment], figureHeight: 220 }}
+        >
+          {uri ? (
+            <View className="absolute bottom-2 left-2" pointerEvents="none">
+              <AiBadge kind="onYou" />
+            </View>
+          ) : (
+            <View className="absolute left-2.5 h-badge justify-center rounded-pill border border-line bg-paper px-2" style={{ top: insets.top + 56 }} pointerEvents="none">
+              <Text variant="badge" numberOfLines={1}>
+                {t('stylistResult.collageBadge')}
+              </Text>
+            </View>
+          )}
+        </ImageSlot>
+      );
+    } else {
+      // The shared AI wait (canvas `AiYukleniyor`): the try-on stage here, the progress sentences under the image.
+      onMe = <AiTryOnStage className="flex-1" pieces={1} tag={null} />;
+    }
   }
+  const waiting = view === 'onMe' && !needsPhoto && Boolean(jobId) && job.isWorking;
 
   return (
     <>
-      <ScrollView contentContainerClassName="gap-5 pb-8">
-        <View>
-          {image}
-          <View className="absolute left-gutter right-gutter top-3 flex-row justify-between">
+      <ScrollView contentContainerClassName="gap-[11px] pb-6" bounces={false}>
+        <View className={HERO_CLASS}>
+          <View className="flex-1 flex-row gap-0.5">
+            <ImageSlot
+              uri={product.imageUrl}
+              className="flex-1"
+              accessibilityLabel={product.name}
+              placeholder={{ kind: 'garment', category: garment.category, color: garment.color, glyphSize: 96 }}
+            />
+            {onMe}
+          </View>
+          <View className="absolute left-gutter right-gutter flex-row justify-between" style={{ top: insets.top + 4 }}>
             <IconButton icon={ChevronLeft} variant="inverse" onPress={() => router.back()} accessibilityLabel={t('a11y.back')} />
             <View className="flex-row gap-2">
               <CartButton variant="inverse" />
@@ -174,47 +223,93 @@ function ProductBody({ product }: { product: ProductDetail }) {
               />
             </View>
           </View>
-          <View
-            className="absolute bottom-3 left-0 right-0 flex-row justify-center gap-2"
-            accessibilityRole="tablist"
-            accessibilityLabel={t('productDetail.viewToggle')}
-          >
-            <Chip label={t('productDetail.viewProduct')} selected={shownView === 'product'} onPress={() => setView('product')} />
-            <Chip label={t('productDetail.viewOnMe')} selected={shownView === 'onMe'} onPress={() => void showOnMe()} />
+          <View className="absolute bottom-3.5 left-0 right-0 items-center" pointerEvents="box-none">
+            <View
+              className="flex-row gap-0.5 rounded-[22px] bg-paper/95 p-1"
+              accessibilityRole="tablist"
+              accessibilityLabel={t('productDetail.viewToggle')}
+            >
+              <ViewOption label={t('productDetail.viewProduct')} selected={view === 'product'} onPress={() => setView('product')} />
+              <ViewOption
+                label={t('productDetail.viewOnMe')}
+                selected={view === 'onMe'}
+                onPress={showOnMe}
+                glyph={<MirrorGlyph tone={view === 'onMe' ? 'cream' : 'ink'} />}
+              />
+            </View>
           </View>
         </View>
 
-        <View className="gap-5 px-gutter">
+        <View className="gap-[11px] px-gutter pt-[3px]">
+          {waiting ? (
+            <View className="flex-row items-center gap-2.5">
+              <AiDropPulse height={18} />
+              <View className="flex-1">
+                <AiProgressLines
+                  lines={[t('ai.tryOnLines.pieces'), t('ai.tryOnLines.colors'), t('ai.tryOnLines.placing'), t('ai.tryOnLines.finishing')]}
+                  size="compact"
+                />
+              </View>
+            </View>
+          ) : null}
+          {tryOnNote ? (
+            <View className="flex-row items-start gap-1.5" accessibilityLiveRegion="polite">
+              <Icon icon={CircleAlert} size={14} tone="danger" />
+              <Text variant="caption" tone="danger" className="flex-1">
+                {t(tryOnNote === 'offline' ? 'productDetail.tryOnOffline' : 'productDetail.tryOnStartFailed')}
+              </Text>
+            </View>
+          ) : null}
+
           <View className="flex-row items-start justify-between gap-3">
             <View className="flex-1 gap-1">
               <BrandMark name={product.brandName} logoUrl={product.brandLogoUrl} />
-              <Text variant="h2">{product.name}</Text>
+              <Text variant="h2" className="text-[24px] leading-[27px]">
+                {product.name}
+              </Text>
             </View>
-            {product.price !== null ? <Text variant="h3">{formatMoney(product.price)}</Text> : null}
+            {product.price !== null ? (
+              <Text variant="total" className="mt-1.5 text-[18px]">
+                {formatMoney(product.price)}
+              </Text>
+            ) : null}
           </View>
 
-          <View className="gap-2">
+          <View className="gap-1.5">
             <View className="flex-row flex-wrap items-baseline gap-1">
-              <Text variant="bodyMedium">{t('productDetail.sizeLabel')}</Text>
+              <Text variant="label">{t('productDetail.sizeLabel')}</Text>
               {sizeIsFromProfile ? (
                 <Text variant="caption" tone="muted">
                   {t('productDetail.sizeFromProfile')}
                 </Text>
               ) : null}
             </View>
-            <ChipWrap>
-              {product.sizes.map((s) => (
-                <Chip
-                  key={s}
-                  label={s === ONE_SIZE ? t('shop.oneSize') : s}
-                  selected={size === s}
-                  onPress={() => {
-                    setPickedSize(s);
-                    setSizeError(false);
-                  }}
-                />
-              ))}
-            </ChipWrap>
+            <View className="flex-row flex-wrap gap-1.5" accessibilityRole="radiogroup" accessibilityLabel={t('productDetail.sizeLabel')}>
+              {product.sizes.map((s) => {
+                const label = s === ONE_SIZE ? t('shop.oneSize') : s;
+                const selected = size === s;
+                return (
+                  <Pressable
+                    key={s}
+                    onPress={() => {
+                      setPickedSize(s);
+                      setSizeError(false);
+                    }}
+                    accessibilityRole="radio"
+                    accessibilityLabel={label}
+                    accessibilityState={{ selected, checked: selected }}
+                    hitSlop={{ top: 4, bottom: 4 }}
+                    className={`h-chip min-w-[46px] items-center justify-center rounded-pill border px-2.5 active:opacity-80 ${
+                      selected ? 'border-ink bg-ink' : 'border-line'
+                    }`}
+                  >
+                    <Text variant="chip" tone={selected ? 'cream' : 'ink'} numberOfLines={1}>
+                      {label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
             {sizeError ? (
               <View className="flex-row items-center gap-1.5" accessibilityLiveRegion="polite">
                 <Icon icon={CircleAlert} size={14} tone="danger" />
@@ -226,20 +321,33 @@ function ProductBody({ product }: { product: ProductDetail }) {
           </View>
 
           {match.data ? (
-            <Card className="flex-row items-center justify-between gap-3 px-4 py-2">
-              <Text variant="body" className="flex-1">
-                {match.data.count > 0 ? t('productDetail.matchCount', { count: match.data.count }) : t('productDetail.matchNone')}
+            <View className="min-h-16 flex-row items-center gap-2.5 rounded-image-lg border border-line bg-paper px-3 py-2.5">
+              <HangerGlyph size={18} />
+              <Text variant="caption" className="flex-1">
+                {match.data.count > 0 ? (
+                  <Trans
+                    i18nKey="productDetail.matchCount"
+                    count={match.data.count}
+                    components={{ b: <Text variant="label" /> }}
+                  />
+                ) : (
+                  t('productDetail.matchNone')
+                )}
               </Text>
               {match.data.count > 0 ? (
-                <Button
-                  variant="text"
-                  label={t('productDetail.matchShow')}
+                <Pressable
                   onPress={() => router.push({ pathname: '/shop/builder', params: { productId: product.id } })}
-                />
+                  accessibilityRole="button"
+                  accessibilityLabel={t('productDetail.matchShow')}
+                  hitSlop={8}
+                  className="min-h-icon-btn justify-center active:opacity-70"
+                >
+                  <Text variant="label">{t('productDetail.matchShow')}</Text>
+                </Pressable>
               ) : null}
-            </Card>
+            </View>
           ) : match.isPending ? (
-            <Skeleton className="h-14 w-full rounded-card" />
+            <Skeleton className="h-16 w-full rounded-image-lg" />
           ) : null}
 
           <Pressable
@@ -247,11 +355,11 @@ function ProductBody({ product }: { product: ProductDetail }) {
             accessibilityRole="button"
             accessibilityState={{ selected: watching }}
             accessibilityLabel={`${t(watching ? 'productDetail.watchAdded' : 'productDetail.watchAdd')}, ${t('productDetail.watchHint')}`}
-            className="min-h-btn-primary flex-row items-center gap-3 rounded-card border border-line px-4 py-2 active:opacity-70"
+            className="min-h-icon-btn flex-row items-center gap-2.5 rounded-image-lg border border-line px-3 py-2.5 active:opacity-70"
           >
-            <Icon icon={Bookmark} size={20} filled={watching} />
+            <Icon icon={watching ? BookmarkCheck : BookmarkPlus} size={18} />
             <View className="flex-1">
-              <Text variant="bodyMedium">{t(watching ? 'productDetail.watchAdded' : 'productDetail.watchAdd')}</Text>
+              <Text variant="segment">{t(watching ? 'productDetail.watchAdded' : 'productDetail.watchAdd')}</Text>
               <Text variant="caption" tone="muted">
                 {t('productDetail.watchHint')}
               </Text>
@@ -265,10 +373,10 @@ function ProductBody({ product }: { product: ProductDetail }) {
       </ScrollView>
 
       <BottomActionBar>
-        <View className="flex-row items-center gap-3">
+        <View className="flex-row items-center gap-2.5">
           {addedToWardrobe ? (
             <View
-              className="h-btn-secondary flex-1 flex-row items-center justify-center gap-2 rounded-pill bg-sand px-3"
+              className="h-btn-bar flex-1 flex-row items-center justify-center gap-2 rounded-pill bg-sand px-3"
               accessible
               accessibilityLiveRegion="polite"
               accessibilityLabel={t('productDetail.addedToWardrobe')}
@@ -281,7 +389,9 @@ function ProductBody({ product }: { product: ProductDetail }) {
           ) : (
             <Button
               variant="secondary"
-              className="flex-1"
+              size="bar"
+              icon={Plus}
+              className="flex-1 px-3"
               label={t('productDetail.addToWardrobe')}
               onPress={() =>
                 requireSize((chosen) => {
@@ -292,7 +402,9 @@ function ProductBody({ product }: { product: ProductDetail }) {
             />
           )}
           <Button
-            className="flex-1"
+            size="bar"
+            icon={ShoppingBag}
+            className="flex-1 px-3"
             label={t('productDetail.addToCart')}
             onPress={() =>
               requireSize((chosen) => {
@@ -303,26 +415,37 @@ function ProductBody({ product }: { product: ProductDetail }) {
           />
         </View>
       </BottomActionBar>
+
+      <CreditConfirmSheet
+        visible={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        cost={TRY_ON_CREDIT_COST}
+        onConfirm={() => void startTryOn()}
+        confirming={tryOn.isStarting}
+      />
     </>
   );
 }
 
 /**
- * 22 Ürün detayı — Ürün / Üzerimde toggle, size preselected from the body profile, wardrobe match,
- * "İzleme listeme ekle" (separate from the heart), "Gardıroba ekle" and "Sepete ekle". The note that
- * payment happens at the brand is always visible.
+ * 22 Ürün + üzerimde — the image runs to the top edge with the back / cart / heart buttons on it and
+ * the Ürün / Üzerimde switch at its foot. "Üzerimde" splits the image: the product on the left, the
+ * AI image ("SENİN ÜZERİNDE") on the right — started through the credit confirmation and the shared
+ * try-on job. Below: size (preselected from the body profile), the wardrobe match, "İzleme listeme
+ * ekle" (separate from the heart) and the note that payment happens at the brand. Bottom bar:
+ * "Gardıroba ekle" and "Sepete ekle" — no bottom menu.
  */
 export default function ProductScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const product = useProduct(id);
+  const loaded = product.data != null;
 
   return (
-    <Screen bottom={product.data == null}>
-      {product.data == null ? <ScreenHeader title={t('screens.product')} leading="back" /> : null}
+    <Screen top={!loaded}>
+      {loaded ? null : <ScreenHeader title={t('screens.product')} leading="back" />}
       <ScreenState
         query={product}
-        skeleton={<DetailSkeleton />}
         isEmpty={(data) => data === null}
         empty={{
           message: t('productDetail.notFound'),

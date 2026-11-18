@@ -8,7 +8,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
 import { Text } from '@/components/ui/Text';
 import { useUnblockPerson } from '@/features/social/mutations';
-import { PeopleSkeleton, RowAction } from '@/features/social/PeopleRows';
+import { RowAction } from '@/features/social/PeopleRows';
 import { useBlockedPeople } from '@/features/social/queries';
 import { useThemeColors } from '@/theme/useThemeColors';
 
@@ -28,7 +28,6 @@ export default function BlockedAccountsScreen() {
       <ScreenHeader title={t('friends.blockedTitle')} leading="back" />
       <ScreenState
         query={blocked}
-        skeleton={<PeopleSkeleton rows={2} />}
         isEmpty={(list) => list.length === 0}
         empty={{
           message: t('friends.blockedEmpty'),

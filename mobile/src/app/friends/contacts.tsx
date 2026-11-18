@@ -10,7 +10,6 @@ import { ApiError } from '@/api/errors';
 import { Card } from '@/components/blocks/basics';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
-import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { StateMessage } from '@/components/ui/StateMessage';
@@ -75,7 +74,6 @@ export default function ContactsMatchScreen() {
   return (
     <Screen bottom>
       <ScreenHeader title={t('contacts.consentTitle')} leading="back" />
-      <OfflineBanner />
       {phase === 'consent' ? (
         <ScrollView contentContainerClassName="gap-5 px-gutter pb-10 pt-2">
           <View className="h-16 w-16 items-center justify-center rounded-pill bg-sand">

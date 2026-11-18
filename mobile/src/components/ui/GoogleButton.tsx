@@ -1,7 +1,10 @@
-import { ActivityIndicator, Pressable, Text as RNText, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import { thirdPartyColors } from '@/theme/tokens';
+import { DropLoader } from '@/components/brand/DropLoader';
+
+import { Text } from './Text';
 
 type Props = { label: string; onPress: () => void; loading?: boolean; disabled?: boolean };
 
@@ -30,8 +33,8 @@ function GoogleMark() {
 }
 
 /**
- * "Continue with Google" following Google's brand rules: white surface, 1px #747775 border,
- * Roboto Medium, #1F1F1F text, official G mark. Not re-themed by design tokens on purpose.
+ * "Google ile devam et" exactly as on 02: a 52-high paper pill with a line border, the official
+ * four-colour G mark (never recoloured) and the label in the button type style.
  */
 export function GoogleButton({ label, onPress, loading = false, disabled = false }: Props) {
   const inactive = disabled || loading;
@@ -42,23 +45,19 @@ export function GoogleButton({ label, onPress, loading = false, disabled = false
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ disabled, busy: loading }}
-      className={`h-btn-primary flex-row items-center justify-center gap-3 rounded-pill border active:opacity-80 ${
+      testID="auth.google"
+      className={`h-btn-primary flex-row items-center justify-center rounded-pill border border-line bg-paper active:opacity-80 ${
         disabled ? 'opacity-40' : ''
       }`}
-      style={{ backgroundColor: thirdPartyColors.googleSurface, borderColor: thirdPartyColors.googleBorder }}
     >
       {loading ? (
-        <ActivityIndicator color={thirdPartyColors.googleText} />
+        <DropLoader size="inline" accessibilityLabel={label} />
       ) : (
-        <View className="flex-row items-center gap-3">
+        <View className="flex-row items-center gap-2">
           <GoogleMark />
-          <RNText
-            maxFontSizeMultiplier={1.3}
-            className="font-google-button text-button"
-            style={{ color: thirdPartyColors.googleText }}
-          >
+          <Text variant="button" numberOfLines={1}>
             {label}
-          </RNText>
+          </Text>
         </View>
       )}
     </Pressable>

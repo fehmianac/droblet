@@ -29,9 +29,52 @@
       "membership": "Üyelik",
       "membershipActive": "Aktif",
       "membershipFree": "Ücretsiz",
+      "plan": {
+        "monthly": "Aylık",
+        "yearly": "Yıllık"
+      },
       "family": "Aile planı",
       "settings": "Gizlilik, fotoğraflar ve ayarlar"
     }
+  },
+  "profileEdit": {
+    "title": "Profili düzenle",
+    "name": "Ad",
+    "handle": "Kullanıcı adı",
+    "handleHint": "Profilin @{{handle}} olarak görünür.",
+    "handleRules": "{{min}}–{{max}} karakter; küçük harf, rakam, nokta ve alt çizgi.",
+    "addPhoto": "Fotoğraf ekle",
+    "changePhoto": "Fotoğrafı değiştir",
+    "noPhoto": "Profil fotoğrafı yok",
+    "photoTitle": "Profil fotoğrafı",
+    "takePhoto": "Fotoğraf çek",
+    "choosePhoto": "Galeriden seç",
+    "removePhoto": "Fotoğrafı kaldır",
+    "save": "Kaydet",
+    "offline": "Profilini kaydetmek için internet bağlantısı gerekiyor.",
+    "errors": {
+      "nameRequired": "Adını yaz.",
+      "nameTooLong": "Ad en fazla {{max}} karakter olabilir.",
+      "handleRequired": "Bir kullanıcı adı yaz.",
+      "handleTooShort": "Kullanıcı adı en az {{min}} karakter olmalı.",
+      "handleTooLong": "Kullanıcı adı en fazla {{max}} karakter olabilir.",
+      "handleInvalid": "Yalnızca küçük harf, rakam, nokta ve alt çizgi kullan.",
+      "handleTaken": "Bu kullanıcı adı alınmış. Başka bir tane dene."
+    },
+    "checking": "Kontrol ediliyor…",
+    "available": "@{{handle}} kullanılabilir.",
+    "current": "Bu senin kullanıcı adın.",
+    "taken": "Bu kullanıcı adı alınmış.",
+    "reserved": "Bu kullanıcı adı kullanılamaz.",
+    "invalid": "3–30 karakter; küçük harf, rakam, nokta ve alt çizgi kullan.",
+    "checkFailed": "Şu an kontrol edemedik; kaydederken tekrar denenir.",
+    "cityLabel": "Şehir",
+    "cityHint": "Hava durumu ve öneriler için.",
+    "cityNone": "Şehir seçilmedi",
+    "citySearch": "Şehir ara",
+    "cityEmpty": "Bu adla şehir bulunamadı.",
+    "cityError": "Şehirler şu an yüklenemedi.",
+    "cityClear": "Şehri kaldır"
   },
   "settings": {
     "visibilityEyebrow": "DOLABIMI KİMLER GÖREBİLİR?",
@@ -52,6 +95,7 @@
     "addTitle": "Hangi fotoğrafı ekleyelim?",
     "addBody": "Boy fotoğrafı çek",
     "addFace": "Yüz fotoğrafı seç",
+    "replaceFace": "Yüz fotoğrafını değiştir",
     "uploadQueued": "Fotoğrafın yükleniyor; hazır olunca burada görünecek.",
     "photoFailed": "Fotoğraf hazırlanamadı. Başka bir fotoğraf dene.",
     "photosNote": "Yalnızca sana açıktır. Boy fotoğrafı en fazla 3.",
@@ -60,7 +104,9 @@
     "notificationsEyebrow": "BİLDİRİMLER",
     "morning": "Sabah kombin hatırlatması",
     "morningTime": "Hatırlatma saati",
+    "morningTimeA11y": "Hatırlatma saati: {{time}}",
     "timeTitle": "Hatırlatma saati",
+    "timeBody": "Sabah kombin hatırlatması her gün bu saatte gelir.",
     "weeklyEdit": "Haftanın edit'i",
     "friendRatings": "Arkadaş puanları",
     "notificationsError": "Bildirim ayarların şu an yüklenemedi.",
@@ -72,8 +118,11 @@
   "photoDelete": {
     "title": "Fotoğrafların ve üretilen görseller silinsin mi?",
     "listTitle": "Silinecekler:",
+    "bullet": "· {{line}}",
     "bodyPhotos_one": "{{count}} boy fotoğrafın",
     "bodyPhotos_other": "{{count}} boy fotoğrafın",
+    "bodyAndFace_one": "{{count}} boy fotoğrafı ve yüz fotoğrafın",
+    "bodyAndFace_other": "{{count}} boy fotoğrafı ve yüz fotoğrafın",
     "facePhoto": "Yüz fotoğrafın",
     "generated_one": "Senin üzerinde üretilen {{count}} AI görseli",
     "generated_other": "Senin üzerinde üretilen {{count}} AI görseli",
@@ -117,6 +166,9 @@
     "analyzeAction": "Paletimi çıkar",
     "analyzing": "Paletin hazırlanıyor",
     "failed": "Şu an oluşturamadık. Tekrar dene.",
+    "photoSheetTitle": "Yüz fotoğrafı",
+    "takePhoto": "Fotoğraf çek",
+    "choosePhoto": "Galeriden seç",
     "season": {
       "light_spring": "Açık İlkbahar",
       "warm_spring": "Sıcak İlkbahar",
@@ -130,6 +182,40 @@
       "deep_winter": "Koyu Kış",
       "cool_winter": "Soğuk Kış",
       "bright_winter": "Parlak Kış"
+    }
+  },
+  "notifCenter": {
+    "today": "BUGÜN",
+    "yesterday": "DÜN",
+    "unread_one": "{{count}} okunmamış bildirim",
+    "unread_other": "{{count}} okunmamış bildirim",
+    "allRead": "Hepsi okundu",
+    "markAll": "Tümünü okundu say",
+    "settings": "Bildirim ayarları",
+    "empty": "Henüz bildirimin yok; fiyatı düşen ürünler ve arkadaş puanları burada görünür.",
+    "rowA11y": "{{title}}. {{body}}. {{time}}",
+    "rowUnreadA11y": "Okunmadı. {{title}}. {{body}}. {{time}}",
+    "priceDrop": {
+      "title": "{{name}} için fiyat düştü",
+      "body": "{{brand}} · {{previous}} yerine {{price}}"
+    },
+    "friendRating": {
+      "title_one": "{{name}} lookuna {{count}} yıldız verdi",
+      "title_other": "{{name}} lookuna {{count}} yıldız verdi",
+      "body": "Arkadaş akışında gör"
+    },
+    "weeklyPlan": {
+      "title": "Haftalık planın hazır",
+      "body": "Bu haftanın kombinlerine göz at"
+    },
+    "creditsLow": {
+      "title_one": "Bu ay {{count}} AI görselin kaldı",
+      "title_other": "Bu ay {{count}} AI görselin kaldı",
+      "body": "Kredi yükleyebilir ya da yenilenmeyi bekleyebilirsin"
+    },
+    "renewal": {
+      "title": "Üyeliğin {{date}} yenileniyor",
+      "body": "Üyelik ayrıntılarını gör"
     }
   },
   "credits": {

@@ -6,7 +6,7 @@ import { deleteSession, readSession, writeSession, type StoredSession } from './
 
 export type SessionState =
   | { status: 'loading' }
-  | { status: 'signedOut'; reason?: 'expired' }
+  | { status: 'signedOut'; reason?: 'expired' | 'suspended' }
   | { status: 'signedIn'; user: AuthUser };
 
 let state: SessionState = { status: 'loading' };
@@ -71,7 +71,7 @@ export const sessionStore = {
    * Clears tokens. The user's persisted query cache and mutation queue are keyed by user id and are
    * NOT deleted here — queued writes are the user's work and resume after the same user signs in.
    */
-  async clear(reason?: 'expired'): Promise<void> {
+  async clear(reason?: 'expired' | 'suspended'): Promise<void> {
     current = null;
     await deleteSession();
     emit({ status: 'signedOut', reason });

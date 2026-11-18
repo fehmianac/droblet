@@ -92,6 +92,8 @@ export type EditProduct = {
   price: Money;
   imageUrl: string | null;
   category: ItemCategory;
+  /** Main colour, when the catalogue gives one: ground of the placeholder while there is no picture. */
+  color?: string | null;
   /** Set when the user already owns an equivalent piece (WardrobeMatchRules) — hidden by default on 08. */
   ownedItemId: string | null;
   inWatchlist: boolean;
@@ -119,6 +121,11 @@ export type WeeklyEdit = {
   looks: EditLook[];
   /** False → "Profil fotoğrafını tamamla" card instead of the try-on image. */
   hasBodyPhoto: boolean;
+  /**
+   * Brand of a sponsored edit → the "SPONSORLU" label on 08 (wire `sponsored` + `sponsorName`); null = an
+   * editorial edit.
+   */
+  sponsoredBy?: string | null;
 };
 
 /** PUT v1/tenant/watch-list/{productId} `{ look: { kind: "edit", id } }` — replay-safe. `editLookId` = the edit look it was added from. */

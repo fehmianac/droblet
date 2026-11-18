@@ -1,0 +1,55 @@
+# Signed-out screens for design review: 01 Hoş geldin, 02 Kayıt / giriş, 02b Şifremi unuttum, 02d Yeni şifre.
+# Run: maestro test -e LANG=tr -e LOCALE=tr_TR .maestro/signed-out.yaml
+appId: com.alatech.droplet
+env:
+  LANG: ${LANG}
+  LOCALE: ${LOCALE}
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+    arguments:
+      AppleLanguages: "(${LANG})"
+      AppleLocale: ${LOCALE}
+# A link prompt left over from an earlier run would cover the first screen.
+- runFlow:
+    when:
+      visible: "Cancel"
+    commands:
+      - tapOn: "Cancel"
+- extendedWaitUntil:
+    visible:
+      id: "welcome.start"
+    timeout: 20000
+- extendedWaitUntil:
+    notVisible:
+      id: "animated-splash"
+    timeout: 10000
+- takeScreenshot: 01-hos-geldin
+- tapOn:
+    id: "welcome.start"
+- extendedWaitUntil:
+    visible:
+      id: "auth.name"
+    timeout: 10000
+- takeScreenshot: 02-kayit
+- tapOn:
+    id: "auth.tab.login"
+- waitForAnimationToEnd
+- takeScreenshot: 02-giris
+- tapOn:
+    id: "auth.forgot"
+- extendedWaitUntil:
+    visible:
+      id: "forgot.email"
+    timeout: 10000
+- takeScreenshot: 02b-sifremi-unuttum
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://reset-password?token=review"
+- extendedWaitUntil:
+    visible:
+      id: "reset.password"
+    timeout: 10000
+- takeScreenshot: 02d-yeni-sifre

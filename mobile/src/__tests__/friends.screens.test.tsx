@@ -109,23 +109,22 @@ describe('friends: follow requests, lists, contacts, profile edit (fixtures, EN)
     expect(contacts.getContactsAsync).not.toHaveBeenCalled();
   });
 
-  it('profile edit: live @handle availability', async () => {
-    await open('/profile-edit');
+  it('profile edit: live @handle availability on the one edit-profile screen', async () => {
+    await open('/edit-profile');
     await waitFor(() => expect(screen.getByText('This is your username.')).toBeTruthy(), TIMEOUT);
     await fireEvent.changeText(screen.getByTestId('profileEdit.handle'), 'selin');
     await waitFor(() => expect(screen.getByText('This username is taken.')).toBeTruthy(), TIMEOUT);
+    expect(screen.getByTestId('profile-save')).toBeDisabled();
     await fireEvent.changeText(screen.getByTestId('profileEdit.handle'), 'admin');
     await waitFor(() => expect(screen.getByText("This username can't be used.")).toBeTruthy(), TIMEOUT);
     await fireEvent.changeText(screen.getByTestId('profileEdit.handle'), 'damla.k');
     await waitFor(() => expect(screen.getByText('@damla.k is available.')).toBeTruthy(), TIMEOUT);
-    await fireEvent.press(screen.getByTestId('profileEdit.saveHandle'));
-    await waitFor(() => expect(screen.getByText('Your username is saved.')).toBeTruthy(), TIMEOUT);
   });
 
-  it('notifications: price drops and follow requests are switches, off by default', async () => {
+  it('notifications: price drops and follow requests are check boxes, off by default', async () => {
     await open('/notifications');
     await waitFor(() => expect(screen.getByText('Price drops on my watch list')).toBeTruthy(), TIMEOUT);
-    expect(screen.getByLabelText('Follow requests').props.value).toBe(false);
-    expect(screen.getByLabelText('Price drops on my watch list').props.value).toBe(false);
+    expect(screen.getByRole('checkbox', { name: 'Follow requests' })).not.toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Price drops on my watch list' })).not.toBeChecked();
   });
 });

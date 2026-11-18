@@ -14,7 +14,7 @@ import { Text } from '@/components/ui/Text';
 import { useThemeColors } from '@/theme/useThemeColors';
 
 import { useRemoveFollower } from './mutations';
-import { FollowChip, PeopleSkeleton, PersonListRow, RowAction } from './PeopleRows';
+import { FollowChip, PersonListRow, RowAction } from './PeopleRows';
 import { useFollowers, useFollowing } from './queries';
 
 /**
@@ -35,7 +35,6 @@ export function PeopleListScreen({ kind }: { kind: 'followers' | 'following' }) 
       <ScreenHeader title={t(kind === 'followers' ? 'friends.followersTitle' : 'friends.followingTitle')} leading="back" />
       <ScreenState
         query={query}
-        skeleton={<PeopleSkeleton />}
         isEmpty={(list) => list.length === 0}
         empty={{
           message: t(kind === 'followers' ? 'friends.followersEmpty' : 'friends.followingEmpty'),

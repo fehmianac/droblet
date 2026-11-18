@@ -40,6 +40,11 @@ const LIVE = {
   account: true,
   /** Renk paleti (30). */
   palette: true,
+  /**
+   * Bildirim merkezi. The API has no notification inbox yet: against the API the centre is empty (no
+   * request is made); fixture builds show the sample list.
+   */
+  notifications: true,
 } satisfies Record<string, boolean>;
 
 export const DATA_SOURCE = Object.fromEntries(

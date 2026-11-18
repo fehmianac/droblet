@@ -10,24 +10,10 @@ import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
-import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { useSaveLook } from '@/features/social/mutations';
 import { useSavedLooks } from '@/features/social/queries';
 import { useThemeColors } from '@/theme/useThemeColors';
-
-function SavedSkeleton() {
-  return (
-    <View className="flex-row gap-3 px-gutter pt-2">
-      {[0, 1].map((i) => (
-        <View key={i} className="flex-1 gap-2">
-          <Skeleton className="aspect-[4/5] w-full rounded-image" />
-          <Skeleton className="h-4 w-24 rounded-field" />
-        </View>
-      ))}
-    </View>
-  );
-}
 
 function SavedCard({ look }: { look: FeedLook }) {
   const { t } = useTranslation();
@@ -78,7 +64,6 @@ export default function SavedLooksScreen() {
       <ScreenHeader title={t('friends.savedTitle')} leading="back" />
       <ScreenState
         query={saved}
-        skeleton={<SavedSkeleton />}
         isEmpty={(list) => list.length === 0}
         empty={{ message: t('friends.savedEmpty'), actionLabel: t('friends.savedEmptyAction'), onAction: () => router.push('/friends/feed') }}
       >

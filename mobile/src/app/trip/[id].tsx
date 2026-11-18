@@ -1,26 +1,40 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Check, CircleAlert, Cloud, CloudRain, Ellipsis, Pencil, Snowflake, Sparkles, Sun, Trash2, type LucideIcon } from 'lucide-react-native';
+import {
+  Check,
+  CircleAlert,
+  Cloud,
+  CloudRain,
+  Ellipsis,
+  MirrorRound,
+  Pencil,
+  Share as ShareIcon,
+  Snowflake,
+  Sun,
+  Trash2,
+  type LucideIcon,
+} from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Pressable, ScrollView, Switch, View } from 'react-native';
+import { Pressable, ScrollView, Share, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import type { TripDay, TripDetail, WeatherCondition } from '@/api/contracts/trips';
+import type { TripDay, TripDetail, TripMissingPiece, WeatherCondition } from '@/api/contracts/trips';
 import { ITEM_CATEGORIES, type Item } from '@/api/contracts/wardrobe';
-import { ImageTag, PopoverMenu } from '@/components/ui/Bits';
+import { PopoverMenu } from '@/components/ui/Bits';
+import { BottomActionBar } from '@/components/ui/BottomActionBar';
+import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
-import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { CreditConfirmSheet } from '@/features/credits/CreditConfirmSheet';
 import { indexItems, LookCover } from '@/features/looks/LookCover';
 import { assignItemsToSlots, slotList } from '@/features/looks/logic';
 import { useTrip, useTripWrites } from '@/features/trips/api';
-import { groupByCategory, readiness, tripLengthDays } from '@/features/trips/logic';
+import { groupByCategory, readiness, tripLengthDays, tripShareText } from '@/features/trips/logic';
 import { ReadinessRing } from '@/features/trips/ReadinessRing';
 import { TripDaySheet } from '@/features/trips/TripDaySheet';
 import { TripPacking } from '@/features/trips/TripPacking';
@@ -31,33 +45,16 @@ import { currentLanguage } from '@/i18n';
 import { formatDateRange, formatTemperature, parseLocalDate, weekdayShort } from '@/lib/format';
 import { toDisplayUpper } from '@/lib/upper';
 import { useIsOnline } from '@/sync/network';
-import { useThemeColors } from '@/theme/useThemeColors';
+import { placeholderTones } from '@/theme/tokens';
 
 const WEATHER_ICON: Record<WeatherCondition, LucideIcon> = { sun: Sun, cloud: Cloud, rain: CloudRain, snow: Snowflake };
+
+/** Up to a week the forecast cards share the row (canvas: five equal cards); longer trips scroll. */
+const FORECAST_ROW_MAX = 7;
 
 function leave() {
   if (router.canGoBack()) router.back();
   else router.replace('/wardrobe/trips');
-}
-
-function TripSkeleton() {
-  return (
-    <View className="gap-5 px-gutter pt-2">
-      <View className="gap-2">
-        <Skeleton className="h-3 w-40 rounded-field" />
-        <Skeleton className="h-9 w-1/2 rounded-field" />
-      </View>
-      <View className="flex-row gap-2">
-        {[0, 1, 2, 3, 4].map((i) => (
-          <Skeleton key={i} className="h-16 flex-1 rounded-image-lg" />
-        ))}
-      </View>
-      <Skeleton className="h-24 w-full rounded-card" />
-      {[0, 1, 2, 3].map((i) => (
-        <Skeleton key={i} className="h-11 w-full rounded-field" />
-      ))}
-    </View>
-  );
 }
 
 function Forecast({ trip }: { trip: TripDetail }) {
@@ -69,32 +66,41 @@ function Forecast({ trip }: { trip: TripDetail }) {
       </Text>
     );
   }
+  const fits = trip.forecast.length <= FORECAST_ROW_MAX;
+  const cards = trip.forecast.map((day) => {
+    const weekday = weekdayShort(parseLocalDate(day.date));
+    const temperature = formatTemperature(day.temperatureC);
+    return (
+      <View
+        key={day.date}
+        accessible
+        accessibilityLabel={t('tripDetail.forecastDay', { weekday, temperature, condition: t(`tripDetail.condition.${day.condition}`) })}
+        className={`items-center gap-0.5 rounded-field border border-line bg-paper py-1.5 ${fits ? 'flex-1' : 'min-w-[58px] px-2'}`}
+      >
+        <Text variant="caption" tone="muted" numberOfLines={1} className="text-[11px]">
+          {weekday}
+        </Text>
+        <Icon icon={WEATHER_ICON[day.condition]} size={18} />
+        <Text variant="badge">{temperature}</Text>
+      </View>
+    );
+  });
+  if (fits) {
+    return (
+      <View className="flex-row gap-1.5" accessibilityLabel={t('tripDetail.forecastLabel')}>
+        {cards}
+      </View>
+    );
+  }
   return (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
       accessibilityLabel={t('tripDetail.forecastLabel')}
       className="-mx-gutter"
-      contentContainerClassName="gap-2 px-gutter"
+      contentContainerClassName="gap-1.5 px-gutter"
     >
-      {trip.forecast.map((day) => {
-        const weekday = weekdayShort(parseLocalDate(day.date));
-        const temperature = formatTemperature(day.temperatureC);
-        return (
-          <View
-            key={day.date}
-            accessible
-            accessibilityLabel={t('tripDetail.forecastDay', { weekday, temperature, condition: t(`tripDetail.condition.${day.condition}`) })}
-            className="min-w-[58px] items-center gap-1 rounded-image-lg border border-line bg-paper px-2 py-2.5"
-          >
-            <Text variant="caption" tone="muted" numberOfLines={1}>
-              {weekday}
-            </Text>
-            <Icon icon={WEATHER_ICON[day.condition]} size={18} />
-            <Text variant="bodyMedium">{temperature}</Text>
-          </View>
-        );
-      })}
+      {cards}
     </ScrollView>
   );
 }
@@ -116,7 +122,7 @@ function DayLooks({ days, onOpen }: { days: TripDay[]; onOpen: (day: TripDay) =>
       showsHorizontalScrollIndicator={false}
       accessibilityLabel={t('tripDetail.dailyLooks')}
       className="-mx-gutter"
-      contentContainerClassName="gap-2.5 px-gutter"
+      contentContainerClassName="gap-2 px-gutter"
     >
       {planned.map((day) => {
         const ref = day.look;
@@ -131,8 +137,19 @@ function DayLooks({ days, onOpen }: { days: TripDay[]; onOpen: (day: TripDay) =>
             className="active:opacity-80"
             testID={`trip-day-${day.date}`}
           >
-            <LookCover slots={daySlots(day, items.data)} itemsById={itemsById} className="h-32 w-24 rounded-image">
-              <ImageTag label={toDisplayUpper(weekday, currentLanguage())} className="absolute bottom-1.5 left-1.5" />
+            <LookCover
+              seed={ref.id}
+              figureHeight={46}
+              tryOnImageUrl={ref.imageUrl}
+              slots={daySlots(day, items.data)}
+              itemsById={itemsById}
+              className="h-[72px] w-16 rounded-thumb"
+            >
+              <View className="absolute bottom-1 left-1 rounded-tag bg-paper/90 px-1 py-0.5">
+                <Text variant="tag" numberOfLines={1} className="text-[8.5px] leading-[11px]">
+                  {toDisplayUpper(weekday, currentLanguage())}
+                </Text>
+              </View>
             </LookCover>
           </Pressable>
         );
@@ -141,9 +158,48 @@ function DayLooks({ days, onOpen }: { days: TripDay[]; onOpen: (day: TripDay) =>
   );
 }
 
+/** Square check mark of the canvas checklists (accent-colour ink when on). */
+function CheckBox({ checked, size }: { checked: boolean; size: 18 | 20 }) {
+  return (
+    <View
+      className={`items-center justify-center rounded-[4px] border ${checked ? 'border-ink bg-ink' : 'border-muted bg-paper'}`}
+      style={{ width: size, height: size }}
+    >
+      {checked ? <Icon icon={Check} size={size - 6} tone="paper" /> : null}
+    </View>
+  );
+}
+
+function MissingCard({ piece }: { piece: TripMissingPiece }) {
+  const { t } = useTranslation();
+  const productId = piece.productId;
+  const line = t('tripDetail.missingLine', { name: piece.name, reason: piece.reason });
+  return (
+    <Pressable
+      onPress={productId ? () => router.push({ pathname: '/shop/product/[id]', params: { id: productId } }) : undefined}
+      disabled={!productId}
+      accessibilityRole={productId ? 'button' : undefined}
+      accessibilityLabel={t('tripDetail.missingNoteLine', { name: piece.name, reason: piece.reason })}
+      accessibilityHint={productId ? t('tripDetail.missingOpenHint') : undefined}
+      className="flex-row items-center gap-2.5 rounded-card border border-accent bg-paper px-3 py-2.5 active:opacity-80"
+    >
+      <View className="overflow-hidden rounded-[8px] border-[1.5px] border-dashed" style={{ borderColor: placeholderTones.camel }}>
+        <ItemThumb category={piece.category ?? 'accessory'} color="black" className="h-[41px] w-[37px]" glyphSize={20} />
+      </View>
+      <View className="flex-1 gap-0.5">
+        <Text variant="eyebrow" tone="accent">
+          {t('tripDetail.missingEyebrow')}
+        </Text>
+        <Text variant="body" className="text-[13.5px]">
+          {line}
+        </Text>
+      </View>
+    </Pressable>
+  );
+}
+
 function PackedTrip({ trip }: { trip: TripDetail }) {
   const { t } = useTranslation();
-  const colors = useThemeColors();
   const online = useIsOnline();
   const writes = useTripWrites();
   const tryOn = useStartTryOn();
@@ -155,7 +211,7 @@ function PackedTrip({ trip }: { trip: TripDetail }) {
 
   const ready = readiness(trip.items);
   const lookDays = trip.days.filter((d) => d.look);
-  const groups = groupByCategory(trip.items, ITEM_CATEGORIES);
+  const rows = groupByCategory(trip.items, ITEM_CATEGORIES).flatMap((group) => group.items);
 
   const confirmDays = confirm === 'all' ? lookDays : lookDays.filter((d) => d.date === confirm);
   const askTryOn = (scope: 'all' | string) => {
@@ -184,8 +240,8 @@ function PackedTrip({ trip }: { trip: TripDetail }) {
 
   return (
     <>
-      <View className="flex-row items-center gap-3 rounded-card border border-line bg-paper p-4">
-        <View className="flex-1 gap-1.5">
+      <View className="flex-row items-center gap-3 rounded-card border border-line bg-paper px-3.5 py-2.5">
+        <View className="flex-1">
           <Text variant="bodyMedium">
             {t('tripDetail.summary', { pieces: t('trips.pieces', { count: trip.items.length }), looks: t('tripDetail.looks', { count: lookDays.length }) })}
           </Text>
@@ -194,81 +250,80 @@ function PackedTrip({ trip }: { trip: TripDetail }) {
               {t('tripDetail.minWears', { count: trip.minWearsPerItem })}
             </Text>
           ) : null}
-          <View className="flex-row items-center gap-2.5 pt-1">
-            <Switch
-              value={trip.cabinOnly}
-              onValueChange={(value) => writes.setCabinOnly(trip, value)}
-              accessibilityLabel={t('tripDetail.cabinOnly')}
-              trackColor={{ true: colors.ink, false: colors.line }}
-              thumbColor={colors.paper}
-              ios_backgroundColor={colors.line}
-            />
-            <Text variant="body" className="flex-1" accessible={false}>
+          <Pressable
+            onPress={() => writes.setCabinOnly(trip, !trip.cabinOnly)}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: trip.cabinOnly }}
+            accessibilityLabel={t('tripDetail.cabinOnly')}
+            accessibilityHint={t('tripDetail.cabinOnlyHint')}
+            hitSlop={{ top: 8, bottom: 8 }}
+            testID="trip-cabin-only"
+            className="mt-1.5 min-h-7 flex-row items-center gap-2 self-start active:opacity-70"
+          >
+            <CheckBox checked={trip.cabinOnly} size={18} />
+            <Text variant="caption" className="text-[12.5px]">
               {t('tripDetail.cabinOnly')}
             </Text>
-          </View>
+          </Pressable>
         </View>
         <ReadinessRing {...ready} />
       </View>
 
       {trip.missing.map((piece) => (
-        <View key={piece.id} className="flex-row items-center gap-3 rounded-card border border-dashed border-accent p-3">
-          <ItemThumb category={piece.category ?? 'accessory'} className="h-14 w-12 rounded-[8px]" glyphSize={22} />
-          <View className="flex-1 gap-0.5">
-            <Text variant="eyebrow" tone="accent">
-              {t('tripDetail.missingEyebrow')}
-            </Text>
-            <Text variant="body">{t('tripDetail.missingLine', { name: piece.name, reason: piece.reason })}</Text>
-          </View>
-        </View>
+        <MissingCard key={piece.id} piece={piece} />
       ))}
 
       <DayLooks days={trip.days} onOpen={setOpenDay} />
 
-      <View className="gap-3">
-        <View className="flex-row flex-wrap items-center justify-between gap-x-3 gap-y-1">
+      <View>
+        <View className="flex-row flex-wrap items-center justify-between gap-x-3">
           <Text variant="h3">{t('tripDetail.listTitle')}</Text>
           {lookDays.length > 0 ? (
-            <Button
-              variant="text"
-              icon={Sparkles}
-              label={t('tripDetail.tryOnLooks')}
-              onPress={() => askTryOn('all')}
+            <Pressable
+              onPress={() => {
+                if (!online) {
+                  setTryOnNote('offline');
+                  return;
+                }
+                setTryOnNote(null);
+                askTryOn('all');
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={t('tripDetail.tryOnLooks')}
               testID="trip-tryon-all"
-            />
+              className="min-h-icon-btn flex-row items-center gap-1 active:opacity-70"
+            >
+              <Icon icon={MirrorRound} size={15} />
+              <Text variant="label">{t('tripDetail.tryOnLooks')}</Text>
+            </Pressable>
           ) : null}
         </View>
         {tryOnNote ? (
-          <View className="flex-row items-center gap-1.5" accessibilityLiveRegion="polite">
+          <View className="flex-row items-center gap-1.5 pb-2" accessibilityLiveRegion="polite">
             <Icon icon={CircleAlert} size={14} tone="danger" />
             <Text variant="caption" tone="danger" className="flex-1">
               {t(tryOnNote === 'offline' ? 'tripDetail.tryOnOffline' : 'tripDetail.tryOnFailed')}
             </Text>
           </View>
         ) : null}
-        {groups.map((group) => (
-          <View key={group.category} className="gap-0.5">
-            <Text variant="caption" tone="muted">
-              {t(`itemCategory.${group.category}`)}
+        {rows.map((item) => (
+          <Pressable
+            key={item.itemId}
+            onPress={() => writes.setPacked(trip.id, item.itemId, !item.packed)}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: item.packed }}
+            accessibilityLabel={item.name}
+            accessibilityHint={t(`itemCategory.${item.category}`)}
+            className="min-h-icon-btn flex-row items-center gap-3 border-b border-line py-2 active:opacity-70"
+          >
+            <CheckBox checked={item.packed} size={20} />
+            <Text variant="body" tone={item.packed ? 'muted' : 'ink'} numberOfLines={2} className={`flex-1 ${item.packed ? 'line-through' : ''}`}>
+              {item.name}
             </Text>
-            {group.items.map((item) => (
-              <Pressable
-                key={item.itemId}
-                onPress={() => writes.setPacked(trip.id, item.itemId, !item.packed)}
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked: item.packed }}
-                accessibilityLabel={item.name}
-                className="min-h-icon-btn flex-row items-center gap-3 active:opacity-70"
-              >
-                <View className={`h-6 w-6 items-center justify-center rounded-[6px] border ${item.packed ? 'border-ink bg-ink' : 'border-muted bg-paper'}`}>
-                  {item.packed ? <Icon icon={Check} size={16} tone="paper" /> : null}
-                </View>
-                <Text variant="body" tone={item.packed ? 'muted' : 'ink'} className={`flex-1 ${item.packed ? 'line-through' : ''}`}>
-                  {item.name}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+            <Text variant="caption" tone="muted" numberOfLines={1}>
+              {t(`itemCategory.${item.category}`)}
+            </Text>
+          </Pressable>
         ))}
       </View>
 
@@ -299,9 +354,9 @@ function PackedTrip({ trip }: { trip: TripDetail }) {
 }
 
 /**
- * 19 Bavul detayı — forecast, readiness ring, checklist (checked = struck through), daily looks,
- * missing pieces → "Eksikleri tamamla", cabin-only mode. A trip without an accepted list shows the
- * AI packing wait / draft instead.
+ * 19 Bavul detayı — share, forecast, readiness ring, single-cabin-bag mode, missing pieces, daily looks
+ * with weekday tags, the checklist (checked = struck through) and the bottom bar "Eksikleri tamamla".
+ * A trip without an accepted list shows the AI packing wait / draft instead.
  */
 export default function TripDetailScreen() {
   const { t } = useTranslation();
@@ -310,21 +365,25 @@ export default function TripDetailScreen() {
   const trip = useTrip(id);
   const writes = useTripWrites();
   const [menu, setMenu] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const data = trip.data;
-  const showBar = data?.status === 'packed' && data.missing.length > 0;
+  const packed = data?.status === 'packed';
+  const showBar = Boolean(packed && data && data.missing.length > 0);
 
-  const confirmDelete = () => {
-    Alert.alert(t('tripDetail.deleteTitle'), t('tripDetail.deleteBody'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('tripDetail.deleteConfirm'),
-        style: 'destructive',
-        onPress: () => {
-          writes.remove(id);
-          leave();
-        },
-      },
-    ]);
+  const share = () => {
+    if (!data) return;
+    const range = formatDateRange(parseLocalDate(data.startDate), parseLocalDate(data.endDate), { day: 'numeric', month: 'long' });
+    const message = tripShareText(data, {
+      title: t('tripDetail.shareTitle', { city: data.cityName, range, days: t('trips.days', { count: tripLengthDays(data.startDate, data.endDate) }) }),
+      listHeader: t('tripDetail.listTitle'),
+      item: (name, isPacked) => t(isPacked ? 'tripDetail.shareItemPacked' : 'tripDetail.shareItem', { name }),
+      looksHeader: t('tripDetail.dailyLooks'),
+      look: (date, name) => t('tripDetail.dayLook', { weekday: weekdayShort(parseLocalDate(date)), name }),
+      missingHeader: t('common.missingPiece'),
+      missing: (name, reason) => t('tripDetail.missingLine', { name, reason }),
+      footer: t('tripDetail.shareFooter'),
+    });
+    void Share.share({ message }).catch(() => undefined);
   };
 
   return (
@@ -332,14 +391,21 @@ export default function TripDetailScreen() {
       <ScreenHeader
         leading="back"
         onLeadingPress={leave}
-        right={data ? <IconButton icon={Ellipsis} variant="plain" onPress={() => setMenu(true)} accessibilityLabel={t('tripDetail.more')} /> : undefined}
+        right={
+          data ? (
+            <>
+              {packed ? <IconButton icon={ShareIcon} onPress={share} accessibilityLabel={t('tripDetail.share')} testID="trip-share" /> : null}
+              <IconButton icon={Ellipsis} variant="plain" onPress={() => setMenu(true)} accessibilityLabel={t('tripDetail.more')} />
+            </>
+          ) : undefined
+        }
       />
-      <ScreenState query={trip} skeleton={<TripSkeleton />}>
+      <ScreenState query={trip}>
         {(detail) => {
           const range = formatDateRange(parseLocalDate(detail.startDate), parseLocalDate(detail.endDate), { day: 'numeric', month: 'long' });
           const days = t('trips.days', { count: tripLengthDays(detail.startDate, detail.endDate) });
           return (
-            <ScrollView contentContainerClassName="gap-5 px-gutter pb-8">
+            <ScrollView contentContainerClassName="gap-3 px-gutter pb-8">
               <View className="gap-1">
                 <Text variant="eyebrow">{toDisplayUpper(t('tripDetail.headerEyebrow', { range, days }), currentLanguage())}</Text>
                 <Text variant="display" numberOfLines={2}>
@@ -354,17 +420,25 @@ export default function TripDetailScreen() {
       </ScreenState>
 
       {showBar && data ? (
-        <View className="flex-row items-center gap-4 border-t border-line bg-paper px-gutter pt-3" style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
-          <View className="flex-1 gap-0.5">
-            <Text variant="bodyMedium" numberOfLines={1}>
-              {t('tripDetail.missingCount', { count: data.missing.length })}
-            </Text>
-            <Text variant="caption" tone="muted" numberOfLines={2}>
-              {t('tripDetail.missingNote')}
-            </Text>
+        <BottomActionBar>
+          <View className="flex-row items-center gap-2.5">
+            <View className="shrink">
+              <Text variant="caption" tone="muted" numberOfLines={1}>
+                {t('tripDetail.missingCount', { count: data.missing.length })}
+              </Text>
+              <Text variant="title" numberOfLines={2}>
+                {t('tripDetail.missingNote')}
+              </Text>
+            </View>
+            <View className="flex-1">
+              <Button
+                label={t('tripDetail.completeMissing')}
+                onPress={() => router.push({ pathname: '/shop', params: { tripId: data.id } })}
+                testID="trip-complete-missing"
+              />
+            </View>
           </View>
-          <Button label={t('tripDetail.completeMissing')} onPress={() => router.push({ pathname: '/shop', params: { tripId: data.id } })} />
-        </View>
+        </BottomActionBar>
       ) : null}
 
       <PopoverMenu
@@ -373,9 +447,28 @@ export default function TripDetailScreen() {
         top={insets.top + 52}
         actions={[
           { key: 'edit', label: t('tripDetail.edit'), icon: Pencil, onPress: () => router.push({ pathname: '/trip/new', params: { id } }) },
-          { key: 'delete', label: t('tripDetail.delete'), icon: Trash2, destructive: true, onPress: confirmDelete },
+          { key: 'delete', label: t('tripDetail.delete'), icon: Trash2, destructive: true, onPress: () => setDeleting(true) },
         ]}
       />
+
+      <BottomSheet visible={deleting} onClose={() => setDeleting(false)} title={t('tripDetail.deleteTitle')}>
+        <View className="gap-3.5">
+          <Text variant="body" tone="muted">
+            {t('tripDetail.deleteBody')}
+          </Text>
+          <Button
+            variant="danger"
+            label={t('tripDetail.delete')}
+            testID="trip-delete-confirm"
+            onPress={() => {
+              setDeleting(false);
+              writes.remove(id);
+              leave();
+            }}
+          />
+          <Button variant="secondary" size="lg" label={t('common.cancel')} onPress={() => setDeleting(false)} />
+        </View>
+      </BottomSheet>
     </Screen>
   );
 }

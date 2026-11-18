@@ -1,52 +1,73 @@
+import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import { Camera, ImagePlus, ShieldCheck, X } from 'lucide-react-native';
-import { useState } from 'react';
+import { CameraOff, CircleAlert, Lock, Plus, X } from 'lucide-react-native';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { AppState, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { track } from '@/analytics/track';
 import { SIZES, type Size } from '@/api/contracts';
 import { useEnqueuePhotoUpload } from '@/api/photos';
 import { useBodyProfile, useSaveBodyProfile } from '@/api/profile';
-import { BottomActionBar } from '@/components/ui/BottomActionBar';
+import { StepHeader } from '@/components/auth/StepHeader';
+import { InfoNote } from '@/components/ui/Bits';
+import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 import { Chip, ChipWrap } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
-import { IconButton } from '@/components/ui/IconButton';
-import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
 import { Screen } from '@/components/ui/Screen';
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Text } from '@/components/ui/Text';
 import { TextField } from '@/components/ui/TextField';
 import { deleteLocalPhoto, type PreparedPhoto } from '@/features/photos/preparePhoto';
 import { usePhotoPicker } from '@/features/photos/usePhotoPicker';
 
 const MAX_BODY_PHOTOS = 3;
+const BODY_SLOTS = [0, 1, 2] as const;
 
 function parseNumber(value: string): number | null {
   const n = Number(value.replace(',', '.').trim());
   return value.trim() === '' || Number.isNaN(n) ? null : n;
 }
 
-function PhotoThumb({ photo, onRemove, label }: { photo: PreparedPhoto; onRemove: () => void; label: string }) {
+/** True when the camera permission was refused for good (the system will not ask again). */
+async function isCameraBlocked(): Promise<boolean> {
+  try {
+    const permission = await ImagePicker.getCameraPermissionsAsync();
+    return !permission.granted && !permission.canAskAgain;
+  } catch {
+    return false;
+  }
+}
+
+/** A chosen photo in its 104-high slot, with a remove button on the corner. */
+function PhotoTile({ photo, label, removeLabel, onRemove }: { photo: PreparedPhoto; label: string; removeLabel: string; onRemove: () => void }) {
   return (
-    <View>
-      <PlaceholderImage uri={photo.localUri} className="h-24 w-[76px] rounded-image" />
-      <View className="absolute -right-3 -top-3">
-        <IconButton icon={X} variant="inverse" onPress={onRemove} accessibilityLabel={label} />
-      </View>
+    <View className="h-[104px] flex-1">
+      <PlaceholderImage uri={photo.localUri} className="h-full w-full rounded-image" accessibilityLabel={label} />
+      <Pressable
+        onPress={onRemove}
+        accessibilityRole="button"
+        accessibilityLabel={removeLabel}
+        hitSlop={10}
+        className="absolute right-1 top-1 h-6 w-6 items-center justify-center rounded-pill bg-paper/90 active:opacity-70"
+      >
+        <Icon icon={X} size={14} />
+      </Pressable>
     </View>
   );
 }
 
 /**
- * 04 Beden ve fotoğraf (2/3). Height, optional weight, size; 1–3 full-length photos (camera) and a
- * face photo (library). Photos stay on the device until "Devam et", then go into the persisted upload
- * queue. The privacy note is always visible. "Atla" skips everything.
+ * 04 Beden ve fotoğraf (2/3). Height, optional weight and size in one row; four photo slots (three
+ * full-length, one face). Photos stay on the device until "Devam et", then go into the persisted upload
+ * queue. When the camera permission is blocked the board's inline card offers Settings or the library.
+ * The privacy note is always visible. "Atla" skips everything.
  */
 export default function BodyScreen() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const existing = useBodyProfile();
   const save = useSaveBodyProfile();
   const enqueueUpload = useEnqueuePhotoUpload();
@@ -54,10 +75,12 @@ export default function BodyScreen() {
   const [height, setHeight] = useState('');
   const [weight, setWeight] = useState('');
   const [size, setSize] = useState<Size | null>(null);
+  const [sizeSheet, setSizeSheet] = useState(false);
   const [bodyPhotos, setBodyPhotos] = useState<PreparedPhoto[]>([]);
   const [facePhoto, setFacePhoto] = useState<PreparedPhoto | null>(null);
   const [errors, setErrors] = useState<{ height?: string; weight?: string; size?: string; photo?: string }>({});
   const [prefilled, setPrefilled] = useState(false);
+  const [cameraBlocked, setCameraBlocked] = useState(false);
 
   // Prefill once from the server profile (render-time state adjustment, no effect).
   if (existing.data && !prefilled) {
@@ -66,6 +89,19 @@ export default function BodyScreen() {
     setWeight(existing.data.weightKg != null ? String(existing.data.weightKg) : '');
     setSize(existing.data.size);
   }
+
+  const refreshCameraPermission = useCallback(() => {
+    void isCameraBlocked().then(setCameraBlocked);
+  }, []);
+
+  // The permission can change in Settings while the app is in the background.
+  useEffect(() => {
+    refreshCameraPermission();
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') refreshCameraPermission();
+    });
+    return () => subscription.remove();
+  }, [refreshCameraPermission]);
 
   const onPhotoError = () => setErrors((e) => ({ ...e, photo: t('body.photoFailed') }));
 
@@ -88,6 +124,17 @@ export default function BodyScreen() {
     },
     onError: onPhotoError,
   });
+
+  const chooseBodyFromLibrary = () => bodyPicker.chooseFromLibrary(MAX_BODY_PHOTOS - bodyPhotos.length);
+
+  const addBodyPhoto = () => {
+    void isCameraBlocked().then((blocked) => {
+      setCameraBlocked(blocked);
+      // Blocked: the inline card explains why; the slot still works through the library.
+      if (blocked) chooseBodyFromLibrary();
+      else bodyPicker.takePhoto();
+    });
+  };
 
   const removeBodyPhoto = (photo: PreparedPhoto) => {
     deleteLocalPhoto(photo.localUri);
@@ -123,26 +170,27 @@ export default function BodyScreen() {
     router.push('/first-items');
   };
 
+  const fieldError = errors.height ?? errors.weight ?? errors.size;
+
   return (
     <Screen>
-      <OfflineBanner />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
-        <ScreenHeader leading="back" right={<Button variant="text" label={t('common.skip')} onPress={skip} testID="body.skip" />} />
-        <ScrollView contentContainerClassName="gap-8 px-gutter pb-10" keyboardShouldPersistTaps="handled">
+        <StepHeader step={2} total={3} onSkip={skip} skipTestID="body.skip" />
+        <ScrollView className="flex-1" contentContainerClassName="gap-4 px-6 pb-6 pt-[18px]" keyboardShouldPersistTaps="handled">
           <View className="gap-2">
-            <Text variant="eyebrow">
-              {t('common.eyebrowWithStep', { label: t('body.eyebrow'), step: t('common.stepOf', { current: 2, total: 3 }) })}
+            <Text variant="display" className="text-[32px] leading-[34px]">
+              {t('body.title')}
             </Text>
-            <Text variant="display">{t('body.title')}</Text>
             <Text variant="body" tone="muted">
               {t('body.body')}
             </Text>
           </View>
 
-          <View className="gap-4">
-            <View className="flex-row gap-3">
+          <View className="gap-1.5">
+            <View className="flex-row gap-2.5">
               <View className="flex-1">
                 <TextField
+                  testID="body.height"
                   label={t('body.height')}
                   value={height}
                   onChangeText={(v) => {
@@ -151,12 +199,11 @@ export default function BodyScreen() {
                   }}
                   keyboardType="number-pad"
                   maxLength={3}
-                  testID="body.height"
-                  error={errors.height}
                 />
               </View>
               <View className="flex-1">
                 <TextField
+                  testID="body.weight"
                   label={t('body.weight')}
                   value={weight}
                   onChangeText={(v) => {
@@ -165,88 +212,112 @@ export default function BodyScreen() {
                   }}
                   keyboardType="number-pad"
                   maxLength={3}
-                  testID="body.weight"
-                  hint={t('body.weightOptional')}
-                  error={errors.weight}
+                  placeholder={t('body.weightPlaceholder')}
                 />
               </View>
-            </View>
-            <View className="gap-2">
-              <Text variant="bodyMedium">{t('body.size')}</Text>
-              <ChipWrap>
-                {SIZES.map((s) => (
-                  <Chip
-                    key={s}
-                    label={s}
-                    selected={size === s}
-                    testID={`body.size.${s}`}
-                    onPress={() => {
-                      setSize(s);
-                      setErrors((e) => ({ ...e, size: undefined }));
-                    }}
-                  />
-                ))}
-              </ChipWrap>
-              {errors.size ? (
-                <Text variant="caption" tone="danger">
-                  {errors.size}
-                </Text>
-              ) : null}
-            </View>
-          </View>
-
-          <View className="gap-3 rounded-card border border-line bg-paper p-4">
-            <View className="flex-row items-start justify-between gap-3">
-              <View className="flex-1 gap-0.5">
-                <Text variant="h3">{t('body.bodyPhoto')}</Text>
-                <Text variant="caption" tone="muted">
-                  {t('body.bodyPhotoHint')}
-                </Text>
+              <View className="flex-1 gap-1.5">
+                <Text variant="label">{t('body.size')}</Text>
+                <Pressable
+                  onPress={() => setSizeSheet(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel={size ? t('body.sizeA11y', { size }) : t('body.sizeEmptyA11y')}
+                  className={`h-field justify-center rounded-field border bg-paper px-3.5 active:opacity-70 ${
+                    errors.size ? 'border-danger' : 'border-line'
+                  }`}
+                  testID="body.size"
+                >
+                  <Text variant="body" tone={size ? 'ink' : 'muted'} className="text-[15px]" numberOfLines={1}>
+                    {size ?? t('body.sizeChoose')}
+                  </Text>
+                </Pressable>
               </View>
-              <Text variant="bodyMedium" tone="accent">
-                {t('body.bodyPhotoCount', { count: bodyPhotos.length })}
-              </Text>
             </View>
-            <View className="flex-row flex-wrap items-center gap-4 pt-2">
-              {bodyPhotos.map((p) => (
-                <PhotoThumb key={p.uploadId} photo={p} onRemove={() => removeBodyPhoto(p)} label={t('a11y.removePhoto')} />
-              ))}
-            </View>
-            {bodyPhotos.length < MAX_BODY_PHOTOS ? (
-              <View className="items-start">
-                <Button variant="secondary" icon={Camera} label={t('body.capture')} onPress={bodyPicker.takePhoto} />
+            {fieldError ? (
+              <View className="flex-row items-center gap-1.5" accessibilityLiveRegion="polite" accessibilityRole="alert">
+                <Icon icon={CircleAlert} size={14} tone="danger" />
+                <Text variant="caption" tone="danger" className="flex-1">
+                  {fieldError}
+                </Text>
               </View>
             ) : null}
           </View>
 
-          <View className="gap-3 rounded-card border border-line bg-paper p-4">
-            <View className="gap-0.5">
-              <Text variant="h3">{t('body.facePhoto')}</Text>
-              <Text variant="caption" tone="muted">
-                {t('body.facePhotoHint')}
+          <View className="gap-2">
+            <View className="flex-row items-center justify-between gap-3">
+              <Text variant="bodyMedium" className="flex-1">
+                {t('body.bodyPhoto')}{' '}
+                <Text variant="caption" tone="muted">
+                  {t('body.bodyPhotoHint')}
+                </Text>
+              </Text>
+              <Text variant="caption" tone="muted" accessibilityLiveRegion="polite">
+                {t('body.bodyPhotoCount', { count: bodyPhotos.length })}
               </Text>
             </View>
-            {facePhoto ? (
-              <View className="pt-2">
-                <PhotoThumb
+            <View className="flex-row gap-2">
+              {BODY_SLOTS.map((slot) => {
+                const photo = bodyPhotos[slot];
+                return photo ? (
+                  <PhotoTile
+                    key={photo.uploadId}
+                    photo={photo}
+                    label={t('body.bodyPhotoA11y', { index: slot + 1 })}
+                    removeLabel={t('a11y.removePhoto')}
+                    onRemove={() => removeBodyPhoto(photo)}
+                  />
+                ) : (
+                  <Pressable
+                    key={`empty${slot}`}
+                    onPress={addBodyPhoto}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('body.addBodyPhoto')}
+                    className="h-[104px] flex-1 items-center justify-center rounded-image border-[1.5px] border-dashed border-muted/60 active:opacity-70"
+                  >
+                    <Icon icon={Plus} size={20} />
+                  </Pressable>
+                );
+              })}
+              {facePhoto ? (
+                <PhotoTile
                   photo={facePhoto}
-                  label={t('a11y.removePhoto')}
+                  label={t('body.facePhoto')}
+                  removeLabel={t('a11y.removePhoto')}
                   onRemove={() => {
                     deleteLocalPhoto(facePhoto.localUri);
                     setFacePhoto(null);
                   }}
                 />
-              </View>
-            ) : null}
-            <View className="items-start">
-              <Button
-                variant="secondary"
-                icon={ImagePlus}
-                label={t(facePhoto ? 'body.replace' : 'body.upload')}
-                onPress={() => facePicker.chooseFromLibrary(1)}
-              />
+              ) : (
+                <Pressable
+                  onPress={() => facePicker.chooseFromLibrary(1)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('body.addFacePhoto')}
+                  accessibilityHint={t('body.facePhotoHint')}
+                  className="h-[104px] flex-1 items-center justify-center gap-1.5 rounded-image bg-sand active:opacity-70"
+                >
+                  <View className="h-[50px] w-10 rounded-pill border-[1.5px] border-dashed border-muted" />
+                  <Text variant="tab" className="font-sans-medium">
+                    {t('body.faceShort')}
+                  </Text>
+                </Pressable>
+              )}
             </View>
           </View>
+
+          {cameraBlocked ? (
+            <View className="gap-2 rounded-card border border-danger bg-paper px-3.5 py-3" accessibilityRole="alert">
+              <View className="flex-row items-start gap-2.5">
+                <Icon icon={CameraOff} size={18} tone="danger" />
+                <Text variant="caption" className="flex-1 leading-[17.5px]">
+                  {t('body.cameraOff')}
+                </Text>
+              </View>
+              <View className="flex-row flex-wrap gap-2">
+                <Chip label={t('common.openSettings')} onPress={() => void Linking.openSettings()} />
+                <Chip label={t('permission.useGallery')} onPress={chooseBodyFromLibrary} />
+              </View>
+            </View>
+          ) : null}
 
           {errors.photo ? (
             <Text variant="caption" tone="danger" accessibilityRole="alert">
@@ -254,18 +325,31 @@ export default function BodyScreen() {
             </Text>
           ) : null}
 
-          <View className="flex-row gap-3 rounded-card bg-sand p-4">
-            <Icon icon={ShieldCheck} tone="accent" />
-            <Text variant="body" className="flex-1">
-              {t('body.privacy')}
-            </Text>
-          </View>
+          <InfoNote icon={Lock} text={t('body.privacy')} />
         </ScrollView>
+
+        <View className="px-6 pt-2" style={{ paddingBottom: Math.max(insets.bottom, 16) + 8 }}>
+          <Button testID="body.continue" label={t('common.continue')} onPress={submit} />
+        </View>
       </KeyboardAvoidingView>
 
-      <BottomActionBar>
-        <Button label={t('common.continue')} onPress={submit} testID="body.continue" />
-      </BottomActionBar>
+      <BottomSheet visible={sizeSheet} onClose={() => setSizeSheet(false)} title={t('body.sizeSheetTitle')}>
+        <ChipWrap>
+          {SIZES.map((s) => (
+            <Chip
+              key={s}
+              testID={`body.size.${s}`}
+              label={s}
+              selected={size === s}
+              onPress={() => {
+                setSize(s);
+                setErrors((e) => ({ ...e, size: undefined }));
+                setSizeSheet(false);
+              }}
+            />
+          ))}
+        </ChipWrap>
+      </BottomSheet>
 
       {bodyPicker.sheet}
       {facePicker.sheet}

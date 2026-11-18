@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { Check, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { ReactNode } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 
 import { SLOT_CATEGORIES, type LookSlot, type LookSlotKind } from '@/api/contracts/looks';
@@ -11,9 +12,9 @@ import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { Text } from '@/components/ui/Text';
+import { ImageSlot } from '@/components/ui/ImageSlot';
 import { ItemThumb } from '@/features/wardrobe/ItemThumb';
 import { useLookSlotProducts } from '@/features/store/queries';
-import { BrandMark } from '@/components/blocks/BrandMark';
 import { SectionState } from '@/components/blocks/SectionState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { formatMoney } from '@/lib/format';
@@ -21,6 +22,46 @@ import { formatMoney } from '@/lib/format';
 import { SLOT_FALLBACK_CATEGORY, slotFromWardrobeItem } from './logic';
 
 type Source = 'wardrobe' | 'store';
+
+type TileProps = {
+  name: string;
+  /** Second line (store price). */
+  caption?: string | null;
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+  children: ReactNode;
+};
+
+/** One cell of the three-column picker grid (15, sheet): 92-high picture, the name under it; a check marks the current piece. */
+function Tile({ name, caption, label, selected, onPress, children }: TileProps) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected }}
+      className="w-1/3 gap-[5px] px-[5px] pb-2.5 active:opacity-70"
+    >
+      <View>
+        {children}
+        {selected ? (
+          <View className="absolute right-1.5 top-1.5 h-5 w-5 items-center justify-center rounded-pill bg-ink">
+            <Icon icon={Check} size={12} tone="cream" />
+          </View>
+        ) : null}
+      </View>
+      <Text variant="caption" numberOfLines={2}>
+        {name}
+      </Text>
+      {caption ? (
+        <Text variant="caption" tone="muted" numberOfLines={1}>
+          {caption}
+        </Text>
+      ) : null}
+    </Pressable>
+  );
+}
 
 type Props = {
   /** The slot being filled; null = closed. */
@@ -49,7 +90,7 @@ export function SlotSheet({ slot, current, items, onPick, onRemove, onClose }: P
 
   return (
     <BottomSheet visible onClose={onClose} title={t('lookEditor.sheetTitle', { slot: slotLabel })}>
-      <View className="gap-3">
+      <View className="gap-3.5">
         <SegmentedControl<Source>
           value={source}
           onChange={setSource}
@@ -59,7 +100,7 @@ export function SlotSheet({ slot, current, items, onPick, onRemove, onClose }: P
             { value: 'store', label: t('lookEditor.tabStore') },
           ]}
         />
-        <ScrollView style={{ maxHeight: 340 }} contentContainerClassName="gap-1 pb-1">
+        <ScrollView style={{ maxHeight: 340 }} contentContainerClassName="pb-1">
           {source === 'wardrobe' ? (
             fitting.length === 0 ? (
               <View className="items-center gap-3 py-6">
@@ -76,54 +117,61 @@ export function SlotSheet({ slot, current, items, onPick, onRemove, onClose }: P
                 />
               </View>
             ) : (
-              fitting.map((item) => {
-                const selected = isCurrent('wardrobe', item.id);
-                return (
-                  <Pressable
-                    key={item.id}
-                    onPress={() => onPick(slotFromWardrobeItem(slot, item))}
-                    accessibilityRole="button"
-                    accessibilityLabel={selected ? t('lookEditor.selected', { name: item.name }) : item.name}
-                    accessibilityState={{ selected }}
-                    className="min-h-16 flex-row items-center gap-3 py-1.5 active:opacity-70"
-                  >
-                    <ItemThumb
-                      category={item.category}
-                      color={item.color}
-                      uri={item.useOriginalImage ? item.originalImageUrl : item.imageUrl}
-                      className="h-14 w-12 rounded-[8px]"
-                      glyphSize={22}
-                    />
-                    <Text variant="body" numberOfLines={2} className="flex-1">
-                      {item.name}
-                    </Text>
-                    {selected ? <Icon icon={Check} size={18} tone="accent" /> : null}
-                  </Pressable>
-                );
-              })
+              <View className="-mx-[5px] flex-row flex-wrap">
+                {fitting.map((item) => {
+                  const selected = isCurrent('wardrobe', item.id);
+                  return (
+                    <Tile
+                      key={item.id}
+                      name={item.name}
+                      label={selected ? t('lookEditor.selected', { name: item.name }) : item.name}
+                      selected={selected}
+                      onPress={() => onPick(slotFromWardrobeItem(slot, item))}
+                    >
+                      <ItemThumb
+                        category={item.category}
+                        color={item.color}
+                        uri={item.useOriginalImage ? item.originalImageUrl : item.imageUrl}
+                        className="h-[92px] w-full rounded-field"
+                        glyphSize={30}
+                      />
+                    </Tile>
+                  );
+                })}
+              </View>
             )
           ) : (
             <>
-              <Text variant="caption" tone="muted" className="pb-1">
+              <Text variant="caption" tone="muted" className="pb-2">
                 {t('lookEditor.storeNote')}
               </Text>
               <SectionState
                 query={products}
                 inset={false}
-                skeleton={<Skeleton className="h-16 rounded-image" />}
+                skeleton={
+                  <View className="flex-row gap-2.5">
+                    {[0, 1, 2].map((i) => (
+                      <Skeleton key={i} className="h-[92px] flex-1 rounded-field" />
+                    ))}
+                  </View>
+                }
                 isEmpty={(list) => list.length === 0}
                 emptyText={t('lookEditor.storeEmpty', { slot: slotLabel })}
                 errorText={t('lookEditor.storeError')}
               >
                 {(list) => (
-                  <View className="gap-1">
+                  <View className="-mx-[5px] flex-row flex-wrap">
                     {list.map((product) => {
                       const selected = isCurrent('store', product.id);
                       const price = product.price ? formatMoney(product.price) : null;
                       const label = [product.brandName, product.name, price].filter(Boolean).join(', ');
                       return (
-                        <Pressable
+                        <Tile
                           key={product.id}
+                          name={product.name}
+                          caption={[product.brandName, price].filter(Boolean).join(' · ')}
+                          label={selected ? t('lookEditor.selected', { name: label }) : label}
+                          selected={selected}
                           onPress={() =>
                             onPick({
                               slot,
@@ -136,21 +184,13 @@ export function SlotSheet({ slot, current, items, onPick, onRemove, onClose }: P
                               deleted: false,
                             })
                           }
-                          accessibilityRole="button"
-                          accessibilityLabel={selected ? t('lookEditor.selected', { name: label }) : label}
-                          accessibilityState={{ selected }}
-                          className="min-h-16 flex-row items-center gap-3 py-1.5 active:opacity-70"
                         >
-                          <ItemThumb category={SLOT_FALLBACK_CATEGORY[slot]} uri={product.imageUrl} className="h-14 w-12 rounded-[8px]" glyphSize={22} />
-                          <View className="flex-1 gap-0.5">
-                            <BrandMark name={product.brandName} logoUrl={product.brandLogoUrl} />
-                            <Text variant="body" numberOfLines={2}>
-                              {product.name}
-                            </Text>
-                          </View>
-                          {price ? <Text variant="bodyMedium">{price}</Text> : null}
-                          {selected ? <Icon icon={Check} size={18} tone="accent" /> : null}
-                        </Pressable>
+                          <ImageSlot
+                            uri={product.imageUrl}
+                            className="h-[92px] w-full rounded-field"
+                            placeholder={{ kind: 'garment', category: product.category ?? SLOT_FALLBACK_CATEGORY[slot], color: product.colors[0], glyphSize: 30 }}
+                          />
+                        </Tile>
                       );
                     })}
                   </View>

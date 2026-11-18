@@ -1,0 +1,118 @@
+# Signs in with an account that already exists (created through the API just before the run) and walks
+# through onboarding to the tabs. Used by screens.yaml: on the simulator iOS offers a "strong password"
+# for the sign-up field and swallows typed text, so the tour signs in instead of signing up.
+# Create the account first:
+#   curl -s -X POST "$API/v1/auth/register" -H 'content-type: application/json' \
+#     -d "{\"name\":\"Damla\",\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\"}"
+appId: com.alatech.droplet
+env:
+  EMAIL: ${EMAIL}
+  PASSWORD: ${PASSWORD}
+  LANG: ${LANG}
+  LOCALE: ${LOCALE}
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+    arguments:
+      AppleLanguages: "(${LANG})"
+      AppleLocale: ${LOCALE}
+# A link prompt left over from an earlier run would cover the first screen.
+- runFlow:
+    when:
+      visible: "Cancel"
+    commands:
+      - tapOn: "Cancel"
+- extendedWaitUntil:
+    visible:
+      id: "welcome.login"
+    timeout: 20000
+- extendedWaitUntil:
+    notVisible:
+      id: "animated-splash"
+    timeout: 10000
+- takeScreenshot: 01-hos-geldin
+- tapOn:
+    id: "welcome.login"
+- extendedWaitUntil:
+    visible:
+      id: "auth.email"
+    timeout: 10000
+- takeScreenshot: 02-giris
+- tapOn:
+    id: "auth.email"
+- inputText: ${EMAIL}
+- tapOn:
+    point: "50%,14%"
+- tapOn:
+    id: "auth.password.toggle"
+- tapOn:
+    id: "auth.password"
+- inputText: ${PASSWORD}
+- tapOn:
+    point: "50%,14%"
+- tapOn:
+    id: "auth.submit"
+# iOS offers to save the password after a successful sign-in; the sheet covers the next screen.
+- extendedWaitUntil:
+    visible: "Not Now"
+    timeout: 8000
+    optional: true
+- runFlow:
+    when:
+      visible: "Not Now"
+    commands:
+      - tapOn: "Not Now"
+
+- extendedWaitUntil:
+    visible:
+      id: "style.continue"
+    timeout: 20000
+- takeScreenshot: 03-stil-profili
+- tapOn:
+    id: "style.tag.minimal"
+- tapOn:
+    id: "style.tag.classic"
+- tapOn:
+    id: "style.tag.street"
+- scrollUntilVisible:
+    element:
+      id: "style.budget.mixed"
+    direction: DOWN
+- tapOn:
+    id: "style.budget.mixed"
+- takeScreenshot: 03-stil-profili-secili
+- tapOn:
+    id: "style.continue"
+
+- extendedWaitUntil:
+    visible:
+      id: "body.skip"
+    timeout: 20000
+- takeScreenshot: 04-beden-foto
+- tapOn:
+    id: "body.skip"
+
+- extendedWaitUntil:
+    visible:
+      id: "firstItems.continue"
+    timeout: 20000
+- waitForAnimationToEnd
+- takeScreenshot: 04b-ilk-parcalar
+- tapOn:
+    id: "firstItems.continue"
+
+- extendedWaitUntil:
+    visible:
+      id: "paywall.close"
+    timeout: 20000
+- takeScreenshot: 05-uyelik
+- tapOn:
+    id: "paywall.close"
+
+- extendedWaitUntil:
+    visible:
+      id: "tab.today"
+    timeout: 20000
+- waitForAnimationToEnd
+- takeScreenshot: 06-bugun

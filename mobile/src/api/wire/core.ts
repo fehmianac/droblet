@@ -173,9 +173,19 @@ function startOfNextMonth(): string {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString();
 }
 
+/** Billing period of the store product behind the membership (`…premium.yearly` / `…premium.monthly`). */
+export function planOfProduct(productId: string | null): Entitlement['plan'] {
+  if (!productId) return undefined;
+  if (/year|annual/i.test(productId)) return 'yearly';
+  if (/month/i.test(productId)) return 'monthly';
+  return undefined;
+}
+
 export function toEntitlement(wire: EntitlementWire): Entitlement {
+  const plan = wire.tier === 'premium' ? planOfProduct(wire.productId) : undefined;
   return {
     tier: wire.tier === 'premium' ? 'member' : 'free',
+    ...(plan ? { plan } : {}),
     credits: {
       monthlyAllowance: wire.credits.monthlyAllowance,
       remaining: wire.credits.totalRemaining,

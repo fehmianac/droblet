@@ -1,38 +1,33 @@
 import { router } from 'expo-router';
-import { Bell, CloudSun, Sparkles } from 'lucide-react-native';
+import { Bell, CalendarDays, ChevronRight, Cloud, Sparkles } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-import { RefreshControl, ScrollView, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 
 import { extractApiError } from '@/api/errors';
 import { useToday, useWearToday } from '@/api/today';
 import { Logo } from '@/components/brand/Logo';
+import { ImageTag } from '@/components/ui/Bits';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
-import { LookCard } from '@/components/ui/LookCard';
+import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenState } from '@/components/ui/ScreenState';
 import { Text } from '@/components/ui/Text';
+import { useMyProfile } from '@/features/account/queries';
 import { useRefreshTodayLook, useSetLookFavorite } from '@/features/today/api';
+import { dayPart, todayGreeting } from '@/features/today/logic';
 import { TodayLookCard } from '@/features/today/TodayLookCard';
-import { TodaySkeleton } from '@/features/today/TodaySkeleton';
 import { WeekStrip } from '@/features/today/WeekStrip';
 import { currentLanguage } from '@/i18n';
 import { formatLongDate, formatTemperature, parseLocalDate, seasonOf, weekdayShort } from '@/lib/format';
 import { toDisplayUpper } from '@/lib/upper';
 import { useThemeColors } from '@/theme/useThemeColors';
 
-function greetingKey(now: Date): 'today.greetingMorning' | 'today.greetingDay' | 'today.greetingEvening' {
-  const h = now.getHours();
-  if (h < 12) return 'today.greetingMorning';
-  if (h < 18) return 'today.greetingDay';
-  return 'today.greetingEvening';
-}
-
 /**
  * 06 Bugün — logo + notifications, date · season + weather, greeting + today's occasion, 7-day strip,
  * today's outfit card (try-on image, pieces, missing piece → "Look'u tamamla", "Bunu giyiyorum",
- * another suggestion, heart) or the no-plan state, and this week's edit strip.
+ * another suggestion, heart) or the no-plan card (06 · plan yok), and this week's edit strip.
  */
 export default function TodayScreen() {
   const { t } = useTranslation();
@@ -41,6 +36,8 @@ export default function TodayScreen() {
   const wear = useWearToday();
   const favorite = useSetLookFavorite();
   const refresh = useRefreshTodayLook();
+  // The greeting follows the profile: an edited name shows at once.
+  const profile = useMyProfile();
 
   return (
     <Screen>
@@ -48,36 +45,42 @@ export default function TodayScreen() {
         <Logo />
         <IconButton icon={Bell} onPress={() => router.push('/notifications')} accessibilityLabel={t('todayHome.notifications')} />
       </View>
-      <ScreenState query={today} skeleton={<TodaySkeleton />}>
+      <ScreenState query={today}>
         {(data) => {
           const date = parseLocalDate(data.date);
+          const lang = currentLanguage();
           const meta = [formatLongDate(date, t), t(`season.${seasonOf(date)}`)].join(' · ');
           const look = data.look;
+          // Without a plan the greeting stands alone — the no-plan card says the rest.
+          const greeting = todayGreeting(
+            t,
+            dayPart(new Date()),
+            { profileName: profile.data?.displayName, cardName: data.firstName },
+            look ? data.occasion : null,
+          );
           return (
             <ScrollView
-              contentContainerClassName="gap-7 pb-8 pt-2"
+              contentContainerClassName="gap-[18px] pb-8 pt-1.5"
               refreshControl={
                 <RefreshControl refreshing={today.isRefetching} onRefresh={() => void today.refetch()} tintColor={colors.muted} />
               }
             >
-              <View className="gap-4 px-gutter">
-                <View className="gap-1">
-                  <View className="flex-row flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                    <Text variant="eyebrow">{toDisplayUpper(meta, currentLanguage())}</Text>
-                    {data.weather ? (
-                      <View className="flex-row items-center gap-1">
-                        <Icon icon={CloudSun} size={14} tone="muted" />
-                        <Text variant="caption" tone="muted">
-                          {t('todayHome.weather', { temperature: formatTemperature(data.weather.temperatureC), city: data.weather.city })}
-                        </Text>
-                      </View>
-                    ) : null}
-                  </View>
-                  <Text variant="display">{t(greetingKey(new Date()), { name: data.firstName })}</Text>
-                  <Text variant="display" tone="muted">
-                    {t(`today.occasionLine.${data.occasion ?? 'none'}`)}
-                  </Text>
+              <View className="gap-2 px-gutter">
+                <View className="flex-row flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                  <Text variant="eyebrow">{toDisplayUpper(meta, lang)}</Text>
+                  {data.weather ? (
+                    <View className="flex-row items-center gap-1">
+                      <Icon icon={Cloud} size={16} />
+                      <Text variant="caption">
+                        {t('todayHome.weather', { temperature: formatTemperature(data.weather.temperatureC), city: data.weather.city })}
+                      </Text>
+                    </View>
+                  ) : null}
                 </View>
+                <Text variant="display">{greeting}</Text>
+              </View>
+
+              <View className="px-gutter">
                 <WeekStrip week={data.week} today={data.date} />
               </View>
 
@@ -91,16 +94,16 @@ export default function TodayScreen() {
                     onToggleFavorite={() => favorite.set(look.id, !look.isFavorite)}
                   />
                 ) : (
-                  <View className="items-center gap-4 rounded-card border border-dashed border-line px-6 py-8">
-                    <Icon icon={Sparkles} size={28} tone="accent" />
-                    <View className="gap-1.5">
-                      <Text variant="h2" className="text-center">
-                        {t('todayHome.noPlanTitle')}
-                      </Text>
-                      <Text variant="body" tone="muted" className="text-center">
-                        {t('todayHome.noPlanBody')}
-                      </Text>
+                  <View className="items-center gap-3.5 rounded-card border-[1.5px] border-dashed border-muted/60 px-6 py-8">
+                    <View className="h-[72px] w-[72px] items-center justify-center rounded-pill bg-sand">
+                      <Icon icon={CalendarDays} size={30} />
                     </View>
+                    <Text variant="h2" className="text-center">
+                      {t('todayHome.noPlanTitle')}
+                    </Text>
+                    <Text variant="body" tone="muted" className="text-center">
+                      {t('todayHome.noPlanBody')}
+                    </Text>
                     <Button
                       label={t('todayHome.noPlanAction')}
                       icon={Sparkles}
@@ -122,23 +125,33 @@ export default function TodayScreen() {
                     <Text variant="h3" className="flex-1" numberOfLines={1}>
                       {t('today.weeklyEdit')}
                     </Text>
-                    <Button
-                      variant="text"
-                      label={t('common.seeAll')}
+                    <Pressable
                       onPress={() => router.push({ pathname: '/edit/[id]', params: { id: 'current' } })}
-                    />
+                      accessibilityRole="link"
+                      accessibilityLabel={t('todayHome.seeEdit')}
+                      hitSlop={8}
+                      className="min-h-icon-btn flex-row items-center gap-0.5 active:opacity-70"
+                    >
+                      <Text variant="label">{t('common.seeAll')}</Text>
+                      <Icon icon={ChevronRight} size={14} />
+                    </Pressable>
                   </View>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-3 px-gutter">
-                    {data.weeklyEdit.map((card) => (
-                      <LookCard
-                        key={card.id}
-                        className="w-36"
-                        tag={weekdayShort(parseLocalDate(card.date))}
-                        name={card.name}
-                        imageUri={card.imageUrl}
-                        onPress={() => router.push({ pathname: '/edit/[id]', params: { id: 'current', look: card.id } })}
-                      />
-                    ))}
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2.5 px-gutter">
+                    {data.weeklyEdit.map((card) => {
+                      const tag = toDisplayUpper(t('todayHome.editTag', { weekday: weekdayShort(parseLocalDate(card.date)), name: card.name }), lang);
+                      return (
+                        <Pressable
+                          key={card.id}
+                          onPress={() => router.push({ pathname: '/edit/[id]', params: { id: 'current', look: card.id } })}
+                          accessibilityRole="button"
+                          accessibilityLabel={t('todayHome.editCardA11y', { weekday: weekdayShort(parseLocalDate(card.date)), name: card.name })}
+                          className="h-[190px] w-[140px] overflow-hidden rounded-image-lg active:opacity-80"
+                        >
+                          <ImageSlot uri={card.imageUrl} className="h-full w-full" placeholder={{ kind: 'look', pieces: [], seed: card.id, figureHeight: 117 }} />
+                          <ImageTag label={tag} className="absolute bottom-2 left-2 max-w-[124px]" />
+                        </Pressable>
+                      );
+                    })}
                   </ScrollView>
                 </View>
               ) : null}
@@ -149,3 +162,6 @@ export default function TodayScreen() {
     </Screen>
   );
 }
+
+/** A render error in this tab shows the error state with "Tekrar dene"; the tab bar and the other tabs keep working. */
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';

@@ -9,7 +9,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { useAnswerFollowRequest } from '@/features/social/mutations';
-import { PeopleSkeleton, PersonListRow, RowAction } from '@/features/social/PeopleRows';
+import { PersonListRow, RowAction } from '@/features/social/PeopleRows';
 import { useFollowRequests } from '@/features/social/queries';
 import { useThemeColors } from '@/theme/useThemeColors';
 
@@ -43,7 +43,6 @@ export default function FollowRequestsScreen() {
       </View>
       <ScreenState
         query={requests}
-        skeleton={<PeopleSkeleton />}
         isEmpty={(list) => list.length === 0}
         empty={{
           message: t(tab === 'incoming' ? 'friends.incomingEmpty' : 'friends.outgoingEmpty'),

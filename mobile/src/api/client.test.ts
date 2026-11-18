@@ -52,4 +52,15 @@ describe('apiRequest', () => {
     expect((init.headers as Record<string, string>)['Accept-Language']).toBe('tr-TR');
     jest.restoreAllMocks();
   });
+
+  it('a suspended account (403 account_suspended on refresh) is signed out with the reason the auth screen shows', async () => {
+    jest.spyOn(sessionStore, 'getTokens').mockReturnValue({ accessToken: 'a', refreshToken: 'r', expiresAt: 0, user: { id: 'u1', name: 'Damla', email: 'damla@example.com' } });
+    const clear = jest.spyOn(sessionStore, 'clear').mockResolvedValue(undefined);
+    fetchMock.mockImplementationOnce(
+      async () => new Response(JSON.stringify({ status: 403, code: 'account_suspended' }), { status: 403, headers: { 'Content-Type': 'application/problem+json' } }),
+    );
+    await expect(refreshTokens()).rejects.toMatchObject({ kind: 'session_expired', code: 'account_suspended' });
+    expect(clear).toHaveBeenCalledWith('suspended');
+    jest.restoreAllMocks();
+  });
 });

@@ -1,13 +1,17 @@
-import { Link2, MessageCircle, Pin, type LucideIcon } from 'lucide-react-native';
-import { useState } from 'react';
+import * as Clipboard from 'expo-clipboard';
+import { Link, MessageCircle } from 'lucide-react-native';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Linking, Pressable, Share, View } from 'react-native';
+import { AccessibilityInfo, Linking, Pressable, View } from 'react-native';
+import Svg, { Circle, Path } from 'react-native-svg';
 
 import { track } from '@/analytics/track';
 import type { ShareTarget } from '@/api/contracts/social';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Icon } from '@/components/ui/Icon';
 import { Text } from '@/components/ui/Text';
+import { sizes } from '@/theme/tokens';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 import { requestShareUrl, withShareUrl } from './share';
 
@@ -17,6 +21,15 @@ export type ShareChannel = 'whatsapp' | 'pinterest' | 'link';
 export function shareTargetUrl(channel: Exclude<ShareChannel, 'link'>, url: string, message: string): string {
   if (channel === 'whatsapp') return `https://wa.me/?text=${encodeURIComponent(message)}`;
   return `https://www.pinterest.com/pin/create/button/?url=${encodeURIComponent(url)}&description=${encodeURIComponent(message)}`;
+}
+
+/** Puts a link on the clipboard. `false` when the system refused — the caller says so calmly. */
+export async function copyLink(url: string): Promise<boolean> {
+  try {
+    return await Clipboard.setStringAsync(url);
+  } catch {
+    return false;
+  }
 }
 
 type Props = {
@@ -33,18 +46,39 @@ type Props = {
    * send. Without it (or offline) the device-built `url` is shared.
    */
   target?: ShareTarget;
+  /** Called after the link was copied and the sheet closed, with the confirmation text to show. */
+  onCopied?: (confirmation: string) => void;
 };
 
-function Option({ icon, label, onPress }: { icon: LucideIcon; label: string; onPress: () => void }) {
+/** The circled "P" the canvas draws for Pinterest (25 share sheet). */
+function PinterestGlyph() {
+  const colors = useThemeColors();
+  const stroke = {
+    stroke: colors.ink,
+    strokeWidth: sizes.iconStroke,
+    strokeLinecap: 'round',
+    strokeLinejoin: 'round',
+    fill: 'none',
+  } as const;
+  return (
+    <Svg width={22} height={22} viewBox="0 0 24 24" accessible={false}>
+      <Circle cx={12} cy={12} r={9} {...stroke} />
+      <Path d="M11 8h2.5a2.5 2.5 0 0 1 0 5H11M11 8l-2 12" {...stroke} />
+    </Svg>
+  );
+}
+
+function Option({ glyph, label, onPress, testID }: { glyph: ReactNode; label: string; onPress: () => void; testID: string }) {
   return (
     <Pressable
+      testID={testID}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={label}
-      className="min-h-20 flex-1 items-center justify-center gap-2 rounded-card border border-line bg-paper p-3 active:opacity-70"
+      className="h-[84px] flex-1 items-center justify-center gap-1.5 rounded-card border border-line bg-paper px-1 active:opacity-70"
     >
-      <Icon icon={icon} size={22} />
-      <Text variant="caption" className="text-center" numberOfLines={2}>
+      {glyph}
+      <Text variant="chip" className="text-center" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
         {label}
       </Text>
     </Pressable>
@@ -52,47 +86,76 @@ function Option({ icon, label, onPress }: { icon: LucideIcon; label: string; onP
 }
 
 /**
- * "Look'u paylaş" — WhatsApp, Pinterest or the system share sheet for the link. Every link carries
- * the sharer's invite code; when the app is not installed the link leads to the store page.
+ * "Look'u paylaş" (25) — three tiles as drawn: WhatsApp, Pinterest, "Link kopyala". Every link
+ * carries the sharer's invite code; when the app is not installed the link leads to the store page.
+ * WhatsApp and Pinterest open through their web links (no app query, so no extra native config);
+ * if nothing can open them the sheet stays open and says so.
  */
-export function ShareSheet({ visible, onClose, url, message, kind, target }: Props) {
+export function ShareSheet({ visible, onClose, url, message, kind, target, onCopied }: Props) {
   const { t } = useTranslation();
-  const [failed, setFailed] = useState(false);
+  const [problem, setProblem] = useState<'open' | 'copy' | null>(null);
+
+  const close = () => {
+    setProblem(null);
+    onClose();
+  };
 
   const share = async (channel: ShareChannel) => {
     if (!url) return;
-    setFailed(false);
-    try {
-      const link = withShareUrl(message, url, target ? await requestShareUrl(target, channel) : null);
-      if (channel === 'link') await Share.share({ message: link.message });
-      else await Linking.openURL(shareTargetUrl(channel, link.url, link.message));
+    setProblem(null);
+    // The server records the share and answers with the link to send; offline / fixtures keep the device-built one.
+    const link = withShareUrl(message, url, target ? await requestShareUrl(target, channel) : null);
+    if (channel === 'link') {
+      if (!(await copyLink(link.url))) {
+        setProblem('copy');
+        return;
+      }
+      const confirmation = t('share.copied');
       track('look_shared', { channel, kind });
-      onClose();
+      close();
+      if (onCopied) onCopied(confirmation);
+      else AccessibilityInfo.announceForAccessibility(confirmation);
+      return;
+    }
+    try {
+      await Linking.openURL(shareTargetUrl(channel, link.url, link.message));
+      track('look_shared', { channel, kind });
+      close();
     } catch {
-      setFailed(true);
+      setProblem('open');
     }
   };
 
   return (
-    <BottomSheet visible={visible} onClose={onClose} title={t('share.title')}>
-      <View className="gap-4">
-        <Text variant="body" tone="muted">
+    <BottomSheet visible={visible} onClose={close} title={t('share.title')}>
+      <View className="gap-3.5 pb-3.5">
+        <Text variant="caption" tone="muted">
           {t('share.body')}
         </Text>
         {url ? (
-          <View className="flex-row gap-3">
-            <Option icon={MessageCircle} label={t('share.whatsapp')} onPress={() => void share('whatsapp')} />
-            <Option icon={Pin} label={t('share.pinterest')} onPress={() => void share('pinterest')} />
-            <Option icon={Link2} label={t('share.link')} onPress={() => void share('link')} />
+          <View className="flex-row gap-2.5">
+            <Option
+              testID="share-whatsapp"
+              glyph={<Icon icon={MessageCircle} size={22} />}
+              label={t('share.whatsapp')}
+              onPress={() => void share('whatsapp')}
+            />
+            <Option
+              testID="share-pinterest"
+              glyph={<PinterestGlyph />}
+              label={t('share.pinterest')}
+              onPress={() => void share('pinterest')}
+            />
+            <Option testID="share-link" glyph={<Icon icon={Link} size={22} />} label={t('share.link')} onPress={() => void share('link')} />
           </View>
         ) : (
           <Text variant="body" tone="danger" accessibilityLiveRegion="polite">
             {t('share.linkUnavailable')}
           </Text>
         )}
-        {failed ? (
+        {problem ? (
           <Text variant="caption" tone="danger" accessibilityLiveRegion="polite">
-            {t('share.failed')}
+            {t(problem === 'copy' ? 'share.copyFailed' : 'share.failed')}
           </Text>
         ) : null}
       </View>

@@ -15,8 +15,9 @@ const TO = 2.5;
  * The light sweep of the AI loading language: a soft paper-coloured band crossing the surface every
  * 1.8 s, linear. Absolutely fills its parent (which should clip: `overflow-hidden`). Renders nothing
  * with reduce-motion — the static placeholder underneath is the reduced state.
+ * Defaults are the try-on sweep (45 % band, -110 % → 250 %); the stilist cards use 60 %, -120 % → 220 %.
  */
-export function AiShimmer() {
+export function AiShimmer({ band: bandFraction = BAND, from = FROM, to = TO }: { band?: number; from?: number; to?: number } = {}) {
   const reduceMotion = useReduceMotion();
   const [width, setWidth] = useState(0);
   const progress = useSharedValue(0);
@@ -28,9 +29,9 @@ export function AiShimmer() {
     return () => cancelAnimation(progress);
   }, [progress, reduceMotion, width]);
 
-  const band = width * BAND;
+  const band = width * bandFraction;
   const style = useAnimatedStyle(() => ({
-    transform: [{ translateX: band * (FROM + (TO - FROM) * progress.value) }],
+    transform: [{ translateX: band * (from + (to - from) * progress.value) }],
   }));
 
   const onLayout = (e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width);

@@ -6,6 +6,7 @@
 import type {
   Brand,
   BuilderSlot,
+  CatalogColor,
   Cart,
   CheckoutResponse,
   CompleteSuggestions,
@@ -26,12 +27,17 @@ import type {
   WatchlistEntry,
   WeeklyEditSummary,
 } from '../contracts/store';
-import { ONE_SIZE } from '../contracts/store';
+import { CATALOG_COLORS, ONE_SIZE } from '../contracts/store';
 import { toMoney, type LookRefWire, type ProductCategoryWire, type ProductSlotWire, type ProductWire } from './catalog';
 import { toCamel, toSnake, type JobWire } from './core';
 import type { ItemWire, OutfitSlotWire } from './wardrobe';
 
 // ---------- products ----------
+
+/** A catalogue colour slug the app knows (the placeholder ground), null for anything else. */
+export function toCatalogColorOrNull(color: string | null | undefined): CatalogColor | null {
+  return color && (CATALOG_COLORS as readonly string[]).includes(color) ? (color as CatalogColor) : null;
+}
 
 /** The app spells one category differently (`knit` is its translation key). */
 export function toProductCategory(category: ProductCategoryWire): ProductCategory {
@@ -170,7 +176,10 @@ export type ProductMatchWire = {
 };
 
 export function toProductMatch(wire: ProductMatchWire): ProductMatch {
-  return { count: wire.compatibleCount, items: wire.items.map((i) => ({ id: i.id, name: i.name, imageUrl: i.imageUrl })) };
+  return {
+    count: wire.compatibleCount,
+    items: wire.items.map((i) => ({ id: i.id, name: i.name, imageUrl: i.imageUrl, category: i.category, color: i.colors[0] ?? null })),
+  };
 }
 
 /** POST v1/tenant/catalog/complete */
@@ -266,6 +275,8 @@ export function toCart(wire: CartWire): Cart {
         price: l.product.available ? toMoney(l.product.priceMinor, l.product.currency) : null,
         imageUrl: l.product.images[0] ?? null,
         available: l.product.available,
+        category: toProductCategory(l.product.category),
+        color: toCatalogColorOrNull(l.product.colors[0]),
       })),
     })),
     total: wire.lineCount > 0 ? toMoney(wire.totalMinor, wire.currency) : null,

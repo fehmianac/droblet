@@ -18,15 +18,23 @@ type Props = Omit<TextInputProps, 'className' | 'ref'> & {
   password?: boolean;
 };
 
-export function TextField({ label, error, hint, password = false, ref, ...input }: Props) {
+export function TextField({ label, error, hint, password = false, ref, value, ...input }: Props) {
   const { t } = useTranslation();
   const colors = useThemeColors();
   const [hidden, setHidden] = useState(true);
+  /**
+   * A password field is NOT controlled from JS. On iOS a secure field whose text is written back by React
+   * treats the next key as "replace everything", so only the last typed character survived (seen on the
+   * simulator: "Sm0keTest2026" arrived as "6"). The native field keeps its own text; `onChangeText` still
+   * reports every change, and `value` is only used as the starting text.
+   */
+  const [initialValue] = useState(value);
+  const textProps = password ? { defaultValue: initialValue } : { value };
   return (
     <View className="gap-1.5">
-      <Text variant="bodyMedium">{label}</Text>
+      <Text variant="label">{label}</Text>
       <View
-        className={`h-btn-primary flex-row items-center rounded-field border bg-paper ${
+        className={`h-field flex-row items-center rounded-field border bg-paper ${
           error ? 'border-danger' : 'border-line'
         }`}
       >
@@ -40,12 +48,14 @@ export function TextField({ label, error, hint, password = false, ref, ...input 
           maxFontSizeMultiplier={1.6}
           multiline={false}
           numberOfLines={1}
-          className="h-full flex-1 px-4 font-sans text-body text-ink"
+          className="h-full flex-1 px-3.5 font-sans text-[15px] text-ink"
+          {...textProps}
           {...input}
         />
         {password ? (
           <Pressable
             onPress={() => setHidden((h) => !h)}
+            testID={input.testID ? `${input.testID}.toggle` : undefined}
             accessibilityRole="button"
             accessibilityLabel={t(hidden ? 'a11y.showPassword' : 'a11y.hidePassword')}
             className="h-icon-btn w-icon-btn items-center justify-center"

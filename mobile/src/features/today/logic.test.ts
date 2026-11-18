@@ -1,9 +1,21 @@
 import { moneyFromMajor } from '@/lib/format';
+import type { LookPiece } from '@/api/contracts';
 import type { Look } from '@/api/contracts/looks';
 import type { EditProduct, PlanDay, WearLog } from '@/api/contracts/today';
+import type { Item } from '@/api/contracts/wardrobe';
 
 import { addDays, monthBounds, monthGrid, monthOf, shiftMonth, weekDates, weekStartOf } from './dates';
-import { buildWeekRows, daysToPlan, dayStatus, editSummary, occasionCounts, weekTryOnTargets } from './logic';
+import {
+  buildMonthReport,
+  buildWeekRows,
+  daysToPlan,
+  dayStatus,
+  editSummary,
+  occasionCounts,
+  todayGreeting,
+  todayThumbs,
+  weekTryOnTargets,
+} from './logic';
 
 const look = (id: string, extra: Partial<Look> = {}): Look => ({
   id,
@@ -137,5 +149,102 @@ describe('dayStatus', () => {
     expect(dayStatus('2026-11-19', month)).toEqual({ kind: 'planned', lookId: 'a' });
     expect(dayStatus('2026-11-20', month)).toEqual({ kind: 'empty' });
     expect(dayStatus('2026-11-25', month)).toEqual({ kind: 'empty' });
+  });
+});
+
+describe('todayThumbs', () => {
+  const piece = (id: string, source: LookPiece['source'] = 'wardrobe'): LookPiece => ({ id, name: id, source, imageUrl: null });
+
+  it('shows at most three pieces', () => {
+    expect(todayThumbs([piece('a'), piece('b'), piece('c'), piece('d')]).map((p) => p.id)).toEqual(['a', 'b', 'c']);
+    expect(todayThumbs([piece('a')]).map((p) => p.id)).toEqual(['a']);
+  });
+
+  it('always keeps the missing piece, last, when it would be cut off', () => {
+    expect(todayThumbs([piece('a'), piece('b'), piece('c'), piece('d'), piece('m', 'store')]).map((p) => p.id)).toEqual(['a', 'b', 'm']);
+    // Already among the first three: order is untouched.
+    expect(todayThumbs([piece('a'), piece('m', 'store'), piece('b')]).map((p) => p.id)).toEqual(['a', 'm', 'b']);
+  });
+});
+
+describe('buildMonthReport', () => {
+  const item = (id: string, createdAt = '2026-01-01T00:00:00.000Z'): Item => ({
+    id,
+    name: id,
+    category: 'top',
+    subcategory: null,
+    brand: null,
+    size: null,
+    color: 'black',
+    fabric: null,
+    seasons: ['autumn'],
+    imageUrl: null,
+    originalImageUrl: null,
+    useOriginalImage: false,
+    wearCount: 0,
+    lastWornAt: null,
+    createdAt,
+    baseVersion: 1,
+  });
+  const log = (date: string, lookId: string | null, itemIds: string[]): WearLog => ({ id: `w_${date}_${lookId}`, date, lookId, itemIds, occurredAt: `${date}T07:00:00.000Z` });
+  const looks = [look('office_look'), look('weekend_look', { occasion: 'weekend' })];
+  const items = [item('shirt'), item('blazer'), item('jeans'), item('scarf'), item('new_coat', '2026-12-03T10:00:00.000Z')];
+  const logs = [
+    log('2026-11-02', 'office_look', ['shirt', 'blazer']),
+    log('2026-11-03', 'office_look', ['shirt', 'blazer']),
+    log('2026-11-07', 'weekend_look', ['jeans', 'blazer']),
+    // Two records on one day count as one logged day.
+    log('2026-11-07', 'gone_look', ['deleted_item']),
+    log('2026-12-01', 'office_look', ['scarf']),
+  ];
+
+  it('counts logged days, pieces and looks of that month only', () => {
+    const r = buildMonthReport('2026-11', logs, looks, items);
+    expect(r.daysLogged).toBe(3);
+    expect(r.daysInMonth).toBe(30);
+    expect(r.piecesWorn).toBe(3);
+    expect(r.looksWorn).toBe(3);
+  });
+
+  it('ranks the most worn pieces and leaves out pieces no longer in the wardrobe', () => {
+    const r = buildMonthReport('2026-11', logs, looks, items, 2);
+    expect(r.topItems.map((t) => [t.item.id, t.count])).toEqual([
+      ['blazer', 3],
+      ['shirt', 2],
+    ]);
+  });
+
+  it('counts occasions from the worn looks, most frequent first', () => {
+    expect(buildMonthReport('2026-11', logs, looks, items).occasions).toEqual([
+      { occasion: 'office', count: 2 },
+      { occasion: 'weekend', count: 1 },
+    ]);
+  });
+
+  it('lists pieces never worn in the month, but not ones added after it', () => {
+    expect(buildMonthReport('2026-11', logs, looks, items).unworn.map((i) => i.id)).toEqual(['scarf']);
+    expect(buildMonthReport('2026-12', logs, looks, items).unworn.map((i) => i.id)).toEqual(['shirt', 'blazer', 'jeans', 'new_coat']);
+  });
+
+  it('is empty for a month without records', () => {
+    expect(buildMonthReport('2026-10', logs, looks, items)).toMatchObject({ daysLogged: 0, daysInMonth: 31, piecesWorn: 0, looksWorn: 0, topItems: [], occasions: [] });
+  });
+});
+
+describe('06 greeting', () => {
+  const t = ((key: string, options?: { name?: string }) => (options?.name ? `${key}:${options.name}` : key)) as unknown as Parameters<typeof todayGreeting>[0];
+
+  it("uses the profile's own first name before the name the card was built with", () => {
+    expect(todayGreeting(t, 'Morning', { profileName: 'Ayşe Kaya', cardName: 'Damla' }, null)).toBe('todayHome.greetingAlone.Morning:Ayşe');
+    expect(todayGreeting(t, 'Evening', { profileName: undefined, cardName: 'Damla Y' }, 'office')).toBe(
+      'today.greetingEvening:Damla\ntoday.occasionLine.office',
+    );
+  });
+
+  it('is neutral without any name', () => {
+    expect(todayGreeting(t, 'Day', { profileName: '  ', cardName: '' }, null)).toBe('todayHome.greetingAloneNoName.Day');
+    expect(todayGreeting(t, 'Morning', { profileName: null, cardName: null }, 'weekend')).toBe(
+      'todayHome.greetingNoName.Morning\ntoday.occasionLine.weekend',
+    );
   });
 });

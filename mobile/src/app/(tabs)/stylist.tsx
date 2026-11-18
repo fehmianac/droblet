@@ -1,19 +1,18 @@
 import { router, useLocalSearchParams, type Href } from 'expo-router';
-import { ArrowUp, CalendarDays, Check, CloudSun, History, Luggage, Palette, Shirt, Sparkles, X, type LucideIcon } from 'lucide-react-native';
-import { useState } from 'react';
+import { Briefcase, Calendar, Cloud, LayoutGrid, Palette, ShoppingBag, Sparkles, X, type LucideIcon } from 'lucide-react-native';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 
 import type { Occasion } from '@/api/contracts';
 import { STYLIST_TEXT_MAX } from '@/api/contracts/stylist';
 import { extractApiError } from '@/api/errors';
 import { Logo } from '@/components/brand/Logo';
-import { Badge } from '@/components/ui/Bits';
 import { Button } from '@/components/ui/Button';
-import { Chip, ChipWrap } from '@/components/ui/Chip';
+import { Chip } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
-import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { openCreditTopUp, useAiCredits } from '@/features/credits/useAiCredits';
@@ -32,11 +31,40 @@ function isOccasion(value: string | undefined): value is Occasion {
 
 type Shortcut = { key: 'Trip' | 'Week' | 'Look' | 'Palette'; icon: LucideIcon; href: Href };
 const SHORTCUTS: Shortcut[] = [
-  { key: 'Trip', icon: Luggage, href: '/trip/new' },
-  { key: 'Week', icon: CalendarDays, href: '/plan/week' },
-  { key: 'Look', icon: Shirt, href: '/look/new' },
+  { key: 'Trip', icon: Briefcase, href: '/trip/new' },
+  { key: 'Week', icon: Calendar, href: '/plan/week' },
+  { key: 'Look', icon: LayoutGrid, href: '/look/new' },
   { key: 'Palette', icon: Palette, href: '/palette' },
 ];
+
+/** The hanger of the board (same glyph as the Gardırop tab), 15 pt inside the "Sadece gardırobum" badge. */
+function HangerGlyph({ color }: { color: string }) {
+  return (
+    <Svg width={15} height={15} viewBox="0 0 24 24" fill="none" accessible={false}>
+      <Path d="M10 6.5a2 2 0 1 1 2.6 1.9c-.4.2-.6.6-.6 1V10.5" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+      <Path
+        d="M12 10.5 3.4 17.4c-.6.5-.3 1.6.5 1.6h16.2c.8 0 1.1-1.1.5-1.6z"
+        stroke={color}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+/** Context badge of 16: 30 high, 12 inset, Jost 500 11 — sand (weather) or outlined on the screen colour. */
+function ContextBadge({ label, leading, outlined = false, trailing }: { label: string; leading?: ReactNode; outlined?: boolean; trailing?: ReactNode }) {
+  return (
+    <View className={`h-[30px] max-w-full flex-row items-center gap-1.5 rounded-pill px-3 ${outlined ? 'border border-line' : 'bg-sand'}`}>
+      {leading}
+      <Text variant="badge" numberOfLines={1} className="shrink">
+        {label}
+      </Text>
+      {trailing}
+    </View>
+  );
+}
 
 /**
  * 16 Stilist — say where you are going (free text and/or an occasion chip), see the context the
@@ -112,19 +140,17 @@ export default function StylistTab() {
 
   return (
     <Screen>
-      <OfflineBanner />
-      <ScrollView contentContainerClassName="gap-5 px-gutter pb-10" keyboardShouldPersistTaps="handled">
-        <View className="h-12 flex-row items-center justify-between">
-          <Logo />
-          <IconButton icon={History} onPress={() => router.navigate('/wardrobe/looks')} accessibilityLabel={t('stylistHome.history')} />
-        </View>
-
-        <View className="gap-1">
+      <View className="h-12 flex-row items-center justify-between px-gutter">
+        <Logo />
+        <IconButton icon={LayoutGrid} iconSize={19} onPress={() => router.navigate('/wardrobe/looks')} accessibilityLabel={t('stylistHome.history')} />
+      </View>
+      <ScrollView contentContainerClassName="gap-4 px-gutter pb-10 pt-1.5" keyboardShouldPersistTaps="handled">
+        <View className="gap-1.5">
           <Text variant="eyebrow">{t('stylistHome.eyebrow')}</Text>
           <Text variant="display">{date === today ? t('stylistHome.title') : t('stylistHome.titleForDate', { date: dateLabel })}</Text>
         </View>
 
-        <View className="flex-row items-end gap-2 rounded-card border border-line bg-paper p-2 pl-4">
+        <View className="flex-row items-center gap-2 rounded-[26px] border border-line bg-paper p-1 pl-4">
           <TextInput
             value={text}
             onChangeText={(v) => {
@@ -136,51 +162,72 @@ export default function StylistTab() {
             placeholder={t('stylistHome.textPlaceholder')}
             placeholderTextColor={colors.muted}
             selectionColor={colors.accent}
-            multiline
+            returnKeyType="send"
+            onSubmitEditing={submit}
             maxLength={STYLIST_TEXT_MAX}
             maxFontSizeMultiplier={1.6}
-            className="max-h-28 min-h-icon-btn flex-1 py-2.5 font-sans text-body text-ink"
+            className="h-icon-btn flex-1 py-0 font-sans text-[15px] text-ink"
           />
-          <IconButton icon={ArrowUp} variant="plain" onPress={submit} disabled={start.isStarting} accessibilityLabel={t('stylistHome.send')} testID="stylist.send" />
+          <IconButton
+            icon={Sparkles}
+            variant="filled"
+            iconSize={19}
+            onPress={submit}
+            disabled={start.isStarting}
+            accessibilityLabel={t('stylistHome.send')}
+            testID="stylist.send"
+          />
         </View>
 
         <View className="gap-2.5">
           <Text variant="eyebrow">{t('stylistHome.occasionEyebrow')}</Text>
-          <ChipWrap>
-            {OCCASIONS.map((o) => (
-              <Chip
-                key={o}
-                label={t(`occasion.${o}`)}
-                selected={occasion === o}
-                onPress={() => {
-                  setOccasion(occasion === o ? null : o);
-                  start.reset();
-                }}
-              />
+          {/* Three equal columns, 8 apart, labels centred (canvas grid). */}
+          <View className="gap-2">
+            {[OCCASIONS.slice(0, 3), OCCASIONS.slice(3, 6)].map((row) => (
+              <View key={row.join()} className="flex-row gap-2">
+                {row.map((o) => (
+                  <View key={o} className="flex-1">
+                    <Chip
+                      fill
+                      label={t(`occasion.${o}`)}
+                      selected={occasion === o}
+                      onPress={() => {
+                        setOccasion(occasion === o ? null : o);
+                        start.reset();
+                      }}
+                    />
+                  </View>
+                ))}
+              </View>
             ))}
-          </ChipWrap>
+          </View>
         </View>
 
         <View className="flex-row flex-wrap items-center gap-2">
           {weatherLabel ? (
             <View accessible accessibilityLabel={t('stylistHome.weatherA11y', { value: weatherLabel })}>
-              <Badge icon={CloudSun} label={weatherLabel} />
+              <ContextBadge leading={<Icon icon={Cloud} size={15} />} label={weatherLabel} />
             </View>
           ) : null}
-          <Badge label={t(`season.${seasonOf(day)}`)} />
-          {date !== today ? <Badge icon={CalendarDays} label={t('stylistHome.dateBadge', { weekday: weekdayShort(day), date: dateLabel })} /> : null}
+          <ContextBadge outlined label={t(`season.${seasonOf(day)}`)} />
+          {date !== today ? (
+            <ContextBadge outlined leading={<Icon icon={Calendar} size={15} />} label={t('stylistHome.dateBadge', { weekday: weekdayShort(day), date: dateLabel })} />
+          ) : null}
+          {/* On = the board ("Sadece gardırobum", hanger). Off names the other source, so the state never depends on colour. */}
           <Pressable
             onPress={() => setWardrobeOnly((v) => !v)}
             accessibilityRole="switch"
             accessibilityLabel={t('stylistHome.wardrobeOnly')}
             accessibilityState={{ checked: wardrobeOnly }}
             hitSlop={8}
-            className={`h-7 flex-row items-center gap-1 rounded-pill border px-2.5 ${wardrobeOnly ? 'border-ink bg-ink' : 'border-line bg-paper'}`}
+            testID="wardrobe-only"
+            className="active:opacity-80"
           >
-            {wardrobeOnly ? <Icon icon={Check} size={13} tone="paper" /> : null}
-            <Text variant="caption" tone={wardrobeOnly ? 'paper' : 'ink'}>
-              {t('stylistHome.wardrobeOnly')}
-            </Text>
+            <ContextBadge
+              outlined
+              leading={wardrobeOnly ? <HangerGlyph color={colors.ink} /> : <Icon icon={ShoppingBag} size={15} />}
+              label={t(wardrobeOnly ? 'stylistHome.wardrobeOnly' : 'stylistHome.withStore')}
+            />
           </Pressable>
           {pinned ? (
             <Pressable
@@ -188,12 +235,9 @@ export default function StylistTab() {
               accessibilityRole="button"
               accessibilityLabel={t('stylistHome.removePinned', { name: pinned.name })}
               hitSlop={8}
-              className="h-7 max-w-full flex-row items-center gap-1 rounded-pill bg-sand px-2.5"
+              className="max-w-full active:opacity-80"
             >
-              <Text variant="caption" numberOfLines={1} className="shrink">
-                {t('stylistHome.pinnedItem', { name: pinned.name })}
-              </Text>
-              <Icon icon={X} size={13} />
+              <ContextBadge label={t('stylistHome.pinnedItem', { name: pinned.name })} trailing={<Icon icon={X} size={13} />} />
             </Pressable>
           ) : null}
         </View>
@@ -225,7 +269,7 @@ export default function StylistTab() {
 
         <View className="h-px bg-line" />
 
-        <View className="flex-row flex-wrap gap-3">
+        <View className="flex-row flex-wrap gap-2.5">
           {SHORTCUTS.map((s) => {
             const title = t(`stylistHome.shortcut${s.key}Title`);
             const body = t(`stylistHome.shortcut${s.key}Body`);
@@ -236,11 +280,13 @@ export default function StylistTab() {
                 accessibilityRole="button"
                 accessibilityLabel={title}
                 accessibilityHint={body}
-                className="min-h-24 grow basis-[46%] gap-2 rounded-card border border-line bg-paper p-4 active:opacity-80"
+                className="grow basis-[46%] gap-[18px] rounded-card border border-line bg-paper p-3.5 active:opacity-80"
               >
-                <Icon icon={s.icon} />
-                <View className="gap-0.5">
-                  <Text variant="bodyMedium">{title}</Text>
+                <Icon icon={s.icon} size={22} />
+                <View>
+                  <Text variant="bodyMedium" className="text-[14.5px]">
+                    {title}
+                  </Text>
                   <Text variant="caption" tone="muted">
                     {body}
                   </Text>
@@ -253,3 +299,6 @@ export default function StylistTab() {
     </Screen>
   );
 }
+
+/** A render error in this tab shows the error state with "Tekrar dene"; the tab bar and the other tabs keep working. */
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';

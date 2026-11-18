@@ -12,7 +12,6 @@ import { Chip, ChipRow } from '@/components/ui/Chip';
 import { EmptySlot } from '@/components/ui/EmptySlot';
 import { IconButton } from '@/components/ui/IconButton';
 import { LookCard } from '@/components/ui/LookCard';
-import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { ProductCard } from '@/components/ui/ProductCard';
 import { ProductRow } from '@/components/ui/ProductRow';
 import { Screen } from '@/components/ui/Screen';
@@ -36,7 +35,6 @@ export default function ComponentsShowcase() {
   return (
     <Screen>
       <ScreenHeader title={t('screens.components')} />
-      <OfflineBanner />
       <ScrollView contentContainerClassName="gap-8 pb-8">
         <View className="gap-3 px-gutter">
           <Text variant="eyebrow">{t('style.eyebrow')}</Text>

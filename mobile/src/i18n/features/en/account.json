@@ -29,9 +29,52 @@
       "membership": "Membership",
       "membershipActive": "Active",
       "membershipFree": "Free",
+      "plan": {
+        "monthly": "Monthly",
+        "yearly": "Yearly"
+      },
       "family": "Family plan",
       "settings": "Privacy, photos and settings"
     }
+  },
+  "profileEdit": {
+    "title": "Edit profile",
+    "name": "Name",
+    "handle": "Username",
+    "handleHint": "Your profile appears as @{{handle}}.",
+    "handleRules": "{{min}}–{{max}} characters; lower-case letters, numbers, dots and underscores.",
+    "addPhoto": "Add photo",
+    "changePhoto": "Change photo",
+    "noPhoto": "No profile photo",
+    "photoTitle": "Profile photo",
+    "takePhoto": "Take a photo",
+    "choosePhoto": "Choose from library",
+    "removePhoto": "Remove photo",
+    "save": "Save",
+    "offline": "You need an internet connection to save your profile.",
+    "errors": {
+      "nameRequired": "Enter your name.",
+      "nameTooLong": "Your name can be up to {{max}} characters.",
+      "handleRequired": "Enter a username.",
+      "handleTooShort": "Your username needs at least {{min}} characters.",
+      "handleTooLong": "Your username can be up to {{max}} characters.",
+      "handleInvalid": "Use only lower-case letters, numbers, dots and underscores.",
+      "handleTaken": "This username is taken. Try another one."
+    },
+    "checking": "Checking…",
+    "available": "@{{handle}} is available.",
+    "current": "This is your username.",
+    "taken": "This username is taken.",
+    "reserved": "This username can't be used.",
+    "invalid": "Use 3–30 characters: lowercase letters, digits, dots and underscores.",
+    "checkFailed": "We couldn't check right now; it is checked again when you save.",
+    "cityLabel": "City",
+    "cityHint": "For the weather and suggestions.",
+    "cityNone": "No city chosen",
+    "citySearch": "Search for a city",
+    "cityEmpty": "No city found with this name.",
+    "cityError": "Cities couldn't be loaded right now.",
+    "cityClear": "Remove city"
   },
   "settings": {
     "visibilityEyebrow": "WHO CAN SEE MY CLOSET?",
@@ -52,6 +95,7 @@
     "addTitle": "Which photo shall we add?",
     "addBody": "Take a full-length photo",
     "addFace": "Choose a face photo",
+    "replaceFace": "Replace face photo",
     "uploadQueued": "Your photo is uploading; it will appear here when it's ready.",
     "photoFailed": "The photo couldn't be prepared. Try another one.",
     "photosNote": "Visible only to you. Up to 3 full-length photos.",
@@ -60,7 +104,9 @@
     "notificationsEyebrow": "NOTIFICATIONS",
     "morning": "Morning outfit reminder",
     "morningTime": "Reminder time",
+    "morningTimeA11y": "Reminder time: {{time}}",
     "timeTitle": "Reminder time",
+    "timeBody": "The morning outfit reminder arrives at this time every day.",
     "weeklyEdit": "Edit of the week",
     "friendRatings": "Friend ratings",
     "notificationsError": "Your notification settings couldn't be loaded right now.",
@@ -72,8 +118,11 @@
   "photoDelete": {
     "title": "Delete your photos and generated images?",
     "listTitle": "This will delete:",
+    "bullet": "· {{line}}",
     "bodyPhotos_one": "{{count}} full-length photo",
     "bodyPhotos_other": "{{count}} full-length photos",
+    "bodyAndFace_one": "{{count}} full-length photo and your face photo",
+    "bodyAndFace_other": "{{count}} full-length photos and your face photo",
     "facePhoto": "Your face photo",
     "generated_one": "{{count}} AI image generated on you",
     "generated_other": "{{count}} AI images generated on you",
@@ -117,6 +166,9 @@
     "analyzeAction": "Create my palette",
     "analyzing": "Your palette is being prepared",
     "failed": "We couldn't create it right now. Try again.",
+    "photoSheetTitle": "Face photo",
+    "takePhoto": "Take a photo",
+    "choosePhoto": "Choose from library",
     "season": {
       "light_spring": "Light Spring",
       "warm_spring": "Warm Spring",
@@ -130,6 +182,40 @@
       "deep_winter": "Deep Winter",
       "cool_winter": "Cool Winter",
       "bright_winter": "Bright Winter"
+    }
+  },
+  "notifCenter": {
+    "today": "TODAY",
+    "yesterday": "YESTERDAY",
+    "unread_one": "{{count}} unread notification",
+    "unread_other": "{{count}} unread notifications",
+    "allRead": "All read",
+    "markAll": "Mark all as read",
+    "settings": "Notification settings",
+    "empty": "No notifications yet; price drops and friend ratings will appear here.",
+    "rowA11y": "{{title}}. {{body}}. {{time}}",
+    "rowUnreadA11y": "Unread. {{title}}. {{body}}. {{time}}",
+    "priceDrop": {
+      "title": "Price drop on {{name}}",
+      "body": "{{brand}} · {{price}}, was {{previous}}"
+    },
+    "friendRating": {
+      "title_one": "{{name}} gave your look {{count}} star",
+      "title_other": "{{name}} gave your look {{count}} stars",
+      "body": "See it in the friend feed"
+    },
+    "weeklyPlan": {
+      "title": "Your weekly plan is ready",
+      "body": "Take a look at this week's outfits"
+    },
+    "creditsLow": {
+      "title_one": "{{count}} AI image left this month",
+      "title_other": "{{count}} AI images left this month",
+      "body": "You can top up credits or wait for the renewal"
+    },
+    "renewal": {
+      "title": "Your membership renews on {{date}}",
+      "body": "See your membership details"
     }
   },
   "credits": {

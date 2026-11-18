@@ -154,6 +154,8 @@ function toPiece(wire: SocialPieceWire): FeedPiece {
     imageUrl: wire.imageUrl ?? wire.product?.images[0] ?? null,
     brandName: wire.product?.brandName ?? null,
     price: wire.product ? { amountMinor: wire.product.priceMinor, currency: wire.product.currency } : null,
+    category: wire.product?.category ?? null,
+    color: wire.product?.colors[0] ?? null,
   };
 }
 
@@ -221,7 +223,7 @@ export function toLookTile(wire: SocialLookWire): PersonTile {
 export type PersonItemWire = { id: string; name: string | null; category: string; colors: string[]; imageUrl: string | null };
 
 export function toItemTile(wire: PersonItemWire): PersonTile {
-  return { id: wire.id, name: wire.name ?? '', imageUrl: wire.imageUrl };
+  return { id: wire.id, name: wire.name ?? '', imageUrl: wire.imageUrl, category: wire.category, color: wire.colors[0] ?? null };
 }
 
 /** Row of GET v1/tenant/people/{handle}/trip — finished trips only; owner-only for now (404 for everyone else). */

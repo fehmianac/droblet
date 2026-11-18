@@ -18,12 +18,12 @@ import {
   type ProductSummary,
   type SeriesOutfit,
   type SetWatchRequest,
-  type TryOnState,
   type Watchlist,
   type WatchlistEntry,
   type WeeklyEditSummary,
 } from '@/api/contracts/store';
 import { ApiError } from '@/api/errors';
+import { toCatalogColorOrNull } from '@/api/wire/store';
 import { slotOfCategory, slotOfItemCategory } from '@/features/store/slots';
 import { currentLanguage } from '@/i18n';
 import { moneyFromMajor, sumMoney, toIsoDate, type Money } from '@/lib/format';
@@ -201,7 +201,7 @@ function currentEdit(today: Date = new Date()): WeeklyEditSummary {
 /** Placeholder creators — sample handles only, no real people (README §9.1 A-7). */
 export const creatorsFixture: CreatorCard[] = [
   { id: 'creator_1', handle: 'ornek_stilist', displayName: '@ornek_stilist', role: 'Stil danışmanı', lookTitle: 'Quiet luxury ofis', imageUrl: null, sponsored: false },
-  { id: 'creator_2', handle: 'ornek_editor', displayName: 'Stil editörü', role: 'Editör', lookTitle: 'Hafta sonu katman', imageUrl: null, sponsored: false },
+  { id: 'creator_2', handle: 'ornek_editor', displayName: '@ornek_editor', role: 'Editör', lookTitle: 'Hafta sonu katman', imageUrl: null, sponsored: false },
   { id: 'creator_3', handle: null, displayName: 'Marka vitrini', role: null, lookTitle: 'Lüks dokunuş', imageUrl: null, sponsored: true },
 ];
 
@@ -213,7 +213,6 @@ type State = {
   cart: CartRow[];
   watch: Map<string, { alertEnabled: boolean; source: WatchlistEntry['source']; previousPrice: Money | null }>;
   favorites: Set<string>;
-  tryOn: Map<string, { status: TryOnState['status']; readyAt: number }>;
   wardrobeAdds: string[];
 };
 
@@ -230,7 +229,6 @@ function initialState(): State {
       ['prod_009', { alertEnabled: false, source: { kind: 'manual' }, previousPrice: null }],
     ]),
     favorites: new Set<string>(),
-    tryOn: new Map(),
     wardrobeAdds: [],
   };
 }
@@ -259,7 +257,16 @@ export function buildCart(rows: CartRow[], catalogue: ProductSummary[]): Cart {
       group = { brandId: p.brandId, brandName: p.brandName, brandLogoUrl: p.brandLogoUrl ?? null, subtotal: null, lines: [] };
       groups.push(group);
     }
-    group.lines.push({ lineId: row.lineId, productId: p.id, name: p.name, size: row.size, price: p.price, imageUrl: p.imageUrl });
+    group.lines.push({
+      lineId: row.lineId,
+      productId: p.id,
+      name: p.name,
+      size: row.size,
+      price: p.price,
+      imageUrl: p.imageUrl,
+      category: p.category,
+      color: toCatalogColorOrNull(p.colors[0]),
+    });
   }
   const priced = groups.map((g) => ({ ...g, subtotal: sumMoney(g.lines.map((l) => l.price)) }));
   return {
@@ -268,8 +275,6 @@ export function buildCart(rows: CartRow[], catalogue: ProductSummary[]): Cart {
     lineCount: priced.reduce((sum, g) => sum + g.lines.length, 0),
   };
 }
-
-const TRY_ON_DURATION_MS = 1500;
 
 export const storeFixtures = {
   edit: (): WeeklyEditSummary => currentEdit(),
@@ -285,7 +290,10 @@ export const storeFixtures = {
     const own = slotOfCategory(p.category);
     // The user's real (fixture) wardrobe — the same pieces Gardırop shows.
     const items = fixtureDb.items.filter((w) => slotOfItemCategory(w.category) !== own);
-    return { count: items.length, items: items.map(({ id: itemId, name, imageUrl }) => ({ id: itemId, name, imageUrl })) };
+    return {
+      count: items.length,
+      items: items.map(({ id: itemId, name, imageUrl, category, color }) => ({ id: itemId, name, imageUrl, category, color })),
+    };
   },
   complete: (itemId: string): CompleteSuggestions => {
     const piece = fixtureDb.items.find((w) => w.id === itemId);
@@ -300,18 +308,6 @@ export const storeFixtures = {
   },
   addToWardrobe: (productId: string): void => {
     state.wardrobeAdds.push(productId);
-  },
-
-  tryOn: (productId: string): TryOnState => {
-    const entry = state.tryOn.get(productId);
-    if (!entry) return { status: 'none', imageUrl: null };
-    if (entry.status === 'pending' && Date.now() >= entry.readyAt) entry.status = 'done';
-    return { status: entry.status, imageUrl: null };
-  },
-  requestTryOn: (productId: string): void => {
-    if (!state.tryOn.has(productId)) {
-      state.tryOn.set(productId, { status: 'pending', readyAt: Date.now() + TRY_ON_DURATION_MS });
-    }
   },
 
   cart: (): Cart => buildCart(state.cart, localizedCatalogue()),

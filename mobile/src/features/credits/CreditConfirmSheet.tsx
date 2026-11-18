@@ -3,7 +3,7 @@ import { View } from 'react-native';
 
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
-import { Text } from '@/components/ui/Text';
+import { Text, type TextTone } from '@/components/ui/Text';
 
 import { openCreditTopUp, useAiCredits } from './useAiCredits';
 
@@ -35,8 +35,9 @@ export function CreditConfirmSheet({ visible, onClose, cost, scope, onConfirm, c
 
   return (
     <BottomSheet visible={visible} onClose={onClose}>
-      <View className="gap-4">
-        <View className="gap-1.5">
+      {/* The sheet insets 20; the board draws this one at 24. */}
+      <View className="gap-[18px] px-1 pb-1">
+        <View className="gap-2">
           <Text variant="eyebrow">{eyebrow}</Text>
           <Text variant="h2">{t('creditConfirm.willSpend', { count: cost })}</Text>
           <Text variant="body" tone="muted">
@@ -45,20 +46,19 @@ export function CreditConfirmSheet({ visible, onClose, cost, scope, onConfirm, c
         </View>
 
         {remaining !== null ? (
-          <View className="gap-2.5 rounded-card border border-line bg-paper p-4">
+          <View className="gap-2.5 rounded-card border border-line bg-paper px-4 py-3.5">
             <Row label={t('creditConfirm.remainingNow')} value={t('creditConfirm.images', { count: remaining })} />
-            <Row label={t('creditConfirm.thisAction')} value={`−${cost}`} />
+            <Row label={t('creditConfirm.thisAction')} value={`−${cost}`} tone="accent" />
             <View className="h-px bg-line" />
             <Row
               label={t('creditConfirm.afterwards')}
               value={affordable ? t('creditConfirm.images', { count: remaining - cost }) : t('creditConfirm.notEnough')}
-              strong
-              danger={!affordable}
+              tone={affordable ? 'ink' : 'danger'}
             />
           </View>
         ) : null}
 
-        <Text variant="caption" tone="muted">
+        <Text variant="caption" tone="muted" className="leading-[18px]">
           {t('creditConfirm.cacheNote')}
         </Text>
 
@@ -68,7 +68,7 @@ export function CreditConfirmSheet({ visible, onClose, cost, scope, onConfirm, c
           </Text>
         ) : null}
 
-        <View className="gap-2">
+        <View className="gap-1.5">
           {affordable ? (
             <Button label={t('creditConfirm.confirm', { count: cost })} onPress={onConfirm} loading={confirming} testID="credit-confirm" />
           ) : (
@@ -81,20 +81,21 @@ export function CreditConfirmSheet({ visible, onClose, cost, scope, onConfirm, c
               }}
             />
           )}
-          <Button variant="secondary" label={t('common.cancel')} onPress={onClose} />
+          <Button variant="text" label={t('common.cancel')} onPress={onClose} />
         </View>
       </View>
     </BottomSheet>
   );
 }
 
-function Row({ label, value, strong = false, danger = false }: { label: string; value: string; strong?: boolean; danger?: boolean }) {
+/** One line of the balance card: 14 regular label, 14 medium value. */
+function Row({ label, value, tone = 'ink' }: { label: string; value: string; tone?: TextTone }) {
   return (
     <View className="flex-row items-center justify-between gap-3" accessible accessibilityLabel={`${label}: ${value}`}>
-      <Text variant={strong ? 'bodyMedium' : 'body'} tone={strong ? 'ink' : 'muted'} className="flex-1">
+      <Text variant="body" className="flex-1">
         {label}
       </Text>
-      <Text variant="bodyMedium" tone={danger ? 'danger' : 'ink'}>
+      <Text variant="bodyMedium" tone={tone}>
         {value}
       </Text>
     </View>

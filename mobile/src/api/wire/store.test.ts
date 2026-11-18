@@ -149,7 +149,7 @@ describe('store wire mappers', () => {
         compatibleCount: 3,
         items: [{ id: 'i1', name: 'Lacivert blazer', category: 'outerwear', colors: ['navy'], imageUrl: null }],
       }),
-    ).toEqual({ count: 3, items: [{ id: 'i1', name: 'Lacivert blazer', imageUrl: null }] });
+    ).toEqual({ count: 3, items: [{ id: 'i1', name: 'Lacivert blazer', imageUrl: null, category: 'outerwear', color: 'navy' }] });
 
     const complete = toCompleteSuggestions({
       slots: [

@@ -4,6 +4,8 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
 jest.mock('@react-native-community/netinfo', () => ({ addEventListener: jest.fn(() => jest.fn()) }));
+// expo-camera (12 Parça ekle): no camera in Jest — see `jest/expoCameraMock.js` for how a test drives it.
+jest.mock('expo-camera', () => require('./expoCameraMock'));
 
 // StoreKit 2 / Play Billing (expo-iap): no store in Jest — the catalogue falls back to the
 // representative fixtures; the purchase flow is tested against mocks of src/purchases/billing.

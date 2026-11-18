@@ -19,7 +19,7 @@ import type {
   PutVisibilityRequest,
   RemovePhotoRequest,
 } from '@/api/contracts/account';
-import { fromSource } from '@/api/dataSource';
+import { DATA_SOURCE, fromSource } from '@/api/dataSource';
 import { apiErrorCode, isPaywallError } from '@/api/errors';
 import {
   fromNotificationSettings,
@@ -95,6 +95,8 @@ export function registerAccountMutations(client: QueryClient): void {
       ),
     optimistic: (prev, vars) => (prev ? { ...prev, language: vars.language } : prev),
     mapCurrent: (wire) => profileFromWire(client, wire as ProfileWire),
+    // The device language wins: a profile version that moved on (another field changed) is not a dispute.
+    rebaseOnConflict: true,
   });
 
   // Profile city (weather on Bugün, stylist): partial PUT with `cityId` only; `""` clears it.
@@ -115,6 +117,7 @@ export function registerAccountMutations(client: QueryClient): void {
       ),
     optimistic: (prev, vars) => (prev ? { ...prev, cityId: vars.cityId || null } : prev),
     mapCurrent: (wire) => profileFromWire(client, wire as ProfileWire),
+    rebaseOnConflict: true,
   });
 
   // Display name: partial PUT with `displayName` only. 400 `name_required` for a blank name.
@@ -321,6 +324,64 @@ export function useAnalyzePalette() {
     const id = ulid();
     m.mutate({ requestId: id, clientMutationId: id });
   };
+}
+
+/**
+ * What "Profili düzenle" saves. `avatar`: a newly picked local file, `null` to remove the photo, absent
+ * to keep it — the API has no avatar upload yet, so it is applied in fixture mode only (see
+ * `AVATAR_EDIT_SUPPORTED`).
+ */
+export type ProfileEdit = { displayName: string; handle: string; avatar?: { localUri: string } | null; baseVersion: number };
+
+/** The backend has no avatar endpoint yet: the edit form hides "change photo" against the real API. */
+export const AVATAR_EDIT_SUPPORTED = DATA_SOURCE.account === 'fixtures';
+
+/**
+ * 28 "Profili düzenle" — name and handle. Interactive and online-only (never queued): whether the handle
+ * is free is the server's answer, and the user must see it at once. Real API: the name is a partial
+ * `PUT v1/tenant/profile { displayName, baseVersion }` (409 + the current profile on a version race);
+ * a changed handle goes to `PUT v1/tenant/profile/handle` (409 `handle_taken`, 422 `handle_reserved`,
+ * 400 `handle_invalid`).
+ */
+export function useUpdateProfile() {
+  const client = useQueryClient();
+  return useMutation<MyProfile, unknown, ProfileEdit>({
+    networkMode: 'always',
+    retry: false,
+    mutationFn: (edit) =>
+      fromSource(
+        'account',
+        () =>
+          accountFixtures.updateProfile(
+            {
+              displayName: edit.displayName,
+              handle: edit.handle,
+              baseVersion: edit.baseVersion,
+              clientMutationId: newClientMutation().clientMutationId,
+            },
+            edit.avatar === undefined ? undefined : (edit.avatar?.localUri ?? null),
+          ),
+        async () => {
+          const before = client.getQueryData<MyProfile>(accountKeys.profile);
+          let saved = before;
+          if (!before || edit.displayName !== before.displayName) {
+            const body: PutProfileWire = { displayName: edit.displayName, baseVersion: edit.baseVersion };
+            saved = profileFromWire(client, await apiRequest<ProfileWire>('v1/tenant/profile', { method: 'PUT', body }));
+            client.setQueryData(accountKeys.profile, saved);
+          }
+          if (!saved || edit.handle !== (saved.handle ?? '')) {
+            const body: PutHandleWire = { handle: edit.handle };
+            saved = profileFromWire(client, await apiRequest<ProfileWire>('v1/tenant/profile/handle', { method: 'PUT', body }));
+          }
+          return saved;
+        },
+      ),
+    onSuccess: (saved) => {
+      // Every screen reads the name from the profile query; the session copy follows for the rest.
+      client.setQueryData(accountKeys.profile, saved);
+      void sessionStore.updateUser({ name: saved.displayName });
+    },
+  });
 }
 
 /**

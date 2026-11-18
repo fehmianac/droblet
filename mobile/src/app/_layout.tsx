@@ -7,6 +7,7 @@ import { CormorantGaramond_500Medium } from '@expo-google-fonts/cormorant-garamo
 import { CormorantGaramond_600SemiBold } from '@expo-google-fonts/cormorant-garamond/600SemiBold';
 import { Jost_400Regular } from '@expo-google-fonts/jost/400Regular';
 import { Jost_500Medium } from '@expo-google-fonts/jost/500Medium';
+import { Jost_600SemiBold } from '@expo-google-fonts/jost/600SemiBold';
 import { Roboto_500Medium } from '@expo-google-fonts/roboto/500Medium';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
@@ -18,6 +19,7 @@ import { useOnboardingStatus } from '@/auth/onboarding';
 import { AnimatedSplash } from '@/components/brand/AnimatedSplash';
 import { sessionStore, useSession } from '@/auth/session';
 import { AppHosts } from '@/components/AppHosts';
+import { SyncPill } from '@/components/ui/SyncPill';
 import { restoreLanguagePreference } from '@/i18n/preference';
 import { ConflictHost } from '@/sync/ConflictHost';
 import { wireNetworkAndFocus } from '@/sync/network';
@@ -34,6 +36,7 @@ export default function RootLayout() {
     CormorantGaramond_600SemiBold,
     Jost_400Regular,
     Jost_500Medium,
+    Jost_600SemiBold,
     Roboto_500Medium,
   });
   const session = useSession();
@@ -89,6 +92,7 @@ export default function RootLayout() {
         <Stack.Protected guard={onboarded} redirectTo={home}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="plan/week" />
+          <Stack.Screen name="plan/report" />
           <Stack.Screen name="edit/[id]" />
           <Stack.Screen name="calendar" />
           <Stack.Screen name="item/[id]" />
@@ -114,9 +118,9 @@ export default function RootLayout() {
           <Stack.Screen name="friends/saved" />
           <Stack.Screen name="friends/blocked" />
           <Stack.Screen name="friends/contacts" />
-          <Stack.Screen name="profile-edit" />
           <Stack.Screen name="u/[handle]" />
           <Stack.Screen name="settings" />
+          <Stack.Screen name="edit-profile" />
           <Stack.Screen name="subscription" />
           <Stack.Screen name="notifications" />
           <Stack.Screen name="delete-account" />
@@ -135,8 +139,13 @@ export default function RootLayout() {
         <Stack.Screen name="(auth)/reset-password" />
       </Stack>
       <ConflictHost />
+      {/* Floating offline / sync status under the header: overlaid, never pushes a screen's content. */}
+      {signedIn ? <SyncPill /> : null}
       <AppHosts userId={userId} />
       {splashDone ? null : <AnimatedSplash onDone={finishSplash} />}
     </QueryProvider>
   );
 }
+
+/** Last resort for any screen without its own boundary: the error state instead of the app closing. */
+export { ScreenErrorBoundary as ErrorBoundary } from '@/components/ScreenErrorBoundary';

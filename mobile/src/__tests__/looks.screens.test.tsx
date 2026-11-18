@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
+import { Share } from 'react-native';
 
 import { fixtureDb, resetFixtureDb } from '@/fixtures/db';
 
@@ -41,6 +42,25 @@ describe('14 Looklar', () => {
     expect(screen.getByText('No looks match this filter.')).toBeTruthy();
   });
 
+  it('draws the header action, the occasion tags and opens a look from its card', async () => {
+    await renderRouter('./src/app', { initialUrl: '/wardrobe/looks' });
+    await waitFor(() => expect(screen.getByText('Lacivert Blazer')).toBeTruthy(), { timeout: 3000 });
+    expect(screen.getByTestId('looks.create')).toBeTruthy();
+    expect(screen.getByLabelText('Create a look')).toBeTruthy();
+    expect(screen.getAllByText('OFFICE').length).toBe(2);
+    expect(screen.getByText('EVENING')).toBeTruthy();
+    expect(screen.getByText('WEEKEND')).toBeTruthy();
+    // No rendered image in the fixtures: every card shows the collage of its pieces (glyph on the piece's colour), never an empty box.
+    expect(screen.getAllByTestId('image-slot-collage').length).toBe(4);
+    expect(screen.getAllByTestId('image-slot-garment').length).toBeGreaterThanOrEqual(8);
+    expect(screen.queryByText('ON YOU')).toBeNull();
+    // A look nobody rated shows no rating.
+    expect(screen.getByLabelText('Weekend, Tüvit & Jean')).toBeTruthy();
+
+    await fireEvent.press(screen.getByLabelText('Evening, Siyah Düz Elbise, average rating 4.8'));
+    await waitFor(() => expect(screen).toHavePathname('/look/look_siyah_duz_elbise'), { timeout: 3000 });
+  });
+
   it('toggles a favourite through the queue (optimistic)', async () => {
     await renderRouter('./src/app', { initialUrl: '/wardrobe/looks' });
     await waitFor(() => expect(screen.getByText('Tüvit & Jean')).toBeTruthy(), { timeout: 3000 });
@@ -77,6 +97,10 @@ describe('15 Look oluştur', () => {
     expect(screen.getByText('2 / 5 PIECES SELECTED')).toBeTruthy();
     expect(screen.getByTestId('look-save')).toBeEnabled();
     expect(screen.getByLabelText('Change Top')).toBeTruthy();
+    // The hint stays in the bottom bar next to Save, as drawn.
+    expect(screen.getByText('Save unlocks once at least 2 pieces are selected.')).toBeTruthy();
+    expect(screen.getByText('At least 2 pieces')).toBeTruthy();
+    expect(screen.getByText('PREVIEW')).toBeTruthy();
 
     await fireEvent.changeText(screen.getByLabelText('Look name'), 'Hafta içi');
     await fireEvent.press(screen.getByTestId('look-save'));
@@ -100,5 +124,95 @@ describe('15 Look oluştur', () => {
     await waitFor(() => expect(screen.getByText('This piece was deleted from your wardrobe. Replace or remove it.')).toBeTruthy(), { timeout: 3000 });
     expect(screen.getByTestId('look-save')).toBeDisabled();
     expect(screen.getByText('Replace or remove the deleted piece to save.')).toBeTruthy();
+  });
+});
+
+describe('Look detail (derived from 17)', () => {
+  it('shows the look with its pieces and rating; a piece opens its detail', async () => {
+    await renderRouter('./src/app', { initialUrl: '/look/look_lacivert_blazer' });
+    await waitFor(() => expect(screen.getByText('Lacivert Blazer')).toBeTruthy(), { timeout: 3000 });
+    expect(screen.getByText('OFFICE · 3 PIECES')).toBeTruthy();
+    expect(screen.getByLabelText("Your friends' average rating 4.6, 12 ratings")).toBeTruthy();
+    expect(screen.getByLabelText('Beyaz poplin gömlek, Top · Your wardrobe')).toBeTruthy();
+    expect(screen.getByLabelText('Lacivert yün blazer, Outerwear · Your wardrobe')).toBeTruthy();
+    expect(screen.getByTestId('look-try-on')).toBeEnabled();
+
+    await fireEvent.press(screen.getByLabelText('Lacivert yün blazer, Outerwear · Your wardrobe'));
+    await waitFor(() => expect(screen).toHavePathname('/item/item_navy_blazer'), { timeout: 3000 });
+  });
+
+  it('marks a store piece as missing and offers to complete the look', async () => {
+    const look = fixtureDb.looks.find((l) => l.id === 'look_lacivert_blazer');
+    look?.slots.push({ slot: 'shoes', source: 'store', refId: 'prod_rain_boots', name: 'Yağmur botu', imageUrl: null, brand: 'Gap', price: null, deleted: false });
+    await renderRouter('./src/app', { initialUrl: '/look/look_lacivert_blazer' });
+    await waitFor(() => expect(screen.getByText('Yağmur botu')).toBeTruthy(), { timeout: 3000 });
+    expect(screen.getByText('Missing piece · Store')).toBeTruthy();
+    expect(screen.getByText("1 piece isn't in your wardrobe; you can complete it from the store.")).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText('Complete the look: Yağmur botu'));
+    await waitFor(() => expect(screen).toHavePathname('/shop/product/prod_rain_boots'), { timeout: 3000 });
+  });
+
+  it('shares the look as readable text', async () => {
+    const share = jest.spyOn(Share, 'share').mockResolvedValue({ action: 'sharedAction', activityType: undefined });
+    await renderRouter('./src/app', { initialUrl: '/look/look_lacivert_blazer' });
+    await waitFor(() => expect(screen.getByTestId('look-share')).toBeTruthy(), { timeout: 3000 });
+    await fireEvent.press(screen.getByTestId('look-share'));
+    expect(share).toHaveBeenCalledTimes(1);
+    const message = share.mock.calls[0]?.[0] as { message: string };
+    expect(message.message).toContain('Lacivert Blazer · Office');
+    expect(message.message).toContain('• Beyaz poplin gömlek');
+    expect(message.message).toContain('• Lacivert yün blazer');
+    share.mockRestore();
+  });
+
+  it('toggles the favourite and opens the editor from the bottom bar', async () => {
+    await renderRouter('./src/app', { initialUrl: '/look/look_tuvit_jean' });
+    await waitFor(() => expect(screen.getByLabelText('Tüvit & Jean: add to favourites')).toBeTruthy(), { timeout: 3000 });
+    expect(screen.getByText("Your friends haven't rated this look yet.")).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText('Tüvit & Jean: add to favourites'));
+    await waitFor(() => expect(screen.getByLabelText('Tüvit & Jean: remove from favourites')).toBeTruthy());
+    await waitFor(() => expect(fixtureDb.looks.find((l) => l.id === 'look_tuvit_jean')?.isFavorite).toBe(true), { timeout: 3000 });
+
+    await fireEvent.press(screen.getByTestId('look-edit'));
+    await waitFor(() => expect(screen.getByText('Edit look')).toBeTruthy(), { timeout: 3000 });
+    expect(screen).toHavePathname('/look/new');
+  });
+
+  it('starts "Try it on me" behind the credit confirmation', async () => {
+    await renderRouter('./src/app', { initialUrl: '/look/look_lacivert_blazer' });
+    await waitFor(() => expect(screen.getByTestId('look-try-on')).toBeTruthy(), { timeout: 3000 });
+    await fireEvent.press(screen.getByTestId('look-try-on'));
+    await waitFor(() => expect(screen.getByText('1 credit will be used')).toBeTruthy(), { timeout: 3000 });
+    await fireEvent.press(screen.getByTestId('credit-confirm'));
+    // The job screen takes over (its path carries the job id).
+    await waitFor(() => expect(screen.queryByTestId('look-try-on')).toBeNull(), { timeout: 3000 });
+    expect(screen).not.toHavePathname('/look/look_lacivert_blazer');
+    expect(fixtureDb.entitlement.credits.remaining).toBe(10);
+  });
+
+  it('marks the look as worn today from the menu', async () => {
+    await renderRouter('./src/app', { initialUrl: '/look/look_lacivert_blazer' });
+    await waitFor(() => expect(screen.getByLabelText('More')).toBeTruthy(), { timeout: 3000 });
+    await fireEvent.press(screen.getByLabelText('More'));
+    await fireEvent.press(screen.getByLabelText("I'm wearing this today"));
+    await waitFor(() => expect(screen.getByText('Marked on today in your calendar.')).toBeTruthy());
+  });
+
+  it('deletes the look after confirmation', async () => {
+    await renderRouter('./src/app', { initialUrl: '/look/look_krem_katmanlar' });
+    await waitFor(() => expect(screen.getByLabelText('More')).toBeTruthy(), { timeout: 3000 });
+    await fireEvent.press(screen.getByLabelText('More'));
+    await fireEvent.press(screen.getByLabelText('Delete look'));
+    expect(screen.getByText('Delete this look?')).toBeTruthy();
+    expect(fixtureDb.looks.some((l) => l.id === 'look_krem_katmanlar')).toBe(true);
+    await fireEvent.press(screen.getByTestId('look-delete-confirm'));
+    await waitFor(() => expect(screen.getByText('This look was deleted.')).toBeTruthy(), { timeout: 3000 });
+    await waitFor(() => expect(fixtureDb.looks.some((l) => l.id === 'look_krem_katmanlar')).toBe(false), { timeout: 3000 });
+  });
+
+  it('shows the error state with retry for an unknown look', async () => {
+    await renderRouter('./src/app', { initialUrl: '/look/nope' });
+    await waitFor(() => expect(screen.getByText('Try again')).toBeTruthy(), { timeout: 3000 });
+    expect(screen.queryByTestId('look-try-on')).toBeNull();
   });
 });

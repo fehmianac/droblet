@@ -61,37 +61,6 @@
     "followRequests": "Follow requests",
     "priceDropNote": "Only for products whose bell is on."
   },
-  "profileEdit": {
-    "title": "Edit profile",
-    "handleLabel": "Username",
-    "handleHint": "3–30 characters: lowercase letters, digits, dots and underscores.",
-    "checking": "Checking…",
-    "available": "@{{handle}} is available.",
-    "current": "This is your username.",
-    "taken": "This username is taken.",
-    "reserved": "This username can't be used.",
-    "invalid": "Use 3–30 characters: lowercase letters, digits, dots and underscores.",
-    "checkFailed": "We couldn't check right now; it is checked again when you save.",
-    "saveHandle": "Save username",
-    "handleSaved": "Your username is saved.",
-    "nameLabel": "Name",
-    "nameRequired": "Name can't be empty.",
-    "saveName": "Save name",
-    "nameSaved": "Your name is saved.",
-    "cityLabel": "City",
-    "cityHint": "For the weather and suggestions.",
-    "cityNone": "No city chosen",
-    "citySearch": "Search for a city",
-    "cityEmpty": "No city found with this name.",
-    "cityError": "Cities couldn't be loaded right now.",
-    "cityClear": "Remove city",
-    "visibilityLabel": "CLOSET VISIBILITY",
-    "visibilityNote": {
-      "public": "Anyone can see your looks and closet; following needs no approval.",
-      "followers": "Your profile card shows up in search; only followers you approve see your closet.",
-      "private": "Your closet is visible only to you; your profile card is shown only to people you are connected with."
-    }
-  },
   "contacts": {
     "cardTitle": "Find friends from your contacts",
     "cardBody": "We can find which of the e-mail addresses in your contacts are on Droblet. First we explain what is sent.",

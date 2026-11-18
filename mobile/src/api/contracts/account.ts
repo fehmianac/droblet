@@ -56,7 +56,21 @@ export type PutProfileCityRequest = { cityId: string; baseVersion: number; clien
 /** GET v1/weather/city?q= (2–60 chars, ≤ 8 rows, names in the request language). */
 export type CityOption = { id: string; name: string; region: string | null; country: string | null };
 
-/** GET v1/tenant/photo — short-lived signed URLs (never persisted). */
+/**
+ * "Profili düzenle" (28) — what the form saves. On the wire it is two calls: `displayName` goes in the
+ * partial `PUT v1/tenant/profile { displayName, baseVersion }`, a changed handle in
+ * `PUT v1/tenant/profile/handle { handle }` (409 `handle_taken`, 422 `handle_reserved`).
+ * `avatarPhotoId` is fixture-only: the API has no avatar upload yet.
+ */
+export type UpdateProfileRequest = {
+  displayName: string;
+  handle: string;
+  avatarPhotoId?: string | null;
+  baseVersion: number;
+  clientMutationId: string;
+};
+
+/** GET v1/tenant/photo — metadata + short-lived signed URLs (never persisted). */
 export type PhotoMeta = { photoId: string; url: string | null };
 export type MyPhotos = {
   /** The server keeps ONE active body photo; the list has 0 or 1 entry. */
@@ -142,7 +156,10 @@ export type Palette =
 export type AnalyzePaletteRequest = { requestId: string; clientMutationId: string };
 
 /** GET v1/tenant/palette/mismatch */
-export type PaletteMismatch = { items: { id: string; name: string; imageUrl: string | null }[] };
+export type PaletteMismatch = {
+  /** Wardrobe pieces; `category` / `color` (wardrobe vocabulary, optional) draw the placeholder while there is no picture. */
+  items: { id: string; name: string; imageUrl: string | null; category?: string | null; color?: string | null }[];
+};
 
 /** DELETE v1/auth/me → 204 — account deletion (29c). Online only. */
 export type DeleteAccountResponse = void;

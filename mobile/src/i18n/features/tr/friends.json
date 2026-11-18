@@ -61,37 +61,6 @@
     "followRequests": "Takip istekleri",
     "priceDropNote": "Yalnızca zilini açtığın ürünler için."
   },
-  "profileEdit": {
-    "title": "Profili düzenle",
-    "handleLabel": "Kullanıcı adı",
-    "handleHint": "3–30 karakter: küçük harf, rakam, nokta ve alt çizgi.",
-    "checking": "Kontrol ediliyor…",
-    "available": "@{{handle}} kullanılabilir.",
-    "current": "Bu senin kullanıcı adın.",
-    "taken": "Bu kullanıcı adı alınmış.",
-    "reserved": "Bu kullanıcı adı kullanılamaz.",
-    "invalid": "3–30 karakter; küçük harf, rakam, nokta ve alt çizgi kullan.",
-    "checkFailed": "Şu an kontrol edemedik; kaydederken tekrar denenir.",
-    "saveHandle": "Kullanıcı adını kaydet",
-    "handleSaved": "Kullanıcı adın kaydedildi.",
-    "nameLabel": "Ad",
-    "nameRequired": "Ad boş olamaz.",
-    "saveName": "Adı kaydet",
-    "nameSaved": "Adın kaydedildi.",
-    "cityLabel": "Şehir",
-    "cityHint": "Hava durumu ve öneriler için.",
-    "cityNone": "Şehir seçilmedi",
-    "citySearch": "Şehir ara",
-    "cityEmpty": "Bu adla şehir bulunamadı.",
-    "cityError": "Şehirler şu an yüklenemedi.",
-    "cityClear": "Şehri kaldır",
-    "visibilityLabel": "DOLAP GÖRÜNÜRLÜĞÜ",
-    "visibilityNote": {
-      "public": "Herkes looklarını ve dolabını görebilir; takip etmek onay istemez.",
-      "followers": "Profil kartın aramada görünür; dolabını yalnızca onayladığın takipçiler görür.",
-      "private": "Dolabın yalnızca sana açık; profil kartın yalnızca bağlantılı olduğun kişilere görünür."
-    }
-  },
   "contacts": {
     "cardTitle": "Rehberinden arkadaşlarını bul",
     "cardBody": "Rehberindeki e-posta adreslerinden Droblet'te olanları bulalım. Önce neyin gönderildiğini anlatıyoruz.",

@@ -16,6 +16,11 @@ env:
     visible:
       id: "welcome.start"
     timeout: 20000
+# The animated splash (2.6 s) lies over the first screen and takes the touches until it has faded.
+- extendedWaitUntil:
+    notVisible:
+      id: "animated-splash"
+    timeout: 10000
 - takeScreenshot: 01-hos-geldin
 - tapOn:
     id: "welcome.start"
@@ -29,20 +34,29 @@ env:
 - tapOn:
     id: "auth.name"
 - inputText: "Damla"
-- tapOn:
-    id: "auth.email"
+# The fields below sit under the keyboard: the keyboard's "next" key moves the focus (and the form
+# scrolls with it), exactly as a user would do it; "go" on the password submits.
+- pressKey: Enter
 - inputText: ${EMAIL}
+- pressKey: Enter
+- waitForAnimationToEnd
 - tapOn:
     id: "auth.password"
 - inputText: "Sm0keTest2026"
-- hideKeyboard
 - takeScreenshot: 02b-kayit-dolu
-- scrollUntilVisible:
-    element:
-      id: "auth.submit"
-    direction: DOWN
-- tapOn:
-    id: "auth.submit"
+- pressKey: Enter
+
+# iOS offers to save the new password in the keychain (a system sheet over the app, hiding it from
+# Maestro): wait for it briefly and decline it, in either system language.
+- extendedWaitUntil:
+    visible: "Not Now|Şimdi Değil"
+    timeout: 10000
+    optional: true
+- runFlow:
+    when:
+      visible: "Not Now|Şimdi Değil"
+    commands:
+      - tapOn: "Not Now|Şimdi Değil"
 
 # 03 Stil profili — a new account always goes through onboarding
 - extendedWaitUntil:

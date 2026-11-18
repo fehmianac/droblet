@@ -121,6 +121,12 @@ export type ConfirmItemDraftsRequest = {
     id: string;
     /** Library piece this item was created from (12b), when any. */
     libraryItemId?: string | null;
+    /**
+     * Fixture mode only: the local photo of a piece entered WITHOUT AI. Against the API that photo is
+     * uploaded and becomes a manual draft (`POST v1/tenant/item-draft { manual: true }`), and the entry is
+     * confirmed through its `draftId` instead (see `withManualPhotos`); this field is never sent.
+     */
+    photoKey?: string | null;
     reviewed: boolean;
     clientMutationId: string;
   })[];

@@ -1,21 +1,18 @@
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
-import { PlaceholderImage } from './PlaceholderImage';
-import { Text } from './Text';
+import { ImageTag } from './Bits';
+import { ImageSlot, type SlotPlaceholder } from './ImageSlot';
 
 export type AiBadgeKind = 'onYou' | 'preview';
 
-/** "SENİN ÜZERİNDE" / "AI ÖNİZLEME" — the AI marker. */
+/**
+ * "SENİN ÜZERİNDE" / "AI ÖNİZLEME" — the AI marker. Drawn as the canvas image tag (`.tag`):
+ * paper at 92 %, ink text, 9.5 with 10 % tracking, radius 6.
+ */
 export function AiBadge({ kind }: { kind: AiBadgeKind }) {
   const { t } = useTranslation();
-  return (
-    <View className="self-start rounded-pill bg-accent px-2.5 py-1">
-      <Text variant="eyebrow" tone="paper">
-        {t(kind === 'onYou' ? 'aiBadge.onYou' : 'aiBadge.preview')}
-      </Text>
-    </View>
-  );
+  return <ImageTag label={t(kind === 'onYou' ? 'aiBadge.onYou' : 'aiBadge.preview')} />;
 }
 
 type AiImageProps = {
@@ -23,19 +20,24 @@ type AiImageProps = {
   uri: string | null;
   className?: string;
   accessibilityLabel?: string;
+  /** What stands in while there is no generated image (e.g. the look's piece collage). Defaults to the figure. */
+  placeholder?: SlotPlaceholder;
 };
 
 /**
- * An AI-generated image. The label is part of the component and cannot be turned off:
- * AI output is always marked (BRIEF §3 Görseller).
+ * An AI-generated image. When there is one, the label is part of the component and cannot be turned off:
+ * AI output is always marked (BRIEF §3 Görseller). It sits bottom-left, 8 in, as on 06 / 08 / 17 / 22.
+ * Without an image nothing was generated, so there is no AI marker — only the placeholder.
  */
-export function AiImage({ kind, uri, className, accessibilityLabel }: AiImageProps) {
+export function AiImage({ kind, uri, className, accessibilityLabel, placeholder }: AiImageProps) {
   return (
     <View className={className}>
-      <PlaceholderImage uri={uri} className="h-full w-full rounded-image-lg" accessibilityLabel={accessibilityLabel} />
-      <View className="absolute left-3 top-3" pointerEvents="none">
-        <AiBadge kind={kind} />
-      </View>
+      <ImageSlot uri={uri} className="h-full w-full rounded-image-lg" accessibilityLabel={accessibilityLabel} placeholder={placeholder} />
+      {uri ? (
+        <View className="absolute bottom-2 left-2" pointerEvents="none" testID="ai-image-tag">
+          <AiBadge kind={kind} />
+        </View>
+      ) : null}
     </View>
   );
 }

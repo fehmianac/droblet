@@ -48,7 +48,7 @@ function startFixtureTryOn(request: StartTryOnRequest): StartTryOnResponse {
     () => ({
       tryOnId: `tryon_${request.requestId}`,
       target: request.target,
-      imageUrl: null,
+      imageUrl: fixtureJobOptions.tryOnImageUrl,
       creditsRemaining: fixtureDb.entitlement.credits.remaining,
     }),
     { id: `job_${request.requestId}` },
@@ -96,13 +96,22 @@ export function useStartTryOn() {
 }
 
 /**
+ * How long a try-on wait lasts before its area shows "Şu an oluşturamadık. Kredin iade edildi." +
+ * "Tekrar dene" (canvas note "Zaman aşımı / hata durumu": 60 s without a result).
+ */
+export const TRY_ON_TIMEOUT_MS = 60_000;
+
+/**
  * Polls a try-on job; its wire result `{ tryOnImageId }` is resolved to the image (`GET
  * v1/tenant/tryon/{id}`). A pseudo job id of an already existing image skips the polling and reads
  * the image directly. A failed job has its credit refunded by the server.
  */
-export function useTryOnJob(jobId: string | null | undefined, options: { enabled?: boolean } = {}): JobView<TryOnResult> {
+export function useTryOnJob(
+  jobId: string | null | undefined,
+  options: { enabled?: boolean; timeoutMs?: number } = {},
+): JobView<TryOnResult> {
   const imageId = cachedTryOnImageId(jobId);
-  const job = useJob<TryOnResult>('tryon', imageId ? null : jobId, { ...options, mapResult: mapTryOnResult });
+  const job = useJob<TryOnResult>('tryon', imageId ? null : jobId, { timeoutMs: TRY_ON_TIMEOUT_MS, ...options, mapResult: mapTryOnResult });
   const image = useQuery({
     queryKey: ['tenant', 'tryon', imageId ?? 'none'] as const,
     enabled: Boolean(imageId) && (options.enabled ?? true),

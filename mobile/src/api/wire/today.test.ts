@@ -203,6 +203,7 @@ describe('today wire mappers', () => {
       price: { amountMinor: 100000, currency: 'TRY' },
       imageUrl: 'https://cdn.example/hs-shirt.jpg',
       category: 'top',
+      color: 'white',
       ownedItemId: 'item-9',
       inWatchlist: false,
     });

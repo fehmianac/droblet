@@ -11,11 +11,10 @@ import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
-import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
+import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
-import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { ItemThumb } from '@/features/wardrobe/ItemThumb';
@@ -24,26 +23,10 @@ import { DeleteConfirmSheet, itemImage, SeasonSheet } from '@/features/wardrobe/
 import { useItemDetail } from '@/features/wardrobe/queries';
 import { currentLanguage } from '@/i18n';
 import { toDisplayUpper } from '@/lib/upper';
+import type { PlaceholderTone } from '@/theme/tokens';
 
-function DetailSkeleton() {
-  return (
-    <View className="gap-4">
-      <Skeleton className="h-[350px] w-full" />
-      <View className="gap-3 px-gutter">
-        <Skeleton className="h-3 w-40 rounded-field" />
-        <Skeleton className="h-7 w-3/5 rounded-field" />
-        <View className="flex-row gap-2">
-          {[0, 1, 2, 3].map((i) => (
-            <View key={i} className="flex-1">
-              <Skeleton className="h-14 w-full rounded-image" />
-            </View>
-          ))}
-        </View>
-        <Skeleton className="h-32 w-full rounded-image-lg" />
-      </View>
-    </View>
-  );
-}
+/** Grounds of the look tiles on board 11, in order. */
+const LOOK_TONES: PlaceholderTone[] = ['taupe', 'dark', 'clay'];
 
 function InfoCard({ label, value }: { label: string; value: string }) {
   const { t } = useTranslation();
@@ -100,11 +83,6 @@ export default function ItemDetailScreen() {
     <Screen top={false}>
       <ScreenState
         query={query}
-        skeleton={
-          <View>
-            <DetailSkeleton />
-          </View>
-        }
       >
         {(item: ItemDetail) => {
           const meta = t('itemDetail.metaLine', {
@@ -147,23 +125,27 @@ export default function ItemDetailScreen() {
 
                 {item.looks.length > 0 ? (
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2.5 px-gutter">
-                    {item.looks.map((look) => (
-                      <Pressable
-                        key={look.id}
-                        onPress={() => router.push({ pathname: '/look/new', params: { id: look.id } })}
-                        accessibilityRole="button"
-                        accessibilityLabel={look.name}
-                        className="w-[104px] gap-1 active:opacity-80"
-                      >
-                        <View>
-                          <PlaceholderImage uri={look.imageUrl} className="h-[132px] w-[104px] rounded-image-lg" />
-                          <ImageTag label={toDisplayUpper(occasionLabels[look.occasion] ?? look.occasion, currentLanguage())} className="absolute bottom-2 left-2" />
-                        </View>
-                        <Text variant="caption" numberOfLines={1}>
-                          {look.name}
-                        </Text>
-                      </Pressable>
-                    ))}
+                    {item.looks.map((look, index) => {
+                      const tone = LOOK_TONES[index % LOOK_TONES.length] ?? 'taupe';
+                      return (
+                        <Pressable
+                          key={look.id}
+                          onPress={() => router.push({ pathname: '/look/new', params: { id: look.id } })}
+                          accessibilityRole="button"
+                          accessibilityLabel={look.name}
+                          className="active:opacity-80"
+                        >
+                          {/* Canvas: 104 × 132 tile, radius 14 — the standing figure on a toned ground until the look has a picture — with the occasion tag. */}
+                          <ImageSlot
+                            uri={look.imageUrl}
+                            className="h-[132px] w-[104px] rounded-image-lg"
+                            placeholder={{ kind: 'figure', tone, figureHeight: 100 }}
+                          >
+                            <ImageTag label={toDisplayUpper(occasionLabels[look.occasion] ?? look.occasion, currentLanguage())} className="absolute bottom-2 left-2" />
+                          </ImageSlot>
+                        </Pressable>
+                      );
+                    })}
                   </ScrollView>
                 ) : (
                   <Text variant="body" tone="muted" className="px-gutter">
@@ -185,6 +167,7 @@ export default function ItemDetailScreen() {
                 <View className="flex-row items-center gap-3">
                   <Button
                     className="flex-1"
+                    size="lg"
                     icon={Sparkles}
                     label={t('itemDetail.styleWith')}
                     onPress={() => router.navigate({ pathname: '/stylist', params: { itemId: item.id } })}

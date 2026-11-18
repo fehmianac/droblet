@@ -15,6 +15,7 @@
     "stylistLines": {
       "wardrobe": "Gardırobuna bakıyorum…",
       "weather": "Hava {{temperature}}°, ona göre seçiyorum…",
+      "weatherSummary": "Hava {{temperature}}°, {{summary}}…",
       "weatherUnknown": "Ortama göre seçiyorum…",
       "outfits_one": "{{count}} kombin hazırlıyorum…",
       "outfits_other": "{{count}} kombin hazırlıyorum…"

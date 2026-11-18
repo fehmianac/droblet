@@ -1,5 +1,5 @@
 import { router, useIsFocused, useLocalSearchParams } from 'expo-router';
-import { CalendarDays, Pencil, Sparkles, Trash2, User } from 'lucide-react-native';
+import { CalendarDays, MirrorRound, RefreshCw, Sparkles, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { RefreshControl, ScrollView, View } from 'react-native';
@@ -8,14 +8,15 @@ import type { Occasion } from '@/api/contracts';
 import { ApiError, extractApiError, isCreditsExhausted, isPaywallError } from '@/api/errors';
 import type { TryOnWeekQuote } from '@/api/wire/tryon';
 import { AiDropPulse, AiFailure, AiProgressLines } from '@/components/ui/ai';
-import { Badge, PopoverMenu } from '@/components/ui/Bits';
+import { PopoverMenu } from '@/components/ui/Bits';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
+import { Chip } from '@/components/ui/Chip';
 import { IconButton } from '@/components/ui/IconButton';
+import { ListTabBar } from '@/components/navigation/TabBar';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
-import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { CreditConfirmSheet } from '@/features/credits/CreditConfirmSheet';
 import { useLooks } from '@/features/looks/queries';
@@ -25,19 +26,10 @@ import { weekDates } from '@/features/today/dates';
 import { buildWeekRows, daysToPlan, occasionCounts, weekTryOnTargets, type WeekRow } from '@/features/today/logic';
 import { WeekDayRow } from '@/features/today/WeekDayRow';
 import { isQuoteChanged, useStartTryOn, useWeekTryOn } from '@/features/tryon/api';
-import { formatDate, parseLocalDate, toIsoDate } from '@/lib/format';
+import { currentLanguage } from '@/i18n';
+import { formatDate, formatIsoDateRange, parseLocalDate, toIsoDate } from '@/lib/format';
+import { toDisplayUpper } from '@/lib/upper';
 import { useThemeColors } from '@/theme/useThemeColors';
-
-function WeekSkeleton() {
-  return (
-    <View className="gap-3 px-gutter pt-2">
-      <Skeleton className="h-36 w-full rounded-card" />
-      {[0, 1, 2, 3].map((i) => (
-        <Skeleton key={i} className="h-[94px] w-full rounded-card" />
-      ))}
-    </View>
-  );
-}
 
 /**
  * Explicit back: `ScreenHeader`'s default reads `router.canGoBack()` during render, which throws when
@@ -51,6 +43,10 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
  * 07 Haftalık plan — the week's occasions, "Haftamı planla" (stylist-week job, accepted by the user
  * before anything is written), "Üzerimde gör" for the whole week behind the 07b credit confirmation,
  * and one row per day with a ⋯ menu (Değiştir / Kaldır) or "Öner" for an empty day.
+ *
+ * The rows are the Monday → Sunday week the board lists (Pazartesi 16 … with today in the middle, the same
+ * seven days as the strip on 06), so the line above the title names that week ("BU HAFTA · 16–22 KASIM")
+ * instead of the board's "ÖNÜMÜZDEKİ 7 GÜN", which would promise seven days starting today.
  */
 export default function PlanWeekScreen() {
   const { t } = useTranslation();
@@ -62,6 +58,8 @@ export default function PlanWeekScreen() {
   const dates = weekDates(anchorDay);
   const from = dates[0] ?? today;
   const to = dates[6] ?? today;
+  const range = formatIsoDateRange(from, to);
+  const eyebrow = toDisplayUpper(dates.includes(today) ? t('weekPlan.eyebrowThisWeek', { range }) : range, currentLanguage());
 
   const plan = usePlanDays(from, to);
   const looks = useLooks();
@@ -146,19 +144,18 @@ export default function PlanWeekScreen() {
   };
 
   return (
-    <Screen bottom>
+    <Screen>
       <ScreenHeader
         leading="back"
         onLeadingPress={goBack}
         right={<IconButton icon={CalendarDays} onPress={() => router.push('/calendar')} accessibilityLabel={t('weekPlan.calendar')} />}
       />
-      <View className="gap-1 px-gutter pb-3">
-        <Text variant="eyebrow">{t('weekPlan.eyebrow')}</Text>
+      <View className="gap-1.5 px-gutter pb-3.5 pt-1">
+        <Text variant="eyebrow">{eyebrow}</Text>
         <Text variant="display">{t('weekPlan.title')}</Text>
       </View>
       <ScreenState
         query={query}
-        skeleton={<WeekSkeleton />}
         isEmpty={({ a, b }) => a.length === 0 && b.length === 0}
         empty={{ message: t('weekPlan.emptyMessage'), actionLabel: t('weekPlan.emptyAction'), onAction: () => router.push('/look/new') }}
       >
@@ -174,15 +171,20 @@ export default function PlanWeekScreen() {
           return (
             <>
               <ScrollView
-                contentContainerClassName="gap-3 px-gutter pb-8 pt-1"
+                contentContainerClassName="gap-2 px-gutter pb-8"
                 refreshControl={<RefreshControl refreshing={query.isRefetching} onRefresh={query.refetch} tintColor={colors.muted} />}
               >
-                <View className="gap-3 rounded-card border border-line bg-paper p-4">
+                <View className="mb-1.5 gap-2.5 rounded-card border border-line bg-paper p-3.5">
                   <Text variant="eyebrow">{t('weekPlan.occasionsEyebrow')}</Text>
                   {counts.length > 0 ? (
-                    <View className="flex-row flex-wrap gap-2">
-                      {counts.map((c) => (
-                        <Badge key={c.occasion} label={t('weekPlan.occasionCount', { occasion: t(`occasion.${c.occasion}`), count: c.count })} />
+                    <View className="flex-row flex-wrap gap-1.5">
+                      {/* Canvas chips: the week's leading occasion is the filled one. They are a summary, not a filter. */}
+                      {counts.map((c, i) => (
+                        <Chip
+                          key={c.occasion}
+                          selected={i === 0}
+                          label={t('weekPlan.occasionCount', { occasion: t(`occasion.${c.occasion}`), count: c.count })}
+                        />
                       ))}
                     </View>
                   ) : (
@@ -217,6 +219,8 @@ export default function PlanWeekScreen() {
                     <View className="flex-row flex-wrap gap-2">
                       <View className="min-w-[45%] flex-1">
                         <Button
+                          size="md"
+                          className="px-3"
                           label={t('weekPlan.planWeek')}
                           icon={Sparkles}
                           loading={startPlanWeek.isPending}
@@ -230,9 +234,9 @@ export default function PlanWeekScreen() {
                       <View className="min-w-[45%] flex-1">
                         <Button
                           variant="secondary"
-                          className="h-btn-primary"
+                          className="px-3"
                           label={t('weekPlan.tryOn')}
-                          icon={User}
+                          icon={MirrorRound}
                           loading={weekTryOn.isQuoting}
                           testID="week-tryon"
                           onPress={() => {
@@ -276,7 +280,6 @@ export default function PlanWeekScreen() {
                   <WeekDayRow
                     key={row.date}
                     row={row}
-                    isToday={row.date === today}
                     focused={focused}
                     tryOnJobId={tryOnJobs[row.date] ?? null}
                     onOpenMenu={(top) => setMenu({ date: row.date, top })}
@@ -290,8 +293,9 @@ export default function PlanWeekScreen() {
                 visible={menu !== null}
                 onClose={() => setMenu(null)}
                 top={menu?.top ?? 0}
+                right={32}
                 actions={[
-                  { key: 'change', label: t('weekPlan.change'), icon: Pencil, onPress: () => menuRow && suggestFor(menuRow) },
+                  { key: 'change', label: t('weekPlan.change'), icon: RefreshCw, onPress: () => menuRow && suggestFor(menuRow) },
                   {
                     key: 'remove',
                     label: t('weekPlan.remove'),
@@ -355,6 +359,7 @@ export default function PlanWeekScreen() {
           );
         }}
       </ScreenState>
+      <ListTabBar owner="index" />
     </Screen>
   );
 }

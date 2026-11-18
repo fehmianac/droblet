@@ -24,10 +24,12 @@ export type ColorPalette = {
   sand: string;
   /** Errors and destructive actions — always paired with text. */
   danger: string;
-  /** Scrim behind bottom sheets / modals (ink at 40%). */
+  /** Scrim behind bottom sheets / modals (ink at 42%, canvas `.scrim`). */
   scrim: string;
   /** Cream at 0% — start of the cream fade under the welcome collage. */
   creamClear: string;
+  /** Cream at 96% — middle stop of the same fade (`Main.dc.html`). */
+  creamVeil: string;
 };
 
 export const palettes: { light: ColorPalette } = {
@@ -40,8 +42,9 @@ export const palettes: { light: ColorPalette } = {
     line: '#DCD4C9',
     sand: '#E8E1D7',
     danger: '#9A3B2E',
-    scrim: 'rgba(28, 26, 23, 0.4)',
+    scrim: 'rgba(28, 26, 23, 0.42)',
     creamClear: 'rgba(244, 241, 236, 0)',
+    creamVeil: 'rgba(244, 241, 236, 0.96)',
   },
 };
 
@@ -73,6 +76,15 @@ export const placeholderTones = {
 } as const;
 export type PlaceholderTone = keyof typeof placeholderTones;
 
+/**
+ * Two surfaces the canvas draws outside the palette: the ground of the camera screen (board 12) and the
+ * warm "check this" badge on an uncertain AI guess (board 13 "Kategoriyi kontrol et"; ink text on it).
+ */
+export const surfaceTones = {
+  camera: '#2A2622',
+  caution: '#F3E3CF',
+} as const;
+
 /** Swatches for wardrobe colour families (filter sheet, colour picker). Keys = `ItemColor` in api/contracts/wardrobe. */
 export const garmentColors = {
   black: '#1C1A17',
@@ -95,6 +107,12 @@ export const sheen = {
   peak: 'rgba(251, 249, 245, 0.45)',
 } as const;
 
+/** Ink fade under text set on a photograph (20 Keşfet edit cover): ink at 0% → 82%. */
+export const inkFade = {
+  clear: 'rgba(28, 26, 23, 0)',
+  deep: 'rgba(28, 26, 23, 0.82)',
+} as const;
+
 /** Motion constants shared by the splash and the AI loading language (README §11). */
 export const motion = {
   /** cubic-bezier(0.2, 0.8, 0.2, 1) */
@@ -112,12 +130,14 @@ export const fontFamilies = {
   displaySemiBold: 'CormorantGaramond_600SemiBold',
   sans: 'Jost_400Regular',
   sansMedium: 'Jost_500Medium',
+  /** Active tab label and count dots only (canvas `.tab.on`, `.dot`). */
+  sansSemiBold: 'Jost_600SemiBold',
   googleButton: 'Roboto_500Medium',
 } as const;
 
 /** Type scale (BRIEF §3). letterSpacing in RN is absolute points: size × tracking. */
 export const typeScale = {
-  display: { fontSize: 36, lineHeight: 38, fontFamily: fontFamilies.displayMedium, letterSpacing: 0 },
+  display: { fontSize: 36, lineHeight: 38, fontFamily: fontFamilies.displayMedium, letterSpacing: -0.36 },
   h2: { fontSize: 26, lineHeight: 29, fontFamily: fontFamilies.displayMedium, letterSpacing: 0 },
   h3: { fontSize: 20, lineHeight: 23, fontFamily: fontFamilies.displaySemiBold, letterSpacing: 0 },
   body: { fontSize: 14, lineHeight: 21, fontFamily: fontFamilies.sans, letterSpacing: 0 },
@@ -128,7 +148,28 @@ export const typeScale = {
   /** Brand: Jost 500, 10.5, tracking 12%. Dynamic brand names go through `toDisplayUpper`. */
   brand: { fontSize: 10.5, lineHeight: 14, fontFamily: fontFamilies.sansMedium, letterSpacing: 10.5 * 0.12 },
   button: { fontSize: 15, lineHeight: 20, fontFamily: fontFamilies.sansMedium, letterSpacing: 0 },
-  tab: { fontSize: 10.5, lineHeight: 13, fontFamily: fontFamilies.sansMedium, letterSpacing: 0 },
+  tab: { fontSize: 10.5, lineHeight: 13, fontFamily: fontFamilies.sans, letterSpacing: 0 },
+  tabActive: { fontSize: 10.5, lineHeight: 13, fontFamily: fontFamilies.sansSemiBold, letterSpacing: 0 },
+  /** Centred title of a pushed screen (canvas headers): Jost 500, 15. */
+  title: { fontSize: 15, lineHeight: 20, fontFamily: fontFamilies.sansMedium, letterSpacing: 0 },
+  /** Chip label (canvas `.chip`): Jost 400, 13. */
+  chip: { fontSize: 13, lineHeight: 18, fontFamily: fontFamilies.sans, letterSpacing: 0 },
+  /** Segmented control label: Jost 500, 13.5. */
+  segment: { fontSize: 13.5, lineHeight: 18, fontFamily: fontFamilies.sansMedium, letterSpacing: 0 },
+  /** Badge (canvas `.badge`): Jost 500, 11. */
+  badge: { fontSize: 11, lineHeight: 14, fontFamily: fontFamilies.sansMedium, letterSpacing: 0 },
+  /** Label on an image (canvas `.tag`): Jost 500, 9.5, tracking 10%. Written upper-case in the string. */
+  tag: { fontSize: 9.5, lineHeight: 12, fontFamily: fontFamilies.sansMedium, letterSpacing: 9.5 * 0.1 },
+  /** "EKSİK PARÇA" marker (canvas `.miss`): Jost 500, 9.5, tracking 6%. */
+  miss: { fontSize: 9.5, lineHeight: 12, fontFamily: fontFamilies.sansMedium, letterSpacing: 9.5 * 0.06 },
+  /** Price (canvas `.price`): Jost 500, 13. */
+  price: { fontSize: 13, lineHeight: 18, fontFamily: fontFamilies.sansMedium, letterSpacing: 0 },
+  /** Total in the bottom action bar: Jost 500, 17. */
+  total: { fontSize: 17, lineHeight: 22, fontFamily: fontFamilies.sansMedium, letterSpacing: 0 },
+  /** Field label (canvas `.fld label`): Jost 500, 12. */
+  label: { fontSize: 12, lineHeight: 17, fontFamily: fontFamilies.sansMedium, letterSpacing: 0 },
+  /** Count dot (canvas `.dot`): Jost 600, 10. */
+  dot: { fontSize: 10, lineHeight: 12, fontFamily: fontFamilies.sansSemiBold, letterSpacing: 0 },
 } as const;
 
 export type TypeVariant = keyof typeof typeScale;
@@ -139,6 +180,12 @@ export const maxFontScale: Partial<Record<TypeVariant, number>> = {
   h2: 1.3,
   h3: 1.3,
   tab: 1.3,
+  tabActive: 1.3,
+  title: 1.3,
+  tag: 1.3,
+  miss: 1.3,
+  dot: 1.2,
+  badge: 1.4,
   eyebrow: 1.6,
   brand: 1.6,
 };
@@ -153,7 +200,15 @@ export const radii = {
   card: 20,
   image: 12,
   imageLg: 14,
+  /** Product-row thumbnail. */
+  thumb: 10,
+  /** Collage tile on 01. */
+  tile: 18,
   field: 12,
+  /** ⋯ menu card. */
+  menu: 16,
+  /** Image tag / missing marker. */
+  tag: 6,
   sheet: 28,
   pill: 9999,
 } as const;
@@ -161,6 +216,12 @@ export const radii = {
 export const sizes = {
   buttonPrimary: 52,
   buttonSecondary: 44,
+  /** Primary button inside the bottom action bar. */
+  buttonBar: 48,
+  /** Text field (canvas `.inp`). */
+  field: 48,
+  badge: 22,
+  dot: 18,
   iconButton: 44,
   chip: 36,
   touchMin: 44,

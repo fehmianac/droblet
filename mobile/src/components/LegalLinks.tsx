@@ -12,13 +12,13 @@ function open(url: string | null) {
 export function LegalConsent() {
   const { terms, privacy } = legalUrls();
   return (
-    <Text variant="caption" tone="muted" className="text-center">
+    <Text variant="caption" tone="muted" className="text-center text-[11px] leading-[16.5px]">
       <Trans
         i18nKey="welcome.legal"
         components={{
-          terms: <Text variant="caption" tone="accent" className="underline" accessibilityRole="link" onPress={() => open(terms)} />,
+          terms: <Text variant="caption" tone="ink" className="text-[11px] leading-[16.5px] underline" accessibilityRole="link" onPress={() => open(terms)} />,
           privacy: (
-            <Text variant="caption" tone="accent" className="underline" accessibilityRole="link" onPress={() => open(privacy)} />
+            <Text variant="caption" tone="ink" className="text-[11px] leading-[16.5px] underline" accessibilityRole="link" onPress={() => open(privacy)} />
           ),
         }}
       />

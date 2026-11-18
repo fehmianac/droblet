@@ -1,22 +1,24 @@
 import { router } from 'expo-router';
-import { CloudOff, Plus, RefreshCw, Search, Shirt, SlidersHorizontal } from 'lucide-react-native';
+import { ListFilter, Plus, Search } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FlatList, RefreshControl, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ITEM_CATEGORIES, type Item, type ItemSeason } from '@/api/contracts/wardrobe';
-import { extractApiError } from '@/api/errors';
+import { useHideTabBar } from '@/components/navigation/tabBarVisibility';
 import { Badge } from '@/components/ui/Bits';
 import { Button } from '@/components/ui/Button';
 import { Chip, ChipRow } from '@/components/ui/Chip';
 import { IconButton } from '@/components/ui/IconButton';
-import { OfflineBanner } from '@/components/ui/OfflineBanner';
+import { ScreenState } from '@/components/ui/ScreenState';
 import { Text } from '@/components/ui/Text';
 import { TextField } from '@/components/ui/TextField';
 import { FilterSheet } from '@/features/wardrobe/FilterSheet';
 import { applyFilters, BRAND_OTHER, DEFAULT_FILTERS, isFiltering, sheetFilterCount, toggleIn, type ItemFilters } from '@/features/wardrobe/filters';
+import { HangerGlyph } from '@/features/wardrobe/HangerGlyph';
 import { useDeleteItems, useUpdateItem } from '@/features/wardrobe/mutations';
-import { DeleteConfirmSheet, ItemGridSkeleton, ItemTile, padToColumns, SeasonSheet, StatePanel } from '@/features/wardrobe/parts';
+import { DeleteConfirmSheet, ItemTile, OutlineBadge, padToColumns, SeasonSheet } from '@/features/wardrobe/parts';
 import { useItems } from '@/features/wardrobe/queries';
 import { WardrobeHeader } from '@/features/wardrobe/WardrobeHeader';
 import { formatDate } from '@/lib/format';
@@ -26,13 +28,16 @@ import { useThemeColors } from '@/theme/useThemeColors';
 type Sheet = 'none' | 'filter' | 'season' | 'delete';
 
 /**
- * 10 Parçalar — the wardrobe grid: category chips, filter / sort sheet, search, long-press
- * multi-select (look, season, delete), and the four list states of the `Durum*` boards
- * (skeleton · empty · error · offline with the cached list). Filtering runs on the device.
+ * 10 Parçalar — the wardrobe grid: search, category chips + filter / sort sheet, the badges of what is
+ * applied, and multi-select (the "Seç" chip or a long press) whose bar — "N parça seçildi" over Look oluştur ·
+ * Sezon · Sil — takes the place of the bottom menu, as on the board. The list states are the shared
+ * `ScreenState` drawn as on the `Durum*` boards (skeleton · empty · error · offline band over the cached
+ * list). Filtering runs on the device.
  */
 export default function WardrobeItemsScreen() {
   const { t } = useTranslation();
   const colors = useThemeColors();
+  const insets = useSafeAreaInsets();
   const online = useIsOnline();
   const query = useItems();
   const update = useUpdateItem();
@@ -44,8 +49,12 @@ export default function WardrobeItemsScreen() {
   const [sheet, setSheet] = useState<Sheet>('none');
 
   const items = query.data;
-  const selecting = selection !== null;
+  const hasItems = items !== undefined && items.length > 0;
+  const selecting = selection !== null && hasItems;
+  const selectedIds = selecting ? selection : [];
   const closeSheet = () => setSheet('none');
+  // The selection bar sits where the bottom menu was (canvas: `showTabs: !selecting`).
+  useHideTabBar(selecting);
 
   const toggleSearch = () => {
     if (searching) setFilters((f) => ({ ...f, search: '' }));
@@ -57,29 +66,43 @@ export default function WardrobeItemsScreen() {
     setSearching(false);
   };
 
+  // `DurumCevrimdisi`: the time of the cached list sits right of the count; "Bitti" stays reachable while selecting.
+  const lastUpdated =
+    !online && hasItems && !selecting && query.dataUpdatedAt > 0 ? (
+      <Text variant="caption" tone="muted" className="pb-1.5">
+        {t('items.lastUpdated', { time: formatDate(new Date(query.dataUpdatedAt), { hour: '2-digit', minute: '2-digit' }) })}
+      </Text>
+    ) : null;
+
   const header = (
     <WardrobeHeader
       current="items"
       eyebrow={t('items.eyebrow')}
       title={items ? t('items.count', { count: items.length }) : query.status === 'error' ? t('items.titleFallback') : undefined}
+      titleLoading={query.status === 'pending' && online}
       actions={
         <>
-          {items && items.length > 0 ? (
-            <IconButton icon={Search} active={false} onPress={toggleSearch} accessibilityLabel={t('items.searchToggle')} testID="wardrobe.searchToggle" />
-          ) : null}
+          {hasItems ? <IconButton icon={Search} onPress={toggleSearch} accessibilityLabel={t('items.searchToggle')} testID="wardrobe.searchToggle" /> : null}
           <IconButton
             icon={Plus}
+            variant="filled"
             onPress={() => router.push('/item/add')}
             disabled={!online}
             accessibilityLabel={t(online ? 'items.add' : 'items.addOffline')}
+            testID="wardrobe-add"
           />
         </>
       }
       titleAccessory={
-        items && items.length > 0 ? <Chip label={t(selecting ? 'items.done' : 'items.select')} selected={selecting} onPress={toggleSelecting} /> : undefined
+        lastUpdated ??
+        (hasItems ? (
+          <View className="pb-0.5">
+            <Chip label={t(selecting ? 'items.done' : 'items.select')} onPress={toggleSelecting} />
+          </View>
+        ) : undefined)
       }
     >
-      {searching ? (
+      {searching && hasItems ? (
         <TextField
           label={t('items.searchLabel')}
           placeholder={t('items.searchPlaceholder')}
@@ -94,42 +117,15 @@ export default function WardrobeItemsScreen() {
     </WardrobeHeader>
   );
 
-  let body;
-  if (items === undefined) {
-    if (query.status === 'error') {
-      body = (
-        <StatePanel icon={RefreshCw} title={t('items.errorTitle')} body={t(extractApiError(query.error) === 'unknown' ? 'items.errorBody' : `errors.${extractApiError(query.error)}`)}>
-          <Button label={t('common.retry')} icon={RefreshCw} onPress={() => void query.refetch()} loading={query.isRefetching} />
-        </StatePanel>
-      );
-    } else if (!online || query.fetchStatus === 'paused') {
-      body = (
-        <StatePanel icon={CloudOff} title={t('items.offlineTitle')} body={t('states.offlineNoCache')}>
-          <Button variant="secondary" label={t('common.retry')} onPress={() => void query.refetch()} />
-        </StatePanel>
-      );
-    } else {
-      body = (
-        <View accessible accessibilityLabel={t('items.loading')} accessibilityState={{ busy: true }}>
-          <ItemGridSkeleton />
-        </View>
-      );
-    }
-  } else if (items.length === 0) {
-    body = (
-      <StatePanel icon={Shirt} title={t('items.emptyTitle')} body={t('items.emptyBody')}>
-        <Button label={t('items.emptyAction')} onPress={() => router.push('/item/add')} disabled={!online} testID="wardrobe.addItem" />
-        <Button variant="secondary" label={t('items.emptyLibrary')} onPress={() => router.push('/item/library')} testID="wardrobe.openLibrary" />
-      </StatePanel>
-    );
-  } else {
-    const visible = applyFilters(items, filters);
-    const selectedItems = items.filter((i) => selection?.includes(i.id));
+  const renderList = (list: Item[]) => {
+    const visible = applyFilters(list, filters);
+    const selectedItems = list.filter((i) => selectedIds.includes(i.id));
     const sheetCount = sheetFilterCount(filters);
     const toggleSelected = (id: string) => setSelection((prev) => toggleIn(prev ?? [], id));
+    const none = selectedItems.length === 0;
 
     const listHeader = (
-      <View className="gap-2 pb-3">
+      <View className="gap-3 pb-3">
         <View className="flex-row items-center">
           <View className="flex-1">
             <ChipRow>
@@ -141,39 +137,36 @@ export default function WardrobeItemsScreen() {
           </View>
           <View className="pr-gutter">
             <IconButton
-              icon={SlidersHorizontal}
+              icon={ListFilter}
+              iconSize={18}
               onPress={() => setSheet('filter')}
               badge={sheetCount}
               accessibilityLabel={sheetCount > 0 ? t('items.filterButtonActive', { count: sheetCount }) : t('items.filterButton')}
             />
           </View>
         </View>
-        <View className="flex-row flex-wrap items-center gap-2 px-gutter">
-          {filters.seasons.length === 0 ? <Badge label={t('items.allSeasons')} /> : filters.seasons.map((s) => <Badge key={s} label={t(`itemSeason.${s}`)} />)}
-          {filters.colors.length === 0 ? <Badge label={t('items.allColors')} /> : filters.colors.map((c) => <Badge key={c} label={t(`itemColor.${c}`)} />)}
+        {/* What is applied: a narrowing filter is a filled badge, "all" is outlined; sort + the long-press hint on the right. */}
+        <View className="flex-row flex-wrap items-center gap-1.5 px-gutter">
+          {filters.seasons.length === 0 ? <OutlineBadge label={t('items.allSeasons')} /> : filters.seasons.map((s) => <Badge key={s} label={t(`itemSeason.${s}`)} />)}
+          {filters.colors.length === 0 ? <OutlineBadge label={t('items.allColors')} /> : filters.colors.map((c) => <Badge key={c} label={t(`itemColor.${c}`)} />)}
           {filters.brands.map((b) => (
             <Badge key={b} label={b === BRAND_OTHER ? t('items.brandOther') : b} />
           ))}
-          <Text variant="caption" tone="muted" className="flex-1" numberOfLines={2}>
+          <Text variant="caption" tone="muted" className="ml-auto shrink text-right" numberOfLines={2}>
             {t('items.sortAndHint', { sort: t(`items.sort.${filters.sort}`) })}
           </Text>
         </View>
-        {!online && query.dataUpdatedAt > 0 ? (
-          <Text variant="caption" tone="muted" className="px-gutter">
-            {t('items.lastUpdated', { time: formatDate(new Date(query.dataUpdatedAt), { hour: '2-digit', minute: '2-digit' }) })}
-          </Text>
-        ) : null}
       </View>
     );
 
-    body = (
+    return (
       <>
         <FlatList
           data={padToColumns(visible)}
           keyExtractor={(item, index) => item?.id ?? `pad-${index}`}
           numColumns={3}
-          columnWrapperClassName="gap-3 px-gutter"
-          contentContainerClassName="gap-4 pb-8"
+          columnWrapperClassName="gap-2.5 px-gutter"
+          contentContainerClassName="gap-3 pb-8"
           keyboardShouldPersistTaps="handled"
           ListHeaderComponent={listHeader}
           ListEmptyComponent={
@@ -189,7 +182,7 @@ export default function WardrobeItemsScreen() {
             item ? (
               <ItemTile
                 item={item}
-                selected={selecting ? selection.includes(item.id) : undefined}
+                selected={selecting ? selectedIds.includes(item.id) : undefined}
                 onPress={() => (selecting ? toggleSelected(item.id) : router.push({ pathname: '/item/[id]', params: { id: item.id } }))}
                 onLongPress={selecting ? undefined : () => setSelection([item.id])}
               />
@@ -200,23 +193,53 @@ export default function WardrobeItemsScreen() {
         />
 
         {selecting ? (
-          <View className="gap-2 border-t border-line bg-paper px-gutter py-3" accessibilityLiveRegion="polite">
-            <Text variant="caption" tone="muted">
-              {t('items.selected', { count: selection.length })}
-            </Text>
-            <View className="flex-row flex-wrap gap-2">
+          // Canvas `.bar` in a column: paper, top hairline, 12 / 20 / 30; the count over the three actions (44 high).
+          <View
+            testID="selection-bar"
+            className="gap-2 border-t border-line bg-paper px-gutter pt-3"
+            style={{ paddingBottom: Math.max(insets.bottom, 16) }}
+            accessibilityLiveRegion="polite"
+          >
+            <Text variant="label">{t('items.selected', { count: selectedItems.length })}</Text>
+            <View className="flex-row gap-2">
               <Button
-                className="grow"
+                className="flex-1"
+                size="md"
                 label={t('items.createLook')}
-                disabled={selection.length === 0}
+                disabled={none}
                 onPress={() => {
-                  const ids = selection.join(',');
+                  const ids = selectedItems.map((i) => i.id).join(',');
                   setSelection(null);
                   router.push({ pathname: '/look/new', params: { itemIds: ids } });
                 }}
               />
-              <Button variant="secondary" className="h-btn-primary grow" label={t('items.season')} disabled={selection.length === 0} onPress={() => setSheet('season')} />
-              <Button variant="secondary" className="h-btn-primary grow" label={t('items.delete')} disabled={selection.length === 0} onPress={() => setSheet('delete')} />
+              {/* Canvas: the two outlined actions are 44 high with 14 side padding and 14 px text; "Sil" in the danger colour. */}
+              <Pressable
+                onPress={none ? undefined : () => setSheet('season')}
+                disabled={none}
+                accessibilityRole="button"
+                accessibilityLabel={t('items.season')}
+                accessibilityState={{ disabled: none }}
+                className={`h-btn-secondary items-center justify-center rounded-pill border border-ink px-3.5 active:opacity-80 ${none ? 'opacity-40' : ''}`}
+                testID="selection-season"
+              >
+                <Text variant="bodyMedium" numberOfLines={1}>
+                  {t('items.season')}
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={none ? undefined : () => setSheet('delete')}
+                disabled={none}
+                accessibilityRole="button"
+                accessibilityLabel={t('items.delete')}
+                accessibilityState={{ disabled: none }}
+                className={`h-btn-secondary items-center justify-center rounded-pill border border-danger px-3.5 active:opacity-80 ${none ? 'opacity-40' : ''}`}
+                testID="selection-delete"
+              >
+                <Text variant="bodyMedium" tone="danger" numberOfLines={1}>
+                  {t('items.delete')}
+                </Text>
+              </Pressable>
             </View>
           </View>
         ) : null}
@@ -224,7 +247,7 @@ export default function WardrobeItemsScreen() {
         <FilterSheet
           visible={sheet === 'filter'}
           onClose={closeSheet}
-          items={items}
+          items={list}
           filters={filters}
           onApply={(next) => {
             setFilters(next);
@@ -255,13 +278,29 @@ export default function WardrobeItemsScreen() {
         />
       </>
     );
-  }
+  };
 
   return (
     <>
-      <OfflineBanner />
       {header}
-      {body}
+      <ScreenState
+        query={query}
+        loadingLabel={t('items.loading')}
+        error={{ title: t('items.errorTitle'), message: t('items.errorBody') }}
+        isEmpty={(list) => list.length === 0}
+        empty={{
+          icon: HangerGlyph,
+          title: t('items.emptyTitle'),
+          message: t('items.emptyBody'),
+          actionLabel: t('items.emptyAction'),
+          onAction: () => router.push('/item/add'),
+          actionDisabled: !online,
+          secondaryActionLabel: t('items.emptyLibrary'),
+          onSecondaryAction: () => router.push('/item/library'),
+        }}
+      >
+        {renderList}
+      </ScreenState>
     </>
   );
 }

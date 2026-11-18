@@ -15,6 +15,7 @@
     "stylistLines": {
       "wardrobe": "Looking through your wardrobe…",
       "weather": "It's {{temperature}}°, choosing for that…",
+      "weatherSummary": "It's {{temperature}}°, {{summary}}…",
       "weatherUnknown": "Choosing for the occasion…",
       "outfits_one": "Putting together {{count}} outfit…",
       "outfits_other": "Putting together {{count}} outfits…"

@@ -11,8 +11,8 @@ import { MenuRow } from '@/components/blocks/rows';
 import { SectionState } from '@/components/blocks/SectionState';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
-import { OfflineBanner } from '@/components/ui/OfflineBanner';
-import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
+import { ImageSlot } from '@/components/ui/ImageSlot';
+import { ListTabBar } from '@/components/navigation/TabBar';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -81,9 +81,8 @@ export default function FindFriendsScreen() {
   };
 
   return (
-    <Screen bottom>
+    <Screen>
       <ScreenHeader title={t('screens.friendsFind')} leading="back" />
-      <OfflineBanner />
       <ScrollView contentContainerClassName="gap-6 pb-10" keyboardShouldPersistTaps="handled">
         <View className="px-gutter">
           <SearchField
@@ -171,7 +170,7 @@ export default function FindFriendsScreen() {
                       className="flex-1 active:opacity-80"
                     >
                       <Card className="gap-2 p-3">
-                        <PlaceholderImage uri={c.imageUrl} className="aspect-[4/5] w-full rounded-image" />
+                        <ImageSlot uri={c.imageUrl} className="aspect-[4/5] w-full rounded-image" placeholder={{ kind: 'look', pieces: [], seed: c.id }} />
                         <Text variant="bodyMedium" numberOfLines={1}>
                           {c.displayName}
                         </Text>
@@ -209,6 +208,7 @@ export default function FindFriendsScreen() {
           </>
         )}
       </ScrollView>
+      <ListTabBar owner="discover" />
     </Screen>
   );
 }
