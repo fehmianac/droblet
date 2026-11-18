@@ -18,6 +18,8 @@ namespace Infrastructure.Services.Store;
 public sealed class AffiliateService(
     IRepository repository,
     ICatalogService catalog,
+    ICatalogProductLookup productLookup,
+    IWardrobeService wardrobe,
     IAnalyticsService analytics,
     IOptionsMonitor<AffiliateOptions> affiliateOptions,
     IOptionsMonitor<AffiliatePostbackOptions> postbackOptions,
@@ -272,16 +274,34 @@ public sealed class AffiliateService(
         return prompts;
     }
 
-    public async Task<bool> AnswerPurchasePromptAsync(string tenantId, string promptId, bool accepted, CancellationToken ct)
+    public async Task<PurchasePromptAnswer?> AnswerPurchasePromptAsync(string tenantId, string promptId, bool accepted, CancellationToken ct)
     {
         var conversions = await repository.GetAllAsync<AffiliateConversionEntity>(AffiliateConversionEntity.GetPk(tenantId), ct);
         var conversion = conversions.FirstOrDefault(c => c.Id == promptId);
         if (conversion is null || conversion.WardrobePrompt == WardrobePromptStatus.None)
-            return false;
+            return null;
+
+        var items = new List<ItemCreateResultDto>();
+        if (accepted)
+        {
+            // "Gardıroba ekleyelim mi?" → yes: every purchased product becomes a wardrobe item. The mutation id is
+            // derived from the prompt, so answering twice (or a retry after a timeout) never adds a piece twice.
+            foreach (var productId in conversion.ProductIds.Distinct(StringComparer.Ordinal))
+            {
+                var product = await productLookup.GetAsync(productId, ct);
+                if (product is null)
+                    continue; // the product left the catalog since the purchase
+                var mutationId = Ulid.Deterministic(conversion.ReceivedAt, $"purchase-prompt|{promptId}|{productId}");
+                items.Add(await wardrobe.AddFromProductAsync(tenantId, product, mutationId, size: null, itemId: mutationId, ct));
+            }
+            if (items.Any(i => i.Outcome == ItemCreateOutcome.Rejected))
+                return new PurchasePromptAnswer(conversion.WardrobePrompt, items); // stays pending: the user can retry
+        }
+
         conversion.WardrobePrompt = accepted ? WardrobePromptStatus.Accepted : WardrobePromptStatus.Dismissed;
         conversion.UpdatedAt = Now;
         await repository.SaveAsync(conversion, ct);
-        return true;
+        return new PurchasePromptAnswer(conversion.WardrobePrompt, items);
     }
 
     // ── Report ──────────────────────────────────────────────────────────────────────────────────────────────────

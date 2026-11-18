@@ -11,9 +11,8 @@ public static class WardrobeDependencyInjection
 {
     /// <summary>
     /// E2–E7 services (wardrobe, looks, plan, stylist, trips, try-on, palette). Shared by the Api and the workers.
-    /// The seams owned by other modules — weather provider, catalog lookup, editorial looks — are registered with
-    /// TryAdd, so the real implementation wins whether it is registered before or after this call
-    /// (a later AddSingleton also replaces the default on resolve).
+    /// The seams to the store / content modules (catalog product lookup, editorial looks) are implemented in
+    /// Infrastructure.Services.Integration; weather comes from the Open-Meteo backed IWeatherService (store/social core).
     /// </summary>
     public static IServiceCollection AddDrobletWardrobe(this IServiceCollection services, IConfiguration configuration)
     {
@@ -21,8 +20,13 @@ public static class WardrobeDependencyInjection
         services.Configure<StylistOptions>(configuration.GetSection(StylistOptions.Section));
         services.Configure<PackingOptions>(configuration.GetSection(PackingOptions.Section));
 
-        services.TryAddSingleton<ICatalogProductLookup, RepositoryCatalogProductLookup>();
-        services.TryAddSingleton<IEditLookLookup, NullEditLookLookup>();
+        services.TryAddSingleton<ICatalogProductLookup>(sp => new Services.Integration.CatalogProductLookup(
+            sp.GetRequiredService<ICatalogService>(),
+            sp.GetRequiredService<IRequestLanguage>(),
+            new HttpClient { Timeout = TimeSpan.FromSeconds(15) },
+            sp.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<CatalogOptions>>(),
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Services.Integration.CatalogProductLookup>>()));
+        services.TryAddSingleton<IEditLookLookup, Services.Integration.EditLookLookup>();
 
         services.AddSingleton<ILibraryCatalog, LibraryCatalog>();
         services.AddSingleton<IWardrobeService, WardrobeService>();

@@ -112,7 +112,8 @@ public static class WeatherServiceExtensions
     }
 }
 
-// ── Catalog seam (E8 is built elsewhere). Wardrobe, looks, stylist and try-on only need this read-only snapshot.
+// ── Catalog seam. Wardrobe, looks, stylist and try-on only need this read-only snapshot of a catalog product
+// (implemented on ICatalogService / IContentService in Infrastructure.Services.Integration).
 
 /// <summary>The part of a catalog product the wardrobe side needs. Retired products are never offered for new references.</summary>
 public sealed record ProductSnapshot(
@@ -134,16 +135,14 @@ public interface ICatalogProductLookup
     Task<ImageInput?> ReadImageAsync(ProductSnapshot product, CancellationToken ct);
 }
 
-/// <summary>Editorial look -> its catalog products (try-on target kind EditLook). null = unknown look.</summary>
+/// <summary>
+/// Editorial look -> its catalog products (try-on target kind EditLook). null = unknown look.
+/// Id forms: "{editLookId}" (weekly edit look, first price-band variant), "{editLookId}@{priceBand}" (a given variant,
+/// e.g. "edit-2026-w47-d1@luxuryTouch") and "{collectionId}/{lookId}" (creator / series collection look).
+/// </summary>
 public interface IEditLookLookup
 {
     Task<IReadOnlyList<string>?> GetProductIdsAsync(string editLookId, CancellationToken ct);
-}
-
-public sealed class NullEditLookLookup : IEditLookLookup
-{
-    public Task<IReadOnlyList<string>?> GetProductIdsAsync(string editLookId, CancellationToken ct) =>
-        Task.FromResult<IReadOnlyList<string>?>(null);
 }
 
 // ── Service result shared by the E2–E7 services (the Api maps Kind to an HTTP status in one place).

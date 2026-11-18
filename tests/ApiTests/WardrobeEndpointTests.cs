@@ -84,24 +84,19 @@ internal static class Seed
 
     public static Task<T?> GetAsync<T>(this HttpClient client, string url) => client.GetFromJsonAsync<T>(url, ApiFactory.Json);
 
-    /// <summary>Row of the global catalog partition, as the catalog module documents it (pk catalog#product).</summary>
-    public sealed class CatalogRow : IEntity
-    {
-        [JsonPropertyName("pk")] public string Pk => "catalog#product";
-        [JsonPropertyName("sk")] public string Sk => Id;
-        [JsonPropertyName("id")] public string Id { get; set; } = null!;
-        [JsonPropertyName("name")] public string Name { get; set; } = "";
-        [JsonPropertyName("brandName")] public string? BrandName { get; set; }
-        [JsonPropertyName("category")] public string Category { get; set; } = "";
-        [JsonPropertyName("colorIds")] public List<string> ColorIds { get; set; } = [];
-        [JsonPropertyName("imageKey")] public string? ImageKey { get; set; }
-        [JsonPropertyName("retired")] public bool Retired { get; set; }
-    }
-
+    /// <summary>A real catalog product (+ its brand) written to the global catalog partition; the Api's catalog cache is dropped.</summary>
     public static async Task<string> ProductAsync(this ApiFactory factory, string category = "bag", bool retired = false)
     {
         var id = $"prd-{Guid.NewGuid():N}";
-        await factory.Repository.SaveAsync(new CatalogRow { Id = id, Name = "Deri çanta", BrandName = "Marka", Category = category, ColorIds = ["camel"], ImageKey = "catalog/bag.webp", Retired = retired });
+        var now = DateTime.UtcNow;
+        await factory.Repository.SaveAsync(new BrandEntity { Id = "marka", Name = "Marka", CreatedAt = now, UpdatedAt = now });
+        await factory.Repository.SaveAsync(new CatalogProductEntity
+        {
+            Id = id, BrandId = "marka", Name = new() { ["tr"] = "Deri çanta", ["en"] = "Leather bag" },
+            Category = Enum.Parse<ProductCategory>(category, ignoreCase: true), Colors = ["camel"], PriceMinor = 100_000,
+            Images = ["https://cdn.example.com/catalog/bag.webp"], Retired = retired, CreatedAt = now, UpdatedAt = now,
+        });
+        factory.Services.GetRequiredService<ICatalogService>().InvalidateCache();
         return id;
     }
 }

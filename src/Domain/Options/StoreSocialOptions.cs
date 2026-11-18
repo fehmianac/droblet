@@ -20,6 +20,13 @@ public sealed class CatalogOptions
     public int MaxCartLines { get; set; } = 100;
     public int MaxWatchItems { get; set; } = 200;
     public int BulkUpsertMax { get; set; } = 200;
+    /// <summary>
+    /// Hosts a product image may be downloaded from for try-on (worker side). Empty = any https host.
+    /// A sub-domain of a listed host is accepted ("cdn.example.com" matches "example.com").
+    /// </summary>
+    public List<string> ImageHosts { get; set; } = [];
+    /// <summary>Largest product image the try-on worker downloads.</summary>
+    public long MaxImageBytes { get; set; } = 10 * 1024 * 1024;
 }
 
 public sealed class SocialOptions

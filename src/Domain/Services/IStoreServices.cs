@@ -81,6 +81,8 @@ public sealed record CheckoutResult(CheckoutOutcome Outcome, CheckoutDto? Checko
 
 public sealed record PostbackInput(string ClickId, string OrderId, long AmountMinor, string? Currency, AffiliateConversionStatus Status);
 
+public sealed record PurchasePromptAnswer(WardrobePromptStatus Status, IReadOnlyList<ItemCreateResultDto> Items);
+
 public enum PostbackOutcome { Recorded, Updated, Duplicate, ClickNotFound }
 
 public interface IAffiliateService
@@ -95,7 +97,11 @@ public interface IAffiliateService
     Task<PostbackOutcome> RecordConversionAsync(AffiliateSource source, PostbackInput input, CancellationToken ct);
 
     Task<IReadOnlyList<PurchasePromptDto>> GetPurchasePromptsAsync(string tenantId, CancellationToken ct);
-    Task<bool> AnswerPurchasePromptAsync(string tenantId, string promptId, bool accepted, CancellationToken ct);
+    /// <summary>
+    /// accepted = true adds the purchased products to the wardrobe (source = purchase; idempotent per prompt + product)
+    /// and returns one result per product. Null = unknown prompt. A refused add (wardrobe limit) leaves the prompt pending.
+    /// </summary>
+    Task<PurchasePromptAnswer?> AnswerPurchasePromptAsync(string tenantId, string promptId, bool accepted, CancellationToken ct);
 
     Task<RevenueReport> GetRevenueReportAsync(DateOnly from, DateOnly to, CancellationToken ct);
 }

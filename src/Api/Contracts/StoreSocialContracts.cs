@@ -58,6 +58,9 @@ public class WatchRequestValidator : AbstractValidator<WatchRequest>
 
 public record PurchasePromptAnswerRequest(bool Accepted);
 
+/// <summary>Items = one result per purchased product when accepted (empty when dismissed).</summary>
+public record PurchasePromptAnswerResponse(Domain.Enum.WardrobePromptStatus Status, IReadOnlyList<Domain.Domain.ItemCreateResultDto> Items);
+
 public record CompleteLookRequest(IReadOnlyList<string>? ItemIds, PriceBand? PriceBand, string? Size);
 
 public class CompleteLookRequestValidator : AbstractValidator<CompleteLookRequest>

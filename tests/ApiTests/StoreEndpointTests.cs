@@ -365,8 +365,17 @@ public class CartAndAffiliateEndpointTests(StoreSocialApiFactory factory) : ICla
         var prompts = await (await user.GetAsync("v1/tenant/purchase-prompt")).JsonAsync();
         var prompt = Assert.Single(prompts.EnumerateArray());
         Assert.Equal(product, prompt.GetProperty("products")[0].GetProperty("id").GetString());
-        Assert.Equal(HttpStatusCode.NoContent, (await user.PutJsonAsync($"v1/tenant/purchase-prompt/{prompt.GetProperty("id").GetString()}", new { accepted = true })).StatusCode);
+        var promptUrl = $"v1/tenant/purchase-prompt/{prompt.GetProperty("id").GetString()}";
+        var accepted = await user.PutJsonAsync(promptUrl, new { accepted = true });
+        var acceptedAgain = await user.PutJsonAsync(promptUrl, new { accepted = true });
+        Assert.Equal(HttpStatusCode.OK, accepted.StatusCode);
+        Assert.Equal("created", (await accepted.JsonAsync()).GetProperty("items")[0].GetProperty("outcome").GetString());
+        Assert.Equal("alreadyApplied", (await acceptedAgain.JsonAsync()).GetProperty("items")[0].GetProperty("outcome").GetString());
         Assert.Equal(0, (await (await user.GetAsync("v1/tenant/purchase-prompt")).JsonAsync()).GetArrayLength());
+        // The purchased piece is in the wardrobe exactly once, as a "purchase" item pointing at the product.
+        var wardrobe = await (await user.GetAsync("v1/tenant/item")).JsonAsync();
+        var bought = Assert.Single(wardrobe.EnumerateArray());
+        Assert.Equal((product, "purchase"), (bought.GetProperty("productId").GetString(), bought.GetProperty("source").GetString()));
 
         // The revenue funnel is recorded by the server, not trusted from the client.
         var funnel = await (await admin.GetAsync("v1/admin/report/funnel")).JsonAsync();

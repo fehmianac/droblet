@@ -27,18 +27,30 @@ public class Put : IEndpoint
         CancellationToken cancellationToken)
     {
 
-        return await affiliate.AnswerPurchasePromptAsync(apiContext.TenantId, id, request.Accepted, cancellationToken) ? Results.NoContent() : StoreResults.NotFound();
+        var answer = await affiliate.AnswerPurchasePromptAsync(apiContext.TenantId, id, request.Accepted, cancellationToken);
+        if (answer is null)
+            return StoreResults.NotFound();
+        if (answer.Items.FirstOrDefault(i => i.Outcome == ItemCreateOutcome.Rejected) is { } rejected)
+        {
+            // Wardrobe limit (or another refusal): nothing is lost — the prompt stays pending.
+            return ApiResults.Problem(
+                rejected.Code == ErrorCodes.PremiumRequired ? StatusCodes.Status403Forbidden : StatusCodes.Status422UnprocessableEntity,
+                rejected.Code ?? ErrorCodes.ValidationFailed);
+        }
+        return Results.Ok(new PurchasePromptAnswerResponse(answer.Status, answer.Items));
     }
 
     public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints)
     {
         return endpoints.MapPut("v1/tenant/purchase-prompt/{id}", Handler)
-            .Produces(StatusCodes.Status204NoContent)
+            .Produces<PurchasePromptAnswerResponse>(StatusCodes.Status200OK)
+            .Produces<ProblemDetails>(StatusCodes.Status403Forbidden)
             .Produces<ProblemDetails>(StatusCodes.Status404NotFound)
+            .Produces<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)
             .ProducesProblem(StatusCodes.Status500InternalServerError)
             .RequireAuthorization(ClaimNames.TenantUserPolicy)
             .WithSummary("Answer a purchase prompt")
-            .WithDescription("accepted=true after the client added the pieces to the wardrobe (item/from-product), false to dismiss. Either way the prompt is not shown again.")
+            .WithDescription("accepted=true: the server adds every purchased product to the wardrobe (source = purchase, idempotent — answering twice never adds a piece twice) and returns the created items. accepted=false dismisses. Either way the prompt is not shown again; a refused add (403 premium_required: wardrobe limit) leaves it pending.")
             .WithTags("Tenant Purchase Prompt");
     }
 }

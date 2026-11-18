@@ -34,6 +34,7 @@ public sealed class StoreSocialApiFactory : WebApplicationFactory<Entrypoint>
     public ClosetSeeder Closet => _closet ??= new ClosetSeeder(Repository);
     private ClosetSeeder? _closet;
     public FakeWeatherProvider Weather { get; } = new();
+    public CapturingEventManager Events { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -55,6 +56,8 @@ public sealed class StoreSocialApiFactory : WebApplicationFactory<Entrypoint>
             services.AddSingleton<IEmailService>(new CapturingEmailService());
             services.RemoveAll<IPasswordHasher>();
             services.AddSingleton<IPasswordHasher>(new PasswordHasher(1_000));
+            services.RemoveAll<IEventManager>();
+            services.AddSingleton<IEventManager>(Events);
             services.RemoveAll<IWeatherProvider>();
             services.AddSingleton<IWeatherProvider>(Weather);
         });
