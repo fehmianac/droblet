@@ -161,7 +161,8 @@
       "nameTooLong": "Ad en fazla 80 karakter olabilir.",
       "categoryRequired": "Bir kategori seç.",
       "colorRequired": "Bir renk seç.",
-      "seasonRequired": "Kaydetmek için en az bir sezon seç."
+      "seasonRequired": "Kaydetmek için en az bir sezon seç.",
+      "colorHexInvalid": "Renk kodu #RRGGBB biçiminde olmalı."
     },
     "categoryWithType": "{{category}} · {{type}}",
     "imageOriginalA11y": "Parça fotoğrafı, orijinal",
@@ -171,7 +172,7 @@
     "aiEyebrow": "AI TAHMİNİ · KONTROL ET",
     "useClean": "Temizlenmişi kullan",
     "useOriginal": "Orijinale dön",
-    "manualHint": "Bilgileri kendin doldur; fotoğrafı sonra da ekleyebilirsin.",
+    "manualHint": "Fotoğrafsız kaydedilir; gardıropta kategori simgesiyle görünür.",
     "name": "Ad",
     "category": "Kategori",
     "choose": "Seç",
@@ -195,7 +196,9 @@
     "manual": "Elle doldur",
     "processingClean": "Arka plan temizleniyor…",
     "processingFields": "Alanlar dolduruluyor…",
-    "processingBody": "Fotoğrafın işleniyor; tür, renk ve kumaşı birazdan önereceğiz. Kaydetmeden önce her şeyi düzeltebilirsin."
+    "processingBody": "Fotoğrafın işleniyor; tür, renk ve kumaşı birazdan önereceğiz. Kaydetmeden önce her şeyi düzeltebilirsin.",
+    "colorHex": "Renk kodu",
+    "colorHexPlaceholder": "#A1B2C3"
   },
   "bulkAdd": {
     "title": "Toplu ekle",

@@ -28,15 +28,24 @@ import type { JobWire, PresignedPostWire } from './core';
 
 // ---------- items ----------
 
-export type ItemSourceWire = 'photo' | 'library' | 'purchase';
+/** `manual` = created without a photo (`POST v1/tenant/item`). */
+export type ItemSourceWire = 'photo' | 'library' | 'purchase' | 'manual';
 
 export type ItemWire = {
   id: string;
-  name: string;
+  /** Null for a piece created without a name. */
+  name: string | null;
   category: ItemCategory;
-  /** Reference colour ids (`GET v1/tenant/reference/wardrobe`); `[0]` is the main colour. */
+  /** Free type id inside the category (≤ 40 chars, e.g. "blazer"). */
+  subcategory?: string | null;
+  /** Reference colour ids (`GET v1/tenant/reference/wardrobe`); `[0]` is the main colour; `other` is allowed. */
   colorIds: string[];
+  /** `#RRGGBB`, only with colour id `other`. */
+  colorHex?: string | null;
+  /** Reference fabric id. */
   fabric: string | null;
+  /** The user's own fabric text when it is not a reference fabric (≤ 60 chars). */
+  fabricText?: string | null;
   seasons: ItemSeason[];
   size: string | null;
   brand: string | null;
@@ -89,7 +98,7 @@ export function toItemColor(colorId: string | null | undefined): ItemColor {
 }
 
 /** Reference colour id the app sends for one of its own colour keys. */
-const COLOR_ID: Record<ItemColor, string | null> = {
+const COLOR_ID: Record<ItemColor, string> = {
   black: 'black',
   white: 'white',
   beige: 'beige',
@@ -101,31 +110,43 @@ const COLOR_ID: Record<ItemColor, string | null> = {
   green: 'emerald',
   red: 'red',
   pink: 'pink',
-  other: null,
+  // The reference list has `other` too: a colour without a chip is saved as `other` (+ optional hex).
+  other: 'other',
 };
 
 /**
  * `colorIds` to send for an app colour. When the user did not change the colour, the server's own
- * ids are kept (so `burgundy` does not become `red` on an unrelated edit). `other` has no reference
- * id: the previous ids are kept, or the list is empty and the server answers `color_required`.
+ * ids are kept (so `burgundy` does not become `red` on an unrelated edit). `other` is sent as the
+ * reference id `other` (its shade travels as `colorHex`).
  */
 export function toColorIds(color: ItemColor, previous?: string[] | null): string[] {
   if (previous && previous.length > 0 && toItemColor(previous[0]) === color) return previous;
-  const id = COLOR_ID[color];
-  return id ? [id] : (previous ?? []);
+  return [COLOR_ID[color]];
+}
+
+const HEX = /^#[0-9a-f]{6}$/i;
+
+/** `#RRGGBB` (upper case) or null; a value without `#` is accepted. */
+export function normalizeColorHex(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  const withHash = trimmed.startsWith('#') ? trimmed : `#${trimmed}`;
+  return HEX.test(withHash) ? withHash.toUpperCase() : null;
 }
 
 export function toItem(wire: ItemWire): Item {
   return {
     id: wire.id,
-    name: wire.name,
+    name: wire.name ?? '',
     category: wire.category,
-    subcategory: null,
+    subcategory: wire.subcategory ?? null,
     brand: wire.brand,
     size: wire.size,
     color: toItemColor(wire.colorIds[0]),
     colorIds: wire.colorIds,
-    fabric: toFabricLabel(wire.fabric),
+    colorHex: wire.colorHex ?? null,
+    // A reference fabric by name; otherwise the user's own text is kept as typed.
+    fabric: toFabricLabel(wire.fabric) ?? wire.fabricText ?? null,
     seasons: wire.seasons,
     imageUrl: wire.imageUrl,
     // The wire has one image URL (cleaned or original, by `useOriginalImage`); there is no second URL.
@@ -341,8 +362,11 @@ export function toFabricId(text: string | null | undefined): string | null {
 export type PutItemWire = {
   name: string;
   category: ItemCategory;
+  subcategory: string | null;
   colorIds: string[];
+  colorHex: string | null;
   fabric: string | null;
+  fabricText: string | null;
   seasons: ItemSeason[];
   size: string | null;
   brand: string | null;
@@ -350,15 +374,26 @@ export type PutItemWire = {
   baseVersion: number;
 };
 
-type ItemFieldsLike = Pick<Item, 'name' | 'category' | 'brand' | 'size' | 'color' | 'colorIds' | 'fabric' | 'seasons' | 'useOriginalImage'>;
+type ItemFieldsLike = Pick<Item, 'name' | 'category' | 'brand' | 'size' | 'color' | 'colorIds' | 'fabric' | 'seasons' | 'useOriginalImage'> &
+  Partial<Pick<Item, 'subcategory' | 'colorHex'>>;
+
+export const SUBCATEGORY_MAX = 40;
+export const FABRIC_TEXT_MAX = 60;
 
 /** The user fields of an item as the server takes them (PUT body and confirm rows share them). */
 export function fromItemFields(fields: ItemFieldsLike, previousColorIds?: string[] | null): Omit<PutItemWire, 'baseVersion'> {
+  const colorIds = toColorIds(fields.color, fields.colorIds ?? previousColorIds);
+  const fabric = toFabricId(fields.fabric);
+  const fabricText = fabric ? null : fields.fabric?.trim().slice(0, FABRIC_TEXT_MAX) || null;
   return {
     name: fields.name,
     category: fields.category,
-    colorIds: toColorIds(fields.color, fields.colorIds ?? previousColorIds),
-    fabric: toFabricId(fields.fabric),
+    subcategory: fields.subcategory?.trim().slice(0, SUBCATEGORY_MAX) || null,
+    colorIds,
+    colorHex: colorIds[0] === 'other' ? normalizeColorHex(fields.colorHex) : null,
+    // Nothing the user typed is dropped: a known fabric goes as its id, anything else as free text.
+    fabric,
+    fabricText,
     seasons: fields.seasons,
     size: fields.size,
     brand: fields.brand,
@@ -469,6 +504,13 @@ export type ItemCreateResultWire = {
   item: ItemWire | null;
 };
 export type ItemCreateResultsWire = { results: ItemCreateResultWire[]; createdCount: number };
+
+/**
+ * POST v1/tenant/item — a piece without a photo (category + ≥ 1 colour + ≥ 1 season). → 201 created /
+ * 200 replay (`alreadyApplied`), one `ItemCreateResultWire`; 400 with the item validation codes.
+ * The new item id is `itemId ?? clientMutationId`.
+ */
+export type CreateItemWire = Omit<PutItemWire, 'baseVersion' | 'useOriginalImage'> & { clientMutationId: string; itemId: string | null };
 
 /** POST v1/tenant/item/from-library row. The new item id is `itemId ?? clientMutationId`. */
 export type FromLibraryRowWire = { clientMutationId: string; libraryItemId: string; size?: string | null; itemId?: string | null };
