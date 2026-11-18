@@ -157,4 +157,46 @@ public class TryOnGarmentTests
         Assert.Empty(renderer.Garments);
         Assert.Equal(30, await host.RemainingCreditsAsync(Tenant));
     }
+
+    [Fact]
+    public async Task Process_LibraryPieceWithPlaceholderKey_UsesTheLibraryItemsCurrentImage()
+    {
+        var (host, renderer, job, message) = await ArrangeAsync(new OutfitPiece("lib", null));
+        await host.Repository.SaveAsync(new LibraryItemEntity
+        {
+            Id = "lib-white-tshirt", Category = ItemCategory.Top, ImageKey = "https://catalog.test/catalog/library/lib-white-tshirt.webp?v=1",
+        });
+        await host.Repository.SaveAsync(new ItemEntity
+        {
+            Id = "lib", TenantId = Tenant, Category = ItemCategory.Top, Source = ItemSource.Library, LibraryItemId = "lib-white-tshirt",
+            GlobalImageKey = "library/white-tshirt.webp", Version = 1,
+        });
+
+        await host.Get<ITryOnJobService>().ProcessAsync(message, false, default);
+
+        Assert.Equal(JobStatus.Completed, (await host.JobAsync(job))!.Status);
+        Assert.Equal([[5]], Assert.Single(renderer.Garments).Select(g => g.Data));
+        Assert.Contains("https://catalog.test/catalog/library/lib-white-tshirt.webp?v=1", GlobalImages.Requested);
+        // The worker never rewrites the user's piece (the ops migration does).
+        var stored = await host.Repository.GetAsync<ItemEntity>(ItemEntity.GetPk(Tenant), ItemEntity.GetSk("lib"));
+        Assert.Equal("library/white-tshirt.webp", stored!.GlobalImageKey);
+    }
+
+    [Fact]
+    public async Task Process_LibraryPieceWhoseLibraryItemHasNoImageYet_SourceDeleted_Refunds()
+    {
+        var (host, renderer, job, message) = await ArrangeAsync(new OutfitPiece("lib", null));
+        await host.Repository.SaveAsync(new LibraryItemEntity { Id = "lib-black-tshirt", Category = ItemCategory.Top, ImageKey = "library/black-tshirt.webp" });
+        await host.Repository.SaveAsync(new ItemEntity
+        {
+            Id = "lib", TenantId = Tenant, Category = ItemCategory.Top, Source = ItemSource.Library, LibraryItemId = "lib-black-tshirt",
+            GlobalImageKey = "library/black-tshirt.webp", Version = 1,
+        });
+
+        await host.Get<ITryOnJobService>().ProcessAsync(message, false, default);
+
+        Assert.Equal(JobFailure.SourceDeleted, (await host.JobAsync(job))!.Failure);
+        Assert.Empty(renderer.Garments);
+        Assert.Equal(30, await host.RemainingCreditsAsync(Tenant));
+    }
 }

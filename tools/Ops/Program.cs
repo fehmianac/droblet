@@ -42,6 +42,7 @@ try
             OpsArguments.GenerateLibraryImages => await LibraryImagesCommand.RunAsync(services, arguments, output, cts.Token),
             OpsArguments.AiSmoke => await new AiSmokeCommand(services, arguments, output).RunAsync(cts.Token),
             OpsArguments.AiProbe => await ProbeAsync(services, output, cts.Token),
+            OpsArguments.MigrateLibraryItemImages => await MigrateLibraryItemImagesCommand.RunAsync(services, arguments, output, cts.Token),
             _ => 2,
         };
     }

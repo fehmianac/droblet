@@ -14,11 +14,12 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
     public const string AiSmoke = "ai-smoke";
     public const string AiProbe = "ai-probe";
     public const string Logs = "logs";
+    public const string MigrateLibraryItemImages = "migrate-library-item-images";
 
     /// <summary>Hard ceiling of image-model calls in one run (library images and synthetic fixtures together).</summary>
     public const int MaxImageCallsPerRun = 30;
 
-    public static readonly IReadOnlyList<string> Commands = [GrantTestPremium, RevokeTestPremium, GenerateLibraryImages, AiSmoke, AiProbe, Logs];
+    public static readonly IReadOnlyList<string> Commands = [GrantTestPremium, RevokeTestPremium, GenerateLibraryImages, AiSmoke, AiProbe, Logs, MigrateLibraryItemImages];
 
     /// <summary>Commands that create or change test accounts or spend AI credit on a throw-away user: never on prod.</summary>
     public static readonly IReadOnlySet<string> DevOnly = new HashSet<string>(StringComparer.Ordinal) { GrantTestPremium, RevokeTestPremium, AiSmoke, AiProbe };
@@ -31,6 +32,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [AiSmoke] = ["api-url", "price-per-image"],
         [AiProbe] = [],
         [Logs] = ["function", "minutes", "filter", "limit"],
+        [MigrateLibraryItemImages] = [],
     };
 
     private static readonly IReadOnlyDictionary<string, string[]> AllowedFlags = new Dictionary<string, string[]>(StringComparer.Ordinal)
@@ -41,6 +43,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [AiSmoke] = ["keep-user"],
         [AiProbe] = [],
         [Logs] = [],
+        [MigrateLibraryItemImages] = ["dry-run"],
     };
 
     [GeneratedRegex("^lib-[a-z0-9]+(-[a-z0-9]+)*$")]
@@ -156,7 +159,8 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         "  generate-library-images [--only id,id] [--dry-run] [--force] [--max-calls N<=30] [--quality high]\n" +
         "  ai-smoke                [--api-url URL] [--keep-user]          (dev only)\n" +
         "  ai-probe                                                        (dev only; one direct text-model call)\n" +
-        "  logs                    --function stylist [--minutes 30] [--filter OpenAI] [--limit 200]";
+        "  logs                    --function stylist [--minutes 30] [--filter OpenAI] [--limit 200]\n" +
+        "  migrate-library-item-images [--dry-run]                         (one-off, idempotent: library pieces → current library image)";
 }
 
 /// <summary>Counts image-model calls of one run and refuses the call that would cross the cap.</summary>

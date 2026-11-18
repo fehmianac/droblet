@@ -4,6 +4,7 @@ name: Ops (dev)
 # image generation, Lambda logs. Manual only. The tool refuses prod for account / smoke commands on its own as well.
 #   gh workflow run ops-dev.yml --ref <branch> -f command=ai-smoke
 #   gh workflow run ops-dev.yml --ref <branch> -f command=generate-library-images -f args="--only lib-white-tshirt,lib-navy-blazer"
+#   gh workflow run ops-dev.yml --ref <branch> -f command=migrate-library-item-images -f args="--dry-run"
 
 on:
   workflow_dispatch:
@@ -11,7 +12,7 @@ on:
       command:
         description: Komut
         type: choice
-        options: [ai-smoke, generate-library-images, grant-test-premium, revoke-test-premium, ai-probe, logs]
+        options: [ai-smoke, generate-library-images, migrate-library-item-images, grant-test-premium, revoke-test-premium, ai-probe, logs]
         default: ai-smoke
       args:
         description: 'Ek argumanlar (or. --email a@b.c --credits 10 · --only lib-a,lib-b --dry-run · --function stylist --minutes 30)'
