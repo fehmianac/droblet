@@ -54,6 +54,7 @@ export function TabBar({ state, emitter, navigateToTab }: BottomTabBarProps) {
               <Pressable
                 onPress={onPress}
                 accessibilityRole="tab"
+                testID="tab.stylist"
                 accessibilityLabel={label}
                 accessibilityState={{ selected: focused }}
                 className="absolute h-tab-center w-tab-center items-center justify-center rounded-pill bg-ink active:opacity-85"
@@ -73,6 +74,7 @@ export function TabBar({ state, emitter, navigateToTab }: BottomTabBarProps) {
             key={route.key}
             onPress={onPress}
             accessibilityRole="tab"
+            testID={`tab.${route.name === 'index' ? 'today' : route.name}`}
             accessibilityLabel={label}
             accessibilityState={{ selected: focused }}
             className="flex-1 items-center justify-center gap-1 pt-1"

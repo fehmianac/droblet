@@ -13,6 +13,8 @@ export type RequestOptions = {
   body?: unknown;
   /** Sends the bearer token and handles 401 → refresh → retry once. Default true. */
   auth?: boolean;
+  /** Sends this bearer token instead of the stored session's (used while a session is being created). */
+  accessToken?: string;
   signal?: AbortSignal;
 };
 
@@ -75,7 +77,7 @@ async function accessToken(): Promise<string> {
 }
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = 'GET', body, auth = true, signal } = options;
+  const { method = 'GET', body, auth = true, accessToken: explicitToken, signal } = options;
 
   const send = async (token: string | null) => {
     // The server localizes its text content (AI notes, library names, error details) to the app language.
@@ -90,8 +92,8 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     });
   };
 
-  let res = await send(auth ? await accessToken() : null);
-  if (auth && res.status === 401) {
+  let res = await send(explicitToken ?? (auth ? await accessToken() : null));
+  if (auth && !explicitToken && res.status === 401) {
     res = await send(await refreshTokens());
   }
 

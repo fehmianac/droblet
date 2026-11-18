@@ -48,7 +48,12 @@ export default function AuthStartScreen() {
       if (code === 'email_taken') setErrors({ email: t('errors.email_taken') });
       else if (code === 'invalid_credentials') setErrors({ password: t('errors.invalid_credentials') });
       else if (Object.keys(fields).length > 0) {
-        setErrors({ name: fields.name, email: fields.email, password: fields.password });
+        // The server sends validation codes (`name_required`, `email_invalid`, `password_too_short`), never sentences.
+        setErrors({
+          name: fields.name ? t('errors.nameRequired') : undefined,
+          email: fields.email ? t('errors.emailInvalid') : undefined,
+          password: fields.password ? t('errors.passwordTooShort') : undefined,
+        });
       } else setErrors({ form: t(`errors.${code}`) });
     },
     [t],
@@ -112,6 +117,7 @@ export default function AuthStartScreen() {
               setMode(m);
               setErrors({});
             }}
+            testID="auth.tab"
             segments={[
               { value: 'register', label: t('auth.tabRegister') },
               { value: 'login', label: t('auth.tabLogin') },
@@ -147,6 +153,10 @@ export default function AuthStartScreen() {
                   clear('name');
                 }}
                 error={errors.name}
+                testID="auth.name"
+                maxLength={60}
+                autoCapitalize="words"
+                autoCorrect={false}
                 autoComplete="name"
                 textContentType="name"
                 returnKeyType="next"
@@ -162,6 +172,7 @@ export default function AuthStartScreen() {
                 clear('email');
               }}
               error={errors.email}
+              testID="auth.email"
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType="email-address"
@@ -179,6 +190,7 @@ export default function AuthStartScreen() {
                 clear('password');
               }}
               error={errors.password}
+              testID="auth.password"
               hint={mode === 'register' ? t('auth.passwordHint') : undefined}
               password
               autoCapitalize="none"
@@ -192,6 +204,7 @@ export default function AuthStartScreen() {
                 <Button
                   variant="text"
                   label={t('auth.forgot')}
+                  testID="auth.forgot"
                   onPress={() => router.push({ pathname: '/forgot-password', params: { email: email.trim() } })}
                   className="-ml-2"
                 />
@@ -205,7 +218,13 @@ export default function AuthStartScreen() {
             </Text>
           ) : null}
 
-          <Button label={t('auth.submit')} onPress={submit} loading={register.isPending || login.isPending} disabled={busy} />
+          <Button
+            label={t('auth.submit')}
+            onPress={submit}
+            loading={register.isPending || login.isPending}
+            disabled={busy}
+            testID="auth.submit"
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </Screen>

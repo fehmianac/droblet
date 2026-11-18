@@ -111,7 +111,13 @@ export default function StyleProfileScreen() {
           </View>
           <ChipWrap>
             {STYLE_TAGS.map((tag) => (
-              <Chip key={tag} label={t(`style.tags.${tag}`)} selected={tags.includes(tag)} onPress={() => toggleTag(tag)} />
+              <Chip
+                key={tag}
+                label={t(`style.tags.${tag}`)}
+                selected={tags.includes(tag)}
+                onPress={() => toggleTag(tag)}
+                testID={`style.tag.${tag}`}
+              />
             ))}
           </ChipWrap>
           {limitHit ? (
@@ -129,6 +135,7 @@ export default function StyleProfileScreen() {
                 key={b}
                 label={t(`style.budget.${b}`)}
                 selected={budget === b}
+                testID={`style.budget.${b}`}
                 onPress={() => {
                   setTouched(true);
                   setBudget(b);
@@ -144,6 +151,7 @@ export default function StyleProfileScreen() {
           label={t('common.continue')}
           onPress={submit}
           disabled={!complete}
+          testID="style.continue"
           accessibilityHint={complete ? undefined : t('style.needTags')}
         />
       </BottomActionBar>

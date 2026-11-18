@@ -6,6 +6,7 @@ import { getFixtureJob } from '@/fixtures/jobs';
 import { apiRequest } from './client';
 import type { Job, JobKind } from './contracts/jobs';
 import { fromSource } from './dataSource';
+import { toJob, type JobWire } from './wire/core';
 
 /** Poll back-off: 1 s → 2 → 4 → 8 → 10 s cap (MOBILE_ENGINEER §Uzun süren sunucu işleri). */
 export function jobPollInterval(attempt: number): number {
@@ -37,20 +38,27 @@ export type JobView<T> = {
   refetch: () => void;
 };
 
-type Options = {
+type Options<T> = {
   /** Pass the screen's focus state: polling stops while the screen is not focused. Default true. */
   enabled?: boolean;
   timeoutMs?: number;
+  /**
+   * Converts the wire `result` of a completed job (ids only, docs §9) into what the screen renders.
+   * May fetch other data (item cache, catalogue products). Not used for fixture jobs — those already
+   * carry the app shape.
+   */
+  mapResult?: (result: unknown, job: JobWire) => T | Promise<T>;
 };
 
 /**
- * The single polling hook for 202-style AI jobs. Polls with a growing interval until `done` /
+ * The single polling hook for 202-style AI jobs (`GET v1/tenant/job/{id}`; wire status `queued |
+ * processing | completed | failed` → app `queued | running | done | failed`). Polls with a growing interval until `done` /
  * `failed`; pauses when the screen is unfocused (`enabled`) or the app is in the background
  * (TanStack focus manager). The job id lives in the route / persisted cache, so a restarted app
  * resumes the same job instead of starting a new one.
  */
-export function useJob<T>(kind: JobKind, id: string | null | undefined, options: Options = {}): JobView<T> {
-  const { enabled = true, timeoutMs = JOB_TIMEOUT_MS } = options;
+export function useJob<T>(kind: JobKind, id: string | null | undefined, options: Options<T> = {}): JobView<T> {
+  const { enabled = true, timeoutMs = JOB_TIMEOUT_MS, mapResult } = options;
   const query = useQuery({
     queryKey: jobQueryKey(id ?? 'none'),
     enabled: Boolean(id) && enabled,
@@ -58,7 +66,7 @@ export function useJob<T>(kind: JobKind, id: string | null | undefined, options:
       fromSource<Job<T>>(
         'jobs',
         () => getFixtureJob<T>(id ?? '', kind),
-        () => apiRequest<Job<T>>(`v1/tenant/job/${id}`),
+        async () => toJob<T>(await apiRequest<JobWire>(`v1/tenant/job/${id}`), mapResult),
       ),
     refetchInterval: (q) => (isJobSettled(q.state.data) ? false : jobPollInterval(q.state.dataUpdateCount - 1)),
     refetchIntervalInBackground: false,

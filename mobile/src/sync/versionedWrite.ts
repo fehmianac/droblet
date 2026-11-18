@@ -14,6 +14,11 @@ type Options<TVars extends Versioned, TRecord extends { baseVersion: number }> =
   send: (vars: TVars) => Promise<TRecord>;
   /** The record to show while the write is queued. */
   optimistic: (previous: TRecord | undefined, vars: TVars) => TRecord | undefined;
+  /**
+   * Converts the 409 body (the server's current record, wire shape) into the app record. May return a
+   * promise when the mapping needs other data. Omit when wire and app shapes are the same.
+   */
+  mapCurrent?: (wire: unknown) => TRecord | Promise<TRecord>;
 };
 
 /**
@@ -24,7 +29,7 @@ type Options<TVars extends Versioned, TRecord extends { baseVersion: number }> =
  */
 export function registerVersionedWrite<TVars extends Versioned, TRecord extends { baseVersion: number }>(
   client: QueryClient,
-  { mutationKey, queryKey, send, optimistic }: Options<TVars, TRecord>,
+  { mutationKey, queryKey, send, optimistic, mapCurrent }: Options<TVars, TRecord>,
 ): void {
   const execute = (vars: TVars) =>
     client.getMutationCache().build(client, { mutationKey, scope: TENANT_WRITE_SCOPE }).execute(vars);
@@ -39,9 +44,14 @@ export function registerVersionedWrite<TVars extends Versioned, TRecord extends 
     onSuccess: (saved: TRecord | undefined) => {
       if (saved) client.setQueryData(queryKey, saved);
     },
-    onError: (error: unknown, vars: TVars) => {
+    onError: async (error: unknown, vars: TVars) => {
       if (isConflict(error)) {
-        const current = error.problem?.current as TRecord | undefined;
+        let current: TRecord | undefined;
+        try {
+          current = error.current ? (mapCurrent ? await mapCurrent(error.current) : (error.current as TRecord)) : undefined;
+        } catch {
+          current = undefined;
+        }
         conflictStore.push({
           id: vars.clientMutationId,
           kind: 'changed',

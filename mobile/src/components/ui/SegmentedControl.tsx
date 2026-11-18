@@ -9,10 +9,12 @@ type Props<T extends string> = {
   value: T;
   onChange: (value: T) => void;
   accessibilityLabel?: string;
+  /** Each segment gets `${testID}.${value}`. */
+  testID?: string;
 };
 
 /** Sand track; the selected segment is paper with a light shadow. */
-export function SegmentedControl<T extends string>({ segments, value, onChange, accessibilityLabel }: Props<T>) {
+export function SegmentedControl<T extends string>({ segments, value, onChange, accessibilityLabel, testID }: Props<T>) {
   return (
     <View
       accessibilityRole="tablist"
@@ -26,6 +28,7 @@ export function SegmentedControl<T extends string>({ segments, value, onChange, 
             key={s.value}
             onPress={() => onChange(s.value)}
             accessibilityRole="tab"
+            testID={testID ? `${testID}.${s.value}` : undefined}
             accessibilityLabel={s.label}
             accessibilityState={{ selected }}
             className={`flex-1 items-center justify-center rounded-pill ${selected ? 'bg-paper shadow-sm' : ''}`}

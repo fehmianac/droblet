@@ -15,34 +15,30 @@
 
 // ---------- Auth ----------
 
+/** The signed-in user as the app keeps it. `name` / `email` come from the form or `GET v1/tenant/profile`. */
 export type AuthUser = { id: string; name: string; email: string };
 
-export type AuthResponse = {
-  accessToken: string;
-  refreshToken: string;
-  /** Access-token lifetime in seconds. */
-  expiresIn: number;
-  user: AuthUser;
-};
+/** Wire body of register / login / apple / google / refresh — see `./wire/core`. */
+export type { AuthResponseWire as AuthResponse } from './wire/core';
 
-/** POST v1/auth/register */
+/** POST v1/auth/register → 201. 409 `email_taken`, 429 `too_many_attempts`. */
 export type RegisterRequest = { name: string; email: string; password: string };
-/** POST v1/auth/login */
+/** POST v1/auth/login. 401 `invalid_credentials`, 429 `too_many_attempts`. */
 export type LoginRequest = { email: string; password: string };
 /**
- * POST v1/auth/apple — `nonce` is the RAW nonce; the app passes SHA-256(nonce) to Apple, so the
- * identity token's `nonce` claim is the hex SHA-256 of this value. `fullName` only on first sign-in.
+ * What the Apple sheet gives the app. `nonce` is the RAW nonce; the app passes SHA-256(nonce) to Apple.
+ * The name arrives only on the very first authorization (sent as `fullName { givenName, familyName }`).
  */
-export type AppleAuthRequest = { identityToken: string; nonce: string; fullName?: string };
+export type AppleAuthRequest = { identityToken: string; nonce: string; givenName?: string | null; familyName?: string | null };
 /** POST v1/auth/google */
-export type GoogleAuthRequest = { idToken: string };
-/** POST v1/auth/refresh — rotates: returns a new pair and invalidates the old refresh token. */
+export type GoogleAuthRequest = { idToken: string; name?: string };
+/** POST v1/auth/refresh — rotates: returns a new pair and invalidates the old refresh token. 401 `invalid_refresh_token`. */
 export type RefreshRequest = { refreshToken: string };
-/** POST v1/auth/logout — body assumed `{ refreshToken }` so the server can revoke it. */
-export type LogoutRequest = { refreshToken: string };
-/** POST v1/auth/password/forgot — always 202/204 (no account enumeration). */
+/** POST v1/auth/logout → 204. `deviceId` also removes the push registration. */
+export type LogoutRequest = { refreshToken: string; deviceId?: string };
+/** POST v1/auth/password/forgot — always 202 (no account enumeration). */
 export type ForgotPasswordRequest = { email: string };
-/** POST v1/auth/password/reset — `token` arrives via deep link `droplet://reset-password?token=…`. */
+/** POST v1/auth/password/reset → 204. 400 `invalid_or_expired_token`. `token` arrives via deep link. */
 export type ResetPasswordRequest = { token: string; newPassword: string };
 
 // ---------- Style profile (03) ----------
@@ -63,7 +59,7 @@ export const STYLE_TAGS = [
 ] as const;
 export type StyleTag = (typeof STYLE_TAGS)[number];
 
-/** GET/PUT v1/tenant/style-profile. GET → 404 when not set yet (treated as baseVersion 0). */
+/** GET/PUT v1/tenant/style-profile (app shape; wire uses camelCase enums + `version`). GET → 404 when not set yet (baseVersion 0). */
 export type StyleProfile = {
   segment: Segment;
   /** Exactly 3. */
@@ -91,24 +87,16 @@ export type PutBodyProfileRequest = BodyProfile & { clientMutationId: string };
 
 export type PhotoKind = 'body' | 'face';
 
-/** POST v1/tenant/photo/upload-url */
-export type PhotoUploadUrlRequest = { kind: PhotoKind; contentType: 'image/jpeg' };
-export type PhotoUploadUrlResponse = {
-  photoId: string;
-  /** Presigned S3 PUT URL. Upload with header `Content-Type` = requested contentType. */
-  uploadUrl: string;
-  expiresAt: string;
-};
 /**
- * PUT v1/tenant/photo/{kind} — confirms the uploaded object.
- * Assumption: `body` accepts up to 3 photos (each confirm adds one); `face` replaces the previous one.
- * Idempotent on `clientMutationId`.
+ * Upload flow (wire shapes in `./wire/core`): `POST v1/tenant/photo/upload-url { kind, contentType }`
+ * → presigned S3 POST (`url` + `fields`, then the file) → `PUT v1/tenant/photo/{kind} { uploadId,
+ * clientMutationId }` makes it the active photo. One active photo per kind.
  */
-export type ConfirmPhotoRequest = { photoId: string; clientMutationId: string };
+export type PhotoUploadUrlRequest = { kind: PhotoKind; contentType: 'image/jpeg' };
 
 // ---------- Entitlement ----------
 
-/** GET v1/tenant/entitlement. Assumed tiers: 'free' | 'member'. */
+/** GET v1/tenant/entitlement, mapped from the wire (`premium` → `member`, `credits.totalRemaining` → `remaining`). */
 export type Entitlement = {
   tier: 'free' | 'member';
   credits: { monthlyAllowance: number; remaining: number; resetsAt: string };
@@ -184,5 +172,5 @@ export type TodayResponse = {
 /** Candidate: POST v1/tenant/wear-logs (event; idempotent on clientMutationId). */
 export type WearLogRequest = { lookId: string; date: string; occurredAt: string; clientMutationId: string };
 
-/** Candidate: GET v1/catalog/library (ready-made piece library for 04b / 12b). */
+/** GET v1/tenant/library/item — ready-made piece library (04b / 12b); names in the profile language. */
 export type LibraryItem = { id: string; name: string; category: string; imageUrl: string | null };

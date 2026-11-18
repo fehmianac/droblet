@@ -20,8 +20,13 @@ export async function requestAppleCredential(): Promise<AppleAuthRequest | null>
       nonce: hashedNonce,
     });
     if (!credential.identityToken) return null;
-    const fullName = credential.fullName ? AppleAuthentication.formatFullName(credential.fullName).trim() : '';
-    return { identityToken: credential.identityToken, nonce: rawNonce, ...(fullName ? { fullName } : {}) };
+    // Apple sends the name only on the very first authorization; the server stores it then.
+    return {
+      identityToken: credential.identityToken,
+      nonce: rawNonce,
+      givenName: credential.fullName?.givenName ?? null,
+      familyName: credential.fullName?.familyName ?? null,
+    };
   } catch (e) {
     if (e instanceof Error && 'code' in e && (e as { code?: string }).code === 'ERR_REQUEST_CANCELED') return null;
     throw e;

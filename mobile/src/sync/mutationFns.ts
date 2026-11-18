@@ -9,6 +9,14 @@ import type {
   WearLogRequest,
 } from '@/api/contracts';
 import { isConflict, isGone } from '@/api/errors';
+import {
+  fromBodyProfile,
+  fromStyleProfile,
+  toBodyProfile,
+  toStyleProfile,
+  type BodyProfileWire,
+  type StyleProfileWire,
+} from '@/api/wire/core';
 import { registerLooksMutations } from '@/features/looks/mutations';
 import { registerStylistMutations } from '@/features/stylist/mutations';
 import { registerTodayMutations } from '@/features/today/mutations';
@@ -28,10 +36,13 @@ type Versioned = { baseVersion: number; clientMutationId: string };
  * function, so a write queued offline can only resume after a restart if its key is registered here.
  */
 export function registerMutationDefaults(client: QueryClient): void {
-  const versionedPut = <TBody extends Versioned, TRecord extends { baseVersion: number }>(
+  /** `toWire` drops the client-only fields and renames to the wire spelling; `fromWire` maps 200 and 409 bodies back. */
+  const versionedPut = <TBody extends Versioned, TRecord extends { baseVersion: number }, TWire>(
     key: readonly string[],
     path: string,
     queryKey: readonly string[],
+    toWire: (vars: TBody) => unknown,
+    fromWire: (wire: TWire) => TRecord,
   ) => {
     const execute = (vars: TBody) =>
       client
@@ -41,7 +52,7 @@ export function registerMutationDefaults(client: QueryClient): void {
 
     client.setMutationDefaults(key, {
       scope: TENANT_WRITE_SCOPE,
-      mutationFn: (vars: TBody) => apiRequest<TRecord>(path, { method: 'PUT', body: vars }),
+      mutationFn: async (vars: TBody) => fromWire(await apiRequest<TWire>(path, { method: 'PUT', body: toWire(vars) })),
       onMutate: async (vars: TBody) => {
         await client.cancelQueries({ queryKey });
         const { clientMutationId: _omit, ...record } = vars;
@@ -53,7 +64,7 @@ export function registerMutationDefaults(client: QueryClient): void {
       },
       onError: (error: unknown, vars: TBody) => {
         if (isConflict(error)) {
-          const current = error.problem?.current as TRecord | undefined;
+          const current = error.current ? fromWire(error.current as TWire) : undefined;
           conflictStore.push({
             id: vars.clientMutationId,
             kind: 'changed',
@@ -81,15 +92,19 @@ export function registerMutationDefaults(client: QueryClient): void {
     });
   };
 
-  versionedPut<PutStyleProfileRequest, StyleProfile>(
+  versionedPut<PutStyleProfileRequest, StyleProfile, StyleProfileWire>(
     mutationKeys.putStyleProfile,
     'v1/tenant/style-profile',
     queryKeys.styleProfile,
+    fromStyleProfile,
+    toStyleProfile,
   );
-  versionedPut<PutBodyProfileRequest, BodyProfile>(
+  versionedPut<PutBodyProfileRequest, BodyProfile, BodyProfileWire>(
     mutationKeys.putBodyProfile,
     'v1/tenant/body-profile',
     queryKeys.bodyProfile,
+    fromBodyProfile,
+    toBodyProfile,
   );
 
   client.setMutationDefaults(mutationKeys.uploadPhoto, {

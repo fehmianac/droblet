@@ -1,41 +1,50 @@
 /**
- * THE switch between typed fixtures and the real API for every feature whose backend is still being
- * written.
+ * THE switch between the real API and the typed fixtures.
  *
- * Every query and queued write of those features is written as
- *   fromSource('wardrobe', () => fixture.something(), () => apiRequest<T>('v1/tenant/…'))
- * so moving a feature to the backend is one word here — or, to move a single hook earlier, replace
- * its `fromSource(...)` call with its `api` argument (one line).
+ * Every query and queued write of the feature modules is written as
+ *   fromSource('wardrobe', () => fixture.something(), () => apiRequest<Wire>('v1/tenant/…').then(map))
+ * The app runs on the API. Fixtures remain for the unit / screen tests (Jest) and for a dev showcase
+ * build started with `EXPO_PUBLIC_DROBLET_FIXTURES=1` (no backend needed).
  *
- * The request/response shapes are the provisional contracts in `src/api/contracts/*`.
+ * Wire shapes live in `src/api/wire/*`; the app-facing types in `src/api/contracts/*` are what the
+ * screens see — the `api` arm of each `fromSource` maps between the two.
  */
 export type DataSource = 'fixtures' | 'api';
 
-export const DATA_SOURCE = {
+const USE_FIXTURES = process.env.JEST_WORKER_ID !== undefined || process.env.EXPO_PUBLIC_DROBLET_FIXTURES === '1';
+
+/**
+ * Features whose hooks are aligned with the real backend contract. A feature still listed `false`
+ * runs on fixtures until its wire types and mappers are written.
+ */
+const LIVE = {
+  /** Hazır parça kütüphanesi (04b, 12b): `GET v1/tenant/library/item`, `POST v1/tenant/item/from-library`. */
+  library: true,
   /** Bugün, haftalık plan, takvim (06–09). */
-  today: 'fixtures',
+  today: false,
   /** Parçalar, look'lar, bavullar (10–15, 18–19). */
-  wardrobe: 'fixtures',
+  wardrobe: false,
   /** Stilist önerileri (16–17). */
-  stylist: 'fixtures',
+  stylist: false,
   /** AI job polling, try-on (22) and credits. */
-  jobs: 'fixtures',
+  jobs: false,
   /** Keşfet editorial content (20). */
-  content: 'fixtures',
+  content: false,
   /** Stil mağazası catalogue and products (21–23). */
-  catalog: 'fixtures',
-  cart: 'fixtures',
-  watchlist: 'fixtures',
+  catalog: false,
+  cart: false,
+  watchlist: false,
   /** Arkadaş akışı, kişi profili, keşif (25–27). */
-  social: 'fixtures',
+  social: false,
   /** Profil, gizlilik ve ayarlar, hesap silme (28–29). */
-  account: 'fixtures',
+  account: false,
   /** Renk paleti (30). */
-  palette: 'fixtures',
-} satisfies Record<string, DataSource> as Record<
-  'today' | 'wardrobe' | 'stylist' | 'jobs' | 'content' | 'catalog' | 'cart' | 'watchlist' | 'social' | 'account' | 'palette',
-  DataSource
->;
+  palette: false,
+} satisfies Record<string, boolean>;
+
+export const DATA_SOURCE = Object.fromEntries(
+  Object.entries(LIVE).map(([feature, live]) => [feature, live && !USE_FIXTURES ? 'api' : 'fixtures']),
+) as Record<keyof typeof LIVE, DataSource>;
 
 export type DataFeature = keyof typeof DATA_SOURCE;
 

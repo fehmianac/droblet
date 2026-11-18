@@ -127,7 +127,7 @@ export default function BodyScreen() {
     <Screen>
       <OfflineBanner />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
-        <ScreenHeader leading="back" right={<Button variant="text" label={t('common.skip')} onPress={skip} />} />
+        <ScreenHeader leading="back" right={<Button variant="text" label={t('common.skip')} onPress={skip} testID="body.skip" />} />
         <ScrollView contentContainerClassName="gap-8 px-gutter pb-10" keyboardShouldPersistTaps="handled">
           <View className="gap-2">
             <Text variant="eyebrow">
@@ -151,6 +151,7 @@ export default function BodyScreen() {
                   }}
                   keyboardType="number-pad"
                   maxLength={3}
+                  testID="body.height"
                   error={errors.height}
                 />
               </View>
@@ -164,6 +165,7 @@ export default function BodyScreen() {
                   }}
                   keyboardType="number-pad"
                   maxLength={3}
+                  testID="body.weight"
                   hint={t('body.weightOptional')}
                   error={errors.weight}
                 />
@@ -177,6 +179,7 @@ export default function BodyScreen() {
                     key={s}
                     label={s}
                     selected={size === s}
+                    testID={`body.size.${s}`}
                     onPress={() => {
                       setSize(s);
                       setErrors((e) => ({ ...e, size: undefined }));
@@ -261,7 +264,7 @@ export default function BodyScreen() {
       </KeyboardAvoidingView>
 
       <BottomActionBar>
-        <Button label={t('common.continue')} onPress={submit} />
+        <Button label={t('common.continue')} onPress={submit} testID="body.continue" />
       </BottomActionBar>
 
       {bodyPicker.sheet}

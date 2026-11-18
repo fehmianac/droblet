@@ -6,27 +6,30 @@ import { newClientMutation } from '@/sync/clientMutation';
 import { apiRequest } from './client';
 import type { BodyProfile, PutBodyProfileRequest, PutStyleProfileRequest, StyleProfile } from './contracts';
 import { isGone } from './errors';
+import { toBodyProfile, toStyleProfile, type BodyProfileWire, type StyleProfileWire } from './wire/core';
 
-async function getOrNull<T>(path: string): Promise<T | null> {
+async function getOrNull<TWire, T>(path: string, map: (wire: TWire) => T): Promise<T | null> {
   try {
-    return await apiRequest<T>(path);
+    return map(await apiRequest<TWire>(path));
   } catch (e) {
     if (isGone(e)) return null;
     throw e;
   }
 }
 
+/** GET v1/tenant/style-profile → null when not set yet (404). */
 export function useStyleProfile() {
   return useQuery({
     queryKey: queryKeys.styleProfile,
-    queryFn: () => getOrNull<StyleProfile>('v1/tenant/style-profile'),
+    queryFn: () => getOrNull<StyleProfileWire, StyleProfile>('v1/tenant/style-profile', toStyleProfile),
   });
 }
 
+/** GET v1/tenant/body-profile → null when not set yet (404). */
 export function useBodyProfile() {
   return useQuery({
     queryKey: queryKeys.bodyProfile,
-    queryFn: () => getOrNull<BodyProfile>('v1/tenant/body-profile'),
+    queryFn: () => getOrNull<BodyProfileWire, BodyProfile>('v1/tenant/body-profile', toBodyProfile),
   });
 }
 
