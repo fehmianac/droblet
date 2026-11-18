@@ -143,7 +143,7 @@ public sealed class SettingsService(
     // ── Devices ─────────────────────────────────────────────────────────────────────────────────────────────────
 
     public async Task<(SettingsOutcome Outcome, DeviceDto? Device)> RegisterDeviceAsync(
-        string tenantId, string userId, string deviceId, DevicePlatform platform, string? pushToken, string? timeZone, CancellationToken ct)
+        string tenantId, string userId, string deviceId, DevicePlatform platform, string? pushToken, PushTokenType? pushTokenType, string? timeZone, CancellationToken ct)
     {
         var pk = DeviceEntity.GetPk(tenantId);
         var existing = await repository.GetAsync<DeviceEntity>(pk, DeviceEntity.GetSk(deviceId), ct);
@@ -156,6 +156,7 @@ public sealed class SettingsService(
             DeviceId = deviceId,
             Platform = platform.ToString().ToLowerInvariant(),
             PushToken = string.IsNullOrWhiteSpace(pushToken) ? null : pushToken,
+            PushTokenType = string.IsNullOrWhiteSpace(pushToken) ? null : PushTokenRules.Resolve(platform, pushToken, pushTokenType),
             UpdatedAt = Now,
         };
         await repository.SaveAsync(device, ct);

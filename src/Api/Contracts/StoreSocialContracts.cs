@@ -182,7 +182,7 @@ public class UpdateNotificationPrefsRequestValidator : AbstractValidator<UpdateN
     }
 }
 
-public record RegisterDeviceRequest(string DeviceId, DevicePlatform Platform, string? PushToken, string? TimeZone);
+public record RegisterDeviceRequest(string DeviceId, DevicePlatform Platform, string? PushToken, string? TimeZone, PushTokenType? PushTokenType = null);
 
 public class RegisterDeviceRequestValidator : AbstractValidator<RegisterDeviceRequest>
 {
@@ -191,6 +191,7 @@ public class RegisterDeviceRequestValidator : AbstractValidator<RegisterDeviceRe
         RuleFor(x => x.DeviceId).Must(DeviceRules.IsValidId).WithErrorCode("device_id_invalid");
         RuleFor(x => x.Platform).IsInEnum().WithErrorCode("platform_invalid");
         RuleFor(x => x.PushToken).MaximumLength(4096).WithErrorCode("push_token_invalid");
+        RuleFor(x => x.PushTokenType).IsInEnum().WithErrorCode("push_token_type_invalid").When(x => x.PushTokenType is not null);
         RuleFor(x => x.TimeZone).Must(tz => tz is null || ReminderRules.IsValidTimeZone(tz)).WithErrorCode("time_zone_invalid");
     }
 }

@@ -166,7 +166,8 @@ public class AuthEndpointTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var token = $"valid:apple-{Guid.NewGuid():N}:relay@privaterelay.appleid.com";
 
         var first = await client.PostJsonAsync("v1/auth/apple", new { identityToken = token, nonce = "n", fullName = new { givenName = "Ayşe", familyName = "Yılmaz" } });
-        var second = await client.PostJsonAsync("v1/auth/apple", new { identityToken = token, nonce = "n" });
+        // authorizationCode is accepted; while the AppleAuth key is not configured the exchange is skipped, sign-in still succeeds.
+        var second = await client.PostJsonAsync("v1/auth/apple", new { identityToken = token, nonce = "n", authorizationCode = "c1a2b3" });
         var invalid = await client.PostJsonAsync("v1/auth/apple", new { identityToken = "forged", nonce = "n" });
 
         var a = (await first.Content.ReadFromJsonAsync<AuthResponse>(ApiFactory.Json))!;

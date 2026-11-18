@@ -8,7 +8,13 @@ public record CreditsDto(int MonthlyAllowance, int AllowanceRemaining, int PackR
 /// <summary>AI garment recognitions: limit / remaining null = unlimited (members). used = completed + in progress.</summary>
 public record ItemRecognitionDto(int? Limit, int Used, int? Remaining);
 
-public record EntitlementDto(Tier Tier, string? ProductId, StorePlatform? Platform, DateTime? ExpiresAt, CreditsDto Credits, ItemRecognitionDto ItemRecognition);
+public record EntitlementDto(Tier Tier, string? ProductId, StorePlatform? Platform, DateTime? ExpiresAt, CreditsDto Credits, ItemRecognitionDto ItemRecognition)
+{
+    /// <summary>Store state behind the tier: active | gracePeriod | billingRetry | expired | revoked (null = free / legacy row).</summary>
+    public StoreSubscriptionState? State { get; init; }
+    /// <summary>UUID the app passes as StoreKit appAccountToken / Play obfuscatedAccountId (StoreAccountToken).</summary>
+    public string? StoreAccountToken { get; init; }
+}
 
 public static class EntitlementDtoMapper
 {
@@ -24,6 +30,10 @@ public static class EntitlementDtoMapper
             snapshot.Credits.TotalRemaining,
             snapshot.Credits.ResetsAt),
         (snapshot.ItemRecognition ?? EntitlementPolicy.ItemRecognition(snapshot.Active.Tier, 0, 0)).ToDto());
+
+    /// <summary>The DTO for the signed-in tenant: adds the store account token the app passes to StoreKit / Play Billing.</summary>
+    public static EntitlementDto ToDto(this EntitlementSnapshot snapshot, string tenantId) =>
+        snapshot.ToDto() with { State = snapshot.Active.Source?.State, StoreAccountToken = Services.StoreAccountToken.FromTenantId(tenantId) };
 
     public static ItemRecognitionDto ToDto(this ItemRecognitionQuota quota) => new(quota.Limit, quota.Used, quota.Remaining);
 }

@@ -136,7 +136,7 @@ public sealed class NotificationJobs(
         var delivered = false;
         foreach (var device in devices)
         {
-            switch (await push.SendAsync(new PushMessage(device.PushToken!, title, body, data), ct))
+            switch (await push.SendAsync(new PushMessage(device.PushToken!, title, body, data) { TokenType = device.PushTokenType ?? PushTokenType.Fcm }, ct))
             {
                 case PushResult.Sent:
                     delivered = true;

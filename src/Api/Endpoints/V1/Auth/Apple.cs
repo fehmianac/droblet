@@ -5,6 +5,7 @@ using Domain.Constant;
 using Domain.Enum;
 using Domain.Services;
 using FluentValidation;
+using Infrastructure.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Endpoints.V1.Auth;
@@ -15,6 +16,7 @@ public class Apple : IEndpoint
         [FromBody] AppleSignInRequest request,
         [FromServices] IAppleIdentityVerifier verifier,
         [FromServices] IAuthService authService,
+        [FromServices] IAppleSignInTokenService appleTokens,
         [FromServices] IValidator<AppleSignInRequest> validator,
         HttpContext httpContext,
         CancellationToken cancellationToken)
@@ -39,6 +41,9 @@ public class Apple : IEndpoint
         // Apple sends the name only on the very first authorization; it is stored then.
         var name = request.FullName is { } n ? string.Join(' ', new[] { n.GivenName, n.FamilyName }.Where(p => !string.IsNullOrWhiteSpace(p))) : null;
         var result = await authService.SignInExternalAsync(AuthProvider.Apple, identity, name, httpContext.Language(), cancellationToken);
+        // Keeps an Apple refresh token so account deletion can revoke it (App Store requirement). Never fails sign-in.
+        if (result.Outcome == AuthOutcome.Success && !string.IsNullOrWhiteSpace(request.AuthorizationCode))
+            await appleTokens.StoreFromAuthorizationCodeAsync(identity.Subject, request.AuthorizationCode, cancellationToken);
         return result.Outcome == AuthOutcome.Success
             ? Results.Ok(AuthResponse.From(result.Tokens!))
             : ApiResults.Problem(StatusCodes.Status401Unauthorized, ErrorCodes.InvalidIdentityToken);
@@ -54,14 +59,14 @@ public class Apple : IEndpoint
             .ProducesProblem(StatusCodes.Status500InternalServerError)
             .AllowAnonymous()
             .WithSummary("Sign in with Apple")
-            .WithDescription("Validates identityToken against Apple's JWKS (iss, aud = bundle id, exp, nonce) and returns a JWT + refresh token.")
+            .WithDescription("Validates identityToken against Apple's JWKS (iss, aud = bundle id, exp, nonce) and returns a JWT + refresh token. authorizationCode (optional, from the same Apple sheet) is exchanged for an Apple refresh token that is stored encrypted and revoked on account deletion.")
             .WithTags("Auth");
     }
 }
 
 public record AppleFullName(string? GivenName, string? FamilyName);
 
-public record AppleSignInRequest(string IdentityToken, string Nonce, AppleFullName? FullName);
+public record AppleSignInRequest(string IdentityToken, string Nonce, AppleFullName? FullName, string? AuthorizationCode = null);
 
 public class AppleSignInRequestValidator : AbstractValidator<AppleSignInRequest>
 {
@@ -69,6 +74,7 @@ public class AppleSignInRequestValidator : AbstractValidator<AppleSignInRequest>
     {
         RuleFor(x => x.IdentityToken).NotEmpty().WithErrorCode("identity_token_required").MaximumLength(8192).WithErrorCode("identity_token_invalid");
         RuleFor(x => x.Nonce).NotEmpty().WithErrorCode("nonce_required").MaximumLength(256).WithErrorCode("nonce_invalid");
+        RuleFor(x => x.AuthorizationCode).MaximumLength(2048).WithErrorCode("authorization_code_invalid");
         RuleFor(x => x.FullName!.GivenName).MaximumLength(60).WithErrorCode("name_too_long").When(x => x.FullName is not null);
         RuleFor(x => x.FullName!.FamilyName).MaximumLength(60).WithErrorCode("name_too_long").When(x => x.FullName is not null);
     }
