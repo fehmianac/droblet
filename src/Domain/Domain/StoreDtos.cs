@@ -72,7 +72,9 @@ public record WatchItemDto(
     long CurrentPriceMinor,
     bool PriceDropped,
     long DropMinor,
-    DateTime AddedAt);
+    DateTime AddedAt,
+    bool Notify = true,
+    WatchOrigin Origin = WatchOrigin.User);
 
 public record CheckoutProductDto(string ProductId, string Url);
 

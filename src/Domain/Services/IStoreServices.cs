@@ -71,7 +71,8 @@ public interface ICartService
     Task<bool> RemoveLineAsync(string tenantId, string lineId, CancellationToken ct);
 
     Task<IReadOnlyList<WatchItemDto>> GetWatchListAsync(string tenantId, CancellationToken ct);
-    Task<(CartOutcome Outcome, WatchItemDto? Item)> WatchAsync(string tenantId, string productId, string? size, LookRefDto? look, CancellationToken ct);
+    /// <summary>New item: notify defaults to true. Existing item: only notify / size / look change when sent; the price reference is kept.</summary>
+    Task<(CartOutcome Outcome, WatchItemDto? Item)> WatchAsync(string tenantId, string productId, string? size, LookRefDto? look, bool? notify, CancellationToken ct);
     Task<bool> UnwatchAsync(string tenantId, string productId, CancellationToken ct);
 
     /// <summary>Favourite product ids, newest first. Ids of products that no longer resolve are left out.</summary>

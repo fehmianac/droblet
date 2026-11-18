@@ -313,6 +313,36 @@ public class CartAndAffiliateEndpointTests(StoreSocialApiFactory factory) : ICla
     }
 
     [Fact]
+    public async Task WatchList_Bell_DefaultsOn_RePutTogglesItAndKeepsThePriceReference()
+    {
+        var admin = await factory.AdminAsync();
+        var brand = await factory.SeedBrandAsync(admin);
+        var product = await factory.SeedProductAsync(admin, brand, 300_000);
+        var (user, auth) = await factory.RegisterAsync();
+        object Update(long price) => new { brandId = brand, name = StoreSocialApiFactory.Text("Gömlek"), category = "shirt", sizes = new[] { "M" }, priceMinor = price, priceBand = "highStreet" };
+
+        var added = await (await user.PutJsonAsync($"v1/tenant/watch-list/{product}", new { size = "M" })).JsonAsync();
+        await admin.PutJsonAsync($"v1/admin/product/{product}", Update(250_000));
+        var muted = await (await user.PutJsonAsync($"v1/tenant/watch-list/{product}", new { notify = false })).JsonAsync();
+        var unchanged = await (await user.PutJsonAsync($"v1/tenant/watch-list/{product}", new { })).JsonAsync();
+        var stored = await factory.Repository.GetAsync<WatchItemEntity>(WatchItemEntity.GetPk(auth.TenantId), WatchItemEntity.GetSk(product));
+
+        Assert.True(added.GetProperty("notify").GetBoolean());
+        Assert.Equal("user", added.GetProperty("origin").GetString());
+        Assert.False(muted.GetProperty("notify").GetBoolean());
+        Assert.Equal(300_000, muted.GetProperty("priceAtAddMinor").GetInt64());   // the reference is never reset by a re-PUT
+        Assert.True(muted.GetProperty("priceDropped").GetBoolean());
+        Assert.Equal("M", muted.GetProperty("size").GetString());
+        Assert.False(unchanged.GetProperty("notify").GetBoolean());               // an empty body changes nothing
+        Assert.False(stored!.NotifyEnabled);
+
+        // Rows written before the flag existed keep the bell on.
+        stored.Notify = null;
+        await factory.Repository.SaveAsync(stored);
+        Assert.True((await (await user.GetAsync("v1/tenant/watch-list")).JsonAsync())[0].GetProperty("notify").GetBoolean());
+    }
+
+    [Fact]
     public async Task Checkout_Postback_RevenueReport_PurchasePrompt_Funnel()
     {
         var admin = await factory.AdminAsync();

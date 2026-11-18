@@ -45,7 +45,7 @@ public class ProductCheckoutRequestValidator : AbstractValidator<ProductCheckout
     public ProductCheckoutRequestValidator() => RuleFor(x => x.Look).Must(LookRefRequest.IsValid).WithErrorCode("look_invalid");
 }
 
-public record WatchRequest(string? Size, LookRefRequest? Look);
+public record WatchRequest(string? Size, LookRefRequest? Look, bool? Notify = null);
 
 public class WatchRequestValidator : AbstractValidator<WatchRequest>
 {
