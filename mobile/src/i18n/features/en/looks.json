@@ -171,6 +171,10 @@
       "cold": "it will be cold",
       "noShoes": "no suitable shoes",
       "suggested": "suggested by the stylist"
-    }
+    },
+    "dayPieces_one": "{{count}} piece",
+    "dayPieces_other": "{{count}} pieces",
+    "dayTryOn": "See it on me",
+    "daySaveLook": "Save as a look"
   }
 }
