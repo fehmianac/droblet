@@ -440,7 +440,7 @@ function Page({
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  backdrop: { backgroundColor: 'rgba(14, 13, 12, 0.96)' },
+  backdrop: { backgroundColor: 'rgb(14, 13, 12)' },
   counter: { position: 'absolute', alignSelf: 'center', left: 0, right: 0, alignItems: 'center' },
   close: {
     position: 'absolute',
