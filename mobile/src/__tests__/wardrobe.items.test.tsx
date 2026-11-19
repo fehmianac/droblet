@@ -265,7 +265,8 @@ describe('13 Toplu ekle', () => {
     await waitFor(() => expect(screen.getByText('Add several pieces at once')).toBeTruthy(), WAIT);
     expect(screen.getByText('Choose photos')).toBeTruthy();
     expect(screen.getByText(/up to 30 photos/i)).toBeTruthy();
-    expect(screen.getByText('Split an outfit photo')).toBeTruthy();
+    // Every photo runs the multi-item detection: there is no separate outfit-split mode any more.
+    expect(screen.queryByText('Split an outfit photo')).toBeNull();
   });
 });
 

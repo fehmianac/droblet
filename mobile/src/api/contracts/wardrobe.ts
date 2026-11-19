@@ -86,10 +86,36 @@ export type CreateItemDraftsResponse = JobAccepted & { draftIds: string[]; skipp
 
 export type DraftField = 'name' | 'category' | 'color' | 'fabric' | 'seasons';
 
-/** GET v1/tenant/item-draft → `ItemDraft[]` */
+/** Normalised (0–1) box of a piece in its group photo: top-left corner + size. */
+export type DraftBox = { x: number; y: number; width: number; height: number };
+
+/**
+ * GET v1/tenant/item-draft → `ItemDraft[]`.
+ *
+ * Multi-item detection: a photo with two or more pieces becomes a **group** (`kind: 'group'`, the photo
+ * itself, with `itemCount` and `photoSize`) and each piece a draft with `kind: 'piece'`, the same
+ * `groupId`, its `box`, `index` and `confidence`. A piece is `detected` until the user selects it
+ * (its picture is the plain crop), then `processing` (background removal) → `ready` | `failed`.
+ */
 export type ItemDraft = {
   id: string;
-  status: 'processing' | 'ready' | 'failed';
+  status: 'processing' | 'ready' | 'failed' | 'detected';
+  /** `single` (one piece, or a manual entry) when absent. */
+  kind?: 'single' | 'group' | 'piece';
+  /** The group photo's draft id (for the group itself and for its pieces). */
+  groupId?: string | null;
+  box?: DraftBox | null;
+  /** 1-based number of a piece in its photo (the box outline shows it). */
+  index?: number | null;
+  /** 0–1: how sure the model is that the box holds one real piece. */
+  confidence?: number | null;
+  /** The user kept this piece in the chooser. */
+  selected?: boolean;
+  /** Group only: pieces found, and the photo's pixel size (boxes are drawn on it). */
+  itemCount?: number | null;
+  photoSize?: { width: number; height: number } | null;
+  /** Why a failed draft failed: `guardRejected` = no piece was found in the photo. */
+  failure?: string | null;
   /** The draft's job id on the API (empty for a manual draft); the batch id in fixtures. */
   requestId: string;
   /** Local preview until the processed image exists. */

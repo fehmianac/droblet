@@ -104,6 +104,7 @@ export default function RootLayout() {
           <Stack.Screen name="calendar" />
           <Stack.Screen name="item/[id]" />
           <Stack.Screen name="item/bulk" />
+          <Stack.Screen name="item/detect" />
           <Stack.Screen name="item/library" />
           <Stack.Screen name="item/form" />
           <Stack.Screen name="look/new" />

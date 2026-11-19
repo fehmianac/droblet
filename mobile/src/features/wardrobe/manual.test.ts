@@ -30,7 +30,7 @@ describe('manual piece without a photo (POST v1/tenant/item)', () => {
     expect(toCreateItemWire(row)).toEqual({
       name: 'Hardal hırka',
       category: 'top',
-      subcategory: 'Hırka',
+      subcategory: 'cardigan', // the sub-type name goes to the server as its id
       colorIds: ['other'],
       colorHex: '#C8A13A',
       fabric: null,
