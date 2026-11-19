@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
 import { ImageSlot } from '@/components/ui/ImageSlot';
+import { Zoomable, type ViewerImage } from '@/components/ui/viewer';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
@@ -153,6 +154,12 @@ function ProductBody({ product }: { product: ProductDetail }) {
   };
 
   const garment = { category: product.category, color: product.colors[0], imageUrl: product.imageUrl };
+  // 13a: the product photo and, once there is one, the AI image of it on the user page together.
+  const onMeUri = view === 'onMe' && job.isDone ? (job.result?.imageUrl ?? null) : null;
+  const viewerImages: ViewerImage[] = [
+    ...(product.imageUrl ? [{ uri: product.imageUrl, label: product.name }] : []),
+    ...(onMeUri ? [{ uri: onMeUri, label: t('productDetail.onMeA11y', { name: product.name }), ai: { tag: t('aiBadge.onYou') } }] : []),
+  ];
   let onMe: ReactNode = null;
   if (view === 'onMe') {
     if (needsPhoto) {
@@ -175,6 +182,7 @@ function ProductBody({ product }: { product: ProductDetail }) {
       // The marker only sits on a generated image. A finished job without one shows the piece itself
       // ("Parça kolajı"), never a bare figure under "SENİN ÜZERİNDE".
       onMe = (
+        <Zoomable images={viewerImages} index={viewerImages.length - 1} disabled={!uri} className="flex-1" testID="product-onme-zoom">
         <ImageSlot
           uri={uri}
           className="flex-1"
@@ -193,6 +201,7 @@ function ProductBody({ product }: { product: ProductDetail }) {
             </View>
           )}
         </ImageSlot>
+        </Zoomable>
       );
     } else {
       // The shared AI wait (canvas `AiYukleniyor`): the try-on stage here, the progress sentences under the image.
@@ -206,12 +215,14 @@ function ProductBody({ product }: { product: ProductDetail }) {
       <ScrollView contentContainerClassName="gap-[11px] pb-6" bounces={false}>
         <View className={HERO_CLASS}>
           <View className="flex-1 flex-row gap-0.5">
-            <ImageSlot
-              uri={product.imageUrl}
-              className="flex-1"
-              accessibilityLabel={product.name}
-              placeholder={{ kind: 'garment', category: garment.category, color: garment.color, glyphSize: 96 }}
-            />
+            <Zoomable images={viewerImages} index={0} disabled={!product.imageUrl} accessibilityLabel={product.name} className="flex-1" testID="product-image-zoom">
+              <ImageSlot
+                uri={product.imageUrl}
+                className="flex-1"
+                accessibilityLabel={product.name}
+                placeholder={{ kind: 'garment', category: garment.category, color: garment.color, glyphSize: 96 }}
+              />
+            </Zoomable>
             {onMe}
           </View>
           <View className="absolute left-gutter right-gutter flex-row justify-between" style={{ top: insets.top + 4 }}>

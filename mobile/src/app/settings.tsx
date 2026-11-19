@@ -16,6 +16,7 @@ import { ImageTag } from '@/components/ui/Bits';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { ImageSlot } from '@/components/ui/ImageSlot';
+import { Zoomable, type ViewerImage } from '@/components/ui/viewer';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -43,19 +44,24 @@ type ThumbProps = {
   tag: string;
   removeLabel?: string;
   onRemove?: () => void;
+  /** Every photo of "Fotoğraflarım": tapping one opens the viewer (13a) and pages through them. */
+  viewer?: ViewerImage[];
 };
 
 /** 52 × 66 thumbnail as on 29: the kind tag bottom-left, a 22 pt paper "remove" button top-right (44 pt target). */
-function PhotoThumb({ uri, kind, tag, removeLabel, onRemove }: ThumbProps) {
+function PhotoThumb({ uri, kind, tag, removeLabel, onRemove, viewer = [] }: ThumbProps) {
+  const at = uri ? viewer.findIndex((img) => img.uri === uri) : -1;
   return (
     <View className="h-[66px] w-[52px]">
       {uri || kind === 'body' ? (
+        <Zoomable images={viewer} index={at} disabled={at < 0} accessibilityLabel={tag} className="h-full w-full" testID={`settings-photo-${kind}`}>
         <ImageSlot
           uri={uri}
           className="h-full w-full rounded-thumb"
           accessibilityLabel={tag}
           placeholder={{ kind: 'figure', tone: 'stage', figureHeight: 44 }}
         />
+        </Zoomable>
       ) : (
         <View
           className="h-full w-full items-center justify-center overflow-hidden rounded-thumb bg-sand"
@@ -134,7 +140,12 @@ function PhotosSection({ onDeleteAll }: { onDeleteAll: () => void }) {
           </View>
         }
       >
-        {(data) => (
+        {(data) => {
+          const viewer: ViewerImage[] = [
+            ...data.body.filter((p) => p.url).map((p) => ({ uri: p.url ?? '', label: t('settings.bodyTag'), caption: t('settings.bodyTag') })),
+            ...(data.face?.url ? [{ uri: data.face.url, label: t('settings.faceTag'), caption: t('settings.faceTag') }] : []),
+          ];
+          return (
           <>
             <View className="flex-row items-center gap-2">
               <View className="flex-shrink flex-row flex-wrap gap-2">
@@ -146,6 +157,7 @@ function PhotosSection({ onDeleteAll }: { onDeleteAll: () => void }) {
                     tag={t('settings.bodyTag')}
                     removeLabel={t('settings.removeBody')}
                     onRemove={() => removePhoto('body', p.photoId)}
+                    viewer={viewer}
                   />
                 ))}
                 {data.face && !queued.some((q) => q.kind === 'face') ? (
@@ -155,6 +167,7 @@ function PhotosSection({ onDeleteAll }: { onDeleteAll: () => void }) {
                     tag={t('settings.faceTag')}
                     removeLabel={t('settings.removeFace')}
                     onRemove={() => data.face && removePhoto('face', data.face.photoId)}
+                    viewer={viewer}
                   />
                 ) : null}
                 {queued.map((q) => (
@@ -221,7 +234,8 @@ function PhotosSection({ onDeleteAll }: { onDeleteAll: () => void }) {
               ]}
             />
           </>
-        )}
+          );
+        }}
       </SectionState>
       <Pressable
         onPress={onDeleteAll}
