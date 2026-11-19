@@ -66,6 +66,7 @@
     "sortA11y": "Sıralama: {{sort}}",
     "showResults": "Sonuçları göster",
     "empty": "Bu filtrelerle eşleşen ürün yok.",
+    "emptyCatalog": "Yeni ürünler yolda. Yakında tekrar bak.",
     "emptyAction": "Filtreleri temizle",
     "loadMoreFailed": "Devamı yüklenemedi.",
     "completeTitle": "Hangi parçanı tamamlayalım?",

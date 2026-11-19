@@ -295,7 +295,7 @@ export default function ShopScreen() {
           >
             {() => (
               <StateMessage
-                message={t('shop.empty')}
+                message={t(filtered || completeFor ? 'shop.empty' : 'shop.emptyCatalog')}
                 actionLabel={filtered || completeFor ? t('shop.emptyAction') : undefined}
                 onAction={clearFilters}
               />

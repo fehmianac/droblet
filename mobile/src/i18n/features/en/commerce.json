@@ -66,6 +66,7 @@
     "sortA11y": "Sort: {{sort}}",
     "showResults": "Show results",
     "empty": "No products match these filters.",
+    "emptyCatalog": "New pieces are on their way. Check back soon.",
     "emptyAction": "Clear filters",
     "loadMoreFailed": "Couldn't load more.",
     "completeTitle": "Which piece shall we complete?",
