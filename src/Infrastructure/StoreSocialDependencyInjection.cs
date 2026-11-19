@@ -83,6 +83,7 @@ public static class StoreSocialDependencyInjection
         services.TryAddSingleton<ICartService, CartService>();
         services.TryAddSingleton<IAffiliateService, AffiliateService>();
         services.TryAddSingleton<ISocialService, SocialService>();
+        services.TryAddSingleton<IContentModeration, ContentModerationService>();
         services.TryAddSingleton<IContactMatchService, ContactMatchService>();
         services.TryAddSingleton<IInviteService, InviteService>();
         services.TryAddSingleton<ISettingsService, SettingsService>();
