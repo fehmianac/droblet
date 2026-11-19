@@ -1,7 +1,7 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Image } from 'expo-image';
 import { router, useIsFocused } from 'expo-router';
-import { CircleAlert, Copy, Image as ImageIcon, LayoutGrid, Sparkles, X, type LucideIcon } from 'lucide-react-native';
+import { CircleAlert, Copy, Image as ImageIcon, Images, LayoutGrid, Sparkles, X, type LucideIcon } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
@@ -285,6 +285,10 @@ export default function ItemAddScreen() {
             {t('itemAdd.title')}
           </Text>
         </View>
+        <View className="h-icon-btn w-icon-btn" />
+      </View>
+      {/* "Toplu" and, next to it, "Kombinlerini içe aktar" (canvas 12, chip row under the header). */}
+      <View className="flex-row justify-center gap-2 px-gutter pt-1">
         <Pressable
           onPress={() => router.push('/item/bulk')}
           accessibilityRole="button"
@@ -295,6 +299,18 @@ export default function ItemAddScreen() {
           <Icon icon={Copy} tone="cream" size={16} />
           <Text variant="chip" tone="cream" numberOfLines={1}>
             {t('itemAdd.bulk')}
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => router.push('/import')}
+          accessibilityRole="button"
+          accessibilityLabel={t('outfitImport.title')}
+          className="h-icon-btn shrink flex-row items-center gap-1.5 rounded-pill border border-cream/45 px-[15px] active:opacity-70"
+          testID="item-add-import"
+        >
+          <Icon icon={Images} tone="cream" size={16} />
+          <Text variant="chip" tone="cream" numberOfLines={1} className="shrink">
+            {t('outfitImport.title')}
           </Text>
         </Pressable>
       </View>

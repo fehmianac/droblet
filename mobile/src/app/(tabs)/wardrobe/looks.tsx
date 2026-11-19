@@ -14,6 +14,7 @@ import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { useLookWrites } from '@/features/looks/api';
 import { indexItems, LookCover, type ItemsById } from '@/features/looks/LookCover';
+import { LooksAddSheet } from '@/features/outfitImport/LooksAddSheet';
 import { filterLooks, LOOK_FILTERS, type LookFilter } from '@/features/looks/logic';
 import { useLooks } from '@/features/looks/queries';
 import { useItems } from '@/features/wardrobe/queries';
@@ -36,7 +37,7 @@ function LookTile({ look, itemsById, onToggleFavorite }: { look: Look; itemsById
         accessibilityLabel={rating ? t('looks.cardLabelRated', { occasion, name: look.name, rating }) : t('looks.cardLabel', { occasion, name: look.name })}
         className="gap-2 active:opacity-80"
       >
-        <LookCover seed={look.id} tryOnImageUrl={look.tryOnImageUrl} slots={look.slots} itemsById={itemsById} className="h-[210px] w-full rounded-image-lg">
+        <LookCover seed={look.id} tryOnImageUrl={look.tryOnImageUrl ?? look.coverImageUrl ?? null} slots={look.slots} itemsById={itemsById} className="h-[210px] w-full rounded-image-lg">
           <ImageTag label={toDisplayUpper(occasion, language)} className="absolute bottom-2 left-2" />
         </LookCover>
         <View className="flex-row items-center justify-between gap-2">
@@ -76,6 +77,8 @@ export default function WardrobeLooksScreen() {
   const [filter, setFilter] = useState<LookFilter>('all');
   const itemsById = indexItems(items.data);
   const createLook = () => router.push('/look/new');
+  // 14a: "+" offers "Look oluştur" and "Kombinlerini içe aktar".
+  const [addOpen, setAddOpen] = useState(false);
 
   return (
     <>
@@ -83,7 +86,19 @@ export default function WardrobeLooksScreen() {
         current="looks"
         eyebrow={t('looks.eyebrow')}
         title={looks.data ? t('looks.count', { count: looks.data.length }) : undefined}
-        actions={<IconButton icon={Plus} variant="filled" onPress={createLook} accessibilityLabel={t('looks.create')} testID="looks.create" />}
+        actions={<IconButton icon={Plus} variant="filled" onPress={() => setAddOpen(true)} accessibilityLabel={t('outfitImport.menu.a11y')} testID="looks.create" />}
+      />
+      <LooksAddSheet
+        visible={addOpen}
+        onClose={() => setAddOpen(false)}
+        onCreate={() => {
+          setAddOpen(false);
+          createLook();
+        }}
+        onImport={() => {
+          setAddOpen(false);
+          router.push('/import');
+        }}
       />
       <ScreenState
         query={looks}

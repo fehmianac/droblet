@@ -18,6 +18,8 @@ type SheetState =
 type Options = {
   onPicked: (photos: PreparedPhoto[]) => void;
   onError: () => void;
+  /** Long edge of the prepared JPEG (default 2048; outfit import 1600). */
+  maxEdge?: number;
 };
 
 /**
@@ -25,7 +27,7 @@ type Options = {
  * when denied ("Ayarlar'a git" + the other source). The system photo picker (PHPicker / Android
  * Photo Picker) needs no library permission; if the platform still reports a denial we explain it.
  */
-export function usePhotoPicker({ onPicked, onError }: Options): {
+export function usePhotoPicker({ onPicked, onError, maxEdge }: Options): {
   takePhoto: () => void;
   chooseFromLibrary: (limit: number) => void;
   sheet: ReactNode;
@@ -37,7 +39,7 @@ export function usePhotoPicker({ onPicked, onError }: Options): {
   const handleResult = async (result: ImagePicker.ImagePickerResult) => {
     if (result.canceled) return;
     try {
-      const prepared = await Promise.all(result.assets.map((a) => preparePhoto(a.uri, a.width, a.height)));
+      const prepared = await Promise.all(result.assets.map((a) => preparePhoto(a.uri, a.width, a.height, maxEdge)));
       onPicked(prepared);
     } catch {
       onError();

@@ -110,6 +110,8 @@ export default function RootLayout() {
           <Stack.Screen name="item/form" />
           <Stack.Screen name="look/new" />
           <Stack.Screen name="look/[id]" />
+          <Stack.Screen name="import/index" />
+          <Stack.Screen name="import/[id]" />
           <Stack.Screen name="trip/[id]" />
           <Stack.Screen name="trip/new" options={{ presentation: 'modal' }} />
           <Stack.Screen name="stylist/[jobId]" />

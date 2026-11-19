@@ -6,7 +6,7 @@
  * The server sends codes and ids only; every sentence is built in the app, per language.
  */
 
-export const NOTIFICATION_TYPES = ['morning_outfit', 'weekly_edit', 'friend_ratings', 'price_drop', 'follow_request', 'data_export_ready', 'content_removed'] as const;
+export const NOTIFICATION_TYPES = ['morning_outfit', 'weekly_edit', 'friend_ratings', 'price_drop', 'follow_request', 'data_export_ready', 'content_removed', 'outfit_import_ready'] as const;
 export type NotificationKind = (typeof NOTIFICATION_TYPES)[number];
 
 /** The ids the event carries (the same keys as the push `data`). */
@@ -24,6 +24,8 @@ export type NotificationData = {
   targetId?: string;
   /** `content_removed`: the report reason code (e.g. `inappropriate`). */
   reason?: string;
+  /** `outfit_import_ready`: the import whose photos are all processed (inbox only). */
+  sessionId?: string;
 };
 
 export const MODERATED_TARGET_KINDS = ['look', 'item', 'profile'] as const;

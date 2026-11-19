@@ -1,6 +1,7 @@
 import { router } from "expo-router";
 import {
   Download,
+  Images,
   Settings,
   ShieldAlert,
   Shirt,
@@ -62,6 +63,7 @@ const ICONS: Record<NotificationKind, LucideIcon> = {
   follow_request: UserPlus,
   data_export_ready: Download,
   content_removed: ShieldAlert,
+  outfit_import_ready: Images,
 };
 
 /** The two lines of a notification, built in the app's language from the codes and ids the server sent. */
@@ -101,6 +103,11 @@ function describe(
       return {
         title: t("notifCenter.dataExport.title"),
         body: t("notifCenter.dataExport.body"),
+      };
+    case "outfit_import_ready":
+      return {
+        title: t("outfitImport.notif.title"),
+        body: t("outfitImport.notif.body"),
       };
     case "content_removed":
       return {
