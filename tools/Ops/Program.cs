@@ -46,6 +46,7 @@ try
             OpsArguments.AiBench => await AiBenchCommand.RunAsync(services, arguments, output, cts.Token),
             OpsArguments.MigrateLibraryItemImages => await MigrateLibraryItemImagesCommand.RunAsync(services, arguments, output, cts.Token),
             OpsArguments.AccountSmoke => await new AccountSmokeCommand(services, arguments, output).RunAsync(cts.Token),
+            OpsArguments.OutfitImportSmoke => await new OutfitImportSmokeCommand(services, arguments, output).RunAsync(cts.Token),
             _ => 2,
         };
     }
