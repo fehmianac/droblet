@@ -52,6 +52,8 @@ type Props = {
   tone?: 'ink' | 'cream';
   /** The filled mark without the loop (a status that is not work in progress, e.g. "offline"). */
   still?: boolean;
+  /** `screen` size laid over other content (e.g. a photo being uploaded): only the mark, no cream panel and no flex-1. */
+  overlay?: boolean;
   testID?: string;
 };
 
@@ -60,7 +62,7 @@ type Props = {
  * Reduce motion: the finished mark, still. The `screen` size takes `flex-1` so the final layout height is
  * already reserved — nothing jumps when the content arrives.
  */
-export function DropLoader({ size = 'screen', caption, accessibilityLabel, tone = 'ink', still = false, testID }: Props) {
+export function DropLoader({ size = 'screen', caption, accessibilityLabel, tone = 'ink', still = false, overlay = false, testID }: Props) {
   const { t } = useTranslation();
   const colors = useThemeColors();
   const reduceMotion = useReduceMotion() || still;
@@ -147,7 +149,7 @@ export function DropLoader({ size = 'screen', caption, accessibilityLabel, tone 
     );
   }
   return (
-    <View {...a11y} testID={testID} className="flex-1 items-center justify-center gap-4 bg-cream px-gutter">
+    <View {...a11y} testID={testID} className={overlay ? 'items-center justify-center gap-4' : 'flex-1 items-center justify-center gap-4 bg-cream px-gutter'}>
       <Animated.View>{mark}</Animated.View>
       {caption ? (
         <Text variant="caption" tone="muted" numberOfLines={1} className="text-center">

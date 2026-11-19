@@ -185,7 +185,7 @@ export function StepPhoto({ kind, onDone, onLeave }: StepProps & { kind: PhotoKi
         <View className="h-96 items-center justify-center overflow-hidden rounded-[20px] bg-sand">
           {photo ? <Image source={{ uri: photo.localUri }} style={{ width: '100%', height: '100%', opacity: 0.45 }} contentFit="cover" accessible={false} /> : null}
           <View className="absolute">
-            <DropLoader size="screen" accessibilityLabel={t('req.photo.uploading')} />
+            <DropLoader size="screen" overlay accessibilityLabel={t('req.photo.uploading')} />
           </View>
         </View>
         <Text variant="bodyMedium">{t('req.photo.uploading')}</Text>

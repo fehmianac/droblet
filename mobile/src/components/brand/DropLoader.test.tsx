@@ -23,6 +23,13 @@ describe('DropLoader', () => {
     expect(screen.getByText('Gardırobun hazırlanıyor')).toBeTruthy();
   });
 
+  it('overlay draws only the mark over other content: no cream panel, no flex-1', async () => {
+    await render(<DropLoader size="screen" overlay testID="loader" />);
+    const className = screen.getByTestId('loader').props.className as string;
+    expect(className).not.toContain('bg-cream');
+    expect(className).not.toContain('flex-1');
+  });
+
   it('inline size has no caption', async () => {
     await render(<DropLoader size="inline" caption="ignored" testID="loader" />);
     expect(screen.queryByText('ignored')).toBeNull();
