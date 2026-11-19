@@ -159,7 +159,7 @@ internal sealed class AiCostCommand(IServiceProvider services, OpsArguments args
                 foreach (var variant in textVariants)
                 {
                     var provider = Provider(variant);
-                    var compact = variant.Compact(stylist.CompactPrompt);
+                    var compact = variant.Compact(Baseline.CompactStylistPrompt);
                     var cap = variant.Cap(stylist.MaxCandidates);
                     var candidates = StylistCandidateSelector.Select(wardrobe, new CandidateCriteria(new HashSet<Season> { Season.Autumn }, Occasion.Office, 12, false, cap, stylist.HotFromC));
                     if (ops.Contains("outfit") && TakeText(1))

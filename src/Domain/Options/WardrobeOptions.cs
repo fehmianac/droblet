@@ -41,12 +41,6 @@ public sealed class StylistOptions
     /// rule-based consistency pass merges them (WeekPlanning). 0 = the whole week in one call.
     /// </summary>
     public int WeekBatchDays { get; set; } = 3;
-
-    /// <summary>
-    /// Compact prompt (CandidateAliases): short candidate aliases and one descriptor string per piece, null fields left
-    /// out. Fewer input and output tokens for the same decision; off = the original prompt.
-    /// </summary>
-    public bool CompactPrompt { get; set; }
 }
 
 public sealed class PackingOptions

@@ -40,7 +40,8 @@ public sealed class StylistJobService(
     ICatalogService catalog,
     IOptionsMonitor<StylistOptions> stylistOptions,
     IOptionsMonitor<PackingOptions> packingOptions,
-    ILogger<StylistJobService> logger) : IStylistJobService
+    ILogger<StylistJobService> logger,
+    IOptionsMonitor<AiOptions> aiOptions) : IStylistJobService
 {
     private sealed record Outcome(string? Result, JobFailure? Failure = null)
     {
@@ -113,7 +114,7 @@ public sealed class StylistJobService(
         }
 
         // Per-user context first (stable between requests → a cacheable prefix), the request itself last.
-        var aliases = CandidateAliases.For(candidates, settings.CompactPrompt);
+        var aliases = CandidateAliases.For(candidates, aiOptions.CurrentValue.CompactStylistPrompt);
         var prompt = StylistPrompts.Outfit(aliases, candidates, language, await styleRead, await paletteRead, settings.SuggestionCount, input.OnlyMyWardrobe,
             await dislikedRead, input.Date, season, input.Occasion, Weather(forecast), input.FreeText, input.PinnedItemId);
 
@@ -200,7 +201,7 @@ public sealed class StylistJobService(
 
         // Static context first (candidates, style), the batch's days last: the prefix is the same for every batch and job.
         var style = await style0;
-        var aliases = CandidateAliases.For(candidates, settings.CompactPrompt);
+        var aliases = CandidateAliases.For(candidates, aiOptions.CurrentValue.CompactStylistPrompt);
         string Prompt(IReadOnlyList<string> batch) => StylistPrompts.Week(aliases, candidates, language, style, input.WeekStart,
             input.Days.Where(d => batch.Contains(d.Date)).Select(d => new StylistPrompts.WeekDay(d.Date, d.Occasion, Weather(forecast.GetValueOrDefault(d.Date)))));
 
@@ -330,7 +331,7 @@ public sealed class StylistJobService(
             && unlimited.ItemIds.Count > fallback.ItemIds.Count;
 
         var byDate = forecast.GroupBy(f => f.Date, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
-        var aliases = CandidateAliases.For(candidates, settings.CompactPrompt);
+        var aliases = CandidateAliases.For(candidates, aiOptions.CurrentValue.CompactStylistPrompt);
         var prompt = StylistPrompts.Pack(aliases, candidates, language,
             new
             {

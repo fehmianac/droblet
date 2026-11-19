@@ -11,7 +11,7 @@ public sealed record PromptWeather(int MinTempC, int MaxTempC, WeatherCondition 
 /// <summary>
 /// The user message of the three stylist calls (pure; the worker and ops ai-cost build the same prompt). Per-user
 /// context first (stable between requests → a cacheable prefix), the request itself last. With compact aliases
-/// (Stylist:CompactPrompt) the candidates are descriptor strings, ids are aliases and null fields are left out.
+/// (Ai:CompactStylistPrompt) the candidates are descriptor strings, ids are aliases and null fields are left out.
 /// </summary>
 public static class StylistPrompts
 {

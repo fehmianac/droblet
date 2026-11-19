@@ -806,14 +806,14 @@ public class StylistJobServiceTests
         Assert.Equal((12, false, "model"), (result.CabinLimit, result.CabinTrimmed, result.Source));
     }
 
-    // ── Compact prompt (Stylist:CompactPrompt) ───────────────────────────────────────────────────────────────────
+    // ── Compact prompt (Ai:CompactStylistPrompt) ───────────────────────────────────────────────────────────────────
 
     private static WorkerTestHost CompactHost(IStylistModel model) => new(s =>
     {
         s.AddSingleton<IStylistJobService, StylistJobService>();
         s.RemoveAll<IStylistModel>();
         s.AddSingleton(model);
-        s.Configure<Domain.Options.StylistOptions>(o => o.CompactPrompt = true);
+        s.Configure<Domain.Options.AiOptions>(o => o.CompactStylistPrompt = true);
     });
 
     [Fact]

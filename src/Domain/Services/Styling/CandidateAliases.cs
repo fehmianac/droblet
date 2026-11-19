@@ -5,7 +5,7 @@ using Domain.Enum;
 namespace Domain.Services.Styling;
 
 /// <summary>
-/// Compact stylist prompt (Stylist:CompactPrompt). A wardrobe id is a 26-character ULID — about 14 tokens, sent once per
+/// Compact stylist prompt (Ai:CompactStylistPrompt). A wardrobe id is a 26-character ULID — about 14 tokens, sent once per
 /// candidate and written back by the model once per slot (output tokens cost 5× input). Compact mode gives every
 /// candidate a short alias (i1, i2 …) and one descriptor string "i1|top|white,navy|cotton|spring,autumn" instead of a
 /// JSON object; the answer's ids are mapped back before the guard sees them, so the guard, results and accept endpoints

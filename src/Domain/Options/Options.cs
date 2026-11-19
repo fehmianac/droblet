@@ -297,6 +297,12 @@ public sealed class AiOptions
     public AiImageOptions Image { get; set; } = new();
 
     /// <summary>
+    /// Compact stylist prompt (CandidateAliases): short candidate aliases and one descriptor string per piece, null fields
+    /// left out — fewer input and output tokens for the same decision (outfit, week plan, suitcase). Off = the original prompt.
+    /// </summary>
+    public bool CompactStylistPrompt { get; set; }
+
+    /// <summary>
     /// Price list for cost accounting (Ai:Pricing:*, SSM worker/Ai/Pricing). Never changes a request: it only turns the
     /// usage the API reports into an estimated cost per call (job aiCost, log line, EMF CostMicroUsd). Empty = no estimate.
     /// </summary>

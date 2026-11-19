@@ -58,7 +58,7 @@ public interface IPhotoInspector
 }
 
 /// <param name="Language">Language of every generated text (tr | en …) — always passed explicitly, never guessed by the model.</param>
-/// <param name="CompactCandidates">The candidates are descriptor strings with short aliases (CandidateAliases, Stylist:CompactPrompt).</param>
+/// <param name="CompactCandidates">The candidates are descriptor strings with short aliases (CandidateAliases, Ai:CompactStylistPrompt).</param>
 public sealed record StylistPrompt(JobKind Kind, string InputJson, string Language = "tr", bool CompactCandidates = false);
 
 public interface IStylistModel
