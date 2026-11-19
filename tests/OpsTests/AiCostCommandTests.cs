@@ -71,6 +71,22 @@ public class AiCostCommandTests
         CostVariant.ParseAll("c:cap=30,compact=1,weekbatch=0")[0].Apply(new AiOptions());   // stylist keys leave the AI options alone
     }
 
+    [Fact]
+    public void ImageVariant_SwitchesTheImageModel_AndTheExtraTryOnsSetTryOnQuality()
+    {
+        const string raw = "mini:imagemodel=gpt-image-1-mini,quality=low,uses=tryonface|tryon4";
+        Assert.Null(CostVariant.ParseError(raw));
+        var variant = CostVariant.ParseAll(raw)[0];
+        var options = new AiOptions { ImageModel = "gpt-image-2.5-sunburst" };
+        variant.Apply(options);
+        Assert.Equal("gpt-image-1-mini", options.ImageModel);
+        Assert.Equal("low", options.ImageFor(ImageUse.TryOn).Quality);
+        Assert.Null(options.ImageFor(ImageUse.Cleanup).Quality);
+        Assert.True(variant.Uses("tryonface") && variant.Uses("tryon4"));
+        Assert.False(variant.Uses("cleanup") || variant.Uses("tryon"));
+        Assert.True(CostVariant.Base.Uses("cleanup") && CostVariant.Base.Uses("tryon") && !CostVariant.Base.Uses("tryonface"));
+    }
+
     [Theory]
     [InlineData("bad name:effort=low")]
     [InlineData("x:unknown=1")]

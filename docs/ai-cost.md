@@ -219,3 +219,7 @@ The remaining cost is dominated by:
 ```
 
   Owner-approved for **dev** (prod stays on astra), also add: `"FastTextModel":"gpt-6.1-terra","FastTextOperations":"item_detection,photo_check,item_match,palette_season"`.
+
+## 9. Cheaper image models
+
+OpenAI and other providers for cleanup and try-on, measured side by side: [ai-cost/image-models.md](ai-cost/image-models.md). Verdict: stay on OpenAI; `gpt-image-1-mini` loses the face in try-on and the sand background in cleanup.
