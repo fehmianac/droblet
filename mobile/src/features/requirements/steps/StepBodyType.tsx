@@ -1,9 +1,10 @@
 import { Check, CircleHelp } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
+import { KeyboardAvoider } from '@/components/ui/KeyboardAvoider';
 import { BODY_TYPES, SIZES, type BodyType, type Size } from '@/api/contracts';
 import { useBodyProfile, useSaveBodyProfile } from '@/api/profile';
 import { Button } from '@/components/ui/Button';
@@ -79,7 +80,7 @@ export function StepBodyType({ onDone }: StepProps) {
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1" testID="requirements.step.bodyType">
+    <KeyboardAvoider testID="requirements.step.bodyType">
       {/* Taps outside a field close the keyboard ("handled"); dragging the list closes it too. */}
       <ScrollView contentContainerClassName="gap-4 px-6 pb-6 pt-5" keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
         <View className="gap-2">
@@ -166,6 +167,6 @@ export function StepBodyType({ onDone }: StepProps) {
       <StepBar>
         <Button label={t('req.bodyType.save')} onPress={submit} disabled={type === null} testID="requirements.bodyType.save" />
       </StepBar>
-    </KeyboardAvoidingView>
+    </KeyboardAvoider>
   );
 }

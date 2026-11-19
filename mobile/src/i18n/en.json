@@ -414,5 +414,23 @@
   "profile": {
     "logout": "Sign out",
     "components": "Component showcase"
+  },
+  "photoSource": {
+    "library": "Choose from library",
+    "camera": "Take a photo",
+    "selfie": "Take a selfie",
+    "eyebrow": "MY PHOTOS",
+    "bodyTitle": "Full-length photo",
+    "bodyCaption": "Plain background, full length. The most realistic try-on.",
+    "bodyMeta": "{{used}} / {{max}}",
+    "bodyFull": "You have three full-length photos; remove one to add another.",
+    "faceTitle": "Face photo",
+    "faceCaption": "For your colour palette and a quick try-on. Replaces the current one.",
+    "footnote": "We ask for your explicit consent before the first full-length and face photo. Your photos are visible only to you.",
+    "onbBodyEyebrow": "FULL-LENGTH PHOTO · {{used}} / {{max}}",
+    "onbBodyCaption_one": "Plain background, full length. You can choose {{count}} photo from your library.",
+    "onbBodyCaption_other": "Plain background, full length. You can choose up to {{count}} photos from your library.",
+    "onbFaceEyebrow": "FACE PHOTO",
+    "onbFaceCaption": "In daylight, facing the camera. Unlocks your colour palette and a quick try-on."
   }
 }

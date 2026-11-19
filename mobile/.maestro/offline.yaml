@@ -1,0 +1,89 @@
+# Offline walk (needs a build whose API and NetInfo reachability go through a local proxy the operator stops and
+# starts — see the comment in PHASE). Run three times with PHASE=online | offline | back, stopping the proxy between
+# "online" and "offline" and starting it again before "back":
+#   maestro test -e PHASE=online  -e LANG=tr -e LOCALE=tr_TR .maestro/offline.yaml
+#   (stop proxy) maestro test -e PHASE=offline ...   (start proxy) maestro test -e PHASE=back ...
+# online: warms the cache (Bugün, Gardırop, Ayarlar). offline: relaunch with no connection — cached screens with the
+# offline pill and band, a never-opened screen's offline state, two queued settings writes. back: the pill syncs and
+# the writes reach the server (the proxy log shows their clientMutationId).
+appId: com.alatech.droplet
+env:
+  PHASE: ${PHASE}
+  LANG: ${LANG}
+  LOCALE: ${LOCALE}
+---
+- runFlow:
+    when:
+      true: ${PHASE == 'online'}
+    commands:
+      - runFlow: { file: relaunch.yaml, env: { URL: "droplet://settings" } }
+      - waitForAnimationToEnd
+      - tapOn:
+          id: "tab.wardrobe"
+          optional: true
+      - runFlow: { file: open.yaml, env: { URL: "droplet://wardrobe" } }
+      - waitForAnimationToEnd
+      - takeScreenshot: o0-gardirop-online
+
+# drop: the connection goes away mid-session (run right after stopping the proxy, the app still on Gardırop).
+- runFlow:
+    when:
+      true: ${PHASE == 'drop'}
+    commands:
+      - extendedWaitUntil:
+          visible:
+            text: ".*(Çevrimdışı|Offline|offline).*"
+          timeout: 20000
+      - takeScreenshot: o0b-gardirop-baglanti-gitti
+
+- runFlow:
+    when:
+      true: ${PHASE == 'offline'}
+    commands:
+      - launchApp:
+          stopApp: true
+          arguments:
+            AppleLanguages: "(${LANG})"
+            AppleLocale: ${LOCALE}
+      - extendedWaitUntil:
+          visible:
+            id: "tab.today"
+          timeout: 30000
+      - extendedWaitUntil:
+          notVisible:
+            id: "animated-splash"
+          timeout: 10000
+      - waitForAnimationToEnd
+      - takeScreenshot: o1-bugun-cevrimdisi
+      - tapOn:
+          id: "tab.wardrobe"
+      - waitForAnimationToEnd
+      - takeScreenshot: o2-gardirop-cevrimdisi
+      - runFlow: { file: open.yaml, env: { URL: "droplet://friends/feed" } }
+      - waitForAnimationToEnd
+      - takeScreenshot: o3-hic-acilmamis-cevrimdisi
+      - runFlow: { file: open.yaml, env: { URL: "droplet://settings" } }
+      - waitForAnimationToEnd
+      - takeScreenshot: o4-ayarlar-cevrimdisi
+      - tapOn: "Herkese açık|Public"
+      - scrollUntilVisible:
+          element:
+            text: "Takip istekleri|Follow requests"
+          direction: DOWN
+      - tapOn: "Takip istekleri|Follow requests"
+      - waitForAnimationToEnd
+      - takeScreenshot: o5-ayarlar-kuyrukta
+      - runFlow: { file: open.yaml, env: { URL: "droplet://edit-profile" } }
+      - waitForAnimationToEnd
+      - takeScreenshot: o6-profil-duzenle-cevrimdisi
+
+- runFlow:
+    when:
+      true: ${PHASE == 'back'}
+    commands:
+      - takeScreenshot: o7-baglanti-dondu-hemen
+      - waitForAnimationToEnd
+      - takeScreenshot: o8-baglanti-dondu
+      - runFlow: { file: relaunch.yaml, env: { URL: "droplet://settings" } }
+      - waitForAnimationToEnd
+      - takeScreenshot: o9-ayarlar-senkron

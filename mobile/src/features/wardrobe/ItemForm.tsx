@@ -1,8 +1,9 @@
 import { ChevronDown, CircleAlert, RotateCcw } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 
+import { KeyboardAvoider } from '@/components/ui/KeyboardAvoider';
 import { ITEM_CATEGORIES, ITEM_COLORS, type DraftField, type ItemFields } from '@/api/contracts/wardrobe';
 import { Badge, ImageTag } from '@/components/ui/Bits';
 import { BottomActionBar } from '@/components/ui/BottomActionBar';
@@ -135,7 +136,7 @@ export function ItemForm({
   };
 
   return (
-    <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoider>
       <ScrollView contentContainerClassName="gap-3 px-gutter pb-8 pt-1" keyboardShouldPersistTaps="handled">
         <View className="flex-row gap-3.5">
           <View>
@@ -318,6 +319,6 @@ export function ItemForm({
           })}
         </View>
       </BottomSheet>
-    </KeyboardAvoidingView>
+    </KeyboardAvoider>
   );
 }

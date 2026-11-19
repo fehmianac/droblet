@@ -1,8 +1,9 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View, type TextInputInstance } from 'react-native';
+import { Pressable, ScrollView, View, type TextInputInstance } from 'react-native';
 
+import { KeyboardAvoider } from '@/components/ui/KeyboardAvoider';
 import { useAppleSignIn, useGoogleSignIn, useLogin, useRegister } from '@/api/auth';
 import { extractApiError, fieldErrors, type KnownErrorCode } from '@/api/errors';
 import { useSession } from '@/auth/session';
@@ -110,7 +111,7 @@ export default function AuthStartScreen() {
 
   return (
     <Screen bottom>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
+      <KeyboardAvoider>
         <ScreenHeader leading="back" />
         <ScrollView contentContainerClassName="gap-5 px-6 pb-8 pt-2" keyboardShouldPersistTaps="handled">
           <View className="gap-2.5">
@@ -243,7 +244,7 @@ export default function AuthStartScreen() {
 
           <Button testID="auth.submit" label={t(mode === 'register' ? 'auth.submit' : 'auth.submitLogin')} onPress={submit} loading={register.isPending || login.isPending} disabled={busy} />
         </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAvoider>
     </Screen>
   );
 }

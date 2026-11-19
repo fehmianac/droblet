@@ -2,8 +2,9 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { MailCheck } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
+import { KeyboardAvoider } from '@/components/ui/KeyboardAvoider';
 import { useSession } from '@/auth/session';
 import { Button } from '@/components/ui/Button';
 import { CodeInput } from '@/components/ui/CodeInput';
@@ -142,7 +143,7 @@ export default function VerifyEmailScreen() {
   const email = profile.data?.email ?? null;
   return (
     <Screen bottom>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
+      <KeyboardAvoider>
         <ScreenHeader leading="close" onLeadingPress={close} />
         <ScrollView className="flex-1" contentContainerClassName="gap-6 px-6 pb-6 pt-2" keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
           <View className="gap-2.5">
@@ -196,7 +197,7 @@ export default function VerifyEmailScreen() {
             {t('verifyEmail.note')}
           </Text>
         </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAvoider>
     </Screen>
   );
 }

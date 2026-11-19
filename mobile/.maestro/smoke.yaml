@@ -43,9 +43,10 @@ env:
 - tapOn:
     id: "auth.password"
 - inputText: "Sm0keTest2026"
-# Close the keyboard by tapping the screen title (hideKeyboard is unreliable on iOS secure fields).
+# Close the keyboard by tapping a plain label (hideKeyboard is unreliable on iOS secure fields). A fixed
+# point is not safe: on a 4.7" screen (iPhone SE) the focused form has scrolled and 12 % lands on Google.
 - tapOn:
-    point: "50%,12%"
+    text: "VEYA E-POSTA|OR EMAIL"
 # 18+ confirmation is required on e-mail sign-up.
 - scrollUntilVisible:
     element:
@@ -115,6 +116,21 @@ env:
       id: "body.skip"
     timeout: 20000
 - takeScreenshot: 04-beden-foto
+# 04c: a body slot offers both sources (camera and library); closed again without picking.
+- tapOn:
+    text: "Boy fotoğrafı ekle|Add full-length photo"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: "photoSource.body.library"
+    timeout: 10000
+- assertVisible:
+    id: "photoSource.body.camera"
+- waitForAnimationToEnd
+- takeScreenshot: 04c-foto-kaynagi
+- tapOn:
+    id: "photoSource.close"
+- waitForAnimationToEnd
 - tapOn:
     id: "body.skip"
 

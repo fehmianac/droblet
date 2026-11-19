@@ -13,7 +13,6 @@ import { ensureConsents } from '@/features/consent/store';
 import { useEnqueuePhotoUpload } from '@/api/photos';
 import { SectionState } from '@/components/blocks/SectionState';
 import { ImageTag } from '@/components/ui/Bits';
-import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { ImageSlot } from '@/components/ui/ImageSlot';
@@ -28,6 +27,7 @@ import { SelfPremiumCard } from '@/features/account/SelfPremiumCard';
 import { accountKeys, useMyPhotos, useMyProfile, usePalette } from '@/features/account/queries';
 import { ChoiceRow, ProfileMenuRow, RowCard } from '@/features/account/rows';
 import type { PreparedPhoto } from '@/features/photos/preparePhoto';
+import { PhotoSourceSheet } from '@/features/photos/PhotoSourceSheet';
 import { usePhotoPicker } from '@/features/photos/usePhotoPicker';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { LANGUAGES, SUPPORTED_LANGUAGES, type AppLanguage } from '@/i18n';
@@ -115,6 +115,11 @@ function PhotosSection({ onDeleteAll }: { onDeleteAll: () => void }) {
   const facePicker = usePhotoPicker({ onPicked: picked('face'), onError: () => setFailed(true) });
 
   const bodyCount = (data: MyPhotos) => data.body.length + queued.filter((q) => q.kind === 'body').length;
+  /** Closes the sheet, asks the purpose's explicit consents (their own sheet) and only then opens the source. */
+  const addPhoto = (purposes: Parameters<typeof ensureConsents>[0], origin: Parameters<typeof ensureConsents>[1], open: () => void) => {
+    setAddOpen(false);
+    void ensureConsents(purposes, origin).then((ok) => ok && open());
+  };
 
   return (
     <View className="gap-2.5 rounded-card border border-line bg-paper px-3.5 py-3">
@@ -183,29 +188,38 @@ function PhotosSection({ onDeleteAll }: { onDeleteAll: () => void }) {
                 {t('settings.photoFailed')}
               </Text>
             ) : null}
-            <BottomSheet visible={addOpen} onClose={() => setAddOpen(false)} title={t('settings.addTitle')}>
-              <View className="gap-2">
-                <Button
-                  label={t('settings.addBody')}
-                  disabled={bodyCount(data) >= MAX_BODY_PHOTOS}
-                  onPress={() => {
-                    setAddOpen(false);
-                    // Explicit consents 1 + 6 before the first body photo (their own sheet).
-                    void ensureConsents(CONSENTS_FOR.bodyPhoto, 'body_photo').then((ok) => ok && bodyPicker.takePhoto());
-                  }}
-                />
-                <Button
-                  variant="secondary"
-                  size="lg"
-                  label={t(data.face ? 'settings.replaceFace' : 'settings.addFace')}
-                  onPress={() => {
-                    setAddOpen(false);
-                    // Explicit consents 2 + 6 before the face photo (their own sheet).
-                    void ensureConsents(CONSENTS_FOR.facePhoto, 'face_photo').then((ok) => ok && facePicker.chooseFromLibrary(1));
-                  }}
-                />
-              </View>
-            </BottomSheet>
+            {/* 29h Fotoğraf ekle: camera and library for each kind, as the requirement photo step offers them. */}
+            <PhotoSourceSheet
+              visible={addOpen}
+              onClose={() => setAddOpen(false)}
+              eyebrow={t('photoSource.eyebrow')}
+              title={t('settings.addTitle')}
+              footnote={t('photoSource.footnote')}
+              groups={[
+                {
+                  id: 'body',
+                  title: t('photoSource.bodyTitle'),
+                  meta: t('photoSource.bodyMeta', { used: Math.min(bodyCount(data), MAX_BODY_PHOTOS), max: MAX_BODY_PHOTOS }),
+                  caption: t('photoSource.bodyCaption'),
+                  cameraLabel: t('photoSource.camera'),
+                  primary: true,
+                  disabled: bodyCount(data) >= MAX_BODY_PHOTOS,
+                  disabledNote: t('photoSource.bodyFull'),
+                  // Explicit consents 1 + 6 before the first body photo (their own sheet).
+                  onCamera: () => addPhoto(CONSENTS_FOR.bodyPhoto, 'body_photo', bodyPicker.takePhoto),
+                  onLibrary: () => addPhoto(CONSENTS_FOR.bodyPhoto, 'body_photo', () => bodyPicker.chooseFromLibrary(1)),
+                },
+                {
+                  id: 'face',
+                  title: t(data.face ? 'settings.replaceFace' : 'photoSource.faceTitle'),
+                  caption: t('photoSource.faceCaption'),
+                  cameraLabel: t('photoSource.selfie'),
+                  // Explicit consents 2 + 6 before the face photo (their own sheet).
+                  onCamera: () => addPhoto(CONSENTS_FOR.facePhoto, 'face_photo', facePicker.takePhoto),
+                  onLibrary: () => addPhoto(CONSENTS_FOR.facePhoto, 'face_photo', () => facePicker.chooseFromLibrary(1)),
+                },
+              ]}
+            />
           </>
         )}
       </SectionState>

@@ -62,8 +62,8 @@ export function purchaseMessage(state: PurchaseState): PurchaseMessage {
   }
 }
 
-/** The status line; announced to screen readers when it changes. */
-export function PurchaseStatus({ state }: { state: PurchaseState }) {
+/** The status line; announced to screen readers when it changes. `className` adds spacing where it sits (in a row card). */
+export function PurchaseStatus({ state, className }: { state: PurchaseState; className?: string }) {
   const { t } = useTranslation();
   const message = purchaseMessage(state);
   if (!message) return null;
@@ -71,7 +71,7 @@ export function PurchaseStatus({ state }: { state: PurchaseState }) {
     <Text
       variant="caption"
       tone={message.tone}
-      className="text-center"
+      className={`text-center ${className ?? ''}`}
       accessibilityLiveRegion="polite"
       accessibilityRole={message.tone === 'danger' ? 'alert' : 'text'}
       testID="purchase.status"

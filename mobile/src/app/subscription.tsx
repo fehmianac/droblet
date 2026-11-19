@@ -163,7 +163,8 @@ export default function SubscriptionScreen() {
               <RowCard>
                 <ProfileMenuRow first icon={ExternalLink} label={t('subscription.manageInStore')} onPress={manageInStore} testID="subscription-manage" />
                 <ProfileMenuRow icon={RotateCcw} label={t('subscription.restore')} onPress={restore} testID="subscription-restore" />
-                <PurchaseStatus state={flow} />
+                {/* Inside the row card: the line keeps the card's bottom padding instead of touching its border. */}
+                <PurchaseStatus state={flow} className="pb-3" />
               </RowCard>
               <Text variant="caption" tone="muted" className="leading-[18px]">
                 {t('subscription.storeNote')}

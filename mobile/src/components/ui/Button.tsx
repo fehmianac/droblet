@@ -80,9 +80,11 @@ export function Button({
       } ${className ?? ''}`}
     >
       {/* The label stays laid out (invisible while loading) so the width never changes. */}
-      <View className={`flex-row items-center gap-2 ${loading ? 'opacity-0' : ''}`}>
+      {/* A label that does not fit (two bar buttons side by side on a 4.7" screen) shrinks a little instead of
+          ending in "…" — "Lookbook'a kaydet" on 23 Kombin oluşturucu; the board draws it at 14. */}
+      <View className={`shrink flex-row items-center gap-2 ${loading ? 'opacity-0' : ''}`}>
         {icon && iconPosition === 'leading' ? <Icon icon={icon} tone={contentTone} size={18} /> : null}
-        <Text variant="button" tone={contentTone} numberOfLines={1}>
+        <Text variant="button" tone={contentTone} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} className="shrink">
           {label}
         </Text>
         {icon && iconPosition === 'trailing' ? <Icon icon={icon} tone={contentTone} size={16} /> : null}

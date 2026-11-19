@@ -132,7 +132,7 @@ describe('Açık rıza — just in time', () => {
     await open('/settings');
     await waitFor(() => expect(screen.getByLabelText('Add photo')).toBeTruthy(), WAIT);
     await fireEvent.press(screen.getByLabelText('Add photo'));
-    await fireEvent.press(screen.getByText('Take a full-length photo'));
+    await fireEvent.press(screen.getByTestId('photoSource.body.camera'));
     await waitFor(() => expect(screen.getByTestId('consent.block.bodyPhotoAi')).toBeTruthy(), WAIT);
     expect(screen.getByTestId('consent.block.crossBorderTransfer')).toBeTruthy();
   });

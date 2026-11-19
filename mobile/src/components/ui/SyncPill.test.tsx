@@ -93,4 +93,18 @@ describe('sync pill', () => {
     expect(screen.getByText('Offline · changes saved on device')).toBeTruthy();
     expect(screen.getByTestId('sync-pill-layer').props.style).toMatchObject({ position: 'absolute', top: 54 + 54 });
   });
+
+  it('a failed write reads as the board: danger line, "·", then the "Try again" link with a 44-pt target', async () => {
+    const { hook, wrapper } = await setup();
+    await act(async () => {
+      hook.result.current.write.mutate(Promise.reject(new ApiError('network', null, null)));
+      await flush();
+    });
+    const screen = await render(<SyncPill />, { wrapper });
+    await act(async () => jest.advanceTimersByTime(250));
+    const label = screen.getByTestId('sync-pill-label');
+    expect(label.props.className).toContain('text-danger');
+    expect(screen.getByText('·')).toBeTruthy();
+    expect(screen.getByTestId('sync-pill-retry').props.className).toContain('h-11');
+  });
 });

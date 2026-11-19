@@ -3,9 +3,10 @@ import { router } from 'expo-router';
 import { CameraOff, CircleAlert, Lock, Plus, X } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AppState, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, View } from 'react-native';
+import { AppState, Linking, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { KeyboardAvoider } from '@/components/ui/KeyboardAvoider';
 import { track } from '@/analytics/track';
 import { SIZES, type Size } from '@/api/contracts';
 import { CONSENTS_FOR } from '@/api/contracts/consents';
@@ -24,6 +25,7 @@ import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { TextField } from '@/components/ui/TextField';
 import { deleteLocalPhoto, type PreparedPhoto } from '@/features/photos/preparePhoto';
+import { PhotoSourceSheet } from '@/features/photos/PhotoSourceSheet';
 import { usePhotoPicker } from '@/features/photos/usePhotoPicker';
 
 const MAX_BODY_PHOTOS = 3;
@@ -87,6 +89,8 @@ export default function BodyScreen() {
   const [errors, setErrors] = useState<{ height?: string; weight?: string; size?: string; photo?: string }>({});
   const [prefilled, setPrefilled] = useState(false);
   const [cameraBlocked, setCameraBlocked] = useState(false);
+  /** 04c Fotoğraf kaynağı: which slot's source sheet is open. */
+  const [source, setSource] = useState<'none' | 'body' | 'face'>('none');
 
   // Prefill once from the server profile (render-time state adjustment, no effect).
   if (existing.data && !prefilled) {
@@ -133,16 +137,22 @@ export default function BodyScreen() {
 
   const chooseBodyFromLibrary = () => bodyPicker.chooseFromLibrary(MAX_BODY_PHOTOS - bodyPhotos.length);
 
-  const addBodyPhoto = async () => {
-    // Explicit consents 1 + 6 before the first body photo (their own sheet); "Şimdi değil" leaves the slot empty.
-    if (!(await ensureConsents(CONSENTS_FOR.bodyPhoto, 'onboarding'))) return;
+  /**
+   * A slot opens 04c with both sources (camera hidden while the camera is blocked — the card below says why); the
+   * explicit consents (1 + 6 body, 2 + 6 face) are asked after the choice, before the picker. "Şimdi değil" leaves
+   * the slot empty.
+   */
+  const openSource = (kind: 'body' | 'face') => {
     void isCameraBlocked().then((blocked) => {
       setCameraBlocked(blocked);
-      // Blocked: the inline card explains why; the slot still works through the library.
-      if (blocked) chooseBodyFromLibrary();
-      else bodyPicker.takePhoto();
+      setSource(kind);
     });
   };
+  const pick = (kind: 'body' | 'face', open: () => void) => {
+    setSource('none');
+    void ensureConsents(kind === 'body' ? CONSENTS_FOR.bodyPhoto : CONSENTS_FOR.facePhoto, 'onboarding').then((ok) => ok && open());
+  };
+  const bodyRoom = MAX_BODY_PHOTOS - bodyPhotos.length;
 
   const removeBodyPhoto = (photo: PreparedPhoto) => {
     deleteLocalPhoto(photo.localUri);
@@ -183,7 +193,7 @@ export default function BodyScreen() {
 
   return (
     <Screen>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
+      <KeyboardAvoider>
         <StepHeader step={3} total={4} onSkip={skip} skipTestID="body.skip" />
         <ScrollView className="flex-1" contentContainerClassName="gap-4 px-6 pb-6 pt-[18px]" keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
           <View className="gap-2">
@@ -294,7 +304,7 @@ export default function BodyScreen() {
                 ) : (
                   <Pressable
                     key={`empty${slot}`}
-                    onPress={() => void addBodyPhoto()}
+                    onPress={() => openSource('body')}
                     accessibilityRole="button"
                     accessibilityLabel={t('body.addBodyPhoto')}
                     className="h-[104px] flex-1 items-center justify-center rounded-image border-[1.5px] border-dashed border-muted/60 active:opacity-70"
@@ -315,9 +325,7 @@ export default function BodyScreen() {
                 />
               ) : (
                 <Pressable
-                  onPress={() =>
-                    void ensureConsents(CONSENTS_FOR.facePhoto, 'onboarding').then((ok) => ok && facePicker.chooseFromLibrary(1))
-                  }
+                  onPress={() => openSource('face')}
                   accessibilityRole="button"
                   accessibilityLabel={t('body.addFacePhoto')}
                   accessibilityHint={t('body.facePhotoHint')}
@@ -362,7 +370,7 @@ export default function BodyScreen() {
         <View className="px-6 pt-2" style={{ paddingBottom: Math.max(insets.bottom, 16) + 8 }}>
           <Button testID="body.continue" label={t('common.continue')} onPress={submit} />
         </View>
-      </KeyboardAvoidingView>
+      </KeyboardAvoider>
 
       <BottomSheet visible={sizeSheet} onClose={() => setSizeSheet(false)} title={t('body.sizeSheetTitle')}>
         <ChipWrap>
@@ -382,6 +390,31 @@ export default function BodyScreen() {
         </ChipWrap>
       </BottomSheet>
 
+      <PhotoSourceSheet
+        visible={source !== 'none'}
+        onClose={() => setSource('none')}
+        eyebrow={source === 'face' ? t('photoSource.onbFaceEyebrow') : t('photoSource.onbBodyEyebrow', { used: bodyPhotos.length, max: MAX_BODY_PHOTOS })}
+        title={t(source === 'face' ? 'body.addFacePhoto' : 'body.addBodyPhoto')}
+        groups={[
+          source === 'face'
+            ? {
+                id: 'face',
+                caption: t('photoSource.onbFaceCaption'),
+                cameraLabel: t('photoSource.selfie'),
+                primary: true,
+                onCamera: cameraBlocked ? undefined : () => pick('face', facePicker.takePhoto),
+                onLibrary: () => pick('face', () => facePicker.chooseFromLibrary(1)),
+              }
+            : {
+                id: 'body',
+                caption: t('photoSource.onbBodyCaption', { count: Math.max(bodyRoom, 1) }),
+                cameraLabel: t('photoSource.camera'),
+                primary: true,
+                onCamera: cameraBlocked ? undefined : () => pick('body', bodyPicker.takePhoto),
+                onLibrary: () => pick('body', () => bodyPicker.chooseFromLibrary(Math.max(bodyRoom, 1))),
+              },
+        ]}
+      />
       {bodyPicker.sheet}
       {facePicker.sheet}
     </Screen>

@@ -130,6 +130,12 @@ appId: com.alatech.droplet
     timeout: 10000
 - tapOn:
     id: "requirements.bodyType.pear"
+# On a 4.7" screen (iPhone SE) the height field starts under the fixed save button: scroll it up first.
+- scrollUntilVisible:
+    element:
+      id: "requirements.bodyType.height"
+    direction: DOWN
+    centerElement: true
 - tapOn:
     id: "requirements.bodyType.height"
 - eraseText: 4
@@ -137,6 +143,11 @@ appId: com.alatech.droplet
 # The number pad has no Return key: the accessory bar's "Bitti" closes it (it would cover the save button).
 - tapOn:
     id: "keyboard.done"
+- scrollUntilVisible:
+    element:
+      id: "requirements.bodyType.size.M"
+    direction: DOWN
+    centerElement: true
 - tapOn:
     id: "requirements.bodyType.size.M"
 - takeScreenshot: 11e-vucut-tipi

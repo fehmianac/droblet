@@ -41,7 +41,7 @@ function leave() {
  */
 export default function LookNewScreen() {
   const { t } = useTranslation();
-  const params = useLocalSearchParams<{ id?: string; itemIds?: string }>();
+  const params = useLocalSearchParams<{ id?: string; itemIds?: string; tryOn?: string }>();
   const id = typeof params.id === 'string' && params.id ? params.id : null;
   const itemIds = parseItemIds(params.itemIds);
   const items = useItems();
@@ -71,7 +71,16 @@ export default function LookNewScreen() {
   // wardrobe (offline, error) must not block editing.
   const itemsSettled = items.data !== undefined || items.status === 'error' || items.fetchStatus === 'paused';
   if (look.data !== undefined && itemsSettled) {
-    return <LookEditor key={look.data.id} look={look.data} initialSlots={slotMapFromLook(look.data, items.data)} items={items.data} />;
+    return (
+      <LookEditor
+        key={look.data.id}
+        look={look.data}
+        initialSlots={slotMapFromLook(look.data, items.data)}
+        items={items.data}
+        // A try-on that failed right after the look was created keeps its note here (the editor remounted).
+        initialTryOnNote={params.tryOn === 'failed' ? 'failed' : null}
+      />
+    );
   }
   return shell(
     t('lookEditor.titleEdit'),

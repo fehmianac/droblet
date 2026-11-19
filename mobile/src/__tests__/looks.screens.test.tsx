@@ -108,6 +108,19 @@ describe('15 Look oluştur', () => {
     expect(fixtureDb.looks.find((l) => l.name === 'Hafta içi')?.slots.map((s) => s.refId)).toEqual(['item_white_shirt', 'item_straight_jeans']);
   });
 
+  it('a new look: "Try it on me" waits for the look to be saved before the job starts', async () => {
+    await renderRouter('./src/app', { initialUrl: '/look/new?itemIds=item_white_shirt,item_straight_jeans' });
+    await waitFor(() => expect(screen.getByText('2 / 5 PIECES SELECTED')).toBeTruthy(), { timeout: 3000 });
+    await fireEvent.changeText(screen.getByLabelText('Look name'), 'Deneme');
+    await fireEvent.press(screen.getByTestId('look-try-on'));
+    await waitFor(() => expect(screen.getByTestId('credit-confirm')).toBeTruthy(), { timeout: 3000 });
+    await fireEvent.press(screen.getByTestId('credit-confirm'));
+    // Started on a look the server already holds: the job screen takes over, no "couldn't be started" note.
+    await waitFor(() => expect(screen).not.toHavePathname('/look/new'), { timeout: 3000 });
+    expect(fixtureDb.looks.find((l) => l.name === 'Deneme')).toBeTruthy();
+    expect(screen.queryByText(/couldn't be started/)).toBeNull();
+  });
+
   it('preselects pieces passed from the wardrobe multi-select', async () => {
     await renderRouter('./src/app', { initialUrl: '/look/new?itemIds=item_navy_blazer,item_croc_flats,item_beige_trench' });
     await waitFor(() => expect(screen.getByText('2 / 5 PIECES SELECTED')).toBeTruthy(), { timeout: 3000 });

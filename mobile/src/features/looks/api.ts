@@ -19,42 +19,59 @@ export function useLookWrites() {
   const put = useMutation<Look, unknown, PutLookVariables>({ mutationKey: lookMutationKeys.put });
   const remove = useMutation<void, unknown, DeleteLookVariables>({ mutationKey: lookMutationKeys.remove });
 
+  const createVariables = (draft: LookDraft): CreateLookVariables => {
+    const id = ulid();
+    const { clientMutationId, occurredAt } = newClientMutation();
+    return {
+      request: { id, name: draft.name, occasion: draft.occasion, slots: toSlotInputs(draft.slots), clientMutationId },
+      optimistic: {
+        id,
+        name: draft.name,
+        occasion: draft.occasion,
+        slots: slotList(draft.slots),
+        isFavorite: false,
+        rating: null,
+        ratingCount: 0,
+        tryOnImageUrl: null,
+        createdAt: occurredAt,
+        baseVersion: 0,
+      },
+    };
+  };
+  const putVariables = (look: Look, draft: LookDraft): PutLookVariables => ({
+    id: look.id,
+    request: {
+      name: draft.name,
+      occasion: draft.occasion,
+      slots: toSlotInputs(draft.slots),
+      isFavorite: look.isFavorite,
+      baseVersion: look.baseVersion,
+      clientMutationId: newClientMutation().clientMutationId,
+    },
+    optimistic: { ...look, name: draft.name, occasion: draft.occasion, slots: slotList(draft.slots) },
+  });
+
   return {
     /** Returns the new look's id immediately (the write may still be queued). */
     create: (draft: LookDraft): string => {
-      const id = ulid();
-      const { clientMutationId, occurredAt } = newClientMutation();
-      create.mutate({
-        request: { id, name: draft.name, occasion: draft.occasion, slots: toSlotInputs(draft.slots), clientMutationId },
-        optimistic: {
-          id,
-          name: draft.name,
-          occasion: draft.occasion,
-          slots: slotList(draft.slots),
-          isFavorite: false,
-          rating: null,
-          ratingCount: 0,
-          tryOnImageUrl: null,
-          createdAt: occurredAt,
-          baseVersion: 0,
-        },
-      });
-      return id;
+      const variables = createVariables(draft);
+      create.mutate(variables);
+      return variables.request.id;
     },
     update: (look: Look, draft: LookDraft): void => {
-      const { clientMutationId } = newClientMutation();
-      put.mutate({
-        id: look.id,
-        request: {
-          name: draft.name,
-          occasion: draft.occasion,
-          slots: toSlotInputs(draft.slots),
-          isFavorite: look.isFavorite,
-          baseVersion: look.baseVersion,
-          clientMutationId,
-        },
-        optimistic: { ...look, name: draft.name, occasion: draft.occasion, slots: slotList(draft.slots) },
-      });
+      put.mutate(putVariables(look, draft));
+    },
+    /**
+     * Saves and resolves once the server holds the look (rejects if the write fails). For an AI job on a look just
+     * made: started on the queued id alone, the job could reach the server before the look and fail.
+     */
+    createNow: async (draft: LookDraft): Promise<string> => {
+      const variables = createVariables(draft);
+      await create.mutateAsync(variables);
+      return variables.request.id;
+    },
+    updateNow: async (look: Look, draft: LookDraft): Promise<void> => {
+      await put.mutateAsync(putVariables(look, draft));
     },
     toggleFavorite: (look: Look): void => {
       const { clientMutationId } = newClientMutation();

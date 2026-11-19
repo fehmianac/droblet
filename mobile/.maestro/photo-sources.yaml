@@ -1,0 +1,31 @@
+# 29h Ayarlar › FOTOĞRAFLARIM "+": both kinds offer the camera and the library (owner report, TestFlight).
+# Signed-in, onboarded account. Nothing is picked (the sheet is closed again).
+# Run: maestro test -e LANG=tr -e LOCALE=tr_TR .maestro/photo-sources.yaml
+appId: com.alatech.droplet
+env:
+  LANG: ${LANG}
+  LOCALE: ${LOCALE}
+---
+- runFlow: { file: relaunch.yaml, env: { URL: "droplet://settings" } }
+- scrollUntilVisible:
+    element:
+      text: "Fotoğraf ekle|Add photo"
+    direction: DOWN
+- tapOn:
+    text: "Fotoğraf ekle|Add photo"
+- extendedWaitUntil:
+    visible:
+      id: "photoSource.sheet"
+    timeout: 10000
+- assertVisible:
+    id: "photoSource.body.camera"
+- assertVisible:
+    id: "photoSource.body.library"
+- assertVisible:
+    id: "photoSource.face.camera"
+- assertVisible:
+    id: "photoSource.face.library"
+- waitForAnimationToEnd
+- takeScreenshot: p29h-fotograf-ekle
+- tapOn:
+    id: "photoSource.close"

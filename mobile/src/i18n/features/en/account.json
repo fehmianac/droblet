@@ -93,8 +93,6 @@
     "removeFace": "Remove face photo",
     "addPhoto": "Add photo",
     "addTitle": "Which photo shall we add?",
-    "addBody": "Take a full-length photo",
-    "addFace": "Choose a face photo",
     "replaceFace": "Replace face photo",
     "uploadQueued": "Your photo is uploading; it will appear here when it's ready.",
     "photoFailed": "The photo couldn't be prepared. Try another one.",

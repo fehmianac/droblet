@@ -93,8 +93,6 @@
     "removeFace": "Yüz fotoğrafını kaldır",
     "addPhoto": "Fotoğraf ekle",
     "addTitle": "Hangi fotoğrafı ekleyelim?",
-    "addBody": "Boy fotoğrafı çek",
-    "addFace": "Yüz fotoğrafı seç",
     "replaceFace": "Yüz fotoğrafını değiştir",
     "uploadQueued": "Fotoğrafın yükleniyor; hazır olunca burada görünecek.",
     "photoFailed": "Fotoğraf hazırlanamadı. Başka bir fotoğraf dene.",

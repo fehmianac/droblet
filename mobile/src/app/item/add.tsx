@@ -13,6 +13,7 @@ import { Text } from '@/components/ui/Text';
 import { cameraStateOf } from '@/features/photos/cameraState';
 import { deleteLocalPhoto, preparePhoto, type PreparedPhoto } from '@/features/photos/preparePhoto';
 import { usePhotoPicker } from '@/features/photos/usePhotoPicker';
+import { VIEWFINDER_MAX_WIDTH, viewfinderWidth } from '@/features/photos/viewfinder';
 import { GarmentGlyph } from '@/features/wardrobe/ItemThumb';
 import { useStartItemDrafts } from '@/features/wardrobe/mutations';
 import { useItemDrafts } from '@/features/wardrobe/queries';
@@ -20,7 +21,7 @@ import { isRecognitionLimitReached, openRecognitionPaywall, useItemRecognition }
 import { useManualEntry } from '@/features/wardrobe/useManualEntry';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { useIsOnline } from '@/sync/network';
-import { placeholderTones, surfaceTones } from '@/theme/tokens';
+import { placeholderTones, spacing, surfaceTones } from '@/theme/tokens';
 
 type Notice = 'none' | 'offline' | 'photoFailed' | 'startFailed' | 'recognitionLimit';
 
@@ -81,6 +82,7 @@ function FrameAction({ label, onPress, testID }: { label: string; onPress: () =>
 export default function ItemAddScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const [frameWidth, setFrameWidth] = useState(VIEWFINDER_MAX_WIDTH);
   const online = useIsOnline();
   const focused = useIsFocused();
   const reduceMotion = useReduceMotion();
@@ -297,9 +299,13 @@ export default function ItemAddScreen() {
         </Pressable>
       </View>
 
-      <View className="flex-1 items-center justify-center px-gutter">
-        {/* The viewfinder: 290 × 370, radius 24, four 28 pt corners 2 outside it, the pill 18 below its edge. */}
-        <View className="aspect-[29/37] w-full max-w-[290px]">
+      <View
+        className="flex-1 items-center justify-center px-gutter"
+        onLayout={(e) => setFrameWidth(viewfinderWidth(e.nativeEvent.layout.width - 2 * spacing.gutter, e.nativeEvent.layout.height))}
+      >
+        {/* The viewfinder: 290 × 370, radius 24, four 28 pt corners 2 outside it, the pill 18 below its edge. Sized
+            to the room left (on a 4.7" screen that is under 370 pt) so it never covers the header or the hint. */}
+        <View className="aspect-[29/37]" style={{ width: frameWidth }} testID="item-add-viewfinder">
           <View
             className="flex-1 items-center justify-center overflow-hidden rounded-[24px]"
             style={{ backgroundColor: placeholderTones.dark }}

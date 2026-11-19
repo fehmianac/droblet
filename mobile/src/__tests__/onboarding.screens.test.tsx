@@ -79,6 +79,22 @@ describe('04 Beden ve fotoğraf', () => {
     await fireEvent.press(screen.getByTestId('body.skip'));
     await waitFor(() => expect(screen).toHavePathname('/first-items'), WAIT);
   });
+
+  it('04c a body slot and the face tile each offer the camera and the library', async () => {
+    await open('/body');
+    await waitFor(() => expect(screen.getAllByLabelText('Add full-length photo')).toHaveLength(3), WAIT);
+    await fireEvent.press(screen.getAllByLabelText('Add full-length photo')[0]!);
+    await waitFor(() => expect(screen.getByTestId('photoSource.body.camera')).toBeTruthy(), WAIT);
+    expect(screen.getByTestId('photoSource.body.library')).toBeTruthy();
+    expect(screen.getByText('FULL-LENGTH PHOTO · 0 / 3')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('photoSource.close'));
+    await waitFor(() => expect(screen.queryByTestId('photoSource.sheet')).toBeNull(), WAIT);
+
+    await fireEvent.press(screen.getByLabelText('Add face photo'));
+    await waitFor(() => expect(screen.getByTestId('photoSource.face.camera')).toBeTruthy(), WAIT);
+    expect(screen.getByText('Take a selfie')).toBeTruthy();
+    expect(screen.getByTestId('photoSource.face.library')).toBeTruthy();
+  });
 });
 
 describe('04b İlk 5 parça', () => {
