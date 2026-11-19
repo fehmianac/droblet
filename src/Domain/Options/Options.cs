@@ -272,6 +272,12 @@ public sealed class AiOptions
     /// <summary>Send prompt_cache_key = the operation, so requests sharing the static prefix land on the same cache.</summary>
     public bool PromptCacheKey { get; set; }
 
+    /// <summary>
+    /// Item photo: start the background removal of the whole photo together with the vision call; used when the photo
+    /// holds one piece that is not small, cancelled otherwise (one wasted image call on multi-piece photos).
+    /// </summary>
+    public bool SpeculativeItemCleanup { get; set; }
+
     /// <summary>Image output per use (Ai:Image:*).</summary>
     public AiImageOptions Image { get; set; } = new();
 
