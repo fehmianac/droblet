@@ -482,4 +482,76 @@ public class ItemProcessJobServiceTests
         Assert.Empty(ai.Cleanups);
         await AssertNothingLeftAsync(host, job);
     }
+
+    // ── Speculative cleanup (Ai:SpeculativeItemCleanup) ─────────────────────────────────────────────────────────
+
+    private static WorkerTestHost SpeculativeHost(FakeAi ai, FakeCropper? cropper = null) => new(services =>
+    {
+        services.AddSingleton<IItemProcessJobService, ItemProcessJobService>();
+        services.AddSingleton<IImageCropper>(cropper ?? new FakeCropper());
+        services.RemoveAll<IItemDetector>();
+        services.RemoveAll<IItemImageCleanup>();
+        services.AddSingleton<IItemDetector>(ai);
+        services.AddSingleton<IItemImageCleanup>(ai);
+        services.Configure<Domain.Options.AiOptions>(o => o.SpeculativeItemCleanup = true);
+    });
+
+    [Fact]
+    public async Task Speculative_OnePiece_StartsTheCleanupWithTheVisionCall_AndUsesIt_OneImageCall()
+    {
+        var detecting = new TaskCompletionSource();
+        var ai = new FakeAi([Item(ItemCategoryHint.Top, "navy", new BoundingBox(0.2, 0.2, 0.5, 0.5), "sweater")]);
+        ai.DuringDetect = async () =>
+        {
+            // The cleanup was already requested while the vision call is still running.
+            Assert.Single(ai.Cleanups);
+            detecting.SetResult();
+            await Task.Yield();
+        };
+        var cropper = new FakeCropper();
+        var host = SpeculativeHost(ai, cropper);
+        var (job, _) = await ArrangeAsync(host);
+
+        await ProcessAsync(host, job);
+
+        Assert.True(detecting.Task.IsCompleted);
+        var cleanup = Assert.Single(ai.Cleanups);
+        Assert.Null(cleanup.Category); // the whole photo, no hint: the speculative call
+        Assert.Empty(cropper.Plans);
+        Assert.Equal(JobStatus.Completed, (await host.JobAsync(job))!.Status);
+        var draft = await DraftAsync(host);
+        Assert.Equal(ItemDraftStatus.Ready, draft!.Status);
+        Assert.NotNull(draft.ProcessedKey);
+        Assert.Equal(ItemCategory.Top, draft.Category);
+    }
+
+    [Fact]
+    public async Task Speculative_SeveralPieces_IsCancelled_NoPieceIsCleaned()
+    {
+        var ai = new FakeAi(FlatLay);
+        var host = SpeculativeHost(ai);
+        var (job, _) = await ArrangeAsync(host);
+
+        await ProcessAsync(host, job);
+
+        Assert.Single(ai.Cleanups); // only the speculative one, never used
+        Assert.Equal(JobStatus.Completed, (await host.JobAsync(job))!.Status);
+        Assert.All(await PiecesAsync(host), p => Assert.Null(p.ProcessedKey));
+    }
+
+    [Fact]
+    public async Task Speculative_SmallPiece_FallsBackToTheCroppedCleanup()
+    {
+        var ai = new FakeAi([Item(ItemCategoryHint.Accessory, "beige", new BoundingBox(0.62, 0.08, 0.1, 0.08), "necklace")]);
+        var cropper = new FakeCropper();
+        var host = SpeculativeHost(ai, cropper);
+        var (job, _) = await ArrangeAsync(host);
+
+        await ProcessAsync(host, job);
+
+        Assert.Equal(2, ai.Cleanups.Count);
+        Assert.Equal("necklace", ai.Cleanups[1].Subcategory);
+        Assert.Single(cropper.Plans);
+        Assert.Equal(JobStatus.Completed, (await host.JobAsync(job))!.Status);
+    }
 }

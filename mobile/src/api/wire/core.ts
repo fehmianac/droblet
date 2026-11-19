@@ -250,6 +250,11 @@ export type JobWire<TResult = unknown> = {
   result: TResult | null;
   createdAt: string;
   updatedAt: string;
+  /** While queued / processing: expected remaining ms (null = unknown) and when to poll next (500..3000 ms). */
+  etaMs?: number | null;
+  retryAfterMs?: number | null;
+  /** Worker stage timings in ms (internal diagnostics; not shown in the UI). */
+  timings?: Record<string, number> | null;
 };
 
 const JOB_KINDS: Record<JobKindWire, JobKind> = {
@@ -311,6 +316,7 @@ export async function toJob<T>(
     status,
     progress: null,
     result,
+    retryAfterMs: status === 'queued' || status === 'running' ? (wire.retryAfterMs ?? null) : null,
     error:
       status === 'failed'
         ? {

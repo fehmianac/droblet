@@ -98,7 +98,7 @@ describe('16 Stilist → 17 Kombin önerisi', () => {
     expect(screen.getByTestId('add-to-calendar')).toBeTruthy();
   }, 30_000);
 
-  it('17c: "Try it on me" confirms the credit, then shows the generating state', async () => {
+  it('17c: "Try it on me" confirms the credit, then shows the generating state on the image only — pieces and actions stay', async () => {
     const { jobId } = startFixtureStylistOutfit({ requestId: 'tryon', date: '2026-11-18', occasion: 'dinner', text: null, cityId: null, wardrobeOnly: true });
     await renderRouter('./src/app', { initialUrl: `/stylist/${jobId}` });
     await waitFor(() => expect(screen.getByText('Try it on me')).toBeTruthy(), WAIT);
@@ -106,11 +106,12 @@ describe('16 Stilist → 17 Kombin önerisi', () => {
     await fireEvent.press(screen.getByText('Try it on me'));
     await waitFor(() => expect(screen.getByTestId('credit-confirm')).toBeTruthy());
     await fireEvent.press(screen.getByTestId('credit-confirm'));
-    await waitFor(() => expect(screen.getByText('Continue without the image')).toBeTruthy(), WAIT);
-    expect(screen.getByText('Getting the pieces ready…')).toBeTruthy();
+    await waitFor(() => expect(screen.getByText('Getting the pieces ready…')).toBeTruthy(), WAIT);
     expect(fixtureDb.entitlement.credits.remaining).toBe(10);
-    await fireEvent.press(screen.getByText('Continue without the image'));
-    await waitFor(() => expect(screen.getByTestId('add-to-calendar')).toBeTruthy());
+    // Text first: no "continue without the image" gate — the calendar action and the share button are there while it renders.
+    expect(screen.queryByText('Continue without the image')).toBeNull();
+    expect(screen.getByTestId('add-to-calendar')).toBeTruthy();
+    expect(screen.getByTestId('share-suggestion')).toBeTruthy();
   }, 30_000);
 
   it('16: header action, context badges and the wardrobe / store source toggle', async () => {

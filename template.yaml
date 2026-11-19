@@ -39,9 +39,12 @@ Parameters:
     MinValue: 2
   TryOnMaxConcurrency:
     Type: Number
-    Default: 2
+    Default: 4
     MinValue: 2
-    Description: Tightest limit — the most expensive call (image generation).
+    Description: >-
+      Tightest limit — the most expensive call (image generation). Concurrency does not change the number of calls (cost),
+      only how many run at once: a week try-on (7 images, ~25 s each) finishes in 2 waves (~50 s) at 4 instead of 4 waves
+      (~100 s) at 2. Keep below the image model's rate limit.
   PaletteMaxConcurrency:
     Type: Number
     Default: 2
@@ -975,6 +978,7 @@ Resources:
       Handler: Stylist::Stylist.Entrypoint::FunctionHandler
       Role: !GetAtt StylistLambdaRole.Arn
       Timeout: 120
+      MemorySize: 1024   # CPU scales with memory: at 512 MB a cold start spent ~1.8 s in init + JIT before the model call
       Environment:
         Variables:
           SYSTEMS_MANAGER_PATH: !Sub /droblet/${Stage}/worker
@@ -1022,6 +1026,7 @@ Resources:
       Handler: Palette::Palette.Entrypoint::FunctionHandler
       Role: !GetAtt PaletteLambdaRole.Arn
       Timeout: 120
+      MemorySize: 1024   # same start-up cost as Stylist (cold init + JIT at 512 MB)
       Environment:
         Variables:
           SYSTEMS_MANAGER_PATH: !Sub /droblet/${Stage}/worker

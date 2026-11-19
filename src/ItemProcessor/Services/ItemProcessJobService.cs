@@ -107,28 +107,94 @@ public sealed class ItemProcessJobService(
 
         var photo = new ImageInput(clean.Data, clean.ContentType);
         var language = Localized.Language(draft.Language);
-        var items = ItemDetectionGuard.Filter(await detector.DetectItemsAsync(photo, language, ct), wardrobeOptions.CurrentValue.MaxDetectedItems);
+        // Ai:SpeculativeItemCleanup: the background removal of the whole photo starts together with the vision call. Most
+        // photos hold one piece, and then its result is used as is (one model round trip less); for several pieces or a
+        // small one (jewellery needs its crop) it is cancelled and the usual path runs — that image call is wasted.
+        using var speculation = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        var speculative = aiOptions.CurrentValue.SpeculativeItemCleanup
+            ? cleanup.CleanupItemAsync(photo, null, null, speculation.Token)
+            : null;
+        IReadOnlyList<DetectedItem> items;
+        try
+        {
+            items = ItemDetectionGuard.Filter(await detector.DetectItemsAsync(photo, language, ct), wardrobeOptions.CurrentValue.MaxDetectedItems);
+        }
+        catch
+        {
+            await CancelAsync(speculation, speculative);
+            throw;
+        }
         if (items.Count == 0)
+        {
+            await CancelAsync(speculation, speculative);
             return Outcome.Failed(JobFailure.GuardRejected);
+        }
 
         var size = cropper.Measure(photo);
         draft.PhotoWidth = size?.Width;
         draft.PhotoHeight = size?.Height;
-        return items.Count == 1
-            ? await SingleAsync(job, draft, photo, size, items[0], language, written, ct)
-            : await GroupAsync(job, draft, photo, size, items, language, written, ct);
+        if (items.Count > 1)
+        {
+            await CancelAsync(speculation, speculative);
+            return await GroupAsync(job, draft, photo, size, items, language, written, ct);
+        }
+        return await SingleAsync(job, draft, photo, size, items[0], language, written, ct, speculation, speculative);
+    }
+
+    /// <summary>Stops a speculative cleanup that is not needed and waits for it, so its failure is never unobserved.</summary>
+    private static async Task CancelAsync(CancellationTokenSource speculation, Task<ImageInput>? speculative)
+    {
+        if (speculative is null)
+            return;
+        await speculation.CancelAsync();
+        try
+        {
+            await speculative;
+        }
+        catch (Exception)
+        {
+            // cancelled or failed: not used either way
+        }
+    }
+
+    /// <summary>
+    /// The speculative whole-photo cleanup stands in for the crop's cleanup when the one piece is not small (a small piece
+    /// is cropped and enlarged first). A failed speculation falls back to the usual call.
+    /// </summary>
+    private async Task<ImageInput?> SpeculativeResultAsync(DetectedItem item, string? subcategory, CancellationTokenSource speculation, Task<ImageInput>? speculative)
+    {
+        if (speculative is null)
+            return null;
+        if (CropMath.IsSmall(item.Box, subcategory))
+        {
+            await CancelAsync(speculation, speculative);
+            return null;
+        }
+        try
+        {
+            return await speculative;
+        }
+        catch (Exception ex) when (ex is AiProviderException or HttpRequestException)
+        {
+            logger.LogInformation("Item job: speculative cleanup failed ({Error}); cleaning the crop instead", ex.GetType().Name);
+            return null;
+        }
     }
 
     /// <summary>One piece: the review form opens directly, so its background is removed now (one image-model call).</summary>
     private async Task<Outcome> SingleAsync(JobEntity job, ItemDraftEntity draft, ImageInput photo, PixelSize? size, DetectedItem item, string language,
-        List<string> written, CancellationToken ct)
+        List<string> written, CancellationToken ct, CancellationTokenSource? speculation = null, Task<ImageInput>? speculative = null)
     {
         var fields = ItemDetectionGuard.Fields(item, aiOptions.CurrentValue.VisionConfidenceThreshold);
         var subcategory = ItemDetectionGuard.Subcategory(item, fields.Category);
-        var input = size is { } pixels && !CropMath.UseWholePhoto(item.Box)
-            ? cropper.Crop(photo, CropMath.Plan(item.Box, pixels, CropMath.IsSmall(item.Box, subcategory))) ?? photo
-            : photo;
-        var processed = await cleanup.CleanupItemAsync(input, item.Garment.Category, subcategory, ct);
+        var processed = speculation is null ? null : await SpeculativeResultAsync(item, subcategory, speculation, speculative);
+        if (processed is null)
+        {
+            var input = size is { } pixels && !CropMath.UseWholePhoto(item.Box)
+                ? cropper.Crop(photo, CropMath.Plan(item.Box, pixels, CropMath.IsSmall(item.Box, subcategory))) ?? photo
+                : photo;
+            processed = await cleanup.CleanupItemAsync(input, item.Garment.Category, subcategory, ct);
+        }
 
         var processedKey = StorageKeys.ItemImage(job.TenantId, draft.Id);
         await storage.PutAsync(processedKey, processed.Data, processed.ContentType, ct);

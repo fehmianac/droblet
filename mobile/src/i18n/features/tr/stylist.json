@@ -61,7 +61,6 @@
     "creditCostOnly_other": "{{count}} kredi",
     "creditUsed_one": "AI görseli {{count}} kredi kullandı · bu ay {{remaining}} kaldı",
     "creditUsed_other": "AI görseli {{count}} kredi kullandı · bu ay {{remaining}} kaldı",
-    "continueWithoutImage": "Görselsiz devam et",
     "collageBadge": "Parça kolajı",
     "noCreditsTitle": "Bu ayın AI görselleri bitti",
     "noCreditsBody": "Kombini parça kolajıyla gösteriyoruz. Senin üzerinde görmek için kredi yükle; krediler {{date}} tarihinde yenilenir.",

@@ -18,11 +18,13 @@ public class TryOnJobServiceTests
 {
     private const string Tenant = "01JTENANT0000000000000000A";
 
-    private static async Task<(WorkerTestHost Host, JobEntity Job, TryOnRequestedEvent Message)> ArrangeAsync(ITryOnRenderer? renderer = null, IPhotoInspector? inspector = null)
+    private static async Task<(WorkerTestHost Host, JobEntity Job, TryOnRequestedEvent Message)> ArrangeAsync(ITryOnRenderer? renderer = null, IPhotoInspector? inspector = null,
+        Action<IServiceCollection>? configure = null)
     {
         var host = new WorkerTestHost(services =>
         {
             services.AddSingleton<ITryOnJobService, TryOnJobService>();
+            configure?.Invoke(services);
             if (renderer is not null)
             {
                 services.RemoveAll<ITryOnRenderer>();
@@ -71,6 +73,64 @@ public class TryOnJobServiceTests
         Assert.Equal(29, await host.RemainingCreditsAsync(Tenant));
         var reservation = await host.Repository.GetAsync<CreditReservationEntity>(CreditReservationEntity.GetPk(Tenant), CreditReservationEntity.GetSk(message.CreditIdempotencyKey));
         Assert.Equal(CreditReservationStatus.Committed, reservation!.Status);
+    }
+
+    private sealed class QualityRenderer : ITryOnRenderer
+    {
+        public List<string?> Qualities { get; } = [];
+        public Func<Task>? BeforeSecond { get; set; }
+
+        public async Task<ImageInput> RenderAsync(ImageInput bodyPhoto, IReadOnlyList<ImageInput> garments, CancellationToken ct, string? quality = null)
+        {
+            Qualities.Add(quality);
+            if (Qualities.Count == 2 && BeforeSecond is not null)
+                await BeforeSecond();
+            return new ImageInput([(byte)Qualities.Count, 1, 1], "image/webp");
+        }
+
+        public Task<ImageInput> RenderFromFaceAsync(ImageInput facePhoto, IReadOnlyList<ImageInput> garments, TryOnFigure figure, CancellationToken ct, string? quality = null) =>
+            RenderAsync(facePhoto, garments, ct, quality);
+    }
+
+    [Fact]
+    public async Task Process_WithPreview_CompletesWithTheFastImage_ThenTheFullImageReplacesIt_OneCredit()
+    {
+        var renderer = new QualityRenderer();
+        WorkerTestHost? hostRef = null;
+        JobStatus? statusDuringFullRender = null;
+        var (host, job, message) = await ArrangeAsync(renderer, configure: s => s.Configure<Domain.Options.AiOptions>(o => o.Image.TryOnPreview = true));
+        hostRef = host;
+        renderer.BeforeSecond = async () => statusDuringFullRender = (await hostRef.JobAsync(job))!.Status;
+
+        await host.Get<ITryOnJobService>().ProcessAsync(message, false, default);
+
+        Assert.Equal(["low", null], renderer.Qualities);
+        Assert.Equal(JobStatus.Completed, statusDuringFullRender); // the user already had the preview
+        var image = Assert.Single(await host.Repository.GetAllAsync<TryOnImageEntity>(TryOnImageEntity.GetPk(Tenant)));
+        Assert.Equal(2, host.Storage.Objects[image.S3Key].Data[0]); // the full render under the same key
+        Assert.Equal(29, await host.RemainingCreditsAsync(Tenant));
+    }
+
+    [Fact]
+    public async Task Process_WithPreview_ImageDeletedBeforeTheFullRender_IsNotWrittenBack()
+    {
+        var renderer = new QualityRenderer();
+        WorkerTestHost? hostRef = null;
+        var (host, job, message) = await ArrangeAsync(renderer, configure: s => s.Configure<Domain.Options.AiOptions>(o => o.Image.TryOnPreview = true));
+        hostRef = host;
+        renderer.BeforeSecond = async () =>
+        {
+            foreach (var image in await hostRef.Repository.GetAllAsync<TryOnImageEntity>(TryOnImageEntity.GetPk(Tenant)))
+            {
+                await hostRef.Repository.DeleteAsync(image.Pk, image.Sk);
+                await hostRef.Storage.DeleteAsync(image.S3Key, default);
+            }
+        };
+
+        await host.Get<ITryOnJobService>().ProcessAsync(message, false, default);
+
+        Assert.Equal(JobStatus.Completed, (await host.JobAsync(job))!.Status);
+        Assert.DoesNotContain(host.Storage.Objects.Keys, k => k.Contains("/tryon/", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -268,14 +328,14 @@ public class TryOnJobServiceTests
         public int BodyRenders { get; private set; }
         public List<TryOnFigure> Figures { get; } = [];
 
-        public async Task<ImageInput> RenderAsync(ImageInput bodyPhoto, IReadOnlyList<ImageInput> garments, CancellationToken ct)
+        public async Task<ImageInput> RenderAsync(ImageInput bodyPhoto, IReadOnlyList<ImageInput> garments, CancellationToken ct, string? quality = null)
         {
             BodyRenders++;
             if (during is not null) await during();
             return new ImageInput([9, 9, 9], "image/webp");
         }
 
-        public async Task<ImageInput> RenderFromFaceAsync(ImageInput facePhoto, IReadOnlyList<ImageInput> garments, TryOnFigure figure, CancellationToken ct)
+        public async Task<ImageInput> RenderFromFaceAsync(ImageInput facePhoto, IReadOnlyList<ImageInput> garments, TryOnFigure figure, CancellationToken ct, string? quality = null)
         {
             Figures.Add(figure);
             if (during is not null) await during();

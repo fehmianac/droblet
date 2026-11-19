@@ -295,6 +295,41 @@ public class JobAndEntitlementEndpointTests(ApiFactory factory) : IClassFixture<
     }
 
     [Fact]
+    public async Task Job_Running_CarriesThePollHint_FromTheKindsTypicalDuration_Completed_CarriesTimings()
+    {
+        var (client, auth) = await factory.RegisterAsync();
+        await factory.Repository.SaveAsync(new JobStatsEntity { Kind = JobKind.Palette, TypicalMs = 600_000, Samples = 3 });
+        var running = Ulid.New();
+        await factory.Repository.SaveAsync(new JobEntity { Id = running, TenantId = auth.TenantId, Kind = JobKind.Palette, Status = JobStatus.Processing, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow });
+        var done = Ulid.New();
+        await factory.Repository.SaveAsync(new JobEntity
+        {
+            Id = done, TenantId = auth.TenantId, Kind = JobKind.Palette, Status = JobStatus.Completed, Result = "{}", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+            Timings = new() { ["queue_wait"] = 40, ["ai.palette_season"] = 5000 },
+        });
+
+        var json = await (await client.GetAsync($"v1/tenant/job/{running}")).JsonAsync();
+        Assert.Equal(3000, json.GetProperty("retryAfterMs").GetInt64());
+        Assert.True(json.GetProperty("etaMs").GetInt64() > 500_000);
+
+        json = await (await client.GetAsync($"v1/tenant/job/{done}")).JsonAsync();
+        Assert.Equal(System.Text.Json.JsonValueKind.Null, json.GetProperty("retryAfterMs").ValueKind);
+        Assert.Equal(5000, json.GetProperty("timings").GetProperty("ai.palette_season").GetInt64());
+    }
+
+    [Theory]
+    [InlineData("POST", "/v1/tenant/stylist/outfit", "start.stylist_outfit")]
+    [InlineData("POST", "/v1/tenant/trip/01JTRIP/pack", "start.trip_pack")]
+    [InlineData("POST", "/v1/tenant/item-draft/01JD/select", "start.item_draft_select")]
+    [InlineData("POST", "/v1/tenant/tryon", "start.tryon")]
+    [InlineData("GET", "/v1/tenant/tryon", null)]
+    [InlineData("POST", "/v1/tenant/item", null)]
+    public void AiStartTiming_LabelsOnlyTheJobStarts(string method, string path, string? label)
+    {
+        Assert.Equal(label, Api.Infrastructure.Extensions.AiStartTimingMiddleware.Label(method, path));
+    }
+
+    [Fact]
     public async Task Job_ResponseUsesCamelCaseEnums()
     {
         var (client, auth) = await factory.RegisterAsync();

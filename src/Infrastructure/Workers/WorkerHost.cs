@@ -1,5 +1,10 @@
+using System.Diagnostics;
+using System.Globalization;
 using System.Text.Json;
+using Domain.Manager;
+using Domain.Services;
 using Infrastructure.Configuration;
+using Infrastructure.Telemetry;
 using Infrastructure.Serialization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,7 +35,63 @@ public static class WorkerHost
         services.AddDrobletCore(configuration);
         services.AddDrobletAi();
         configure(services, configuration);
-        return services.BuildServiceProvider();
+        DecorateWithTimings(services);
+        var provider = services.BuildServiceProvider();
+        WarmUp(provider);
+        return provider;
+    }
+
+    /// <summary>
+    /// Cold start: the first DynamoDB call of a fresh instance took ~0.9 s (SDK first use, credentials, TLS) against
+    /// ~70 ms warm, and the first OpenAI call pays its TLS handshake. Both are started in the background at init, so they
+    /// overlap with the rest of the start-up and the job's first steps instead of adding to them. Best effort.
+    /// </summary>
+    public static void WarmUp(IServiceProvider services)
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var repository = services.GetRequiredService<IRepository>();
+                await repository.GetAsync<Domain.Entity.JobStatsEntity>(Domain.Entity.JobStatsEntity.GetPk(), Domain.Entity.JobStatsEntity.GetSk(Domain.Enum.JobKind.TryOn));
+            }
+            catch (Exception)
+            {
+                // warm-up only
+            }
+        });
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await services.GetRequiredService<Infrastructure.Ai.OpenAiProvider>().WarmUpAsync(CancellationToken.None);
+            }
+            catch (Exception)
+            {
+                // warm-up only
+            }
+        });
+    }
+
+    /// <summary>DynamoDB and S3 calls of a job run are added to its stage timings ("db", "s3_get", "s3_put").</summary>
+    public static void DecorateWithTimings(IServiceCollection services)
+    {
+        Decorate<IRepository>(services, inner => new TimedRepository(inner));
+        Decorate<IObjectStorage>(services, inner => new TimedObjectStorage(inner));
+    }
+
+    private static void Decorate<T>(IServiceCollection services, Func<T, T> wrap) where T : class
+    {
+        var descriptor = services.LastOrDefault(d => d.ServiceType == typeof(T));
+        if (descriptor is null)
+            return;
+        services.Remove(descriptor);
+        services.Add(new ServiceDescriptor(typeof(T), sp =>
+        {
+            var inner = descriptor.ImplementationInstance as T
+                        ?? (descriptor.ImplementationFactory is { } factory ? (T)factory(sp) : (T)ActivatorUtilities.CreateInstance(sp, descriptor.ImplementationType!));
+            return wrap(inner);
+        }, descriptor.Lifetime));
     }
 
     /// <summary>Time left for work, keeping 5 s to record the outcome; never below 1 s.</summary>
@@ -46,6 +107,73 @@ public static class WorkerHost
 /// <summary>Handles one SQS message. Returns false when the message should be retried by SQS.</summary>
 public static class JobMessageHandler
 {
+    private static int _invocations;
+
+    /// <summary>
+    /// One job run with stage timings: queue wait (now − the message's SentTimestamp attribute), Lambda init on the
+    /// first message of a process (cold start), then whatever the job adds (db, s3, ai.*, its own stages). The timings
+    /// go into the job record (JobLifecycle) and out as one structured log line + EMF (namespace Droblet/Ai).
+    /// </summary>
+    public static async Task<bool> HandleAsync<TMessage>(
+        string body,
+        IDictionary<string, string>? attributes,
+        Func<TMessage, bool, CancellationToken, Task> process,
+        ILogger logger,
+        CancellationToken ct)
+    {
+        var timings = AiTelemetry.Begin();
+        try
+        {
+            var now = DateTimeOffset.UtcNow;
+            timings.Attempt = WorkerHost.ReceiveCount(attributes);
+            if (QueueWait(attributes, now) is { } wait)
+                timings.Set("queue_wait", wait.TotalMilliseconds);
+            if (Interlocked.Increment(ref _invocations) == 1)
+            {
+                timings.ColdStart = true;
+                timings.Set("init", InitDuration(now).TotalMilliseconds);
+            }
+
+            var ok = await HandleAsync(body, timings.Attempt, process, logger, ct);
+
+            var snapshot = timings.Snapshot();
+            logger.LogInformation("Job timings {JobId} {Kind} attempt {Attempt} cold {Cold}: {Timings} | ai calls {Calls}",
+                timings.JobId ?? "-", timings.JobKind ?? "-", timings.Attempt, timings.ColdStart, EmbeddedMetrics.Compact(snapshot),
+                string.Join("; ", timings.Calls.Select(Describe)));
+            EmbeddedMetrics.Emit(timings, Environment.GetEnvironmentVariable("STAGE") ?? "local", DateTimeOffset.UtcNow);
+            return ok;
+        }
+        finally
+        {
+            AiTelemetry.End();
+        }
+    }
+
+    private static string Describe(AiCallRecord c) =>
+        $"{c.Operation} {c.Model} {c.DurationMs:0}ms {c.Status} in {c.InputTokens} (cached {c.CachedTokens}) out {c.OutputTokens} (reasoning {c.ReasoningTokens}) " +
+        $"effort {c.ReasoningEffort ?? "-"} img {c.ImageSize ?? "-"}/{c.ImageQuality ?? "-"} req {c.RequestBytes}B";
+
+    /// <summary>now − SentTimestamp (epoch ms, an SQS system attribute); null when the attribute is missing.</summary>
+    public static TimeSpan? QueueWait(IDictionary<string, string>? attributes, DateTimeOffset now) =>
+        attributes is not null && attributes.TryGetValue("SentTimestamp", out var raw) && long.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var sent)
+            ? TimeSpan.FromMilliseconds(Math.Max(0, now.ToUnixTimeMilliseconds() - sent))
+            : null;
+
+    /// <summary>Process start → first message (runtime start, SSM config load, service graph): the cold-start cost.</summary>
+    private static TimeSpan InitDuration(DateTimeOffset now)
+    {
+        try
+        {
+            var started = new DateTimeOffset(Process.GetCurrentProcess().StartTime.ToUniversalTime());
+            var duration = now - started;
+            return duration > TimeSpan.Zero && duration < TimeSpan.FromMinutes(15) ? duration : TimeSpan.Zero;
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or NotSupportedException or System.ComponentModel.Win32Exception)
+        {
+            return TimeSpan.Zero;
+        }
+    }
+
     public static async Task<bool> HandleAsync<TMessage>(
         string body,
         int receiveCount,

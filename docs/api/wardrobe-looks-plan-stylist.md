@@ -13,7 +13,7 @@ Contract for the mobile team. Everything here is implemented in `src/Api/Endpoin
 | Idempotency | `clientMutationId` = one user action; `requestId` = one job. Sending the same one again returns the same result and changes nothing. |
 | Versioned edits | `PUT` carries `baseVersion`. A stale version returns **409 with the current record as the body** (same shape as 200). `baseVersion: 0` creates where stated. |
 | Errors | `application/problem+json` with a stable snake_case `code` (also in `title`). 400 = `validation_failed` with `errors: { "<field>": ["<code>"] }`. The API never returns a sentence — the client translates codes. |
-| Long jobs | `202` + a job. Poll `GET v1/tenant/job/{id}` (`status`: `queued` \| `processing` \| `completed` \| `failed`; `failure`: `providerError` \| `timeout` \| `guardRejected` \| `sourceDeleted` \| `noFaceDetected`; `result`: the draft, shapes in §9). |
+| Long jobs | `202` + a job. Poll `GET v1/tenant/job/{id}` (`status`: `queued` \| `processing` \| `completed` \| `failed`; `failure`: `providerError` \| `timeout` \| `guardRejected` \| `sourceDeleted` \| `noFaceDetected`; `result`: the draft, shapes in §9). While queued / processing the job also carries `etaMs` (expected remaining ms from recent jobs of this kind, `null` when unknown) and `retryAfterMs` (when to poll next, 500–3000 ms); poll at that interval, else every 750 ms for the first 3 s, then 1.5 s, then 3 s. `timings` (ms per worker stage: `queue_wait`, `init`, `db`, `s3_get`, `ai.*`, `worker`, …) is internal diagnostics. |
 | Images | `imageUrl` values are short-lived presigned GETs (see `…ExpiresAt`); never cache them beyond that, never share them. |
 
 ### Language

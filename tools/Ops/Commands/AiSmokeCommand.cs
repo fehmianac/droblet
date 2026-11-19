@@ -28,7 +28,7 @@ internal sealed partial class AiSmokeCommand(IServiceProvider services, OpsArgum
     public const string DevApiUrl = "https://b8lvaj4r5e.execute-api.eu-central-1.amazonaws.com";
     private static readonly TimeSpan JobTimeout = TimeSpan.FromMinutes(6);
 
-    private static readonly string[] LibraryPieces =
+    internal static readonly string[] LibraryPieces =
     [
         "lib-white-tshirt", "lib-white-shirt", "lib-black-turtleneck", "lib-blue-jeans", "lib-black-trousers", "lib-little-black-dress",
         "lib-navy-blazer", "lib-camel-coat", "lib-white-sneakers", "lib-black-ankle-boots", "lib-black-tote", "lib-silk-scarf",
@@ -356,7 +356,7 @@ internal sealed partial class AiSmokeCommand(IServiceProvider services, OpsArgum
 
     // ── canvas 11: thin wardrobe gap filling + the face path of try-on ────────────────────────────────────────────────
 
-    private static readonly string[] ConsentTypes =
+    internal static readonly string[] ConsentTypes =
         ["bodyPhotoAi", "facePhotoPalette", "weight", "contacts", "marketingNotifications", "crossBorderTransfer", "facePhotoTryOn"];
 
     private async Task GrantConsentsAsync(CancellationToken ct)
@@ -686,7 +686,7 @@ internal sealed partial class AiSmokeCommand(IServiceProvider services, OpsArgum
     }
 
     /// <summary>S3 presigned POST: every field first, the file last.</summary>
-    private static async Task<string?> PresignedPostAsync(JsonNode slot, byte[] data, string contentType, CancellationToken ct)
+    internal static async Task<string?> PresignedPostAsync(JsonNode slot, byte[] data, string contentType, CancellationToken ct)
     {
         using var form = new MultipartFormDataContent();
         foreach (var (key, value) in slot["fields"]!.AsObject())
@@ -699,8 +699,8 @@ internal sealed partial class AiSmokeCommand(IServiceProvider services, OpsArgum
         return response.IsSuccessStatusCode ? null : $"S3 {(int)response.StatusCode}: {Truncate(await response.Content.ReadAsStringAsync(ct), 300)}";
     }
 
-    private static string Day(DateOnly day) => day.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
-    private static string Code(JsonNode? body) => body?["code"]?.ToString() ?? body?["title"]?.ToString() ?? body?["raw"]?.ToString() ?? "";
+    internal static string Day(DateOnly day) => day.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+    internal static string Code(JsonNode? body) => body?["code"]?.ToString() ?? body?["title"]?.ToString() ?? body?["raw"]?.ToString() ?? "";
     private static string StripQuery(string url) => url.Split('?')[0];
     private static string Truncate(string text, int max) => text.Length > max ? text[..max] + "…" : text;
 }

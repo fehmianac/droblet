@@ -13,6 +13,11 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
     public const string GenerateLibraryImages = "generate-library-images";
     public const string AiSmoke = "ai-smoke";
     public const string AiProbe = "ai-probe";
+    public const string AiPerf = "ai-perf";
+    public const string AiBench = "ai-bench";
+
+    /// <summary>ai-perf: at most this many runs of every flow (each run renders one try-on and cleans one item photo).</summary>
+    public const int MaxPerfRuns = 10;
     public const string Logs = "logs";
     public const string MigrateLibraryItemImages = "migrate-library-item-images";
     public const string AccountSmoke = "account-smoke";
@@ -20,10 +25,10 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
     /// <summary>Hard ceiling of image-model calls in one run (library images and synthetic fixtures together).</summary>
     public const int MaxImageCallsPerRun = 30;
 
-    public static readonly IReadOnlyList<string> Commands = [GrantTestPremium, RevokeTestPremium, GenerateLibraryImages, AiSmoke, AiProbe, Logs, MigrateLibraryItemImages, AccountSmoke];
+    public static readonly IReadOnlyList<string> Commands = [GrantTestPremium, RevokeTestPremium, GenerateLibraryImages, AiSmoke, AiProbe, AiPerf, AiBench, Logs, MigrateLibraryItemImages, AccountSmoke];
 
     /// <summary>Commands that create or change test accounts or spend AI credit on a throw-away user: never on prod.</summary>
-    public static readonly IReadOnlySet<string> DevOnly = new HashSet<string>(StringComparer.Ordinal) { GrantTestPremium, RevokeTestPremium, AiSmoke, AiProbe, AccountSmoke };
+    public static readonly IReadOnlySet<string> DevOnly = new HashSet<string>(StringComparer.Ordinal) { GrantTestPremium, RevokeTestPremium, AiSmoke, AiProbe, AiPerf, AiBench, AccountSmoke };
 
     private static readonly IReadOnlyDictionary<string, string[]> AllowedOptions = new Dictionary<string, string[]>(StringComparer.Ordinal)
     {
@@ -32,6 +37,8 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [GenerateLibraryImages] = ["only", "max-calls", "quality", "price-per-image"],
         [AiSmoke] = ["api-url", "price-per-image"],
         [AiProbe] = [],
+        [AiPerf] = ["api-url", "runs", "flows"],
+        [AiBench] = ["reps", "efforts", "qualities", "models", "max-calls"],
         [Logs] = ["function", "minutes", "filter", "limit"],
         [MigrateLibraryItemImages] = [],
         [AccountSmoke] = ["api-url"],
@@ -44,6 +51,8 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [GenerateLibraryImages] = ["dry-run", "force"],
         [AiSmoke] = ["keep-user", "items-only", "prereq-only"],
         [AiProbe] = [],
+        [AiPerf] = ["keep-user", "face"],
+        [AiBench] = ["text-only", "image-only"],
         [Logs] = [],
         [MigrateLibraryItemImages] = ["dry-run"],
         [AccountSmoke] = ["keep-user"],
@@ -71,6 +80,12 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
 
     /// <summary>Image-call budget of this run: --max-calls, never above <see cref="MaxImageCallsPerRun"/>.</summary>
     public int MaxImageCalls => Math.Clamp(IntOption("max-calls", MaxImageCallsPerRun), 0, MaxImageCallsPerRun);
+
+    /// <summary>ai-perf flows (default: all).</summary>
+    public static readonly IReadOnlyList<string> AllPerfFlows = ["outfit", "week", "pack", "item", "palette", "tryon"];
+
+    public IReadOnlyList<string> PerfFlows =>
+        Option("flows") is { } raw ? raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(f => f.ToLowerInvariant()).Distinct().ToList() : AllPerfFlows;
 
     public static (OpsArguments? Arguments, string? Error) Parse(IReadOnlyList<string> args)
     {
@@ -145,6 +160,18 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
                 if (Option("quality") is { } quality && quality is not ("low" or "medium" or "high" or "auto"))
                     return "--quality must be low | medium | high | auto";
                 break;
+            case AiPerf:
+                if (Option("runs") is { } runs && (!int.TryParse(runs, out var r) || r is < 1 or > MaxPerfRuns))
+                    return $"--runs must be 1–{MaxPerfRuns}";
+                if (PerfFlows.FirstOrDefault(f => !AllPerfFlows.Contains(f)) is { } flow)
+                    return $"--flows: unknown flow '{flow}' ({string.Join(", ", AllPerfFlows)})";
+                break;
+            case AiBench:
+                if (Option("reps") is { } reps && (!int.TryParse(reps, out var rp) || rp is < 1 or > 5))
+                    return "--reps must be 1–5";
+                if (Option("max-calls") is { } maxCalls && (!int.TryParse(maxCalls, out var mc) || mc is < 0 or > MaxImageCallsPerRun))
+                    return $"--max-calls must be 0–{MaxImageCallsPerRun}";
+                break;
             case Logs:
                 if (Option("function") is not { } fn || !FunctionPattern().IsMatch(fn))
                     return "--function is required (e.g. stylist, tryon, palette, item-processor, api)";
@@ -162,6 +189,8 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         "  generate-library-images [--only id,id] [--dry-run] [--force] [--max-calls N<=30] [--quality high]\n" +
         "  ai-smoke                [--api-url URL] [--keep-user] [--items-only | --prereq-only]  (dev only)\n" +
         "  account-smoke           [--api-url URL] [--keep-user]  (dev only; e-mail verification + data export)\n" +
+        "  ai-perf                 [--runs N<=10] [--flows outfit,week,pack,item,palette,tryon] [--face] [--keep-user]  (dev only; p50/p95 per stage)\n" +
+        "  ai-bench                [--reps N<=5] [--efforts default,low,minimal] [--qualities default,low,medium] [--text-only | --image-only]  (dev only; direct provider calls)\n" +
         "  ai-probe                                                        (dev only; one direct text-model call)\n" +
         "  logs                    --function stylist [--minutes 30] [--filter OpenAI] [--limit 200]\n" +
         "  migrate-library-item-images [--dry-run]                         (one-off, idempotent: library pieces → current library image)";
