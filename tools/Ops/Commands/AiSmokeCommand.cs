@@ -328,7 +328,14 @@ internal sealed partial class AiSmokeCommand(IServiceProvider services, OpsArgum
         if (status == 202 && body?["job"]?["id"]?.GetValue<string>() is { } jobId)
         {
             var afterQueue = await CreditsAsync(ct);
-            await PollStepAsync("try-on", "POST v1/tenant/tryon", jobId, elapsed, ct, result => $"image {result?["tryOnImageId"]}");
+            string? bodyImageId = null;
+            await PollStepAsync("try-on", "POST v1/tenant/tryon", jobId, elapsed, ct, result =>
+            {
+                bodyImageId = result?["tryOnImageId"]?.GetValue<string>();
+                return $"image {bodyImageId}";
+            });
+            await SavePhotosAsync("body-path", ct);
+            if (bodyImageId is not null) await SaveTryOnAsync(bodyImageId, "tryon-body-path", ct);
             var after = await CreditsAsync(ct);
             if (_rows.LastOrDefault() is { } last)
                 _rows[^1] = last with { Notable = $"{last.Notable}; credits {before} → {afterQueue} (queued) → {after} (done, {(before - after == 1 ? "1 charged ✓" : $"Δ {before - after} ✗")})" };
@@ -455,6 +462,53 @@ internal sealed partial class AiSmokeCommand(IServiceProvider services, OpsArgum
         (status, body, elapsed) = await CallAsync(HttpMethod.Get, $"v1/tenant/tryon/{imageId}", null, ct);
         var source = body?["source"]?.ToString();
         Add("GET v1/tenant/tryon/{id} (face path)", status.ToString(), elapsed, status == 200 && source == "face" ? null : "source_not_face", $"source {source}");
+        await SavePhotosAsync("face-path", ct);
+        await SaveTryOnAsync(imageId, "tryon-face-path", ct);
+    }
+
+    // ── keep the generated images (and the synthetic inputs) in the run's artifact for a visual check ─────────────
+    private async Task SaveTryOnAsync(string imageId, string name, CancellationToken ct)
+    {
+        var (status, body, _) = await CallAsync(HttpMethod.Get, $"v1/tenant/tryon/{imageId}", null, ct);
+        if (status == 200 && body?["url"]?.GetValue<string>() is { } url)
+            await DownloadAsync(url, name, ct);
+    }
+
+    private async Task SavePhotosAsync(string prefix, CancellationToken ct)
+    {
+        var (status, body, _) = await CallAsync(HttpMethod.Get, "v1/tenant/photo", null, ct);
+        if (status != 200 || body is null) return;
+        foreach (var kind in new[] { "body", "face" })
+        {
+            var node = body[kind];
+            var photo = node is JsonArray arr ? arr.FirstOrDefault() : node;
+            if (photo?["url"]?.GetValue<string>() is { } url)
+                await DownloadAsync(url, $"{prefix}-input-{kind}", ct);
+        }
+    }
+
+    private async Task DownloadAsync(string url, string name, CancellationToken ct)
+    {
+        try
+        {
+            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
+            using var response = await http.GetAsync(url, ct);
+            if (!response.IsSuccessStatusCode) { output.Line($"save {name}: HTTP {(int)response.StatusCode}"); return; }
+            var ext = (response.Content.Headers.ContentType?.MediaType ?? "") switch
+            {
+                "image/png" => ".png",
+                "image/jpeg" => ".jpg",
+                _ => ".webp",
+            };
+            Directory.CreateDirectory(Path.Combine(output.Directory, "images"));
+            var path = Path.Combine(output.Directory, "images", name + ext);
+            await File.WriteAllBytesAsync(path, await response.Content.ReadAsByteArrayAsync(ct), ct);
+            output.Line($"saved {name}{ext}");
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException)
+        {
+            output.Line($"save {name}: {ex.GetType().Name}");
+        }
     }
 
     /// <summary>A base (top + bottom, or a dress) and shoes, counting own slots and picked pieces.</summary>
