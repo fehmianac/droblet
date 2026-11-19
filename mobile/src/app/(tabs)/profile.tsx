@@ -108,16 +108,28 @@ function CreditCard({ entitlement, hasBodyPhoto }: { entitlement: Entitlement; h
   );
 }
 
-/** Non-members see what membership adds and a way to the paywall instead of the counter. */
+/** Non-members see what membership adds and a way to the paywall instead of the counter (canvas "28 Profil · ücretsiz plan"). */
 function MembershipTeaser() {
   const { t } = useTranslation();
   return (
-    <Card className="gap-3 p-4">
-      <Text variant="h3">{t('me.teaserTitle')}</Text>
-      <Text variant="body" tone="muted">
-        {t('me.teaserBody')}
-      </Text>
-      <Button label={t('me.teaserAction')} onPress={() => router.push({ pathname: '/paywall', params: { from: 'profile' } })} testID="profile.membership" />
+    <Card className="flex-row items-center gap-3 px-3.5 py-3">
+      <View className="flex-1 gap-0.5">
+        <Text variant="h3">{t('me.teaserTitle')}</Text>
+        <Text variant="caption" tone="muted">
+          {t('me.teaserBody')}
+        </Text>
+      </View>
+      <Pressable
+        onPress={() => router.push({ pathname: '/paywall', params: { from: 'profile' } })}
+        accessibilityRole="button"
+        accessibilityLabel={t('me.teaserAction')}
+        testID="profile.membership"
+        className="h-10 items-center justify-center rounded-pill bg-ink px-3.5 active:opacity-80"
+      >
+        <Text variant="segment" tone="cream" numberOfLines={1}>
+          {t('me.teaserAction')}
+        </Text>
+      </Pressable>
     </Card>
   );
 }
