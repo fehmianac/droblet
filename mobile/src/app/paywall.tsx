@@ -132,7 +132,8 @@ export default function PaywallScreen() {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
-  const hero = paywallHeroHeight(windowHeight);
+  const [screenHeight, setScreenHeight] = useState(windowHeight);
+  const hero = paywallHeroHeight(windowHeight, screenHeight);
   const compact = paywallCompact(windowHeight);
   const { from } = useLocalSearchParams<{ from?: string }>();
   const session = useSession();
@@ -240,7 +241,7 @@ export default function PaywallScreen() {
   }
 
   return (
-    <View className="flex-1 bg-cream">
+    <View className="flex-1 bg-cream" onLayout={(e) => setScreenHeight(e.nativeEvent.layout.height)}>
       {/* The footer below is laid out after the scroll view (not over it): the scroll area ends where the footer
           starts, so the bottom padding of the content is exactly the footer's height and nothing hides under it. */}
       <ScrollView className="flex-1" contentContainerClassName="pb-4" testID="paywall.scroll">
