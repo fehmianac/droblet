@@ -66,13 +66,14 @@ internal static partial class AiCostLog
 /// A named settings variant of ai-cost: "name:key=value,key=value", several separated by ';' (no spaces — the workflow
 /// splits arguments on whitespace). "base" (or a name without settings) = the stage's current config.
 /// Text keys: effort, effort.{op}, model, fast, fastops (a|b), detail.{op}, tier, tier.{op}, maxout.{op}, compact, cap,
-/// weekbatch, cachekey. Image keys: quality, size, fidelity, uses (cleanup|tryon).
+/// weekbatch, cachekey. Image keys: imagemodel (another OpenAI image model, measurement only), quality, size, fidelity,
+/// uses (cleanup|tryon|tryon4|tryonface; default cleanup|tryon).
 /// </summary>
 internal sealed record CostVariant(string Name, IReadOnlyDictionary<string, string> Settings)
 {
     public static readonly CostVariant Base = new("base", new Dictionary<string, string>());
 
-    private static readonly string[] Keys = ["effort", "model", "fast", "fastops", "tier", "compact", "cap", "weekbatch", "cachekey", "quality", "size", "fidelity", "uses"];
+    private static readonly string[] Keys = ["effort", "model", "fast", "fastops", "tier", "compact", "cap", "weekbatch", "cachekey", "imagemodel", "quality", "size", "fidelity", "uses"];
     private static readonly string[] PrefixKeys = ["effort.", "detail.", "tier.", "maxout."];
 
     public string? Get(string key) => Settings.TryGetValue(key, out var value) ? value : null;
@@ -130,6 +131,7 @@ internal sealed record CostVariant(string Name, IReadOnlyDictionary<string, stri
                 case "fastops": o.FastTextOperations = value.Replace('|', ','); break;
                 case "tier": o.ServiceTier = value == "default" ? null : value; break;
                 case "cachekey": o.PromptCacheKey = value is "1" or "true"; break;
+                case "imagemodel": o.ImageModel = value; break;
                 case "quality" or "size" or "fidelity" or "uses": break; // image keys: below
                 case "compact" or "cap" or "weekbatch": break;              // stylist keys: Compact / Cap / WeekBatch
                 default:
@@ -151,7 +153,7 @@ internal sealed record CostVariant(string Name, IReadOnlyDictionary<string, stri
             if (Get("quality") is not null) o.Image.CleanupQuality = Value("quality");
             if (Get("size") is not null) o.Image.CleanupSize = Value("size");
         }
-        if (uses.Contains("tryon"))
+        if (uses.Contains("tryon") || uses.Contains("tryon4") || uses.Contains("tryonface"))
         {
             if (Get("quality") is not null) o.Image.TryOnQuality = Value("quality");
             if (Get("size") is not null) o.Image.TryOnSize = Value("size");

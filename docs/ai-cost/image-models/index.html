@@ -1,0 +1,126 @@
+<title>Droblet Image Model Contact Sheet</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600&display=swap">
+<style>
+/* Layout: one band per test, inputs first, then each model's output as a captioned card in a sideways-scrolling strip. */
+:root {
+  --bg: #faf8f5; --surface: #ffffff; --fg: #1f1c19; --muted: #6b645c; --line: #e3ddd4;
+  --sand: #e8e1d7; --good: #2f7d4f; --warn: #a86a12; --bad: #b3372b;
+  --display: "Space Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #171513; --surface: #211e1b; --fg: #eee9e2; --muted: #a39b91; --line: #38332d;
+  --sand: #4a4239; --good: #6cc391; --warn: #e0a64b; --bad: #ef7b6e; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #171513; --surface: #211e1b; --fg: #eee9e2; --muted: #a39b91; --line: #38332d;
+  --sand: #4a4239; --good: #6cc391; --warn: #e0a64b; --bad: #ef7b6e; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font: 14px/1.5 var(--body); }
+.wrap { max-width: 1400px; margin: 0 auto; padding-block: 32px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 40px; }
+h1, h2 { font-family: var(--display); text-wrap: balance; margin: 0; }
+h1 { font-size: 1.9rem; }
+h2 { font-size: 1.25rem; }
+header p, section > p { max-width: 75ch; color: var(--muted); margin: 6px 0 0; }
+.key { display: flex; flex-wrap: wrap; gap: 8px 20px; color: var(--muted); font-size: 0.85rem; margin-top: 12px; }
+.strip { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; margin-top: 14px; }
+figure { margin: 0; flex: 0 0 210px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; }
+figure.input { background: var(--sand); }
+figure a { display: block; }
+figure img { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; display: block; background: var(--line); }
+figure.input img { object-fit: contain; }
+figcaption { padding: 8px 10px 10px; display: grid; gap: 4px; font-size: 0.8rem; }
+.model { font-weight: 600; font-size: 0.85rem; }
+.nums { font-variant-numeric: tabular-nums; color: var(--muted); }
+.score { display: inline-block; font-weight: 600; font-size: 0.75rem; padding: 1px 7px; border-radius: 999px; border: 1px solid currentColor; justify-self: start; }
+.s5, .s4 { color: var(--good); } .s3 { color: var(--warn); } .s2, .s1 { color: var(--bad); }
+.note { color: var(--fg); }
+a { color: inherit; }
+a:focus-visible { outline: 2px solid var(--warn); outline-offset: 2px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Image model contact sheet</h1>
+    <p>Background cleanup and try-on on the synthetic dev fixtures, 2026-11-19, one sample per cell (ai-cost run 44585182785). Every model is called with the same prompts as the workers, quality <code>auto</code> unless marked low. Costs are from the token usage the API returned, at OpenAI list prices. Click an image for full size. Write-up: <code>docs/ai-cost/image-models.md</code>.</p>
+    <div class="key">
+      <span>Score 1–5: garment fidelity, identity, head-to-feet framing, artefacts, house look</span>
+      <span>s25 = gpt-image-2.5-sunburst (today)</span><span>f25 = 2.5-flare</span><span>s26 / f26 = 2.6-sunburst / -flare</span>
+      <span>mini = gpt-image-1-mini</span><span>g15 = gpt-image-1.5</span>
+    </div>
+  </header>
+  <div id="sections"></div>
+</div>
+
+<script>
+const S = [
+  { title: "Cleanup: sweater (phone photo on a wooden floor)", intro: "Product shot on the sand #E8E1D7 house background.",
+    inputs: [["input-garment", "Input"]],
+    cells: [
+      ["cleanup-sweater-base-1", "s25 auto (today)", "$0.0137", "11.9 s", 5, "Navy, knit texture, sand background"],
+      ["cleanup-sweater-f25-1", "f25 auto", "$0.0137", "10.5 s", 5, "Same as today"],
+      ["cleanup-sweater-s26-1", "s26 auto", "$0.0288", "11.5 s", 5, "Same look, 4× output tokens"],
+      ["cleanup-sweater-f26-1", "f26 auto", "$0.0288", "8.3 s", 5, "Same look, 4× output tokens"],
+      ["cleanup-sweater-mini-1", "mini auto", "$0.0155", "17.9 s", 2, "White background, darker navy, texture lost"],
+      ["cleanup-sweater-minilow-1", "mini low", "$0.0061", "11.2 s", 2, "White background, near-black navy, flat knit"],
+      ["cleanup-sweater-g15-1", "g15 auto", "$0.0622", "14.6 s", 2, "White background, purple shift, small"],
+    ] },
+  { title: "Cleanup: jeans crop from the flat lay", intro: "Crop cut by the item worker's own crop maths; a shoe and the t-shirt hem are in the crop.",
+    inputs: [["input-jeans-crop", "Input crop"]],
+    cells: [
+      ["cleanup-jeans-base-1", "s25 auto (today)", "$0.0166", "17.1 s", 5, "Wash, seams and pockets kept"],
+      ["cleanup-jeans-f25-1", "f25 auto", "$0.0166", "11.7 s", 5, "Same as today"],
+      ["cleanup-jeans-s26-1", "s26 auto", "$0.0402", "16.7 s", 5, "Same look, 3× output tokens"],
+      ["cleanup-jeans-f26-1", "f26 auto", "$0.0402", "9.5 s", 5, "Same look, 3× output tokens"],
+      ["cleanup-jeans-mini-1", "mini auto", "$0.0147", "18.0 s", 3, "White background, flatter wash"],
+      ["cleanup-jeans-minilow-1", "mini low", "$0.0053", "12.3 s", 2, "White background, waistband redrawn, uniform wash"],
+      ["cleanup-jeans-g15-1", "g15 auto", "$0.0654", "16.8 s", 3, "White background, small in frame"],
+    ] },
+  { title: "Try-on: body photo + 2 garments", intro: "Sweater + jeans on the body fixture (grey tee, black trousers, white sneakers).",
+    inputs: [["input-body", "Body photo"]],
+    cells: [
+      ["tryon-base-1", "s25 auto (today)", "$0.0678", "28.0 s", 5, "Same face, head to feet, 1372 out tokens"],
+      ["tryon-f25-1", "f25 auto", "$0.0314", "12.1 s", 5, "Same face and fit, 158 out tokens"],
+      ["tryon-s26-1", "s26 auto", "$0.0678", "26.8 s", 5, "Same face"],
+      ["tryon-f26-1", "f26 auto", "$0.0465", "9.3 s", 5, "Same face, fastest"],
+      ["tryon-mini-1", "mini auto", "$0.0210", "19.0 s", 2, "Different woman (face, makeup), darker sweater"],
+      ["tryon-minilow-1", "mini low", "$0.0116", "10.4 s", 1, "Different woman, teal-navy sweater"],
+    ] },
+  { title: "Try-on: body photo + 4 garments", intro: "Sweater, jeans, sneakers, tote.",
+    inputs: [["input-shoes-crop", "Sneakers crop"], ["input-bag-crop", "Tote crop"]],
+    cells: [
+      ["tryon4-base-1", "s25 auto (today)", "$0.0807", "27.3 s", 5, "All four pieces, same face"],
+      ["tryon4-mini-1", "mini auto", "$0.0222", "17.9 s", 2, "All four pieces, but a different woman"],
+    ] },
+  { title: "Try-on: face photo + 3 garments (figure: pear, 165 cm, M)", intro: "No body photo: the model builds a full figure from the face.",
+    inputs: [["input-face", "Face photo"]],
+    cells: [
+      ["tryonface-base-1", "s25 auto (today)", "$0.0341", "13.1 s", 5, "Same face, curly hair kept, head to feet"],
+      ["tryonface-f25-1", "f25 auto", "$0.0397", "14.3 s", 5, "Same face"],
+      ["tryonface-s26-1", "s26 auto", "$0.0634", "14.0 s", 4, "Same face, adds a white tee under the sweater"],
+      ["tryonface-f26-1", "f26 auto", "$0.0634", "10.2 s", 5, "Same face"],
+      ["tryonface-mini-1", "mini auto", "$0.0204", "16.6 s", 2, "Different face, shorter hair, extra white tee"],
+      ["tryonface-minilow-1", "mini low", "$0.0110", "12.1 s", 1, "Different face and hair, extra white tee"],
+    ] },
+];
+const el = (t, cls, txt) => { const e = document.createElement(t); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+const root = document.getElementById("sections");
+root.style.display = "grid"; root.style.gap = "40px";
+for (const s of S) {
+  const sec = el("section"); sec.append(el("h2", null, s.title), el("p", null, s.intro));
+  const strip = el("div", "strip");
+  const card = (file, label, extra) => {
+    const f = el("figure", extra ? "" : "input"); const a = el("a"); a.href = file + ".jpg"; a.target = "_blank"; a.rel = "noopener";
+    const img = el("img"); img.src = file + ".jpg"; img.alt = label; img.loading = "lazy"; a.append(img); f.append(a);
+    const c = el("figcaption"); c.append(el("span", "model", label));
+    if (extra) { const [cost, lat, score, note] = extra;
+      c.append(el("span", "nums", cost + " · " + lat), el("span", "score s" + score, score + " / 5"), el("span", "note", note)); }
+    f.append(c); return f;
+  };
+  for (const [file, label] of s.inputs) strip.append(card(file, label));
+  for (const [file, label, cost, lat, score, note] of s.cells) strip.append(card(file, label, [cost, lat, score, note]));
+  sec.append(strip); root.append(sec);
+}
+</script>
