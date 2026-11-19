@@ -178,7 +178,18 @@ public record TripItemDto(string ItemId, int PlannedWears, bool Packed, DateTime
 
 public record TripDayDto(string Date, string? Label, Occasion? Occasion, IReadOnlyList<LookSlotDto> Slots, WeatherDto? Weather);
 
-public record TripDetailDto(TripDto Trip, IReadOnlyList<TripItemDto> Items, IReadOnlyList<TripDayDto> Days);
+/// <summary>
+/// Where the trip's forecast stands. <c>available</c> = every trip day is known · <c>partial</c> = the first days are known,
+/// the rest is past the provider's horizon (or already over) · <c>beyondRange</c> = the trip starts after the horizon
+/// ("not available yet", shown quietly) · <c>past</c> = the trip is over · <c>unavailable</c> = the provider failed and
+/// nothing is cached (retry later) · <c>noLocation</c> = the trip's city could not be resolved to coordinates.
+/// </summary>
+public enum TripForecastStatus { Available, Partial, BeyondRange, Past, Unavailable, NoLocation }
+
+/// <summary>The trip's daily forecast, independent of the packing list. <c>HorizonEnd</c> = last forecast day the provider covers.</summary>
+public record TripForecastDto(TripForecastStatus Status, IReadOnlyList<WeatherDto> Days, string? HorizonEnd);
+
+public record TripDetailDto(TripDto Trip, IReadOnlyList<TripItemDto> Items, IReadOnlyList<TripDayDto> Days, TripForecastDto? Forecast = null);
 
 // ── E6 try-on ─────────────────────────────────────────────────────────────────────────────────────────────────────
 

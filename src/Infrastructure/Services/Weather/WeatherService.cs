@@ -97,7 +97,7 @@ public sealed class WeatherService(
         IReadOnlyList<DailyForecast> fresh;
         try
         {
-            fresh = await provider.GetDailyAsync(latitude, longitude, IWeatherService.MaxDays, ct);
+            fresh = await provider.GetDailyAsync(latitude, longitude, IWeatherService.HorizonDays, ct);
             if (fresh.Count == 0)
                 throw new WeatherUnavailableException("The provider returned no forecast.");
         }

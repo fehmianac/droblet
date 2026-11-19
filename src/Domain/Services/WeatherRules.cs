@@ -39,5 +39,5 @@ public static class WeatherRules
     public static string LocationKey(double latitude, double longitude) => string.Create(CultureInfo.InvariantCulture,
         $"geo:{RoundCoordinate(latitude):0.0}:{RoundCoordinate(longitude):0.0}");
 
-    public static int ClampDays(int? days) => Math.Clamp(days ?? IWeatherService.MaxDays, 1, IWeatherService.MaxDays);
+    public static int ClampDays(int? days) => Math.Clamp(days ?? IWeatherService.MaxDays, 1, IWeatherService.HorizonDays);
 }

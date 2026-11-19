@@ -25,7 +25,14 @@ public class Put : IEndpoint
         if (!validation.IsValid)
             return Results.BadRequest(validation.Errors.ToProblemDetails());
 
-        return (await trips.UpdateAsync(apiContext.TenantId, id, request, cancellationToken)).ToHttp();
+        try
+        {
+            return (await trips.UpdateAsync(apiContext.TenantId, id, request, cancellationToken)).ToHttp();
+        }
+        catch (WeatherUnavailableException)
+        {
+            return ApiResults.Problem(StatusCodes.Status503ServiceUnavailable, StoreSocialErrorCodes.WeatherUnavailable);
+        }
     }
 
     public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints)
@@ -34,7 +41,9 @@ public class Put : IEndpoint
             .Produces<TripDto>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound)
             .Produces<TripDto>(StatusCodes.Status409Conflict)
+            .Produces<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)
+            .Produces<ProblemDetails>(StatusCodes.Status503ServiceUnavailable)
             .Validated()
-            .Tenant("Tenant Trip", "Update trip", "Trip fields if baseVersion matches; 409 carries the current trip.");
+            .Tenant("Tenant Trip", "Update trip", "Trip fields if baseVersion matches; 409 carries the current trip. Without cityId the cityName is geocoded (422 trip_city_not_found / 503 weather_unavailable).");
     }
 }

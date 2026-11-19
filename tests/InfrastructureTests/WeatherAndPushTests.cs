@@ -157,7 +157,7 @@ public class WeatherServiceTests
         Assert.Equal(first.FetchedAt, cached.FetchedAt);
         Assert.Equal(2, refreshed.Days[0].MinC);                                      // values of the second fetch
         var rows = await repository.GetAllAsync<WeatherForecastEntity>(WeatherForecastEntity.GetPk("geo:41.0:29.0"));
-        Assert.Equal(7, rows.Count);
+        Assert.Equal(IWeatherService.HorizonDays, rows.Count);                        // the whole provider horizon is cached
         Assert.All(rows, r => Assert.True(r.Ttl > clock.GetUtcNow().ToUnixTimeSeconds()));
     }
 

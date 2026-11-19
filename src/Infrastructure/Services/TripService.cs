@@ -48,13 +48,17 @@ public sealed class TripService(
         if (await GetEntityAsync(tenantId, command.Id, ct) is { } existing)
             return ServiceResult.Ok(ToDto(existing, await ItemsAsync(tenantId, existing.Id, ct)));
 
+        var city = await LocationAsync(command.CityId, command.CityName, ct);
+        if (city is null)
+            return ServiceResult.Invalid<TripDto>(ErrorCodes.TripCityNotFound);
+
         var now = Now;
         var trip = new TripEntity
         {
             Id = command.Id,
             TenantId = tenantId,
-            CityId = command.CityId.Trim(),
-            CityName = Blank(command.CityName),
+            CityId = city.Value.Id,
+            CityName = city.Value.Name,
             StartDate = command.StartDate,
             EndDate = command.EndDate,
             TripTypes = (command.TripTypes ?? []).Distinct().ToList(),
@@ -76,8 +80,12 @@ public sealed class TripService(
         if (trip.Version != command.BaseVersion)
             return ServiceResult.Conflict(ToDto(trip, items));
 
-        trip.CityId = command.CityId.Trim();
-        trip.CityName = Blank(command.CityName);
+        var city = await LocationAsync(command.CityId, command.CityName, ct);
+        if (city is null)
+            return ServiceResult.Invalid<TripDto>(ErrorCodes.TripCityNotFound);
+
+        trip.CityId = city.Value.Id;
+        trip.CityName = city.Value.Name;
         trip.StartDate = command.StartDate;
         trip.EndDate = command.EndDate;
         trip.TripTypes = (command.TripTypes ?? []).Distinct().ToList();
@@ -255,15 +263,83 @@ public sealed class TripService(
         var items = await ItemsAsync(trip.TenantId, trip.Id, ct);
         var days = await DaysAsync(trip.TenantId, trip.Id, ct);
         var itemIds = await LookService.ItemIdsAsync(repository, trip.TenantId, ct);
-        var forecast = (await weather.GetForecastAsync(new WeatherQuery(trip.CityId, null, null, trip.StartDate, trip.EndDate), ct))
-            .GroupBy(f => f.Date, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.First().ToDto(), StringComparer.Ordinal);
+        var tripForecast = await ForecastAsync(trip, ct);
+        var forecast = tripForecast.Days.ToDictionary(d => d.Date, StringComparer.Ordinal);
 
         return new TripDetailDto(
             ToDto(trip, items),
             items.OrderBy(i => i.ItemId, StringComparer.Ordinal).Select(i => ToDto(i, itemIds)).ToList(),
             days.OrderBy(d => d.Date, StringComparer.Ordinal)
                 .Select(d => new TripDayDto(d.Date, d.Label, d.Occasion, d.Slots.OrderBy(s => s.Slot).Select(s => s.ToDto(itemIds)).ToList(), forecast.GetValueOrDefault(d.Date)))
-                .ToList());
+                .ToList(),
+            tripForecast);
+    }
+
+    /// <summary>
+    /// The trip's location as stored: a known city id (picked from the city search) is kept as sent; a trip without one
+    /// (free-text city, older client) is geocoded by its name and stored with the first match's id and name. Null = the
+    /// name matches no place (422 <c>trip_city_not_found</c>). A provider outage while geocoding surfaces as
+    /// <see cref="WeatherUnavailableException"/> (503 <c>weather_unavailable</c>): a trip is never stored without a location.
+    /// </summary>
+    private async Task<(string Id, string? Name)?> LocationAsync(string? cityId, string? cityName, CancellationToken ct)
+    {
+        var name = Blank(cityName);
+        if (Blank(cityId) is { } id)
+            return (id, name);
+        if (name is null)
+            return null;
+        var match = (await weather.SearchCitiesAsync(name, ct)).FirstOrDefault();
+        return match is null ? null : (match.Id, match.Name);
+    }
+
+    /// <summary>
+    /// The daily forecast of every trip day (not only of the accepted plan's days), with a status that tells the app what
+    /// an empty strip means. The city comes from the city cache; an id the cache does not know is re-resolved by the trip's
+    /// city name. Weather is context: this never throws for a provider failure.
+    /// </summary>
+    private async Task<TripForecastDto> ForecastAsync(TripEntity trip, CancellationToken ct)
+    {
+        var today = CalendarDay.ToText(DateOnly.FromDateTime(Now));
+        if (string.CompareOrdinal(trip.EndDate, today) < 0)
+            return new TripForecastDto(TripForecastStatus.Past, [], null);
+
+        WeatherForecast? forecast;
+        try
+        {
+            var city = await weather.GetCityAsync(trip.CityId, ct);
+            if (city is null && Blank(trip.CityName) is { } name)
+                city = (await weather.SearchCitiesAsync(name, ct)).FirstOrDefault();
+            if (city is null)
+                return new TripForecastDto(TripForecastStatus.NoLocation, [], null);
+            forecast = await weather.GetForecastByCityAsync(city.Id, IWeatherService.HorizonDays, ct);
+        }
+        catch (WeatherUnavailableException)
+        {
+            return new TripForecastDto(TripForecastStatus.Unavailable, [], null);
+        }
+        if (forecast is null)
+            return new TripForecastDto(TripForecastStatus.NoLocation, [], null);
+        if (forecast.Days.Count == 0)
+            return new TripForecastDto(TripForecastStatus.Unavailable, [], null);
+
+        return TripForecast(TripDates(trip), forecast.Days);
+    }
+
+    /// <summary>Pure part of <see cref="ForecastAsync"/>: the trip's days out of the provider's horizon, and the status.</summary>
+    public static TripForecastDto TripForecast(IReadOnlyList<string> tripDates, IReadOnlyList<DailyForecast> horizon)
+    {
+        if (horizon.Count == 0 || tripDates.Count == 0)
+            return new TripForecastDto(TripForecastStatus.Unavailable, [], null);
+        var horizonEnd = horizon.Max(d => d.Date)!;
+        var wanted = tripDates.ToHashSet(StringComparer.Ordinal);
+        var days = horizon.Where(d => wanted.Contains(d.Date))
+            .GroupBy(d => d.Date, StringComparer.Ordinal).Select(g => g.First().ToDto())
+            .OrderBy(d => d.Date, StringComparer.Ordinal).ToList();
+        var status = days.Count == tripDates.Count ? TripForecastStatus.Available
+            : days.Count > 0 ? TripForecastStatus.Partial
+            : string.CompareOrdinal(tripDates[0], horizonEnd) > 0 ? TripForecastStatus.BeyondRange
+            : TripForecastStatus.Unavailable;
+        return new TripForecastDto(status, days, horizonEnd);
     }
 
     private TripDto ToDto(TripEntity trip, IReadOnlyList<TripItemEntity> items)
