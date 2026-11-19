@@ -21,6 +21,8 @@ import { PhotoRejected } from '@/features/requirements/PhotoRejected';
 import { requirementsFlow } from '@/features/requirements/store';
 import { isTryOnTargetKind, TRY_ON_CREDIT_COST, useStartTryOn, useTryOnJob } from '@/features/tryon/api';
 import { TryOnResultImage } from '@/features/tryon/TryOnResultImage';
+import { CachedTryOnNote, isCachedTryOnJob } from '@/features/tryon/cached';
+import { Zoomable } from '@/components/ui/viewer';
 import { useThemeColors } from '@/theme/useThemeColors';
 
 /** "AI önizleme" on the stage: the ink badge at its 28-high size (`AiYukleniyor`). */
@@ -110,16 +112,24 @@ export default function TryOnScreen() {
 
   if (job.isDone) {
     const remaining = job.result?.creditsRemaining ?? credits.remaining;
+    const imageLabel = title ? t('tryOn.imageA11yNamed', { name: title }) : t('tryOn.imageA11y');
+    const imageTag = job.result?.source === 'face' ? t('req.tryOnFace.tag') : t('aiBadge.onYou');
+    const imageUrl = job.result?.imageUrl ?? null;
     return (
       <Screen bottom>
         <ScreenHeader title={t('screens.tryon')} leading="close" onLeadingPress={close} />
         <ScrollView contentContainerClassName="gap-4 px-gutter pb-4">
-          <View>
+          <Zoomable
+            images={imageUrl ? [{ uri: imageUrl, label: imageLabel, ai: { tag: imageTag } }] : []}
+            disabled={!imageUrl}
+            accessibilityLabel={imageLabel}
+            testID="tryon.zoom"
+          >
             <TryOnResultImage
               tryOnId={job.result?.tryOnId ?? null}
               url={job.result?.imageUrl ?? null}
               className="aspect-[4/5] w-full"
-              accessibilityLabel={title ? t('tryOn.imageA11yNamed', { name: title }) : t('tryOn.imageA11y')}
+              accessibilityLabel={imageLabel}
               tagLabel={job.result?.source === 'face' ? t('req.tryOnFace.tag') : undefined}
             />
             {job.result?.imageUrl ? (
@@ -127,7 +137,7 @@ export default function TryOnScreen() {
                 <Badge tone="ink" icon={Sparkles} label={t('ai.previewBadge')} />
               </View>
             ) : null}
-          </View>
+          </Zoomable>
           <View className="gap-1.5" accessibilityLiveRegion="polite">
             <Text variant="eyebrow">{t('tryOn.readyEyebrow')}</Text>
             <Text variant="h2">{title ? t('tryOn.readyTitleNamed', { name: title }) : t('tryOn.readyTitle')}</Text>
@@ -156,7 +166,10 @@ export default function TryOnScreen() {
                 </Pressable>
               </View>
             ) : null}
-            {remaining !== null && remaining !== undefined ? (
+            {isCachedTryOnJob(params.jobId) ? (
+              // 13d: nothing was generated and nothing charged — said instead of the balance.
+              <CachedTryOnNote />
+            ) : remaining !== null && remaining !== undefined ? (
               <Text variant="caption" tone="muted">
                 {t('tryOn.remaining', { count: remaining })}
               </Text>

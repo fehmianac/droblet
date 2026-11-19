@@ -16,6 +16,7 @@ import { openCreditTopUp, useAiCredits } from '@/features/credits/useAiCredits';
 import { useIsOnline } from '@/sync/network';
 
 import { ensureTryOnConsent, isConsentDeclined, TRY_ON_CREDIT_COST, useStartTryOn } from './api';
+import { useCachedTryOn } from './cached';
 
 export type OnYouState = 'photo' | 'member' | 'credits' | 'tryOn';
 
@@ -69,6 +70,9 @@ export function OnYouCta({ target, title, feature, hasBodyPhoto }: Props) {
   const tryOn = useStartTryOn();
   const [confirm, setConfirm] = useState(false);
   const [note, setNote] = useState<'offline' | 'failed' | null>(null);
+  // 13d: an image that already exists for this target + photo opens directly — no sheet, no credit.
+  const cached = useCachedTryOn(target);
+  const openResult = (jobId: string) => router.push({ pathname: '/tryon/[jobId]', params: { jobId, title, kind: target.kind, id: target.id } });
 
   const known = credits.remaining !== null;
   // Consent of the photo path, then the credit confirmation — also the resume of the requirements flow.
@@ -76,11 +80,13 @@ export function OnYouCta({ target, title, feature, hasBodyPhoto }: Props) {
   const gate = useGate('tryOn', openConfirm, { origin: title });
   // A usable picture: the full-length photo, or the face photo path once it is complete (canvas 11e).
   const pictureReady = hasBodyPhoto ?? (photos.data ? photos.data.body.length > 0 || !gate.req.choosePath : null);
-  const state = decideOnYouState({
+  const decided = decideOnYouState({
     hasBodyPhoto: pictureReady,
     isMember: known ? credits.isMember : null,
     remaining: credits.remaining,
   });
+  // A cached image costs nothing: membership or the credit balance never stand in its way.
+  const state = cached.cachedJobId && (decided === 'member' || decided === 'credits') ? 'tryOn' : decided;
 
   if (state === 'photo') {
     return (
@@ -109,7 +115,7 @@ export function OnYouCta({ target, title, feature, hasBodyPhoto }: Props) {
       try {
         const { jobId } = await tryOn.start(target);
         setConfirm(false);
-        router.push({ pathname: '/tryon/[jobId]', params: { jobId, title, kind: target.kind, id: target.id } });
+        openResult(jobId);
       } catch (error) {
         setConfirm(false);
         if (!isConsentDeclined(error) && !openCreditSheetIfExhausted(error, feature)) setNote('failed');
@@ -131,6 +137,10 @@ export function OnYouCta({ target, title, feature, hasBodyPhoto }: Props) {
             return;
           }
           setNote(null);
+          if (cached.cachedJobId) {
+            openResult(cached.cachedJobId);
+            return;
+          }
           // What is missing opens the requirements flow (canvas 11); otherwise consent, then the credit confirmation.
           gate.run();
         }}
