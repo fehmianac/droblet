@@ -91,7 +91,11 @@ public sealed class WeatherService(
         days = WeatherRules.ClampDays(days);
         var now = Now;
         var cached = await LatestBatchAsync(locationKey, ct);
-        if (cached.Count >= days && now - cached[0].FetchedAt < TimeSpan.FromMinutes(options.CurrentValue.CacheMinutes))
+        // Every fetch asks for the whole horizon, but the provider leaves its last days empty (Open-Meteo: 16 asked,
+        // ~14 complete): a fresh batch longer than the old 7-day fetch is the full horizon and is served as it is,
+        // otherwise every 16-day read would call the provider again.
+        if ((cached.Count >= days || cached.Count > IWeatherService.MaxDays)
+            && now - cached[0].FetchedAt < TimeSpan.FromMinutes(options.CurrentValue.CacheMinutes))
             return ToForecast(locationKey, city, cached, days);
 
         IReadOnlyList<DailyForecast> fresh;

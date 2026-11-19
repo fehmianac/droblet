@@ -118,12 +118,14 @@ public class WeatherServiceTests
     {
         public int Calls;
         public bool Down;
+        /// <summary>Days at the end of the horizon the provider leaves empty (Open-Meteo: the last ~2 of 16).</summary>
+        public int MissingTail;
 
         public Task<IReadOnlyList<DailyForecast>> GetDailyAsync(double latitude, double longitude, int days, CancellationToken ct)
         {
             if (Down) throw new WeatherUnavailableException("down");
             Calls++;
-            return Task.FromResult<IReadOnlyList<DailyForecast>>(Enumerable.Range(0, days)
+            return Task.FromResult<IReadOnlyList<DailyForecast>>(Enumerable.Range(0, days - MissingTail)
                 .Select(i => new DailyForecast($"2026-11-{18 + i:00}", Calls, 20, WeatherCondition.Clear, 0, null)).ToList());
         }
 
@@ -159,6 +161,27 @@ public class WeatherServiceTests
         var rows = await repository.GetAllAsync<WeatherForecastEntity>(WeatherForecastEntity.GetPk("geo:41.0:29.0"));
         Assert.Equal(IWeatherService.HorizonDays, rows.Count);                        // the whole provider horizon is cached
         Assert.All(rows, r => Assert.True(r.Ttl > clock.GetUtcNow().ToUnixTimeSeconds()));
+    }
+
+    [Fact]
+    public async Task AShortHorizon_IsStillServedFromTheCache_ButALegacySevenDayBatchIsRefetchedForMoreDays()
+    {
+        var (service, provider, repository, _) = Create();
+        provider.MissingTail = 2;                                                     // 16 asked, 14 complete
+
+        var first = await service.GetForecastByLocationAsync(41, 29, IWeatherService.HorizonDays, default);
+        var again = await service.GetForecastByLocationAsync(41, 29, IWeatherService.HorizonDays, default);
+
+        Assert.Equal((1, 14, 14), (provider.Calls, first.Days.Count, again.Days.Count));
+
+        // A batch written by the old 7-day fetch is not the horizon: a longer read fetches again.
+        await repository.BatchWriteAsync(Enumerable.Range(0, 7).Select(i => (Domain.Entity.Base.IEntity)new WeatherForecastEntity
+        {
+            LocationKey = "geo:10.0:10.0", Date = $"2026-11-{18 + i:00}", MinC = 1, MaxC = 2, Condition = WeatherCondition.Clear,
+            FetchedAt = Fixtures.Now, Ttl = long.MaxValue,
+        }).ToList());
+        var legacy = await service.GetForecastByLocationAsync(10, 10, IWeatherService.HorizonDays, default);
+        Assert.Equal((2, 14), (provider.Calls, legacy.Days.Count));
     }
 
     [Fact]
