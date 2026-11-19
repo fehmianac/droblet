@@ -260,7 +260,7 @@
               "- kıyafetlerini fotoğraflayıp ya da elle girip dijital gardırobunu oluşturmak (yapay zekâ türü, rengi ve kumaşı önerir; kaydetmeden önce sen onaylarsın);",
               "- look (kombin) oluşturmak, takvimine plan yapmak, ne giydiğini kaydetmek;",
               "- stilistten günlük kombin, haftalık plan ve seyahat bavulu önerisi almak;",
-              "- kombinleri ve mağaza ürünlerini kendi boy fotoğrafın üzerinde görmek (“Üzerimde gör”) ve yüz fotoğrafından renk paleti analizi almak;",
+              "- kombinleri ve mağaza ürünlerini kendi boy fotoğrafın üzerinde — boy fotoğrafın yoksa yüz fotoğrafın ve seçtiğin vücut tipiyle oluşturulan figür üzerinde — görmek (“Üzerimde gör”) ve yüz fotoğrafından renk paleti analizi almak;",
               "- haftanın edit'ini ve mağaza kataloğunu keşfetmek, ürünleri markanın kendi mağazasında satın almak için yönlendirilmek;",
               "- arkadaşlarını takip etmek, görünürlük ayarının izin verdiği ölçüde dolaplarını ve look'larını görmek ve look'ları puanlamak.",
               "Gardırop, look, takvim, mağaza ve sosyal özellikler ücretsizdir. Yapay zekâ özellikleri Droblet Üyelik gerektirir; üye olmayanlar ilk 10 parça fotoğrafında yapay zekâ ile parça tanımayı ücretsiz kullanabilir. Ayrıntılar Abonelik Koşulları'ndadır.",
@@ -423,7 +423,7 @@
         "summary": [
           "Boy fotoğrafın, yüz fotoğrafın ve senin üzerinde üretilen görseller yalnızca sana açıktır ve hiçbir ayarda başkasına gösterilmez.",
           "Bu fotoğrafları ve üretilen görselleri Profil › Gizlilik'ten, hesabını silmeden de istediğin an silebilirsin.",
-          "Yüz fotoğrafını yalnızca renk paleti analizi için kullanırız; kimlik tespiti ya da yüz tanıma yapmayız, yüz şablonu çıkarmayız.",
+          "Yüz fotoğrafını renk paleti analizi için ve — ayrı rızanla, boy fotoğrafın yoksa — “Üzerimde gör” figürünü oluşturmak için kullanırız; kimlik tespiti ya da yüz tanıma yapmayız, yüz şablonu çıkarmayız.",
           "Yapay zekâ işlemleri için fotoğrafların ve gerekli bilgiler OpenAI'ye gönderilir; verilerimiz AWS Frankfurt'ta saklanır. Bu, Türkiye ve Birleşik Krallık dışına aktarım demektir.",
           "Rehberinden arkadaş bulmak istersen rehberin telefonundan çıkmaz; yalnızca tek kullanımlık karmalar gönderilir ve saklanmaz.",
           "Reklam izleme, üçüncü taraf analitik ya da reklam SDK'sı kullanmayız ve verini satmayız. Markaya yönlendirdiğimizde komisyon için yalnızca bir tıklama kimliği ekleriz.",
@@ -474,7 +474,7 @@
             "heading": "Fotoğraflar, yüz fotoğrafı ve kilo",
             "paragraphs": [
               "Boy ve yüz fotoğrafı yüklemek isteğe bağlıdır; uygulamayı bunlar olmadan da kullanabilirsin. Yüklersen fotoğrafın konum ve cihaz bilgisi (EXIF/XMP meta verisi) ilk işlemde silinir, temiz kopya şifreli ve herkese kapalı bir depolama alanında saklanır ve yalnızca sana, kısa süre geçerli özel bağlantılarla gösterilir.",
-              "Yüz fotoğrafını yalnızca renk paleti analizi için kullanırız: yapay zekâ fotoğraftaki ten, saç ve göz renklerine bakarak sana uyan sezon tipini seçer. Kimlik tespiti, doğrulama ya da yüz tanıma yapmayız; yüzünden kişiyi benzersiz biçimde tanımlayan bir şablon (biyometrik şablon) çıkarmaz ve saklamayız. Yapay zekâya kişiyi tanımlamaması ve tarif etmemesi açıkça söylenir. Bu nedenle bu işlemenin biyometrik veri işleme sayılmadığını düşünüyoruz; buna rağmen yüz ve boy fotoğrafını yalnızca açık rızanla işliyoruz. [HUKUK ONAYI: biyometrik veri değerlendirmesi]",
+              "Yüz fotoğrafını iki amaçla, her biri için ayrı açık rızanla kullanırız: renk paleti analizi (yapay zekâ fotoğraftaki ten, saç ve göz renklerine bakarak sana uyan sezon tipini seçer) ve boy fotoğrafın yoksa “Üzerimde gör” (yapay zekâ yüz fotoğrafını seçtiğin vücut tipi, boyun ve bedeninle birleştirip senin figürünü oluşturur). Kimlik tespiti, doğrulama ya da yüz tanıma yapmayız; yüzünden kişiyi benzersiz biçimde tanımlayan bir şablon (biyometrik şablon) çıkarmaz ve saklamayız. Yapay zekâya kişiyi tanımlamaması, tarif etmemesi ve kimliğini değiştirmemesi açıkça söylenir. Bu nedenle bu işlemenin biyometrik veri işleme sayılmadığını düşünüyoruz; buna rağmen yüz ve boy fotoğrafını yalnızca açık rızanla işliyoruz. [HUKUK ONAYI: biyometrik veri değerlendirmesi, yüz fotoğrafından figür üretimi]",
               "Boy fotoğrafını yalnızca “Üzerimde gör” görsellerini üretmek için kullanırız. Fotoğraflar bedenini gösterebilir; bu nedenle hiçbir görünürlük ayarında başka kullanıcılara, destek ya da moderasyon ekibimize gösterilmez ve paylaşılan bir önbelleğe girmez.",
               "Kilo bilgisi isteğe bağlıdır ve sağlık verisine yakın sayılabileceği için yalnızca açık rızanla saklanır. Boy ve kilo yapay zekâ sağlayıcısına gönderilmez; yapay zekâya bedenin, kilon ya da sağlığın hakkında yorum yapmaması söylenir.",
               "Fotoğraflarından ya da diğer verilerinden etnik köken, sağlık, din gibi özel nitelikli bilgiler çıkarmayız."
@@ -484,7 +484,7 @@
             "heading": "Verilerini ne için ve hangi hukuki dayanakla kullanıyoruz",
             "paragraphs": [
               "- Hesabını açmak, girişini sağlamak, şifre sıfırlama e-postası göndermek ve Hizmet'i sunmak (gardırop, look, takvim, bavul, mağaza, sosyal özellikler): seninle yaptığımız sözleşmenin ifası (UK GDPR m. 6(1)(b)).",
-              "- Boy fotoğrafıyla “Üzerimde gör” görselleri üretmek, yüz fotoğrafıyla renk paleti analizi yapmak ve kiloyu saklamak: açık rızan (m. 6(1)(a) ve gerekirse m. 9(2)(a)). Rızanı istediğin an geri alabilirsin.",
+              "- Boy fotoğrafıyla ya da (boy fotoğrafı yokken) yüz fotoğrafı ve vücut tipiyle “Üzerimde gör” görselleri üretmek, yüz fotoğrafıyla renk paleti analizi yapmak ve kiloyu saklamak: açık rızan (m. 6(1)(a) ve gerekirse m. 9(2)(a)). Rızanı istediğin an geri alabilirsin.",
               "- Parça fotoğraflarından yapay zekâ ile tür, renk ve kumaş önermek, arka planı temizlemek; stilist, haftalık plan ve bavul önerileri hazırlamak: sözleşmenin ifası.",
               "- Rehberden arkadaş bulma: açık rızan; rehberindeki kişiler için, verileri cihazdan okunabilir biçimde çıkmadığından ve saklanmadığından meşru menfaat (m. 6(1)(f)).",
               "- Profil kartını aramada ve dolabını görünürlük ayarına göre diğer kullanıcılara göstermek: sözleşmenin ifası (ayarı sen seçersin).",
@@ -504,7 +504,7 @@
               "Yapay zekâ özelliklerini OpenAI (OpenAI, L.L.C. / OpenAI Ireland Ltd [HUKUK ONAYI: sözleşme tarafı]) sağlar. Yapay zekâ çağrıları yalnızca sunucularımızdan yapılır; uygulama OpenAI'ye doğrudan bağlanmaz. Her özellik için gönderilenler:",
               "- Parça tanıma ve arka plan temizleme: meta verisi silinmiş parça ya da kombin fotoğrafı.",
               "- “Üzerimde gör”: boy fotoğrafın ve seçilen parçaların görselleri.",
-              "- Renk paleti: yüz fotoğrafın.",
+              "- Renk paleti ve boy fotoğrafı yokken “Üzerimde gör”: yüz fotoğrafın (ikincisinde seçtiğin vücut tipi, boyun ve bedeninle birlikte).",
               "- Stilist, haftalık plan, bavul: tarih, sezon, ortam, hava durumu, stil profilin, palet sonucun, gardırobundaki parçaların türü, rengi, kumaşı ve sezonu, yazdığın serbest metin ve dil. Adın, e-postan, boyun ve kilon gönderilmez.",
               "OpenAI bu verileri bizim adımıza ve talimatımızla işleyen bir veri işleyendir. OpenAI'nin API koşullarına göre API üzerinden gönderilen veriler modellerin eğitiminde kullanılmaz; kötüye kullanımı izlemek için [OPENAI SAKLAMA SÜRESİ] süreyle saklanabilir. [HUKUK ONAYI: veri işleme sözleşmesi ve sıfır saklama seçeneği]",
               "Yapay zekâ çıktıları yalnızca öneridir; senin hakkında hukuki ya da benzeri önemli sonuç doğuran otomatik karar vermeyiz (UK GDPR m. 22). Yapay zekâ önerileri kalıcı verine yalnızca sen onayladıktan sonra girer."
@@ -690,7 +690,7 @@
               "- İşlem güvenliği: şifre karması, oturum anahtarları, Apple/Google hesap kimlikleri, şifreli Apple yenileme anahtarı, cihaz kimliği, bildirim (push) anahtarı, IP adresi, sunucu kayıtları, giriş denemesi sayaçları, hesap askıya alma kayıtları.",
               "- Rehber: rehberindeki e-posta adreslerinden telefonunda üretilen tek kullanımlık karmalar (saklanmaz; adlar, numaralar ve adreslerin kendisi telefonundan çıkmaz).",
               "- Kullanım olayları: hesap kimliği yerine karma kullanılan, serbest metin içermeyen uygulama olayları.",
-              "Özel nitelikli kişisel veriler: Yüz fotoğrafını yalnızca renk paleti analizi için kullanırız; kimlik tespiti, doğrulama ya da yüz tanıma yapmaz, kişiyi benzersiz biçimde tanımlayan biyometrik şablon çıkarmaz ve saklamayız. Bu nedenle yüz fotoğrafının biyometrik veri olarak işlenmediğini değerlendiriyoruz. Kilo bilgisi sağlıkla ilgili veri olarak değerlendirilebilir. Her iki durumda da bu verileri yalnızca açık rızanla işleriz. [HUKUK ONAYI: KVKK m. 6 değerlendirmesi]"
+              "Özel nitelikli kişisel veriler: Yüz fotoğrafını renk paleti analizi ve — boy fotoğrafın yoksa — “Üzerimde gör” figürünü oluşturmak için kullanırız; kimlik tespiti, doğrulama ya da yüz tanıma yapmaz, kişiyi benzersiz biçimde tanımlayan biyometrik şablon çıkarmaz ve saklamayız. Bu nedenle yüz fotoğrafının biyometrik veri olarak işlenmediğini değerlendiriyoruz. Kilo bilgisi sağlıkla ilgili veri olarak değerlendirilebilir. Her iki durumda da bu verileri yalnızca açık rızanla işleriz. [HUKUK ONAYI: KVKK m. 6 değerlendirmesi]"
             ]
           },
           {
@@ -699,7 +699,7 @@
               "- Üyelik kaydının oluşturulması, kimlik doğrulama ve oturum yönetimi, şifre sıfırlama;",
               "- dijital gardırobun, look'ların, takvim, giyim kaydı ve bavul planlarının tutulması;",
               "- yapay zekâ ile parça tanıma, arka plan temizleme, kombin, haftalık plan ve bavul önerisi hazırlanması;",
-              "- açık rızan varsa boy fotoğrafınla “Üzerimde gör” görsellerinin üretilmesi ve yüz fotoğrafınla renk paleti analizi yapılması;",
+              "- açık rızan varsa boy fotoğrafınla — boy fotoğrafın yoksa yüz fotoğrafın ve seçtiğin vücut tipiyle — “Üzerimde gör” görsellerinin üretilmesi ve yüz fotoğrafınla renk paleti analizi yapılması;",
               "- hava durumuna göre öneri yapılması;",
               "- görünürlük ayarına göre sosyal özelliklerin (arama, takip, puanlama, kaydetme, davet, paylaşım) sunulması;",
               "- açık rızan varsa rehberden arkadaş bulma;",
@@ -785,11 +785,11 @@
       "consents": {
         "eyebrow": "YASAL",
         "title": "Açık Rıza Metinleri",
-        "description": "Droblet uygulamasının ilgili ekranlarda gösterdiği ayrı açık rıza metinleri: fotoğraf ve yapay zekâ, kilo, rehber, pazarlama bildirimleri, yurt dışına aktarım — taslak, hukuk onayı bekliyor.",
-        "intro": "Aşağıdaki metinler, uygulamada ilgili özelliği ilk kullandığında ayrı ayrı gösterilir. Her biri isteğe bağlıdır ve yalnızca kendi konusunu kapsar. Bu sayfa, verdiğin ya da vermediğin rızaları sonradan okuyabilmen için hepsini bir arada sunar. Kişisel verilerinin işlenmesine ilişkin genel bilgiler KVKK Aydınlatma Metni'nde ve Gizlilik Politikası'ndadır.",
+        "description": "Droblet uygulamasının gösterdiği ayrı açık rıza metinleri: fotoğraf ve yapay zekâ (yüz fotoğrafıyla “Üzerimde gör” dahil), kilo, rehber, pazarlama bildirimleri, yurt dışına aktarım — taslak, hukuk onayı bekliyor.",
+        "intro": "Aşağıdaki metinler, uygulamaya kayıt olurken tek bir ekranda bir arada gösterilir; her birinin ayrı ve işaretlenmemiş bir onay kutusu vardır. Her biri isteğe bağlıdır ve yalnızca kendi konusunu kapsar. Bir rızayı o ekranda vermediysen ilgili özelliği ilk kullandığında yeniden sorulur. Bu sayfa, verdiğin ya da vermediğin rızaları sonradan okuyabilmen için hepsini bir arada sunar. Kişisel verilerinin işlenmesine ilişkin genel bilgiler KVKK Aydınlatma Metni'nde ve Gizlilik Politikası'ndadır.",
         "summary": [
           "Rıza vermek zorunda değilsin; vermezsen yalnızca ilgili özellik çalışmaz, Droblet'in geri kalanını aynen kullanırsın.",
-          "Her rıza ayrıdır ve yalnızca kendi konusunu kapsar; hepsini tek bir onayla vermezsin.",
+          "Her rıza ayrıdır, kendi kutusuyla sunulur ve yalnızca kendi konusunu kapsar. “Tümünü kabul et” düğmesi kutuları senin yerine işaretler; istediğin kutuyu işaretlemeden “Seçtiklerimle devam et” diyebilirsin. [HUKUK ONAYI: tek ekranda “Tümünü kabul et” düğmesi]",
           "Verdiğin rızayı istediğin an uygulamadan geri alabilirsin.",
           "Rızanı hangi metin sürümüyle ve ne zaman verdiğini kaydederiz."
         ],
@@ -797,7 +797,7 @@
           {
             "heading": "Bu metinler nasıl çalışır",
             "paragraphs": [
-              "Her metin, ilgili ekranda işaretlenmemiş bir onay kutusu ya da “Onaylıyorum” düğmesiyle sunulur. Onay vermeden önce metnin tamamını okuyabilirsin. Rızan, KVKK m. 3 ve UK GDPR m. 4(11) anlamında belirli bir konuya ilişkin, bilgilendirilmeye dayanan ve özgür iradeyle açıklanan rızadır.",
+              "Metinler kayıt sırasında tek bir ekranda, her biri işaretlenmemiş kendi onay kutusuyla sunulur; ilgili özellikte gerekirse aynı metin yeniden gösterilir. Onay vermeden önce her metnin tamamını okuyabilirsin. Rızan, KVKK m. 3 ve UK GDPR m. 4(11) anlamında belirli bir konuya ilişkin, bilgilendirilmeye dayanan ve özgür iradeyle açıklanan rızadır.",
               "Rıza verdiğinde tarih, saat, metin sürümü ve hangi rızayı verdiğin hesabınla birlikte kaydedilir; bu kayıt hesabını silene kadar saklanır. [HUKUK ONAYI: rıza kaydının saklama süresi]",
               "Hiçbir rıza, Droblet'in rızaya bağlı olmayan özelliklerini kullanmanın şartı değildir."
             ]
@@ -869,10 +869,21 @@
             ]
           },
           {
+            "heading": "Açık rıza 7 — Yüz fotoğrafı ve “Üzerimde gör”",
+            "paragraphs": [
+              "Ne için: Boy fotoğrafın yokken, yüz fotoğrafını seçtiğin vücut tipi, boyun ve bedeninle birlikte kullanarak senin figürünü oluşturmak ve kombinleri bu figür üzerinde gösteren görselleri (“Üzerimde gör”) üretmek.",
+              "Hangi veriler: Yüklediğin yüz fotoğrafı, seçtiğin vücut tipi, boy ve beden bilgin ve bunlardan üretilen görseller. Kilo bilgin kullanılmaz. Kimlik tespiti, doğrulama ya da yüz tanıma yapılmaz; seni benzersiz biçimde tanımlayan bir yüz şablonu çıkarılmaz ve saklanmaz.",
+              "Kim işler ve nerede: Droblet Ltd; fotoğraf AWS'nin Frankfurt (Almanya) sunucularında saklanır ve görsel üretmek için OpenAI'ye (ABD) gönderilir.",
+              "Ne kadar: Yüz fotoğrafını ya da üretilen görselleri silene veya hesabını silene kadar. Fotoğraf ve görseller hiçbir ayarda başka kullanıcılara gösterilmez.",
+              "Vermezsen: Boy fotoğrafı olmadan “Üzerimde gör”ü kullanamazsın; boy fotoğrafı ekleyerek kullanabilirsin. Renk paleti analizi bu rızadan bağımsızdır.",
+              "Onay metni: “Yüz fotoğrafımın; vücut tipim, boyum ve bedenimle birlikte ‘Üzerimde gör’ görsellerini üretmek amacıyla, kimlik tespiti yapılmaksızın Droblet Ltd tarafından işlenmesine ve bu amaçla AWS (Almanya) ile OpenAI'ye (ABD) aktarılmasına açık rıza veriyorum.” [HUKUK ONAYI: yeni amaç — yüz fotoğrafından figür üretimi]"
+            ]
+          },
+          {
             "heading": "Rızanı geri alma",
             "paragraphs": [
               "Rızalarını dilediğin an geri alabilirsin:",
-              "- Boy ve yüz fotoğrafı: Profil › Gizlilik'ten fotoğrafı sil; ilgili rıza geri alınmış sayılır ve üretilen görseller ya da palet sonucu silinir.",
+              "- Boy ve yüz fotoğrafı: Profil › Gizlilik'ten fotoğrafı sil; ilgili rızalar geri alınmış sayılır (yüz fotoğrafında renk paleti ve yüz fotoğrafıyla “Üzerimde gör” rızaları) ve üretilen görseller ya da palet sonucu silinir. Rızaları ayrıca Profil › Gizlilik › Açık rızalarım'dan tek tek kapatabilirsin.",
               "- Kilo: uygulamadaki beden profilinde kilo alanını temizle.",
               "- Rehber: telefonunun ayarlarından Droblet'in rehber iznini kapat.",
               "- Pazarlama bildirimleri: Profil › Ayarlar › Bildirimler'den ilgili bildirimi kapat.",

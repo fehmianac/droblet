@@ -14,7 +14,7 @@ Bu politika, Droblet mobil uygulamasını ve droblet.alatech.co web sitesini kul
 
 - Boy fotoğrafın, yüz fotoğrafın ve senin üzerinde üretilen görseller yalnızca sana açıktır ve hiçbir ayarda başkasına gösterilmez.
 - Bu fotoğrafları ve üretilen görselleri Profil › Gizlilik'ten, hesabını silmeden de istediğin an silebilirsin.
-- Yüz fotoğrafını yalnızca renk paleti analizi için kullanırız; kimlik tespiti ya da yüz tanıma yapmayız, yüz şablonu çıkarmayız.
+- Yüz fotoğrafını renk paleti analizi için ve — ayrı rızanla, boy fotoğrafın yoksa — “Üzerimde gör” figürünü oluşturmak için kullanırız; kimlik tespiti ya da yüz tanıma yapmayız, yüz şablonu çıkarmayız.
 - Yapay zekâ işlemleri için fotoğrafların ve gerekli bilgiler OpenAI'ye gönderilir; verilerimiz AWS Frankfurt'ta saklanır. Bu, Türkiye ve Birleşik Krallık dışına aktarım demektir.
 - Rehberinden arkadaş bulmak istersen rehberin telefonundan çıkmaz; yalnızca tek kullanımlık karmalar gönderilir ve saklanmaz.
 - Reklam izleme, üçüncü taraf analitik ya da reklam SDK'sı kullanmayız ve verini satmayız. Markaya yönlendirdiğimizde komisyon için yalnızca bir tıklama kimliği ekleriz.
@@ -65,7 +65,7 @@ Başkalarından gelen veriler:
 
 Boy ve yüz fotoğrafı yüklemek isteğe bağlıdır; uygulamayı bunlar olmadan da kullanabilirsin. Yüklersen fotoğrafın konum ve cihaz bilgisi (EXIF/XMP meta verisi) ilk işlemde silinir, temiz kopya şifreli ve herkese kapalı bir depolama alanında saklanır ve yalnızca sana, kısa süre geçerli özel bağlantılarla gösterilir.
 
-Yüz fotoğrafını yalnızca renk paleti analizi için kullanırız: yapay zekâ fotoğraftaki ten, saç ve göz renklerine bakarak sana uyan sezon tipini seçer. Kimlik tespiti, doğrulama ya da yüz tanıma yapmayız; yüzünden kişiyi benzersiz biçimde tanımlayan bir şablon (biyometrik şablon) çıkarmaz ve saklamayız. Yapay zekâya kişiyi tanımlamaması ve tarif etmemesi açıkça söylenir. Bu nedenle bu işlemenin biyometrik veri işleme sayılmadığını düşünüyoruz; buna rağmen yüz ve boy fotoğrafını yalnızca açık rızanla işliyoruz. [HUKUK ONAYI: biyometrik veri değerlendirmesi]
+Yüz fotoğrafını iki amaçla, her biri için ayrı açık rızanla kullanırız: renk paleti analizi (yapay zekâ fotoğraftaki ten, saç ve göz renklerine bakarak sana uyan sezon tipini seçer) ve boy fotoğrafın yoksa “Üzerimde gör” (yapay zekâ yüz fotoğrafını seçtiğin vücut tipi, boyun ve bedeninle birleştirip senin figürünü oluşturur). Kimlik tespiti, doğrulama ya da yüz tanıma yapmayız; yüzünden kişiyi benzersiz biçimde tanımlayan bir şablon (biyometrik şablon) çıkarmaz ve saklamayız. Yapay zekâya kişiyi tanımlamaması, tarif etmemesi ve kimliğini değiştirmemesi açıkça söylenir. Bu nedenle bu işlemenin biyometrik veri işleme sayılmadığını düşünüyoruz; buna rağmen yüz ve boy fotoğrafını yalnızca açık rızanla işliyoruz. [HUKUK ONAYI: biyometrik veri değerlendirmesi, yüz fotoğrafından figür üretimi]
 
 Boy fotoğrafını yalnızca “Üzerimde gör” görsellerini üretmek için kullanırız. Fotoğraflar bedenini gösterebilir; bu nedenle hiçbir görünürlük ayarında başka kullanıcılara, destek ya da moderasyon ekibimize gösterilmez ve paylaşılan bir önbelleğe girmez.
 
@@ -76,7 +76,7 @@ Fotoğraflarından ya da diğer verilerinden etnik köken, sağlık, din gibi ö
 ## 5. Verilerini ne için ve hangi hukuki dayanakla kullanıyoruz
 
 - Hesabını açmak, girişini sağlamak, şifre sıfırlama e-postası göndermek ve Hizmet'i sunmak (gardırop, look, takvim, bavul, mağaza, sosyal özellikler): seninle yaptığımız sözleşmenin ifası (UK GDPR m. 6(1)(b)).
-- Boy fotoğrafıyla “Üzerimde gör” görselleri üretmek, yüz fotoğrafıyla renk paleti analizi yapmak ve kiloyu saklamak: açık rızan (m. 6(1)(a) ve gerekirse m. 9(2)(a)). Rızanı istediğin an geri alabilirsin.
+- Boy fotoğrafıyla ya da (boy fotoğrafı yokken) yüz fotoğrafı ve vücut tipiyle “Üzerimde gör” görselleri üretmek, yüz fotoğrafıyla renk paleti analizi yapmak ve kiloyu saklamak: açık rızan (m. 6(1)(a) ve gerekirse m. 9(2)(a)). Rızanı istediğin an geri alabilirsin.
 - Parça fotoğraflarından yapay zekâ ile tür, renk ve kumaş önermek, arka planı temizlemek; stilist, haftalık plan ve bavul önerileri hazırlamak: sözleşmenin ifası.
 - Rehberden arkadaş bulma: açık rızan; rehberindeki kişiler için, verileri cihazdan okunabilir biçimde çıkmadığından ve saklanmadığından meşru menfaat (m. 6(1)(f)).
 - Profil kartını aramada ve dolabını görünürlük ayarına göre diğer kullanıcılara göstermek: sözleşmenin ifası (ayarı sen seçersin).
@@ -96,7 +96,7 @@ Yapay zekâ özelliklerini OpenAI (OpenAI, L.L.C. / OpenAI Ireland Ltd [HUKUK ON
 
 - Parça tanıma ve arka plan temizleme: meta verisi silinmiş parça ya da kombin fotoğrafı.
 - “Üzerimde gör”: boy fotoğrafın ve seçilen parçaların görselleri.
-- Renk paleti: yüz fotoğrafın.
+- Renk paleti ve boy fotoğrafı yokken “Üzerimde gör”: yüz fotoğrafın (ikincisinde seçtiğin vücut tipi, boyun ve bedeninle birlikte).
 - Stilist, haftalık plan, bavul: tarih, sezon, ortam, hava durumu, stil profilin, palet sonucun, gardırobundaki parçaların türü, rengi, kumaşı ve sezonu, yazdığın serbest metin ve dil. Adın, e-postan, boyun ve kilon gönderilmez.
 
 OpenAI bu verileri bizim adımıza ve talimatımızla işleyen bir veri işleyendir. OpenAI'nin API koşullarına göre API üzerinden gönderilen veriler modellerin eğitiminde kullanılmaz; kötüye kullanımı izlemek için [OPENAI SAKLAMA SÜRESİ] süreyle saklanabilir. [HUKUK ONAYI: veri işleme sözleşmesi ve sıfır saklama seçeneği]

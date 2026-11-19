@@ -30,6 +30,8 @@ public class BodyProfileEntity : IVersionedEntity
     [JsonPropertyName("heightCm")] public int HeightCm { get; set; }
     [JsonPropertyName("weightKg")] public decimal? WeightKg { get; set; }
     [JsonPropertyName("size")] public ClothingSize Size { get; set; }
+    // Canvas 11 vücut tipi, chosen once for the face try-on path (null = not chosen).
+    [JsonPropertyName("bodyType")] public BodyType? BodyType { get; set; }
     [JsonPropertyName("updatedAt")] public DateTime UpdatedAt { get; set; }
     [JsonPropertyName("version")] public long Version { get; set; }
 

@@ -20,6 +20,8 @@ public class MissingPieceValue
     [JsonPropertyName("category")] public ItemCategory? Category { get; set; }
     [JsonPropertyName("reason")] public MissingPieceReason Reason { get; set; }
     [JsonPropertyName("productId")] public string? ProductId { get; set; }
+    // A ready-library piece picked to fill a thin wardrobe (owner decision 3); the app offers "Gardıroba ekle".
+    [JsonPropertyName("libraryItemId")] public string? LibraryItemId { get; set; }
 }
 
 public class LookEntity : IVersionedEntity

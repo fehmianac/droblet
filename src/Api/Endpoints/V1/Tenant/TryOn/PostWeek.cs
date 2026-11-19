@@ -30,7 +30,7 @@ public class PostWeek : IEndpoint
     public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints)
     {
         return endpoints.MapPost("v1/tenant/tryon/plan-week", Handler)
-            .RequireConsent(ConsentRules.BodyPhoto)
+            .RequireTryOnConsent()
             .Produces<TryOnBatchDto>(StatusCodes.Status202Accepted)
             .Problems(StatusCodes.Status402PaymentRequired, StatusCodes.Status403Forbidden, StatusCodes.Status409Conflict, StatusCodes.Status422UnprocessableEntity)
             .Validated()

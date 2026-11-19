@@ -260,6 +260,9 @@ public interface ITryOnService
     Task<TryOnImageDto?> GetAsync(string tenantId, string imageId, CancellationToken ct);
     Task<ServiceResult<TryOnQuoteDto>> QuoteWeekAsync(string tenantId, string weekStart, CancellationToken ct);
     Task<ServiceResult<TryOnBatchDto>> StartWeekAsync(string tenantId, TryOnWeekCommand command, CancellationToken ct);
+
+    /// <summary>The path a try-on would take now (body photo preferred, else face photo); null = no photo. Decides the consents asked for.</summary>
+    Task<TryOnSource?> PathAsync(string tenantId, CancellationToken ct);
 }
 
 // ── E7 ────────────────────────────────────────────────────────────────────────────────────────────────────────────

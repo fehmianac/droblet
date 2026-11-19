@@ -40,14 +40,14 @@ Veri Sorumluları Sicili (VERBİS) kaydı: [VERBİS KAYIT DURUMU].
 - Rehber: rehberindeki e-posta adreslerinden telefonunda üretilen tek kullanımlık karmalar (saklanmaz; adlar, numaralar ve adreslerin kendisi telefonundan çıkmaz).
 - Kullanım olayları: hesap kimliği yerine karma kullanılan, serbest metin içermeyen uygulama olayları.
 
-Özel nitelikli kişisel veriler: Yüz fotoğrafını yalnızca renk paleti analizi için kullanırız; kimlik tespiti, doğrulama ya da yüz tanıma yapmaz, kişiyi benzersiz biçimde tanımlayan biyometrik şablon çıkarmaz ve saklamayız. Bu nedenle yüz fotoğrafının biyometrik veri olarak işlenmediğini değerlendiriyoruz. Kilo bilgisi sağlıkla ilgili veri olarak değerlendirilebilir. Her iki durumda da bu verileri yalnızca açık rızanla işleriz. [HUKUK ONAYI: KVKK m. 6 değerlendirmesi]
+Özel nitelikli kişisel veriler: Yüz fotoğrafını renk paleti analizi ve — boy fotoğrafın yoksa — “Üzerimde gör” figürünü oluşturmak için kullanırız; kimlik tespiti, doğrulama ya da yüz tanıma yapmaz, kişiyi benzersiz biçimde tanımlayan biyometrik şablon çıkarmaz ve saklamayız. Bu nedenle yüz fotoğrafının biyometrik veri olarak işlenmediğini değerlendiriyoruz. Kilo bilgisi sağlıkla ilgili veri olarak değerlendirilebilir. Her iki durumda da bu verileri yalnızca açık rızanla işleriz. [HUKUK ONAYI: KVKK m. 6 değerlendirmesi]
 
 ## 3. İşleme amaçları
 
 - Üyelik kaydının oluşturulması, kimlik doğrulama ve oturum yönetimi, şifre sıfırlama;
 - dijital gardırobun, look'ların, takvim, giyim kaydı ve bavul planlarının tutulması;
 - yapay zekâ ile parça tanıma, arka plan temizleme, kombin, haftalık plan ve bavul önerisi hazırlanması;
-- açık rızan varsa boy fotoğrafınla “Üzerimde gör” görsellerinin üretilmesi ve yüz fotoğrafınla renk paleti analizi yapılması;
+- açık rızan varsa boy fotoğrafınla — boy fotoğrafın yoksa yüz fotoğrafın ve seçtiğin vücut tipiyle — “Üzerimde gör” görsellerinin üretilmesi ve yüz fotoğrafınla renk paleti analizi yapılması;
 - hava durumuna göre öneri yapılması;
 - görünürlük ayarına göre sosyal özelliklerin (arama, takip, puanlama, kaydetme, davet, paylaşım) sunulması;
 - açık rızan varsa rehberden arkadaş bulma;

@@ -18,6 +18,7 @@ public class Delete : IEndpoint
         // Legal text (consents, "withdrawing"): deleting the photo counts as withdrawing its consent.
         await consents.WithdrawAsync(apiContext.TenantId, apiContext.UserId, Domain.Enum.ConsentType.BodyPhotoAi, "photo_deleted", cancellationToken);
         await consents.WithdrawAsync(apiContext.TenantId, apiContext.UserId, Domain.Enum.ConsentType.FacePhotoPalette, "photo_deleted", cancellationToken);
+        await consents.WithdrawAsync(apiContext.TenantId, apiContext.UserId, Domain.Enum.ConsentType.FacePhotoTryOn, "photo_deleted", cancellationToken);
         return Results.NoContent();
     }
 

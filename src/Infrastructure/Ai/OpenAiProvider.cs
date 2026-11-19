@@ -26,7 +26,7 @@ namespace Infrastructure.Ai;
 /// Nothing but ids, status codes and token counts is ever logged — no prompt, no answer, no image, no key.
 /// </summary>
 public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> options, ILogger<OpenAiProvider> logger)
-    : IAiProvider, IImageCleanup, IGarmentVision, ITryOnRenderer, IStylistModel, IPaletteAnalyzer, IItemDetector, IItemImageCleanup
+    : IAiProvider, IImageCleanup, IGarmentVision, ITryOnRenderer, IStylistModel, IPaletteAnalyzer, IItemDetector, IItemImageCleanup, IPhotoInspector
 {
     public const string ProviderName = "OpenAI";
     public const string ChatPath = "/v1/chat/completions";
@@ -75,6 +75,15 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
 
     public Task<ImageInput> RenderAsync(ImageInput bodyPhoto, IReadOnlyList<ImageInput> garments, CancellationToken ct) =>
         EditImageAsync(OpenAiPrompts.TryOn(garments.Count), [bodyPhoto, .. garments], ct);
+
+    public Task<ImageInput> RenderFromFaceAsync(ImageInput facePhoto, IReadOnlyList<ImageInput> garments, TryOnFigure figure, CancellationToken ct) =>
+        EditImageAsync(OpenAiPrompts.TryOnFromFace(garments.Count, figure), [facePhoto, .. garments], ct);
+
+    public async Task<PhotoInspection> InspectAsync(ImageInput photo, PhotoKind kind, CancellationToken ct)
+    {
+        var content = await ChatAsync(OpenAiPrompts.PhotoCheck(kind), OpenAiPrompts.PhotoCheckRequest, photo, AiSchemas.PhotoCheck, AiSchemas.PhotoCheckSchema(), ct);
+        return OpenAiPayloads.ParsePhotoCheck(content);
+    }
 
     /// <summary>
     /// Text-to-image with the configured image model (POST /v1/images/generations). Used by operator tooling only
@@ -295,6 +304,12 @@ public static class OpenAiPayloads
         return new PaletteAnalysis(Text(node["seasonTypeId"]) ?? "", [], [], Int(node["facesDetected"]), Number(node["confidence"]), Text(node["refusal"]));
     }
 
+    public static PhotoInspection ParsePhotoCheck(string content)
+    {
+        var node = ParseObject(content);
+        return new PhotoInspection(Int(node["people"]), Bool(node["fullBody"]), Bool(node["faceVisible"]), Bool(node["tooDark"]), Bool(node["blurry"]), Bool(node["appearsMinor"]));
+    }
+
     public static long? TotalTokens(string responseBody)
     {
         try
@@ -494,6 +509,41 @@ public static class OpenAiPrompts
         $"The first image is a full-body photo of a person. The following {garmentCount} image(s) are garments. " +
         "Show the same person, with the same face, hair, skin tone, body shape and pose, wearing exactly these garments, keeping each garment's colour, pattern and cut. " +
         "Realistic fit and proportions, neutral studio background, full body in frame. Do not change the person's body. No text.";
+
+    /// <summary>
+    /// Face path (owner decision 4): build a full-body figure from a face photo + the chosen body type, height and size.
+    /// Guard in the prompt: the same adult, identity unchanged, fully clothed, neutral pose, no comment on the body.
+    /// </summary>
+    public static string TryOnFromFace(int garmentCount, TryOnFigure figure)
+    {
+        var shape = figure.BodyType switch
+        {
+            BodyType.Hourglass => "an hourglass body shape (shoulders and hips about the same width, a defined waist)",
+            BodyType.Pear => "a pear body shape (hips wider than the shoulders)",
+            BodyType.Apple => "an apple body shape (volume around the midsection)",
+            BodyType.Rectangle => "a rectangle body shape (shoulders, waist and hips about the same width)",
+            BodyType.InvertedTriangle => "an inverted-triangle body shape (shoulders wider than the hips)",
+            _ => "a balanced, average body shape",
+        };
+        var height = figure.HeightCm is { } cm ? $" about {cm} cm tall," : "";
+        var size = figure.Size is { } s ? $" wearing clothing size {s}," : "";
+        return $"The first image is a photo of an adult person's face. The following {garmentCount} image(s) are garments. " +
+               $"Create a realistic full-length photo of this same adult person with {shape},{height}{size} standing in a relaxed, neutral pose. " +
+               "Keep the face, facial features, skin tone, hair and apparent age exactly as in the face photo — do not change, beautify or replace the person's identity. " +
+               "The person is fully clothed, wearing exactly these garments, keeping each garment's colour, pattern and cut; add plain neutral basics only where a garment is missing so the person is never undressed. " +
+               "Never show nudity, underwear alone or a suggestive pose. Never exaggerate the body shape. Neutral studio background, full body in frame, no text.";
+    }
+
+    public const string PhotoCheckRequest = "Check this photo.";
+
+    /// <summary>Photo check before the first try-on: who is in the photo, framing, light, sharpness. Never identifies or describes the person.</summary>
+    public static string PhotoCheck(PhotoKind kind) =>
+        "You check one photo a user uploaded for a virtual try-on. people: the number of people visible. " +
+        (kind == PhotoKind.Body
+            ? "fullBody: true only when one person is visible from head to feet (both feet in frame). faceVisible: whether that person's face is visible. "
+            : "faceVisible: true only when exactly one face is clearly visible from the front. fullBody: whether the whole body is visible. ") +
+        "tooDark: the person is hard to see because the photo is too dark or strongly backlit. blurry: the person is out of focus or motion-blurred. " +
+        "appearsMinor: the person clearly appears to be under 18. Do not identify, name or describe the person.";
 
     /// <summary>House background of product images (the ready library uses the same sand tone).</summary>
     public const string ProductBackground = "#E8E1D7";

@@ -108,10 +108,13 @@ public static class PaletteOutputGuard
     }
 }
 
-/// <summary>One renderable piece of a try-on: the tenant's own item or a catalog product.</summary>
-public sealed record OutfitPiece(string? ItemId, string? ProductId)
+/// <summary>
+/// One renderable piece of a try-on: the tenant's own item, a catalog product, or a ready-library piece the stylist picked
+/// to fill a thin wardrobe (owner decision 3; rendered from the library's global image).
+/// </summary>
+public sealed record OutfitPiece(string? ItemId, string? ProductId, string? LibraryItemId = null)
 {
-    public string Key => ItemId is { Length: > 0 } ? $"i:{ItemId}" : $"p:{ProductId}";
+    public string Key => ItemId is { Length: > 0 } ? $"i:{ItemId}" : LibraryItemId is { Length: > 0 } ? $"l:{LibraryItemId}" : $"p:{ProductId}";
 }
 
 /// <summary>

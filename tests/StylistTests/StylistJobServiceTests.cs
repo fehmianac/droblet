@@ -115,20 +115,126 @@ public class StylistJobServiceTests
         Assert.Null(stored.Result);
     }
 
+    // ── Gap filling (owner decision 3): a thin wardrobe still gets complete outfits ────────────────────────────────
+
+    private static bool Complete(SuggestedOutfit outfit)
+    {
+        var slots = outfit.Slots.Select(s => s.Slot).Concat(outfit.Missing.Select(m => m.Slot)).ToList();
+        var dress = outfit.Missing.Any(m => m.Category == ItemCategory.Dress);
+        return slots.Contains(OutfitSlot.Top) && (dress || slots.Contains(OutfitSlot.Bottom)) && slots.Contains(OutfitSlot.Shoes);
+    }
+
+    private sealed class FixedLibrary(params LibraryItemEntity[] items) : ILibraryCatalog
+    {
+        public Task<IReadOnlyList<LibraryItemEntity>> GetAllAsync(CancellationToken ct) => Task.FromResult<IReadOnlyList<LibraryItemEntity>>(items);
+    }
+
+    private static LibraryItemEntity Lib(string id, ItemCategory category, string color = "black") => new()
+    {
+        Id = id, Name = new() { ["tr"] = id }, Category = category, ColorIds = [color],
+        Seasons = [Season.Spring, Season.Summer, Season.Autumn, Season.Winter],
+    };
+
+    private static WorkerTestHost FillHost(IStylistModel model, ILibraryCatalog library) => new(s =>
+    {
+        s.AddSingleton<IStylistJobService, StylistJobService>();
+        s.RemoveAll<IStylistModel>();
+        s.AddSingleton(model);
+        s.RemoveAll<ILibraryCatalog>();
+        s.AddSingleton(library);
+    });
+
+    private static Task AddItemAsync(WorkerTestHost host, string id, ItemCategory category, string color = "black") =>
+        host.Repository.SaveAsync(new ItemEntity
+        {
+            Id = id, TenantId = Tenant, Category = category, ColorIds = [color],
+            Seasons = [Season.Spring, Season.Summer, Season.Autumn, Season.Winter], CreatedAt = WorkerTestHost.Now, Version = 1,
+        });
+
     [Fact]
-    public async Task Outfit_WardrobeCannotDress_RefusesWithoutCallingTheModel()
+    public async Task Outfit_EmptyWardrobe_CompleteOutfitsFromTheLibrary_WithoutCallingTheModel()
     {
         var model = new FixedModel(Outfits());
-        var host = Host(model);
+        var host = Host(model); // the real (embedded) library seed
         var job = await QueueAsync(host, JobKind.StylistOutfit, OutfitInput());
 
         var stored = await RunAsync(host, job);
 
         var result = StylingJson.TryDeserialize<OutfitResult>(stored.Result)!;
         Assert.Equal(JobStatus.Completed, stored.Status);
-        Assert.Equal(StylistRefusals.InsufficientWardrobe, result.Refusal);
-        Assert.Empty(result.Suggestions);
+        Assert.Null(result.Refusal);
+        Assert.True(result.GapFilled);
+        Assert.Equal(3, result.Suggestions.Count);
+        Assert.All(result.Suggestions, s => Assert.Empty(s.Slots));                                   // nothing claimed as owned
+        Assert.All(result.Suggestions, s => Assert.All(s.Missing, m => Assert.NotNull(m.LibraryItemId)));
+        Assert.All(result.Suggestions, s => Assert.True(Complete(s)));
+        Assert.Equal(3, result.Suggestions.Select(GapFill.Signature).Distinct().Count());
         Assert.Empty(model.Prompts);
+    }
+
+    [Fact]
+    public async Task Outfit_TwoPieceWardrobe_OwnPiecesStay_TheGapsAreFilledFromTheLibrary()
+    {
+        var host = FillHost(new FixedModel(Outfits()), new FixedLibrary(
+            Lib("lib-black-trousers", ItemCategory.Bottom), Lib("lib-blue-jeans", ItemCategory.Bottom, "denim"),
+            Lib("lib-red-skirt", ItemCategory.Bottom, "red"), Lib("lib-white-sneakers", ItemCategory.Shoes, "white")));
+        await AddItemAsync(host, "mytop", ItemCategory.Top, "green");
+        await AddItemAsync(host, "myshoes", ItemCategory.Shoes);
+        var job = await QueueAsync(host, JobKind.StylistOutfit, OutfitInput(onlyMyWardrobe: true));
+
+        var result = StylingJson.TryDeserialize<OutfitResult>((await RunAsync(host, job)).Result)!;
+
+        Assert.Null(result.Refusal);
+        Assert.True(result.GapFilled);
+        Assert.NotEmpty(result.Suggestions);
+        Assert.All(result.Suggestions, s => Assert.True(Complete(s)));
+        Assert.All(result.Suggestions, s => Assert.Contains(new SlotRef(OutfitSlot.Shoes, "myshoes"), s.Slots)); // own shoes kept, no library pair
+        var first = result.Suggestions[0];
+        Assert.Contains(new SlotRef(OutfitSlot.Top, "mytop"), first.Slots);
+        var bottom = Assert.Single(first.Missing);
+        Assert.Equal(OutfitSlot.Bottom, bottom.Slot);
+        // Colour harmony: the green top goes with neutrals (black trousers, denim jeans) before a red skirt.
+        Assert.Contains(bottom.LibraryItemId, new[] { "lib-black-trousers", "lib-blue-jeans" });
+        Assert.DoesNotContain(result.Suggestions.SelectMany(s => s.Missing), m => m.LibraryItemId == "lib-white-sneakers");
+    }
+
+    [Fact]
+    public async Task Outfit_LibraryHasNoShoes_TheShopFillsThatSlot_InTheBudgetBand()
+    {
+        var host = FillHost(new FixedModel(Outfits()), new FixedLibrary(Lib("lib-black-trousers", ItemCategory.Bottom)));
+        await AddItemAsync(host, "mytop", ItemCategory.Top);
+        await host.Repository.SaveAsync(new StyleProfileEntity { TenantId = Tenant, Budget = Budget.HighStreet });
+        async Task Product(string id, PriceBand band) => await host.Repository.SaveAsync(new CatalogProductEntity
+        {
+            Id = id, BrandId = "b1", Name = new() { ["tr"] = id }, Category = ProductCategory.Shoes, Colors = ["black"], PriceBand = band,
+            PriceMinor = 100_00, CreatedAt = WorkerTestHost.Now,
+        });
+        await Product("p-lux-shoes", PriceBand.LuxuryTouch);
+        await Product("p-street-shoes", PriceBand.HighStreet);
+        var job = await QueueAsync(host, JobKind.StylistOutfit, OutfitInput());
+
+        var result = StylingJson.TryDeserialize<OutfitResult>((await RunAsync(host, job)).Result)!;
+
+        Assert.True(result.GapFilled);
+        var outfit = result.Suggestions[0];
+        Assert.True(Complete(outfit));
+        Assert.Contains(outfit.Missing, m => m is { Slot: OutfitSlot.Bottom, LibraryItemId: "lib-black-trousers" });
+        Assert.Contains(outfit.Missing, m => m is { Slot: OutfitSlot.Shoes, ProductId: "p-street-shoes", LibraryItemId: null });
+        Assert.DoesNotContain(result.Suggestions.SelectMany(s => s.Missing), m => m.ProductId == "p-lux-shoes");
+    }
+
+    [Fact]
+    public async Task Outfit_NoLibraryAndNoCatalog_RefusalStaysInternalOnly()
+    {
+        var host = FillHost(new FixedModel(Outfits()), new FixedLibrary());
+        await AddItemAsync(host, "mytop", ItemCategory.Top);
+        var job = await QueueAsync(host, JobKind.StylistOutfit, OutfitInput());
+
+        var result = StylingJson.TryDeserialize<OutfitResult>((await RunAsync(host, job)).Result)!;
+
+        Assert.Equal(StylistRefusals.InsufficientWardrobe, result.Refusal);
+        Assert.False(result.GapFilled);
+        Assert.Empty(result.Suggestions);
     }
 
     [Fact]
@@ -248,16 +354,25 @@ public class StylistJobServiceTests
         Assert.All(result.Suggestions, s => Assert.All(s.Slots, slot => Assert.Null(slot.ProductId)));
     }
 
-    [Fact]
-    public async Task Outfit_NotOnlyMyWardrobe_NoShoes_FallbackCarriesACatalogSlotPlaceholder()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Outfit_NoShoesInTheWardrobe_EveryLookGetsALibraryPair(bool onlyMyWardrobe)
     {
         var host = Host(new FixedModel("{}"));
         await SeedWardrobeAsync(host, shoes: false);
-        var job = await QueueAsync(host, JobKind.StylistOutfit, OutfitInput(onlyMyWardrobe: false));
+        var job = await QueueAsync(host, JobKind.StylistOutfit, OutfitInput(onlyMyWardrobe: onlyMyWardrobe));
 
         var result = StylingJson.TryDeserialize<OutfitResult>((await RunAsync(host, job)).Result)!;
 
-        Assert.All(result.Suggestions, s => Assert.Equal([new MissingPiece(OutfitSlot.Shoes, ItemCategory.Shoes, MissingPieceReason.EmptySlot)], s.Missing));
+        Assert.True(result.GapFilled);
+        Assert.Equal(3, result.Suggestions.Count);
+        Assert.All(result.Suggestions, s =>
+        {
+            var shoes = Assert.Single(s.Missing, m => m.Slot == OutfitSlot.Shoes);
+            Assert.Equal(ItemCategory.Shoes, shoes.Category);
+            Assert.StartsWith("lib-", shoes.LibraryItemId);
+        });
     }
 
     [Fact]
@@ -334,12 +449,21 @@ public class StylistJobServiceTests
     }
 
     [Fact]
-    public async Task Week_EmptyWardrobe_Refusal()
+    public async Task Week_EmptyWardrobe_EveryDayDressedFromTheLibrary_NoRepeatOnConsecutiveDays()
     {
-        var host = Host(new FixedModel("{}"));
+        var model = new FixedModel("{}");
+        var host = Host(model);
         var job = await QueueAsync(host, JobKind.StylistWeek, WeekInput());
 
-        Assert.Equal(StylistRefusals.InsufficientWardrobe, StylingJson.TryDeserialize<WeekResult>((await RunAsync(host, job)).Result)!.Refusal);
+        var result = StylingJson.TryDeserialize<WeekResult>((await RunAsync(host, job)).Result)!;
+
+        Assert.Null(result.Refusal);
+        Assert.True(result.GapFilled);
+        Assert.Equal(7, result.Days.Count);
+        Assert.All(result.Days, d => Assert.True(Complete(d.Outfit!)));
+        for (var i = 1; i < result.Days.Count; i++)
+            Assert.NotEqual(GapFill.Signature(result.Days[i - 1].Outfit!), GapFill.Signature(result.Days[i].Outfit!));
+        Assert.Empty(model.Prompts);
     }
 
     // ── Suitcase ──────────────────────────────────────────────────────────────────────────────────────────────────
@@ -454,9 +578,10 @@ public class StylistJobServiceTests
 
         var result = StylingJson.TryDeserialize<PackResult>((await RunAsync(host, job)).Result)!;
 
-        Assert.Equal(
-            [new MissingPiece(OutfitSlot.Shoes, ItemCategory.Shoes, MissingPieceReason.NoShoes), new MissingPiece(OutfitSlot.Outerwear, ItemCategory.Outerwear, MissingPieceReason.Rain)],
-            result.Missing);
+        // The placeholders keep their reason and now name a concrete library piece of that category.
+        Assert.Equal([(OutfitSlot.Shoes, MissingPieceReason.NoShoes), (OutfitSlot.Outerwear, MissingPieceReason.Rain)], result.Missing.Select(m => (m.Slot, m.Reason)));
+        Assert.All(result.Missing, m => Assert.StartsWith("lib-", m.LibraryItemId));
+        Assert.True(result.GapFilled);
         Assert.NotEmpty(result.Items);
     }
 
@@ -468,7 +593,14 @@ public class StylistJobServiceTests
         Assert.Equal(JobFailure.SourceDeleted, (await RunAsync(host, orphan)).Failure);
 
         var job = await QueuePackAsync(host);
-        Assert.Equal(StylistRefusals.InsufficientWardrobe, StylingJson.TryDeserialize<PackResult>((await RunAsync(host, job)).Result)!.Refusal);
+        var result = StylingJson.TryDeserialize<PackResult>((await RunAsync(host, job)).Result)!;
+        // An empty wardrobe is packed with picked library pieces: nothing in the packing list, all of it suggested.
+        Assert.Null(result.Refusal);
+        Assert.True(result.GapFilled);
+        Assert.Empty(result.Items);
+        Assert.Contains(result.Missing, m => m.Slot == OutfitSlot.Top && m.LibraryItemId is not null);
+        Assert.Contains(result.Missing, m => m.Slot == OutfitSlot.Shoes && m.LibraryItemId is not null);
+        Assert.DoesNotContain(result.Days.SelectMany(d => d.Slots), s => GapFill.IsPicked(s.ItemId));
     }
 
     // ── Cabin-only limit (Packing:CabinMaxItems) ──────────────────────────────────────────────────────────────────

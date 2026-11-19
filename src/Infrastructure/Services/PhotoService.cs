@@ -154,12 +154,9 @@ public sealed class PhotoService(
         if (StorageKeys.BelongsToTenant(photo.S3Key, tenantId))
             await storage.DeleteAsync(photo.S3Key, ct);
 
-        if (kind == PhotoKind.Body)
-        {
-            // The try-on images rendered on this body photo go with it (same rule as replacing the photo).
-            await CleanupDerivedAsync(tenantId, kind, [photo.Id], ct);
-        }
-        else
+        // The try-on images rendered from this photo go with it (same rule as replacing the photo; face path included).
+        await CleanupDerivedAsync(tenantId, kind, [photo.Id], ct);
+        if (kind == PhotoKind.Face)
         {
             // Same as "delete my photos": the palette result derived from the face photo is removed, not just detached.
             var palette = await repository.GetAsync<PaletteResultEntity>(PaletteResultEntity.GetPk(tenantId), PaletteResultEntity.GetSk(), ct);
@@ -179,16 +176,15 @@ public sealed class PhotoService(
         if (replacedIds.Count == 0)
             return;
 
+        // The try-on images created from these photos go with them: body path (BodyPhotoId) and face path (SourcePhotoId).
+        var tryOns = await repository.GetAllAsync<TryOnImageEntity>(TryOnImageEntity.GetPk(tenantId), ct);
+        var stale = tryOns.Where(t => replacedIds.Contains(t.SourcePhotoId ?? t.BodyPhotoId)).ToList();
+        foreach (var image in stale.Where(t => StorageKeys.BelongsToTenant(t.S3Key, tenantId)))
+            await storage.DeleteAsync(image.S3Key, ct);
+        if (stale.Count > 0)
+            await repository.BatchDeleteKeysAsync(stale.Select(t => (t.Pk, t.Sk)).ToList(), ct);
         if (kind == PhotoKind.Body)
-        {
-            var tryOns = await repository.GetAllAsync<TryOnImageEntity>(TryOnImageEntity.GetPk(tenantId), ct);
-            var stale = tryOns.Where(t => replacedIds.Contains(t.BodyPhotoId)).ToList();
-            foreach (var image in stale.Where(t => StorageKeys.BelongsToTenant(t.S3Key, tenantId)))
-                await storage.DeleteAsync(image.S3Key, ct);
-            if (stale.Count > 0)
-                await repository.BatchDeleteKeysAsync(stale.Select(t => (t.Pk, t.Sk)).ToList(), ct);
             return;
-        }
 
         var palette = await repository.GetAsync<PaletteResultEntity>(PaletteResultEntity.GetPk(tenantId), PaletteResultEntity.GetSk(), ct);
         if (palette?.SourcePhotoId is { } source && replacedIds.Contains(source))

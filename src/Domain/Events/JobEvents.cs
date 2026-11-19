@@ -21,7 +21,19 @@ public sealed record StylistRequestedEvent(string TenantId, string JobId, JobKin
 
 public sealed record TryOnTarget(TryOnTargetKind Kind, string Id, long Version);
 
-public sealed record TryOnRequestedEvent(string TenantId, string JobId, TryOnTarget Target, string BodyPhotoId, string CreditIdempotencyKey) : IJobRequestedEvent
+/// <param name="BodyPhotoId">The cache subject: the body photo id, or on the face path the face subject key (TryOnRules.FaceSubjectKey).</param>
+/// <param name="Source">Body = render on the body photo; Face = build the figure from FacePhotoId + BodyType + height / size.</param>
+public sealed record TryOnRequestedEvent(
+    string TenantId,
+    string JobId,
+    TryOnTarget Target,
+    string BodyPhotoId,
+    string CreditIdempotencyKey,
+    TryOnSource Source = TryOnSource.Body,
+    string? FacePhotoId = null,
+    BodyType? BodyType = null,
+    int? HeightCm = null,
+    ClothingSize? Size = null) : IJobRequestedEvent
 {
     public JobKind Kind => JobKind.TryOn;
 }

@@ -18,6 +18,8 @@ public class PhotoEntity : IEntity
     [JsonPropertyName("contentType")] public string ContentType { get; set; } = null!;
     [JsonPropertyName("sizeBytes")] public long SizeBytes { get; set; }
     [JsonPropertyName("active")] public bool Active { get; set; }
+    // Set by the try-on worker once the photo passed the server-side check (people, framing, light, sharpness).
+    [JsonPropertyName("inspectedAt")] public DateTime? InspectedAt { get; set; }
     [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; }
 
     public static string GetPk(string tenantId) => $"tenant#{tenantId}#photo";
@@ -83,7 +85,7 @@ public class AvatarUploadEntity : IEntity
     public static string GetSk(string uploadId) => uploadId;
 }
 
-// Tenant-internal try-on cache. Never global. Deleted with the source body photo.
+// Tenant-internal try-on cache. Never global. Deleted with the source photo (body photo, or the face photo on the face path).
 public class TryOnImageEntity : IEntity
 {
     [JsonPropertyName("pk")] public string Pk => GetPk(TenantId);
@@ -91,7 +93,11 @@ public class TryOnImageEntity : IEntity
 
     [JsonPropertyName("id")] public string Id { get; set; } = null!;
     [JsonPropertyName("tenantId")] public string TenantId { get; set; } = null!;
+    // Cache subject: the body photo id, or on the face path TryOnRules.FaceSubjectKey (face photo + body type + height + size).
     [JsonPropertyName("bodyPhotoId")] public string BodyPhotoId { get; set; } = null!;
+    [JsonPropertyName("source")] public TryOnSource Source { get; set; }
+    // The photo the image was created from (body or face photo id); null on images made before the face path existed (= BodyPhotoId).
+    [JsonPropertyName("sourcePhotoId")] public string? SourcePhotoId { get; set; }
     [JsonPropertyName("targetKind")] public TryOnTargetKind TargetKind { get; set; }
     [JsonPropertyName("targetId")] public string TargetId { get; set; } = null!;
     [JsonPropertyName("targetVersion")] public long TargetVersion { get; set; }

@@ -18,6 +18,7 @@ public static class AiSchemas
     public const string GarmentDraft = "garment_draft";
     public const string ItemDetection = "item_detection";
     public const string PaletteSeason = "palette_season";
+    public const string PhotoCheck = "photo_check";
 
     public static string NameFor(JobKind kind) => kind switch
     {
@@ -82,6 +83,14 @@ public static class AiSchemas
         ("seasonTypeId", NullableEnum(SeasonTypeCatalog.Ids)),
         ("confidence", Number()),
         ("refusal", NullableEnum([StylistRefusals.PhotoUnsuitable])));
+
+    public static JsonObject PhotoCheckSchema() => Object(
+        ("people", Integer()),
+        ("fullBody", Boolean()),
+        ("faceVisible", Boolean()),
+        ("tooDark", Boolean()),
+        ("blurry", Boolean()),
+        ("appearsMinor", Boolean()));
 
     private static JsonObject Garment() => Object(
         ("name", NullableString()),

@@ -39,6 +39,21 @@ public interface IGarmentVision
 public interface ITryOnRenderer
 {
     Task<ImageInput> RenderAsync(ImageInput bodyPhoto, IReadOnlyList<ImageInput> garments, CancellationToken ct);
+
+    /// <summary>
+    /// Face path (no body photo): the same adult person, identity unchanged, as a full-body figure of the given body type,
+    /// height and size, fully clothed in the garments.
+    /// </summary>
+    Task<ImageInput> RenderFromFaceAsync(ImageInput facePhoto, IReadOnlyList<ImageInput> garments, TryOnFigure figure, CancellationToken ct);
+}
+
+/// <summary>Server-side check of a body / face photo before its first try-on (people, framing, light, sharpness). No identification.</summary>
+public interface IPhotoInspector
+{
+    /// <summary>False when the provider is off or incomplete: the check is skipped (rendering then fails the same way).</summary>
+    bool IsConfigured { get; }
+
+    Task<PhotoInspection> InspectAsync(ImageInput photo, PhotoKind kind, CancellationToken ct);
 }
 
 /// <param name="Language">Language of every generated text (tr | en …) — always passed explicitly, never guessed by the model.</param>

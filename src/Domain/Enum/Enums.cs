@@ -16,7 +16,19 @@ public enum JobKind { ItemProcess, StylistOutfit, StylistWeek, StylistPack, Styl
 
 public enum JobStatus { Queued, Processing, Completed, Failed }
 
-public enum JobFailure { ProviderError, Timeout, GuardRejected, SourceDeleted, NoFaceDetected }
+public enum JobFailure { ProviderError, Timeout, GuardRejected, SourceDeleted, NoFaceDetected, PhotoUnsuitable }
+
+/// <summary>
+/// Canvas 11 vücut tipi (face try-on path): the figure the image model builds when there is no body photo.
+/// Unsure = "Emin değilim" (a balanced figure from height and size).
+/// </summary>
+public enum BodyType { Hourglass, Pear, Apple, Rectangle, InvertedTriangle, Unsure }
+
+/// <summary>Which photo a try-on image was created from: the body photo, or the face photo + body type (no body photo).</summary>
+public enum TryOnSource { Body, Face }
+
+/// <summary>Why the server-side photo check rejected a body / face photo (no credit is charged; the photo is removed).</summary>
+public enum PhotoIssue { NotFullBody, TooDark, MultiplePeople, Blurry, NoFace }
 
 /// <summary>TripDay id = "{tripId}/{yyyy-MM-dd}": the look of one trip day (BavulDetay).</summary>
 public enum TryOnTargetKind { Item, Look, Product, EditLook, Suggestion, TripDay }
@@ -86,7 +98,8 @@ public enum VisibleResource
 public enum AdminRole { SuperAdmin, ContentEditor, Moderator }
 
 /// <summary>
-/// The six separate explicit consents of docs/legal (landing `/consents`). Wire names are camelCase
-/// (bodyPhotoAi, facePhotoPalette, weight, contacts, marketingNotifications, crossBorderTransfer).
+/// The seven separate explicit consents of docs/legal (landing `/consents`). Wire names are camelCase
+/// (bodyPhotoAi, facePhotoPalette, weight, contacts, marketingNotifications, crossBorderTransfer, facePhotoTryOn).
+/// FacePhotoTryOn (consent 7) = the face photo used to create try-on images when there is no body photo; appended last.
 /// </summary>
-public enum ConsentType { BodyPhotoAi, FacePhotoPalette, Weight, Contacts, MarketingNotifications, CrossBorderTransfer }
+public enum ConsentType { BodyPhotoAi, FacePhotoPalette, Weight, Contacts, MarketingNotifications, CrossBorderTransfer, FacePhotoTryOn }

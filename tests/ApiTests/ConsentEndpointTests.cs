@@ -29,13 +29,13 @@ public class ConsentEndpointTests(ApiFactory factory) : IClassFixture<ApiFactory
             .ToDictionary(c => c.GetProperty("type").GetString()!, c => c);
 
     [Fact]
-    public async Task Get_ListsAllSixTypes_NotGranted_ForANewAccount()
+    public async Task Get_ListsAllSevenTypes_NotGranted_ForANewAccount()
     {
         var (client, _) = await factory.RegisterAsync(grantConsents: false);
 
         var consents = await ConsentsAsync(client);
 
-        Assert.Equal(["bodyPhotoAi", "contacts", "crossBorderTransfer", "facePhotoPalette", "marketingNotifications", "weight"], consents.Keys.Order().ToArray());
+        Assert.Equal(["bodyPhotoAi", "contacts", "crossBorderTransfer", "facePhotoPalette", "facePhotoTryOn", "marketingNotifications", "weight"], consents.Keys.Order().ToArray());
         Assert.All(consents.Values, c =>
         {
             Assert.False(c.GetProperty("granted").GetBoolean());

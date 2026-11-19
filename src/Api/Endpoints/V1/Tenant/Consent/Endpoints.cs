@@ -22,7 +22,7 @@ public class Get : IEndpoint
         endpoints.MapGet("v1/tenant/consents", Handler)
             .Produces<ConsentsDto>(StatusCodes.Status200OK)
             .Tenant("Tenant Consent", "Get my consents",
-                "All six types (bodyPhotoAi, facePhotoPalette, weight, contacts, marketingNotifications, crossBorderTransfer) with the stored decision, " +
+                "All seven types (bodyPhotoAi, facePhotoPalette, weight, contacts, marketingNotifications, crossBorderTransfer, facePhotoTryOn) with the stored decision, " +
                 "the text version it was made on, the current text version (Consents:Versions) and `valid` = granted on the current version — what the guards enforce.");
 }
 

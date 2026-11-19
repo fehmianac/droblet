@@ -12,6 +12,9 @@ public static class ConsentRules
     /// <summary>Face photo upload / activation and palette analysis: OpenAI (US) processes the photo.</summary>
     public static readonly IReadOnlyList<ConsentType> FacePhoto = [ConsentType.FacePhotoPalette, ConsentType.CrossBorderTransfer];
 
+    /// <summary>Try-on from the face photo + body type when there is no body photo (consent 7): OpenAI (US) processes the face photo.</summary>
+    public static readonly IReadOnlyList<ConsentType> FaceTryOn = [ConsentType.FacePhotoTryOn, ConsentType.CrossBorderTransfer];
+
     public static readonly IReadOnlyList<ConsentType> Contacts = [ConsentType.Contacts];
     public static readonly IReadOnlyList<ConsentType> Weight = [ConsentType.Weight];
 
@@ -25,6 +28,12 @@ public static class ConsentRules
         consent is { Granted: true } && string.Equals(consent.Version, currentVersion, StringComparison.Ordinal);
 
     public const int MaxSourceLength = 40;
+
+    /// <summary>
+    /// The all-in-one consent step (onboarding, and once for existing accounts): every box is a decision, so a box left
+    /// unticked there is recorded as declined — the app then knows the user has seen every purpose.
+    /// </summary>
+    public const string OnboardingSource = "onboarding";
 }
 
 public sealed record ConsentStateDto(
@@ -50,7 +59,7 @@ public enum ConsentUpdateOutcome { Ok, VersionOutdated }
 
 public interface IConsentService
 {
-    /// <summary>All six types, in enum order; never-decided types come back as not granted.</summary>
+    /// <summary>All seven types, in enum order; never-decided types come back as not granted.</summary>
     Task<ConsentsDto> GetAsync(string tenantId, CancellationToken ct);
 
     Task<ConsentHistoryDto> GetHistoryAsync(string tenantId, CancellationToken ct);

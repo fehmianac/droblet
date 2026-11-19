@@ -40,7 +40,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [GrantTestPremium] = [],
         [RevokeTestPremium] = [],
         [GenerateLibraryImages] = ["dry-run", "force"],
-        [AiSmoke] = ["keep-user", "items-only"],
+        [AiSmoke] = ["keep-user", "items-only", "prereq-only"],
         [AiProbe] = [],
         [Logs] = [],
         [MigrateLibraryItemImages] = ["dry-run"],
@@ -157,7 +157,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         "  grant-test-premium      --email <e> [--credits N] [--days N]   (dev only)\n" +
         "  revoke-test-premium     --email <e>                            (dev only)\n" +
         "  generate-library-images [--only id,id] [--dry-run] [--force] [--max-calls N<=30] [--quality high]\n" +
-        "  ai-smoke                [--api-url URL] [--keep-user]          (dev only)\n" +
+        "  ai-smoke                [--api-url URL] [--keep-user] [--items-only | --prereq-only]  (dev only)\n" +
         "  ai-probe                                                        (dev only; one direct text-model call)\n" +
         "  logs                    --function stylist [--minutes 30] [--filter OpenAI] [--limit 200]\n" +
         "  migrate-library-item-images [--dry-run]                         (one-off, idempotent: library pieces → current library image)";

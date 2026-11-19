@@ -35,7 +35,7 @@ Droblet is a personal wardrobe and style app. With the Service you can:
 - build your digital wardrobe by photographing your clothes or entering them by hand (AI suggests type, colour and fabric; you confirm before anything is saved);
 - create looks (outfits), plan your calendar and record what you wore;
 - get a daily outfit, a weekly plan and a packing list from the stylist;
-- see outfits and shop products on your own full-body photo (“See it on me”) and get a colour palette analysis from your face photo;
+- see outfits and shop products on your own full-body photo — or, without one, on a figure built from your face photo and the body type you choose (“See it on me”) — and get a colour palette analysis from your face photo;
 - explore the weekly edit and the shop catalogue, and be sent to the brand's own shop to buy;
 - follow friends, see their closets and looks as far as their visibility setting allows, and rate looks.
 

@@ -25,6 +25,9 @@ public class TryOnGarmentTests
             Garments.Add(garments);
             return Task.FromResult(new ImageInput([7, 7, 7], "image/webp"));
         }
+
+        public Task<ImageInput> RenderFromFaceAsync(ImageInput facePhoto, IReadOnlyList<ImageInput> garments, TryOnFigure figure, CancellationToken ct) =>
+            RenderAsync(facePhoto, garments, ct);
     }
 
     /// <summary>Global images (library / catalog): only https://catalog.test/… is "downloadable".</summary>

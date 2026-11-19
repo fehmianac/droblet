@@ -36,7 +36,7 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | Method | Path | Auth | Doc | What |
 |---|---|---|---|---|
 | GET | `v1/tenant/body-profile` | user | — | Get body profile |
-| PUT | `v1/tenant/body-profile` | user | — | Create or update body profile |
+| PUT | `v1/tenant/body-profile` | user | — | Create or update body profile (optional `bodyType`: hourglass · pear · apple · rectangle · invertedTriangle · unsure; omitted = unchanged; `400 body_type_invalid`) |
 | GET | `v1/tenant/photo` | user | — | Get my body and face photos |
 | DELETE | `v1/tenant/photo` | user | — | Delete my photos and generated images |
 | POST | `v1/tenant/photo/upload-url` | user | — | Get a presigned upload for a body/face photo |

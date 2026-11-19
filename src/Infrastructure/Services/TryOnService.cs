@@ -15,7 +15,8 @@ namespace Infrastructure.Services;
 
 /// <summary>
 /// E6 "Üzerimde gör" (Api side). One image = one credit, reserved on enqueue and committed / refunded by the worker.
-/// The cache identity is body photo + target (an outfit is identified by the sorted set of its pieces), so the same
+/// Path (owner decision 4): the active body photo when there is one; otherwise the face photo + body type + height / size
+/// ("yüz yolu", TryOnRules). The cache identity is the subject (body photo, or the face subject key) + target (an outfit is identified by the sorted set of its pieces), so the same
 /// combination is never rendered — or charged — twice, whichever screen asks for it. Images are strictly tenant-private:
 /// owner prefix only, short-lived presigned GET only, never a global cache.
 /// </summary>
@@ -27,17 +28,21 @@ public sealed class TryOnService(
     ICreditService credits,
     ICatalogProductLookup products,
     IEditLookLookup editLooks,
+    ILibraryCatalog library,
     IOptionsMonitor<PhotoOptions> photoOptions,
     TimeProvider timeProvider,
     ILogger<TryOnService> logger) : ITryOnService
 {
     private sealed record Resolved(TryOnTarget Target, IReadOnlyList<OutfitPiece> Pieces);
 
+    /// <summary>What a try-on renders on: Key = cache / credit subject (body photo id or the face subject key).</summary>
+    private sealed record Subject(TryOnSource Source, string Key, PhotoEntity Photo, BodyType? BodyType, int? HeightCm, ClothingSize? Size);
+
     private DateTime Now => timeProvider.GetUtcNow().UtcDateTime;
 
     public async Task<ServiceResult<TryOnStartDto>> StartAsync(string tenantId, StartTryOnCommand command, CancellationToken ct)
     {
-        var body = await ActiveBodyPhotoAsync(tenantId, ct);
+        var body = await SubjectAsync(tenantId, ct);
         if (body is null)
             return ServiceResult.Invalid<TryOnStartDto>(ErrorCodes.BodyPhotoRequired);
 
@@ -50,12 +55,12 @@ public sealed class TryOnService(
 
     public async Task<ServiceResult<TryOnImageDto>> FindAsync(string tenantId, TryOnTargetInput target, CancellationToken ct)
     {
-        var body = await ActiveBodyPhotoAsync(tenantId, ct);
+        var body = await SubjectAsync(tenantId, ct);
         var (resolved, error) = await ResolveAsync(tenantId, target, ct);
         if (resolved is null)
             return ServiceResult.NotFound<TryOnImageDto>(error);
 
-        var image = body is null ? null : await CachedAsync(tenantId, body.Id, resolved.Target, ct);
+        var image = body is null ? null : await CachedAsync(tenantId, body.Key, resolved.Target, ct);
         return image is null ? ServiceResult.NotFound<TryOnImageDto>() : ServiceResult.Ok(await ToDtoAsync(image, ct));
     }
 
@@ -67,7 +72,7 @@ public sealed class TryOnService(
 
     public async Task<ServiceResult<TryOnQuoteDto>> QuoteWeekAsync(string tenantId, string weekStart, CancellationToken ct)
     {
-        var body = await ActiveBodyPhotoAsync(tenantId, ct);
+        var body = await SubjectAsync(tenantId, ct);
         if (body is null)
             return ServiceResult.Invalid<TryOnQuoteDto>(ErrorCodes.BodyPhotoRequired);
         var (quote, _) = await QuoteAsync(tenantId, body, weekStart, ct);
@@ -76,7 +81,7 @@ public sealed class TryOnService(
 
     public async Task<ServiceResult<TryOnBatchDto>> StartWeekAsync(string tenantId, TryOnWeekCommand command, CancellationToken ct)
     {
-        var body = await ActiveBodyPhotoAsync(tenantId, ct);
+        var body = await SubjectAsync(tenantId, ct);
         if (body is null)
             return ServiceResult.Invalid<TryOnBatchDto>(ErrorCodes.BodyPhotoRequired);
 
@@ -120,14 +125,14 @@ public sealed class TryOnService(
 
     // ── Core ──────────────────────────────────────────────────────────────────────────────────────────────────────
 
-    private async Task<ServiceResult<TryOnStartDto>> StartResolvedAsync(string tenantId, PhotoEntity body, Resolved resolved, string requestId,
+    private async Task<ServiceResult<TryOnStartDto>> StartResolvedAsync(string tenantId, Subject body, Resolved resolved, string requestId,
         CancellationToken ct, List<(string JobId, string Key)>? started = null)
     {
         var target = resolved.Target;
-        if (await CachedAsync(tenantId, body.Id, target, ct) is { } cached)
+        if (await CachedAsync(tenantId, body.Key, target, ct) is { } cached)
             return ServiceResult.Ok(new TryOnStartDto(StartStatus.Cached, await ToDtoAsync(cached, ct), null));
 
-        var key = CreditLedger.TryOnIdempotencyKey(body.Id, target.Kind, target.Id, target.Version);
+        var key = CreditLedger.TryOnIdempotencyKey(body.Key, target.Kind, target.Id, target.Version);
 
         // Same outfit already being rendered (another screen, a retry): hand back that job — no second credit.
         if (await InFlightAsync(tenantId, key, ct) is { } running)
@@ -165,7 +170,9 @@ public sealed class TryOnService(
 
         try
         {
-            await events.PublishAsync(new TryOnRequestedEvent(tenantId, job.Id, target, body.Id, key), ct);
+            await events.PublishAsync(body.Source == TryOnSource.Face
+                ? new TryOnRequestedEvent(tenantId, job.Id, target, body.Key, key, TryOnSource.Face, body.Photo.Id, body.BodyType ?? BodyType.Unsure, body.HeightCm, body.Size)
+                : new TryOnRequestedEvent(tenantId, job.Id, target, body.Key, key), ct);
         }
         catch
         {
@@ -176,12 +183,12 @@ public sealed class TryOnService(
         }
 
         started?.Add((job.Id, key));
-        logger.LogInformation("Queued try-on job {JobId} ({Kind}) for tenant {TenantId}", job.Id, target.Kind, tenantId);
+        logger.LogInformation("Queued try-on job {JobId} ({Kind}, {Source} path) for tenant {TenantId}", job.Id, target.Kind, body.Source, tenantId);
         return ServiceResult.Accepted(new TryOnStartDto(StartStatus.Queued, null, job.ToDto()));
     }
 
     private async Task<(TryOnQuoteDto Quote, List<(string Date, string LookId, Resolved Resolved)> Days)> QuoteAsync(
-        string tenantId, PhotoEntity body, string weekStart, CancellationToken ct)
+        string tenantId, Subject body, string weekStart, CancellationToken ct)
     {
         var start = CalendarDay.Parse(weekStart);
         var end = CalendarDay.ToText(start.AddDays(6));
@@ -198,8 +205,8 @@ public sealed class TryOnService(
             if (resolved is null)
                 continue;
 
-            var cached = await CachedAsync(tenantId, body.Id, resolved.Target, ct);
-            var key = CreditLedger.TryOnIdempotencyKey(body.Id, resolved.Target.Kind, resolved.Target.Id, resolved.Target.Version);
+            var cached = await CachedAsync(tenantId, body.Key, resolved.Target, ct);
+            var key = CreditLedger.TryOnIdempotencyKey(body.Key, resolved.Target.Kind, resolved.Target.Id, resolved.Target.Version);
             // The same outfit planned on two days is one image; an outfit already being rendered is already paid for.
             if (cached is null && await InFlightAsync(tenantId, key, ct) is null)
                 toCharge.Add(key);
@@ -245,7 +252,8 @@ public sealed class TryOnService(
                 return suggestion is null
                     ? (null, ErrorCodes.TargetNotFound)
                     : await OutfitAsync(tenantId, suggestion.Slots.Select(s => new OutfitPiece(s.ItemId, s.ProductId))
-                        .Concat(suggestion.Missing.Where(m => m.ProductId is not null).Select(m => new OutfitPiece(null, m.ProductId))), ct);
+                        .Concat(suggestion.Missing.Where(m => m.ProductId is not null || m.LibraryItemId is not null)
+                            .Select(m => new OutfitPiece(null, m.ProductId, m.LibraryItemId))), ct);
             }
             case TryOnTargetKind.EditLook:
             {
@@ -275,9 +283,19 @@ public sealed class TryOnService(
     private async Task<(Resolved?, string?)> OutfitAsync(string tenantId, IEnumerable<OutfitPiece> candidates, CancellationToken ct)
     {
         var pieces = new List<OutfitPiece>();
+        List<ItemEntity>? owned = null;
         foreach (var piece in candidates)
         {
-            if (piece.ItemId is not null)
+            if (piece.ItemId is null && piece.LibraryItemId is not null)
+            {
+                // A library piece the stylist picked: the user's own copy once added ("Gardıroba ekle"), else the library image.
+                owned ??= (await repository.GetAllAsync<ItemEntity>(ItemEntity.GetPk(tenantId), ct)).ToList();
+                if (owned.FirstOrDefault(i => string.Equals(i.LibraryItemId, piece.LibraryItemId, StringComparison.Ordinal)) is { } copy)
+                    pieces.Add(new OutfitPiece(copy.Id, null));
+                else if ((await library.GetAllAsync(ct)).Any(l => l.Id == piece.LibraryItemId))
+                    pieces.Add(new OutfitPiece(null, null, piece.LibraryItemId));
+            }
+            else if (piece.ItemId is not null)
             {
                 if (await repository.GetAsync<ItemEntity>(ItemEntity.GetPk(tenantId), ItemEntity.GetSk(piece.ItemId), ct) is not null)
                     pieces.Add(new OutfitPiece(piece.ItemId, null));
@@ -308,13 +326,32 @@ public sealed class TryOnService(
         return image is not null && StorageKeys.BelongsToTenant(image.S3Key, tenantId) ? image : null;
     }
 
-    private async Task<PhotoEntity?> ActiveBodyPhotoAsync(string tenantId, CancellationToken ct) =>
-        (await repository.GetAllAsync<PhotoEntity>(PhotoEntity.GetPk(tenantId), PhotoEntity.KindPrefix(PhotoKind.Body), SkOperator.BeginsWith, ct))
-        .FirstOrDefault(p => p.Active && StorageKeys.BelongsToTenant(p.S3Key, tenantId));
+    public async Task<TryOnSource?> PathAsync(string tenantId, CancellationToken ct) => (await SubjectAsync(tenantId, ct))?.Source;
+
+    /// <summary>The body photo when there is one (preferred); else the face photo with the body profile (face path); else null.</summary>
+    private async Task<Subject?> SubjectAsync(string tenantId, CancellationToken ct)
+    {
+        var photos = (await repository.GetAllAsync<PhotoEntity>(PhotoEntity.GetPk(tenantId), ct))
+            .Where(p => p.Active && StorageKeys.BelongsToTenant(p.S3Key, tenantId))
+            .ToList();
+        var body = photos.FirstOrDefault(p => p.Kind == PhotoKind.Body);
+        var face = photos.FirstOrDefault(p => p.Kind == PhotoKind.Face);
+        switch (TryOnRules.PathFor(body is not null, face is not null))
+        {
+            case TryOnSource.Body:
+                return new Subject(TryOnSource.Body, body!.Id, body, null, null, null);
+            case TryOnSource.Face:
+                var profile = await repository.GetAsync<BodyProfileEntity>(BodyProfileEntity.GetPk(tenantId), BodyProfileEntity.GetSk(), ct);
+                return new Subject(TryOnSource.Face, TryOnRules.FaceSubjectKey(face!.Id, profile?.BodyType, profile?.HeightCm, profile?.Size),
+                    face, profile?.BodyType, profile?.HeightCm, profile?.Size);
+            default:
+                return null;
+        }
+    }
 
     private async Task<TryOnImageDto> ToDtoAsync(TryOnImageEntity image, CancellationToken ct)
     {
         var ttl = TimeSpan.FromSeconds(photoOptions.CurrentValue.ReadUrlTtlSeconds);
-        return new TryOnImageDto(image.Id, await storage.CreateReadUrlAsync(image.S3Key, ttl, ct), Now.Add(ttl), image.CreatedAt);
+        return new TryOnImageDto(image.Id, await storage.CreateReadUrlAsync(image.S3Key, ttl, ct), Now.Add(ttl), image.CreatedAt, image.Source);
     }
 }

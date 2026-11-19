@@ -22,7 +22,9 @@ public interface IStylistJobService
 /// Outfit ×3 / week plan / suitcase drafts. Flow per job:
 ///   1. candidates are selected on the server (StylistCandidateSelector) — the model sees ids + attributes only:
 ///      no photo, no name, no e-mail, no height / weight, no location (just the weather summary);
-///   2. a wardrobe that cannot dress a single day is answered without calling the model (refusal insufficient_wardrobe);
+///   2. a wardrobe that cannot dress a single day is answered without calling the model: Droblet picks the missing pieces
+///      itself (GapFill — ready library first, catalog for the rest; owner decision 3) and returns complete outfits with
+///      the picks in `missing`; refusal insufficient_wardrobe only when even that is impossible (empty library and catalog);
 ///   3. model output is accepted only through StylistOutputGuard / PackingRules — never repaired;
 ///      what fails is replaced by the rule-based fallback, so the user always gets a result;
 ///   4. body / weight commentary in any text fails the job (GuardRejected);
@@ -34,6 +36,8 @@ public sealed class StylistJobService(
     IRepository repository,
     IStylistModel model,
     IWeatherService weather,
+    ILibraryCatalog library,
+    ICatalogService catalog,
     IOptionsMonitor<StylistOptions> stylistOptions,
     IOptionsMonitor<PackingOptions> packingOptions,
     ILogger<StylistJobService> logger) : IStylistJobService
@@ -89,11 +93,18 @@ public sealed class StylistJobService(
             new HashSet<Season> { season }, input.Occasion, forecast is null ? null : WeatherRules.WholeDegrees(forecast.MaxC), false, settings.MaxCandidates, settings.HotFromC, input.PinnedItemId));
 
         OutfitResult Result(string? refusal, IReadOnlyList<SuggestedOutfit> suggestions) =>
-            new(input.Date, input.Occasion, input.OnlyMyWardrobe, refusal, suggestions, language);
+            new(input.Date, input.Occasion, input.OnlyMyWardrobe, refusal, suggestions, language, suggestions.Any(GapFill.HasPicks));
 
-        var ruleOptions = new RuleOutfitOptions(input.PinnedItemId, WantsOuterLayer(forecast, settings), input.OnlyMyWardrobe);
+        var wantsOuter = WantsOuterLayer(forecast, settings);
+        var ruleOptions = new RuleOutfitOptions(input.PinnedItemId, wantsOuter, input.OnlyMyWardrobe);
+        var fill = await GapFillAsync(job.TenantId, new HashSet<Season> { season }, input.Occasion,
+            forecast is null ? null : WeatherRules.WholeDegrees(forecast.MaxC), false, wantsOuter, ct);
         if (RuleBasedOutfit.Build(candidates, 1, ruleOptions).Count == 0)
-            return new Outcome(StylingJson.Serialize(Result(StylistRefusals.InsufficientWardrobe, [])));
+        {
+            // Thin wardrobe (owner decision 3): Droblet picks the missing pieces itself — no model call, no dead end.
+            var filled = Indexed(GapFill.Outfits(candidates, fill, settings.SuggestionCount, ruleOptions));
+            return new Outcome(StylingJson.Serialize(filled.Count == 0 ? Result(StylistRefusals.InsufficientWardrobe, []) : Result(null, filled)));
+        }
 
         var prompt = StylingJson.Serialize(new
         {
@@ -126,8 +137,25 @@ public sealed class StylistJobService(
             var taken = suggestions.Select(s => StylistOutputGuard.Signature(s.Slots)).ToHashSet(StringComparer.Ordinal);
             suggestions.AddRange(RuleBasedOutfit.Build(candidates, settings.SuggestionCount - suggestions.Count, ruleOptions with { ExcludeSignatures = taken }));
         }
+        if (suggestions.Count < settings.SuggestionCount)
+        {
+            // The wardrobe only dresses the day one or two ways: the rest are filled with picked pieces.
+            var taken = suggestions.Select(s => StylistOutputGuard.Signature(s.Slots)).ToHashSet(StringComparer.Ordinal);
+            suggestions.AddRange(GapFill.Outfits(candidates, fill, settings.SuggestionCount - suggestions.Count, ruleOptions with { ExcludeSignatures = taken }));
+        }
 
-        return new Outcome(StylingJson.Serialize(Result(null, suggestions.Select((s, i) => s with { Index = i }).ToList())));
+        return new Outcome(StylingJson.Serialize(Result(null, Indexed(WithShoes(suggestions, candidates, fill)))));
+    }
+
+    private static List<SuggestedOutfit> Indexed(IEnumerable<SuggestedOutfit> suggestions) => suggestions.Select((s, i) => s with { Index = i }).ToList();
+
+    /// <summary>A wardrobe without shoes: every look still gets a picked pair (library first, else the shop).</summary>
+    private static IEnumerable<SuggestedOutfit> WithShoes(IEnumerable<SuggestedOutfit> suggestions, IReadOnlyList<CandidateItem> candidates, GapFillContext fill)
+    {
+        if (candidates.Any(c => c.Category == ItemCategory.Shoes))
+            return suggestions;
+        var picked = GapFill.Candidates(candidates, fill);
+        return suggestions.Select((s, i) => GapFill.WithShoes(s, picked, i));
     }
 
     // ── Week ──────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -147,8 +175,30 @@ public sealed class StylistJobService(
         var seasons = dates.Select(d => SeasonRules.For(CalendarDay.Parse(d))).ToHashSet();
         var candidates = StylistCandidateSelector.Select(wardrobe, new CandidateCriteria(seasons, null, null, false, settings.MaxCandidates, settings.HotFromC));
 
+        var weekMax = forecast.Count == 0 ? (int?)null : forecast.Values.Min(f => WeatherRules.WholeDegrees(f.MaxC));
+        var fill = await GapFillAsync(job.TenantId, seasons, null, weekMax, false, forecast.Values.Any(f => WantsOuterLayer(f, settings)), ct);
+
+        // A day the wardrobe cannot dress (thin wardrobe, owner decision 3) is dressed with picked pieces.
+        SuggestedOutfit? Filled(int i, string? previous, DailyForecast? day) =>
+            GapFill.Outfits(candidates, fill with { WantsOuterLayer = WantsOuterLayer(day, settings) }, 1,
+                new RuleOutfitOptions(null, WantsOuterLayer(day, settings), true, i,
+                    previous is null ? null : new HashSet<string>(StringComparer.Ordinal) { previous })).FirstOrDefault();
+
         if (RuleBasedOutfit.Build(candidates, 1).Count == 0)
-            return new Outcome(StylingJson.Serialize(new WeekResult(input.WeekStart, StylistRefusals.InsufficientWardrobe, [], language)));
+        {
+            var filledPlan = new List<WeekDayPlan>();
+            string? last = null;
+            for (var i = 0; i < input.Days.Count; i++)
+            {
+                var day = input.Days[i];
+                var outfit = Filled(i, last, forecast.GetValueOrDefault(day.Date));
+                last = outfit is null ? null : GapFill.RawSignature(outfit);
+                filledPlan.Add(new WeekDayPlan(day.Date, day.Occasion, outfit is null ? null : outfit with { Index = i }));
+            }
+            return new Outcome(StylingJson.Serialize(filledPlan.All(d => d.Outfit is null)
+                ? new WeekResult(input.WeekStart, StylistRefusals.InsufficientWardrobe, [], language)
+                : new WeekResult(input.WeekStart, null, filledPlan, language, true)));
+        }
 
         var prompt = StylingJson.Serialize(new
         {
@@ -178,14 +228,16 @@ public sealed class StylistJobService(
             {
                 var exclude = previous is null ? null : new HashSet<string>(StringComparer.Ordinal) { previous };
                 var wantsOuter = WantsOuterLayer(forecast.GetValueOrDefault(day.Date), settings);
-                outfit = RuleBasedOutfit.Build(candidates, 1, new RuleOutfitOptions(null, wantsOuter, true, i, exclude)).FirstOrDefault();
+                outfit = RuleBasedOutfit.Build(candidates, 1, new RuleOutfitOptions(null, wantsOuter, true, i, exclude)).FirstOrDefault()
+                         ?? Filled(i, previous, forecast.GetValueOrDefault(day.Date));
             }
 
-            previous = outfit is null ? null : StylistOutputGuard.Signature(outfit.Slots);
+            outfit = outfit is null ? null : WithShoes([outfit], candidates, fill).First();
+            previous = outfit is null ? null : GapFill.RawSignature(outfit);
             plan.Add(new WeekDayPlan(day.Date, day.Occasion, outfit is null ? null : outfit with { Index = i }));
         }
 
-        return new Outcome(StylingJson.Serialize(new WeekResult(input.WeekStart, null, plan, language)));
+        return new Outcome(StylingJson.Serialize(new WeekResult(input.WeekStart, null, plan, language, plan.Any(d => GapFill.HasPicks(d.Outfit)))));
     }
 
     // ── Suitcase ──────────────────────────────────────────────────────────────────────────────────────────────────
@@ -218,7 +270,11 @@ public sealed class StylistJobService(
         var wantsOuter = layerDates.Count > 0;
         var target = CapsuleRules.TargetFor(context)!;
         var range = CapsuleRules.PieceRange(context)!.Value;
-        var missing = PackingRules.MissingPieces(wardrobe, forecast, settings.ColdBelowC);
+        // Gap filling (owner decision 3): a generic "missing" placeholder (no shoes, rain, cold) names a concrete library /
+        // shop piece, and a wardrobe that cannot dress the trip is packed with picked pieces.
+        var fill = await GapFillAsync(job.TenantId, seasons, null, maxTemp, true, wantsOuter, ct);
+        var picked = GapFill.Candidates(candidates, fill);
+        var missing = PackingRules.MissingPieces(wardrobe, forecast, settings.ColdBelowC).Select(m => GapFill.Concrete(m, picked)).ToList();
 
         PackResult Result(PackPlan? plan, string source, string? refusal, bool trimmed = false, IReadOnlyList<string>? dropped = null)
         {
@@ -226,12 +282,31 @@ public sealed class StylistJobService(
             return new PackResult(trip.Id, trip.CabinOnly, plan is not null && PackingRules.EveryPieceWornTwice(plan), source, refusal,
                 (plan?.ItemIds ?? []).Select(id => new PackItem(id, wears[id])).ToList(),
                 (plan?.Days ?? []).OrderBy(d => d.Date, StringComparer.Ordinal).Select(d => new PackDay(d.Date, d.Label, d.Occasion, d.Slots)).ToList(),
-                missing, language, context.CabinLimit, trimmed, dropped ?? []);
+                missing, language, context.CabinLimit, trimmed, dropped ?? [], missing.Any(m => m.LibraryItemId is not null || m.ProductId is not null));
         }
 
         var fallback = RuleBasedPacking.Build(context, wantsOuter, occasions);
         if (fallback is null)
-            return new Outcome(StylingJson.Serialize(Result(null, StylistOutputGuard.SourceRule, StylistRefusals.InsufficientWardrobe)));
+        {
+            var filledContext = context with { Candidates = candidates.Concat(picked).ToDictionary(c => c.Id, StringComparer.Ordinal) };
+            if (RuleBasedPacking.Build(filledContext, wantsOuter, occasions) is not { } filledPlan)
+                return new Outcome(StylingJson.Serialize(Result(null, StylistOutputGuard.SourceRule, StylistRefusals.InsufficientWardrobe)));
+
+            // The picked pieces leave the packing list and the day looks; they are listed as suggestions in `missing`.
+            var pickedById = picked.ToDictionary(p => p.Id, StringComparer.Ordinal);
+            foreach (var id in filledPlan.ItemIds.Where(GapFill.IsPicked))
+            {
+                var piece = GapFill.Missing(OutfitSlotRules.DefaultSlot(pickedById[id].Category), pickedById[id]);
+                if (!missing.Any(m => (m.LibraryItemId ?? m.ProductId) == (piece.LibraryItemId ?? piece.ProductId)))
+                    missing.Add(piece);
+            }
+            var own = filledPlan with
+            {
+                ItemIds = filledPlan.ItemIds.Where(id => !GapFill.IsPicked(id)).ToList(),
+                Days = filledPlan.Days.Select(d => d with { Slots = d.Slots.Where(s => !GapFill.IsPicked(s.ItemId)).ToList() }).ToList(),
+            };
+            return new Outcome(StylingJson.Serialize(Result(own, StylistOutputGuard.SourceRule, null)));
+        }
         // Did the cabin limit make the rule-based list shorter than it would otherwise be?
         var fallbackTrimmed = context.CabinLimit is not null
             && RuleBasedPacking.Build(context with { CabinOnly = false }, wantsOuter, occasions) is { } unlimited
@@ -297,6 +372,28 @@ public sealed class StylistJobService(
     {
         var style = await repository.GetAsync<StyleProfileEntity>(StyleProfileEntity.GetPk(tenantId), StyleProfileEntity.GetSk(), ct);
         return style is null ? null : new { style.StyleTags, style.Budget };
+    }
+
+    /// <summary>What the gap filling may pick (library, catalog) and the user's palette and budget band to respect.</summary>
+    private async Task<GapFillContext> GapFillAsync(string tenantId, IReadOnlySet<Season> seasons, Occasion? occasion, int? maxTempC, bool isTrip,
+        bool wantsOuterLayer, CancellationToken ct)
+    {
+        var settings = stylistOptions.CurrentValue;
+        var palette = await repository.GetAsync<PaletteResultEntity>(PaletteResultEntity.GetPk(tenantId), PaletteResultEntity.GetSk(), ct);
+        var style = await repository.GetAsync<StyleProfileEntity>(StyleProfileEntity.GetPk(tenantId), StyleProfileEntity.GetSk(), ct);
+        var band = style?.Budget switch
+        {
+            Budget.HighStreet => PriceBand.HighStreet,
+            Budget.LuxuryTouch => PriceBand.LuxuryTouch,
+            _ => (PriceBand?)null,
+        };
+        return new GapFillContext(
+            await library.GetAllAsync(ct),
+            await catalog.GetProductsAsync(ct),
+            seasons, occasion, maxTempC, settings.HotFromC, isTrip, wantsOuterLayer,
+            (palette?.FlatteringColorIds ?? []).ToHashSet(StringComparer.Ordinal),
+            (palette?.AvoidColorIds ?? []).ToHashSet(StringComparer.Ordinal),
+            band);
     }
 
     private async Task<object?> PaletteAsync(string tenantId, CancellationToken ct)
