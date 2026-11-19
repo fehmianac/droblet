@@ -1,5 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { useState } from 'react';
+import { AccessibilityInfo } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import type { ItemDraft } from '@/api/contracts/wardrobe';
@@ -7,8 +8,12 @@ import { toItemDraft, toItemDrafts, type ItemDraftWire } from '@/api/wire/wardro
 import i18n from '@/i18n';
 
 import {
+  boxRevealDelays,
   chooserState,
   defaultSelection,
+  detectProgress,
+  detectStageIndex,
+  placeChips,
   detectedPieces,
   isLowConfidence,
   isReviewable,
@@ -18,7 +23,7 @@ import {
   selectedIds,
   toggle,
 } from './detect';
-import { DetectChooser } from './DetectChooser';
+import { DetectChooser, type DetectPhase } from './DetectChooser';
 import { toDetectedEditWire } from './mutations';
 
 const GROUP = '01JGROUP0000000000000000AA';
@@ -157,12 +162,30 @@ describe('chooser rules', () => {
   });
 });
 
-function Harness({ pieces, onAdd }: { pieces: ItemDraft[]; onAdd: (ids: string[]) => void }) {
+function Harness({
+  pieces,
+  onAdd,
+  phase,
+  since,
+  onRetry,
+  onManual,
+}: {
+  pieces: ItemDraft[];
+  onAdd: (ids: string[]) => void;
+  phase?: DetectPhase;
+  since?: number;
+  onRetry?: () => void;
+  onManual?: () => void;
+}) {
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
   const selection = resolveSelection(pieces, overrides, new Set());
   return (
     <SafeAreaProvider initialMetrics={{ frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 47, left: 0, right: 0, bottom: 34 } }}>
       <DetectChooser
+        phase={phase}
+        since={since}
+        onRetry={onRetry}
+        onManual={onManual}
         photoUrl="https://img/photo.jpg"
         photoSize={{ width: 1024, height: 1536 }}
         pieces={pieces}
@@ -203,5 +226,139 @@ describe('DetectChooser', () => {
     await fireEvent.press(screen.getByTestId('detect-check-2'));
     await fireEvent.press(screen.getByTestId('detect-add'));
     expect(onAdd).toHaveBeenCalledWith(['p2']);
+  });
+});
+
+describe('the wait and the boxes appearing', () => {
+  // The scan line is decorative (hidden from assistive tech): queries must include hidden elements.
+  const HIDDEN = { includeHiddenElements: true };
+  // Built after the language switch so sub-type names are Turkish ("Kolye").
+  let pieces: ItemDraft[] = [];
+  beforeAll(() => {
+    pieces = detectedPieces(toItemDrafts({ drafts: [groupWire, ...pieceWires], total: 1, processed: 1 }), GROUP);
+  });
+
+  function setReduceMotion(value: boolean) {
+    jest.spyOn(AccessibilityInfo, 'isReduceMotionEnabled').mockResolvedValue(value);
+  }
+
+  afterEach(() => {
+    jest.useRealTimers();
+    jest.restoreAllMocks();
+  });
+
+  it('stage sentences follow the time since the photo was sent; the bar eases toward 90 % and completes on the result', () => {
+    expect([0, 3499, 3500, 8000, 14000, 60000].map(detectStageIndex)).toEqual([0, 0, 1, 2, 3, 3]);
+    expect(detectProgress(0)).toBe(0);
+    expect(detectProgress(6000)).toBeGreaterThan(0.35);
+    expect(detectProgress(120000)).toBeLessThan(0.9);
+    expect(detectProgress(4000, true)).toBe(1);
+  });
+
+  it('boxes come 120 ms apart, all at once with reduce-motion', () => {
+    expect(boxRevealDelays(4, true)).toEqual([0, 120, 240, 360]);
+    expect(boxRevealDelays(4, false)).toEqual([0, 0, 0, 0]);
+  });
+
+  it('a chip that would cover another moves below its box', () => {
+    // A shirt and the necklace at its collar: the necklace chip cannot sit on the shirt chip.
+    const boxes = [
+      { x: 0.3, y: 0.2, width: 0.4, height: 0.3 },
+      { x: 0.43, y: 0.21, width: 0.13, height: 0.06 },
+    ];
+    expect(placeChips(boxes, ['1 · Gömlek', '2 · Kolye'], 300, 400)).toEqual(['inside-top', 'below']);
+  });
+
+  it('cycles the stage sentence over the photo with the scan line while the AI looks', async () => {
+    jest.useFakeTimers();
+    setReduceMotion(false);
+    await render(<Harness pieces={[]} onAdd={() => undefined} phase="loading" since={Date.now()} />);
+    expect(screen.getByTestId('detect-photo')).toBeTruthy();
+    expect(screen.getByTestId('scan-line-sweeping', HIDDEN)).toBeTruthy();
+    expect(screen.getByText('Üst ve altlar aranıyor…')).toBeTruthy();
+    await act(async () => {
+      jest.advanceTimersByTime(4000);
+    });
+    expect(screen.getByText('Ayakkabı ve çantalar aranıyor…')).toBeTruthy();
+    await act(async () => {
+      jest.advanceTimersByTime(5000);
+    });
+    expect(screen.getByText('Takı ve aksesuarlar aranıyor…')).toBeTruthy();
+    await act(async () => {
+      jest.advanceTimersByTime(30000);
+    });
+    // The last stage stays until the result; nothing loops.
+    expect(screen.getByText('Neredeyse hazır…')).toBeTruthy();
+    expect(screen.queryByTestId('detect-box-1')).toBeNull();
+  });
+
+  it('starts mid-way when 12 hands over after a few seconds', async () => {
+    jest.useFakeTimers();
+    setReduceMotion(false);
+    await render(<Harness pieces={[]} onAdd={() => undefined} phase="loading" since={Date.now() - 6000} />);
+    expect(screen.getByText('Ayakkabı ve çantalar aranıyor…')).toBeTruthy();
+  });
+
+  it('draws a labelled box per detected piece on the same photo, then the choice comes in', async () => {
+    jest.useFakeTimers();
+    setReduceMotion(false);
+    const view = await render(<Harness pieces={pieces} onAdd={() => undefined} phase="loading" since={Date.now()} />);
+    await view.rerender(<Harness pieces={pieces} onAdd={() => undefined} phase="choose" since={Date.now()} />);
+    // Boxes from the backend's x / y / w / h, each with "N · tür".
+    for (const n of [1, 2, 3, 4]) expect(screen.getByTestId(`detect-box-${n}`)).toBeTruthy();
+    expect(screen.getByText('2 · Kolye')).toBeTruthy();
+    expect(screen.getByTestId('detect-box-1').props.style).toEqual(expect.arrayContaining([expect.objectContaining({ left: '5%', top: '5%', width: '45%' })]));
+    // The bar completes first, the scan line is off; the list follows.
+    expect(screen.getByTestId('detect-processing')).toBeTruthy();
+    expect(screen.queryByTestId('scan-line-sweeping', HIDDEN)).toBeNull();
+    expect(screen.queryByTestId('detect-add')).toBeNull();
+    await act(async () => {
+      jest.advanceTimersByTime(400);
+    });
+    expect(screen.queryByTestId('detect-processing')).toBeNull();
+    expect(screen.getByText('Fotoğrafta 4 parça bulduk')).toBeTruthy();
+    expect(screen.getByTestId('detect-add')).toBeTruthy();
+  });
+
+  it('with reduce-motion: no scan line, and the boxes and the list arrive at once', async () => {
+    jest.useFakeTimers();
+    setReduceMotion(true);
+    const view = await render(<Harness pieces={pieces} onAdd={() => undefined} phase="loading" since={Date.now()} />);
+    await act(async () => {
+      jest.advanceTimersByTime(0);
+    });
+    expect(screen.queryByTestId('scan-line-sweeping', HIDDEN)).toBeNull();
+    expect(screen.getByText('Üst ve altlar aranıyor…')).toBeTruthy();
+    // The stage sentence still changes, without the fade.
+    await act(async () => {
+      jest.advanceTimersByTime(4000);
+    });
+    expect(screen.getByText('Ayakkabı ve çantalar aranıyor…')).toBeTruthy();
+    await view.rerender(<Harness pieces={pieces} onAdd={() => undefined} phase="choose" since={Date.now()} />);
+    expect(screen.queryByTestId('detect-processing')).toBeNull();
+    expect(screen.getByTestId('detect-box-4')).toBeTruthy();
+    expect(screen.getByText('Fotoğrafta 4 parça bulduk')).toBeTruthy();
+  });
+
+  it('nothing found keeps the photo, says why and offers retry and manual entry', async () => {
+    const onRetry = jest.fn();
+    const onManual = jest.fn();
+    await render(<Harness pieces={[]} onAdd={() => undefined} phase="empty" onRetry={onRetry} onManual={onManual} />);
+    expect(screen.getByTestId('detect-photo')).toBeTruthy();
+    expect(screen.getByTestId('detect-photo-status')).toBeTruthy();
+    expect(screen.getByText('Bu fotoğrafta parça bulamadık')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('detect-retry'));
+    await fireEvent.press(screen.getByTestId('detect-manual'));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+    expect(onManual).toHaveBeenCalledTimes(1);
+  });
+
+  it('a failed photo stays on screen with the error and its actions', async () => {
+    await render(<Harness pieces={[]} onAdd={() => undefined} phase="failed" onRetry={() => undefined} onManual={() => undefined} />);
+    expect(screen.getByTestId('detect-photo')).toBeTruthy();
+    expect(screen.getByText('Fotoğraf işlenemedi')).toBeTruthy();
+    expect(screen.getByText('İŞLENEMEDİ')).toBeTruthy();
+    expect(screen.getByTestId('detect-retry')).toBeTruthy();
+    expect(screen.queryByTestId('scan-line-sweeping', HIDDEN)).toBeNull();
   });
 });

@@ -128,3 +128,71 @@ export const detectedEdits = {
 export function useDetectedEditsVersion(): number {
   return useSyncExternalStore(detectedEdits.subscribe, () => version);
 }
+
+// ---------- the wait while the photo is analysed, and the boxes appearing ----------
+
+/**
+ * "Parçaları seç" while the AI looks at the photo (canvas `ParcaSecAraniyor`): calm stage sentences that
+ * follow the time since the photo was sent (12 hands over after ~6 s, so the chooser starts mid-way). The
+ * last one stays until the result; nothing loops.
+ */
+export const DETECT_STAGES = ['stageTops', 'stageShoes', 'stageJewellery', 'stageAlmost'] as const;
+export type DetectStage = (typeof DETECT_STAGES)[number];
+/** When each stage starts, in ms since the photo was sent. */
+export const DETECT_STAGE_STARTS_MS = [0, 3500, 8000, 14000] as const;
+
+export function detectStageIndex(elapsedMs: number): number {
+  let index = 0;
+  DETECT_STAGE_STARTS_MS.forEach((start, i) => {
+    if (elapsedMs >= start) index = i;
+  });
+  return index;
+}
+
+/** The thin bar: eases toward 90 % (never reaching it) while waiting; 100 % once the result is in. */
+export function detectProgress(elapsedMs: number, done = false): number {
+  if (done) return 1;
+  return 0.9 * (1 - Math.exp(-Math.max(0, elapsedMs) / 10000));
+}
+
+/** Boxes appear one by one, 120 ms apart; with reduce-motion (or no wait to follow) all at once. */
+export const BOX_STAGGER_MS = 120;
+export function boxRevealDelays(count: number, animate: boolean): number[] {
+  return Array.from({ length: count }, (_, i) => (animate ? i * BOX_STAGGER_MS : 0));
+}
+
+export type ChipBox = { x: number; y: number; width: number; height: number };
+export type ChipPlacement = 'inside-top' | 'below' | 'above' | 'inside-bottom';
+
+/** Height of a box label chip and a rough width per character (11 pt medium) plus its padding. */
+export const CHIP_HEIGHT = 20;
+export function chipWidth(label: string): number {
+  return 14 + label.length * 6.4;
+}
+
+/**
+ * Where each box's "N · tür" chip sits so that chips do not cover each other: inside the top-left corner
+ * first, then just below the box, above it, or inside its bottom-left corner. Positions are in points on
+ * a photo of `photoW × photoH`; a chip that fits nowhere keeps the first place.
+ */
+export function placeChips(boxes: ChipBox[], labels: string[], photoW: number, photoH: number): ChipPlacement[] {
+  const placed: { x: number; y: number; w: number; h: number }[] = [];
+  const overlaps = (a: { x: number; y: number; w: number; h: number }) =>
+    placed.some((b) => a.x < b.x + b.w + 2 && b.x < a.x + a.w + 2 && a.y < b.y + b.h + 2 && b.y < a.y + a.h + 2);
+  return boxes.map((box, i) => {
+    const w = chipWidth(labels[i] ?? '');
+    const left = box.x * photoW;
+    const top = box.y * photoH;
+    const bottom = (box.y + box.height) * photoH;
+    const candidates: [ChipPlacement, number][] = [
+      ['inside-top', top],
+      ['below', bottom + 2],
+      ['above', top - CHIP_HEIGHT - 2],
+      ['inside-bottom', bottom - CHIP_HEIGHT],
+    ];
+    const fits = candidates.find(([, y]) => y >= 0 && y + CHIP_HEIGHT <= photoH && !overlaps({ x: left, y, w, h: CHIP_HEIGHT }));
+    const [placement, y] = fits ?? (candidates[0] as [ChipPlacement, number]);
+    placed.push({ x: left, y, w, h: CHIP_HEIGHT });
+    return placement;
+  });
+}

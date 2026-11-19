@@ -132,6 +132,16 @@ export const scanTones = {
   veil: 'rgba(244, 241, 236, 0.3)',
 } as const;
 
+/**
+ * Piece boxes over the chooser photo (canvas `ParcaSecSecim`): a ticked box is a 2 pt ink line with a light
+ * ring so it reads on dark pieces too; an unticked one a light line with a faint ink ring.
+ */
+export const boxTones = {
+  ringLight: 'rgba(244, 241, 236, 0.9)',
+  ringDark: 'rgba(28, 26, 23, 0.25)',
+  lineLight: 'rgba(251, 249, 245, 0.85)',
+} as const;
+
 /** Ink fade under text set on a photograph (20 Keşfet edit cover): ink at 0% → 82%. */
 export const inkFade = {
   clear: 'rgba(28, 26, 23, 0)',
@@ -152,6 +162,11 @@ export const motion = {
   scanFadeMs: 200,
   /** 13 bulk rows: the cleaned image fading in over the blurred photo. */
   cleanFadeMs: 400,
+  /** Parçaları seç: stage sentence cross-fade, one box appearing, the list sliding up, the bar finishing. */
+  stageFadeMs: 250,
+  boxInMs: 280,
+  listUpMs: 360,
+  barFinishMs: 320,
 } as const;
 
 /** Embedded font family names (loaded in `src/app/_layout.tsx`). Custom fonts carry their weight in the family. */

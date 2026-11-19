@@ -1,9 +1,15 @@
 {
   "itemDetect": {
     "title": "Parçaları seç",
-    "analysing": "Parçalar ayırt ediliyor…",
-    "analysingSmall": "Takılar ve aksesuarlar aranıyor…",
-    "analysingFields": "Renk ve kumaş okunuyor…",
+    "stageTops": "Üst ve altlar aranıyor…",
+    "stageShoes": "Ayakkabı ve çantalar aranıyor…",
+    "stageJewellery": "Takı ve aksesuarlar aranıyor…",
+    "stageAlmost": "Neredeyse hazır…",
+    "progressA11y": "Fotoğraf taranıyor",
+    "photoScanA11y": "Fotoğrafın, parçalar aranıyor",
+    "photoPlainA11y": "Fotoğrafın",
+    "emptyTag": "PARÇA BULUNAMADI",
+    "failedTag": "İŞLENEMEDİ",
     "analysingBody": "Fotoğraftaki her parçayı ayrı ayrı buluyoruz; takılar ve küçük aksesuarlar da dahil.",
     "found_one": "Fotoğrafta {{count}} parça bulduk",
     "found_other": "Fotoğrafta {{count}} parça bulduk",

@@ -1,9 +1,15 @@
 {
   "itemDetect": {
     "title": "Choose pieces",
-    "analysing": "Telling the pieces apart…",
-    "analysingSmall": "Looking for jewellery and accessories…",
-    "analysingFields": "Reading colour and fabric…",
+    "stageTops": "Looking for tops and bottoms…",
+    "stageShoes": "Looking for shoes and bags…",
+    "stageJewellery": "Looking for jewellery and accessories…",
+    "stageAlmost": "Almost ready…",
+    "progressA11y": "Scanning the photo",
+    "photoScanA11y": "Your photo, looking for pieces",
+    "photoPlainA11y": "Your photo",
+    "emptyTag": "NO PIECES FOUND",
+    "failedTag": "NOT PROCESSED",
     "analysingBody": "We find every piece in the photo one by one, jewellery and small accessories included.",
     "found_one": "We found {{count}} piece in the photo",
     "found_other": "We found {{count}} pieces in the photo",
