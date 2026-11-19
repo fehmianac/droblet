@@ -24,7 +24,7 @@ public class MissingPieceValue
     [JsonPropertyName("libraryItemId")] public string? LibraryItemId { get; set; }
 }
 
-public class LookEntity : IVersionedEntity
+public class LookEntity : IVersionedEntity, IModeratedEntity
 {
     [JsonPropertyName("pk")] public string Pk => GetPk(TenantId);
     [JsonPropertyName("sk")] public string Sk => GetSk(Id);
@@ -36,6 +36,12 @@ public class LookEntity : IVersionedEntity
     [JsonPropertyName("slots")] public List<LookSlotValue> Slots { get; set; } = [];
     [JsonPropertyName("favorite")] public bool Favorite { get; set; }
     [JsonPropertyName("source")] public LookSource Source { get; set; }
+
+    // Moderation (report resolved as contentRemoved): hidden from everyone but the owner. Written only by the moderation
+    // service; owner edits load and save the whole row, so they keep these fields.
+    [JsonPropertyName("moderationHiddenAt")] public DateTime? ModerationHiddenAt { get; set; }
+    [JsonPropertyName("moderationReportId")] public string? ModerationReportId { get; set; }
+    [JsonPropertyName("moderationReason")] public ReportReason? ModerationReason { get; set; }
     [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; }
     [JsonPropertyName("updatedAt")] public DateTime UpdatedAt { get; set; }
     [JsonPropertyName("version")] public long Version { get; set; }

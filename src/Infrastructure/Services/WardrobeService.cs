@@ -686,7 +686,8 @@ public sealed class WardrobeService(
 
         return new ItemDto(item.Id, item.Name, item.Category, item.ColorIds, item.Fabric, item.Seasons, item.Size, item.Brand, item.Source,
             item.ProductId, item.LibraryItemId, url, expires, item.OriginalImageKey is not null, item.UseOriginalImage, item.WearCount,
-            item.LastWornAt, item.ListingStatus, item.CreatedAt, item.UpdatedAt, item.Version, item.Subcategory, item.FabricText, item.ColorHex);
+            item.LastWornAt, item.ListingStatus, item.CreatedAt, item.UpdatedAt, item.Version, item.Subcategory, item.FabricText, item.ColorHex,
+            item.ToModerationDto());
     }
 
     private async Task<ItemDraftDto> ToDtoAsync(ItemDraftEntity draft, CancellationToken ct)

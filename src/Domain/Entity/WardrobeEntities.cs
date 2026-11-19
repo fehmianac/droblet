@@ -7,7 +7,7 @@ using Domain.Services.Ai;
 namespace Domain.Entity;
 
 // A wardrobe piece. Written only by the confirm / library / product endpoints — never by a worker.
-public class ItemEntity : IVersionedEntity
+public class ItemEntity : IVersionedEntity, IModeratedEntity
 {
     [JsonPropertyName("pk")] public string Pk => GetPk(TenantId);
     [JsonPropertyName("sk")] public string Sk => GetSk(Id);
@@ -44,6 +44,12 @@ public class ItemEntity : IVersionedEntity
 
     // Reserved for phase 2 (sell / rent). Always None in phase 1.
     [JsonPropertyName("listingStatus")] public ItemListingStatus ListingStatus { get; set; }
+
+    // Moderation (report resolved as contentRemoved): hidden from everyone but the owner. Written only by the moderation
+    // service; owner edits load and save the whole row, so they keep these fields.
+    [JsonPropertyName("moderationHiddenAt")] public DateTime? ModerationHiddenAt { get; set; }
+    [JsonPropertyName("moderationReportId")] public string? ModerationReportId { get; set; }
+    [JsonPropertyName("moderationReason")] public ReportReason? ModerationReason { get; set; }
 
     [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; }
     [JsonPropertyName("updatedAt")] public DateTime UpdatedAt { get; set; }

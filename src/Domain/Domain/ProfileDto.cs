@@ -20,7 +20,9 @@ public record ProfileDto(
     DateTime? AvatarUrlExpiresAt = null,
     // E-mail verification (the app shows "E-postanı doğrula" while false; nothing is blocked).
     bool EmailVerified = true,
-    DateTime? EmailVerifiedAt = null);
+    DateTime? EmailVerifiedAt = null,
+    // Owner-only: { hidden: true, reason } when a moderator hid the profile's public fields (name, avatar, style tags) from others.
+    ModerationDto? Moderation = null);
 
 public static class ProfileDtoMapper
 {
@@ -34,5 +36,6 @@ public static class ProfileDtoMapper
         entity.CityId,
         entity.Version,
         entity.UpdatedAt,
-        ageConfirmedAt);
+        ageConfirmedAt,
+        Moderation: entity.ToModerationDto());
 }
