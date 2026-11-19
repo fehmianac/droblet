@@ -1,7 +1,9 @@
 import { AnalyticsHost } from '@/analytics/AnalyticsHost';
 import { DeviceHost } from '@/features/account/DeviceHost';
 import { AgeCheckHost } from '@/features/consent/AgeCheckHost';
+import { ConsentReviewHost } from '@/features/consent/ConsentReviewHost';
 import { ConsentHost } from '@/features/consent/ConsentSheet';
+import { RequirementsHost } from '@/features/requirements/RequirementsHost';
 import { LanguageSyncHost } from '@/features/account/LanguageSyncHost';
 import { CreditSheetHost } from '@/features/credits/CreditPackSheet';
 import { InviteHost } from '@/features/social/InviteHost';
@@ -20,6 +22,10 @@ export function AppHosts({ userId }: { userId: string | null }) {
       {userId ? <CreditSheetHost /> : null}
       {/* Just-in-time consent sheet: feature gates and 403 `consent_required` answers open it. */}
       {userId ? <ConsentHost /> : null}
+      {/* Consents never answered (a new purpose): the all-in-one screen once on the next app open. */}
+      {userId ? <ConsentReviewHost key={`consent-review-${userId}`} userId={userId} /> : null}
+      {/* Canvas 11: the requirements sheet / stepper / "Hazır" of a gated action. */}
+      {userId ? <RequirementsHost /> : null}
       {/* A session stored before the 18+ check: asks the profile once whether the age was confirmed. */}
       {userId ? <AgeCheckHost key={`age-${userId}`} /> : null}
       {/* Keyed by user: a new sign-in re-checks the profile language against this phone's. */}

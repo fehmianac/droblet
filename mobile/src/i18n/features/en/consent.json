@@ -70,10 +70,22 @@
       },
       "facePhotoTryOn": {
         "title": "Face photo and “See it on me”",
-        "body": "What for: When you have no full-length photo, to build your figure from your face photo together with the body type, height and size you choose, and to create images that show outfits on that figure (“See it on me”).\n\nWhich data: The face photo you upload, the body type you choose, your height and size, and the images created from them. Your weight is not used. No identification, verification or facial recognition takes place; no face template that uniquely identifies you is extracted or stored.\n\nWho processes it and where: Droblet Ltd; the photo is stored on AWS servers in Frankfurt (Germany) and sent to OpenAI (USA) to create the images.\n\nHow long: Until you delete the face photo or the created images, or delete your account. The photo and the images are never shown to other users, whatever your settings.\n\nIf you don't consent: You cannot use “See it on me” without a full-length photo; you can still use it by adding one. The colour palette analysis does not depend on this consent.",
-        "statement": "I give my explicit consent for my face photo to be processed by Droblet Ltd, together with my body type, height and size and without any identification, to create ‘See it on me’ images, and to be transferred for this purpose to AWS (Germany) and OpenAI (USA).",
+        "body": "Purpose: when you have no full-body photo, to build your figure from your face photo together with the body type, height and size you choose, and to generate images that show outfits on that figure (“See it on me”).\n\nData: the face photo you upload, the body type you choose, your height and size, and the images generated from them. Your weight is not used. No identification, verification or face recognition takes place; no face template that uniquely identifies you is extracted or stored.\n\nWho processes it and where: Droblet Ltd; the photo is stored on AWS servers in Frankfurt (Germany) and sent to OpenAI (US) to generate the images.\n\nHow long: until you delete the face photo or the generated images, or your account. The photo and the images are never shown to other users in any setting.\n\nIf you do not consent: you cannot use “See it on me” without a full-body photo; you can still use it by adding one. The colour palette analysis does not depend on this consent.",
+        "statement": "I give my explicit consent to Droblet Ltd processing my face photo, together with my body type, height and size and without identifying me, to generate ‘See it on me’ images, and transferring it for that purpose to AWS (Germany) and OpenAI (US).",
         "summary": "To create images of you from your face and the body type you choose, when you have no full-length photo."
       }
+    },
+    "review": {
+      "eyebrow": "EXPLICIT CONSENTS",
+      "title": "You choose how we use your data",
+      "lead": "Each consent is for one purpose and optional. A consent you don’t give only turns that feature off; change it any time in Settings › Privacy.",
+      "note": "No box is ticked for you. “Accept all” ticks them all at once; or continue with just the ones you chose.",
+      "acceptAll": "Accept all",
+      "continueSelected": "Continue with my choices",
+      "selected": "{{count}} of {{total}} selected",
+      "skip": "Skip for now",
+      "updatedTitle": "Our consent texts have changed",
+      "updatedLead": "We added a new purpose: “See it on me” with your face photo. You can choose each consent separately; we ask once."
     }
   },
   "age": {

@@ -88,12 +88,12 @@ export default function StyleProfileScreen() {
     if (!complete || !budget) return;
     save.save({ segment, styleTags: tags, budget, baseVersion: existing.data?.baseVersion ?? 0 });
     track('signup_step', { step: 'style_profile' });
-    router.push('/body');
+    router.push('/consents');
   };
 
   return (
     <Screen>
-      <StepHeader step={1} total={3} />
+      <StepHeader step={1} total={4} />
       <ScrollView className="flex-1" contentContainerClassName="gap-6 px-6 pb-6 pt-6">
         <View className="gap-2.5">
           <Text variant="display">{t('style.title')}</Text>

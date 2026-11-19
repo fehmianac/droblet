@@ -1,0 +1,357 @@
+{
+  "req": {
+    "hint": {
+      "format": "{{what}} · {{steps}}",
+      "steps_one": "{{count}} adım",
+      "steps_other": "{{count}} adım",
+      "left_one": "{{count}} adım kaldı",
+      "left_other": "{{count}} adım kaldı",
+      "age": "18+ onayın gerekiyor",
+      "consent": "Açık rızan gerekiyor",
+      "bodyPhoto": "Boy fotoğrafın gerekiyor",
+      "facePhoto": "Yüz fotoğrafın gerekiyor",
+      "bodyType": "Vücut tipin gerekiyor",
+      "premium": "Üyelik gerekiyor",
+      "credits": "AI görselin kalmadı",
+      "city": "Şehrin gerekiyor",
+      "handle": "Kullanıcı adın gerekiyor",
+      "badgeA11y_one": "{{count}} adım eksik",
+      "badgeA11y_other": "{{count}} adım eksik"
+    },
+    "action": {
+      "tryOn": "ÜZERİMDE GÖR",
+      "palette": "RENK PALETİ",
+      "stylist": "STİLİST",
+      "week": "HAFTAMI PLANLA",
+      "pack": "BAVUL",
+      "social": "PAYLAŞ",
+      "contacts": "REHBER"
+    },
+    "actionName": {
+      "tryOn": "Üzerimde gör",
+      "palette": "Renk paleti",
+      "stylist": "Stilist",
+      "week": "Haftamı planla",
+      "pack": "Bavul",
+      "social": "Paylaş",
+      "contacts": "Rehber"
+    },
+    "sheet": {
+      "title": {
+        "tryOn_one": "Üzerimde görmek için {{count}} adım kaldı",
+        "tryOn_other": "Üzerimde görmek için {{count}} adım kaldı",
+        "palette_one": "Renk paletin için {{count}} adım kaldı",
+        "palette_other": "Renk paletin için {{count}} adım kaldı",
+        "stylist_one": "Stilist önerileri için {{count}} adım kaldı",
+        "stylist_other": "Stilist önerileri için {{count}} adım kaldı",
+        "week_one": "Haftanı planlamak için {{count}} adım kaldı",
+        "week_other": "Haftanı planlamak için {{count}} adım kaldı",
+        "pack_one": "Bavulunu hazırlamak için {{count}} adım kaldı",
+        "pack_other": "Bavulunu hazırlamak için {{count}} adım kaldı",
+        "social_one": "Paylaşmak için {{count}} adım kaldı",
+        "social_other": "Paylaşmak için {{count}} adım kaldı",
+        "contacts_one": "Rehberden arkadaş bulmak için {{count}} adım kaldı",
+        "contacts_other": "Rehberden arkadaş bulmak için {{count}} adım kaldı"
+      },
+      "lead": "Bir kez tamamla; sonraki seferlerde yeniden sormayız.",
+      "start": "Başla",
+      "notNow": "Şimdi değil",
+      "next": "Sıradaki",
+      "privacy": "Fotoğrafların yalnızca sana açıktır. İstediğin an Profil › Gizlilik'ten silebilirsin.",
+      "pathLegend": "Nasıl devam edelim?",
+      "recommended": "Önerilen",
+      "done": "Tamam",
+      "credits": "1 kredi kullanılır · bu ay {{count}} kaldı",
+      "creditsUnknown": "1 kredi kullanılır"
+    },
+    "step": {
+      "age": {
+        "title": "18+ onayı",
+        "body": "Droblet'i kullanmak için 18 yaşından büyük olduğunu onayla."
+      },
+      "photo": {
+        "title": "Senin görüntün",
+        "body": "Look'u senin üzerine oturtmamız için birini seç."
+      },
+      "bodyPhoto": {
+        "title": "Boy fotoğrafı",
+        "body": "En gerçekçi sonuç için tam boy bir fotoğraf."
+      },
+      "facePhoto": {
+        "title": "Yüz fotoğrafı",
+        "body": "Gün ışığında, yüzün tam karşıdan."
+      },
+      "bodyType": {
+        "title": "Vücut tipi",
+        "body": "Figürün için bir kez seçersin."
+      },
+      "premium": {
+        "title": "Üyelik",
+        "body": "Bu özellik üyelikle açılır."
+      },
+      "credits": {
+        "title": "AI görseli",
+        "body": "Bu ay AI görselin kalmadı."
+      },
+      "city": {
+        "title": "Şehir",
+        "body": "Hava durumuna göre önermek için."
+      },
+      "handle": {
+        "title": "Kullanıcı adı",
+        "body": "Arkadaşların seni bu adla bulur."
+      },
+      "consent": {
+        "title_one": "Açık rıza · {{count}} onay",
+        "title_other": "Açık rıza · {{count}} onay",
+        "body": "Fotoğrafını yalnızca senin görsellerini üretmek için işlememize izin ver."
+      }
+    },
+    "path": {
+      "body": "Boy fotoğrafı ekle",
+      "bodyNote": "En gerçekçi sonuç · yaklaşık 1 dakika",
+      "face": "Yüz fotoğrafım ve vücut tipimle devam et",
+      "faceNote": "Daha hızlı · boyun ve bedenin profilinden gelir"
+    },
+    "stepper": {
+      "close": "Kapat, ilerlemen kaydedilir",
+      "progressA11y": "{{total}} adımdan {{current}}. adım: {{name}}",
+      "label": {
+        "age": "18+ onayı",
+        "consent": "Açık rıza",
+        "bodyPhoto": "Boy fotoğrafı",
+        "facePhoto": "Yüz fotoğrafı",
+        "bodyType": "Vücut tipi",
+        "premium": "Üyelik",
+        "credits": "Kredi",
+        "city": "Şehir",
+        "handle": "Kullanıcı adı"
+      }
+    },
+    "consent": {
+      "title": "Fotoğrafını nasıl kullandığımızı onayla",
+      "lead_one": "Bu özellik için ayrı bir açık rıza gerekiyor. Vermezsen yalnızca bu özellik çalışmaz.",
+      "lead_other": "Bu özellik için {{count}} ayrı açık rıza gerekiyor. Her birini ayrı işaretle; vermezsen yalnızca bu özellik çalışmaz.",
+      "confirm": "Onayla ve devam et",
+      "leftAll": "Kutuların hepsini işaretle.",
+      "left_one": "{{count}} onay kaldı.",
+      "left_other": "{{count}} onay kaldı.",
+      "ready": "Onaylar verildi."
+    },
+    "photo": {
+      "bodyTitle": "Tam boy bir fotoğraf ekle",
+      "bodyLead": "Bir kez yeter; bütün look'larını bu fotoğrafla senin üzerinde gösteririz.",
+      "faceTitle": "Net bir yüz fotoğrafı ekle",
+      "faceLead": "Figürün yüzü bu fotoğraftan gelir; aynı fotoğraf renk paletini de açar.",
+      "good": "Böyle · tam boy",
+      "half": "Yarım boy",
+      "dark": "Karanlık",
+      "tipBackground": "Sade bir arka plan",
+      "tipBackgroundBody": "Düz duvar ya da kapı önü yeterli.",
+      "tipFrame": "Baştan ayağa kadrajda",
+      "tipFrameBody": "2–3 adım geri çekil; telefon bel hizasında.",
+      "tipLight": "Bol ışık",
+      "tipLightBody": "Gün ışığına dön; ışık arkandan gelmesin.",
+      "faceTipLight": "Gün ışığında, yüzün tam karşıdan",
+      "faceTipGlasses": "Gözlüksüz; saç yüzünü kapatmasın",
+      "faceTipIdentity": "Kimlik tespiti yapılmaz; yalnızca ten, saç ve göz renklerine bakılır.",
+      "take": "Fotoğraf çek",
+      "takeSelfie": "Selfie çek",
+      "library": "Galeriden seç",
+      "uploading": "Yükleniyor",
+      "checking": "Fotoğrafın hazırlanıyor…",
+      "cancel": "Vazgeç",
+      "ready": "Fotoğraf hazır",
+      "privateTag": "YALNIZCA SANA AÇIK",
+      "continue": "Devam et",
+      "another": "Başka fotoğraf seç",
+      "pickFailed": "Fotoğraf açılamadı. Başka bir fotoğraf dene.",
+      "offlineBanner": "Bağlantı yok",
+      "offlineTitle": "Fotoğrafın telefonda bekliyor",
+      "offlineBody": "Bağlanınca yüklemeye kaldığı yerden devam ederiz; bu ekranda beklemen gerekmez. Açık rızan kaydedildi.",
+      "retry": "Tekrar dene",
+      "back": "Geri dön"
+    },
+    "bodyType": {
+      "title": "Sana en yakın vücut tipini seç",
+      "lead": "Yüz fotoğrafın, boyun ve bedeninle figürünü oluştururuz. Doğrusu, yanlışı yok.",
+      "groupLabel": "Vücut tipi",
+      "height": "Boy (cm)",
+      "size": "Beden",
+      "fromProfile": "profilinden",
+      "heightError": "100 ile 230 cm arasında bir boy gir.",
+      "note": "Profiline kaydedilir, bir kez sorarız. Profil › Beden'den istediğin an değiştirebilirsin.",
+      "save": "Kaydet ve devam et",
+      "types": {
+        "hourglass": "Kum saati",
+        "pear": "Armut",
+        "apple": "Elma",
+        "rectangle": "Dikdörtgen",
+        "inverted_triangle": "Ters üçgen",
+        "unsure": "Emin değilim"
+      },
+      "desc": {
+        "hourglass": "Omuz ve kalça genişliği yakın, bel daha belirgin.",
+        "pear": "Kalça omuzlardan daha geniş.",
+        "apple": "Hacim gövdenin orta bölümünde toplanır.",
+        "rectangle": "Omuz, bel ve kalça birbirine yakın.",
+        "inverted_triangle": "Omuzlar kalçadan daha geniş.",
+        "unsure": "Sorun değil. Boyun ve bedeninle dengeli bir figür kullanırız; sonra değiştirebilirsin."
+      }
+    },
+    "premium": {
+      "title": "Bu özellik üyelikle açılır",
+      "body": "Kombin önerileri, bavul hazırlama, haftalık plan ve renk paleti üyelikte. Üzerimde gör ayda 30 AI görseliyle gelir.",
+      "plans": "Üyelik planlarını gör",
+      "selfServe": "Şimdilik ücretsiz etkinleştir",
+      "selfServeNote": "Deneme dönemi: üyelik özellikleri geçici olarak açılır. Ayarlar'dan kapatabilirsin.",
+      "selfServeFailed": "Etkinleştirilemedi. Yeniden dene."
+    },
+    "credits": {
+      "title": "AI görselin kalmadı",
+      "body": "Bu görsel için 1 kredi gerekiyor. Krediler her ay yenilenir.",
+      "topUp": "Kredi yükle"
+    },
+    "city": {
+      "title": "Hava durumuna göre önermek için şehrin gerekli",
+      "body": "Stilist, Bugün ve bavul tahmini bu şehri kullanır.",
+      "label": "Şehir",
+      "placeholder": "Şehir ara",
+      "none": "Bu adla bir şehir bulamadık.",
+      "save": "Kaydet ve devam et",
+      "skip": "Şehirsiz devam et",
+      "skipNote": "Şehirsiz öneriler havaya bakmadan gelir."
+    },
+    "handle": {
+      "title": "Paylaşmak için bir kullanıcı adı seç",
+      "body": "Arkadaşların seni bu adla bulur ve takip eder. Sonra değiştirebilirsin.",
+      "label": "Kullanıcı adı",
+      "rule": "Harf, rakam, nokta ve alt çizgi kullanabilirsin.",
+      "empty": "Bir ad yaz",
+      "invalid": "3–30 karakter; küçük harf, rakam, nokta, alt çizgi",
+      "taken": "Bu ad alınmış, bir öneri seç",
+      "reserved": "Bu ad kullanılamıyor, başka bir ad dene",
+      "checking": "Kontrol ediliyor…",
+      "available": "@{{handle}} uygun",
+      "suggestions": "Öneriler",
+      "save": "Kaydet ve devam et",
+      "failed": "Kaydedilemedi. Bağlantını kontrol edip yeniden dene."
+    },
+    "age": {
+      "confirm": "Onayla ve devam et",
+      "failed": "Onay kaydedilemedi. Yeniden dene."
+    },
+    "done": {
+      "eyebrow": "TAMAMLANDI",
+      "title": "Hazır",
+      "body": "Tüm adımlar tamam. Kaldığın yere dönüyoruz.",
+      "saved": "Profiline kaydedildi, bir daha sormayız",
+      "returning": "{{origin}} ekranına dönülüyor",
+      "returningPlain": "Kaldığın yere dönülüyor",
+      "item": {
+        "age": "18+ onaylandı",
+        "consent": "Açık rıza verildi",
+        "bodyPhoto": "Boy fotoğrafı yüklendi",
+        "facePhoto": "Yüz fotoğrafı yüklendi",
+        "bodyType": "Vücut tipi seçildi",
+        "premium": "Üyelik açıldı",
+        "credits": "Kredi eklendi",
+        "city": "Şehir kaydedildi",
+        "handle": "Kullanıcı adı kaydedildi"
+      }
+    },
+    "exit": {
+      "title": "Şimdilik çıkmak istiyor musun?",
+      "body": "Yaptıkların kaydedildi. Döndüğünde kaldığın adımdan başlarsın.",
+      "next": "{{name}} · sırada",
+      "preview": "Ekranda böyle görünür",
+      "continue": "Devam et",
+      "leave": "Çık"
+    },
+    "rejected": {
+      "eyebrow": {
+        "notFullBody": "Tam boy algılanmadı",
+        "tooDark": "Çok karanlık",
+        "multiplePeople": "Birden fazla kişi",
+        "blurry": "Bulanık",
+        "noFace": "Yüz algılanmadı"
+      },
+      "title": {
+        "notFullBody": "Bu fotoğrafta tam boyun görünmüyor",
+        "tooDark": "Bu fotoğraf çok karanlık",
+        "multiplePeople": "Bu fotoğrafta birden fazla kişi var",
+        "blurry": "Bu fotoğraf bulanık",
+        "noFace": "Bu fotoğrafta yüzün net görünmüyor"
+      },
+      "body": "Fotoğrafı kaydetmedik ve kredi düşmedi. Şunlar genelde işe yarar:",
+      "tips": {
+        "notFullBody": {
+          "a": "Ayak uçların da kadrajda olsun; 2–3 adım geri çekil.",
+          "b": "Telefonu dik ve bel hizasında tut ya da zamanlayıcı kullan."
+        },
+        "tooDark": {
+          "a": "Gün ışığına dön; ışık arkandan gelmesin.",
+          "b": "Akşamsa tavan ışığının altında dur."
+        },
+        "multiplePeople": {
+          "a": "Fotoğrafta yalnızca sen ol.",
+          "b": "Aynada çekiyorsan arkada kimse kalmasın."
+        },
+        "blurry": {
+          "a": "Telefonu sabit tut ya da bir yere yasla.",
+          "b": "Kamerayı odaklamak için ekrana bir kez dokun."
+        },
+        "noFace": {
+          "a": "Gün ışığında, yüzün tam karşıdan.",
+          "b": "Gözlüksüz; saç yüzünü kapatmasın."
+        }
+      },
+      "otherReasons": "Aynı ekran, diğer nedenler",
+      "retake": "Yeniden çek",
+      "library": "Galeriden başka seç"
+    },
+    "profileCard": {
+      "eyebrow": "PROFİLİNİ TAMAMLA · {{done}} / {{total}}",
+      "title": "Profilini tamamla",
+      "lead": "İhtiyacın olmadan önce hazır olsun",
+      "progressA11y": "{{total}} adımdan {{done}}'ü tamam",
+      "doneLine": "Tamam: {{items}}",
+      "hide": "Kartı gizle",
+      "show": "Profilini tamamla, {{done}} / {{total}}",
+      "item": {
+        "bodyPhoto": "Boy fotoğrafı",
+        "facePhoto": "Yüz fotoğrafı",
+        "bodyType": "Vücut tipi",
+        "city": "Şehir",
+        "handle": "@kullanıcı adı",
+        "firstItems": "İlk 5 parça"
+      },
+      "note": {
+        "bodyPhoto": "Üzerimde gör için en gerçekçi sonuç",
+        "facePhoto": "Renk paleti ve hızlı Üzerimde gör için",
+        "bodyType": "Boy fotoğrafın yokken figürün için",
+        "city": "Hava durumuna göre öneriler için",
+        "handle": "Arkadaşların seni bulsun",
+        "firstItems": "Kombin önerileri için"
+      },
+      "cityDone": "Şehir: {{city}}"
+    },
+    "tryOnFace": {
+      "note": "Senin yüzün ve seçtiğin vücut tipiyle oluşturuldu.",
+      "addBodyPhoto": "Daha gerçekçi sonuç için boy fotoğrafı ekle",
+      "tag": "YÜZÜN · VÜCUT TİPİN"
+    },
+    "gapFill": {
+      "banner": "Önerilerin bir kısmı senin gardırobundan değil — eklemek ister misin?",
+      "addAll": "Önerilenleri gardıroba ekle",
+      "added": "Gardırobuna eklendi",
+      "library": "Önerilen · Kütüphane",
+      "store": "Önerilen · Mağaza",
+      "add": "Gardıroba ekle",
+      "see": "Gör",
+      "addFailed": "Eklenemedi. Bağlantını kontrol edip yeniden dene.",
+      "dayNote_one": "{{count}} önerilen parça",
+      "dayNote_other": "{{count}} önerilen parça"
+    }
+  }
+}

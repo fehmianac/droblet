@@ -7,6 +7,7 @@ import { resetFixtureDb } from '@/fixtures/db';
 import { resetNotificationFixtures } from '@/fixtures/notifications';
 import { resetStoreFixtures } from '@/fixtures/store';
 import { consentRequests } from '@/features/consent/store';
+import { requirementsFlow } from '@/features/requirements/store';
 import i18n from '@/i18n';
 import { onboardingStore } from '@/auth/onboarding';
 
@@ -42,6 +43,7 @@ beforeEach(async () => {
   resetNotificationFixtures();
   resetConsentFixtures({ granted: [] });
   consentRequests.settle(false);
+  requirementsFlow.reset();
   await AsyncStorage.clear();
   await i18n.changeLanguage('en');
 });
@@ -53,26 +55,32 @@ async function agreeTo(types: string[]) {
 }
 
 describe('Açık rıza — just in time', () => {
-  it('try-on: body photo + transfer consents (two unticked boxes, both required) come before the credit confirmation', async () => {
+  it('try-on: a declined body photo + transfer consent opens the requirements flow (two unticked boxes, both required), then the credit confirmation', async () => {
     await open('/look/look_lacivert_blazer');
-    await waitFor(() => expect(screen.getByTestId('look-try-on')).toBeTruthy(), WAIT);
+    // The hint under the button says what is missing before anything is tapped (canvas 11a).
+    await waitFor(() => expect(screen.getByTestId('look-try-on-hint')).toBeTruthy(), WAIT);
+    expect(screen.getByText('Your consent is needed · 1 step')).toBeTruthy();
     await fireEvent.press(screen.getByTestId('look-try-on'));
-    await waitFor(() => expect(screen.getByTestId('consent-sheet')).toBeTruthy(), WAIT);
+    await waitFor(() => expect(screen.getByTestId('requirements.sheet')).toBeTruthy(), WAIT);
+    await fireEvent.press(screen.getByTestId('requirements.sheet.start'));
+    await waitFor(() => expect(screen.getByTestId('requirements.step.consent')).toBeTruthy(), WAIT);
     expect(screen.getByText('Full-body photo and “See it on me”')).toBeTruthy();
     expect(screen.getByText('Transfers abroad')).toBeTruthy();
     // The exact consent statements, never pre-ticked; one box alone is not enough.
     expect(screen.getByTestId('consent.check.bodyPhotoAi')).not.toBeChecked();
     expect(screen.getByTestId('consent.check.crossBorderTransfer')).not.toBeChecked();
     expect(screen.getByText(/I give my explicit consent to Droblet Ltd processing my full-body photo/)).toBeTruthy();
-    expect(screen.getByTestId('consent.agree')).toBeDisabled();
+    expect(screen.getByTestId('requirements.consent.confirm')).toBeDisabled();
     await fireEvent.press(screen.getByTestId('consent.check.bodyPhotoAi'));
-    expect(screen.getByTestId('consent.agree')).toBeDisabled();
+    expect(screen.getByTestId('requirements.consent.confirm')).toBeDisabled();
     // The full text is readable before agreeing.
     await fireEvent.press(screen.getByTestId('consent.more.bodyPhotoAi'));
     expect(screen.getByText(/^Purpose: to generate images that show outfits/)).toBeTruthy();
     await fireEvent.press(screen.getByTestId('consent.check.crossBorderTransfer'));
-    await fireEvent.press(screen.getByTestId('consent.agree'));
+    await fireEvent.press(screen.getByTestId('requirements.consent.confirm'));
 
+    // "Ready", then back on the look: the credit confirmation of the try-on opens by itself.
+    await waitFor(() => expect(screen.getByTestId('requirements.ready')).toBeTruthy(), WAIT);
     await waitFor(() => expect(screen.getByText('1 credit will be used')).toBeTruthy(), WAIT);
     expect(consentFixtures.isValid('bodyPhotoAi') && consentFixtures.isValid('crossBorderTransfer')).toBe(true);
     expect(consentFixtures.requests()[0]).toEqual({
@@ -80,18 +88,18 @@ describe('Açık rıza — just in time', () => {
         { type: 'bodyPhotoAi', granted: true, version: '2026-11-19' },
         { type: 'crossBorderTransfer', granted: true, version: '2026-11-19' },
       ],
-      source: 'tryon',
+      source: 'requirements',
       locale: 'en',
     });
   });
 
   it('try-on: "Not now" starts nothing and spends nothing', async () => {
     await open('/look/look_lacivert_blazer');
-    await waitFor(() => expect(screen.getByTestId('look-try-on')).toBeTruthy(), WAIT);
+    await waitFor(() => expect(screen.getByTestId('look-try-on-hint')).toBeTruthy(), WAIT);
     await fireEvent.press(screen.getByTestId('look-try-on'));
-    await waitFor(() => expect(screen.getByTestId('consent.notNow')).toBeTruthy(), WAIT);
-    await fireEvent.press(screen.getByTestId('consent.notNow'));
-    await waitFor(() => expect(screen.queryByTestId('consent-sheet')).toBeNull(), WAIT);
+    await waitFor(() => expect(screen.getByTestId('requirements.sheet.notNow')).toBeTruthy(), WAIT);
+    await fireEvent.press(screen.getByTestId('requirements.sheet.notNow'));
+    await waitFor(() => expect(screen.queryByTestId('requirements.sheet')).toBeNull(), WAIT);
     expect(screen.queryByText('1 credit will be used')).toBeNull();
     expect(consentFixtures.requests()).toHaveLength(0);
   });

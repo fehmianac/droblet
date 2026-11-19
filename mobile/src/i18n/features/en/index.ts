@@ -11,11 +11,12 @@ import detect from './detect.json';
 import friends from './friends.json';
 import looks from './looks.json';
 import purchase from './purchase.json';
+import requirements from './requirements.json';
 import social from './social.json';
 import stylist from './stylist.json';
 import today from './today.json';
 import wardrobe from './wardrobe.json';
 
-const features = { ai, today, wardrobe, looks, stylist, commerce, social, account, friends, purchase, consent, detect };
+const features = { ai, today, wardrobe, looks, stylist, commerce, social, account, friends, purchase, consent, detect, requirements };
 
 export default features;

@@ -23,7 +23,7 @@ export function consentsPageUrl(): string {
 }
 
 /** One consent: its title, the statement, the full text on demand and an UNTICKED box that is the consent itself. */
-export function ConsentBlock({ type, checked, onToggle }: { type: ConsentType; checked: boolean; onToggle: () => void }) {
+export function ConsentBlock({ type, checked, onToggle, summary = false }: { type: ConsentType; checked: boolean; onToggle: () => void; summary?: boolean }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const statement = t(`consent.texts.${type}.statement`);
@@ -32,6 +32,12 @@ export function ConsentBlock({ type, checked, onToggle }: { type: ConsentType; c
       <Text variant="bodyMedium" accessibilityRole="header">
         {t(`consent.texts.${type}.title`)}
       </Text>
+      {/* The one-line purpose (all-in-one screen): what this box is for, before the full text. */}
+      {summary ? (
+        <Text variant="caption" tone="muted" className="leading-[18px]">
+          {t(`consent.texts.${type}.summary`)}
+        </Text>
+      ) : null}
       {open ? (
         <View className="gap-2" testID={`consent.text.${type}`}>
           {t(`consent.texts.${type}.body`)

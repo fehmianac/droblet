@@ -74,6 +74,18 @@
         "statement": "Yüz fotoğrafımın; vücut tipim, boyum ve bedenimle birlikte ‘Üzerimde gör’ görsellerini üretmek amacıyla, kimlik tespiti yapılmaksızın Droblet Ltd tarafından işlenmesine ve bu amaçla AWS (Almanya) ile OpenAI'ye (ABD) aktarılmasına açık rıza veriyorum.",
         "summary": "Boy fotoğrafın yokken yüzün ve seçtiğin vücut tipiyle seni gösteren görseller üretmek için."
       }
+    },
+    "review": {
+      "eyebrow": "AÇIK RIZALAR",
+      "title": "Verilerini nasıl kullandığımızı sen seç",
+      "lead": "Her rıza ayrı bir amaç için ve isteğe bağlı. Vermediğin rıza yalnızca o özelliği kapatır; istediğin an Ayarlar › Gizlilik’ten değiştirebilirsin.",
+      "note": "Hiçbir kutu senin yerine işaretlenmez. “Tümünü kabul et” hepsini birden işaretler; istersen yalnızca seçtiklerinle devam et.",
+      "acceptAll": "Tümünü kabul et",
+      "continueSelected": "Seçtiklerimle devam et",
+      "selected": "{{count}} / {{total}} onay seçildi",
+      "skip": "Şimdilik geç",
+      "updatedTitle": "Açık rıza metinlerimiz güncellendi",
+      "updatedLead": "Yeni bir amaç ekledik: yüz fotoğrafınla “Üzerimde gör”. Her rızayı ayrı ayrı seçebilirsin; bir kez soruyoruz."
     }
   },
   "age": {

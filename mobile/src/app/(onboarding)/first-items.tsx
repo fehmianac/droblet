@@ -114,7 +114,7 @@ export default function FirstItemsScreen() {
 
   return (
     <Screen>
-      <StepHeader step={3} total={3} />
+      <StepHeader step={4} total={4} />
       <View className="gap-2 px-6 pt-3.5">
         <Text variant="eyebrow">{t('firstItems.eyebrow')}</Text>
         <Text variant="display" className="text-[29px] leading-[31px]">

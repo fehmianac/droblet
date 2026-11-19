@@ -20,7 +20,10 @@ import {
   type TryOnWeekQuoteWire,
   type TryOnWeekStartWire,
 } from '@/api/wire/tryon';
-import { CONSENTS_FOR } from '@/api/contracts/consents';
+import type { MyPhotos } from '@/api/contracts/account';
+import { CONSENTS_FOR, type ConsentType } from '@/api/contracts/consents';
+import { accountKeys } from '@/features/account/queries';
+import { getActiveQueryClient } from '@/sync/activeClient';
 import { ensureConsents } from '@/features/consent/store';
 import { routeAiStartError } from '@/features/credits/aiErrors';
 import { aiCreditsKey } from '@/features/credits/useAiCredits';
@@ -59,12 +62,21 @@ function startFixtureTryOn(request: StartTryOnRequest): StartTryOnResponse {
 }
 
 /**
- * "Üzerimde gör" sends the full-body photo to OpenAI (US): explicit consents 1 + 6 (`bodyPhotoAi`,
- * `crossBorderTransfer`). Call it on the CTA BEFORE the credit confirmation opens (one sheet at a time);
- * resolves false when the user said "Şimdi değil".
+ * The consents of the photo path the server will use: the full-length photo when there is one (consents 1 + 6),
+ * else the face photo + body type (consents 7 + 6, `facePhotoTryOn`). Read from the cached photos.
+ */
+export function tryOnConsents(): readonly ConsentType[] {
+  const photos = getActiveQueryClient()?.getQueryData<MyPhotos>(accountKeys.photos);
+  if (photos && photos.body.length === 0 && photos.face) return CONSENTS_FOR.tryOnFace;
+  return CONSENTS_FOR.tryOn;
+}
+
+/**
+ * "Üzerimde gör" sends a photo to OpenAI (US): the consents of its photo path (`tryOnConsents`). Call it on the
+ * CTA BEFORE the credit confirmation opens (one sheet at a time); resolves false when the user said "Şimdi değil".
  */
 export function ensureTryOnConsent(): Promise<boolean> {
-  return ensureConsents(CONSENTS_FOR.tryOn, 'tryon');
+  return ensureConsents(tryOnConsents(), 'tryon');
 }
 
 /** The user declined the try-on consent: nothing was started and nothing is to be reported. */

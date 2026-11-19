@@ -24,6 +24,8 @@ import { indexItems, LookCover, SlotThumb, type ItemsById } from '@/features/loo
 import { lookPieceNames, missingPieceCount } from '@/features/looks/logic';
 import { useLook } from '@/features/looks/queries';
 import { ensureTryOnConsent, isConsentDeclined, TRY_ON_CREDIT_COST, useStartTryOn } from '@/features/tryon/api';
+import { RequirementHint, StepCountBadge } from '@/features/requirements/RequirementHint';
+import { useGate } from '@/features/requirements/useRequirements';
 import { useItems } from '@/features/wardrobe/queries';
 import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { formatMoney, formatNumber } from '@/lib/format';
@@ -222,6 +224,8 @@ export default function LookScreen() {
   const [notice, setNotice] = useState<Notice>(null);
   const look = query.data;
   const itemsById = indexItems(items.data);
+  // Consent of the photo path first (normally already given), then the credit confirmation.
+  const gate = useGate('tryOn', () => void ensureTryOnConsent().then((ok) => ok && setConfirm(true)), { origin: look?.name ?? null });
 
   if (deleted) {
     return (
@@ -248,8 +252,8 @@ export default function LookScreen() {
       return;
     }
     setNotice(null);
-    // Consent first (its own sheet), then the credit confirmation.
-    void ensureTryOnConsent().then((ok) => ok && setConfirm(true));
+    // What is missing (photo, consent, membership…) opens the requirements flow, which comes back here (canvas 11).
+    gate.run();
   };
 
   const startTryOn = () => {
@@ -308,9 +312,15 @@ export default function LookScreen() {
             />
             <View className="flex-1">
               <Button size="bar" icon={MirrorRound} label={t('lookEditor.tryOn')} onPress={onTryOnPress} testID="look-try-on" />
+              {gate.count > 0 ? (
+                <View className="absolute -right-1 -top-1" pointerEvents="none">
+                  <StepCountBadge count={gate.count} />
+                </View>
+              ) : null}
             </View>
             <IconButton icon={Pencil} onPress={edit} accessibilityLabel={t('lookDetail.edit')} testID="look-edit" />
           </View>
+          <RequirementHint hint={gate.hint} onPress={gate.run} className="mt-1.5" testID="look-try-on-hint" />
         </BottomActionBar>
       ) : null}
 

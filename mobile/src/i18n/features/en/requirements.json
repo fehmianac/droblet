@@ -1,0 +1,311 @@
+{
+  "req": {
+    "hint": {
+      "format": "{{what}} · {{steps}}",
+      "steps_one": "{{count}} step",
+      "steps_other": "{{count}} steps",
+      "left_one": "{{count}} step left",
+      "left_other": "{{count}} steps left",
+      "age": "Your 18+ confirmation is needed",
+      "consent": "Your consent is needed",
+      "bodyPhoto": "Your full-length photo is needed",
+      "facePhoto": "Your face photo is needed",
+      "bodyType": "Your body type is needed",
+      "premium": "Membership needed",
+      "credits": "No AI images left",
+      "city": "Your city is needed",
+      "handle": "Your username is needed",
+      "badgeA11y_one": "{{count}} step missing",
+      "badgeA11y_other": "{{count}} steps missing"
+    },
+    "action": {
+      "tryOn": "SEE IT ON ME",
+      "palette": "COLOUR PALETTE",
+      "stylist": "STYLIST",
+      "week": "PLAN MY WEEK",
+      "pack": "SUITCASE",
+      "social": "SHARE",
+      "contacts": "CONTACTS"
+    },
+    "actionName": {
+      "tryOn": "See it on me",
+      "palette": "Colour palette",
+      "stylist": "Stylist",
+      "week": "Plan my week",
+      "pack": "Suitcase",
+      "social": "Share",
+      "contacts": "Contacts"
+    },
+    "sheet": {
+      "title": {
+        "tryOn_one": "{{count}} step left to see it on you",
+        "tryOn_other": "{{count}} steps left to see it on you",
+        "palette_one": "{{count}} step left for your colour palette",
+        "palette_other": "{{count}} steps left for your colour palette",
+        "stylist_one": "{{count}} step left for stylist suggestions",
+        "stylist_other": "{{count}} steps left for stylist suggestions",
+        "week_one": "{{count}} step left to plan your week",
+        "week_other": "{{count}} steps left to plan your week",
+        "pack_one": "{{count}} step left to pack your suitcase",
+        "pack_other": "{{count}} steps left to pack your suitcase",
+        "social_one": "{{count}} step left to share",
+        "social_other": "{{count}} steps left to share",
+        "contacts_one": "{{count}} step left to find friends from your contacts",
+        "contacts_other": "{{count}} steps left to find friends from your contacts"
+      },
+      "lead": "Do it once; we won't ask again next time.",
+      "start": "Start",
+      "notNow": "Not now",
+      "next": "Next",
+      "privacy": "Your photos are visible only to you. Delete them any time in Profile › Privacy.",
+      "pathLegend": "How shall we continue?",
+      "recommended": "Recommended",
+      "done": "Done",
+      "credits": "Uses 1 credit · {{count}} left this month",
+      "creditsUnknown": "Uses 1 credit"
+    },
+    "step": {
+      "age": { "title": "18+ confirmation", "body": "Confirm that you are over 18 to use Droblet." },
+      "consent": { "title_one": "Explicit consent · {{count}} approval", "title_other": "Explicit consent · {{count}} approvals", "body": "Let us process your photo only to create your own images." },
+      "photo": { "title": "Your picture", "body": "Choose one so we can put the look on you." },
+      "bodyPhoto": { "title": "Full-length photo", "body": "A full-length photo for the most realistic result." },
+      "facePhoto": { "title": "Face photo", "body": "In daylight, facing the camera." },
+      "bodyType": { "title": "Body type", "body": "You choose it once for your figure." },
+      "premium": { "title": "Membership", "body": "This feature comes with membership." },
+      "credits": { "title": "AI image", "body": "No AI images left this month." },
+      "city": { "title": "City", "body": "To suggest for the weather." },
+      "handle": { "title": "Username", "body": "Your friends find you by this name." }
+    },
+    "path": {
+      "body": "Add a full-length photo",
+      "bodyNote": "Most realistic result · about 1 minute",
+      "face": "Continue with my face photo and body type",
+      "faceNote": "Faster · height and size come from your profile"
+    },
+    "stepper": {
+      "close": "Close, your progress is saved",
+      "progressA11y": "Step {{current}} of {{total}}: {{name}}",
+      "label": {
+        "age": "18+",
+        "consent": "Consent",
+        "bodyPhoto": "Full-length photo",
+        "facePhoto": "Face photo",
+        "bodyType": "Body type",
+        "premium": "Membership",
+        "credits": "Credits",
+        "city": "City",
+        "handle": "Username"
+      }
+    },
+    "consent": {
+      "title": "Confirm how we use your photo",
+      "lead_one": "This feature needs a separate explicit consent. If you don't give it, only this feature stays off.",
+      "lead_other": "This feature needs {{count}} separate explicit consents. Tick each one; if you don't, only this feature stays off.",
+      "confirm": "Confirm and continue",
+      "leftAll": "Tick all the boxes.",
+      "left_one": "{{count}} approval left.",
+      "left_other": "{{count}} approvals left.",
+      "ready": "Consents given."
+    },
+    "photo": {
+      "bodyTitle": "Add a full-length photo",
+      "bodyLead": "Once is enough; we show all your looks on you with this photo.",
+      "faceTitle": "Add a clear face photo",
+      "faceLead": "Your figure's face comes from this photo; the same photo also unlocks your colour palette.",
+      "good": "Like this · full length",
+      "half": "Half length",
+      "dark": "Dark",
+      "tipBackground": "A plain background",
+      "tipBackgroundBody": "A plain wall or a door is enough.",
+      "tipFrame": "Head to toe in frame",
+      "tipFrameBody": "Step back 2–3 steps; phone at waist height.",
+      "tipLight": "Plenty of light",
+      "tipLightBody": "Face the daylight; no light from behind.",
+      "faceTipLight": "In daylight, facing the camera",
+      "faceTipGlasses": "No glasses; hair off your face",
+      "faceTipIdentity": "No identification; only skin, hair and eye colours are looked at.",
+      "take": "Take a photo",
+      "takeSelfie": "Take a selfie",
+      "library": "Choose from library",
+      "uploading": "Uploading",
+      "checking": "Getting your photo ready…",
+      "cancel": "Cancel",
+      "ready": "Photo ready",
+      "privateTag": "ONLY VISIBLE TO YOU",
+      "continue": "Continue",
+      "another": "Choose another photo",
+      "pickFailed": "The photo couldn't be opened. Try another one.",
+      "offlineBanner": "No connection",
+      "offlineTitle": "Your photo is waiting on your phone",
+      "offlineBody": "When you're back online the upload continues where it stopped; no need to wait on this screen. Your consent is saved.",
+      "retry": "Try again",
+      "back": "Go back"
+    },
+    "bodyType": {
+      "title": "Choose the body type closest to yours",
+      "lead": "We build your figure from your face photo, height and size. There is no right or wrong.",
+      "groupLabel": "Body type",
+      "height": "Height (cm)",
+      "size": "Size",
+      "fromProfile": "from your profile",
+      "heightError": "Enter a height between 100 and 230 cm.",
+      "note": "Saved to your profile, asked once. Change it any time in Profile › Size.",
+      "save": "Save and continue",
+      "types": {
+        "hourglass": "Hourglass",
+        "pear": "Pear",
+        "apple": "Apple",
+        "rectangle": "Rectangle",
+        "inverted_triangle": "Inverted triangle",
+        "unsure": "Not sure"
+      },
+      "desc": {
+        "hourglass": "Shoulders and hips about as wide, a more defined waist.",
+        "pear": "Hips wider than the shoulders.",
+        "apple": "Volume around the middle of the body.",
+        "rectangle": "Shoulders, waist and hips close to each other.",
+        "inverted_triangle": "Shoulders wider than the hips.",
+        "unsure": "That's fine. We use a balanced figure from your height and size; you can change it later."
+      }
+    },
+    "premium": {
+      "title": "This feature comes with membership",
+      "body": "Outfit suggestions, suitcase packing, the weekly plan and the colour palette are in the membership. See it on me comes with 30 AI images a month.",
+      "plans": "See membership plans",
+      "selfServe": "Turn it on for free for now",
+      "selfServeNote": "Trial period: membership features are turned on temporarily. You can turn them off in Settings.",
+      "selfServeFailed": "Couldn't turn it on. Try again."
+    },
+    "credits": {
+      "title": "No AI images left",
+      "body": "This image needs 1 credit. Credits renew every month.",
+      "topUp": "Add credits"
+    },
+    "city": {
+      "title": "Your city is needed to suggest for the weather",
+      "body": "The stylist, Today and the suitcase forecast use this city.",
+      "label": "City",
+      "placeholder": "Search for a city",
+      "none": "No city found with this name.",
+      "save": "Save and continue",
+      "skip": "Continue without a city",
+      "skipNote": "Without a city, suggestions ignore the weather."
+    },
+    "handle": {
+      "title": "Choose a username to share",
+      "body": "Your friends find and follow you by this name. You can change it later.",
+      "label": "Username",
+      "rule": "You can use letters, digits, dots and underscores.",
+      "empty": "Type a name",
+      "invalid": "3–30 characters; lowercase letters, digits, dots, underscores",
+      "taken": "This name is taken, pick a suggestion",
+      "reserved": "This name can't be used, try another one",
+      "checking": "Checking…",
+      "available": "@{{handle}} is available",
+      "suggestions": "Suggestions",
+      "save": "Save and continue",
+      "failed": "Couldn't save. Check your connection and try again."
+    },
+    "age": {
+      "confirm": "Confirm and continue",
+      "failed": "Couldn't save the confirmation. Try again."
+    },
+    "done": {
+      "eyebrow": "DONE",
+      "title": "Ready",
+      "body": "All steps done. Taking you back to where you were.",
+      "saved": "Saved to your profile, we won't ask again",
+      "returning": "Returning to {{origin}}",
+      "returningPlain": "Returning to where you were",
+      "item": {
+        "age": "18+ confirmed",
+        "consent": "Consent given",
+        "bodyPhoto": "Full-length photo uploaded",
+        "facePhoto": "Face photo uploaded",
+        "bodyType": "Body type chosen",
+        "premium": "Membership on",
+        "credits": "Credits added",
+        "city": "City saved",
+        "handle": "Username saved"
+      }
+    },
+    "exit": {
+      "title": "Leave for now?",
+      "body": "What you did is saved. When you come back, you start from the step you left.",
+      "next": "{{name}} · next",
+      "preview": "On the screen it looks like this",
+      "continue": "Continue",
+      "leave": "Leave"
+    },
+    "rejected": {
+      "eyebrow": {
+        "notFullBody": "No full length detected",
+        "tooDark": "Too dark",
+        "multiplePeople": "More than one person",
+        "blurry": "Blurry",
+        "noFace": "No face detected"
+      },
+      "title": {
+        "notFullBody": "Your full length isn't visible in this photo",
+        "tooDark": "This photo is too dark",
+        "multiplePeople": "There is more than one person in this photo",
+        "blurry": "This photo is blurry",
+        "noFace": "Your face isn't clearly visible in this photo"
+      },
+      "body": "We didn't keep the photo and no credit was used. These usually help:",
+      "tips": {
+        "notFullBody": { "a": "Get your feet in the frame too; step back 2–3 steps.", "b": "Hold the phone upright at waist height or use the timer." },
+        "tooDark": { "a": "Face the daylight; no light from behind.", "b": "In the evening, stand under the ceiling light." },
+        "multiplePeople": { "a": "Be the only person in the photo.", "b": "In a mirror shot, make sure nobody is behind you." },
+        "blurry": { "a": "Hold the phone still or lean it on something.", "b": "Tap the screen once to focus the camera." },
+        "noFace": { "a": "In daylight, facing the camera.", "b": "No glasses; hair off your face." }
+      },
+      "otherReasons": "Same screen, other reasons",
+      "retake": "Take it again",
+      "library": "Choose another from library"
+    },
+    "profileCard": {
+      "eyebrow": "COMPLETE YOUR PROFILE · {{done}} / {{total}}",
+      "title": "Complete your profile",
+      "lead": "Ready before you need it",
+      "progressA11y": "{{done}} of {{total}} steps done",
+      "doneLine": "Done: {{items}}",
+      "hide": "Hide card",
+      "show": "Complete your profile, {{done}} / {{total}}",
+      "item": {
+        "bodyPhoto": "Full-length photo",
+        "facePhoto": "Face photo",
+        "bodyType": "Body type",
+        "city": "City",
+        "handle": "@username",
+        "firstItems": "First 5 pieces"
+      },
+      "note": {
+        "bodyPhoto": "Most realistic result for See it on me",
+        "facePhoto": "For the colour palette and a quick See it on me",
+        "bodyType": "For your figure while there is no full-length photo",
+        "city": "For suggestions that fit the weather",
+        "handle": "So your friends can find you",
+        "firstItems": "For outfit suggestions"
+      },
+      "cityDone": "City: {{city}}"
+    },
+    "tryOnFace": {
+      "note": "Created with your face and the body type you chose.",
+      "addBodyPhoto": "Add a full-length photo for a more realistic result",
+      "tag": "YOUR FACE · YOUR BODY TYPE"
+    },
+    "gapFill": {
+      "banner": "Some of these suggestions aren't from your wardrobe — would you like to add them?",
+      "addAll": "Add the suggested pieces to my wardrobe",
+      "added": "Added to your wardrobe",
+      "library": "Suggested · Library",
+      "store": "Suggested · Store",
+      "add": "Add to wardrobe",
+      "see": "See",
+      "addFailed": "Couldn't add. Check your connection and try again.",
+      "dayNote_one": "{{count}} suggested piece",
+      "dayNote_other": "{{count}} suggested pieces"
+    }
+  }
+}
