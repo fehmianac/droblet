@@ -137,4 +137,17 @@ public class AiCostCommandTests
         Assert.Equal(50m, bound.Pricing.For("gpt-6-astra")!.Output);
         _ = StylingJson.Options; // the styling contracts are reachable from ops (same prompt builder as the worker)
     }
+
+    [Fact]
+    public void OutfitQuality_CountsExpectedCategories_AndPenalisesExtraPieces()
+    {
+        static Domain.Services.Ai.DetectedItem Piece(Domain.Services.Ai.ItemCategoryHint category, double y) =>
+            new(new Domain.Services.Ai.GarmentSuggestion(category, ["white"], null, [], new Dictionary<string, double>()), new Domain.Services.Ai.BoundingBox(0.1, y, 0.3, 0.2), null, 0.9);
+        Domain.Services.Ai.ItemCategoryHint[] expected = [Domain.Services.Ai.ItemCategoryHint.Top, Domain.Services.Ai.ItemCategoryHint.Bottom, Domain.Services.Ai.ItemCategoryHint.Shoes];
+
+        Assert.Equal(1, AiCostCommand.OutfitQuality([Piece(expected[0], 0.0), Piece(expected[1], 0.3), Piece(expected[2], 0.6)], expected).Item1);
+        Assert.Equal(2 / 3.0, AiCostCommand.OutfitQuality([Piece(expected[0], 0.0), Piece(expected[1], 0.3)], expected).Item1, 3);
+        Assert.Equal(0.75, AiCostCommand.OutfitQuality([Piece(expected[0], 0.0), Piece(expected[1], 0.3), Piece(expected[2], 0.6),
+            Piece(Domain.Services.Ai.ItemCategoryHint.Accessory, 0.8)], expected).Item1, 3);
+    }
 }

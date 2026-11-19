@@ -32,7 +32,15 @@ namespace Ops.Commands;
 /// </summary>
 internal sealed class AiCostCommand(IServiceProvider services, OpsArguments args, OpsOutput output)
 {
-    public static readonly IReadOnlyList<string> AllOps = ["outfit", "week", "pack", "detect", "detect5", "photo_face", "photo_body", "palette", "match"];
+    public static readonly IReadOnlyList<string> AllOps = ["outfit", "week", "pack", "detect", "detect5", "photo_face", "photo_body", "palette", "match", "outfits"];
+
+    /// <summary>The outfit-import mirror selfies (OutfitImportSmokeCommand) and the categories each must yield.</summary>
+    private static readonly (SmokeFixtures.Fixture Fixture, ItemCategoryHint[] Expected)[] OutfitPhotos =
+    [
+        (OutfitImportSmokeCommand.Outfits[0], [ItemCategoryHint.Top, ItemCategoryHint.Bottom, ItemCategoryHint.Shoes]),
+        (OutfitImportSmokeCommand.Outfits[1], [ItemCategoryHint.Top, ItemCategoryHint.Outerwear, ItemCategoryHint.Bottom, ItemCategoryHint.Shoes]),
+        (OutfitImportSmokeCommand.Outfits[2], [ItemCategoryHint.Top, ItemCategoryHint.Bottom, ItemCategoryHint.Shoes, ItemCategoryHint.Bag]),
+    ];
     private static readonly string[] WorkerFunctions = ["item-processor", "outfit-import", "stylist", "tryon", "palette"];
 
     /// <summary>Subscription prices (₺, incl. 20% VAT) and the store's cut — for the margin table only.</summary>
@@ -148,6 +156,10 @@ internal sealed class AiCostCommand(IServiceProvider services, OpsArguments args
         var garment = new ImageInput((await fixtures.GetAsync(SmokeFixtures.Garment, ct)).Data, "image/jpeg");
         var flatLay = new ImageInput((await fixtures.GetAsync(SmokeFixtures.FlatLay, ct)).Data, "image/jpeg");
         var wardrobe = SyntheticWardrobe();
+        var outfitPhotos = new List<(string Name, ImageInput Image, ItemCategoryHint[] Expected)>();
+        if (ops.Contains("outfits") && !args.Flag("image-only"))
+            foreach (var (fixture, expected) in OutfitPhotos)
+                outfitPhotos.Add((fixture.Name, new ImageInput((await fixtures.GetAsync(fixture, ct)).Data, "image/jpeg"), expected));
         output.Line($"synthetic: {reps} rep(s), ops {string.Join(",", ops)}, text variants {string.Join(" ; ", textVariants.Select(v => v.Name))}, " +
                     $"image variants {string.Join(" ; ", imageVariants.Select(v => v.Name))}, text budget {textBudget}, image budget {_images.Remaining}");
 
@@ -190,6 +202,9 @@ internal sealed class AiCostCommand(IServiceProvider services, OpsArguments args
                             var p = await provider.AnalyzeAsync(face, ct);
                             return (string.IsNullOrEmpty(p.SeasonTypeId) ? 0 : 1, $"{p.SeasonTypeId} ({p.Confidence:0.00}){(p.Refusal is null ? "" : " refusal " + p.Refusal)}");
                         });
+                    foreach (var (name, image, expected) in outfitPhotos)
+                        if (TakeText(1))
+                            await MeasureAsync($"item_detection ({name})", variant, rep, async () => OutfitQuality(await provider.DetectItemsAsync(image, "tr", true, ct), expected));
                     if (ops.Contains("match") && TakeText(2))
                     {
                         var crop = Thumb(cropper, garment, 0.1, 512);
@@ -401,6 +416,16 @@ internal sealed class AiCostCommand(IServiceProvider services, OpsArguments args
             items.Any(i => i.Garment.Category == ItemCategoryHint.Accessory),
         }.Count(b => b) / 5.0 - Math.Max(0, items.Count - 5) * 0.1;
         return (Math.Max(0, score), $"{items.Count} item(s): {labels}");
+    }
+
+    /// <summary>Outfit photo: share of the expected categories found; a piece too many (e.g. the phone) costs 0.25.</summary>
+    internal static (double, string) OutfitQuality(IReadOnlyList<DetectedItem> raw, IReadOnlyList<ItemCategoryHint> expected)
+    {
+        var items = ItemDetectionGuard.Filter(raw, 12);
+        var found = expected.Count(c => items.Any(i => i.Garment.Category == c));
+        var extra = Math.Max(0, items.Count - expected.Count);
+        var labels = string.Join(", ", items.Select(i => $"{i.Garment.Category}/{i.Subcategory}/{string.Join("+", i.Garment.ColorIds)}"));
+        return (Math.Max(0, (double)found / expected.Count - 0.25 * extra), $"{items.Count} item(s), {found}/{expected.Count} expected: {labels}");
     }
 
     private static (double, string) PhotoQuality(PhotoInspection p, PhotoKind kind)
