@@ -105,7 +105,9 @@ describe('19 Bavul detayı', () => {
     await waitFor(() => expect(screen.getByText('Packing list')).toBeTruthy(), { timeout: 3000 });
     expect(screen.getByText('Londra')).toBeTruthy();
     expect(screen.getByText('9 pieces · 5 looks')).toBeTruthy();
-    expect(screen.getByText('MISSING PIECE')).toBeTruthy();
+    // The catalog pick is labelled like the stylist's: "Suggested · Store" + "See".
+    expect(screen.getByText('Suggested · Store')).toBeTruthy();
+    expect(screen.getByTestId('trip-store-see-prod_rain_boots')).toBeTruthy();
     expect(screen.getByText('Get missing')).toBeTruthy();
     expect(screen.getByLabelText('Daily weather forecast')).toBeTruthy();
     expect(screen.getByLabelText('Packing: 3 of 9 pieces ready')).toBeTruthy();
@@ -172,8 +174,14 @@ describe('19 Bavul detayı', () => {
 
   it('opens the suggested product from the missing-piece card and the shop from the bottom bar', async () => {
     await renderRouter('./src/app', { initialUrl: '/trip/trip_londra' });
-    await waitFor(() => expect(screen.getByText('MISSING PIECE')).toBeTruthy(), { timeout: 3000 });
-    expect(screen.getByLabelText('Missing piece: Yağmur botu · 3 gün yağmur var')).toBeTruthy();
+    await waitFor(() => expect(screen.getByTestId('trip-store-prod_rain_boots')).toBeTruthy(), { timeout: 3000 });
+    await fireEvent.press(screen.getByLabelText('See: Yağmur botu'));
+    await waitFor(() => expect(screen).toHavePathname('/shop/product/prod_rain_boots'), { timeout: 3000 });
+  });
+
+  it('opens the shop from the bottom bar', async () => {
+    await renderRouter('./src/app', { initialUrl: '/trip/trip_londra' });
+    await waitFor(() => expect(screen.getByTestId('trip-complete-missing')).toBeTruthy(), { timeout: 3000 });
     await fireEvent.press(screen.getByTestId('trip-complete-missing'));
     await waitFor(() => expect(screen).toHavePathname('/shop'), { timeout: 3000 });
   });
