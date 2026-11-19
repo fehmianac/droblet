@@ -17,6 +17,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { requestContactsPermission, useContactMatches, useRunContactMatch } from '@/features/social/contacts';
+import { useHandleGate } from '@/features/requirements/useHandleGate';
 import { FollowChip, PeopleSkeleton, PersonListRow } from '@/features/social/PeopleRows';
 import { useInviteLink } from '@/features/social/queries';
 import { useIsOnline } from '@/sync/network';
@@ -53,6 +54,7 @@ export default function ContactsMatchScreen() {
   const run = useRunContactMatch();
   const matches = useContactMatches();
   const invite = useInviteLink();
+  const withHandle = useHandleGate();
   const consents = useConsents();
   const saveConsent = useSaveConsents();
   /** Explicit consent 4: an unticked box; a consent recorded earlier shows as given. */
@@ -81,10 +83,12 @@ export default function ContactsMatchScreen() {
     run.mutate();
   };
 
-  const shareInvite = async () => {
+  const shareInviteNow = async () => {
     const link = invite.data ?? (await invite.refetch()).data;
     if (link) await Share.share({ message: t('share.inviteMessage', { url: link.url }) }).catch(() => undefined);
   };
+  // The invite link names me: it needs my @handle first.
+  const shareInvite = () => withHandle(() => void shareInviteNow());
 
   const errorText =
     run.error instanceof ApiError && run.error.status === 429 ? t('contacts.tooMany') : t('contacts.error');

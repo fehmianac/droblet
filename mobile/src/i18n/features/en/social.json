@@ -103,6 +103,7 @@
     "searchError": "Search isn't available right now.",
     "similarEmpty": "As your wardrobe grows we'll show closets like yours here.",
     "similarEmptyAction": "Share invite link",
-    "influencersEmpty": "Influencer closets will be here soon."
+    "influencersEmpty": "Influencer closets will be here soon.",
+    "claimHandle": "Claim your @handle · let friends find you"
   }
 }

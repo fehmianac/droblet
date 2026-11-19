@@ -19,13 +19,15 @@ type MenuRowProps = {
   /** Visible but not available (e.g. Aile planı). */
   disabled?: boolean;
   first?: boolean;
+  testID?: string;
 };
 
 /** One line of a menu card: icon · label · value / badge · chevron. 52 high. */
-export function MenuRow({ icon, label, value, trailing, onPress, disabled = false, first = false }: MenuRowProps) {
+export function MenuRow({ icon, label, value, trailing, onPress, disabled = false, first = false, testID }: MenuRowProps) {
   const interactive = Boolean(onPress) && !disabled;
   return (
     <Pressable
+      testID={testID}
       onPress={interactive ? onPress : undefined}
       disabled={!interactive}
       accessibilityRole={interactive ? 'button' : undefined}

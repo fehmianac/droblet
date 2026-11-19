@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { UserCheck, Users } from 'lucide-react-native';
+import { AtSign, UserCheck, Users } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, Share, View } from 'react-native';
@@ -17,6 +17,8 @@ import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
+import { useHandleGate, useHandleMissing } from '@/features/requirements/useHandleGate';
+import { requirementsFlow } from '@/features/requirements/store';
 import { FollowChip, PersonListRow } from '@/features/social/PeopleRows';
 import { useIncomingRequestCount, useInviteLink, usePeopleSearch, useSuggestedPeople } from '@/features/social/queries';
 import { useCreators } from '@/features/store/queries';
@@ -50,6 +52,8 @@ export default function FindFriendsScreen() {
   const [text, setText] = useState('');
   const [query, setQuery] = useState('');
   const [inviteError, setInviteError] = useState(false);
+  const withHandle = useHandleGate();
+  const handleMissing = useHandleMissing();
 
   useEffect(() => {
     const handle = setTimeout(() => setQuery(text), 300);
@@ -65,7 +69,7 @@ export default function FindFriendsScreen() {
   // The server searches from 2 characters on (the leading @ does not count).
   const searching = query.trim().replace(/^@/, '').length >= PEOPLE_SEARCH_MIN;
 
-  const shareInvite = async () => {
+  const shareInviteNow = async () => {
     setInviteError(false);
     const link = invite.data ?? (await invite.refetch()).data;
     if (!link) {
@@ -112,6 +116,20 @@ export default function FindFriendsScreen() {
           </SectionState>
         ) : (
           <>
+            {handleMissing ? (
+              // Friends find you by your @handle; following, sharing and inviting ask for it first.
+              <View className="px-gutter">
+                <Card>
+                  <MenuRow
+                    first
+                    icon={AtSign}
+                    label={t('people.claimHandle')}
+                    onPress={() => requirementsFlow.open({ action: 'social', start: 'steps', only: 'handle' })}
+                    testID="find.claimHandle"
+                  />
+                </Card>
+              </View>
+            ) : null}
             {requestCount > 0 ? (
               <View className="px-gutter">
                 <Card>
@@ -140,7 +158,7 @@ export default function FindFriendsScreen() {
                 </View>
                 <View className="gap-2">
                   <Button label={t('people.contactsAllow')} onPress={() => router.push('/friends/contacts')} testID="find.contacts" />
-                  <Button variant="secondary" label={t('people.inviteLink')} onPress={() => void shareInvite()} testID="find.invite" />
+                  <Button variant="secondary" label={t('people.inviteLink')} onPress={() => withHandle(() => void shareInviteNow(), t('people.inviteLink'))} testID="find.invite" />
                 </View>
                 {inviteError ? (
                   <Text variant="caption" tone="danger" accessibilityLiveRegion="polite">
