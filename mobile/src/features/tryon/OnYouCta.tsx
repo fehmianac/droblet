@@ -1,4 +1,6 @@
 import { router } from 'expo-router';
+
+import { useGate } from '@/features/requirements/useRequirements';
 import { Sparkles } from 'lucide-react-native';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -69,16 +71,21 @@ export function OnYouCta({ target, title, feature, hasBodyPhoto }: Props) {
   const [note, setNote] = useState<'offline' | 'failed' | null>(null);
 
   const known = credits.remaining !== null;
+  // Consent of the photo path, then the credit confirmation — also the resume of the requirements flow.
+  const openConfirm = () => void ensureTryOnConsent().then((ok) => ok && setConfirm(true));
+  const gate = useGate('tryOn', openConfirm, { origin: title });
+  // A usable picture: the full-length photo, or the face photo path once it is complete (canvas 11e).
+  const pictureReady = hasBodyPhoto ?? (photos.data ? photos.data.body.length > 0 || !gate.req.choosePath : null);
   const state = decideOnYouState({
-    hasBodyPhoto: hasBodyPhoto ?? (photos.data ? photos.data.body.length > 0 : null),
+    hasBodyPhoto: pictureReady,
     isMember: known ? credits.isMember : null,
     remaining: credits.remaining,
   });
 
   if (state === 'photo') {
     return (
-      <Panel text={t('productDetail.tryOnNeedsPhoto')} testID="on-you-cta-photo">
-        <Button variant="secondary" size="md" label={t('productDetail.tryOnAddPhoto')} onPress={() => router.push('/settings')} className="bg-paper px-4" />
+      <Panel text={gate.hint ?? t('productDetail.tryOnNeedsPhoto')} testID="on-you-cta-photo">
+        <Button variant="secondary" size="md" label={t('productDetail.tryOnAddPhoto')} onPress={gate.run} className="bg-paper px-4" testID="on-you-cta-photo-add" />
       </Panel>
     );
   }
@@ -124,8 +131,8 @@ export function OnYouCta({ target, title, feature, hasBodyPhoto }: Props) {
             return;
           }
           setNote(null);
-          // Consent first (its own sheet), then the credit confirmation.
-          void ensureTryOnConsent().then((ok) => ok && setConfirm(true));
+          // What is missing opens the requirements flow (canvas 11); otherwise consent, then the credit confirmation.
+          gate.run();
         }}
       />
       <CreditConfirmSheet visible={confirm} onClose={() => setConfirm(false)} cost={TRY_ON_CREDIT_COST} onConfirm={start} confirming={tryOn.isStarting} />

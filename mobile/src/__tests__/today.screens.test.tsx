@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 
+import { requirementsFlow } from '@/features/requirements/store';
 import { addDays, monthOf, weekDates, weekStartOf } from '@/features/today/dates';
 import { accountFixtures, resetAccountFixtures } from '@/fixtures/account';
 import { fixtureDb, resetFixtureDb } from '@/fixtures/db';
@@ -126,8 +127,12 @@ describe('06 Bugün — the "on you" area without a generated image', () => {
     await waitFor(() => expect(screen.getByTestId('on-you-cta-photo')).toBeTruthy(), WAIT);
     expect(screen.getByText('Add photo')).toBeTruthy();
     expect(screen.queryByText('ON YOU')).toBeNull();
+    // No dead end (canvas 11): the requirements sheet with the two photo paths.
     await fireEvent.press(screen.getByText('Add photo'));
-    await waitFor(() => expect(screen).toHavePathname('/settings'), WAIT);
+    await waitFor(() => expect(screen.getByTestId('requirements.sheet')).toBeTruthy(), WAIT);
+    expect(screen.getByTestId('requirements.path.body')).toBeTruthy();
+    expect(screen.getByTestId('requirements.path.face')).toBeTruthy();
+    requirementsFlow.reset();
     resetAccountFixtures();
   });
 

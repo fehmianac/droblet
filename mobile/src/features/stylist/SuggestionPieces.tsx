@@ -9,6 +9,8 @@ import { Text } from '@/components/ui/Text';
 import { ItemThumb } from '@/features/wardrobe/ItemThumb';
 import { formatMoney } from '@/lib/format';
 
+import { useAddSuggestedPieces } from './gapFill';
+
 type Props = {
   pieces: StylistPiece[];
 };
@@ -20,13 +22,49 @@ type Props = {
  */
 export function SuggestionPieces({ pieces }: Props) {
   const { t } = useTranslation();
+  const suggested = useAddSuggestedPieces();
   return (
     <View>
       {pieces.map((piece) => {
+        if (piece.source === 'library') {
+          const added = suggested.isAdded(piece.refId);
+          return (
+            <View key={`${piece.slot}${piece.refId}`} className="flex-row items-center gap-3 border-b border-line py-[7px]" testID={`suggested-library-${piece.refId}`}>
+              <ItemThumb category={piece.category} color={piece.color ?? undefined} uri={piece.imageUrl} className="h-12 w-10 rounded-[8px]" glyphSize={18} />
+              <View className="flex-1" accessible accessibilityLabel={`${piece.name}, ${t('req.gapFill.library')}`}>
+                <Text variant="body" numberOfLines={1}>
+                  {piece.name}
+                </Text>
+                <Text variant="caption" tone="accent" numberOfLines={1} className="font-sans-medium">
+                  {added ? t('req.gapFill.added') : t('req.gapFill.library')}
+                </Text>
+              </View>
+              {added ? (
+                <Icon icon={Check} size={18} />
+              ) : (
+                <Pressable
+                  onPress={() => void suggested.add([piece.refId]).catch(() => undefined)}
+                  disabled={suggested.isAdding}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${t('req.gapFill.add')}: ${piece.name}`}
+                  hitSlop={{ top: 4, bottom: 4 }}
+                  testID={`suggested-library-add-${piece.refId}`}
+                  className="h-chip items-center justify-center rounded-pill border border-accent px-[15px] active:opacity-80"
+                >
+                  <Text variant="chip" tone="accent" numberOfLines={1}>
+                    {t('req.gapFill.add')}
+                  </Text>
+                </Pressable>
+              )}
+            </View>
+          );
+        }
         const missing = piece.source === 'store';
         const caption = !missing
           ? t('stylistResult.fromWardrobe')
-          : piece.brand && piece.price !== null
+          : piece.suggested
+            ? t('req.gapFill.store')
+            : piece.brand && piece.price !== null
             ? t('stylistResult.missingStoreBrand', { brand: piece.brand, price: formatMoney(piece.price) })
             : piece.price !== null
               ? t('stylistResult.missingStorePrice', { price: formatMoney(piece.price) })
@@ -56,13 +94,13 @@ export function SuggestionPieces({ pieces }: Props) {
               <Pressable
                 onPress={() => router.push({ pathname: '/shop/product/[id]', params: { id: piece.refId } })}
                 accessibilityRole="button"
-                accessibilityLabel={t('stylistResult.completeLook')}
+                accessibilityLabel={piece.suggested ? `${t('req.gapFill.see')}: ${piece.name}` : t('stylistResult.completeLook')}
                 hitSlop={{ top: 4, bottom: 4 }}
-                testID="complete-look"
+                testID={piece.suggested ? `suggested-store-${piece.refId}` : 'complete-look'}
                 className="h-chip items-center justify-center rounded-pill border border-accent px-[15px] active:opacity-80"
               >
                 <Text variant="chip" tone="accent" numberOfLines={1}>
-                  {t('stylistResult.completeLook')}
+                  {piece.suggested ? t('req.gapFill.see') : t('stylistResult.completeLook')}
                 </Text>
               </Pressable>
             ) : (

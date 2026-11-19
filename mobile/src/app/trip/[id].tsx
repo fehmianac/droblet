@@ -13,7 +13,7 @@ import {
   Trash2,
   type LucideIcon,
 } from 'lucide-react-native';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, Share, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -38,6 +38,9 @@ import { forecastNotice, groupByCategory, readiness, tripLengthDays, tripShareTe
 import { ReadinessRing } from '@/features/trips/ReadinessRing';
 import { TripDaySheet } from '@/features/trips/TripDaySheet';
 import { TripPacking } from '@/features/trips/TripPacking';
+import { RequirementHint } from '@/features/requirements/RequirementHint';
+import { useGate } from '@/features/requirements/useRequirements';
+import { GapFillBanner, useAddSuggestedPieces } from '@/features/stylist/gapFill';
 import { ensureTryOnConsent, useStartTryOn } from '@/features/tryon/api';
 import { ItemThumb } from '@/features/wardrobe/ItemThumb';
 import { useItems } from '@/features/wardrobe/queries';
@@ -185,7 +188,32 @@ function CheckBox({ checked, size }: { checked: boolean; size: 18 | 20 }) {
 
 function MissingCard({ piece }: { piece: TripMissingPiece }) {
   const { t } = useTranslation();
+  const suggested = useAddSuggestedPieces();
   const productId = piece.productId;
+  const libraryItemId = piece.libraryItemId ?? null;
+  if (libraryItemId) {
+    const added = suggested.isAdded(libraryItemId);
+    return (
+      <View className="flex-row items-center gap-2.5 rounded-card border border-accent bg-paper px-3 py-2.5" testID={`trip-suggested-${libraryItemId}`}>
+        <View className="overflow-hidden rounded-[8px] border-[1.5px] border-dashed" style={{ borderColor: placeholderTones.camel }}>
+          <ItemThumb category={piece.category ?? 'accessory'} color="black" className="h-[41px] w-[37px]" glyphSize={20} />
+        </View>
+        <View className="flex-1 gap-0.5">
+          <Text variant="eyebrow" tone="accent">
+            {t('req.gapFill.library')}
+          </Text>
+          <Text variant="body" className="text-[13.5px]">
+            {piece.name}
+          </Text>
+        </View>
+        {added ? (
+          <Icon icon={Check} size={18} />
+        ) : (
+          <Button variant="secondary" size="md" label={t('req.gapFill.add')} onPress={() => void suggested.add([libraryItemId]).catch(() => undefined)} className="px-3" testID={`trip-suggested-add-${libraryItemId}`} />
+        )}
+      </View>
+    );
+  }
   const line = t('tripDetail.missingLine', { name: piece.name, reason: piece.reason });
   return (
     <Pressable
@@ -221,6 +249,8 @@ function PackedTrip({ trip }: { trip: TripDetail }) {
   const [confirm, setConfirm] = useState<'all' | string | null>(null);
   const [openDay, setOpenDay] = useState<TripDay | null>(null);
   const [tryOnNote, setTryOnNote] = useState<'offline' | 'failed' | null>(null);
+  const pendingScope = useRef<'all' | string>('all');
+  const tryOnGate = useGate('tryOn', () => void ensureTryOnConsent().then((ok) => ok && setConfirm(pendingScope.current)), { origin: trip.cityName });
 
   const ready = readiness(trip.items);
   const lookDays = trip.days.filter((d) => d.look);
@@ -233,8 +263,9 @@ function PackedTrip({ trip }: { trip: TripDetail }) {
       return;
     }
     setTryOnNote(null);
-    // Consent first (its own sheet), then the credit confirmation.
-    void ensureTryOnConsent().then((ok) => ok && setConfirm(scope));
+    // What is missing first (requirements flow, canvas 11), then consent and the credit confirmation.
+    pendingScope.current = scope;
+    tryOnGate.run();
   };
 
   const startTryOn = () => {
@@ -283,9 +314,11 @@ function PackedTrip({ trip }: { trip: TripDetail }) {
         <ReadinessRing {...ready} />
       </View>
 
+      {trip.gapFilled ? <GapFillBanner libraryItemIds={trip.missing.map((m) => m.libraryItemId).filter((id): id is string => Boolean(id))} testID="trip-gapfill" /> : null}
       {trip.missing.map((piece) => (
         <MissingCard key={piece.id} piece={piece} />
       ))}
+      <RequirementHint hint={tryOnGate.hint} onPress={tryOnGate.run} className="self-start" testID="trip-try-on-hint" />
 
       <DayLooks days={trip.days} onOpen={setOpenDay} />
 
