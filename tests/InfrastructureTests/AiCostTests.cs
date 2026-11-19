@@ -170,6 +170,23 @@ public class AiCostTests
     }
 
     [Fact]
+    public async Task FlowTier_AppliesOnlyInsideTheFlow_AndWinsOverTheOperationTier()
+    {
+        var (provider, handler) = Provider(o =>
+        {
+            o.ServiceTiers["outfit_import"] = "flex";
+            o.ServiceTiers["photo_check"] = "priority";
+        });
+        await provider.InspectAsync(new ImageInput([1], "image/jpeg"), PhotoKind.Face, default);
+        using (AiCallContext.Use(AiCallContext.OutfitImport))
+            await provider.InspectAsync(new ImageInput([1], "image/jpeg"), PhotoKind.Face, default);
+
+        Assert.Equal("priority", JsonNode.Parse(handler.Bodies[0])!["service_tier"]!.GetValue<string>());
+        Assert.Equal("flex", JsonNode.Parse(handler.Bodies[1])!["service_tier"]!.GetValue<string>());
+        Assert.Null(AiCallContext.Current);
+    }
+
+    [Fact]
     public async Task ItemDetection_StaysHighDetail_UnlessConfigured()
     {
         const string detection = """{"model":"text-model","choices":[{"finish_reason":"stop","message":{"content":"{\"items\":[]}","refusal":null}}],"usage":{"prompt_tokens":10,"completion_tokens":5}}""";

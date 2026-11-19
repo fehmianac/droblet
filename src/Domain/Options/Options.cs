@@ -323,13 +323,16 @@ public sealed class AiOptions
     public Dictionary<string, int> MaxOutputTokens { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    /// service_tier per operation (Ai:ServiceTiers:{operation}, e.g. item_match = flex for the background outfit import),
-    /// overriding <see cref="ServiceTier"/>. Flex is half price but slower and may answer 429 (resource unavailable).
+    /// service_tier per operation or per background flow (Ai:ServiceTiers:{operation | flow}, e.g. outfit_import = flex: every
+    /// text call of an outfit import photo), overriding <see cref="ServiceTier"/>. Flex is half price but slower and may
+    /// answer 429 (resource unavailable) — the import's rate-limit back-off retries it.
     /// </summary>
     public Dictionary<string, string> ServiceTiers { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
-    public string? TierFor(string operation) =>
-        ServiceTiers.TryGetValue(operation, out var tier) && !string.IsNullOrWhiteSpace(tier) ? tier.Trim()
+    /// <param name="context">The flow the call runs in (AiCallContext, e.g. "outfit_import"): its entry wins over the operation's.</param>
+    public string? TierFor(string operation, string? context = null) =>
+        context is not null && ServiceTiers.TryGetValue(context, out var flowTier) && !string.IsNullOrWhiteSpace(flowTier) ? flowTier.Trim()
+        : ServiceTiers.TryGetValue(operation, out var tier) && !string.IsNullOrWhiteSpace(tier) ? tier.Trim()
         : string.IsNullOrWhiteSpace(ServiceTier) ? null : ServiceTier.Trim();
 
     public string? DetailFor(string operation, string? codeDefault) =>

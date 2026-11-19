@@ -170,7 +170,7 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
         string ModelOf(AiOptions o) => fast && !string.IsNullOrWhiteSpace(o.FastTextModel) ? o.FastTextModel! : o.ModelFor(schemaName);
         var settings = Require(ModelOf);
         var model = ModelOf(settings);
-        var tuning = new ChatTuning(settings.EffortFor(schemaName), settings.TierFor(schemaName), settings.PromptCacheKey ? schemaName : null,
+        var tuning = new ChatTuning(settings.EffortFor(schemaName), settings.TierFor(schemaName, AiCallContext.Current), settings.PromptCacheKey ? schemaName : null,
             settings.DetailFor(schemaName, highDetail ? "high" : null), settings.MaxOutputTokensFor(schemaName));
         var body = OpenAiPayloads.ChatRequest(model, system, userText, images, schemaName, schema, highDetail, tuning).ToJsonString();
         using var request = new HttpRequestMessage(HttpMethod.Post, Url(settings, ChatPath))
