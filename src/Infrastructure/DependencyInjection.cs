@@ -80,7 +80,7 @@ public static class DependencyInjection
         // OpenAI over plain HTTP. With Ai:Enabled = false (default) or a missing key / model id every call throws
         // AiProviderException, so jobs fail with ProviderError and credits are refunded — same as before.
         services.AddSingleton(sp => new OpenAiProvider(
-            new HttpClient { Timeout = Timeout.InfiniteTimeSpan },
+            new HttpClient(OpenAiProvider.CreateHandler()) { Timeout = Timeout.InfiniteTimeSpan },
             sp.GetRequiredService<IOptionsMonitor<AiOptions>>(),
             sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<OpenAiProvider>>()));
         services.AddSingleton<IAiProvider>(sp => sp.GetRequiredService<OpenAiProvider>());

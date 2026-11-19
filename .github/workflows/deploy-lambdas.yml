@@ -111,8 +111,9 @@ jobs:
           RID: ${{ steps.arch.outputs.rid }}
         run: |
           set -euo pipefail
+          # ReadyToRun: precompiled code instead of JIT at cold start (Lambda init + first request).
           dotnet publish "$PROJECT" -c Release -r "$RID" --self-contained false \
-            -p:GenerateRuntimeConfigurationFiles=true -o "$RUNNER_TEMP/publish"
+            -p:GenerateRuntimeConfigurationFiles=true -p:PublishReadyToRun=true -o "$RUNNER_TEMP/publish"
           (cd "$RUNNER_TEMP/publish" && zip -q -r "$RUNNER_TEMP/function.zip" .)
           ls -lh "$RUNNER_TEMP/function.zip"
 

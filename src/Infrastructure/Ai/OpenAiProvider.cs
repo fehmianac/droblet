@@ -36,6 +36,43 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
 
     public string Name => ProviderName;
 
+    /// <summary>
+    /// One pooled connection reused across invocations (TLS to the API costs a few hundred ms from eu-central-1), but never
+    /// one that sat idle long enough for the server side to have closed it — a dead pooled connection fails a POST, and a
+    /// failed AI call costs an SQS retry. Connect is bounded separately from the (long) generation timeout.
+    /// </summary>
+    public static SocketsHttpHandler CreateHandler() => new()
+    {
+        PooledConnectionIdleTimeout = TimeSpan.FromSeconds(45),
+        PooledConnectionLifetime = TimeSpan.FromMinutes(10),
+        ConnectTimeout = TimeSpan.FromSeconds(10),
+        KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests,
+        AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
+    };
+
+    /// <summary>
+    /// Opens the TLS connection to the API ahead of the first job (GET /v1/models: no tokens, no content). Called in the
+    /// background at Lambda init, so the handshake overlaps with the job's own DynamoDB / S3 reads. Never throws.
+    /// </summary>
+    public async Task WarmUpAsync(CancellationToken ct)
+    {
+        var settings = options.CurrentValue;
+        if (!settings.Enabled || !settings.HasApiKey)
+            return;
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, Url(settings, "/v1/models"));
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", settings.ApiKey);
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeout.CancelAfter(TimeSpan.FromSeconds(5));
+            using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException)
+        {
+            logger.LogInformation("OpenAI warm-up skipped ({Error})", ex.GetType().Name);
+        }
+    }
+
     public bool IsConfigured
     {
         get

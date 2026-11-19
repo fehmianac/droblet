@@ -33,7 +33,41 @@ public static class WorkerHost
         services.AddDrobletAi();
         configure(services);
         DecorateWithTimings(services);
-        return services.BuildServiceProvider();
+        var provider = services.BuildServiceProvider();
+        WarmUp(provider);
+        return provider;
+    }
+
+    /// <summary>
+    /// Cold start: the first DynamoDB call of a fresh instance took ~0.9 s (SDK first use, credentials, TLS) against
+    /// ~70 ms warm, and the first OpenAI call pays its TLS handshake. Both are started in the background at init, so they
+    /// overlap with the rest of the start-up and the job's first steps instead of adding to them. Best effort.
+    /// </summary>
+    public static void WarmUp(IServiceProvider services)
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var repository = services.GetRequiredService<IRepository>();
+                await repository.GetAsync<Domain.Entity.JobStatsEntity>(Domain.Entity.JobStatsEntity.GetPk(), Domain.Entity.JobStatsEntity.GetSk(Domain.Enum.JobKind.TryOn));
+            }
+            catch (Exception)
+            {
+                // warm-up only
+            }
+        });
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await services.GetRequiredService<Infrastructure.Ai.OpenAiProvider>().WarmUpAsync(CancellationToken.None);
+            }
+            catch (Exception)
+            {
+                // warm-up only
+            }
+        });
     }
 
     /// <summary>DynamoDB and S3 calls of a job run are added to its stage timings ("db", "s3_get", "s3_put").</summary>
