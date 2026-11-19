@@ -1,0 +1,70 @@
+# 13a image viewer, pinch-free checks: tap a picture to open it full screen, swipe to page, swipe down to close.
+# Store product photo (22) and the toast of the product heart (13b). Runs on the current session (signed in,
+# onboarded — e.g. after onboard-existing.yaml). No AI, no credits.
+# Run: maestro test .maestro/image-viewer.yaml
+appId: com.alatech.droplet
+---
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible:
+      id: "tab.discover"
+    timeout: 20000
+- extendedWaitUntil:
+    notVisible:
+      id: "animated-splash"
+    timeout: 10000
+- runFlow: { file: open.yaml, env: { URL: "droplet://shop" } }
+- extendedWaitUntil:
+    visible:
+      id: "shop.product.0"
+    timeout: 15000
+- tapOn:
+    id: "shop.product.0"
+- extendedWaitUntil:
+    visible:
+      id: "product-image-zoom"
+    timeout: 10000
+- takeScreenshot: v13a-1-kapali
+# Open: tap the product photo.
+- tapOn:
+    id: "product-image-zoom"
+- extendedWaitUntil:
+    visible:
+      id: "image-viewer.close"
+    timeout: 5000
+- waitForAnimationToEnd
+- takeScreenshot: v13a-2-acik
+# Swipe down at 1×: dismisses.
+- swipe:
+    start: "50%,45%"
+    end: "50%,90%"
+    duration: 300
+- extendedWaitUntil:
+    notVisible:
+      id: "image-viewer.close"
+    timeout: 5000
+- takeScreenshot: v13a-3-kapandi
+# Open again and close with ×.
+- tapOn:
+    id: "product-image-zoom"
+- extendedWaitUntil:
+    visible:
+      id: "image-viewer.close"
+    timeout: 5000
+- tapOn:
+    id: "image-viewer.close"
+- extendedWaitUntil:
+    notVisible:
+      id: "image-viewer.close"
+    timeout: 5000
+# 13b: the heart confirms with a toast.
+- tapOn:
+    id: "product-favorite"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "toast-favorite"
+    timeout: 5000
+    optional: true
+- takeScreenshot: v13b-toast-favori

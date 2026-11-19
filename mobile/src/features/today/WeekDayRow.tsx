@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/Bits';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
 import { ImageSlot } from '@/components/ui/ImageSlot';
+import { Zoomable } from '@/components/ui/viewer';
 import { Text } from '@/components/ui/Text';
 import { coverPieces } from '@/features/looks/LookCover';
 import { useTryOnJob } from '@/features/tryon/api';
@@ -81,13 +82,19 @@ export function WeekDayRow({ row, onOpenMenu, onSuggest, tryOnJobId, focused, on
   return (
     <View className="gap-3 rounded-card border border-line bg-paper p-2.5">
       <View className="flex-row items-center gap-3">
-        <View className="h-[72px] w-14 items-center justify-center overflow-hidden rounded-thumb">
+        <Zoomable
+          images={image ? [{ uri: image, label: t('tryOn.imageA11yNamed', { name: row.look.name }), ai: { tag: t('aiBadge.onYou') } }] : []}
+          disabled={!image}
+          accessibilityLabel={t('tryOn.imageA11yNamed', { name: row.look.name })}
+          className="h-[72px] w-14 items-center justify-center overflow-hidden rounded-thumb"
+          testID={`week-day-image-${row.date}`}
+        >
           <ImageSlot
             uri={image}
             className="h-full w-full"
             placeholder={{ kind: 'look', pieces: coverPieces(row.look.slots, undefined, 45), seed: row.look.id, figureHeight: 45 }}
           />
-        </View>
+        </Zoomable>
         <View className="flex-1 gap-[3px]">
           <Text variant="eyebrow" numberOfLines={1}>
             {eyebrow}

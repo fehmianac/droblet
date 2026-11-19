@@ -23,7 +23,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { profileShareUrl } from '@/features/social/feedMath';
 import { useAnswerFollowRequest, useFollow } from '@/features/social/mutations';
-import { Notice, useNotice } from '@/features/social/Notice';
+import { useNotice } from '@/features/social/Notice';
 import { FOLLOW_LABEL } from '@/features/social/PeopleRows';
 import { useInviteLink, usePerson, usePersonItems, usePersonLooks, usePersonTrips } from '@/features/social/queries';
 import { ReportSheet } from '@/features/social/ReportSheet';
@@ -273,7 +273,7 @@ export default function PersonScreen() {
   const invite = useInviteLink();
   const [menu, setMenu] = useState(false);
   const [reporting, setReporting] = useState(false);
-  const { notice, show } = useNotice();
+  const { show } = useNotice();
 
   const withHandle = useHandleGate();
   const copyProfileLinkNow = async () => {
@@ -309,7 +309,6 @@ export default function PersonScreen() {
       >
         {(data) => (data ? <PersonBody key={data.handle} person={data} /> : null)}
       </ScreenState>
-      <Notice notice={notice} />
 
       <PopoverMenu
         visible={menu}

@@ -8,6 +8,7 @@ import { Badge, MissingTag } from '@/components/ui/Bits';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { Text } from '@/components/ui/Text';
+import { Zoomable, type ViewerImage } from '@/components/ui/viewer';
 import { OnYouImage } from '@/features/today/OnYouImage';
 import { ItemThumb } from '@/features/wardrobe/ItemThumb';
 
@@ -37,12 +38,29 @@ export function tilePieces(pieces: StylistPiece[], count: number): StylistPiece[
   return [...owned, ...missing];
 }
 
+/**
+ * Every picture of a suggestion for the viewer (13a): the try-on image (AI, labelled) first, then the piece photos.
+ * Pieces without a photo (a glyph placeholder) are left out — there is nothing to enlarge.
+ */
+export function suggestionViewerImages(
+  pieces: StylistPiece[],
+  tryOn: { uri: string | null; label: string; tag: string } | null,
+): ViewerImage[] {
+  const images: ViewerImage[] = [];
+  if (tryOn?.uri) images.push({ uri: tryOn.uri, label: tryOn.label, ai: { tag: tryOn.tag } });
+  pieces.forEach((p) => {
+    if (p.imageUrl) images.push({ uri: p.imageUrl, label: p.name, caption: p.name });
+  });
+  return images;
+}
+
 /** A piece tile next to the "on you" slot. A missing (store) piece: dashed espresso frame + "EKSİK PARÇA" top-right. */
-function PieceTile({ piece, className, glyphSize = 32 }: { piece: StylistPiece; className: string; glyphSize?: number }) {
+function PieceTile({ piece, className, glyphSize = 32, images = [] }: { piece: StylistPiece; className: string; glyphSize?: number; images?: ViewerImage[] }) {
   const { t } = useTranslation();
   const missing = piece.source === 'store';
+  const at = piece.imageUrl ? images.findIndex((img) => img.uri === piece.imageUrl) : -1;
   return (
-    <View className={`overflow-hidden rounded-image ${missing ? 'border-[1.5px] border-dashed border-accent' : ''} ${className}`}>
+    <Zoomable images={images} index={at} disabled={at < 0} className={`overflow-hidden rounded-image ${missing ? 'border-[1.5px] border-dashed border-accent' : ''} ${className}`} testID={`suggestion-piece-${piece.slot}`}>
       <ItemThumb
         category={piece.category}
         color={piece.color ?? undefined}
@@ -52,7 +70,7 @@ function PieceTile({ piece, className, glyphSize = 32 }: { piece: StylistPiece; 
         accessibilityLabel={missing ? t('stylistResult.missingPieceA11y', { name: piece.name, detail: '' }).trim() : piece.name}
       />
       {missing ? <MissingTag className="absolute right-1.5 top-1.5" /> : null}
-    </View>
+    </Zoomable>
   );
 }
 
@@ -87,20 +105,22 @@ export function SuggestionMedia({ suggestion, mode, imageUrl, creditLine, onTryO
   const lines = [t('ai.tryOnLines.pieces'), t('ai.tryOnLines.colors'), t('ai.tryOnLines.placing'), t('ai.tryOnLines.finishing')];
   const tiles = tilePieces(suggestion.pieces, 3);
   const collage = tilePieces(suggestion.pieces, 4).map((p) => ({ category: p.category, color: p.color, imageUrl: p.imageUrl, missing: p.source === 'store' }));
+  const tryOnLabel = t('tryOn.imageA11yNamed', { name: suggestion.name });
+  const viewerImages = suggestionViewerImages(tiles, mode === 'done' ? { uri: imageUrl, label: tryOnLabel, tag: t('aiBadge.onYou') } : null);
 
   return (
     <View className="flex-row gap-2.5">
       {/* 200 : 140 of the 350-wide board row. */}
       <View className="aspect-[200/264] flex-[10]">
         {mode === 'done' ? (
-          <View className="h-full w-full">
+          <Zoomable images={viewerImages} index={0} disabled={!imageUrl} accessibilityLabel={tryOnLabel} className="h-full w-full" testID="suggestion-tryon-image">
             {/* The AI markers only sit on a generated image; a finished job without one falls back to the piece collage. */}
             <OnYouImage
               uri={imageUrl}
               className="h-full w-full rounded-image-lg"
               pieces={collage}
               silhouetteHeight={168}
-              accessibilityLabel={t('tryOn.imageA11yNamed', { name: suggestion.name })}
+              accessibilityLabel={tryOnLabel}
               collageLabel={t('aiBadge.collageA11y', { name: suggestion.name })}
             />
             {imageUrl ? (
@@ -108,7 +128,7 @@ export function SuggestionMedia({ suggestion, mode, imageUrl, creditLine, onTryO
                 <Badge tone="ink" icon={Sparkles} label={t('ai.previewBadge')} />
               </View>
             ) : null}
-          </View>
+          </Zoomable>
         ) : mode === 'working' ? (
           <AiShimmerImage className="h-full w-full gap-3 rounded-image-lg p-4">
             <AiDropPulse height={31} />
@@ -143,7 +163,7 @@ export function SuggestionMedia({ suggestion, mode, imageUrl, creditLine, onTryO
       </View>
       <View className="flex-[7] gap-2">
         {tiles.map((p) => (
-          <PieceTile key={`${p.slot}${p.refId}`} piece={p} className="flex-1" />
+          <PieceTile key={`${p.slot}${p.refId}`} piece={p} className="flex-1" images={viewerImages} />
         ))}
       </View>
     </View>

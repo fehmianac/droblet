@@ -82,7 +82,13 @@
     "empty": "Bu istek için öneri çıkmadı.",
     "expired": "Bu öneri artık hazır değil. Yeniden iste.",
     "ruleTitle": "Öneri {{number}}",
-    "ruleNote": "Gardırobundaki parçalardan, güne ve havaya göre seçildi."
+    "ruleNote": "Gardırobundaki parçalardan, güne ve havaya göre seçildi.",
+    "unsave": "Lookbook'tan çıkar",
+    "inCalendar": "Takvimde · {{date}}",
+    "dayPlannedA11y": "{{day}}, planı var",
+    "changeDay": "Günü değiştir",
+    "removeFromCalendar": "Takvimden çıkar",
+    "plannedOn": "{{date}}"
   },
   "stylistFeedback": {
     "title": "Neyi beğenmedin?",
@@ -112,7 +118,8 @@
     "creditCostOnly_other": "{{count}} kredi",
     "imageA11y": "Senin üzerinde AI görseli",
     "imageA11yNamed": "{{name}}, senin üzerinde AI görseli",
-    "imageFailed": "Görsel yüklenemedi. Bağlantını kontrol edip tekrar dene."
+    "imageFailed": "Görsel yüklenemedi. Bağlantını kontrol edip tekrar dene.",
+    "cachedNote": "Daha önce oluşturuldu · kredi harcanmadı"
   },
   "weatherCondition": {
     "clear": "açık",

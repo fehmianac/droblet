@@ -1,6 +1,9 @@
 import { useMutation, type InfiniteData, type QueryClient } from '@tanstack/react-query';
+import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 import { apiRequest } from '@/api/client';
+import { toast } from '@/components/ui/toast';
 import type {
   AcceptInviteRequest,
   BlockRequest,
@@ -311,8 +314,16 @@ export function useRateLook() {
 }
 
 export function useSaveLook() {
+  const { t } = useTranslation();
   const m = useMutation<void, unknown, SaveLookRequest>({ mutationKey: socialMutationKeys.saveLook });
-  return (handle: string, lookId: string, saved: boolean) => m.mutate({ handle, lookId, saved, clientMutationId: id() });
+  return (handle: string, lookId: string, saved: boolean) => {
+    m.mutate({ handle, lookId, saved, clientMutationId: id() });
+    toast.success(t(saved ? 'feedback.savedLooks.added' : 'feedback.savedLooks.removed'), {
+      icon: saved ? 'heartFilled' : 'heart',
+      action: saved ? { label: t('feedback.see'), onPress: () => router.push('/friends/saved') } : undefined,
+      testID: 'toast-saved-look',
+    });
+  };
 }
 
 /**
@@ -320,10 +331,24 @@ export function useSaveLook() {
  * @handle (the other side sees who follows): without one the handle step opens first and the follow is sent after it.
  */
 export function useFollow() {
+  const { t } = useTranslation();
   const m = useMutation<FollowState, unknown, FollowRequest>({ mutationKey: socialMutationKeys.follow });
   const withHandle = useHandleGate();
   return (handle: string, follow: boolean) => {
-    const send = () => m.mutate({ handle, follow, clientMutationId: id() });
+    const send = () => {
+      m.mutate(
+        { handle, follow, clientMutationId: id() },
+        {
+          // A private account answers "requested": the toast says which one happened.
+          onSuccess: (state) => {
+            if (follow && state === 'requested') toast.success(t('feedback.follow.requested', { handle }), { testID: 'toast-follow' });
+          },
+          onError: () => toast.error(t('feedback.follow.failed'), { testID: 'toast-follow-failed' }),
+        },
+      );
+      if (follow) toast.success(t('feedback.follow.following', { handle }), { testID: 'toast-follow' });
+      else toast.success(t('feedback.follow.unfollowed', { handle }), { testID: 'toast-follow' });
+    };
     if (follow) withHandle(send, `@${handle}`);
     else send();
   };
@@ -348,8 +373,12 @@ export function useReportPerson() {
 }
 
 export function useBlockPerson() {
+  const { t } = useTranslation();
   const m = useMutation<void, unknown, BlockRequest>({ mutationKey: socialMutationKeys.block });
-  return (handle: string) => m.mutate({ handle, clientMutationId: id() });
+  return (handle: string) => {
+    m.mutate({ handle, clientMutationId: id() });
+    toast.success(t('feedback.block.done', { handle }), { testID: 'toast-block' });
+  };
 }
 
 export function useUnblockPerson() {

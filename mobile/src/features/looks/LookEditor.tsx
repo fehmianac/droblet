@@ -19,6 +19,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Text } from '@/components/ui/Text';
 import { TextField } from '@/components/ui/TextField';
 import { CreditConfirmSheet } from '@/features/credits/CreditConfirmSheet';
+import { useCachedTryOn } from '@/features/tryon/cached';
 import { RequirementHint, StepCountBadge } from '@/features/requirements/RequirementHint';
 import { useGate } from '@/features/requirements/useRequirements';
 import { ensureTryOnConsent, useStartTryOn } from '@/features/tryon/api';
@@ -67,6 +68,9 @@ export function LookEditor({ look, initialSlots, skippedCount = 0, items, initia
   // Canvas 11a: what "Üzerimde gör" still needs is said under it; tapping opens the flow, which resumes here.
   const gate = useGate('tryOn', () => void ensureTryOnConsent().then((ok) => ok && setConfirm(true)), { origin: t(look ? 'lookEditor.titleEdit' : 'lookEditor.titleNew') });
 
+  // 13d: a saved, unchanged look whose image already exists opens it — no credit sheet, nothing charged.
+  const cachedTryOn = useCachedTryOn(look ? { kind: 'look', id: look.id } : null);
+
   const itemsById = indexItems(items);
   const count = filledCount(slots);
   const savable = canSaveLook(slots);
@@ -92,6 +96,10 @@ export function LookEditor({ look, initialSlots, skippedCount = 0, items, initia
       return;
     }
     setTryOnNote(null);
+    if (look && !dirty && cachedTryOn.cachedJobId) {
+      router.replace({ pathname: '/tryon/[jobId]', params: { jobId: cachedTryOn.cachedJobId, title: draft.name } });
+      return;
+    }
     gate.run();
   };
 

@@ -19,6 +19,38 @@ export const stylistMutationKeys = {
 export type AcceptSuggestionVariables = AcceptSuggestionRequest & { jobId: string; index: number };
 
 /**
+ * Sets what this device knows about a suggestion (saved look, planned day). These are client-side facts: the job
+ * result from the server never carries them (`toStylistSuggestion` keeps the previous ones), so an unsave or a
+ * removal from the calendar is written here, next to the look / plan-day write that does it on the server.
+ */
+export function setSuggestionState(
+  client: QueryClient,
+  jobId: string,
+  index: number,
+  next: { savedLookId?: string | null; plannedDate?: string | null },
+): void {
+  client.setQueryData<Job<StylistOutfitResult>>(jobQueryKey(jobId), (job) =>
+    job?.result
+      ? {
+          ...job,
+          result: {
+            ...job.result,
+            suggestions: job.result.suggestions.map((s) =>
+              s.index === index
+                ? {
+                    ...s,
+                    savedLookId: next.savedLookId !== undefined ? next.savedLookId : s.savedLookId,
+                    plannedDate: next.plannedDate !== undefined ? next.plannedDate : s.plannedDate,
+                  }
+                : s,
+            ),
+          },
+        }
+      : job,
+  );
+}
+
+/**
  * Queued writes of the stylist feature. Paused mutations are persisted without their function, so every
  * write must register its `mutationFn` here by key to resume after an app restart.
  */

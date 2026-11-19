@@ -47,4 +47,12 @@ describe('trSuffix', () => {
     expect(suffixed(64, 'possessive', 'tr', '%64')).toBe("%64'ü");
     expect(suffixed('Vakko', 'locative', 'tr')).toBe("Vakko'da");
   });
+
+  it('gives the dative of a date ("Salı 24 Kasım\'a eklendi")', () => {
+    expect(suffixed('Salı 24 Kasım', 'dative', 'tr')).toBe("Salı 24 Kasım'a");
+    expect(suffixed('Pazartesi 1 Aralık', 'dative', 'tr')).toBe("Pazartesi 1 Aralık'a");
+    expect(suffixed('Cuma 5 Eylül', 'dative', 'tr')).toBe("Cuma 5 Eylül'e");
+    expect(suffixed('Salı', 'dative', 'tr')).toBe("Salı'ya");
+    expect(suffixed('Cuma 5 Eylül', 'dative', 'en')).toBe('Cuma 5 Eylül');
+  });
 });
