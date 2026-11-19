@@ -34,6 +34,8 @@ export type JobView<T> = {
   /** The server returned the reserved credit. A timeout delivers nothing, so it reads as refunded too. */
   creditRefunded: boolean;
   errorCode: string | null;
+  /** The poll's own error (network, or a `mapResult` that threw, e.g. a refused draft); null otherwise. */
+  error?: unknown;
   /** Poll again now (also clears a timeout). */
   refetch: () => void;
 };
@@ -94,6 +96,7 @@ export function useJob<T>(kind: JobKind, id: string | null | undefined, options:
     result: isDone ? (job?.result ?? null) : null,
     creditRefunded: job?.status === 'failed' ? (job.error?.creditRefunded ?? false) : timedOut,
     errorCode: job?.error?.code ?? null,
+    error: query.error ?? null,
     refetch: () => {
       setTimedOutFor(null);
       void query.refetch();

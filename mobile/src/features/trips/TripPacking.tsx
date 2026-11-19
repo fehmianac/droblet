@@ -19,7 +19,7 @@ import { toDisplayUpper } from '@/lib/upper';
 import { useIsOnline } from '@/sync/network';
 
 import { usePackJob, useStartPack, useTripWrites } from './api';
-import { tripDates, tripLengthDays } from './logic';
+import { packErrorState, tripDates, tripLengthDays, type PackErrorState } from './logic';
 
 const MAX_DAY_BOXES = 7;
 
@@ -47,8 +47,9 @@ export function TripPacking({ trip }: { trip: TripDetail }) {
   const tripId = trip.id;
 
   useEffect(() => {
-    // Stable request id: starting twice (remount, double effect) opens one job.
-    if (canAutoStart) mutate({ requestId: `pack_${tripId}` });
+    // Stable request id: starting twice (remount, double effect) opens one job. It must be a ULID
+    // (400 `request_id_invalid` otherwise) — the trip id is one, and a trip's first pack is one job.
+    if (canAutoStart) mutate({ requestId: tripId });
   }, [canAutoStart, mutate, tripId]);
 
   const retry = () => {
@@ -97,7 +98,9 @@ export function TripPacking({ trip }: { trip: TripDetail }) {
   }
 
   if (start.isError || (jobActive && job.isFailed)) {
-    return <AiFailure creditRefunded={false} onRetry={retry} retrying={start.isPending} layout="inline" />;
+    const state = start.isError ? packErrorState(start.error) : packErrorState(job.error, job.errorCode);
+    if (state === 'failed') return <AiFailure creditRefunded={false} onRetry={retry} retrying={start.isPending} layout="inline" />;
+    return <PackBlocked state={state} onRetry={retry} retrying={start.isPending} />;
   }
 
   if (!online && !jobActive) {
@@ -136,6 +139,33 @@ export function TripPacking({ trip }: { trip: TripDetail }) {
         {t('tripDetail.packNote')}
       </Text>
       <AiBackgroundAction onPress={() => (router.canGoBack() ? router.back() : router.replace('/wardrobe/trips'))} />
+    </View>
+  );
+}
+
+const BLOCKED_TEXT = {
+  paywall: 'tripDetail.packPremium',
+  consent: 'tripDetail.packConsent',
+  wardrobe: 'tripDetail.packWardrobe',
+} as const satisfies Record<Exclude<PackErrorState, 'failed'>, string>;
+
+/**
+ * A pack start the server refused for a reason the user can act on: Premium (the paywall — and from there the
+ * self-premium link when it is enabled — opened once by `routeAiStartError`, offered again here), a missing consent
+ * (the consent sheet opened by the query client; "Try again" once it is given) or a wardrobe too small to dress a day.
+ */
+function PackBlocked({ state, onRetry, retrying }: { state: Exclude<PackErrorState, 'failed'>; onRetry: () => void; retrying: boolean }) {
+  const { t } = useTranslation();
+  return (
+    <View className="items-center gap-3 py-4" accessibilityLiveRegion="polite" testID={`pack-blocked-${state}`}>
+      <Text variant="body" tone="muted" className="text-center">
+        {t(BLOCKED_TEXT[state])}
+      </Text>
+      {state === 'paywall' ? (
+        <Button label={t('tripDetail.packPremiumAction')} onPress={() => router.push({ pathname: '/paywall', params: { from: 'suitcase' } })} testID="pack-paywall" />
+      ) : null}
+      {state === 'wardrobe' ? <Button label={t('tripDetail.packWardrobeAction')} onPress={() => router.push('/item/add')} testID="pack-add-items" /> : null}
+      <Button variant="secondary" label={t('ai.retry')} onPress={onRetry} loading={retrying} testID="pack-retry" />
     </View>
   );
 }

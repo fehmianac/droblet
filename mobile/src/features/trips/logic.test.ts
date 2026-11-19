@@ -1,6 +1,11 @@
+import { ApiError } from '@/api/errors';
+import { PackRefusedError } from '@/api/wire/trips';
 import { fixtureCities } from '@/fixtures/trips';
 
 import {
+  forecastNotice,
+  matchTypedCity,
+  packErrorState,
   foldForSearch,
   groupByCategory,
   monthGrid,
@@ -149,5 +154,79 @@ describe('tripShareText', () => {
 
   it('leaves empty sections out', () => {
     expect(tripShareText({ items: [], days: [], missing: [] }, labels)).toBe('Londra · 5 days\n\nPrepared with Droblet.');
+  });
+});
+
+const http = (status: number, code: string, extra: Record<string, unknown> = {}) =>
+  new ApiError('http', status, { type: `https://droblet.test/errors/${code}`, title: code, status, code, ...extra } as never);
+
+describe('pack error → state', () => {
+  it('sends premium_required to the paywall state', () => {
+    expect(packErrorState(http(403, 'premium_required'))).toBe('paywall');
+    expect(packErrorState(null, 'premium_required')).toBe('paywall');
+  });
+
+  it('sends consent_required to the consent state', () => {
+    expect(packErrorState(http(403, 'consent_required', { missing: ['crossBorderTransfer'] }))).toBe('consent');
+  });
+
+  it('reads a refused draft with a too small wardrobe as the wardrobe state', () => {
+    expect(packErrorState(new PackRefusedError('insufficient_wardrobe'))).toBe('wardrobe');
+    expect(packErrorState(new PackRefusedError('out_of_scope'))).toBe('failed');
+  });
+
+  it('keeps the AI failure state with retry for credits, provider, timeout, network and validation errors', () => {
+    expect(packErrorState(http(402, 'credits_exhausted'))).toBe('failed');
+    expect(packErrorState(http(400, 'validation_failed', { errors: { requestId: ['request_id_invalid'] } }))).toBe('failed');
+    expect(packErrorState(http(503, 'ai_unavailable'))).toBe('failed');
+    expect(packErrorState(new ApiError('network', null, null))).toBe('failed');
+    expect(packErrorState(null, 'provider_error')).toBe('failed');
+    expect(packErrorState(null, 'timeout')).toBe('failed');
+    expect(packErrorState(null, null)).toBe('failed');
+  });
+});
+
+describe('forecast notice', () => {
+  const day = { date: '2026-11-25', temperatureC: 9, condition: 'cloud' as const };
+  const trip = (forecastStatus: Parameters<typeof forecastNotice>[0]['forecastStatus'], forecast: (typeof day)[] | null, baseVersion = 1) => ({
+    forecastStatus,
+    forecast,
+    baseVersion,
+  });
+
+  it('shows the strip alone when every day is known (or the trip is over)', () => {
+    expect(forecastNotice(trip('available', [day]))).toBeNull();
+    expect(forecastNotice(trip('past', null))).toBeNull();
+  });
+
+  it('says "not available yet" only when the dates are beyond the provider horizon', () => {
+    expect(forecastNotice(trip('beyondRange', null))).toBe('notYet');
+    expect(forecastNotice(trip('partial', [day]))).toBe('partial');
+    expect(forecastNotice(trip('unavailable', null))).toBe('unavailable');
+    expect(forecastNotice(trip('noLocation', null))).toBe('noLocation');
+  });
+
+  it('stays quiet for an optimistic trip and falls back for an older server', () => {
+    expect(forecastNotice(trip(undefined, null, 0))).toBeNull();
+    expect(forecastNotice(trip(undefined, null))).toBe('unavailable');
+    expect(forecastNotice(trip(undefined, [day]))).toBeNull();
+  });
+});
+
+describe('typed city', () => {
+  const results = [
+    { id: '2643743', name: 'London', region: 'England, United Kingdom' },
+    { id: '6058560', name: 'London', region: 'Ontario, Canada' },
+    { id: '2643741', name: 'City of London', region: 'England, United Kingdom' },
+  ];
+
+  it('takes the first result named exactly like the query (case and Turkish letters folded)', () => {
+    expect(matchTypedCity(results, ' london ')?.id).toBe('2643743');
+    expect(matchTypedCity([{ id: '745044', name: 'İstanbul', region: '' }], 'istanbul')?.id).toBe('745044');
+  });
+
+  it('asks to pick from the list when nothing matches exactly', () => {
+    expect(matchTypedCity(results, 'lond')).toBeNull();
+    expect(matchTypedCity([], 'London')).toBeNull();
   });
 });
