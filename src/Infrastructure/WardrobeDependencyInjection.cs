@@ -20,6 +20,9 @@ public static class WardrobeDependencyInjection
         services.Configure<StylistOptions>(configuration.GetSection(StylistOptions.Section));
         services.Configure<PackingOptions>(configuration.GetSection(PackingOptions.Section));
         services.Configure<PaletteOptions>(configuration.GetSection(PaletteOptions.Section));
+        services.Configure<AiLimitsOptions>(configuration.GetSection(AiLimitsOptions.Section));
+        services.TryAddSingleton<IRateLimiter, RateLimiter>();
+        services.AddSingleton<IAiUsageGuard, AiUsageGuard>();
 
         // Static rule sets read their config once here and again whenever the configuration reloads (SSM: every 60 s).
         void ApplyRuleConfig() => OutfitSlotRules.Configure(

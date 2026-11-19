@@ -370,6 +370,16 @@ Resources:
         - IsProd
         - '{"Premium":{"TryOnCreditsPerMonth":30,"OutfitImportMaxPhotos":30},"Free":{"ItemRecognitionLimit":10,"OutfitImportMaxPhotos":30},"SelfServePremium":{"Enabled":false}}'
         - '{"Premium":{"TryOnCreditsPerMonth":30,"OutfitImportMaxPhotos":30},"Free":{"ItemRecognitionLimit":10,"OutfitImportMaxPhotos":30},"SelfServePremium":{"Enabled":true}}'
+  SsmApiAiLimits:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/api/AiLimits
+      Type: String
+      Description: Per-tenant caps of AI work without credits (stylist jobs, garment recognitions, palette per UTC day; any AI start per minute); 0 = no cap. 429 ai_limit_reached. On in dev; prod stays off until the owner decides (docs/ai-cost.md).
+      Value: !If
+        - IsProd
+        - '{"StylistJobsPerDay":0,"ItemRecognitionsPerDay":0,"PaletteAnalysesPerDay":0,"AiStartsPerMinute":0}'
+        - '{"StylistJobsPerDay":40,"ItemRecognitionsPerDay":150,"PaletteAnalysesPerDay":5,"AiStartsPerMinute":20}'
   SsmApiPhotos:
     Type: AWS::SSM::Parameter
     Properties:

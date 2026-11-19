@@ -28,7 +28,8 @@ public sealed class WardrobeService(
     IOptionsMonitor<PhotoOptions> photoOptions,
     IOptionsMonitor<WardrobeOptions> wardrobeOptions,
     TimeProvider timeProvider,
-    ILogger<WardrobeService> logger) : IWardrobeService
+    ILogger<WardrobeService> logger,
+    IAiUsageGuard aiLimits) : IWardrobeService
 {
     private static readonly IReadOnlyList<Season> AllSeasons = Enum.GetValues<Season>();
 
@@ -160,6 +161,8 @@ public sealed class WardrobeService(
         // Non-members have a lifetime number of AI recognitions (EntitlementPolicy decides): a bulk request above what is
         // left processes the first N photos and reports the rest as skipped; nothing left = 402 (the client shows the paywall).
         var jobIds = pending.Select((_, index) => uploadIds.Count == 1 ? command.RequestId : Ulid.New(Now.AddMilliseconds(index))).ToList();
+        if (pending.Count > 0 && !await aiLimits.AllowAsync(tenantId, AiCap.ItemRecognition, pending.Count, ct))
+            return ServiceResult.TooManyRequests<StartDraftsDto>(ErrorCodes.AiLimitReached);
         var grant = await itemRecognition.ReserveAsync(tenantId, jobIds, ct);
         if (pending.Count > 0 && grant.Granted == 0)
         {
@@ -298,6 +301,8 @@ public sealed class WardrobeService(
 
         var now = Now;
         var jobId = Ulid.New(now);
+        if (!await aiLimits.AllowAsync(tenantId, AiCap.ItemRecognition, 1, ct))
+            return ServiceResult.TooManyRequests<StartDraftsDto>(ErrorCodes.AiLimitReached);
         var grant = await itemRecognition.ReserveAsync(tenantId, [jobId], ct);
         if (grant.Granted == 0)
         {

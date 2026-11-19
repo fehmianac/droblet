@@ -241,4 +241,15 @@ public partial class TemplateConfigTests
         // Same value on both stages (no !If): prices are facts, not a dev experiment.
         Assert.DoesNotMatch(@"worker/Ai/Pricing\s*\n(?:[^\n]*\n){1,3}?\s*Value: !If", Template());
     }
+
+    [Fact]
+    public void AiLimits_AreOffOnProd_AndOnInDev()
+    {
+        var prod = Bind<AiLimitsOptions>("api", AiLimitsOptions.Section);   // the checked literal is the prod one
+        Assert.Equal((0, 0, 0, 0), (prod.StylistJobsPerDay, prod.ItemRecognitionsPerDay, prod.PaletteAnalysesPerDay, prod.AiStartsPerMinute));
+
+        var dev = Regex.Match(Template(), @"api/AiLimits[\s\S]*?- IsProd\s*\n\s*- '[^']*'\s*\n\s*- '(?<dev>[^']*)'").Groups["dev"].Value;
+        var devLimits = System.Text.Json.JsonSerializer.Deserialize<AiLimitsOptions>(dev)!;
+        Assert.True(devLimits is { StylistJobsPerDay: > 0, ItemRecognitionsPerDay: > 0, PaletteAnalysesPerDay: > 0, AiStartsPerMinute: > 0 });
+    }
 }

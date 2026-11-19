@@ -460,6 +460,23 @@ public sealed class OutfitImportOptions
     public bool UseFastTextModel { get; set; } = true;
 }
 
+/// <summary>
+/// Guardrails for AI work that costs no credit (SSM api/AiLimits; 0 = no cap, the default). Counted per tenant on the
+/// Api when a job starts (a replay of the same requestId is not counted again); over the cap → 429 ai_limit_reached.
+/// </summary>
+public sealed class AiLimitsOptions
+{
+    public const string Section = "AiLimits";
+    /// <summary>Outfit, week plan and suitcase jobs together, per UTC day.</summary>
+    public int StylistJobsPerDay { get; set; }
+    /// <summary>AI garment recognitions (each photo of a single / bulk / split request or an outfit import), per UTC day.</summary>
+    public int ItemRecognitionsPerDay { get; set; }
+    /// <summary>Palette analyses per UTC day (a face photo already analysed is answered from the cache and not counted).</summary>
+    public int PaletteAnalysesPerDay { get; set; }
+    /// <summary>Any AI job start per minute (scripted abuse, a stuck retry loop in a client).</summary>
+    public int AiStartsPerMinute { get; set; }
+}
+
 public sealed class AuthRateLimitOptions
 {
     public const string Section = "AuthRateLimits";

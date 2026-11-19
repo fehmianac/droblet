@@ -195,4 +195,32 @@ public class AiCostTests
         public AiOptions Get(string? name) => value;
         public IDisposable? OnChange(Action<AiOptions, string?> listener) => null;
     }
+
+    // ── Guardrails (AiLimits) ──────────────────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task AiUsageGuard_DailyCapCountsUnits_PerTenant_AndTheMinuteCapCountsStarts_ZeroIsOff()
+    {
+        var clock = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(new DateTimeOffset(2026, 11, 19, 10, 0, 0, TimeSpan.Zero));
+        var limits = new AiLimitsOptions { ItemRecognitionsPerDay = 10, AiStartsPerMinute = 3 };
+        var guard = new Infrastructure.Services.AiUsageGuard(new Infrastructure.Services.RateLimiter(new Tests.Shared.InMemoryRepository(), clock),
+            new StaticMonitor<AiLimitsOptions>(limits), NullLogger<Infrastructure.Services.AiUsageGuard>.Instance);
+
+        Assert.True(await guard.AllowAsync("t1", AiCap.ItemRecognition, 8, default));
+        Assert.False(await guard.AllowAsync("t1", AiCap.ItemRecognition, 3, default));    // 8 + 3 > 10: refused, its units given back
+        Assert.True(await guard.AllowAsync("t2", AiCap.ItemRecognition, 1, default));     // another tenant
+        Assert.True(await guard.AllowAsync("t1", AiCap.ItemRecognition, 2, default));     // 8 + 2 still fits
+        Assert.False(await guard.AllowAsync("t1", AiCap.Stylist, 1, default));           // 4th start of t1 this minute
+        clock.Advance(TimeSpan.FromMinutes(1));
+        Assert.True(await guard.AllowAsync("t1", AiCap.Stylist, 1, default));            // stylist has no daily cap (0)
+        clock.Advance(TimeSpan.FromDays(1));
+        Assert.True(await guard.AllowAsync("t1", AiCap.ItemRecognition, 10, default));   // a new day
+    }
+
+    private sealed class StaticMonitor<T>(T value) : Microsoft.Extensions.Options.IOptionsMonitor<T>
+    {
+        public T CurrentValue => value;
+        public T Get(string? name) => value;
+        public IDisposable? OnChange(Action<T, string?> listener) => null;
+    }
 }

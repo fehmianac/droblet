@@ -51,3 +51,13 @@ public static class AiCost
     /// <summary>USD → micro-USD, the integer unit of job aiCost and the EMF metric.</summary>
     public static long Micro(decimal usd) => (long)Math.Round(usd * PerMillion, MidpointRounding.AwayFromZero);
 }
+
+/// <summary>AI work without credits that has a per-tenant cap (AiLimitsOptions).</summary>
+public enum AiCap { Stylist, ItemRecognition, Palette }
+
+/// <summary>Per-tenant caps of AI work that costs no credit (AiLimits) — checked by the Api when a job starts.</summary>
+public interface IAiUsageGuard
+{
+    /// <summary>Counts <paramref name="units"/> (e.g. photos) against the day's cap and one start against the minute cap; false = refuse (429).</summary>
+    Task<bool> AllowAsync(string tenantId, AiCap cap, int units, CancellationToken ct);
+}
