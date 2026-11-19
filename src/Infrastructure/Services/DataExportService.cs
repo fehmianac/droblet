@@ -38,7 +38,29 @@ public sealed class DataExportService(
             CreatedAt = now,
             UpdatedAt = now,
         };
-        await repository.SaveAsync(export, ct);
+        // The checks above read a snapshot: two simultaneous requests can both pass them. The lock row, written with the
+        // export in one transaction and conditioned on the version read here (absent = attribute_not_exists), lets only
+        // one of them commit. A lock whose export is no longer active (ready, failed, abandoned after 1 h, or gone) was
+        // let go and is simply overwritten — the checks above already decided that a new export may start.
+        var held = await repository.GetAsync<DataExportLockEntity>(DataExportLockEntity.GetPk(tenantId), DataExportLockEntity.GetSk(), ct);
+        if (held is not null && exports.FirstOrDefault(e => e.Id == held.ExportId) is { } holder && DataExportRules.IsActive(holder, now))
+            return new DataExportStartResult(DataExportStartOutcome.InProgress, await StateAsync(exports, now, ct));
+        var lockRow = new DataExportLockEntity { TenantId = tenantId, ExportId = export.Id, AcquiredAt = now, Version = held?.Version ?? 0 };
+        var written = await repository.TransactWriteAsync(
+        [
+            TransactWriteOperation.PutVersioned(lockRow),
+            TransactWriteOperation.Create(export),
+        ], ct);
+        if (!written.Applied)
+        {
+            // Lost the race: the other request's export is the active one now.
+            logger.LogInformation("Data export request for tenant {TenantId} lost the race to a simultaneous one", tenantId);
+            var current = await repository.GetAllAsync<DataExportEntity>(DataExportEntity.GetPk(tenantId), ct);
+            var outcome = DataExportRules.NextRequestAt(current, now) is not null && !current.Any(e => DataExportRules.IsActive(e, now))
+                ? DataExportStartOutcome.TooSoon
+                : DataExportStartOutcome.InProgress;
+            return new DataExportStartResult(outcome, await StateAsync(current, now, ct));
+        }
         try
         {
             await events.PublishAsync(new DataExportRequestedEvent(tenantId, export.Id), ct);

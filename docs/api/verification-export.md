@@ -50,7 +50,7 @@ slots, notification de-duplication markers, earlier exports.
 
 | Method | Path | Auth | Result / errors |
 |---|---|---|---|
-| POST | `v1/tenant/export` | user | `202 DataExportStateDto` (`export.status = queued`). `409 export_in_progress` (one active export); `429 export_rate_limited` + `nextRequestAt` (one per 24 h; a failed export does not count) |
+| POST | `v1/tenant/export` | user | `202 DataExportStateDto` (`export.status = queued`). `409 export_in_progress` (one active export, enforced by a conditional lock — also for simultaneous requests); `429 export_rate_limited` + `nextRequestAt` (one per 24 h; a failed export does not count) |
 | GET | `v1/tenant/export` | user | `200 DataExportStateDto` |
 | GET | `v1/export/download?token=…` | anonymous | `302` to a 10-minute presigned GET (`Content-Disposition: attachment; filename="droblet-verilerim-{date}.zip"`). `410 export_expired`, `404 not_found` |
 
@@ -73,5 +73,14 @@ slots, notification de-duplication markers, earlier exports.
 }
 ```
 
-The export row is kept 30 days (TTL) so the app can say "expired"; it, the token pointer and the file are removed with
-the account (`exports/{tenantId}/` is one of the account's S3 prefixes).
+**One active export, also under concurrency.** Besides the export row, the request writes a per-tenant lock row
+(`DataExportLockEntity`, pk `tenant#{id}#dataexportlock`, sk `active`, holds the export id) in the **same
+transaction**, conditioned on the lock version it read (absent = `attribute_not_exists`). Two simultaneous `POST`s
+both pass the "no active export / not too soon" checks on their snapshot, but only one transaction commits: the other
+gets `409 export_in_progress` (no second ZIP, no second e-mail). The lock holds while its export is queued /
+processing and alive — the same 1-hour abandonment rule as the row (`DataExportRules.IsActive`: an attempt not touched
+for 1 h counts as failed). Once its export is ready, failed, abandoned or gone, the lock is released and the next
+allowed request overwrites it (the worker does not touch it). TTL 30 days; removed with the account.
+
+The export row is kept 30 days (TTL) so the app can say "expired"; it, the lock, the token pointer and the file are
+removed with the account (`exports/{tenantId}/` is one of the account's S3 prefixes).

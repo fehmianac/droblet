@@ -45,7 +45,7 @@ public sealed class DataExportJob(
     [
         typeof(MutationReceiptEntity), typeof(ContactSaltEntity), typeof(ContactDirectoryPointerEntity),
         typeof(PhotoUploadEntity), typeof(ItemUploadEntity), typeof(AvatarUploadEntity), typeof(NotificationSentEntity),
-        typeof(DataExportEntity),
+        typeof(DataExportEntity), typeof(DataExportLockEntity),
     ];
 
     /// <summary>Fields never exported: keys, secrets, hashes, storage internals.</summary>

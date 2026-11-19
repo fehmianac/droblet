@@ -74,6 +74,7 @@ public static class DeletionPlan
         typeof(AvatarUploadEntity),
         // "Verilerimi indir" (the ZIP itself lives under exports/{tenantId}/, see AccountS3Prefixes).
         typeof(DataExportEntity),
+        typeof(DataExportLockEntity),
     ];
 
     public static IReadOnlyList<string> TenantPartitionKeys(string tenantId) =>
