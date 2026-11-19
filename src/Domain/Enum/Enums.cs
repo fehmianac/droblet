@@ -60,8 +60,9 @@ public enum StoreProductKind { Subscription, Consumable }
 /// <summary>What a device registered as its push token: an FCM registration token (Android) or a raw APNs token (iOS).</summary>
 public enum PushTokenType { Fcm, Apns }
 
-/// <summary>DataExportReady: inbox only (with the e-mail), never pushed.</summary>
-public enum NotificationType { MorningOutfit, WeeklyEdit, FriendRatings, PriceDrop, FollowRequest, DataExportReady }
+/// <summary>DataExportReady: inbox only (with the e-mail), never pushed. ContentRemoved: inbox only, written when a moderator
+/// removes a look / item / the profile's public fields (report resolved as contentRemoved).</summary>
+public enum NotificationType { MorningOutfit, WeeklyEdit, FriendRatings, PriceDrop, FollowRequest, DataExportReady, ContentRemoved }
 
 public enum AuthProvider { Email, Apple, Google }
 

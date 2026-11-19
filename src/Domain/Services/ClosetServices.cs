@@ -10,11 +10,14 @@ namespace Domain.Services;
 // (= VisibilityPolicy + block rules) first. Wardrobe pieces and look slots use the wardrobe enums
 // (ItemCategory / OutfitSlot); catalog products keep ProductCategory / ProductSlot.
 
-public sealed record ClosetItem(string Id, string Name, ItemCategory Category, IReadOnlyList<string> Colors, string? ImageUrl = null);
+/// <param name="ModerationHidden">A moderator removed it: only the owner may get it (cross-tenant readers drop it).</param>
+public sealed record ClosetItem(string Id, string Name, ItemCategory Category, IReadOnlyList<string> Colors, string? ImageUrl = null, bool ModerationHidden = false);
 
-public sealed record ClosetLookPiece(OutfitSlot Slot, string? ItemId, string? ProductId, string? Name = null, string? ImageUrl = null);
+/// <param name="ModerationHidden">The piece's wardrobe item was removed by a moderator: cross-tenant readers drop the piece.</param>
+public sealed record ClosetLookPiece(OutfitSlot Slot, string? ItemId, string? ProductId, string? Name = null, string? ImageUrl = null, bool ModerationHidden = false);
 
-public sealed record ClosetLook(string Id, string Name, string? Occasion, DateTime CreatedAt, IReadOnlyList<ClosetLookPiece> Pieces);
+/// <param name="ModerationHidden">A moderator removed the look: only the owner may get it (cross-tenant readers drop it).</param>
+public sealed record ClosetLook(string Id, string Name, string? Occasion, DateTime CreatedAt, IReadOnlyList<ClosetLookPiece> Pieces, bool ModerationHidden = false);
 
 /// <summary>A completed trip as others may see it: city and month only (never dates or packing lists).</summary>
 public sealed record ClosetTrip(string Id, string City, string Month);

@@ -1,4 +1,5 @@
 using Domain.Entity;
+using Domain.Entity.Base;
 using Domain.Enum;
 using Domain.Manager;
 using Domain.Options;
@@ -95,7 +96,8 @@ public sealed class InviteService(
         if (inviter is null)
             return null;
         // Anonymous endpoint: first name only (SECURITY_ENGINEER.md §Davet).
-        var firstName = inviter.DisplayName?.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+        // A moderation-hidden profile shows no name at all (report resolved as contentRemoved).
+        var firstName = inviter.IsModerationHidden() ? null : inviter.DisplayName?.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
         return new InvitePreviewDto(entry.Code, firstName);
     }
 

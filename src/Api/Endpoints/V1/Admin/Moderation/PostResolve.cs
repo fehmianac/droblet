@@ -27,6 +27,7 @@ public class PostResolve : IEndpoint
         [FromServices] IAdminContext adminContext,
         [FromServices] ISocialService social,
         [FromServices] IAdminAppUserService users,
+        [FromServices] IContentModeration moderation,
         [FromServices] IAuditLog audit,
         CancellationToken cancellationToken)
     {
@@ -46,6 +47,16 @@ public class PostResolve : IEndpoint
             await users.SuspendTenantOwnerAsync(admin, report.TargetTenantId, reason.Length > 500 ? reason[..500] : reason, adminContext.Ip, cancellationToken);
         }
         await audit.WriteAsync(admin, "report.resolve", "report", report.Id, null, new { request.Resolution, request.Note }, adminContext.Ip, cancellationToken);
+
+        // contentRemoved actually removes: the look / item / profile fields disappear for everyone but the owner (idempotent,
+        // once per report — a repeated call or one after a restore changes nothing).
+        if (report.Resolution == ReportResolution.ContentRemoved)
+        {
+            var removal = await moderation.RemoveAsync(report.Id, cancellationToken);
+            if (removal.Outcome is ContentModerationOutcome.Applied or ContentModerationOutcome.TargetMissing)
+                await audit.WriteAsync(admin, "report.contentRemove", "report", report.Id, removal.Before, new { removal.Outcome, Target = removal.After }, adminContext.Ip, cancellationToken);
+            report = await social.GetReportAsync(report.Id, cancellationToken) ?? report;
+        }
         return Results.Ok(report);
     }
 
@@ -58,7 +69,11 @@ public class PostResolve : IEndpoint
             .ProducesProblem(StatusCodes.Status500InternalServerError)
             .RequireAdmin(AdminPermissions.ModerationManage)
             .WithSummary("Resolve a report")
-            .WithDescription("resolution = dismissed | contentRemoved | userWarned | userSuspended. Records the decision; an already resolved report is returned unchanged. userSuspended (panel: Block) also suspends the reported account.")
+            .WithDescription("resolution = dismissed | contentRemoved | userWarned | userSuspended. Records the decision; an already resolved report is returned unchanged. " +
+                             "contentRemoved hides the target from everyone but its owner: a look / item disappears from every closet view, feed, saved list, rating and save (404); " +
+                             "a profile keeps its handle but shows others no name, avatar or style tags. The owner keeps the content with moderation { hidden, reason } and gets an " +
+                             "inbox row content_removed. Once per report (contentRemovedAt); a missing target still resolves. Undo: POST …/restore. " +
+                             "userSuspended (panel: Block) also suspends the reported account.")
             .WithTags("Admin Moderation");
     }
 }

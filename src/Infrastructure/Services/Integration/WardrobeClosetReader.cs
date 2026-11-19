@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Domain.Entity;
+using Domain.Entity.Base;
 using Domain.Manager;
 using Domain.Options;
 using Domain.Services;
@@ -15,6 +16,8 @@ namespace Infrastructure.Services.Integration;
 ///   • item image = the cleaned (background-removed) image under the owner's prefix, or the global library / catalog
 ///     asset — never the original upload, never a try-on image;
 ///   • looks carry only their existing pieces (a deleted item's slot is dropped);
+///   • moderation-hidden looks / items / pieces are flagged (ModerationHidden), not dropped: the owner still reads them
+///     through here, and every cross-tenant caller drops them (SocialService.ForViewer).
 ///   • trips = finished trips as city + month only (no dates, no packing list). Trips stay owner-only (A-6) — that
 ///     is decided by VisibilityPolicy, not here.
 /// </summary>
@@ -77,7 +80,7 @@ public sealed class WardrobeClosetReader(
             {
                 if (!items.TryGetValue(slot.ItemId, out var item))
                     continue; // deleted piece
-                pieces.Add(new ClosetLookPiece(slot.Slot, item.Id, null, item.Name, await ImageUrlAsync(item, ct)));
+                pieces.Add(new ClosetLookPiece(slot.Slot, item.Id, null, item.Name, await ImageUrlAsync(item, ct), item.IsModerationHidden()));
             }
             else if (slot.ProductId is not null)
             {
@@ -86,11 +89,11 @@ public sealed class WardrobeClosetReader(
         }
 
         var occasion = look.Occasion is { } o ? JsonNamingPolicy.CamelCase.ConvertName(o.ToString()) : null;
-        return new ClosetLook(look.Id, look.Name ?? "", occasion, look.CreatedAt, pieces);
+        return new ClosetLook(look.Id, look.Name ?? "", occasion, look.CreatedAt, pieces, look.IsModerationHidden());
     }
 
     private async Task<ClosetItem> ToClosetItemAsync(ItemEntity item, CancellationToken ct) =>
-        new(item.Id, item.Name ?? "", item.Category, item.ColorIds, await ImageUrlAsync(item, ct));
+        new(item.Id, item.Name ?? "", item.Category, item.ColorIds, await ImageUrlAsync(item, ct), item.IsModerationHidden());
 
     private async Task<string?> ImageUrlAsync(ItemEntity item, CancellationToken ct)
     {

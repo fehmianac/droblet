@@ -32,7 +32,9 @@ public record ItemDto(
     long Version,
     string? Subcategory = null,
     string? FabricText = null,
-    string? ColorHex = null);
+    string? ColorHex = null,
+    // Owner-only: { hidden: true, reason } when a moderator removed the item from everyone else; null otherwise.
+    ModerationDto? Moderation = null);
 
 public record ItemDetailDto(ItemDto Item, IReadOnlyList<LookDto> Looks);
 
@@ -117,7 +119,9 @@ public record LookDto(
     DateTime UpdatedAt,
     long Version,
     // Friends' ratings of this look (average 1 decimal, count). Filled by GET look / GET look/{id}; null elsewhere and when nobody rated.
-    LookRatingSummaryDto? Rating = null);
+    LookRatingSummaryDto? Rating = null,
+    // Owner-only: { hidden: true, reason } when a moderator removed the look from everyone else; null otherwise.
+    ModerationDto? Moderation = null);
 
 public record LookRatingSummaryDto(double Average, long Count);
 
@@ -277,7 +281,7 @@ public static class WardrobeDtoMapper
     {
         var slots = entity.Slots.OrderBy(s => s.Slot).Select(s => s.ToDto(existingItemIds)).ToList();
         return new LookDto(entity.Id, entity.Name, entity.Occasion, slots, slots.Count, slots.Any(s => s.Missing || s.Unavailable),
-            entity.Favorite, entity.Source, entity.CreatedAt, entity.UpdatedAt, entity.Version);
+            entity.Favorite, entity.Source, entity.CreatedAt, entity.UpdatedAt, entity.Version, Moderation: entity.ToModerationDto());
     }
 
     public static WearLogDto ToDto(this WearLogEntity entity) =>

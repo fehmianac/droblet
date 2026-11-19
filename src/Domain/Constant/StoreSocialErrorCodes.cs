@@ -24,6 +24,10 @@ public static class StoreSocialErrorCodes
     public const string CannotTargetSelf = "cannot_target_self";
     public const string FollowLimitReached = "follow_limit_reached";
 
+    // Moderation (admin)
+    public const string ReportNotResolved = "report_not_resolved";
+    public const string ReportNotContentRemoved = "report_not_content_removed";
+
     // Contact matching (decision 13)
     public const string ContactSaltNotFound = "contact_salt_not_found";
     public const string HashesOutOfRange = "hashes_out_of_range";

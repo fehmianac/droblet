@@ -1,6 +1,7 @@
 using System.Globalization;
 using Domain.Domain;
 using Domain.Entity;
+using Domain.Entity.Base;
 using Domain.Enum;
 using Domain.Extensions;
 using Domain.Manager;
@@ -16,6 +17,9 @@ namespace Infrastructure.Services.Social;
 /// follow and block records read on that request — nothing is cached, so visibility changes, unfollow and block apply
 /// immediately. A refused read is indistinguishable from "does not exist" (callers answer 404).
 /// Looks, items and trips come from <see cref="IClosetReader"/> (wardrobe slice).
+/// Moderation (report resolved as contentRemoved): a hidden look / item never reaches another tenant (lists, counts, feed,
+/// saved looks, rating / save → 404) and a hidden profile shows others its handle only — see <see cref="ForViewer(IReadOnlyList{ClosetLook}, string, string)"/>
+/// and <see cref="PublicName"/>. The owner keeps seeing everything.
 /// </summary>
 public sealed class SocialService(
     IRepository repository,
@@ -125,8 +129,8 @@ public sealed class SocialService(
                 : context.CanView(VisibleResource.ProfileCard);
             if (!visible)
                 continue;
-            var tags = styles.GetValueOrDefault(id)?.StyleTags ?? [];
-            cards.Add(new PersonCardDto(tenant.Handle, tenant.DisplayName, tags, StyleMatchRules.Percent(myTags, tags), context.ViewerFollowsOwner, context.OwnerFollowsViewer,
+            var tags = ProfileHiddenFrom(tenant, viewerTenantId) ? [] : styles.GetValueOrDefault(id)?.StyleTags ?? [];
+            cards.Add(new PersonCardDto(tenant.Handle, PublicName(tenant, viewerTenantId), tags, StyleMatchRules.Percent(myTags, tags), context.ViewerFollowsOwner, context.OwnerFollowsViewer,
                 context.FollowState, context.OwnerRequestedViewer));
         }
         return cards;
@@ -175,23 +179,24 @@ public sealed class SocialService(
             return null;
 
         var owner = context.Owner;
-        var tags = await StyleTagsAsync(owner.Id, ct);
+        var profileHidden = ProfileHiddenFrom(owner, viewerTenantId);
+        var tags = profileHidden ? [] : await StyleTagsAsync(owner.Id, ct);
         var match = context.IsSelf ? 100 : StyleMatchRules.Percent(await StyleTagsAsync(viewerTenantId, ct), tags);
         var canItems = context.CanView(VisibleResource.Item);
         var canLooks = context.CanView(VisibleResource.Look);
 
         return new PersonProfileDto(
-            owner.Handle!, owner.DisplayName, tags, match, context.IsSelf, context.ViewerFollowsOwner, context.OwnerFollowsViewer,
+            owner.Handle!, PublicName(owner, viewerTenantId), tags, match, context.IsSelf, context.ViewerFollowsOwner, context.OwnerFollowsViewer,
             owner.ClosetVisibility,
             ClosetLocked: !canItems || !canLooks,
-            ItemCount: canItems ? (await closet.GetItemsAsync(owner.Id, ct)).Count : null,
-            LookCount: canLooks ? (await closet.GetLooksAsync(owner.Id, ct)).Count : null,
+            ItemCount: canItems ? ForViewer(await closet.GetItemsAsync(owner.Id, ct), viewerTenantId, owner.Id).Count : null,
+            LookCount: canLooks ? ForViewer(await closet.GetLooksAsync(owner.Id, ct), viewerTenantId, owner.Id).Count : null,
             FollowerCount: (await repository.GetKeysAsync(FollowerEntity.GetPk(owner.Id), ct)).Count,
             FollowingCount: (await repository.GetKeysAsync(FollowingEntity.GetPk(owner.Id), ct)).Count,
             FollowState: context.IsSelf ? FollowState.None : context.FollowState,
             RequestedYou: context.OwnerRequestedViewer,
             // Public to whoever may see the closet (decision 7: followers by default).
-            AvatarUrl: context.IsSelf || (canItems && canLooks) ? (await avatars.GetAsync(owner.Id, ct))?.Url : null);
+            AvatarUrl: !profileHidden && (context.IsSelf || (canItems && canLooks)) ? (await avatars.GetAsync(owner.Id, ct))?.Url : null);
     }
 
     public async Task<IReadOnlyList<SocialLookDto>?> GetLooksAsync(string viewerTenantId, string handle, CancellationToken ct)
@@ -199,7 +204,8 @@ public sealed class SocialService(
         var context = await ResolveAsync(viewerTenantId, handle, ct);
         if (context is null || !context.CanView(VisibleResource.Look))
             return null;
-        return await MapLooksAsync(viewerTenantId, context.Owner, await closet.GetLooksAsync(context.Owner.Id, ct), context.CanView(VisibleResource.LookRating), ct);
+        var looks = ForViewer(await closet.GetLooksAsync(context.Owner.Id, ct), viewerTenantId, context.Owner.Id);
+        return await MapLooksAsync(viewerTenantId, context.Owner, looks, context.CanView(VisibleResource.LookRating), ct);
     }
 
     public async Task<IReadOnlyList<ClosetItemDto>?> GetItemsAsync(string viewerTenantId, string handle, CancellationToken ct)
@@ -207,7 +213,7 @@ public sealed class SocialService(
         var context = await ResolveAsync(viewerTenantId, handle, ct);
         if (context is null || !context.CanView(VisibleResource.Item))
             return null;
-        return (await closet.GetItemsAsync(context.Owner.Id, ct)).Select(i => i.ToDto()).ToList();
+        return ForViewer(await closet.GetItemsAsync(context.Owner.Id, ct), viewerTenantId, context.Owner.Id).Select(i => i.ToDto()).ToList();
     }
 
     public async Task<IReadOnlyList<SocialTripDto>?> GetTripsAsync(string viewerTenantId, string handle, CancellationToken ct)
@@ -244,7 +250,7 @@ public sealed class SocialService(
             }
 
             var summary = summaries.GetValueOrDefault(look.Id);
-            result.Add(new SocialLookDto(look.Id, owner.Handle ?? "", owner.DisplayName, look.Name, look.Occasion, look.CreatedAt, pieces,
+            result.Add(new SocialLookDto(look.Id, owner.Handle ?? "", PublicName(owner, viewerTenantId), look.Name, look.Occasion, look.CreatedAt, pieces,
                 new LookRatingDto(Average(summary), summary?.Count ?? 0, mine.GetValueOrDefault(look.Id)?.Score),
                 saved.Contains(look.Id)));
         }
@@ -253,6 +259,30 @@ public sealed class SocialService(
 
     private static double? Average(LookRatingSummaryEntity? summary) =>
         summary is null ? null : LookRatingRules.Average(summary.Sum, summary.Count);
+
+    // ── Moderation filters ──────────────────────────────────────────────────────────────────────────────────────
+
+    /// <summary>A moderator hid the owner's public profile fields: everybody else gets the handle only.</summary>
+    private static bool ProfileHiddenFrom(TenantEntity owner, string viewerTenantId) => owner.Id != viewerTenantId && owner.IsModerationHidden();
+
+    /// <summary>Display name as this viewer may see it: null (the app shows "@handle") while the profile is moderation-hidden.</summary>
+    private static string? PublicName(TenantEntity owner, string viewerTenantId) => ProfileHiddenFrom(owner, viewerTenantId) ? null : owner.DisplayName;
+
+    /// <summary>Drops moderation-hidden looks, and hidden wardrobe pieces inside the others, unless the viewer is the owner.</summary>
+    private static IReadOnlyList<ClosetLook> ForViewer(IReadOnlyList<ClosetLook> looks, string viewerTenantId, string ownerTenantId) =>
+        viewerTenantId == ownerTenantId ? looks : looks.Select(l => ForViewer(l, viewerTenantId, ownerTenantId)).OfType<ClosetLook>().ToList();
+
+    private static ClosetLook? ForViewer(ClosetLook? look, string viewerTenantId, string ownerTenantId)
+    {
+        if (look is null || viewerTenantId == ownerTenantId)
+            return look;
+        if (look.ModerationHidden)
+            return null;
+        return look.Pieces.Any(p => p.ModerationHidden) ? look with { Pieces = look.Pieces.Where(p => !p.ModerationHidden).ToList() } : look;
+    }
+
+    private static IReadOnlyList<ClosetItem> ForViewer(IReadOnlyList<ClosetItem> items, string viewerTenantId, string ownerTenantId) =>
+        viewerTenantId == ownerTenantId ? items : items.Where(i => !i.ModerationHidden).ToList();
 
     // ── Feed ────────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -273,7 +303,7 @@ public sealed class SocialService(
         var entries = new List<(TenantEntity Owner, ClosetLook Look)>();
         foreach (var chunk in visible.Chunk(FeedParallelism))
         {
-            var batches = await Task.WhenAll(chunk.Select(async owner => (owner, looks: await closet.GetLooksAsync(owner.Id, ct))));
+            var batches = await Task.WhenAll(chunk.Select(async owner => (owner, looks: ForViewer(await closet.GetLooksAsync(owner.Id, ct), viewerTenantId, owner.Id))));
             entries.AddRange(batches.SelectMany(b => b.looks.Select(l => (b.owner, l))));
         }
 
@@ -477,7 +507,7 @@ public sealed class SocialService(
         var context = await ResolveAsync(viewerTenantId, handle, ct);
         if (context is null || !context.CanView(VisibleResource.Look))
             return (SocialOutcome.NotFound, null);
-        if (await closet.GetLookAsync(context.Owner.Id, lookId, ct) is null)
+        if (ForViewer(await closet.GetLookAsync(context.Owner.Id, lookId, ct), viewerTenantId, context.Owner.Id) is null)
             return (SocialOutcome.NotFound, null);
         return (SocialOutcome.Ok, context);
     }
@@ -572,10 +602,12 @@ public sealed class SocialService(
             var looks = new List<ClosetLook>();
             foreach (var row in group)
             {
-                if (await closet.GetLookAsync(owner.Id, row.LookId, ct) is { } look)
-                    looks.Add(look);
-                else
+                var stored = await closet.GetLookAsync(owner.Id, row.LookId, ct);
+                if (stored is null)
                     await repository.DeleteAsync(row.Pk, row.Sk, ct);
+                else if (ForViewer(stored, viewerTenantId, owner.Id) is { } look)
+                    looks.Add(look);
+                // else: removed by a moderator — keep the row (an admin restore brings it back), show nothing
             }
             var savedAt = group.ToDictionary(s => s.LookId, s => s.SavedAt);
             result.AddRange((await MapLooksAsync(viewerTenantId, owner, looks, context.CanView(VisibleResource.LookRating), ct))
@@ -632,7 +664,7 @@ public sealed class SocialService(
         // Only what is needed to recognise and unblock: handle + name.
         return tenants.Where(t => !string.IsNullOrEmpty(t.Handle))
             .OrderBy(t => t.Handle, StringComparer.Ordinal)
-            .Select(t => new PersonCardDto(t.Handle!, t.DisplayName, [], 0, false, false))
+            .Select(t => new PersonCardDto(t.Handle!, PublicName(t, viewerTenantId), [], 0, false, false))
             .ToList();
     }
 
@@ -679,6 +711,13 @@ public sealed class SocialService(
         foreach (var report in reports)
             items.Add(await ToDtoAsync(report, ct));
         return new PagedDto<ModerationReportDto>(items, next);
+    }
+
+    public async Task<ModerationReportDto?> GetReportAsync(string reportId, CancellationToken ct)
+    {
+        var report = await repository.GetAsync<ReportEntity>(ReportEntity.GetPk(ReportStatus.Open), ReportEntity.GetSk(reportId), ct)
+                     ?? await repository.GetAsync<ReportEntity>(ReportEntity.GetPk(ReportStatus.Resolved), ReportEntity.GetSk(reportId), ct);
+        return report is null ? null : await ToDtoAsync(report, ct);
     }
 
     public async Task<ModerationReportDto?> ResolveReportAsync(string reportId, ReportResolution resolution, string? note, string adminUserId, CancellationToken ct)
@@ -729,7 +768,7 @@ public sealed class SocialService(
 
         return new ModerationReportDto(report.Id, report.Status, report.ReporterTenantId, await HandleOf(report.ReporterTenantId),
             report.TargetTenantId, await HandleOf(report.TargetTenantId), report.TargetKind, report.TargetId, report.Reason, report.Note,
-            report.CreatedAt, report.Resolution, report.ResolutionNote, report.ResolvedByUserId, report.ResolvedAt);
+            report.CreatedAt, report.Resolution, report.ResolutionNote, report.ResolvedByUserId, report.ResolvedAt, report.ContentRemovedAt, report.ContentRestoredAt, report.ContentRestoredByUserId);
     }
 }
 

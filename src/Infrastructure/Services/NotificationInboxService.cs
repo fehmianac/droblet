@@ -129,6 +129,7 @@ public static class NotificationCodes
         NotificationType.PriceDrop => "price_drop",
         NotificationType.FollowRequest => "follow_request",
         NotificationType.DataExportReady => "data_export_ready",
+        NotificationType.ContentRemoved => "content_removed",
         _ => "friend_ratings",
     };
 }

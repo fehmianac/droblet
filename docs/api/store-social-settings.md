@@ -445,7 +445,8 @@ deleted: `DELETE` retires (ids are never reused). Ids: `^[a-z0-9][a-z0-9-]{1,62}
 | GET | `v1/admin/report/revenue` | `from`, `to` (`yyyy-MM-dd` UTC, inclusive; default last 30 days; max 366) | `RevenueReport` (+ `clicks`, `byDay`, `byNetwork` — [admin.md §5](admin.md)) |
 | GET | `v1/admin/report/funnel` | `from`, `to` (default last 30 days; max 92) | `FunnelReport` |
 | GET | `v1/admin/moderation/report` | `status` (`open` default), `pageToken`, `limit` | `{ "items": [ModerationReportDto], "pageToken" }`, newest first |
-| POST | `v1/admin/moderation/report/{id}/resolve` | `{ "resolution", "note"? (≤ 500) }` | `ModerationReportDto`. `404 not_found`. An already resolved report is returned unchanged. |
+| POST | `v1/admin/moderation/report/{id}/resolve` | `{ "resolution", "note"? (≤ 500) }` | `ModerationReportDto`. `404 not_found`. An already resolved report is returned unchanged. `contentRemoved` hides the target (below). |
+| POST | `v1/admin/moderation/report/{id}/restore` | — | `ModerationReportDto` with `contentRestoredAt`. Undo of `contentRemoved`; idempotent. `404 not_found`, `409 report_not_resolved` / `report_not_content_removed`. |
 
 Weekly edit rules: `published: true` requires exactly 7 looks with days 1–7; a draft may have fewer. Each look has
 1–2 variants with distinct price bands. A look without `id` gets `{editId}-d{day}`. Validation codes include
@@ -473,8 +474,23 @@ The catalog is cached per Lambda instance for 60 seconds: a change is visible ev
 // ModerationReportDto
 { "id": "01J…", "status": "open", "reporterTenantId": "…"|null, "reporterHandle": "…"|null, "targetTenantId": "…", "targetHandle": "…",
   "targetKind": "look", "targetId": "…", "reason": "inappropriate", "note": "…", "createdAt": "…",
-  "resolution": null, "resolutionNote": null, "resolvedByUserId": null, "resolvedAt": null }
+  "resolution": null, "resolutionNote": null, "resolvedByUserId": null, "resolvedAt": null,
+  "contentRemovedAt": null,        // contentRemoved: when the target was hidden (once per report; also set when the target was already gone)
+  "contentRestoredAt": null, "contentRestoredByUserId": null }   // POST …/restore
 ```
+
+**Removed content (`contentRemoved`).** The target row gets a moderation flag (`moderationHiddenAt`, `moderationReportId`,
+`moderationReason`); nothing is deleted, nothing is cached.
+
+| Target | Everybody but the owner | The owner |
+|---|---|---|
+| `look` | gone from `people/{handle}/look`, `lookCount`, the feed (every page), `saved-look` (the saved row is kept so a restore brings it back); rating / save → `404` | still in `GET v1/tenant/look`, `look/{id}`, plan / today, her own `people/{handle}/look`; `LookDto.moderation = { "hidden": true, "reason": "inappropriate" }` |
+| `item` | gone from `people/{handle}/item`, `itemCount`, and as a piece from every look shown to others (the look itself stays) | still in `GET v1/tenant/item`, `item/{id}`; `ItemDto.moderation` as above |
+| `profile` | handle only: `displayName: null` (the app shows `@handle`), `avatarUrl: null`, `styleTags: []` on the profile, every `PersonCardDto` (search, suggested, followers, following, requests, contacts, blocked), `SocialLookDto.ownerDisplayName`, and `inviterFirstName: null` on `GET v1/invite/{code}`. The handle stays reserved. | `ProfileDto.moderation` as above; her own fields unchanged |
+
+Owner edits (`PUT look / item / profile`) never clear the flag; only `POST …/restore` does. The owner gets one inbox row
+`content_removed` (`data`: `targetKind`, `targetId` for look / item, `reason`) — never pushed. Shares of removed content
+lead nowhere: share links open the app, whose reads above already leave it out.
 
 ### Seeding
 

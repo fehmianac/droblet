@@ -302,7 +302,8 @@ Admin panel at `https://droblet-admin.alatech.co` ([admin.md](admin.md)). Admin 
 | PUT | `v1/admin/edit/{id}` | admin:content.manage | [S](store-social-settings.md) | Create or update a weekly edit |
 | DELETE | `v1/admin/edit/{id}` | admin:content.manage | [S](store-social-settings.md) | Retire a weekly edit |
 | GET | `v1/admin/moderation/report` | admin:moderation.manage | [S](store-social-settings.md) | Moderation queue |
-| POST | `v1/admin/moderation/report/{id}/resolve` | admin:moderation.manage | [S](store-social-settings.md) | Resolve a report |
+| POST | `v1/admin/moderation/report/{id}/resolve` | admin:moderation.manage | [S](store-social-settings.md) | Resolve a report (contentRemoved hides the content) |
+| POST | `v1/admin/moderation/report/{id}/restore` | admin:moderation.manage | [S](store-social-settings.md) | Restore content removed by a report |
 | GET | `v1/admin/product` | admin:catalog.manage | [S](store-social-settings.md) | Products (admin, paged) |
 | POST | `v1/admin/product/bulk` | admin:catalog.manage | [S](store-social-settings.md) | Bulk upsert products (feeds) |
 | GET | `v1/admin/product/{id}` | admin:catalog.manage | [S](store-social-settings.md) | Product (admin) |
