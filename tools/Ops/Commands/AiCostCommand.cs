@@ -58,6 +58,10 @@ internal sealed class AiCostCommand(IServiceProvider services, OpsArguments args
     {
         var ai = Baseline;
         var pricing = ai.Pricing;
+        // Image models the key can use but the stage's price list does not carry (measurement only, this process only:
+        // OpenAI list prices 2026-11, docs/ai-cost/image-models.md). The stage's own entries always win.
+        foreach (var (model, price) in ExtraImagePrices)
+            pricing.Models.TryAdd(model, price);
         output.Line($"ai-cost ({args.Stage}): text {ai.TextModel}, image {ai.ImageModel}, fast {ai.FastTextModel ?? "-"} ({ai.FastTextOperations}), " +
                     $"effort {Effort(ai)}, tier {ai.ServiceTier ?? "-"}, image try-on {Img(ai, ImageUse.TryOn)}, cleanup {Img(ai, ImageUse.Cleanup)}, " +
                     $"speculative cleanup {ai.SpeculativeItemCleanup}, prompt cache key {ai.PromptCacheKey}, priced models {pricing.Models.Count}");
@@ -84,6 +88,13 @@ internal sealed class AiCostCommand(IServiceProvider services, OpsArguments args
         }
         return _samples.Any(s => !s.Ok) ? 1 : 0;
     }
+
+    private static readonly IReadOnlyDictionary<string, AiModelPrice> ExtraImagePrices = new Dictionary<string, AiModelPrice>
+    {
+        ["gpt-image-2.6-sunburst"] = new() { Input = 5, CachedInput = 1.25m, ImageInput = 8, ImageCachedInput = 2, ImageOutput = 30 },
+        ["gpt-image-2.6-flare"] = new() { Input = 5, CachedInput = 1.25m, ImageInput = 8, ImageCachedInput = 2, ImageOutput = 30 },
+        ["gpt-image-1.5"] = new() { Input = 5, CachedInput = 1.25m, Output = 10, ImageInput = 8, ImageCachedInput = 2, ImageOutput = 32 },
+    };
 
     private static string Effort(AiOptions ai) => ai.ReasoningEffort.Count == 0 ? "default" : string.Join(",", ai.ReasoningEffort.Select(kv => $"{kv.Key}={kv.Value}"));
     private static string Img(AiOptions ai, ImageUse use) => ai.ImageFor(use) is var (size, quality) ? $"{quality ?? "default"}/{size}" : "-";
@@ -227,17 +238,29 @@ internal sealed class AiCostCommand(IServiceProvider services, OpsArguments args
         if (!args.Flag("text-only") && (ops.Contains("cleanup") || ops.Contains("tryon") || args.Option("image-variants") is not null))
         {
             // The jeans crop of the flat lay, cut exactly like the item worker does (one detection call with the stage config).
-            ImageInput? jeans = null;
+            ImageInput? jeans = null, shoes = null, bag = null;
             if (TakeText(1))
             {
                 var detected = ItemDetectionGuard.Filter(await Provider(CostVariant.Base).DetectItemsAsync(flatLay, "tr", ct), 12);
-                if (detected.FirstOrDefault(d => d.Garment.Category == ItemCategoryHint.Bottom) is { } piece && cropper.Measure(flatLay) is { } size)
-                    jeans = cropper.Crop(flatLay, CropMath.Plan(piece.Box, size, CropMath.IsSmall(piece.Box, piece.Subcategory)));
+                ImageInput? CropOf(ItemCategoryHint category) =>
+                    detected.FirstOrDefault(d => d.Garment.Category == category) is { } piece && cropper.Measure(flatLay) is { } size
+                        ? cropper.Crop(flatLay, CropMath.Plan(piece.Box, size, CropMath.IsSmall(piece.Box, piece.Subcategory)))
+                        : null;
+                jeans = CropOf(ItemCategoryHint.Bottom);
+                // The extra pieces of the multi-garment and face-path try-ons (uses=tryon4 / tryonface).
+                shoes = CropOf(ItemCategoryHint.Shoes);
+                bag = CropOf(ItemCategoryHint.Bag);
             }
             output.SaveFile("images/input-garment.jpg", garment.Data);
             output.SaveFile("images/input-body.jpg", body.Data);
+            output.SaveFile("images/input-face.jpg", face.Data);
             if (jeans is not null)
                 output.SaveFile("images/input-jeans-crop.jpg", jeans.Data);
+            if (shoes is not null)
+                output.SaveFile("images/input-shoes-crop.jpg", shoes.Data);
+            if (bag is not null)
+                output.SaveFile("images/input-bag-crop.jpg", bag.Data);
+            IReadOnlyList<ImageInput> Pieces(int count) => new[] { garment, jeans, shoes, bag }.OfType<ImageInput>().Take(count).ToList();
             for (var rep = 1; rep <= reps; rep++)
             {
                 foreach (var variant in imageVariants)
@@ -252,6 +275,12 @@ internal sealed class AiCostCommand(IServiceProvider services, OpsArguments args
                     if (variant.Uses("tryon") && _images.TryTake())
                         await MeasureAsync("image_tryon (body + 2)", variant, rep, async () => Saved("tryon", variant, rep,
                             await provider.RenderAsync(body, jeans is null ? [garment] : [garment, jeans], ct)));
+                    if (variant.Uses("tryon4") && _images.TryTake())
+                        await MeasureAsync("image_tryon (body + 4)", variant, rep, async () => Saved("tryon4", variant, rep,
+                            await provider.RenderAsync(body, Pieces(4), ct)));
+                    if (variant.Uses("tryonface") && _images.TryTake())
+                        await MeasureAsync("image_tryon (face + 3)", variant, rep, async () => Saved("tryonface", variant, rep,
+                            await provider.RenderFromFaceAsync(face, Pieces(3), new TryOnFigure(BodyType.Pear, 165, ClothingSize.M), ct)));
                 }
             }
         }
