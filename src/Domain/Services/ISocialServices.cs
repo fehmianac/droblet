@@ -84,7 +84,11 @@ public record ModerationReportDto(
     ReportResolution? Resolution,
     string? ResolutionNote,
     string? ResolvedByUserId,
-    DateTime? ResolvedAt);
+    DateTime? ResolvedAt,
+    // contentRemoved only: when the target was hidden from everyone but its owner, and when an admin restored it (POST …/restore).
+    DateTime? ContentRemovedAt = null,
+    DateTime? ContentRestoredAt = null,
+    string? ContentRestoredByUserId = null);
 
 // ── People / visibility ─────────────────────────────────────────────────────────────────────────────────────────
 
@@ -152,6 +156,8 @@ public interface ISocialService
     // Moderation (admin)
     Task<PagedDto<ModerationReportDto>> ListReportsAsync(ReportStatus status, string? pageToken, int? limit, CancellationToken ct);
     Task<ModerationReportDto?> ResolveReportAsync(string reportId, ReportResolution resolution, string? note, string adminUserId, CancellationToken ct);
+    /// <summary>Open or resolved; null when unknown.</summary>
+    Task<ModerationReportDto?> GetReportAsync(string reportId, CancellationToken ct);
 }
 
 public enum InviteOutcome { Attributed, CodeNotFound, Self, AlreadyAttributed, WindowClosed }
