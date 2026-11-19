@@ -23,6 +23,8 @@ public class JobEntity : IEntity
     [JsonPropertyName("input")] public string? Input { get; set; }
     // Worker stage timings in ms (queue_wait, init, db, s3_get, ai.*, worker, …) — internal diagnostics, no user content.
     [JsonPropertyName("timings")] public Dictionary<string, long>? Timings { get; set; }
+    // Estimated AI cost of the run in micro-USD per operation + "calls.{op}" + "total" (Ai:Pricing) — internal, never sent to the app.
+    [JsonPropertyName("aiCost")] public Dictionary<string, long>? AiCost { get; set; }
     [JsonPropertyName("creditIdempotencyKey")] public string? CreditIdempotencyKey { get; set; }
     [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; }
     [JsonPropertyName("updatedAt")] public DateTime UpdatedAt { get; set; }

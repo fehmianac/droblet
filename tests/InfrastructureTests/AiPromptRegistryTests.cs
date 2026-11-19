@@ -353,6 +353,7 @@ public class ProviderReadsThroughRegistryTests
     {
         foreach (var kind in new[] { JobKind.StylistOutfit, JobKind.StylistWeek, JobKind.StylistPack })
             await provider.GenerateAsync(new StylistPrompt(kind, "{}", "en"), default);
+        await provider.GenerateAsync(new StylistPrompt(JobKind.StylistOutfit, "{}", "en", CompactCandidates: true), default);
         await provider.DescribeAsync(Photo, "en", default);
         await provider.DetectItemsAsync(Photo, "en", default);
         await provider.MatchAsync(Photo, [Photo, Photo], "ring", false, default);
@@ -592,8 +593,8 @@ public class DelegatingRepository(IRepository inner) : IRepository
         inner.QueryGsiAsync<T>(index, gsiPk, gsiSk, op, ct);
     public virtual Task<bool> AtomicIncrementInMapAsync(string pk, string sk, string mapAttributeName, string mapKey, int increment = 1, CancellationToken ct = default) =>
         inner.AtomicIncrementInMapAsync(pk, sk, mapAttributeName, mapKey, increment, ct);
-    public virtual Task<long> IncrementCounterAsync(string pk, string sk, string attributeName, long ttl, CancellationToken ct = default) =>
-        inner.IncrementCounterAsync(pk, sk, attributeName, ttl, ct);
+    public virtual Task<long> IncrementCounterAsync(string pk, string sk, string attributeName, long ttl, CancellationToken ct = default, long amount = 1) =>
+        inner.IncrementCounterAsync(pk, sk, attributeName, ttl, ct, amount);
     public virtual Task<IReadOnlyDictionary<string, long>?> AddCountersAsync(string pk, string sk, IReadOnlyDictionary<string, long> increments, CancellationToken ct = default) =>
         inner.AddCountersAsync(pk, sk, increments, ct);
     public virtual Task<bool> SaveIfVersionAsync(Domain.Entity.Base.IVersionedEntity entity, long expectedVersion, CancellationToken ct = default) =>

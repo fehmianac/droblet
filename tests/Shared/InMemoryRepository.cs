@@ -111,8 +111,8 @@ public sealed class InMemoryRepository : IRepository
         return Task.FromResult(true);
     }
 
-    public Task<long> IncrementCounterAsync(string pk, string sk, string attributeName, long ttl, CancellationToken ct = default) =>
-        Task.FromResult(Counters.AddOrUpdate(($"{pk}|{sk}", attributeName), 1, (_, v) => v + 1));
+    public Task<long> IncrementCounterAsync(string pk, string sk, string attributeName, long ttl, CancellationToken ct = default, long amount = 1) =>
+        Task.FromResult(Counters.AddOrUpdate(($"{pk}|{sk}", attributeName), amount, (_, v) => v + amount));
 
     public Task<IReadOnlyDictionary<string, long>?> AddCountersAsync(string pk, string sk, IReadOnlyDictionary<string, long> increments, CancellationToken ct = default)
     {

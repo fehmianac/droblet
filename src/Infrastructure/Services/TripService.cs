@@ -21,7 +21,8 @@ public sealed class TripService(
     IEntitlementService entitlements,
     IWeatherService weather,
     IOptionsMonitor<PackingOptions> packingOptions,
-    TimeProvider timeProvider) : ITripService
+    TimeProvider timeProvider,
+    IAiUsageGuard aiLimits) : ITripService
 {
     private const int MaxVersionRetries = 4;
 
@@ -146,6 +147,8 @@ public sealed class TripService(
         var decision = await entitlements.CheckAsync(tenantId, Capability.SmartSuitcase, ct);
         if (!decision.Allowed)
             return ServiceResult.Forbidden<JobDto>(decision.Reason ?? ErrorCodes.PremiumRequired);
+        if (!await aiLimits.AllowAsync(tenantId, AiCap.Stylist, 1, ct))
+            return ServiceResult.TooManyRequests<JobDto>(ErrorCodes.AiLimitReached);
 
         var tenant = await repository.GetAsync<TenantEntity>(TenantEntity.GetPk(), TenantEntity.GetSk(tenantId), ct);
         var job = JobStarter.New(tenantId, command.RequestId, JobKind.StylistPack, StylingJson.Serialize(new PackJobInput(id, Localized.Language(tenant?.Language, requestLanguage))), Now);

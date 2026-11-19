@@ -52,6 +52,10 @@ public static partial class SettingsCatalog
     public static readonly IReadOnlyList<string> ReasoningEfforts = ["none", "minimal", "low", "medium", "high", "xhigh"];
     public static readonly IReadOnlyList<string> ServiceTiers = ["auto", "default", "flex", "priority"];
     public static readonly IReadOnlyList<string> ImageQualities = ["low", "medium", "high", "auto"];
+    public static readonly IReadOnlyList<string> VisionDetails = ["low", "high", "auto"];
+    /// <summary>The operations that send images (VisionDetail applies to them only).</summary>
+    public static readonly IReadOnlyList<string> VisionOperations =
+        [AiSchemas.GarmentDraft, AiSchemas.ItemDetection, AiSchemas.ItemMatch, AiSchemas.PaletteSeason, AiSchemas.PhotoCheck];
     public static readonly IReadOnlyList<string> ImageSizes = ["1024x1024", "1024x1536", "1536x1024", "auto"];
 
     /// <summary>One field per text operation: {prefix}.{operation} (e.g. ReasoningEffort.outfit).</summary>
@@ -72,6 +76,15 @@ public static partial class SettingsCatalog
             new("ReasoningEffort.Default", SettingFieldType.Choice, Options: ReasoningEfforts, Nullable: true),
             .. PerOperation("ReasoningEffort", key => new SettingField(key, SettingFieldType.Choice, Options: ReasoningEfforts, Nullable: true)),
             new("ServiceTier", SettingFieldType.Choice, Options: ServiceTiers, Nullable: true),
+            // Per-operation routing (AI cost work): service tier (and the background outfit import flow), vision detail,
+            // answer ceiling. Unset = the request is sent exactly as before.
+            .. PerOperation("ServiceTiers", key => new SettingField(key, SettingFieldType.Choice, Options: ServiceTiers, Nullable: true)),
+            new("ServiceTiers.outfit_import", SettingFieldType.Choice, Options: ServiceTiers, Nullable: true),
+            .. PerOperation("VisionDetail", key => new SettingField(key, SettingFieldType.Choice, Options: VisionDetails, Nullable: true))
+                .Where(f => VisionOperations.Contains(f.Key["VisionDetail.".Length..])),
+            new("MaxOutputTokens.Default", SettingFieldType.Int, 256, 64000, Nullable: true),
+            .. PerOperation("MaxOutputTokens", key => new SettingField(key, SettingFieldType.Int, 256, 64000, Nullable: true)),
+            new("CompactStylistPrompt", SettingFieldType.Bool),
             new("PromptCacheKey", SettingFieldType.Bool),
             new("TimeoutSeconds", SettingFieldType.Int, 10, 110),
             new("ImageSize", SettingFieldType.Choice, Options: ImageSizes),

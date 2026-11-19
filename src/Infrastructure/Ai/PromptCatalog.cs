@@ -66,6 +66,7 @@ public static class PromptCatalog
     public const int ImageMaxLength = 4000;
 
     public const string Language = "common.language";
+    public const string CompactCandidates = "stylist.compact_candidates";
 
     public static string StylistInstructions(JobKind kind) => kind switch
     {
@@ -120,6 +121,9 @@ public static class PromptCatalog
         new(StylistInstructions(JobKind.StylistPack), "stylist", AiSchemas.Packing, PromptKind.Instructions,
             "Bavul: system prompt of the suitcase (capsule packing list + one look per trip day, re-wear and cabin rules).",
             None, () => OpenAiPrompts.StylistInstructions(JobKind.StylistPack), InstructionsMaxLength, PromptTrialTarget.StylistPack),
+        new(CompactCandidates, "stylist", "outfit, week_plan, packing", PromptKind.Fragment,
+            "Compact candidates (Stylist:CompactPrompt): how to read the 'id|category|colorIds|fabric|seasons' descriptor strings; appended before the language suffix.",
+            None, () => OpenAiPrompts.CompactCandidates, 2000, PromptTrialTarget.None),
         Schema("stylist.outfit.schema", "stylist", AiSchemas.Outfit, AiSchemas.OutfitSchema),
         Schema("stylist.week.schema", "stylist", AiSchemas.WeekPlan, AiSchemas.WeekSchema),
         Schema("stylist.pack.schema", "stylist", AiSchemas.Packing, AiSchemas.PackSchema),

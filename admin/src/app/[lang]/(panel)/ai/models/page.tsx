@@ -12,7 +12,44 @@ import type { AiModelSettings, AiSettingField } from '@/lib/types';
 
 type Value = number | boolean | string | null;
 
-const TEXT_FIELDS = ['TextModel', 'FastTextModel', 'FastTextOperations', 'ServiceTier', 'ReasoningEffort.Default', 'PromptCacheKey', 'TimeoutSeconds'];
+const TEXT_FIELDS = [
+  'TextModel',
+  'FastTextModel',
+  'FastTextOperations',
+  'ServiceTier',
+  'ServiceTiers.outfit_import',
+  'ReasoningEffort.Default',
+  'MaxOutputTokens.Default',
+  'TimeoutSeconds',
+  'PromptCacheKey',
+  'CompactStylistPrompt',
+];
+
+/** A per-operation choice; empty = falls back to the general value (shown in the empty option). */
+function ChoiceCell({ field, value, inherit, label, error, onChange }: {
+  field: AiSettingField | undefined;
+  value: string | null;
+  inherit: string | null;
+  label: string;
+  error: string | null;
+  onChange: (v: string | null) => void;
+}) {
+  const { t, fmt } = useI18n();
+  if (!field) return <span className="text-xs text-muted">—</span>;
+  return (
+    <>
+      <Select aria-label={label} className="w-36" value={value ?? ''} onChange={(e) => onChange(e.target.value === '' ? null : e.target.value)}>
+        <option value="">{inherit ? fmt(t.ai.inherit, { value: inherit }) : t.ai.notSet}</option>
+        {(field.options ?? []).map((o) => (
+          <option key={o} value={o}>
+            {o}
+          </option>
+        ))}
+      </Select>
+      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+    </>
+  );
+}
 const IMAGE_FIELDS = [
   'ImageModel',
   'ImageSize',
@@ -270,6 +307,9 @@ function ModelsInner() {
                 <th className="px-4 py-3 font-medium">{t.ai.operation}</th>
                 <th className="px-4 py-3 font-medium">{t.ai.usesModel}</th>
                 <th className="px-4 py-3 font-medium">{t.ai.effort}</th>
+                <th className="px-4 py-3 font-medium">{t.ai.tier}</th>
+                <th className="px-4 py-3 font-medium">{t.ai.detail}</th>
+                <th className="px-4 py-3 font-medium">{t.ai.maxTokens}</th>
                 <th className="px-4 py-3 font-medium">{t.ai.test}</th>
               </tr>
             </thead>
@@ -299,7 +339,25 @@ function ModelsInner() {
                       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
                     </td>
                     <td className="px-4 py-3">
-                      <TestButton model={model} kind="text" effort={effort} tier={text('ServiceTier')} />
+                      <ChoiceCell field={fields.get(`ServiceTiers.${op}`)} value={text(`ServiceTiers.${op}`)} inherit={text('ServiceTier')} label={`${t.ai.tier} ${op}`}
+                        error={errorOf(`ServiceTiers.${op}`)} onChange={(v) => set(`ServiceTiers.${op}`, v)} />
+                    </td>
+                    <td className="px-4 py-3">
+                      {fields.get(`VisionDetail.${op}`) ? (
+                        <ChoiceCell field={fields.get(`VisionDetail.${op}`)} value={text(`VisionDetail.${op}`)} inherit={null} label={`${t.ai.detail} ${op}`}
+                          error={errorOf(`VisionDetail.${op}`)} onChange={(v) => set(`VisionDetail.${op}`, v)} />
+                      ) : (
+                        <span className="text-xs text-muted">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Input aria-label={`${t.ai.maxTokens} ${op}`} type="number" className="w-28" placeholder={String(values['MaxOutputTokens.Default'] ?? '')}
+                        value={values[`MaxOutputTokens.${op}`] == null ? '' : String(values[`MaxOutputTokens.${op}`])} invalid={!!errorOf(`MaxOutputTokens.${op}`)}
+                        onChange={(e) => set(`MaxOutputTokens.${op}`, e.target.value === '' ? null : Number(e.target.value))} />
+                      {errorOf(`MaxOutputTokens.${op}`) && <p className="mt-1 text-xs text-red-600">{errorOf(`MaxOutputTokens.${op}`)}</p>}
+                    </td>
+                    <td className="px-4 py-3">
+                      <TestButton model={model} kind="text" effort={effort} tier={text(`ServiceTiers.${op}`) ?? text('ServiceTier')} />
                     </td>
                   </tr>
                 );

@@ -707,6 +707,31 @@ public class StylistAndTripEndpointTests(ApiFactory factory) : IClassFixture<Api
     ], "tr");
 
     [Fact]
+    public async Task StylistDailyCap_CountsOutfitAndWeekStarts_NotReplays_ThenAnswers429()
+    {
+        var limits = factory.Services.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<Domain.Options.AiLimitsOptions>>().CurrentValue;
+        limits.StylistJobsPerDay = 2;
+        try
+        {
+            var (member, tenant, _, _, _) = await ArrangeAsync();
+            var first = new { requestId = Ulid.New(), date = "2026-11-18" };
+
+            var one = await member.PostJsonAsync("v1/tenant/stylist/outfit", first);
+            var replay = await member.PostJsonAsync("v1/tenant/stylist/outfit", first);
+            var week = await member.PostJsonAsync("v1/tenant/stylist/week", new { requestId = Ulid.New(), weekStart = "2026-11-16" });
+            var over = await member.PostJsonAsync("v1/tenant/stylist/outfit", new { requestId = Ulid.New(), date = "2026-11-18" });
+
+            Assert.Equal((HttpStatusCode.Accepted, HttpStatusCode.Accepted, HttpStatusCode.Accepted), (one.StatusCode, replay.StatusCode, week.StatusCode));
+            Assert.Equal((HttpStatusCode.TooManyRequests, "ai_limit_reached"), (over.StatusCode, await over.CodeAsync()));
+            Assert.Equal(2, factory.Events.Of<StylistRequestedEvent>(tenant).Count());
+        }
+        finally
+        {
+            limits.StylistJobsPerDay = 0;
+        }
+    }
+
+    [Fact]
     public async Task StartOutfit_NonMemberGetsThePaywallCode_MemberGetsAJob_ReplayIsTheSameJob()
     {
         var (free, freeTenant, _, _, _) = await ArrangeAsync(premium: false);

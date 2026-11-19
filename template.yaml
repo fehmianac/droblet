@@ -370,6 +370,16 @@ Resources:
         - IsProd
         - '{"Premium":{"TryOnCreditsPerMonth":30,"OutfitImportMaxPhotos":30},"Free":{"ItemRecognitionLimit":10,"OutfitImportMaxPhotos":30},"SelfServePremium":{"Enabled":false}}'
         - '{"Premium":{"TryOnCreditsPerMonth":30,"OutfitImportMaxPhotos":30},"Free":{"ItemRecognitionLimit":10,"OutfitImportMaxPhotos":30},"SelfServePremium":{"Enabled":true}}'
+  SsmApiAiLimits:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/api/AiLimits
+      Type: String
+      Description: Per-tenant caps of AI work without credits (stylist jobs, garment recognitions, palette per UTC day; any AI start per minute); 0 = no cap. 429 ai_limit_reached. On in dev; prod stays off until the owner decides (docs/ai-cost.md).
+      Value: !If
+        - IsProd
+        - '{"StylistJobsPerDay":0,"ItemRecognitionsPerDay":0,"PaletteAnalysesPerDay":0,"AiStartsPerMinute":0}'
+        - '{"StylistJobsPerDay":40,"ItemRecognitionsPerDay":150,"PaletteAnalysesPerDay":5,"AiStartsPerMinute":20}'
   SsmApiPhotos:
     Type: AWS::SSM::Parameter
     Properties:
@@ -451,8 +461,11 @@ Resources:
     Properties:
       Name: !Sub /droblet/${Stage}/api/Stylist
       Type: String
-      Description: Stylist limits and temperature thresholds.
-      Value: '{"SuggestionCount":3,"MaxCandidates":60,"MaxTitleLength":40,"MaxExplanationLength":280,"FreeTextMaxLength":200,"HotFromC":26,"ColdBelowC":12,"DislikeMemory":10}'
+      Description: Stylist limits and temperature thresholds. dev - WeekBatchDays 0 (the week in one call - about 35% cheaper, no repeated looks; docs/ai-cost.md); prod keeps the default 3.
+      Value: !If
+        - IsProd
+        - '{"SuggestionCount":3,"MaxCandidates":60,"MaxTitleLength":40,"MaxExplanationLength":280,"FreeTextMaxLength":200,"HotFromC":26,"ColdBelowC":12,"DislikeMemory":10}'
+        - '{"SuggestionCount":3,"MaxCandidates":60,"MaxTitleLength":40,"MaxExplanationLength":280,"FreeTextMaxLength":200,"HotFromC":26,"ColdBelowC":12,"DislikeMemory":10,"WeekBatchDays":0}'
   SsmApiPacking:
     Type: AWS::SSM::Parameter
     Properties:
@@ -522,7 +535,10 @@ Resources:
       Name: !Sub /droblet/${Stage}/worker/Stylist
       Type: String
       Description: Same values as api/Stylist.
-      Value: '{"SuggestionCount":3,"MaxCandidates":60,"MaxTitleLength":40,"MaxExplanationLength":280,"FreeTextMaxLength":200,"HotFromC":26,"ColdBelowC":12,"DislikeMemory":10}'
+      Value: !If
+        - IsProd
+        - '{"SuggestionCount":3,"MaxCandidates":60,"MaxTitleLength":40,"MaxExplanationLength":280,"FreeTextMaxLength":200,"HotFromC":26,"ColdBelowC":12,"DislikeMemory":10}'
+        - '{"SuggestionCount":3,"MaxCandidates":60,"MaxTitleLength":40,"MaxExplanationLength":280,"FreeTextMaxLength":200,"HotFromC":26,"ColdBelowC":12,"DislikeMemory":10,"WeekBatchDays":0}'
   SsmWorkerPacking:
     Type: AWS::SSM::Parameter
     Properties:
@@ -537,6 +553,13 @@ Resources:
       Type: String
       Description: Same values as api/Catalog (the try-on job downloads product images).
       Value: '{"PageSize":24,"MaxPageSize":60,"CacheSeconds":60,"MaxCartLines":100,"MaxWatchItems":200,"BulkUpsertMax":200,"ImageHosts":[],"MaxImageBytes":10485760,"WatchAutoAddHours":48}'
+  SsmWorkerAiPricing:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/worker/Ai/Pricing
+      Type: String
+      Description: AI cost accounting only (never changes a request) - USD per 1M tokens per model (OpenAI standard rates 2026-11, docs/ai-cost.md), tier multipliers, per-image fallback and USD/TRY (assumptions).
+      Value: '{"Models":{"gpt-6-astra":{"Input":10,"CachedInput":1.0,"Output":50},"gpt-6.2-astra":{"Input":8,"CachedInput":0.4,"Output":40},"gpt-6.2-sol":{"Input":2,"CachedInput":0.1,"Output":10},"gpt-6.1-sol":{"Input":2,"CachedInput":0.1,"Output":10},"gpt-6.1-terra":{"Input":1,"CachedInput":0.05,"Output":5},"gpt-6-sol":{"Input":2,"CachedInput":0.2,"Output":10},"gpt-6-luna":{"Input":0.1,"CachedInput":0.01,"Output":0.5},"gpt-5.6-sol":{"Input":4,"CachedInput":0.4,"Output":20},"gpt-5.6-terra":{"Input":2,"CachedInput":0.2,"Output":12},"gpt-5.6-luna":{"Input":0.2,"CachedInput":0.02,"Output":1.2},"gpt-5.4-mini":{"Input":0.75,"CachedInput":0.075,"Output":4.5},"gpt-5-mini":{"Input":0.25,"CachedInput":0.025,"Output":2},"gpt-5-nano":{"Input":0.05,"CachedInput":0.005,"Output":0.4},"gpt-image-2.5-sunburst":{"Input":5,"CachedInput":1.25,"ImageInput":8,"ImageCachedInput":2,"ImageOutput":30},"gpt-image-2.5-flare":{"Input":5,"CachedInput":1.25,"ImageInput":8,"ImageCachedInput":2,"ImageOutput":30},"gpt-image-2":{"Input":5,"CachedInput":1.25,"ImageInput":8,"ImageCachedInput":2,"ImageOutput":30},"gpt-image-1-mini":{"Input":2,"CachedInput":0.2,"ImageInput":2.5,"ImageCachedInput":0.25,"ImageOutput":8}},"TierMultipliers":{"flex":0.5,"batch":0.5,"priority":2,"fast":2},"ImageFallback":{"low/1024x1024":0.006,"medium/1024x1024":0.013,"high/1024x1024":0.053},"UsdTry":43}'
   SsmNotifierLocalization:
     Type: AWS::SSM::Parameter
     Properties:

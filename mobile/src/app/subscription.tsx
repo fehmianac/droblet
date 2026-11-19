@@ -49,8 +49,10 @@ function CreditsCard({ credits }: { credits: Entitlement['credits'] }) {
   const colors = useThemeColors();
   const language = useAppLanguage();
   const { monthlyAllowance, remaining, resetsAt } = credits;
-  const used = Math.max(0, monthlyAllowance - remaining);
-  const left = t('subscription.creditsLeft', { total: monthlyAllowance, remaining: suffixed(remaining, 'possessive', language) });
+  const allowanceLeft = Math.min(credits.allowanceRemaining ?? remaining, monthlyAllowance);
+  const extra = credits.extraRemaining ?? Math.max(0, remaining - allowanceLeft);
+  const used = Math.max(0, monthlyAllowance - allowanceLeft);
+  const left = t('subscription.creditsLeft', { total: monthlyAllowance, remaining: suffixed(allowanceLeft, 'possessive', language) });
   const soft = { color: colors.sand };
   return (
     <View className="gap-2.5 rounded-card bg-ink p-3.5" testID="subscription-credits">
@@ -65,14 +67,19 @@ function CreditsCard({ credits }: { credits: Entitlement['credits'] }) {
       <Text variant="title" tone="cream">
         {left}
       </Text>
+      {extra > 0 ? (
+        <Text variant="caption" style={soft} testID="subscription-credits-extra">
+          {t('me.creditsExtra', { count: extra })}
+        </Text>
+      ) : null}
       <View
         className="h-1.5 overflow-hidden rounded-pill bg-cream/20"
         accessible
         accessibilityRole="progressbar"
         accessibilityLabel={left}
-        accessibilityValue={{ min: 0, max: monthlyAllowance, now: remaining }}
+        accessibilityValue={{ min: 0, max: monthlyAllowance, now: allowanceLeft }}
       >
-        <View className="h-full rounded-pill bg-cream" style={{ width: `${Math.round((1 - usedShare(monthlyAllowance, remaining)) * 100)}%` }} />
+        <View className="h-full rounded-pill bg-cream" style={{ width: `${Math.round((1 - usedShare(monthlyAllowance, allowanceLeft)) * 100)}%` }} />
       </View>
       <View className="flex-row items-center justify-between gap-2.5">
         <Text variant="caption" style={soft} className="flex-1">

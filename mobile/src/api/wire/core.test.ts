@@ -25,3 +25,10 @@ describe('entitlement mapper', () => {
     expect(free.plan).toBeUndefined();
   });
 });
+
+describe('toEntitlement credits', () => {
+  it('keeps the month allowance and the extra credits apart (30 + 20 extra is never "47 of 30")', () => {
+    const e = toEntitlement(wire({ credits: { monthlyAllowance: 30, allowanceRemaining: 27, packRemaining: 20, totalRemaining: 47, resetsAt: '2026-12-03T00:00:00Z' } }));
+    expect(e.credits).toMatchObject({ monthlyAllowance: 30, remaining: 47, allowanceRemaining: 27, extraRemaining: 20 });
+  });
+});

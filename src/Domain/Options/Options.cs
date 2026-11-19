@@ -299,6 +299,53 @@ public sealed class AiOptions
     /// <summary>Image output per use (Ai:Image:*).</summary>
     public AiImageOptions Image { get; set; } = new();
 
+    /// <summary>
+    /// Compact stylist prompt (CandidateAliases): short candidate aliases and one descriptor string per piece, null fields
+    /// left out — fewer input and output tokens for the same decision (outfit, week plan, suitcase). Off = the original prompt.
+    /// </summary>
+    public bool CompactStylistPrompt { get; set; }
+
+    /// <summary>
+    /// Price list for cost accounting (Ai:Pricing:*, SSM worker/Ai/Pricing). Never changes a request: it only turns the
+    /// usage the API reports into an estimated cost per call (job aiCost, log line, EMF CostMicroUsd). Empty = no estimate.
+    /// </summary>
+    public AiPricingOptions Pricing { get; set; } = new();
+
+    // ── Cost tuning (all optional; unset = the request is sent exactly as before) ────────────────────────────────
+
+    /// <summary>
+    /// Vision detail per operation (Ai:VisionDetail:{operation} = low | high | auto), e.g. photo_check = low. Unset = the
+    /// code's own choice (item_detection high, the rest the API default).
+    /// </summary>
+    public Dictionary<string, string> VisionDetail { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// max_completion_tokens per operation (Ai:MaxOutputTokens:{operation}, Default as the fallback): a ceiling against
+    /// runaway answers. Reasoning tokens count against it, so it must stay well above a normal answer. Unset = not sent.
+    /// </summary>
+    public Dictionary<string, int> MaxOutputTokens { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// service_tier per operation or per background flow (Ai:ServiceTiers:{operation | flow}, e.g. outfit_import = flex: every
+    /// text call of an outfit import photo), overriding <see cref="ServiceTier"/>. Flex is half price but slower and may
+    /// answer 429 (resource unavailable) — the import's rate-limit back-off retries it.
+    /// </summary>
+    public Dictionary<string, string> ServiceTiers { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <param name="context">The flow the call runs in (AiCallContext, e.g. "outfit_import"): its entry wins over the operation's.</param>
+    public string? TierFor(string operation, string? context = null) =>
+        context is not null && ServiceTiers.TryGetValue(context, out var flowTier) && !string.IsNullOrWhiteSpace(flowTier) ? flowTier.Trim()
+        : ServiceTiers.TryGetValue(operation, out var tier) && !string.IsNullOrWhiteSpace(tier) ? tier.Trim()
+        : string.IsNullOrWhiteSpace(ServiceTier) ? null : ServiceTier.Trim();
+
+    public string? DetailFor(string operation, string? codeDefault) =>
+        VisionDetail.TryGetValue(operation, out var detail) && detail is "low" or "high" or "auto" ? detail : codeDefault;
+
+    public int? MaxOutputTokensFor(string operation) =>
+        MaxOutputTokens.TryGetValue(operation, out var max) && max > 0 ? max
+        : MaxOutputTokens.TryGetValue("Default", out var fallback) && fallback > 0 ? fallback
+        : null;
+
     public string ModelFor(string operation) =>
         !string.IsNullOrWhiteSpace(FastTextModel)
         && FastTextOperations.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Contains(operation, StringComparer.OrdinalIgnoreCase)
@@ -326,6 +373,53 @@ public sealed class AiOptions
 }
 
 public enum ImageUse { TryOn, Cleanup }
+
+/// <summary>
+/// Ai:Pricing — USD per 1M tokens per model id (OpenAI's published standard rates), a multiplier per service tier, and
+/// a fallback per image when an image response carries no usage. A model id matches its own entry or the longest
+/// entry it starts with (dated snapshots: gpt-6-astra-2026-09-08 → gpt-6-astra).
+/// </summary>
+public sealed class AiPricingOptions
+{
+    public Dictionary<string, AiModelPrice> Models { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Price multiplier per service_tier (flex 0.5, batch 0.5, priority/fast 2). Missing tier = 1.</summary>
+    public Dictionary<string, decimal> TierMultipliers { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>USD per image by "{quality}/{size}" (e.g. "low/1024x1024"), used only when the response has no usage.</summary>
+    public Dictionary<string, decimal> ImageFallback { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Exchange rate for reports only (₺ per $).</summary>
+    public decimal UsdTry { get; set; }
+
+    public AiModelPrice? For(string? model)
+    {
+        if (string.IsNullOrWhiteSpace(model))
+            return null;
+        if (Models.TryGetValue(model, out var exact))
+            return exact;
+        return Models.Where(kv => model.StartsWith(kv.Key + "-", StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(kv => kv.Key.Length).Select(kv => kv.Value).FirstOrDefault();
+    }
+
+    public decimal MultiplierFor(string? tier) =>
+        tier is { Length: > 0 } && TierMultipliers.TryGetValue(tier, out var m) && m > 0 ? m : 1m;
+}
+
+/// <summary>USD per 1M tokens. Text models: Input / CachedInput / Output. Image models also bill image tokens separately.</summary>
+public sealed class AiModelPrice
+{
+    public decimal Input { get; set; }
+    public decimal CachedInput { get; set; }
+    public decimal Output { get; set; }
+    /// <summary>Image models: image input tokens (the photos sent to an edit).</summary>
+    public decimal ImageInput { get; set; }
+    public decimal ImageCachedInput { get; set; }
+    /// <summary>Image models: image output tokens (the generated image).</summary>
+    public decimal ImageOutput { get; set; }
+    /// <summary>Where the price comes from, or "assumption: …" when it could not be confirmed.</summary>
+    public string? Source { get; set; }
+}
 
 public sealed class AiImageOptions
 {
@@ -391,6 +485,23 @@ public sealed class OutfitImportOptions
     public int UploadUrlTtlSeconds { get; set; } = 900;
     /// <summary>Use Ai:FastTextModel (when set) for the detection and match calls of an import.</summary>
     public bool UseFastTextModel { get; set; } = true;
+}
+
+/// <summary>
+/// Guardrails for AI work that costs no credit (SSM api/AiLimits; 0 = no cap, the default). Counted per tenant on the
+/// Api when a job starts (a replay of the same requestId is not counted again); over the cap → 429 ai_limit_reached.
+/// </summary>
+public sealed class AiLimitsOptions
+{
+    public const string Section = "AiLimits";
+    /// <summary>Outfit, week plan and suitcase jobs together, per UTC day.</summary>
+    public int StylistJobsPerDay { get; set; }
+    /// <summary>AI garment recognitions (each photo of a single / bulk / split request or an outfit import), per UTC day.</summary>
+    public int ItemRecognitionsPerDay { get; set; }
+    /// <summary>Palette analyses per UTC day (a face photo already analysed is answered from the cache and not counted).</summary>
+    public int PaletteAnalysesPerDay { get; set; }
+    /// <summary>Any AI job start per minute (scripted abuse, a stuck retry loop in a client).</summary>
+    public int AiStartsPerMinute { get; set; }
 }
 
 public sealed class AuthRateLimitOptions

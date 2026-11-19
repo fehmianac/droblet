@@ -224,4 +224,32 @@ public partial class TemplateConfigTests
     /// <summary>Roles that are not assumed by Lambda (none today).</summary>
     private static int AdminOnlyRoles(string template) =>
         Regex.Matches(template, @"Principal: \{ Service: (?!lambda\.amazonaws\.com)").Count;
+
+    [Fact]
+    public void AiPricing_BindsToAi_ForTheOwnersModels_OnEveryStage()
+    {
+        var ai = Bind<AiOptions>("worker", AiOptions.Section);
+
+        Assert.Equal((10m, 1m, 50m), (ai.Pricing.For("gpt-6-astra")!.Input, ai.Pricing.For("gpt-6-astra")!.CachedInput, ai.Pricing.For("gpt-6-astra")!.Output));
+        var image = ai.Pricing.For("gpt-image-2.5-sunburst-2026-09-08")!;
+        Assert.Equal((5m, 8m, 30m), (image.Input, image.ImageInput, image.ImageOutput));
+        Assert.Equal(0.5m, ai.Pricing.MultiplierFor("flex"));
+        Assert.True(ai.Pricing.UsdTry > 0);
+        // Accounting only: the price list never changes a request (no model, effort or image setting in it).
+        Assert.Null(ai.TextModel);
+        Assert.Empty(ai.ReasoningEffort);
+        // Same value on both stages (no !If): prices are facts, not a dev experiment.
+        Assert.DoesNotMatch(@"worker/Ai/Pricing\s*\n(?:[^\n]*\n){1,3}?\s*Value: !If", Template());
+    }
+
+    [Fact]
+    public void AiLimits_AreOffOnProd_AndOnInDev()
+    {
+        var prod = Bind<AiLimitsOptions>("api", AiLimitsOptions.Section);   // the checked literal is the prod one
+        Assert.Equal((0, 0, 0, 0), (prod.StylistJobsPerDay, prod.ItemRecognitionsPerDay, prod.PaletteAnalysesPerDay, prod.AiStartsPerMinute));
+
+        var dev = Regex.Match(Template(), @"api/AiLimits[\s\S]*?- IsProd\s*\n\s*- '[^']*'\s*\n\s*- '(?<dev>[^']*)'").Groups["dev"].Value;
+        var devLimits = System.Text.Json.JsonSerializer.Deserialize<AiLimitsOptions>(dev)!;
+        Assert.True(devLimits is { StylistJobsPerDay: > 0, ItemRecognitionsPerDay: > 0, PaletteAnalysesPerDay: > 0, AiStartsPerMinute: > 0 });
+    }
 }

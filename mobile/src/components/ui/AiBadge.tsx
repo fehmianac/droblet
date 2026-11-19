@@ -37,7 +37,7 @@ type AiImageProps = {
 export function AiImage({ kind, uri, className, accessibilityLabel, placeholder, onLoad, onError, testID, tagLabel }: AiImageProps) {
   return (
     <View className={className}>
-      <ImageSlot uri={uri} className="h-full w-full rounded-image-lg" accessibilityLabel={accessibilityLabel} placeholder={placeholder} onLoad={onLoad} onError={onError} testID={testID} />
+      <ImageSlot fit="contain" uri={uri} className="h-full w-full rounded-image-lg" accessibilityLabel={accessibilityLabel} placeholder={placeholder} onLoad={onLoad} onError={onError} testID={testID} />
       {uri ? (
         <View className="absolute bottom-2 left-2" pointerEvents="none" testID="ai-image-tag">
           {tagLabel ? <ImageTag label={tagLabel} /> : <AiBadge kind={kind} />}

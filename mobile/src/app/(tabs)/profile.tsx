@@ -52,11 +52,14 @@ function CreditCard({ entitlement, hasBodyPhoto }: { entitlement: Entitlement; h
   const colors = useThemeColors();
   const language = useAppLanguage();
   const { monthlyAllowance, remaining, resetsAt } = entitlement.credits;
+  // The month's allowance and the extra credits (packs, grants) are shown apart.
+  const allowanceLeft = Math.min(entitlement.credits.allowanceRemaining ?? remaining, monthlyAllowance);
+  const extra = entitlement.credits.extraRemaining ?? Math.max(0, remaining - allowanceLeft);
   const renewal = new Date(resetsAt);
   // The allowance belongs to the month before the renewal date.
   const month = new Date(renewal.getFullYear(), renewal.getMonth() - 1, 1);
-  const left = t('me.creditsLeft', { total: monthlyAllowance, remaining: suffixed(remaining, 'possessive', language) });
-  const share = monthlyAllowance > 0 ? Math.min(1, Math.max(0, remaining / monthlyAllowance)) : 0;
+  const left = t('me.creditsLeft', { total: monthlyAllowance, remaining: suffixed(allowanceLeft, 'possessive', language) });
+  const share = monthlyAllowance > 0 ? Math.min(1, Math.max(0, allowanceLeft / monthlyAllowance)) : 0;
   const soft = { color: colors.sand };
 
   return (
@@ -72,12 +75,17 @@ function CreditCard({ entitlement, hasBodyPhoto }: { entitlement: Entitlement; h
       <Text variant="title" tone="cream">
         {left}
       </Text>
+      {extra > 0 ? (
+        <Text variant="caption" style={soft} testID="credit-card-extra">
+          {t('me.creditsExtra', { count: extra })}
+        </Text>
+      ) : null}
       <View
         className="h-1.5 overflow-hidden rounded-pill bg-cream/20"
         accessible
         accessibilityRole="progressbar"
         accessibilityLabel={left}
-        accessibilityValue={{ min: 0, max: monthlyAllowance, now: remaining }}
+        accessibilityValue={{ min: 0, max: monthlyAllowance, now: allowanceLeft }}
       >
         <View className="h-full rounded-pill bg-cream" style={{ width: `${Math.round(share * 100)}%` }} />
       </View>
@@ -88,7 +96,7 @@ function CreditCard({ entitlement, hasBodyPhoto }: { entitlement: Entitlement; h
           <View className="flex-1 flex-row items-center gap-1.5">
             <Icon icon={hasBodyPhoto ? Check : CircleAlert} size={15} tone="sand" />
             <Text variant="caption" style={soft} className="flex-1">
-              {t(hasBodyPhoto ? 'me.photoReady' : 'me.photoMissing')}
+              {t(hasBodyPhoto ? 'me.photoReady' : 'me.photoOptional')}
             </Text>
           </View>
         )}

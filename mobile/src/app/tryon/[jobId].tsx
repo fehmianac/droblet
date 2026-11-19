@@ -128,7 +128,7 @@ export default function TryOnScreen() {
             <TryOnResultImage
               tryOnId={job.result?.tryOnId ?? null}
               url={job.result?.imageUrl ?? null}
-              className="aspect-[4/5] w-full"
+              className="aspect-[2/3] w-full"
               accessibilityLabel={imageLabel}
               tagLabel={job.result?.source === 'face' ? t('req.tryOnFace.tag') : undefined}
             />

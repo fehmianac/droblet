@@ -51,6 +51,7 @@ export function OnYouImage({
   return (
     <View className={`overflow-hidden ${className ?? ''}`}>
       <ImageSlot
+        fit="contain"
         uri={uri}
         className="h-full w-full"
         accessibilityLabel={uri ? accessibilityLabel : (collageLabel ?? accessibilityLabel)}

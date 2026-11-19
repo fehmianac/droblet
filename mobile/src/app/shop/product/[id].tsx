@@ -185,6 +185,7 @@ function ProductBody({ product }: { product: ProductDetail }) {
       onMe = (
         <Zoomable images={viewerImages} index={viewerImages.length - 1} disabled={!uri} className="flex-1" testID="product-onme-zoom">
         <ImageSlot
+          fit="contain"
           uri={uri}
           className="flex-1"
           accessibilityLabel={uri ? t('productDetail.onMeA11y', { name: product.name }) : t('aiBadge.collageA11y', { name: product.name })}
