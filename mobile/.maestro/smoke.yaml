@@ -99,9 +99,13 @@ env:
     visible:
       id: "consents.acceptAll"
     timeout: 20000
-- assertVisible:
-    id: "consent.check.facePhotoTryOn"
 - takeScreenshot: 03b-acik-rizalar
+# All seven purposes are listed; the face try-on one (consent 7) is further down the list.
+- scrollUntilVisible:
+    element:
+      id: "consent.check.facePhotoTryOn"
+    direction: DOWN
+    timeout: 15000
 - tapOn:
     id: "consents.acceptAll"
 

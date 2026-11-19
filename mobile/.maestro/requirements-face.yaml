@@ -96,20 +96,32 @@ appId: com.alatech.droplet
 - tapOn:
     id: "requirements.photo.library"
 - waitForAnimationToEnd
+# The system photo picker: wait until it shows, then pick the first photo (top-left tile).
+- extendedWaitUntil:
+    visible: "Fotoğraflar|Photos"
+    timeout: 10000
+    optional: true
 - tapOn:
-    point: "17%,22%"
+    point: "16%,25%"
 - runFlow:
     when:
       visible: "Add|Ekle|Done|Bitti"
     commands:
       - tapOn: "Add|Ekle|Done|Bitti"
+# The upload may finish fast and the flow advance by itself; the "ready" card is only tapped when it shows.
 - extendedWaitUntil:
     visible:
-      id: "requirements.photo.ready"
+      id: "requirements.step.bodyType"
     timeout: 60000
-- takeScreenshot: 11e-fotograf-hazir
-- tapOn:
-    id: "requirements.photo.continue"
+    optional: true
+- runFlow:
+    when:
+      visible:
+        id: "requirements.photo.ready"
+    commands:
+      - takeScreenshot: 11e-fotograf-hazir
+      - tapOn:
+          id: "requirements.photo.continue"
 
 # 11e — body type, height and size (saved to the body profile once)
 - extendedWaitUntil:
@@ -122,11 +134,29 @@ appId: com.alatech.droplet
     id: "requirements.bodyType.height"
 - eraseText: 4
 - inputText: "168"
+# The number pad has no Done key in this build: tap the step title to close it before choosing the size.
+- tapOn:
+    point: "50%,20%"
 - tapOn:
     id: "requirements.bodyType.size.M"
 - takeScreenshot: 11e-vucut-tipi
 - tapOn:
     id: "requirements.bodyType.save"
+
+# A free account gets the membership step; on dev the temporary self-serve premium switch is on.
+- extendedWaitUntil:
+    visible:
+      id: "requirements.premium.selfServe"
+    timeout: 8000
+    optional: true
+- runFlow:
+    when:
+      visible:
+        id: "requirements.premium.selfServe"
+    commands:
+      - takeScreenshot: 11h-uyelik-adimi
+      - tapOn:
+          id: "requirements.premium.selfServe"
 
 # 11f — "Hazır", then back on the look: the try-on resumes (credit confirmation)
 - extendedWaitUntil:
