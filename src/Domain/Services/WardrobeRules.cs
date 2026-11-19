@@ -157,11 +157,37 @@ public static class ItemDraftRules
 {
     public const int MaxBulk = 30;
 
+    /// <summary>
+    /// The user's own values for a detected piece (edited before selecting it) replace the suggestion. Only valid values are
+    /// taken — an invalid one leaves the suggestion as it was; the confirm form validates everything again. Edited = reviewed.
+    /// </summary>
+    public static void ApplyEdit(Entity.ItemDraftEntity draft, DetectedPieceEdit edit)
+    {
+        if (edit.Name?.Trim() is { Length: > 0 and <= ItemRules.MaxNameLength } name)
+            draft.Name = name;
+        if (edit.Category is { } category && System.Enum.IsDefined(category))
+            draft.Category = category;
+        var subcategory = edit.Subcategory?.Trim();
+        if (string.IsNullOrEmpty(subcategory))
+            draft.Subcategory = null;
+        else if (ItemRules.IsValidSubcategory(subcategory))
+            draft.Subcategory = subcategory;
+        if (edit.ColorIds is { Count: > 0 and <= ItemRules.MaxColors } colors && colors.All(ColorCatalog.IsKnown) && colors.Distinct().Count() == colors.Count)
+            draft.ColorIds = colors.ToList();
+        if (edit.Fabric is null || FabricCatalog.IsKnown(edit.Fabric))
+            draft.Fabric = edit.Fabric;
+        if (edit.Seasons is { Count: > 0 } seasons && seasons.All(s => System.Enum.IsDefined(s)))
+            draft.Seasons = seasons.Distinct().ToList();
+        draft.FlaggedFields = [];
+        draft.NeedsReview = false;
+    }
+
     public static string? CheckConfirm(ItemDraftStatus status, ItemDraftKind kind, bool needsReview, bool reviewed)
     {
         if (kind == ItemDraftKind.Outfit)
             return ErrorCodes.DraftIsOutfitSource;
-        if (status is ItemDraftStatus.Uploaded or ItemDraftStatus.Processing)
+        // A detected piece is confirmed only after the user selected it and its background removal finished (or failed).
+        if (status is ItemDraftStatus.Uploaded or ItemDraftStatus.Processing or ItemDraftStatus.Detected)
             return ErrorCodes.DraftNotReady;
         if (needsReview && !reviewed)
             return ErrorCodes.DraftReviewRequired;

@@ -291,6 +291,13 @@ async function main() {
       await step('wardrobe', 'v1/tenant/item-draft', 'GET', 'v1/tenant/item-draft', A, [200], (j) => has(j, 'drafts', 'total', 'processed'));
       const draftId = draft.json?.drafts?.[0]?.id;
       if (draftId) {
+        // Multi-item selection (POST item-draft/{groupId}/select): a single / manual draft is not a draft group → 409,
+        // an unknown id → 404, a malformed id → 400. The AI path itself is covered by the Ops ai-smoke (5-piece flat-lay).
+        await step('wardrobe', 'v1/tenant/item-draft/{id}/select (not a group)', 'POST', `v1/tenant/item-draft/${draftId}/select`, { ...A, body: { draftIds: [] } }, [409], (j) => {
+          need(j.code === 'draft_not_group', `code ${j.code}`);
+        });
+        await step('wardrobe', 'v1/tenant/item-draft/{id}/select (unknown)', 'POST', `v1/tenant/item-draft/${ulid()}/select`, { ...A, body: { draftIds: [] } }, [404]);
+        await step('wardrobe', 'v1/tenant/item-draft/{id}/select (bad id)', 'POST', `v1/tenant/item-draft/${draftId}/select`, { ...A, body: { draftIds: ['nope'] } }, [400]);
         const confirm = await step('wardrobe', 'v1/tenant/item-draft/confirm', 'POST', 'v1/tenant/item-draft/confirm', {
           ...A,
           body: { items: [{ draftId, clientMutationId: ulid(), reviewed: true, name: 'Smoke blazer', category: 'outerwear', colorIds: ['navy'], fabric: 'wool', seasons: ['autumn', 'winter'], size: 'M', brand: null, useOriginalImage: false, itemId: null }] },

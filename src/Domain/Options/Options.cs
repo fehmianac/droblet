@@ -218,7 +218,7 @@ public sealed class QueueOptions
 
     public string? UrlFor(JobKind kind) => kind switch
     {
-        JobKind.ItemProcess or JobKind.ItemSplit => ItemProcessRequest,
+        JobKind.ItemProcess or JobKind.ItemSplit or JobKind.ItemClean => ItemProcessRequest,
         JobKind.TryOn => TryOnRequest,
         JobKind.Palette => PaletteRequest,
         _ => StylistRequest,

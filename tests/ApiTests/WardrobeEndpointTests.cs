@@ -189,16 +189,160 @@ public class WardrobeEndpointTests(ApiFactory factory) : IClassFixture<ApiFactor
     }
 
     [Fact]
-    public async Task SplitOutfit_QueuesAnItemSplitJob_AndTheSourcePhotoCannotBeConfirmed()
+    public async Task LegacySplitOutfitFlag_RunsTheSameDetection_OneItemProcessJob()
     {
         var (client, auth) = await factory.RegisterAsync();
-        var draftId = await UploadedDraftAsync(client, split: true);
-        await MarkReadyAsync(auth.TenantId, draftId);
+        await UploadedDraftAsync(client, split: true);
 
-        var result = await (await client.PostJsonAsync("v1/tenant/item-draft/confirm", Confirm(draftId, Ulid.New()))).ReadAsync<ItemCreateResultsDto>();
+        var queued = Assert.Single(factory.Events.Of<ItemProcessRequestedEvent>(auth.TenantId));
+        Assert.Equal((JobKind.ItemProcess, false), (queued.Kind, queued.Split));
+    }
 
-        Assert.True(Assert.Single(factory.Events.Of<ItemProcessRequestedEvent>(auth.TenantId)).Split);
-        Assert.Equal("draft_is_outfit_source", result.Results[0].Code);
+    /// <summary>What the worker leaves after finding <paramref name="count"/> pieces: the photo is a group, each piece a detected draft with its crop.</summary>
+    private async Task<List<ItemDraftEntity>> MakeGroupAsync(string tenantId, string draftId, int count)
+    {
+        var source = (await factory.Repository.GetAsync<ItemDraftEntity>(ItemDraftEntity.GetPk(tenantId), ItemDraftEntity.GetSk(draftId)))!;
+        source.Kind = ItemDraftKind.Outfit;
+        source.Status = ItemDraftStatus.Ready;
+        source.ItemCount = count;
+        source.PhotoWidth = 1000;
+        source.PhotoHeight = 1500;
+        source.OriginalKey = StorageKeys.ItemOriginal(tenantId, draftId, "jpg");
+        await factory.Storage.PutAsync(source.OriginalKey, [2], "image/jpeg", default);
+        await factory.Repository.SaveAsync(source);
+        var pieces = new List<ItemDraftEntity>();
+        for (var i = 0; i < count; i++)
+        {
+            var piece = new ItemDraftEntity
+            {
+                Id = Ulid.New(), TenantId = tenantId, Kind = ItemDraftKind.Piece, Status = ItemDraftStatus.Detected, ParentDraftId = draftId,
+                Index = i + 1, Box = new BoundingBox(0.1 * i, 0.1, 0.1, 0.1), Confidence = i == count - 1 ? 0.5 : 0.9, NeedsReview = i == count - 1,
+                Category = i == count - 1 ? ItemCategory.Accessory : ItemCategory.Top, Subcategory = i == count - 1 ? "necklace" : "t-shirt",
+                ColorIds = ["white"], Seasons = [Season.Summer], CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+            };
+            piece.OriginalKey = StorageKeys.ItemOriginal(tenantId, piece.Id, "jpg");
+            await factory.Storage.PutAsync(piece.OriginalKey, [3], "image/jpeg", default);
+            await factory.Repository.SaveAsync(piece);
+            pieces.Add(piece);
+        }
+        return pieces;
+    }
+
+    private static async Task<int> RecognitionsUsedAsync(HttpClient client) =>
+        (await (await client.GetAsync("v1/tenant/entitlement")).JsonAsync()).GetProperty("itemRecognition").GetProperty("used").GetInt32();
+
+    [Fact]
+    public async Task DraftGroup_Lifecycle_SelectKeepsTheChosenPieces_DiscardsTheRest_AndUsesNoRecognition()
+    {
+        var (client, auth) = await factory.RegisterAsync();
+        var groupId = await UploadedDraftAsync(client);
+        var pieces = await MakeGroupAsync(auth.TenantId, groupId, 3);
+        var usedBefore = await RecognitionsUsedAsync(client);
+
+        var listed = (await client.GetAsync<ItemDraftsDto>("v1/tenant/item-draft"))!;
+        var group = listed.Drafts.Single(d => d.Id == groupId);
+        Assert.Equal((ItemDraftKind.Outfit, groupId, 3, 1000, 1500), (group.Kind, group.GroupId, group.ItemCount!.Value, group.PhotoWidth!.Value, group.PhotoHeight!.Value));
+        var listedPieces = listed.Drafts.Where(d => d.Kind == ItemDraftKind.Piece).OrderBy(d => d.Index).ToList();
+        Assert.Equal(3, listedPieces.Count);
+        Assert.All(listedPieces, p => Assert.Equal((ItemDraftStatus.Detected, groupId), (p.Status, p.GroupId)));
+        Assert.All(listedPieces, p => Assert.NotNull(p.ImageUrl)); // the plain crop
+        Assert.Equal(new BoundingBox(0.1, 0.1, 0.1, 0.1), listedPieces[1].Box);
+        Assert.Equal(("necklace", 0.5, true), (listedPieces[2].Subcategory, listedPieces[2].Confidence!.Value, listedPieces[2].NeedsReview));
+
+        // A detected piece and the group photo itself are never confirmed directly.
+        var early = await (await client.PostJsonAsync("v1/tenant/item-draft/confirm", Confirm(pieces[0].Id, Ulid.New()))).ReadAsync<ItemCreateResultsDto>();
+        Assert.Equal("draft_not_ready", early.Results[0].Code);
+
+        var select = await client.PostJsonAsync($"v1/tenant/item-draft/{groupId}/select", new
+        {
+            draftIds = new[] { pieces[0].Id, pieces[2].Id },
+            edits = new[] { new { draftId = pieces[2].Id, name = "Altın kolye", category = "accessory", subcategory = "necklace", colorIds = new[] { "beige" }, fabric = (string?)null, seasons = new[] { "spring", "summer", "autumn", "winter" } } },
+        });
+        var body = await select.ReadAsync<StartDraftsDto>();
+        Assert.Equal(HttpStatusCode.Accepted, select.StatusCode);
+        Assert.Equal([pieces[0].Id, pieces[2].Id], body.Drafts.Select(d => d.Id));
+        Assert.All(body.Drafts, d => Assert.Equal((ItemDraftStatus.Processing, true), (d.Status, d.Selected)));
+        Assert.All(body.Jobs, j => Assert.Equal(JobKind.ItemClean, j.Kind));
+        Assert.Equal(2, body.Jobs.Count);
+        var necklace = body.Drafts[1];
+        Assert.Equal(("Altın kolye", false, 4), (necklace.Name, necklace.NeedsReview, necklace.Seasons.Count)); // edited = reviewed
+
+        var cleanEvents = factory.Events.Of<ItemProcessRequestedEvent>(auth.TenantId).Where(e => e.Clean).ToList();
+        Assert.Equal(new[] { pieces[0].Id, pieces[2].Id }.Order(StringComparer.Ordinal), cleanEvents.Select(e => e.DraftId).Order(StringComparer.Ordinal));
+        Assert.All(cleanEvents, e => Assert.Equal(JobKind.ItemClean, e.Kind));
+        // The worker may only read the temporary upload prefix: each kept crop is handed over there.
+        Assert.True(factory.Storage.Objects.ContainsKey(StorageKeys.Upload(auth.TenantId, pieces[0].Id)));
+        Assert.False(factory.Storage.Objects.ContainsKey(StorageKeys.Upload(auth.TenantId, pieces[1].Id)));
+        // The dropped piece is gone with its crop: it never costs an image-model call.
+        Assert.Null(await factory.Repository.GetAsync<ItemDraftEntity>(ItemDraftEntity.GetPk(auth.TenantId), ItemDraftEntity.GetSk(pieces[1].Id)));
+        Assert.False(factory.Storage.Objects.ContainsKey(pieces[1].OriginalKey!));
+        // One recognition for the photo, none for the pieces.
+        Assert.Equal(usedBefore, await RecognitionsUsedAsync(client));
+
+        // Replay: nothing new is queued, nothing selected is discarded.
+        var replay = await (await client.PostJsonAsync($"v1/tenant/item-draft/{groupId}/select", new { draftIds = new[] { pieces[0].Id, pieces[2].Id } })).ReadAsync<StartDraftsDto>();
+        Assert.Equal((2, 0), (replay.Drafts.Count, replay.Jobs.Count));
+
+        // The group photo leaves the list once no piece waits for a choice; its selected pieces stay.
+        var after = (await client.GetAsync<ItemDraftsDto>("v1/tenant/item-draft"))!;
+        Assert.DoesNotContain(after.Drafts, d => d.Id == groupId);
+        Assert.Equal(2, after.Drafts.Count(d => d.Kind == ItemDraftKind.Piece));
+    }
+
+    [Fact]
+    public async Task DraftGroup_SelectErrors_AndDeletingTheGroupTakesItsWaitingPieces()
+    {
+        var (client, auth) = await factory.RegisterAsync();
+        var groupId = await UploadedDraftAsync(client);
+        var single = await UploadedDraftAsync(client);
+        var notYet = await client.PostJsonAsync($"v1/tenant/item-draft/{groupId}/select", new { draftIds = Array.Empty<string>() });
+        var pieces = await MakeGroupAsync(auth.TenantId, groupId, 2);
+
+        var foreign = await client.PostJsonAsync($"v1/tenant/item-draft/{groupId}/select", new { draftIds = new[] { single } });
+        var notGroup = await client.PostJsonAsync($"v1/tenant/item-draft/{single}/select", new { draftIds = Array.Empty<string>() });
+        var unknown = await client.PostJsonAsync($"v1/tenant/item-draft/{Ulid.New()}/select", new { draftIds = Array.Empty<string>() });
+        var invalid = await client.PostJsonAsync($"v1/tenant/item-draft/{groupId}/select", new { draftIds = new[] { "nope" } });
+
+        Assert.Equal((HttpStatusCode.Conflict, "draft_not_group"), (notYet.StatusCode, await notYet.CodeAsync()));
+        Assert.Equal((HttpStatusCode.UnprocessableEntity, "draft_not_in_group"), (foreign.StatusCode, await foreign.CodeAsync()));
+        Assert.Equal((HttpStatusCode.Conflict, "draft_not_group"), (notGroup.StatusCode, await notGroup.CodeAsync()));
+        Assert.Equal((HttpStatusCode.NotFound, "draft_not_found"), (unknown.StatusCode, await unknown.CodeAsync()));
+        Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
+
+        Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync($"v1/tenant/item-draft/{groupId}")).StatusCode);
+        var left = await factory.Repository.GetAllAsync<ItemDraftEntity>(ItemDraftEntity.GetPk(auth.TenantId));
+        Assert.Equal([single], left.Select(d => d.Id));
+        Assert.All(pieces, p => Assert.False(factory.Storage.Objects.ContainsKey(p.OriginalKey!)));
+    }
+
+    [Fact]
+    public async Task DraftGroup_SelectNone_DiscardsEveryPiece_AndRetryOfAFailedCleanupQueuesItAgain()
+    {
+        var (client, auth) = await factory.RegisterAsync();
+        var groupId = await UploadedDraftAsync(client);
+        var pieces = await MakeGroupAsync(auth.TenantId, groupId, 2);
+        await client.PostJsonAsync($"v1/tenant/item-draft/{groupId}/select", new { draftIds = new[] { pieces[0].Id } });
+        var kept = (await factory.Repository.GetAsync<ItemDraftEntity>(ItemDraftEntity.GetPk(auth.TenantId), ItemDraftEntity.GetSk(pieces[0].Id)))!;
+        kept.Status = ItemDraftStatus.Failed;
+        kept.Failure = JobFailure.ProviderError;
+        await factory.Repository.SaveAsync(kept);
+        var usedBefore = await RecognitionsUsedAsync(client);
+
+        var retry = await client.PostAsync($"v1/tenant/item-draft/{pieces[0].Id}/retry", null);
+        var body = await retry.ReadAsync<StartDraftsDto>();
+
+        Assert.Equal(HttpStatusCode.Accepted, retry.StatusCode);
+        Assert.Equal(JobKind.ItemClean, Assert.Single(body.Jobs).Kind);
+        Assert.Equal(usedBefore, await RecognitionsUsedAsync(client));
+        Assert.Null(await factory.Repository.GetAsync<ItemDraftEntity>(ItemDraftEntity.GetPk(auth.TenantId), ItemDraftEntity.GetSk(pieces[1].Id)));
+
+        // A failed cleanup can also be confirmed by hand: its crop is the photo.
+        kept = (await factory.Repository.GetAsync<ItemDraftEntity>(ItemDraftEntity.GetPk(auth.TenantId), ItemDraftEntity.GetSk(pieces[0].Id)))!;
+        kept.Status = ItemDraftStatus.Failed;
+        await factory.Repository.SaveAsync(kept);
+        var confirmed = await (await client.PostJsonAsync("v1/tenant/item-draft/confirm", Confirm(pieces[0].Id, Ulid.New()))).ReadAsync<ItemCreateResultsDto>();
+        Assert.Equal(ItemCreateOutcome.Created, confirmed.Results[0].Outcome);
+        Assert.True(confirmed.Results[0].Item!.UseOriginalImage);
     }
 
     [Fact]

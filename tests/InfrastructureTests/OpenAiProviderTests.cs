@@ -131,7 +131,7 @@ public class OpenAiProviderTests
     {
         Assert.Contains("in English", OpenAiPrompts.GarmentVision("en"));
         Assert.Contains("in Turkish", OpenAiPrompts.GarmentVision(null));
-        Assert.Contains("in English", OpenAiPrompts.OutfitPieces("en-GB"));
+        Assert.Contains("in English", OpenAiPrompts.ItemDetection("en-GB"));
     }
 
     [Fact]
@@ -174,17 +174,36 @@ public class OpenAiProviderTests
     }
 
     [Fact]
-    public async Task DetectPieces_ParsesEveryPiece()
+    public async Task DetectItems_SendsTheImageInHighDetail_AndParsesEveryPieceWithItsBox()
     {
         var (provider, handler) = Create(Chat("""
-            {"pieces":[{"name":"Beyaz gömlek","category":"top","colorIds":["white"],"fabric":"cotton","seasons":["spring"],"confidence":{"category":0.9,"colorIds":0.9,"fabric":0.9,"seasons":0.9}},
-                       {"name":null,"category":"shoes","colorIds":["black"],"fabric":null,"seasons":["autumn"],"confidence":{"category":0.8,"colorIds":0.8,"fabric":0,"seasons":0.8}}]}
+            {"items":[
+              {"name":"Beyaz gömlek","category":"top","subcategory":"shirt","colorIds":["white"],"fabric":"cotton","seasons":["spring"],"isWearable":true,"itemConfidence":0.92,
+               "box":{"left":0.1,"top":0.05,"right":0.6,"bottom":0.5},"confidence":{"category":0.9,"colorIds":0.9,"fabric":0.9,"seasons":0.9}},
+              {"name":"Altın kolye","category":"accessory","subcategory":"necklace","colorIds":["beige"],"fabric":null,"seasons":["spring","summer","autumn","winter"],"isWearable":true,"itemConfidence":0.7,
+               "box":{"left":0.8,"top":0.4,"right":0.7,"bottom":0.3},"confidence":{"category":0.8,"colorIds":0.6,"fabric":0,"seasons":0.8}},
+              {"name":"El","category":null,"subcategory":null,"colorIds":[],"fabric":null,"seasons":[],"isWearable":false,"itemConfidence":0.9,
+               "box":{"left":0,"top":0,"right":0.1,"bottom":0.1},"confidence":{"category":0,"colorIds":0,"fabric":0,"seasons":0}}]}
             """));
 
-        var pieces = await provider.DetectPiecesAsync(Photo, "tr", default);
+        var items = await provider.DetectItemsAsync(Photo, "tr", default);
 
-        Assert.Equal([ItemCategoryHint.Top, ItemCategoryHint.Shoes], pieces.Select(p => p.Category));
-        Assert.Equal("outfit_pieces", JsonNode.Parse(handler.Calls[0].Body)!["response_format"]!["json_schema"]!["name"]!.GetValue<string>());
+        var body = JsonNode.Parse(handler.Calls[0].Body)!;
+        Assert.Equal("item_detection", body["response_format"]!["json_schema"]!["name"]!.GetValue<string>());
+        Assert.Equal("high", body["messages"]![1]!["content"]![1]!["image_url"]!["detail"]!.GetValue<string>());
+        Assert.Contains("jewellery", body["messages"]![0]!["content"]!.GetValue<string>());
+
+        Assert.Equal(3, items.Count); // nothing is dropped while parsing: the guard decides
+        Assert.Equal([ItemCategoryHint.Top, ItemCategoryHint.Accessory, null], items.Select(i => i.Garment.Category));
+        Assert.Equal(new BoundingBox(0.1, 0.05, 0.5, 0.45), items[0].Box with { Width = Math.Round(items[0].Box.Width, 6), Height = Math.Round(items[0].Box.Height, 6) });
+        Assert.Equal("necklace", items[1].Subcategory);
+        Assert.Equal(0.7, items[1].Box.X, 6); // edges given the wrong way round are swapped
+        Assert.Equal(0.3, items[1].Box.Y, 6);
+        Assert.Equal(0.7, items[1].Confidence);
+        Assert.False(items[2].IsWearable);
+
+        var kept = ItemDetectionGuard.Filter(items, 12);
+        Assert.Equal(2, kept.Count);
     }
 
     [Fact]
@@ -278,16 +297,21 @@ public class OpenAiProviderTests
     }
 
     [Fact]
-    public async Task Cleanup_And_ExtractPiece_UseTheImageModel()
+    public async Task Cleanup_And_CleanupItem_UseTheImageModel_OnTheSandBackground()
     {
         var (provider, handler) = Create(Image(Webp));
 
         await provider.CleanupAsync(Photo, default);
-        await provider.ExtractPieceAsync(Photo, new GarmentSuggestion(ItemCategoryHint.Shoes, ["black"], null, [], new Dictionary<string, double>()), default);
+        await provider.CleanupItemAsync(Photo, ItemCategoryHint.Accessory, "necklace", default);
+        await provider.CleanupItemAsync(Photo, ItemCategoryHint.Shoes, null, default);
 
-        Assert.Equal(2, handler.Calls.Count);
+        Assert.Equal(3, handler.Calls.Count);
         Assert.All(handler.Calls, c => Assert.EndsWith("/v1/images/edits", c.Request.RequestUri!.AbsolutePath));
-        Assert.Contains("only the shoes", handler.Calls[1].Body);
+        Assert.Contains("exactly the necklace", handler.Calls[1].Body);
+        Assert.Contains("Jewellery product shot", handler.Calls[1].Body);
+        Assert.Contains(OpenAiPrompts.ProductBackground, handler.Calls[1].Body);
+        Assert.Contains("exactly the shoes", handler.Calls[2].Body);
+        Assert.DoesNotContain("Jewellery", handler.Calls[2].Body);
     }
 
     [Fact]

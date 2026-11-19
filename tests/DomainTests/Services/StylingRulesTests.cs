@@ -719,7 +719,7 @@ public class AiSchemasTests
     [Fact]
     public void EverySchema_IsStrict_AllPropertiesRequired_NoAdditionalProperties()
     {
-        foreach (var schema in new[] { AiSchemas.OutfitSchema(), AiSchemas.WeekSchema(), AiSchemas.PackSchema(), AiSchemas.GarmentSchema(), AiSchemas.OutfitPiecesSchema(), AiSchemas.PaletteSchema() })
+        foreach (var schema in new[] { AiSchemas.OutfitSchema(), AiSchemas.WeekSchema(), AiSchemas.PackSchema(), AiSchemas.GarmentSchema(), AiSchemas.ItemDetectionSchema(), AiSchemas.PaletteSchema() })
             AssertStrict(schema);
     }
 

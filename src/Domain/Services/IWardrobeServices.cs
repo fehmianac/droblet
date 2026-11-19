@@ -40,7 +40,7 @@ public sealed record CreateItemCommand(
 
 public sealed record ItemUploadsCommand(int Count, string ContentType);
 
-/// <param name="SplitOutfit">True = "Kombin fotoğrafından parçaları ayır": each photo is an outfit, pieces become separate drafts.</param>
+/// <param name="SplitOutfit">Legacy and ignored: every AI photo runs the multi-item detection (one piece → a single draft, more → a draft group).</param>
 /// <param name="Manual">
 /// True = no AI: every photo becomes a ready draft without suggestions that the user fills in by hand (no job, no
 /// recognition allowance used). This is how a non-member adds a piece after the free recognitions are used up.
@@ -66,6 +66,19 @@ public sealed record ConfirmDraftCommand(
 
 public sealed record ConfirmDraftsCommand(IReadOnlyList<ConfirmDraftCommand> Items);
 
+/// <summary>The user's values for a detected piece, edited in the form before it was selected (replace the AI suggestion).</summary>
+public sealed record DetectedPieceEdit(
+    string DraftId,
+    string? Name,
+    ItemCategory? Category,
+    string? Subcategory,
+    IReadOnlyList<string>? ColorIds,
+    string? Fabric,
+    IReadOnlyList<Season>? Seasons);
+
+/// <summary>"N parçayı ekle" on a draft group: the pieces to keep (their background removal is queued); every other detected piece is discarded.</summary>
+public sealed record SelectDraftsCommand(IReadOnlyList<string> DraftIds, IReadOnlyList<DetectedPieceEdit>? Edits = null);
+
 public sealed record AddLibraryItemCommand(string ClientMutationId, string LibraryItemId, string? Size = null, string? ItemId = null);
 
 public sealed record AddLibraryItemsCommand(IReadOnlyList<AddLibraryItemCommand> Items);
@@ -88,6 +101,8 @@ public interface IWardrobeService
     Task<ItemDraftsDto> GetDraftsAsync(string tenantId, CancellationToken ct);
     Task<bool> DeleteDraftAsync(string tenantId, string draftId, CancellationToken ct);
     Task<ItemCreateResultsDto> ConfirmDraftsAsync(string tenantId, IReadOnlyList<ConfirmDraftCommand> items, CancellationToken ct);
+    /// <summary>Selection on a draft group: keeps the chosen pieces (one background-removal job each, no recognition), discards the rest.</summary>
+    Task<ServiceResult<StartDraftsDto>> SelectDraftsAsync(string tenantId, string groupId, SelectDraftsCommand command, CancellationToken ct);
 
     Task<IReadOnlyList<LibraryItemDto>> GetLibraryAsync(string tenantId, string? requestLanguage, CancellationToken ct);
     Task<ItemCreateResultsDto> AddFromLibraryAsync(string tenantId, IReadOnlyList<AddLibraryItemCommand> items, string? requestLanguage, CancellationToken ct);

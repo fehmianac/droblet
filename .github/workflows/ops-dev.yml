@@ -2,7 +2,7 @@ name: Ops (dev)
 
 # Operator commands on DEV only (tools/Ops): test premium for a test account, AI end-to-end smoke test, ready-library
 # image generation, Lambda logs. Manual only. The tool refuses prod for account / smoke commands on its own as well.
-#   gh workflow run ops-dev.yml --ref <branch> -f command=ai-smoke
+#   gh workflow run ops-dev.yml --ref <branch> -f command=ai-smoke   (add -f args="--items-only" for the item flows only)
 #   gh workflow run ops-dev.yml --ref <branch> -f command=generate-library-images -f args="--only lib-white-tshirt,lib-navy-blazer"
 #   gh workflow run ops-dev.yml --ref <branch> -f command=migrate-library-item-images -f args="--dry-run"
 

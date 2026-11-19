@@ -102,19 +102,27 @@ export default function ItemAddScreen() {
   const draft = draftId ? drafts.data?.find((d) => d.id === draftId) : undefined;
   const detected = draft?.status === 'ready';
   const failed = draft?.status === 'failed';
+  /** Two or more pieces in the photo: the chooser ("Fotoğrafta N parça bulduk") instead of the form. */
+  const group = detected && draft?.kind === 'group';
+  /** Nothing found ("Bu fotoğrafta parça bulamadık"): the chooser screen explains and offers retry / manual entry. */
+  const empty = failed && draft?.failure === 'guardRejected';
   const busy = phase !== 'idle' || draftId !== null;
 
-  // Recognised → show the pill for a moment, then the review form. Failed or slow → the form takes over.
+  // Recognised → show the pill for a moment, then the review form (one piece) or the chooser (several).
+  // Failed → the form (manual fill) or, when nothing was found, the chooser's empty state. Slow → the
+  // chooser screen waits with its own loading state and opens the form itself for a single piece.
   useEffect(() => {
     if (!draftId) return;
-    const open = () => router.replace({ pathname: '/item/form', params: { draftId } });
+    const toForm = () => router.replace({ pathname: '/item/form', params: { draftId } });
+    const toChooser = () => router.replace({ pathname: '/item/detect', params: { draftId } });
     if (failed) {
-      open();
+      if (empty) toChooser();
+      else toForm();
       return;
     }
-    const timer = setTimeout(open, detected ? DETECTED_MS : RECOGNITION_WAIT_MS);
+    const timer = setTimeout(detected && !group ? toForm : toChooser, detected ? DETECTED_MS : RECOGNITION_WAIT_MS);
     return () => clearTimeout(timer);
-  }, [draftId, detected, failed]);
+  }, [draftId, detected, failed, group, empty]);
 
   // Free AI recognition used up: the paywall opens; this screen stays underneath with "Elle gir".
   const limitReached = () => {
@@ -213,7 +221,9 @@ export default function ItemAddScreen() {
   const close = () => (router.canGoBack() ? router.back() : router.replace('/wardrobe'));
 
   const suggestion = draft?.suggestion;
-  const detectedLine = detected
+  const detectedLine = group
+    ? t('itemDetect.foundPill', { count: draft?.itemCount ?? 2 })
+    : detected
     ? [
         t('itemAdd.detected', { type: suggestion?.subcategory?.trim() || (suggestion?.category ? t(`itemCategory.${suggestion.category}`) : t('itemAdd.detectedPiece')) }),
         suggestion?.color ? t(`itemColor.${suggestion.color}`) : null,

@@ -12,6 +12,7 @@ import { ScreenState } from '@/components/ui/ScreenState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
+import { detectedEdits } from '@/features/wardrobe/detect';
 import { EMPTY_FORM, formFromDraft, formFromItem } from '@/features/wardrobe/form';
 import { ItemForm } from '@/features/wardrobe/ItemForm';
 import { useAddItems, useRetryDraft, useUpdateItem } from '@/features/wardrobe/mutations';
@@ -48,14 +49,14 @@ function EditForm({ itemId }: { itemId: string }) {
   );
 }
 
-function DraftForm({ draftId, from }: { draftId: string; from: string | undefined }) {
+function DraftForm({ draftId, from, startManual }: { draftId: string; from: string | undefined; startManual: boolean }) {
   const { t } = useTranslation();
   const focused = useIsFocused();
   const drafts = useItemDrafts({ enabled: focused });
   const addItems = useAddItems();
   const retry = useRetryDraft();
   // "Elle doldur": stop waiting for the AI and type the fields in.
-  const [manual, setManual] = useState(false);
+  const [manual, setManual] = useState(startManual);
   const draftGone = { message: t('itemForm.draftGone'), actionLabel: t('itemDetail.goneAction'), onAction: () => router.dismissTo('/wardrobe') };
 
   return (
@@ -69,6 +70,26 @@ function DraftForm({ draftId, from }: { draftId: string; from: string | undefine
           addItems.add([{ fields, draftId: draft.id, preview: fields.useOriginalImage ? draft.originalImageUrl : draft.imageUrl, reviewed: true }]);
           leave(from);
         };
+
+        // A piece found in a multi-item photo, not chosen yet: the form only edits it; the chooser adds it.
+        if (draft.status === 'detected') {
+          const saved = detectedEdits.get(draft.id);
+          return (
+            <ItemForm
+              key={`${draft.id}-detected`}
+              mode="draft"
+              initial={saved ? formFromItem(saved) : formFromDraft(draft)}
+              imageUrl={draft.imageUrl}
+              originalImageUrl={draft.originalImageUrl}
+              lowConfidence={saved ? [] : draft.lowConfidence}
+              submitLabel={t('itemDetect.saveEdit')}
+              onSubmit={(fields) => {
+                detectedEdits.set(draft.id, fields);
+                if (router.canGoBack()) router.back();
+              }}
+            />
+          );
+        }
 
         if (draft.status === 'ready' || manual) {
           return (
@@ -134,14 +155,14 @@ function DraftForm({ draftId, from }: { draftId: string; from: string | undefine
  */
 export default function ItemFormScreen() {
   const { t } = useTranslation();
-  const params = useLocalSearchParams<{ draftId?: string; itemId?: string; from?: string; photoUri?: string }>();
+  const params = useLocalSearchParams<{ draftId?: string; itemId?: string; from?: string; photoUri?: string; manual?: string }>();
   // A photo taken before the free AI recognition ran out (402) travels with the manual entry.
   const photoUri = params.photoUri || null;
   const addItems = useAddItems();
 
   let content;
   if (params.itemId) content = <EditForm itemId={params.itemId} />;
-  else if (params.draftId) content = <DraftForm draftId={params.draftId} from={params.from} />;
+  else if (params.draftId) content = <DraftForm draftId={params.draftId} from={params.from} startManual={params.manual === '1'} />;
   else {
     content = (
       <>

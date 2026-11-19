@@ -85,6 +85,7 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | POST | `v1/tenant/item-draft/confirm` | user | [W](wardrobe-looks-plan-stylist.md) | Confirm drafts into wardrobe items |
 | DELETE | `v1/tenant/item-draft/{id}` | user | [W](wardrobe-looks-plan-stylist.md) | Discard an item draft |
 | POST | `v1/tenant/item-draft/{id}/retry` | user | [W](wardrobe-looks-plan-stylist.md) | Retry AI processing of a failed draft |
+| POST | `v1/tenant/item-draft/{id}/select` | user | [W](wardrobe-looks-plan-stylist.md) | Choose the pieces of a draft group to keep |
 | POST | `v1/tenant/item/from-library` | user | [W](wardrobe-looks-plan-stylist.md) | Add pieces from the ready library |
 | POST | `v1/tenant/item/from-product` | user | [W](wardrobe-looks-plan-stylist.md) | Add a catalog product to the wardrobe |
 | POST | `v1/tenant/item/upload-url` | user | [W](wardrobe-looks-plan-stylist.md) | Get presigned uploads for garment photos |

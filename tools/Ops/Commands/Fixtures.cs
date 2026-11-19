@@ -31,6 +31,13 @@ internal sealed class SmokeFixtures(IAmazonS3 s3, OpenAiProvider provider, strin
         "Amateur smartphone photo, taken from above, of a navy blue wool crew-neck sweater lying flat on a light oak wooden floor, " +
         "slightly wrinkled, natural window light, a bit of the floor visible around it. No person, no text, no logos.");
 
+    /// <summary>Multi-item detection: five pieces in one photo, the necklace being the small one that must not be missed.</summary>
+    public static readonly Fixture FlatLay = new("flatlay-5.jpg", "1024x1536",
+        "Amateur smartphone photo, taken from directly above, of a casual women's outfit laid out flat on a light oak wooden floor with space between the pieces: " +
+        "a plain white cotton crew-neck t-shirt at the top left, plain blue straight-leg jeans below it, a pair of white leather sneakers at the bottom right, " +
+        "a black leather tote bag at the middle right, and a thin gold chain necklace with a small pendant lying on the floor at the top right, next to the t-shirt. " +
+        "Every piece fully visible and not overlapping. Natural window light. No person, no hands, no text, no logos.");
+
     public async Task<(byte[] Data, bool Generated)> GetAsync(Fixture fixture, CancellationToken ct)
     {
         var key = Prefix + fixture.Name;

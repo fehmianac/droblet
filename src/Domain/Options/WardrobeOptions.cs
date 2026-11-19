@@ -7,8 +7,10 @@ public sealed class WardrobeOptions
     public const string Section = "Wardrobe";
     /// <summary>Screen 13: at most 30 photos per bulk add.</summary>
     public int MaxBatchUpload { get; set; } = 30;
-    /// <summary>"Kombin fotoğrafından parçaları ayır": at most this many pieces are cut out of one outfit photo.</summary>
+    /// <summary>Legacy (outfit split, replaced by the multi-item detection); kept so the existing SSM JSON still binds.</summary>
     public int MaxSplitPieces { get; set; } = 6;
+    /// <summary>Multi-item detection: at most this many pieces are kept from one photo (the most confident win).</summary>
+    public int MaxDetectedItems { get; set; } = 12;
     /// <summary>Public base URL of the global asset bucket/CDN (library and catalog images). Empty = imageUrl is null for those pieces.</summary>
     public string? PublicAssetBaseUrl { get; set; }
     /// <summary>

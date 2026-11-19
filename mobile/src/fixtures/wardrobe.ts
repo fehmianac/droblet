@@ -115,6 +115,14 @@ export function fixtureListDrafts(): ItemDraft[] {
   return drafts.map(toDraft);
 }
 
+/**
+ * POST v1/tenant/item-draft/{id}/select — fixture drafts never form a group (one suggestion per photo), so
+ * there is nothing to keep or discard; the pieces named stay as they are.
+ */
+export function fixtureSelectDetected(groupId: string, draftIds: string[]): void {
+  if (!drafts.some((d) => d.id === groupId) && draftIds.length > 0) throw new ApiError('http', 404, { status: 404, code: 'draft_not_found' });
+}
+
 /** DELETE v1/tenant/item-draft/{id} */
 export function fixtureDeleteDraft(id: string): void {
   drafts = drafts.filter((d) => d.id !== id);

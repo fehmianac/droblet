@@ -212,7 +212,10 @@ describe('wardrobe wire mappers', () => {
       total: 4,
       processed: 3,
     });
-    expect(list.map((d) => d.id)).toEqual(['d1', 'o2', 'p1']);
+    // A ready group photo is listed only while its pieces wait for the chooser, so it is kept as a group.
+    expect(list.map((d) => d.id)).toEqual(['d1', 'o1', 'o2', 'p1']);
+    expect(list.map((d) => d.kind)).toEqual(['single', 'group', 'group', 'piece']);
+    expect(list[3]?.groupId).toBe('o1');
   });
 
   it('joins look slots with the wardrobe and the catalogue', () => {

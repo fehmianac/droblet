@@ -16,7 +16,7 @@ namespace Infrastructure.Ai;
 /// <summary>
 /// IAiProvider over the OpenAI HTTP API — plain HttpClient, no SDK (owner decision 2026-11-18).
 ///  - text / vision: POST /v1/chat/completions with a strict json_schema response_format (AiSchemas);
-///  - images (cleanup, piece extraction, try-on): POST /v1/images/edits (multipart, b64_json result).
+///  - images (cleanup of a piece's crop, try-on): POST /v1/images/edits (multipart, b64_json result).
 /// Model ids and the API key come only from config (Ai:TextModel, Ai:ImageModel, Ai:ApiKey — SSM SecureString
 /// /droblet/{stage}/worker/Ai) and are re-read on every call, so the kill switch (Ai:Enabled = false) and key
 /// rotation apply without a cold start. Disabled or incomplete config -> AiProviderException -> the worker fails the
@@ -26,7 +26,7 @@ namespace Infrastructure.Ai;
 /// Nothing but ids, status codes and token counts is ever logged — no prompt, no answer, no image, no key.
 /// </summary>
 public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> options, ILogger<OpenAiProvider> logger)
-    : IAiProvider, IImageCleanup, IGarmentVision, ITryOnRenderer, IStylistModel, IPaletteAnalyzer, IOutfitSplitter
+    : IAiProvider, IImageCleanup, IGarmentVision, ITryOnRenderer, IStylistModel, IPaletteAnalyzer, IItemDetector, IItemImageCleanup
 {
     public const string ProviderName = "OpenAI";
     public const string ChatPath = "/v1/chat/completions";
@@ -55,10 +55,10 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
         return OpenAiPayloads.ParseGarment(content);
     }
 
-    public async Task<IReadOnlyList<GarmentSuggestion>> DetectPiecesAsync(ImageInput outfitPhoto, string language, CancellationToken ct)
+    public async Task<IReadOnlyList<DetectedItem>> DetectItemsAsync(ImageInput photo, string language, CancellationToken ct)
     {
-        var content = await ChatAsync(OpenAiPrompts.OutfitPieces(language), "List every separate garment and accessory worn in this photo.", outfitPhoto, AiSchemas.OutfitPieces, AiSchemas.OutfitPiecesSchema(), ct);
-        return OpenAiPayloads.ParsePieces(content);
+        var content = await ChatAsync(OpenAiPrompts.ItemDetection(language), OpenAiPrompts.ItemDetectionRequest, photo, AiSchemas.ItemDetection, AiSchemas.ItemDetectionSchema(), ct, highDetail: true);
+        return OpenAiPayloads.ParseDetection(content);
     }
 
     public async Task<PaletteAnalysis> AnalyzeAsync(ImageInput facePhoto, CancellationToken ct)
@@ -70,8 +70,8 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
     public Task<ImageInput> CleanupAsync(ImageInput garmentPhoto, CancellationToken ct) =>
         EditImageAsync(OpenAiPrompts.Cleanup, [garmentPhoto], ct);
 
-    public Task<ImageInput> ExtractPieceAsync(ImageInput outfitPhoto, GarmentSuggestion piece, CancellationToken ct) =>
-        EditImageAsync(OpenAiPrompts.ExtractPiece(piece), [outfitPhoto], ct);
+    public Task<ImageInput> CleanupItemAsync(ImageInput crop, ItemCategoryHint? category, string? subcategory, CancellationToken ct) =>
+        EditImageAsync(OpenAiPrompts.CleanupItem(category, subcategory), [crop], ct);
 
     public Task<ImageInput> RenderAsync(ImageInput bodyPhoto, IReadOnlyList<ImageInput> garments, CancellationToken ct) =>
         EditImageAsync(OpenAiPrompts.TryOn(garments.Count), [bodyPhoto, .. garments], ct);
@@ -94,10 +94,10 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
 
     // ── HTTP ──────────────────────────────────────────────────────────────────────────────────────────────────────
 
-    private async Task<string> ChatAsync(string system, string userText, ImageInput? image, string schemaName, JsonObject schema, CancellationToken ct)
+    private async Task<string> ChatAsync(string system, string userText, ImageInput? image, string schemaName, JsonObject schema, CancellationToken ct, bool highDetail = false)
     {
         var settings = Require(o => o.TextModel);
-        var body = OpenAiPayloads.ChatRequest(settings.TextModel!, system, userText, image, schemaName, schema);
+        var body = OpenAiPayloads.ChatRequest(settings.TextModel!, system, userText, image, schemaName, schema, highDetail);
         using var request = new HttpRequestMessage(HttpMethod.Post, Url(settings, ChatPath))
         {
             Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json"),
@@ -169,16 +169,16 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
 /// <summary>Request building and response parsing — pure, unit-tested without any network.</summary>
 public static class OpenAiPayloads
 {
-    public static JsonObject ChatRequest(string model, string system, string userText, ImageInput? image, string schemaName, JsonObject schema)
+    /// <param name="highDetail">Vision at full resolution ("detail": "high") — small pieces such as rings need it.</param>
+    public static JsonObject ChatRequest(string model, string system, string userText, ImageInput? image, string schemaName, JsonObject schema, bool highDetail = false)
     {
         var userContent = new JsonArray { new JsonObject { ["type"] = "text", ["text"] = userText } };
         if (image is not null)
         {
-            userContent.Add(new JsonObject
-            {
-                ["type"] = "image_url",
-                ["image_url"] = new JsonObject { ["url"] = $"data:{image.ContentType};base64,{Convert.ToBase64String(image.Data)}" },
-            });
+            var imageUrl = new JsonObject { ["url"] = $"data:{image.ContentType};base64,{Convert.ToBase64String(image.Data)}" };
+            if (highDetail)
+                imageUrl["detail"] = "high";
+            userContent.Add(new JsonObject { ["type"] = "image_url", ["image_url"] = imageUrl });
         }
 
         return new JsonObject
@@ -275,8 +275,19 @@ public static class OpenAiPayloads
         return ToSuggestion(node["garment"] as JsonObject, Bool(node["isGarment"]), Int(node["garmentCount"]));
     }
 
-    public static IReadOnlyList<GarmentSuggestion> ParsePieces(string content) =>
-        (ParseObject(content)["pieces"] as JsonArray ?? []).OfType<JsonObject>().Select(p => ToSuggestion(p, true, 1)).ToList();
+    /// <summary>The detection answer as the guard sees it — nothing is dropped here (ItemDetectionGuard decides).</summary>
+    public static IReadOnlyList<DetectedItem> ParseDetection(string content) =>
+        (ParseObject(content)["items"] as JsonArray ?? []).OfType<JsonObject>().Select(item =>
+        {
+            var box = item["box"] as JsonObject;
+            double left = Number(box?["left"]), top = Number(box?["top"]), right = Number(box?["right"]), bottom = Number(box?["bottom"]);
+            return new DetectedItem(
+                ToSuggestion(item, true, 1),
+                new BoundingBox(Math.Min(left, right), Math.Min(top, bottom), Math.Abs(right - left), Math.Abs(bottom - top)),
+                Text(item["subcategory"]),
+                Number(item["itemConfidence"]),
+                Bool(item["isWearable"]));
+        }).ToList();
 
     public static PaletteAnalysis ParsePalette(string content)
     {
@@ -446,7 +457,9 @@ public static class OpenAiPrompts
 
     public static string GarmentVision(string? language) => GarmentVisionBase + WriteIn(language);
 
-    public static string OutfitPieces(string? language) => OutfitPiecesBase + WriteIn(language);
+    public static string ItemDetection(string? language) => ItemDetectionBase + WriteIn(language);
+
+    public const string ItemDetectionRequest = "List every wearable piece in this photo, jewellery and small accessories included, each with its box.";
 
     private const string GarmentVisionBase =
         "You label one clothing photo for a wardrobe app. Use only the values allowed by the response schema. " +
@@ -454,10 +467,19 @@ public static class OpenAiPrompts
         "colorIds: main colour first, at most 3. name: a short neutral description (max 40 characters). " +
         "confidence: 0..1 per field — be honest, a low value is useful. Leave a field null / empty rather than guessing.";
 
-    private const string OutfitPiecesBase =
-        "You look at one photo of a person wearing an outfit and list each separate garment, pair of shoes, bag and accessory that is clearly visible (at most 6). " +
-        "Use only the values allowed by the response schema; colorIds main colour first; name short and neutral. " +
-        "confidence: 0..1 per field. Do not describe the person.";
+    private const string ItemDetectionBase =
+        "You catalogue one photo for a wardrobe app. List EVERY distinct wearable piece that is visible: garments (tops, shirts, knitwear, trousers, jeans, skirts, " +
+        "dresses, outerwear), shoes, bags, belts, hats, scarves, sunglasses, watches, gloves and jewellery (rings, necklaces, earrings, bracelets, brooches). " +
+        "Look carefully for small pieces — jewellery, watches, sunglasses, belts — also when they lie on top of or next to a garment, and for pieces that are only partly visible. " +
+        "Each piece is listed exactly once: a pair (shoes, earrings, gloves, socks) is one piece; do not list parts of a piece (a collar, a sleeve, a strap, a buckle, a pendant) separately. " +
+        "Never list people, faces, hands, skin, hair or other body parts, mannequins, hangers, furniture, packaging or the background; if a person wears the pieces, list only the pieces " +
+        "and never describe the person. isWearable is false for anything that is not a wearable piece. " +
+        "category: wardrobe category from the schema — jewellery, watches, belts, hats, scarves, sunglasses and gloves are accessory. subcategory: the closest sub-type id from the schema, or null. " +
+        "box: a tight box around the visible piece; left and right are fractions of the image width measured from the left edge, top and bottom are fractions of the image height measured " +
+        "from the top edge (0..1). colorIds: main colour first, at most 3. fabric: the main material when it is one of the schema values, else null. " +
+        "seasons: when the piece is typically worn (accessories and jewellery usually all four). name: a short neutral description of the piece (max 40 characters). " +
+        "itemConfidence: 0..1, how sure you are that the box holds one real, separate wearable piece; confidence: 0..1 per field. Be honest — a low value is useful. " +
+        "At most 12 pieces. Return an empty list when the photo shows no wearable piece.";
 
     public const string Palette =
         "You are a colour analyst. From one face photo choose the seasonal colour type that fits best, only from the ids allowed by the response schema. " +
@@ -473,8 +495,19 @@ public static class OpenAiPrompts
         "Show the same person, with the same face, hair, skin tone, body shape and pose, wearing exactly these garments, keeping each garment's colour, pattern and cut. " +
         "Realistic fit and proportions, neutral studio background, full body in frame. Do not change the person's body. No text.";
 
-    public static string ExtractPiece(GarmentSuggestion piece) =>
-        $"From this outfit photo create a product photo of only the {piece.Category?.ToString().ToLowerInvariant() ?? "garment"}" +
-        (piece.ColorIds.Count > 0 ? $" (main colour: {piece.ColorIds[0]})" : "") +
-        ": the piece alone, laid flat or as a ghost mannequin, true colours, pattern and shape, plain off-white background, no person, no other clothing, no text.";
+    /// <summary>House background of product images (the ready library uses the same sand tone).</summary>
+    public const string ProductBackground = "#E8E1D7";
+
+    /// <summary>Background removal of one piece's crop: only that piece, on the sand house background; jewellery shown large and sharp.</summary>
+    public static string CleanupItem(ItemCategoryHint? category, string? subcategory)
+    {
+        var piece = subcategory?.Replace('-', ' ') ?? category?.ToString().ToLowerInvariant() ?? "piece";
+        var jewellery = SubcategoryCatalog.IsJewellery(subcategory);
+        return $"Product photo of exactly the {piece} in this image, alone: remove the background and everything that is not this {piece} " +
+               "(other clothing, other accessories, hands, skin, body, hangers, props). Keep its true colours, pattern, material, details and shape; do not redesign it. " +
+               (jewellery
+                   ? "Jewellery product shot: the piece large, sharp and centred, filling about 70% of the frame, metal and stones with their true colour and shine. "
+                   : "Centred, the whole piece visible with even margins, natural shape (laid flat or as a ghost mannequin for garments, a pair side by side for shoes). ") +
+               $"Seamless solid sand-coloured studio background, exact colour {ProductBackground}, soft even light, a very subtle contact shadow, no person, no text, no logos.";
+    }
 }

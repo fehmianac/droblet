@@ -24,7 +24,8 @@ import {
   type ItemSeason,
 } from '../contracts/wardrobe';
 import { fetchProductWires, toMoney, type ProductWire } from './catalog';
-import type { JobWire, PresignedPostWire } from './core';
+import type { JobFailureWire, JobWire, PresignedPostWire } from './core';
+import { toSubcategoryId, toSubcategoryLabel } from './subcategories';
 
 // ---------- items ----------
 
@@ -388,7 +389,8 @@ export function fromItemFields(fields: ItemFieldsLike, previousColorIds?: string
   return {
     name: fields.name,
     category: fields.category,
-    subcategory: fields.subcategory?.trim().slice(0, SUBCATEGORY_MAX) || null,
+    // A sub-type shown by its name ("Kolye") goes back as its id ("necklace").
+    subcategory: toSubcategoryId(fields.subcategory)?.slice(0, SUBCATEGORY_MAX) || null,
     colorIds,
     colorHex: colorIds[0] === 'other' ? normalizeColorHex(fields.colorHex) : null,
     // Nothing the user typed is dropped: a known fabric goes as its id, anything else as free text.
@@ -420,8 +422,10 @@ export type ItemUploadsWire = { uploads: PresignedPostWire[] };
 export type ItemDraftWire = {
   /** = the `uploadId` of the photo. */
   id: string;
+  /** `outfit` = the photo of a draft group (two or more pieces found in it). */
   kind: 'single' | 'outfit' | 'piece';
-  status: 'uploaded' | 'processing' | 'ready' | 'failed';
+  /** `detected` = a piece of a group waiting for the user's selection (its image is the plain crop). */
+  status: 'uploaded' | 'processing' | 'ready' | 'failed' | 'detected';
   jobId: string | null;
   parentDraftId: string | null;
   /** Cleaned image, or the original while processing / failed. */
@@ -439,6 +443,17 @@ export type ItemDraftWire = {
   needsReview: boolean;
   language: string | null;
   createdAt: string;
+  /** Suggested sub-type id (e.g. `necklace`). */
+  subcategory?: string | null;
+  groupId?: string | null;
+  box?: { x: number; y: number; width: number; height: number } | null;
+  index?: number | null;
+  confidence?: number | null;
+  selected?: boolean;
+  itemCount?: number | null;
+  photoWidth?: number | null;
+  photoHeight?: number | null;
+  failure?: JobFailureWire | null;
 };
 
 /** GET v1/tenant/item-draft */
@@ -458,21 +473,34 @@ export type CreateItemDraftsResultWire = {
 const FLAGGED: Record<string, DraftField> = { category: 'category', colorIds: 'color', fabric: 'fabric', seasons: 'seasons', name: 'name' };
 
 export function toItemDraft(wire: ItemDraftWire): ItemDraft {
-  const ready = wire.status === 'ready';
+  // A detected piece already carries its suggestion: the chooser shows it and the form edits it.
+  const ready = wire.status === 'ready' || wire.status === 'detected';
   const lowConfidence = [...new Set((wire.flaggedFields ?? []).map((f) => FLAGGED[f]).filter((f): f is DraftField => Boolean(f)))];
   if (wire.needsReview && !lowConfidence.includes('category')) lowConfidence.unshift('category');
   const suggestion: ItemDraft['suggestion'] = ready
     ? {
         ...(wire.name ? { name: wire.name } : {}),
         ...(wire.category ? { category: wire.category } : {}),
+        ...(wire.subcategory ? { subcategory: toSubcategoryLabel(wire.subcategory) } : {}),
         ...(wire.colorIds && wire.colorIds.length > 0 ? { color: toItemColor(wire.colorIds[0]), colorIds: wire.colorIds } : {}),
         ...(wire.fabric ? { fabric: toFabricLabel(wire.fabric) } : {}),
         ...(wire.seasons && wire.seasons.length > 0 ? { seasons: wire.seasons } : {}),
       }
     : null;
+  const status: ItemDraft['status'] =
+    wire.status === 'detected' ? 'detected' : wire.status === 'ready' ? 'ready' : wire.status === 'failed' ? 'failed' : 'processing';
   return {
     id: wire.id,
-    status: ready ? 'ready' : wire.status === 'failed' ? 'failed' : 'processing',
+    status,
+    kind: wire.kind === 'outfit' ? 'group' : wire.kind,
+    groupId: wire.groupId ?? (wire.kind === 'piece' ? wire.parentDraftId : null),
+    box: wire.box ?? null,
+    index: wire.index ?? null,
+    confidence: wire.confidence ?? null,
+    selected: wire.selected ?? false,
+    itemCount: wire.itemCount ?? null,
+    photoSize: wire.photoWidth && wire.photoHeight ? { width: wire.photoWidth, height: wire.photoHeight } : null,
+    failure: wire.failure ?? null,
     requestId: wire.jobId ?? wire.parentDraftId ?? '',
     imageUrl: wire.imageUrl ?? wire.originalImageUrl,
     originalImageUrl: wire.originalImageUrl,
@@ -481,9 +509,13 @@ export function toItemDraft(wire: ItemDraftWire): ItemDraft {
   };
 }
 
-/** The outfit photo of a split is only the source of its `piece` drafts — once split it is never confirmed itself. */
+/**
+ * Every draft, group photos included: the server lists a group photo only while some of its pieces still
+ * wait for the user's choice (the chooser draws their boxes on it). Lists of confirmable drafts filter
+ * with `isReviewable` (features/wardrobe/detect).
+ */
 export function toItemDrafts(wire: ItemDraftsWire): ItemDraft[] {
-  return wire.drafts.filter((d) => !(d.kind === 'outfit' && d.status === 'ready')).map(toItemDraft);
+  return wire.drafts.map(toItemDraft);
 }
 
 /** One row of POST v1/tenant/item-draft/confirm. The new item id is `itemId ?? clientMutationId`. */

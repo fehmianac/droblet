@@ -81,6 +81,8 @@ type Props = {
   lowConfidence?: DraftField[];
   /** Manual entry with the user's own, unprocessed photo (kept when the free AI recognition ran out). */
   unprocessedPhoto?: boolean;
+  /** Replaces "Gardıroba kaydet" (a detected piece is only edited here; it is added from the chooser). */
+  submitLabel?: string;
   onSubmit: (fields: ItemFields) => void;
 };
 
@@ -97,6 +99,7 @@ export function ItemForm({
   hasOriginalImage = false,
   lowConfidence = [],
   unprocessedPhoto = false,
+  submitLabel,
   onSubmit,
 }: Props) {
   const { t } = useTranslation();
@@ -261,7 +264,7 @@ export function ItemForm({
       <BottomActionBar>
         <Button
           size="lg"
-          label={t(mode === 'edit' ? 'itemForm.saveEdit' : 'itemForm.save')}
+          label={submitLabel ?? t(mode === 'edit' ? 'itemForm.saveEdit' : 'itemForm.save')}
           onPress={submit}
           disabled={noSeason}
           accessibilityHint={noSeason ? t('itemForm.errors.seasonRequired') : undefined}

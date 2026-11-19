@@ -39,6 +39,7 @@ import {
   fixtureDeleteItem,
   fixturePutItem,
   fixtureRetryDraft,
+  fixtureSelectDetected,
 } from '@/fixtures/wardrobe';
 import { ulid } from '@/lib/ids';
 import { newClientMutation, type ClientMutationMeta } from '@/sync/clientMutation';
@@ -46,6 +47,7 @@ import { conflictStore } from '@/sync/conflicts';
 import { postToPresigned } from '@/sync/photoUpload';
 import { TENANT_WRITE_SCOPE } from '@/sync/queryKeys';
 
+import { detectedEdits } from './detect';
 import { fieldsOf } from './form';
 import { wardrobeKeys } from './queries';
 
@@ -477,6 +479,39 @@ export function useStartItemDrafts() {
     /** "Elle gir" with a photo: no AI and no allowance, the drafts are ready at once with empty fields. */
     startManual: (localUris: string[]) => m.mutateAsync({ requestId: ulid(), localUris, splitOutfit: false, manual: true }),
   };
+}
+
+export type SelectDetectedVariables = { groupId: string; draftIds: string[] };
+
+/** One `edits` row of the selection: the user's values for a piece edited in 12c before it was kept. */
+export function toDetectedEditWire(draftId: string, fields: ItemFields) {
+  const wire = fromItemFields(fields);
+  return { draftId, name: wire.name, category: wire.category, subcategory: wire.subcategory, colorIds: wire.colorIds, fabric: wire.fabric, seasons: wire.seasons };
+}
+
+/**
+ * "N parçayı ekle" in the chooser: `POST v1/tenant/item-draft/{groupId}/select { draftIds, edits }` → 202.
+ * The kept pieces go to background removal (no recognition is used); every other piece of the photo is
+ * discarded on the server. Needs a connection (not queued) — the screen checks first.
+ */
+export function useSelectDetected() {
+  const client = useQueryClient();
+  return useMutation<void, unknown, SelectDetectedVariables>({
+    mutationFn: (vars) =>
+      fromSource<void>(
+        'wardrobe',
+        () => fixtureSelectDetected(vars.groupId, vars.draftIds),
+        async () => {
+          const edits = vars.draftIds.flatMap((id) => {
+            const fields = detectedEdits.get(id);
+            return fields ? [toDetectedEditWire(id, fields)] : [];
+          });
+          await apiRequest<unknown>(`v1/tenant/item-draft/${vars.groupId}/select`, { method: 'POST', body: { draftIds: vars.draftIds, edits } });
+        },
+      ),
+    onSuccess: (_data, vars) => detectedEdits.clear(vars.draftIds),
+    onSettled: () => void client.invalidateQueries({ queryKey: wardrobeKeys.drafts }),
+  });
 }
 
 /** "Tekrar dene" on a failed draft. Needs a connection (not queued). */

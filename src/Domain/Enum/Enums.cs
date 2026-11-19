@@ -12,7 +12,7 @@ public enum ClosetVisibility { Public, FollowersOnly, Private }
 
 public enum PhotoKind { Body, Face }
 
-public enum JobKind { ItemProcess, StylistOutfit, StylistWeek, StylistPack, StylistComplete, TryOn, Palette, ItemSplit }
+public enum JobKind { ItemProcess, StylistOutfit, StylistWeek, StylistPack, StylistComplete, TryOn, Palette, ItemSplit, ItemClean }
 
 public enum JobStatus { Queued, Processing, Completed, Failed }
 

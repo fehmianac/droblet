@@ -169,7 +169,8 @@ public sealed class WardrobeService(
         }
 
         var jobs = new List<JobEntity>();
-        var kind = command.SplitOutfit ? JobKind.ItemSplit : JobKind.ItemProcess;
+        // Every photo runs the same multi-item detection; the legacy splitOutfit flag changes nothing any more.
+        const JobKind kind = JobKind.ItemProcess;
         var language = await LanguageAsync(tenantId, requestLanguage, ct);
         for (var index = 0; index < grant.Granted && index < pending.Count; index++)
         {
@@ -182,7 +183,7 @@ public sealed class WardrobeService(
             {
                 Id = upload.UploadId,
                 TenantId = tenantId,
-                Kind = command.SplitOutfit ? ItemDraftKind.Outfit : ItemDraftKind.Single,
+                Kind = ItemDraftKind.Single, // becomes a group (Outfit) when the worker finds two or more pieces
                 Status = ItemDraftStatus.Uploaded,
                 RequestId = command.RequestId,
                 Language = language,
@@ -200,7 +201,7 @@ public sealed class WardrobeService(
                 continue;
             }
 
-            await events.PublishAsync(new ItemProcessRequestedEvent(tenantId, jobId, draft.Id, command.SplitOutfit), ct);
+            await events.PublishAsync(new ItemProcessRequestedEvent(tenantId, jobId, draft.Id), ct);
             drafts.Add(draft);
             jobs.Add(job);
         }
@@ -272,9 +273,17 @@ public sealed class WardrobeService(
         var draft = await GetDraftAsync(tenantId, draftId, ct);
         if (draft is null)
             return ServiceResult.NotFound<StartDraftsDto>(ErrorCodes.DraftNotFound);
-        // Pieces cut out of an outfit photo have no photo of their own; the outfit source is what gets retried.
-        if (draft.Status != ItemDraftStatus.Failed || draft.Kind == ItemDraftKind.Piece)
+        if (draft.Status != ItemDraftStatus.Failed)
             return ServiceResult.Conflict<StartDraftsDto>(null, ErrorCodes.DraftNotFailed);
+        // A selected piece whose background removal failed: the removal runs again on its crop (no recognition is used).
+        if (draft.Kind == ItemDraftKind.Piece)
+        {
+            if (!draft.Selected || Owned(draft.OriginalKey, tenantId) is null)
+                return ServiceResult.Conflict<StartDraftsDto>(null, ErrorCodes.DraftNotFailed);
+            var cleanJob = await QueueCleanAsync(tenantId, draft, ct);
+            return ServiceResult.Accepted(new StartDraftsDto([await ToDtoAsync(draft, ct)], [cleanJob.ToDto()], 0, [],
+                (await itemRecognition.GetAsync(tenantId, ct)).ToDto()));
+        }
 
         var uploadKey = StorageKeys.Upload(tenantId, draft.Id);
         if (await storage.HeadAsync(uploadKey, ct) is null)
@@ -297,8 +306,8 @@ public sealed class WardrobeService(
                 : ServiceResult.PaymentRequired<StartDraftsDto>(ErrorCodes.ItemRecognitionLimitReached);
         }
 
-        var split = draft.Kind == ItemDraftKind.Outfit;
-        var job = new JobEntity { Id = jobId, TenantId = tenantId, Kind = split ? JobKind.ItemSplit : JobKind.ItemProcess, Status = JobStatus.Queued, CreatedAt = now, UpdatedAt = now };
+        var job = new JobEntity { Id = jobId, TenantId = tenantId, Kind = JobKind.ItemProcess, Status = JobStatus.Queued, CreatedAt = now, UpdatedAt = now };
+        draft.Kind = ItemDraftKind.Single;
         draft.Status = ItemDraftStatus.Uploaded;
         draft.JobId = jobId;
         draft.Language = await LanguageAsync(tenantId, requestLanguage, ct);
@@ -309,10 +318,15 @@ public sealed class WardrobeService(
         draft.Seasons = [];
         draft.FlaggedFields = [];
         draft.NeedsReview = false;
+        draft.Subcategory = null;
+        draft.Box = null;
+        draft.Confidence = null;
+        draft.ItemCount = null;
+        draft.Failure = null;
         draft.UpdatedAt = now;
 
         await repository.TransactWriteAsync([TransactWriteOperation.Put(draft), TransactWriteOperation.Put(job)], ct);
-        await events.PublishAsync(new ItemProcessRequestedEvent(tenantId, jobId, draft.Id, split), ct);
+        await events.PublishAsync(new ItemProcessRequestedEvent(tenantId, jobId, draft.Id), ct);
         logger.LogInformation("Retry: queued item {Kind} job {JobId} for tenant {TenantId}", job.Kind, jobId, tenantId);
 
         return ServiceResult.Accepted(new StartDraftsDto([await ToDtoAsync(draft, ct)], [job.ToDto()], 0, [],
@@ -323,9 +337,11 @@ public sealed class WardrobeService(
     {
         var drafts = await repository.GetAllAsync<ItemDraftEntity>(ItemDraftEntity.GetPk(tenantId), ct);
         var sources = drafts.Where(d => d.Kind != ItemDraftKind.Piece).ToList();
+        var awaitingSelection = drafts.Where(d => d is { Kind: ItemDraftKind.Piece, Status: ItemDraftStatus.Detected }).Select(d => d.ParentDraftId).ToHashSet();
         var visible = drafts
-            // A split outfit photo is only shown while it is being processed (or failed); afterwards its pieces are.
-            .Where(d => d.Kind != ItemDraftKind.Outfit || d.Status != ItemDraftStatus.Ready)
+            // A group photo is shown while it is processed (or failed) and while pieces still wait for the user's selection
+            // (the chooser draws their boxes on it); afterwards only its pieces are.
+            .Where(d => d.Kind != ItemDraftKind.Outfit || d.Status != ItemDraftStatus.Ready || awaitingSelection.Contains(d.Id))
             .OrderBy(d => d.CreatedAt).ThenBy(d => d.Id, StringComparer.Ordinal);
 
         var dtos = new List<ItemDraftDto>();
@@ -340,13 +356,99 @@ public sealed class WardrobeService(
         if (draft is null)
             return false;
 
+        // A group photo takes its pieces that still wait for the user's selection with it (selected ones live on).
+        if (draft.Kind == ItemDraftKind.Outfit)
+        {
+            var pieces = await repository.GetAllAsync<ItemDraftEntity>(ItemDraftEntity.GetPk(tenantId), ct);
+            foreach (var piece in pieces.Where(p => p.ParentDraftId == draft.Id && p.Status == ItemDraftStatus.Detected))
+                await DiscardDraftAsync(tenantId, piece, ct);
+        }
+        await DiscardDraftAsync(tenantId, draft, ct);
+        return true;
+    }
+
+    private async Task DiscardDraftAsync(string tenantId, ItemDraftEntity draft, CancellationToken ct)
+    {
         foreach (var key in new[] { draft.OriginalKey, draft.ProcessedKey, StorageKeys.Upload(tenantId, draft.Id) })
         {
             if (key is not null && StorageKeys.BelongsToTenant(key, tenantId))
                 await storage.DeleteAsync(key, ct);
         }
         await repository.DeleteAsync(draft.Pk, draft.Sk, ct);
-        return true;
+    }
+
+    /// <summary>
+    /// "N parçayı ekle" on a draft group. Kept pieces get one background-removal job each (no recognition: the photo already
+    /// used its one); the other detected pieces are discarded with their crops, so they never cost an image-model call.
+    /// Idempotent: a piece selected before keeps its job, and a replay discards nothing that is still selected.
+    /// </summary>
+    public async Task<ServiceResult<StartDraftsDto>> SelectDraftsAsync(string tenantId, string groupId, SelectDraftsCommand command, CancellationToken ct)
+    {
+        var decision = await entitlements.CheckAsync(tenantId, Capability.ItemProcessing, ct);
+        if (!decision.Allowed)
+            return ServiceResult.Forbidden<StartDraftsDto>(decision.Reason ?? ErrorCodes.PremiumRequired);
+
+        var group = await GetDraftAsync(tenantId, groupId, ct);
+        if (group is null)
+            return ServiceResult.NotFound<StartDraftsDto>(ErrorCodes.DraftNotFound);
+        if (group is not { Kind: ItemDraftKind.Outfit, Status: ItemDraftStatus.Ready })
+            return ServiceResult.Conflict<StartDraftsDto>(null, ErrorCodes.DraftNotGroup);
+
+        var pieces = (await repository.GetAllAsync<ItemDraftEntity>(ItemDraftEntity.GetPk(tenantId), ct))
+            .Where(d => d.Kind == ItemDraftKind.Piece && d.ParentDraftId == groupId)
+            .ToDictionary(d => d.Id, StringComparer.Ordinal);
+        var chosen = command.DraftIds.Distinct(StringComparer.Ordinal).ToList();
+        if (chosen.Any(id => !pieces.ContainsKey(id)))
+            return ServiceResult.Invalid<StartDraftsDto>(ErrorCodes.DraftNotInGroup);
+
+        var edits = (command.Edits ?? []).GroupBy(e => e.DraftId, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.Last(), StringComparer.Ordinal);
+        var kept = new List<ItemDraftEntity>();
+        var jobs = new List<JobEntity>();
+        foreach (var id in chosen)
+        {
+            var piece = pieces[id];
+            if (piece.Status == ItemDraftStatus.Detected)
+            {
+                if (edits.TryGetValue(id, out var edit))
+                    ItemDraftRules.ApplyEdit(piece, edit);
+                jobs.Add(await QueueCleanAsync(tenantId, piece, ct));
+            }
+            kept.Add(piece);
+        }
+
+        var discarded = 0;
+        foreach (var piece in pieces.Values.Where(p => p.Status == ItemDraftStatus.Detected && !chosen.Contains(p.Id, StringComparer.Ordinal)))
+        {
+            await DiscardDraftAsync(tenantId, piece, ct);
+            discarded++;
+        }
+
+        logger.LogInformation("Draft group {GroupId} of tenant {TenantId}: {Kept} piece(s) kept ({Jobs} cleanup job(s)), {Discarded} discarded",
+            groupId, tenantId, kept.Count, jobs.Count, discarded);
+        var dtos = new List<ItemDraftDto>();
+        foreach (var piece in kept.OrderBy(p => p.Index))
+            dtos.Add(await ToDtoAsync(piece, ct));
+        return ServiceResult.Accepted(new StartDraftsDto(dtos, jobs.Select(j => j.ToDto()).ToList(), 0, [], (await itemRecognition.GetAsync(tenantId, ct)).ToDto()));
+    }
+
+    /// <summary>Background removal of one selected piece: an ItemClean job (never counted against the recognition allowance).</summary>
+    private async Task<JobEntity> QueueCleanAsync(string tenantId, ItemDraftEntity piece, CancellationToken ct)
+    {
+        // The worker reads photos only from the temporary upload prefix (least privilege): the crop is handed over there,
+        // exactly like a retry restores a photo. A missing crop makes the job fail with sourceDeleted.
+        if (Owned(piece.OriginalKey, tenantId) is { } cropKey && await storage.ReadAsync(cropKey, photoOptions.CurrentValue.MaxUploadBytes, ct) is { } crop)
+            await storage.PutAsync(StorageKeys.Upload(tenantId, piece.Id), crop, "image/jpeg", ct);
+
+        var now = Now;
+        var job = new JobEntity { Id = Ulid.New(now), TenantId = tenantId, Kind = JobKind.ItemClean, Status = JobStatus.Queued, CreatedAt = now, UpdatedAt = now };
+        piece.Selected = true;
+        piece.Status = ItemDraftStatus.Processing;
+        piece.Failure = null;
+        piece.JobId = job.Id;
+        piece.UpdatedAt = now;
+        await repository.TransactWriteAsync([TransactWriteOperation.Put(piece), TransactWriteOperation.Put(job)], ct);
+        await events.PublishAsync(new ItemProcessRequestedEvent(tenantId, job.Id, piece.Id, Clean: true), ct);
+        return job;
     }
 
     public async Task<ItemCreateResultsDto> ConfirmDraftsAsync(string tenantId, IReadOnlyList<ConfirmDraftCommand> items, CancellationToken ct)
@@ -591,9 +693,16 @@ public sealed class WardrobeService(
     {
         var (processedUrl, expires) = await ReadUrlAsync(draft.ProcessedKey, draft.TenantId, ct);
         var (originalUrl, originalExpires) = await ReadUrlAsync(draft.OriginalKey, draft.TenantId, ct);
+        var groupId = draft.Kind switch
+        {
+            ItemDraftKind.Piece => draft.ParentDraftId,
+            ItemDraftKind.Outfit => draft.Id,
+            _ => null,
+        };
         return new ItemDraftDto(draft.Id, draft.Kind, draft.Status, draft.JobId, draft.ParentDraftId, processedUrl ?? originalUrl, originalUrl,
             expires ?? originalExpires, draft.Name, draft.Category, draft.ColorIds, draft.Fabric, draft.Seasons, draft.FlaggedFields,
-            draft.NeedsReview, draft.Language, draft.CreatedAt);
+            draft.NeedsReview, draft.Language, draft.CreatedAt, draft.Subcategory, groupId, draft.Box, draft.Index, draft.Confidence,
+            draft.Selected, draft.ItemCount, draft.PhotoWidth, draft.PhotoHeight, draft.Failure);
     }
 
     /// <summary>Presigned GET only after the key is proven to sit under the caller's own prefix (rule 14).</summary>

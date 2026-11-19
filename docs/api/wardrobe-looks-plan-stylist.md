@@ -43,8 +43,9 @@ The only prose the API returns is (a) AI-generated text and (b) reference names.
 | `Season` | `spring`, `summer`, `autumn`, `winter` |
 | `ItemSource` | `photo`, `library`, `purchase`, `manual` (typed in without a photo) |
 | `ItemListingStatus` | `none` (phase 1 always), `forSale`, `forRent`, `sold`, `rented` (reserved for phase 2) |
-| `ItemDraftStatus` | `uploaded`, `processing`, `ready`, `failed` |
-| `ItemDraftKind` | `single`, `outfit` (source photo of a split), `piece` (cut out of an outfit photo) |
+| `ItemDraftStatus` | `uploaded`, `processing`, `ready`, `failed`, `detected` (a piece of a draft group waiting for the user's selection; its image is the plain crop) |
+| `ItemDraftKind` | `single` (one piece found, or a manual entry), `outfit` (the photo of a **draft group**: two or more pieces were found in it), `piece` (one piece of a group, `parentDraftId` = `groupId` = the group photo) |
+| Sub-type ids (`subcategory`) the AI suggests | tops `t-shirt` `shirt` `blouse` `sweater` `cardigan` `hoodie` `tank-top` `top` · bottoms `jeans` `trousers` `skirt` `shorts` `leggings` · `dress` `jumpsuit` · outerwear `blazer` `jacket` `coat` `trench-coat` `puffer` `vest` · shoes `sneakers` `boots` `ankle-boots` `heels` `flats` `sandals` `loafers` · bags `handbag` `tote` `shoulder-bag` `crossbody` `clutch` `backpack` · accessories `belt` `hat` `cap` `beanie` `scarf` `sunglasses` `glasses` `watch` `gloves` `tie` `hair-accessory` · jewellery (category `accessory`) `ring` `necklace` `earrings` `bracelet` `brooch` `anklet` · beachwear `bikini` `swimsuit` `kaftan` · skiwear `ski-jacket` `ski-pants` (`SubcategoryCatalog`; the form still accepts any valid id) |
 | `ItemCreateOutcome` | `created`, `alreadyApplied`, `rejected` |
 | `OutfitSlot` | `top`, `bottom`, `outerwear`, `shoes`, `bagAccessory` |
 | `Occasion` | `office`, `dinner`, `weekend`, `wedding`, `travel`, `sport` — there is no separate `evening`: the design's short label "Akşam" (Looklar filter, look tags) and "Akşam yemeği" (Stilist chips, week summary) are the same occasion and never appear side by side, so the app maps its `evening` key to `dinner` (`mobile/src/api/wire/wardrobe.ts`, tested) |
@@ -144,7 +145,19 @@ Validation codes (400 `errors`): `category_required`, `color_required`, `color_u
    ```
    **AI recognition allowance (non-members).** A non-member has a lifetime number of AI recognitions (`Entitlements:Free:ItemRecognitionLimit`, default 10; `GET v1/tenant/entitlement` → `itemRecognition`). Every photo of a single, bulk or split request uses one **when its job completes**; a job that fails (`providerError`, `guardRejected`, `sourceDeleted`, …) uses none. A bulk request above what is left processes the first photos and returns the rest in `skippedCount` / `skippedUploadIds` (those uploads are untouched). Nothing left → **402 `item_recognition_limit_reached`** (show the paywall); limit configured as 0 → **403 `premium_required`** (kept as documented; the app treats both as the paywall, and `GET v1/tenant/entitlement` reports a 0 limit exactly like an exhausted one: `{ "limit": 0, "used": 0, "remaining": 0 }`). The free limit is 10 (`Entitlements:Free:ItemRecognitionLimit` in `api/Entitlements` and `worker/Entitlements`). Members: unlimited (`limit` / `remaining` are `null`).
    **Manual entry.** `"manual": true` uses no AI and no allowance: each photo becomes a draft that is immediately `ready`, without suggestions and without a job (`jobId: null`); the user fills the form and confirms it as usual. Use it after a 402, or for the skipped uploads.
-   One draft (id = `uploadId`) and one job per photo; with a single photo the job id is `requestId`. `splitOutfit: true` = "Kombin fotoğrafından parçaları ayır": each photo is an outfit, its pieces come back as separate drafts (`kind: "piece"`, `parentDraftId`), at most 6 per photo.
+   One draft (id = `uploadId`) and one job per photo; with a single photo the job id is `requestId`.
+   **Multi-item detection (every AI photo, single and bulk).** One vision call per photo lists every wearable piece in it —
+   garments, shoes, bags, belts, hats, scarves, sunglasses, watches and jewellery (rings, necklaces, earrings, bracelets) — with
+   category, sub-type, colours, material, seasons, a name in the user's language, a confidence and a normalised box. The server
+   drops non-wearables (people, faces, body parts are never pieces), boxes that are invalid or smaller than 2 % of a side,
+   duplicates of a kept piece, and keeps at most `Wardrobe:MaxDetectedItems` (12), numbered in reading order. Then:
+   - **nothing found** → the draft is `failed` with `failure: "guardRejected"` ("Bu fotoğrafta parça bulamadık": retry or manual entry; no recognition used);
+   - **one piece** → as before: the draft stays `kind: "single"`, its crop (the whole photo when the piece fills it) gets its background removed, it is `ready` with the suggestion → the review form;
+   - **two or more** → the draft becomes a **draft group** (`kind: "outfit"`, `status: "ready"`, `itemCount`, `photoWidth` / `photoHeight`) and each piece a draft
+     `{ kind: "piece", status: "detected", groupId, parentDraftId, index, box, confidence, subcategory, … }` whose `imageUrl` is the plain crop of the EXIF-stripped photo
+     (padded; jewellery and other small pieces get a wide, upscaled crop). **No image-model call happens before the user selects** (step 3b).
+   Cost per photo: 1 vision call + 1 image edit per piece the user keeps. The recognition allowance counts **one per photo**, never per piece.
+   `splitOutfit` is legacy and ignored (every photo runs the same detection).
    Errors: 404 `upload_not_found` · 422 `upload_missing` (nothing was uploaded to that slot) · 402 `item_recognition_limit_reached` · 403 `premium_required` · 400 `request_id_invalid`, `upload_ids_out_of_range`, `upload_id_invalid`.
 
 3. **GET `v1/tenant/item-draft`**
@@ -159,7 +172,23 @@ Validation codes (400 `errors`): `category_required`, `color_required`, `color_u
      "total": 12, "processed": 8
    }
    ```
+   Multi-item fields (absent / null otherwise): `subcategory`, `groupId`, `box` `{ "x", "y", "width", "height" }` (0–1, top-left + size, on the group photo),
+   `index` (1-based), `confidence` (0–1; below 0.7 the piece is also `needsReview`), `selected`, `itemCount` / `photoWidth` / `photoHeight` (group only), `failure`.
+   A group photo is listed only while some of its pieces are still `detected` (the chooser draws their boxes on it); afterwards only its kept pieces are.
    `total` / `processed` = the progress card. `flaggedFields` ⊆ `category`, `colorIds`, `fabric`, `seasons` (low confidence or a value the server dropped). `needsReview: true` = "Kategoriyi kontrol et": show the checkbox **unticked**; "select all" must skip it. A `failed` draft still has the original photo and can be confirmed by filling the form by hand. Unconfirmed drafts expire after 7 days.
+
+3b. **POST `v1/tenant/item-draft/{groupId}/select`** — "N parçayı ekle" in the chooser
+   ```json
+   { "draftIds": ["01J…", "01J…"],
+     "edits": [{ "draftId": "01J…", "name": "Altın kolye", "category": "accessory", "subcategory": "necklace", "colorIds": ["beige"], "fabric": null, "seasons": ["spring","summer","autumn","winter"] }] }
+   ```
+   → **202** (same body as step 2: the kept pieces, now `processing` with `selected: true`, and one job each of kind `itemClean`).
+   Each kept piece gets its background removed from its crop (sand product background); it then turns `ready` (cleaned image) or `failed`
+   (the crop stays its photo: it can still be confirmed, or retried with `…/{id}/retry`, again without using a recognition). Every other
+   `detected` piece of the group is **discarded** with its crop. `draftIds: []` discards them all. `edits` (optional) = values the user typed
+   in the form before selecting; valid values replace the suggestion and the piece counts as reviewed. Idempotent (a replay queues nothing new).
+   A `detected` piece is never confirmed directly (`draft_not_ready`); deleting the group photo also deletes its `detected` pieces.
+   Errors: 404 `draft_not_found` · 409 `draft_not_group` (not a ready group) · 422 `draft_not_in_group` · 400 `draft_ids_required`, `draft_ids_out_of_range`, `draft_id_invalid` · 403 `premium_required`.
 
 4. **POST `v1/tenant/item-draft/confirm`** (1–30 rows, each with the user's final values — the server never copies AI values on its own)
    ```json
@@ -180,7 +209,8 @@ Validation codes (400 `errors`): `category_required`, `color_required`, `color_u
    id, goes back to `uploaded` with the new `jobId`, and its earlier suggestions are cleared. An outfit source (`kind:
    "outfit"`) is split again. The recognition allowance applies as for a new photo: the failed job used none, the retry
    reserves one — 402 `item_recognition_limit_reached` when nothing is left, 403 `premium_required` when the limit is 0.
-   Errors: 404 `draft_not_found` · 409 `draft_not_failed` (the draft is not `failed`, or is a `piece`) · 422 `upload_missing`
+   A failed `piece` (its background removal failed after it was selected) is retried as an `itemClean` job — no recognition is used.
+   Errors: 404 `draft_not_found` · 409 `draft_not_failed` (the draft is not `failed`, or is a piece that was never selected) · 422 `upload_missing`
    (neither the upload nor the original photo exists any more) · 402 · 403.
 
 5. **DELETE `v1/tenant/item-draft/{id}`** → 204 · 404. Deleting a draft that is still being processed is final: the worker never writes it back, removes the images it produced and ends the job as `failed` / `sourceDeleted` (no allowance used).
@@ -446,7 +476,7 @@ Job failures: `noFaceDetected` (no / several faces, or the photo is unsuitable �
 
 All are **drafts**: nothing is in the wardrobe, lookbook, plan or trip until the matching accept/confirm endpoint is called.
 
-**`itemProcess`** `{ "draftId": "…", "needsReview": false, "flaggedFields": [] }` · **`itemSplit`** `{ "draftId": "…", "pieceDraftIds": ["…"] }` — then read `GET v1/tenant/item-draft`.
+**`itemProcess`** one piece: `{ "draftId": "…", "itemCount": 1, "needsReview": false, "flaggedFields": [] }` · several: `{ "draftId": "…", "groupId": "…", "itemCount": 5, "pieceDraftIds": ["…"] }` · **`itemClean`** `{ "draftId": "…" }` (background removal of a selected piece) · `itemSplit` (legacy) `{ "draftId": "…", "pieceDraftIds": ["…"] }` — then read `GET v1/tenant/item-draft`.
 
 **`stylistOutfit`** — `OutfitResult`
 ```json
