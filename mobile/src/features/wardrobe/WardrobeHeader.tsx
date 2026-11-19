@@ -59,6 +59,7 @@ export function WardrobeHeader({ current, eyebrow, title, titleLoading, actions,
       </View>
       <SegmentedControl<WardrobeView>
         accessibilityLabel={t('tabs.wardrobe')}
+        testID="wardrobe.view"
         value={current}
         onChange={(v) => {
           if (v !== current) router.replace(HREF[v]);

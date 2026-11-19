@@ -34,13 +34,14 @@ type TileProps = {
 };
 
 /** One cell of the three-column picker grid (15, sheet): 92-high picture, the name under it; a check marks the current piece. */
-function Tile({ name, caption, label, selected, onPress, children }: TileProps) {
+function Tile({ name, caption, label, selected, onPress, children, testID }: TileProps & { testID?: string }) {
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ selected }}
+      testID={testID}
       className="w-1/3 gap-[5px] px-[5px] pb-2.5 active:opacity-70"
     >
       <View>
@@ -126,6 +127,7 @@ export function SlotSheet({ slot, current, items, onPick, onRemove, onClose }: P
                       name={item.name}
                       label={selected ? t('lookEditor.selected', { name: item.name }) : item.name}
                       selected={selected}
+                      testID={`look-slot-item-${item.id}`}
                       onPress={() => onPick(slotFromWardrobeItem(slot, item))}
                     >
                       <ItemThumb
