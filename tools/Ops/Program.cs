@@ -32,6 +32,10 @@ try
     {
         exit = await LogsCommand.RunAsync(arguments, output, cts.Token);
     }
+    else if (arguments.Command == OpsArguments.AiSettings)
+    {
+        exit = await AiSettingsCommand.RunAsync(arguments, output, cts.Token);
+    }
     else
     {
         await using var services = OpsHost.Build(arguments.Stage, output);
