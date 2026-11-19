@@ -296,6 +296,44 @@ public sealed class AiOptions
     /// <summary>Image output per use (Ai:Image:*).</summary>
     public AiImageOptions Image { get; set; } = new();
 
+    /// <summary>
+    /// Price list for cost accounting (Ai:Pricing:*, SSM worker/Ai/Pricing). Never changes a request: it only turns the
+    /// usage the API reports into an estimated cost per call (job aiCost, log line, EMF CostMicroUsd). Empty = no estimate.
+    /// </summary>
+    public AiPricingOptions Pricing { get; set; } = new();
+
+    // ── Cost tuning (all optional; unset = the request is sent exactly as before) ────────────────────────────────
+
+    /// <summary>
+    /// Vision detail per operation (Ai:VisionDetail:{operation} = low | high | auto), e.g. photo_check = low. Unset = the
+    /// code's own choice (item_detection high, the rest the API default).
+    /// </summary>
+    public Dictionary<string, string> VisionDetail { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// max_completion_tokens per operation (Ai:MaxOutputTokens:{operation}, Default as the fallback): a ceiling against
+    /// runaway answers. Reasoning tokens count against it, so it must stay well above a normal answer. Unset = not sent.
+    /// </summary>
+    public Dictionary<string, int> MaxOutputTokens { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// service_tier per operation (Ai:ServiceTiers:{operation}, e.g. item_match = flex for the background outfit import),
+    /// overriding <see cref="ServiceTier"/>. Flex is half price but slower and may answer 429 (resource unavailable).
+    /// </summary>
+    public Dictionary<string, string> ServiceTiers { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    public string? TierFor(string operation) =>
+        ServiceTiers.TryGetValue(operation, out var tier) && !string.IsNullOrWhiteSpace(tier) ? tier.Trim()
+        : string.IsNullOrWhiteSpace(ServiceTier) ? null : ServiceTier.Trim();
+
+    public string? DetailFor(string operation, string? codeDefault) =>
+        VisionDetail.TryGetValue(operation, out var detail) && detail is "low" or "high" or "auto" ? detail : codeDefault;
+
+    public int? MaxOutputTokensFor(string operation) =>
+        MaxOutputTokens.TryGetValue(operation, out var max) && max > 0 ? max
+        : MaxOutputTokens.TryGetValue("Default", out var fallback) && fallback > 0 ? fallback
+        : null;
+
     public string ModelFor(string operation) =>
         !string.IsNullOrWhiteSpace(FastTextModel)
         && FastTextOperations.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Contains(operation, StringComparer.OrdinalIgnoreCase)
@@ -323,6 +361,53 @@ public sealed class AiOptions
 }
 
 public enum ImageUse { TryOn, Cleanup }
+
+/// <summary>
+/// Ai:Pricing — USD per 1M tokens per model id (OpenAI's published standard rates), a multiplier per service tier, and
+/// a fallback per image when an image response carries no usage. A model id matches its own entry or the longest
+/// entry it starts with (dated snapshots: gpt-6-astra-2026-09-08 → gpt-6-astra).
+/// </summary>
+public sealed class AiPricingOptions
+{
+    public Dictionary<string, AiModelPrice> Models { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Price multiplier per service_tier (flex 0.5, batch 0.5, priority/fast 2). Missing tier = 1.</summary>
+    public Dictionary<string, decimal> TierMultipliers { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>USD per image by "{quality}/{size}" (e.g. "low/1024x1024"), used only when the response has no usage.</summary>
+    public Dictionary<string, decimal> ImageFallback { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Exchange rate for reports only (₺ per $).</summary>
+    public decimal UsdTry { get; set; }
+
+    public AiModelPrice? For(string? model)
+    {
+        if (string.IsNullOrWhiteSpace(model))
+            return null;
+        if (Models.TryGetValue(model, out var exact))
+            return exact;
+        return Models.Where(kv => model.StartsWith(kv.Key + "-", StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(kv => kv.Key.Length).Select(kv => kv.Value).FirstOrDefault();
+    }
+
+    public decimal MultiplierFor(string? tier) =>
+        tier is { Length: > 0 } && TierMultipliers.TryGetValue(tier, out var m) && m > 0 ? m : 1m;
+}
+
+/// <summary>USD per 1M tokens. Text models: Input / CachedInput / Output. Image models also bill image tokens separately.</summary>
+public sealed class AiModelPrice
+{
+    public decimal Input { get; set; }
+    public decimal CachedInput { get; set; }
+    public decimal Output { get; set; }
+    /// <summary>Image models: image input tokens (the photos sent to an edit).</summary>
+    public decimal ImageInput { get; set; }
+    public decimal ImageCachedInput { get; set; }
+    /// <summary>Image models: image output tokens (the generated image).</summary>
+    public decimal ImageOutput { get; set; }
+    /// <summary>Where the price comes from, or "assumption: …" when it could not be confirmed.</summary>
+    public string? Source { get; set; }
+}
 
 public sealed class AiImageOptions
 {

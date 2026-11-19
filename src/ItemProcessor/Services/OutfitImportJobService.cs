@@ -304,6 +304,7 @@ public sealed class OutfitImportJobService(
         photo.Status = OutfitImportPhotoStatus.Ready;
         photo.Failure = null;
         photo.Timings = AiTelemetry.Current?.Snapshot();
+        photo.AiCost = AiTelemetry.Current?.CostSnapshot();
         photo.UpdatedAt = Now;
         AiTelemetry.Add("match_calls", matchCalls);
         if (!await repository.SaveIfVersionAsync(photo, photo.Version, ct))
@@ -355,6 +356,7 @@ public sealed class OutfitImportJobService(
         photo.Status = OutfitImportPhotoStatus.Failed;
         photo.Failure = failure;
         photo.Timings = AiTelemetry.Current?.Snapshot();
+        photo.AiCost = AiTelemetry.Current?.CostSnapshot();
         photo.UpdatedAt = Now;
         if (!await repository.SaveIfVersionAsync(photo, photo.Version, ct))
             return;
