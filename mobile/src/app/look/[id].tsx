@@ -23,6 +23,7 @@ import { useLookWrites } from '@/features/looks/api';
 import { indexItems, LookCover, SlotThumb, type ItemsById } from '@/features/looks/LookCover';
 import { lookPieceNames, missingPieceCount } from '@/features/looks/logic';
 import { useLook } from '@/features/looks/queries';
+import { ModeratedNote } from '@/features/moderation/ModeratedNote';
 import { ensureTryOnConsent, isConsentDeclined, TRY_ON_CREDIT_COST, useStartTryOn } from '@/features/tryon/api';
 import { RequirementHint, StepCountBadge } from '@/features/requirements/RequirementHint';
 import { useHandleGate } from '@/features/requirements/useHandleGate';
@@ -171,6 +172,8 @@ function LookBody({ look, itemsById, note }: { look: Look; itemsById: ItemsById;
           </View>
         ) : null}
       </View>
+
+      <ModeratedNote moderation={look.moderation} kind="look" />
 
       {rating ? null : (
         <Text variant="caption" tone="muted">

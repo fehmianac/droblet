@@ -16,6 +16,12 @@ export const ITEM_COLORS = ['black', 'white', 'beige', 'navy', 'brown', 'grey', 
 export type ItemColor = (typeof ITEM_COLORS)[number];
 
 /** A confirmed wardrobe piece. */
+/**
+ * `moderation` of `ItemDto` / `LookDto` / `ProfileDto` (owner-only, read-only): a moderator removed the content from
+ * everybody else after a report; the owner still sees it, with a note. Edits keep it.
+ */
+export type ContentModeration = { hidden: true; reason: string | null };
+
 export type Item = {
   /** ULID, generated on the device when the draft is confirmed. */
   id: string;
@@ -47,6 +53,8 @@ export type Item = {
   baseVersion: number;
   /** The ready-made library piece it was added from (`ItemDto.libraryItemId`); null for own photos. */
   libraryItemId?: string | null;
+  /** Owner-only: set while a moderator hides the piece from everybody else (`ItemDto.moderation`). */
+  moderation?: ContentModeration | null;
 };
 
 /** GET v1/tenant/item → `Item[]` (filter / sort / search happen on the device). */

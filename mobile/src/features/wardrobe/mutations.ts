@@ -43,6 +43,7 @@ import {
 } from '@/fixtures/wardrobe';
 import { ulid } from '@/lib/ids';
 import { newClientMutation, type ClientMutationMeta } from '@/sync/clientMutation';
+import { isModerationOnlyChange } from '@/features/moderation/logic';
 import { conflictStore } from '@/sync/conflicts';
 import { postToPresigned } from '@/sync/photoUpload';
 import { TENANT_WRITE_SCOPE } from '@/sync/queryKeys';
@@ -131,6 +132,12 @@ export function registerWardrobeMutations(client: QueryClient): void {
       if (isConflict(error)) {
         // Fixtures answer `{ current }` in the app shape; the API answers the current ItemDto itself.
         const current = currentItem(error);
+        const mine = client.getQueryData<Item[]>(wardrobeKeys.items)?.find((i) => i.id === vars.id);
+        if (current && isModerationOnlyChange(mine, current)) {
+          patchItem(client, vars.id, (item) => ({ ...item, moderation: current.moderation ?? null }));
+          void executePut({ ...vars, baseVersion: current.baseVersion, clientMutationId: ulid() });
+          return;
+        }
         conflictStore.push({
           id: vars.clientMutationId,
           kind: 'changed',

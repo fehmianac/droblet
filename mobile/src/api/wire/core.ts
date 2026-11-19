@@ -64,6 +64,8 @@ export type ProfileWire = {
   /** E-mail verification (docs/api/verification-export.md §1). Older servers omit it (= verified). */
   emailVerified?: boolean;
   emailVerifiedAt?: string | null;
+  /** Owner-only: `{ hidden: true, reason }` while a moderator hides the public profile fields. */
+  moderation?: { hidden: boolean; reason?: string | null } | null;
 };
 
 // ---------- style / body profile ----------

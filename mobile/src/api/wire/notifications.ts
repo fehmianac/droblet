@@ -1,4 +1,4 @@
-import { NOTIFICATION_TYPES, type AppNotification, type NotificationKind, type NotificationList } from '../contracts/notifications';
+import { MODERATED_TARGET_KINDS, NOTIFICATION_TYPES, type ModeratedTargetKind, type AppNotification, type NotificationKind, type NotificationList } from '../contracts/notifications';
 
 /** Wire shapes of the notification inbox (docs/api/store-social-settings.md, `src/Api/Endpoints/V1/Tenant/Notification`). */
 export type NotificationWire = {
@@ -31,6 +31,9 @@ export function toNotification(wire: NotificationWire): AppNotification | null {
       ...(data.productId ? { productId: data.productId } : {}),
       ...(data.handle ? { handle: data.handle } : {}),
       ...(data.exportId ? { exportId: data.exportId } : {}),
+      ...((MODERATED_TARGET_KINDS as readonly string[]).includes(data.targetKind ?? '') ? { targetKind: data.targetKind as ModeratedTargetKind } : {}),
+      ...(data.targetId ? { targetId: data.targetId } : {}),
+      ...(data.reason ? { reason: data.reason } : {}),
     },
   };
 }

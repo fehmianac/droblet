@@ -15,6 +15,7 @@ import type { Occasion } from '../contracts';
 import type { Look, LookSlot, LookSlotInput, LookSlotKind } from '../contracts/looks';
 import {
   ITEM_COLORS,
+  type ContentModeration,
   type DraftField,
   type Item,
   type ItemCategory,
@@ -64,7 +65,16 @@ export type ItemWire = {
   createdAt: string;
   updatedAt: string;
   version: number;
+  /** Owner-only: `{ hidden: true, reason }` while a moderator hides the piece from everybody else. */
+  moderation?: ModerationWire | null;
 };
+
+/** `moderation` of ItemDto / LookDto / ProfileDto (docs/api/wardrobe-looks-plan-stylist.md). */
+export type ModerationWire = { hidden: boolean; reason?: string | null };
+
+export function toModeration(wire: ModerationWire | null | undefined): ContentModeration | null {
+  return wire?.hidden ? { hidden: true, reason: wire.reason ?? null } : null;
+}
 
 /** Reference colour id → colour family, for ids the app's filter list does not carry. */
 const COLOR_FAMILY: Record<string, ItemColor> = {
@@ -159,6 +169,7 @@ export function toItem(wire: ItemWire): Item {
     createdAt: wire.createdAt,
     baseVersion: wire.version,
     libraryItemId: wire.libraryItemId ?? null,
+    moderation: toModeration(wire.moderation),
   };
 }
 
@@ -211,6 +222,8 @@ export type LookWire = {
   version: number;
   /** Friends' ratings; null while nobody rated, and wherever the look is embedded in another response. */
   rating: { average: number | null; count: number } | null;
+  /** Owner-only: `{ hidden: true, reason }` while a moderator hides the look from everybody else. */
+  moderation?: ModerationWire | null;
 };
 
 export type LookSlotInputWire = { slot: OutfitSlotWire; itemId?: string; productId?: string };
@@ -284,6 +297,7 @@ export function toLook(wire: LookWire, ctx: LookContext): Look {
     tryOnImageUrl: null,
     createdAt: wire.createdAt,
     baseVersion: wire.version,
+    moderation: toModeration(wire.moderation),
   };
 }
 

@@ -17,6 +17,7 @@ import { registerTripMutations } from '@/features/trips/mutations';
 import { clone, fixtureDb } from '@/fixtures/db';
 import { fixtureCreateLook, fixtureDeleteLook, fixturePutLook } from '@/fixtures/looks';
 import { ulid } from '@/lib/ids';
+import { isModerationOnlyChange } from '@/features/moderation/logic';
 import { conflictStore } from '@/sync/conflicts';
 import { TENANT_WRITE_SCOPE } from '@/sync/queryKeys';
 
@@ -128,6 +129,15 @@ export function registerLooksMutations(client: QueryClient): void {
     onError: async (error: unknown, vars: PutLookVariables) => {
       if (isConflict(error)) {
         const current = await currentLook(error);
+        if (current && isModerationOnlyChange(vars.optimistic, current)) {
+          writeLook(client, { ...vars.optimistic, moderation: current.moderation ?? null, baseVersion: current.baseVersion });
+          rerun<PutLookVariables>(lookMutationKeys.put, {
+            ...vars,
+            optimistic: { ...vars.optimistic, moderation: current.moderation ?? null, baseVersion: current.baseVersion },
+            request: { ...vars.request, baseVersion: current.baseVersion, clientMutationId: ulid() },
+          });
+          return;
+        }
         conflictStore.push({
           id: vars.request.clientMutationId,
           kind: 'changed',
