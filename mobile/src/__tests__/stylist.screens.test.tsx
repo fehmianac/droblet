@@ -64,7 +64,12 @@ describe('16 Stilist → 17 Kombin önerisi', () => {
     const savedLook = fixtureDb.looks[0];
     expect(savedLook?.name).toBe('Krem Katmanlar');
     expect(fixtureDb.planDays.filter((d) => d.lookId === savedLook?.id)).toHaveLength(1);
-    expect(screen.getByLabelText('Saved to lookbook')).toBeTruthy();
+    // 13c: the user is told — toast (also saved to looks) + the button turns into "On calendar · …" + filled heart.
+    expect(screen.getByTestId('toast-calendar')).toBeTruthy();
+    expect(screen.getByTestId('toast-message').props.children).toMatch(/^Added to .+ · Also saved to your looks$/);
+    expect(screen.getByTestId('in-calendar')).toBeTruthy();
+    expect(screen.queryByTestId('add-to-calendar')).toBeNull();
+    expect(screen.getByLabelText('Remove from lookbook')).toBeTruthy();
   }, 30_000);
 
   it('shows the stilist wait while the job runs', async () => {

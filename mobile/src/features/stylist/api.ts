@@ -148,8 +148,12 @@ export function useAcceptSuggestion(jobId: string) {
   });
   return {
     isPending: m.isPending,
-    accept: (index: number, date: string | null, existingLookId: string | null) =>
-      m.mutate({ jobId, index, lookId: existingLookId ?? ulid(), date, ...newClientMutation() }),
+    /** Returns the look id at once (the write may still be queued); `onError` runs when the server refuses it. */
+    accept: (index: number, date: string | null, existingLookId: string | null, callbacks: { onError?: (error: unknown) => void } = {}): string => {
+      const lookId = existingLookId ?? ulid();
+      m.mutate({ jobId, index, lookId, date, ...newClientMutation() }, { onError: callbacks.onError });
+      return lookId;
+    },
   };
 }
 
