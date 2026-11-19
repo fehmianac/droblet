@@ -57,7 +57,7 @@ ID, not user data. "Processed ephemerally" is No unless noted.
 ## Notes
 
 - **Data deletion:** account deletion removes the data immediately; database backups roll off within 30 days; pseudonymous
-  analytics events are kept 400 days (REVIEW G9 — say so in the privacy notice before launch or delete them with the account).
+  analytics events are deleted with the account too (REVIEW G9, closed 2026-11-19).
 - **Advertising ID:** not used. Make sure the merged manifest has no `com.google.android.gms.permission.AD_ID`
   (add `tools:node="remove"` if a library brings it) and answer "No" in the Advertising ID declaration `[ASSUMPTION — check the release AAB]`.
 - **Android permissions to justify:** CAMERA, POST_NOTIFICATIONS, READ_CONTACTS (optional, after the in-app consent).
