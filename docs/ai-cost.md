@@ -85,8 +85,25 @@ Synthetic, uncached, 1 rep per variant unless noted. "Quality" is the guard or e
 | 6 | **Try-on image quality low** — `Ai:Image:TryOnQuality=low` | −15% vs medium; −40% on real p50 vs `auto` (auto produced 343–1372 output tokens = $0.037–0.068; low is a flat 158 = $0.031) | side by side: [base 1](ai-cost/tryon-base-1.jpg), [base 2](ai-cost/tryon-base-2.jpg), [low](ai-cost/tryon-tl-1.jpg), [medium](ai-cost/tryon-tm-1.jpg), input [body](ai-cost/input-body.jpg). The face, garments and colours are the same; medium shows slightly crisper knit texture. | recommend (worker/Ai) | owner to eyeball |
 | 7 | Cleanup at a smaller size / low quality — **rejected** | −0% (1024×1024 low = 196 output tokens, *more* than auto at 1024×1536 = 158) | [sweater base](ai-cost/cleanup-sweater-base-1.jpg) vs [1024 low](ai-cost/cleanup-sweater-cl1k-1.jpg); [jeans base](ai-cost/cleanup-jeans-base-1.jpg) vs [1024 low](ai-cost/cleanup-jeans-cl1k-1.jpg). Cost is input-dominated (≈ 700–1000 image input tokens). | keep current | keep current |
 | 8 | **Daily caps** for AI without credits — SSM `api/AiLimits` (stylist 40/day, recognitions 150/day, palette 5/day, 20 AI starts/min; 429 `ai_limit_reached`) | bounds the worst case (a scripted account) | API test: replay not counted, 3rd stylist start → 429 | **on** (template) | owner (suggested: stylist 15–20/day) |
-| 9 | **Structured ops on `gpt-6.1-terra`** — `Ai:FastTextModel=gpt-6.1-terra`, `Ai:FastTextOperations=item_detection,photo_check,item_match,palette_season` | −90% on those ops; item photo −61%, outfit import −78% | all 7 checks identical to astra: same 5 flat-lay pieces incl. the necklace, same photo-check answers, same palette season (conf 0.61), correct matches | **asked the coordinator; not wired** | owner |
-| — | `gpt-6-luna` (−99%) / `gpt-6.2-astra` (−8% stylist) / terra for the stylist (−90%, taste) | | luna identical except one stray colour (`denim+cobalt`); terra and luna stylist looks pass the guard but titles differ in taste | not proposed now | owner |
+| 9 | **Structured ops on `gpt-6.1-terra`** — `Ai:FastTextModel=gpt-6.1-terra`, `Ai:FastTextOperations=item_detection,photo_check,item_match,palette_season` (the outfit import uses the fast model for detection and match anyway) | −90% on those ops; item photo −61%, outfit import −78% | 3 reps, identical to astra on every check (table below) | **owner-approved for dev** (set in worker/Ai, §8) | stays on astra (owner) |
+| — | Options, **not approved / not wired**: `gpt-6-luna` for the structured ops (−99%); terra for the stylist (−90%); `gpt-6.2-astra` for the stylist (−8%) | | luna: identical answers except one stray colour (`denim+cobalt`). Terra / luna stylist: 3/3 looks accepted, pack valid, week 7/7, but different titles ("Sıcak nötrler / Lacivert dengesi / Siyah ve bej") — a taste call. 6.2-astra: 3/3, valid, $0.025 vs $0.027 per outfit. | – | owner |
+
+### `gpt-6.1-terra` vs `gpt-6-astra`, side by side (3 reps; settings: effort low, low detail for photo check and palette)
+
+| check | gpt-6-astra | gpt-6.1-terra | cost astra → terra |
+|---|---|---|---|
+| garment photo (1 piece) | Top/sweater/navy ×3 | Top/sweater/navy ×3 | $0.0288 → $0.0029 |
+| flat lay (5 pieces incl. a thin necklace) | t-shirt, necklace, tote, jeans, sneakers ×3 | the same 5 ×3 | $0.0570 → $0.0057 |
+| outfit-a mirror selfie (expects top, bottom, shoes) | shirt/white, jeans/denim, sneakers/white | identical | $0.0569 → $0.0047 |
+| outfit-b (expects top, outerwear, bottom, shoes) | blazer/black, shirt/white, trousers/black, loafers/black | identical | $0.0523 → $0.0053 |
+| outfit-c (expects top, bottom, shoes, bag) | sweater/cream, shoulder-bag/brown, jeans/denim, sneakers/white | identical | $0.0524 → $0.0052 |
+| photo check, face | 1 person, face visible, not dark / blurry / minor ×3 | identical ×3 | $0.0068 → $0.0007 (low detail) |
+| photo check, body | 1 person, full body ×3 | identical ×3 | $0.0059 → $0.0006 (low detail) |
+| palette (same face) | deep-autumn, conf 0.72–0.76 | deep-autumn, conf 0.61–0.68 | $0.0081 → $0.0008 (low detail) |
+| match, same piece | candidate 2 (expected 2), conf 1.00 ×2 | identical ×2 | $0.0144 → $0.0014 |
+| match, no candidate | none (expected none), conf 1.00 ×2 | none, conf 0.99–1.00 ×2 | $0.0112 → $0.0011 |
+
+Latency is the same or faster on terra (photo check 1.5–2.0 s vs 2.7–4.4 s). Terra's palette confidence is lower but always above `Ai:PaletteConfidenceThreshold` (0.6). Watch it on dev.
 
 ### Prompt texts changed (for the prompt registry, `feat/ai-admin`)
 
@@ -133,7 +150,7 @@ Synthetic, uncached, 1 rep per variant unless noted. "Quality" is the guard or e
 
 ## 7. Cost per flow and per user
 
-Per-flow USD, synthetic p50. "Settings" = changes 1–6 and 8 (tuning of the current models). "+ terra" = change 9 as well (pending approval).
+Per-flow USD, synthetic p50. "Settings" = changes 1–6 and 8 (tuning of the current models). "+ terra" = change 9 as well (owner-approved for dev).
 
 | flow | before | settings | + terra | saving |
 |---|---|---|---|---|
@@ -201,4 +218,4 @@ The remaining cost is dominated by:
  "Image":{"TryOnQuality":"low"}}
 ```
 
-  If terra is approved, add: `"FastTextModel":"gpt-6.1-terra","FastTextOperations":"item_detection,photo_check,item_match,palette_season"`.
+  Owner-approved for **dev** (prod stays on astra), also add: `"FastTextModel":"gpt-6.1-terra","FastTextOperations":"item_detection,photo_check,item_match,palette_season"`.
