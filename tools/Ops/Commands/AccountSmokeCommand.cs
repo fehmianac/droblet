@@ -113,7 +113,7 @@ internal sealed class AccountSmokeCommand(IServiceProvider services, OpsArgument
             var (consentStatus, _) = await CallAsync(HttpMethod.Put, "v1/tenant/consents", new JsonObject
             {
                 ["consents"] = new JsonArray(new JsonObject { ["type"] = "contacts", ["granted"] = true, ["version"] = Domain.Options.ConsentOptions.DefaultVersion }),
-                ["source"] = "account-smoke",
+                ["source"] = "account_smoke",
                 ["locale"] = "tr",
             }, ct);
             Check("seed records (style profile, consent)", styleStatus == 200 && consentStatus == 200, watch.Elapsed, $"{styleStatus} / {consentStatus}");
