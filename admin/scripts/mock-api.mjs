@@ -8,7 +8,7 @@ import { createServer } from 'node:http';
 const PORT = Number(process.env.PORT ?? 4010);
 const ROLE = process.env.MOCK_ROLE ?? 'superAdmin';
 const PERMS = {
-  superAdmin: ['dashboard.view', 'analytics.view', 'catalog.manage', 'content.manage', 'image.upload', 'users.read', 'users.suspend', 'users.delete', 'users.grant', 'moderation.manage', 'settings.manage', 'admins.manage', 'audit.view'],
+  superAdmin: ['dashboard.view', 'analytics.view', 'catalog.manage', 'content.manage', 'image.upload', 'users.read', 'users.suspend', 'users.delete', 'users.grant', 'moderation.manage', 'settings.manage', 'admins.manage', 'audit.view', 'ai.manage'],
   contentEditor: ['dashboard.view', 'analytics.view', 'catalog.manage', 'content.manage', 'image.upload'],
   moderator: ['dashboard.view', 'users.read', 'users.suspend', 'moderation.manage'],
 };
@@ -103,6 +103,161 @@ const audit = Array.from({ length: 40 }, (_, i) => ({
   targetId: [products[i % 30].id, 'vakko', null, users[4].id, 'entitlements', 'edit-2026-11-23'][i % 6],
   before: i % 6 === 0 ? JSON.stringify({ priceMinor: 129990 }) : null, after: i % 6 === 0 ? JSON.stringify({ priceMinor: 119990 }) : i % 6 === 4 ? JSON.stringify({ 'Free.ItemRecognitionLimit': 10 }) : null, ip: '203.0.113.7',
 }));
+
+// ── AI prompts and models (docs/api/admin.md §5b) ──────────────────────────────────────────────────────
+const P = (key, feature, operation, kind, description, defaultText, variables = [], trialMode = 'chat', imagesRequired = 0) => ({
+  key, feature, operation, kind, description, defaultText, variables, trialMode: kind === 'schema' ? 'none' : trialMode, imagesRequired,
+});
+const v = (name, required, description, sample) => ({ name, required, description, sample });
+const tone = 'Tone: calm, editorial, personal. Address the user informally (in Turkish: \'sen\'). Short sentences, no exclamation marks.';
+const schema = (props) => JSON.stringify({ type: 'object', properties: props, required: Object.keys(props), additionalProperties: false }, null, 2);
+const aiCatalog = [
+  P('common.language', 'common', 'outfit, week_plan, packing, garment_draft, item_detection', 'fragment', 'Language suffix appended to the stylist, garment and detection system prompts.',
+    ' Write every title, name, label and explanation in {{languageName}} (language code: {{languageCode}}).', [v('languageName', true, 'English name of the language.', 'Turkish'), v('languageCode', false, 'Language code.', 'tr')]),
+  P('stylist.outfit.instructions', 'stylist', 'outfit', 'instructions', 'Kombin önerisi: system prompt of the outfit suggestions.', `You are Droblet's personal stylist. The user message is a JSON object with the context and \`candidates\`: the ONLY wardrobe pieces you may use. Return exactly \`count\` different outfits. ${tone}`),
+  P('stylist.week.instructions', 'stylist', 'week_plan', 'instructions', 'Haftalık plan: system prompt of the week plan.', `You are Droblet's personal stylist planning a week. Never repeat the same look on consecutive days. ${tone}`),
+  P('stylist.pack.instructions', 'stylist', 'packing', 'instructions', 'Bavul: system prompt of the suitcase.', `You are Droblet's personal stylist packing a capsule wardrobe for a trip. ${tone}`),
+  P('stylist.outfit.schema', 'stylist', 'outfit', 'schema', 'Strict JSON schema of the outfit answer (view only).', schema({ suggestions: { type: 'array' }, refusal: { type: ['string', 'null'] } })),
+  P('stylist.week.schema', 'stylist', 'week_plan', 'schema', 'Strict JSON schema of the week_plan answer (view only).', schema({ days: { type: 'array' }, refusal: { type: ['string', 'null'] } })),
+  P('stylist.pack.schema', 'stylist', 'packing', 'schema', 'Strict JSON schema of the packing answer (view only).', schema({ itemIds: { type: 'array' }, days: { type: 'array' }, refusal: { type: ['string', 'null'] } })),
+  P('item.detect.instructions', 'wardrobe', 'item_detection', 'instructions', 'Parça tanıma: multi-item detection of a wardrobe photo.', 'You catalogue one photo for a wardrobe app. List EVERY distinct wearable piece that is visible.', [], 'chat', 1),
+  P('item.detect.request', 'wardrobe', 'item_detection', 'request', 'User message text sent with the photo.', 'List every wearable piece in this photo, jewellery and small accessories included, each with its box.', [], 'chat', 1),
+  P('item.detect.schema', 'wardrobe', 'item_detection', 'schema', 'Strict JSON schema of the item_detection answer (view only).', schema({ items: { type: 'array' } })),
+  P('item.describe.instructions', 'wardrobe', 'garment_draft', 'instructions', 'Tek parça etiketi: single-garment labelling.', 'You label one clothing photo for a wardrobe app. Use only the values allowed by the response schema.', [], 'chat', 1),
+  P('item.describe.request', 'wardrobe', 'garment_draft', 'request', 'User message text sent with the garment photo.', 'Describe the garment in this photo.', [], 'chat', 1),
+  P('item.describe.schema', 'wardrobe', 'garment_draft', 'schema', 'Strict JSON schema of the garment_draft answer (view only).', schema({ isGarment: { type: 'boolean' }, garmentCount: { type: 'integer' } })),
+  P('item.match.instructions', 'outfit_import', 'item_match', 'instructions', 'Kombinlerini içe aktar: is the crop the very same piece as a candidate?', 'You compare clothing photos for a wardrobe app. A merely similar piece is NOT a match.', [], 'chat', 2),
+  P('item.match.request', 'outfit_import', 'item_match', 'request', 'User message text of the match call.', 'First image: the piece{{pieceHint}}. Then {{candidates}} candidate(s), numbered 1 to {{candidates}} in order. Which candidate is the same piece?',
+    [v('candidates', true, 'Number of candidate images after the crop.', '3'), v('pieceHint', false, '" (sub-type)" of the crop, or empty.', ' (denim jacket)')], 'chat', 2),
+  P('item.match.schema', 'outfit_import', 'item_match', 'schema', 'Strict JSON schema of the item_match answer (view only).', schema({ match: { type: ['integer', 'null'] }, confidence: { type: 'number' } })),
+  P('palette.instructions', 'palette', 'palette_season', 'instructions', 'Renk analizi: seasonal colour type from one face photo.', 'You are a colour analyst. From one face photo choose the seasonal colour type that fits best.', [], 'chat', 1),
+  P('palette.request', 'palette', 'palette_season', 'request', 'User message text sent with the face photo.', 'Determine the seasonal colour type of the person in this photo.', [], 'chat', 1),
+  P('palette.schema', 'palette', 'palette_season', 'schema', 'Strict JSON schema of the palette_season answer (view only).', schema({ seasonTypeId: { type: ['string', 'null'] }, confidence: { type: 'number' } })),
+  P('photo_check.body.instructions', 'tryon', 'photo_check', 'instructions', 'Fotoğraf kontrolü (boy fotoğrafı).', 'You check one photo a user uploaded for a virtual try-on. people: the number of people visible.', [], 'chat', 1),
+  P('photo_check.face.instructions', 'tryon', 'photo_check', 'instructions', 'Fotoğraf kontrolü (yüz fotoğrafı).', 'You check one photo a user uploaded for a virtual try-on. faceVisible: true only when exactly one face is clearly visible.', [], 'chat', 1),
+  P('photo_check.request', 'tryon', 'photo_check', 'request', 'User message text sent with the photo to check.', 'Check this photo.', [], 'chat', 1),
+  P('photo_check.schema', 'tryon', 'photo_check', 'schema', 'Strict JSON schema of the photo_check answer (view only).', schema({ people: { type: 'integer' }, fullBody: { type: 'boolean' } })),
+  P('tryon.image.body', 'tryon', 'image_tryon', 'image', 'Prova (boy fotoğrafı): image edit prompt.', 'The first image is a full-body photo of a person. The following {{garmentCount}} image(s) are garments. Show the same person wearing exactly these garments.',
+    [v('garmentCount', true, 'Number of garment images after the body photo.', '2')], 'preview'),
+  P('tryon.image.face', 'tryon', 'image_tryon', 'image', 'Prova (yüz fotoğrafı): image edit prompt.', 'The first image is a photo of an adult person\'s face. The following {{garmentCount}} image(s) are garments. Create a realistic full-length photo of this same adult person with {{bodyShape}},{{height}}{{size}} standing in a relaxed, neutral pose.',
+    [v('garmentCount', true, 'Number of garment images.', '2'), v('bodyShape', true, 'Body type description.', 'a pear body shape (hips wider than the shoulders)'), v('height', false, '" about 170 cm tall," or empty.', ' about 170 cm tall,'), v('size', false, '" wearing clothing size M," or empty.', ' wearing clothing size M,')], 'preview'),
+  P('cleanup.item.image', 'cleanup', 'image_cleanup', 'image', 'Arka plan temizleme: one detected piece on the sand background.', 'Product photo of exactly the {{piece}} in this image, alone: remove the background and everything that is not this {{piece}}.',
+    [v('piece', true, 'Sub-type with spaces, else the category.', 'ankle boots')], 'preview'),
+  P('cleanup.item.jewellery.image', 'cleanup', 'image_cleanup', 'image', 'Arka plan temizleme (takı).', 'Product photo of exactly the {{piece}} in this image, alone. Jewellery product shot: the piece large, sharp and centred.',
+    [v('piece', true, 'Jewellery sub-type.', 'ring')], 'preview'),
+  P('cleanup.garment.image', 'cleanup', 'image_cleanup', 'image', 'Arka plan temizleme (eski akış).', 'Product photo of exactly this garment: remove the background and anything that is not the garment.', [], 'preview'),
+];
+const aiState = Object.fromEntries(aiCatalog.map((d) => [d.key, { live: null, version: 0, by: null, at: null, draft: null, draftBy: null, draftAt: null, history: [], fallback: null }]));
+Object.assign(aiState['stylist.outfit.instructions'], {
+  live: `${aiCatalog[1].defaultText} Prefer one colour accent per outfit.`, version: 2, by: me.email, at: daysAgo(2),
+  history: [
+    { version: 2, action: 'publish', text: `${aiCatalog[1].defaultText} Prefer one colour accent per outfit.`, sourceVersion: null, author: me.email, at: daysAgo(2), note: 'Renk vurgusu', live: true },
+    { version: 1, action: 'publish', text: `${aiCatalog[1].defaultText} Keep it simple.`, sourceVersion: null, author: me.email, at: daysAgo(6), note: 'İlk deneme', live: false },
+  ],
+});
+Object.assign(aiState['photo_check.face.instructions'], {
+  version: 2, at: daysAgo(0), fallback: { at: daysAgo(0), fromVersion: 1, toVersion: 2, failures: 5, reason: 'invalid_output', acknowledged: false },
+  history: [
+    { version: 2, action: 'auto_fallback', text: null, sourceVersion: 0, author: null, at: daysAgo(0), note: 'Automatic fallback: v1 failed 5 times (invalid_output)', live: true },
+    { version: 1, action: 'publish', text: 'Check the face. Answer in prose.', sourceVersion: null, author: me.email, at: daysAgo(1), note: null, live: false },
+  ],
+});
+Object.assign(aiState['item.match.request'], { draft: '{{candidates}} candidates follow the piece{{pieceHint}}.', draftBy: me.email, draftAt: daysAgo(0) });
+const aiSample = {
+  'stylist.outfit.instructions': '{"language":"tr","candidates":[{"id":"t1","category":"top","colorIds":["white"],"fabric":"cotton","seasons":["summer"]},{"id":"b1","category":"bottom","colorIds":["beige"],"fabric":"cotton","seasons":["summer"]},{"id":"s1","category":"shoes","colorIds":["white"],"fabric":"leather","seasons":["summer"]}],"count":3,"onlyMyWardrobe":true,"occasion":"weekend"}',
+  'stylist.week.instructions': '{"language":"tr","candidates":[],"days":[{"date":"2026-06-08","occasion":"office"}]}',
+  'stylist.pack.instructions': '{"language":"tr","candidates":[],"days":[{"date":"2026-06-12","occasion":"travel"}]}',
+};
+aiSample['common.language'] = aiSample['stylist.outfit.instructions'];
+const prefix = (t) => { const m = /\{\{[A-Za-z][A-Za-z0-9]*\}\}/.exec(t); return m ? m.index : t.length; };
+const aiSummary = (d) => {
+  const s = aiState[d.key];
+  return { key: d.key, feature: d.feature, operation: d.operation, kind: d.kind, position: { instructions: 'system', fragment: 'system_suffix', request: 'user', image: 'image_prompt', schema: 'response_format' }[d.kind],
+    description: d.description, editable: d.kind !== 'schema', publishedVersion: s.version, overridden: s.live !== null, publishedBy: s.by, publishedAt: s.at,
+    hasDraft: s.draft !== null, draftUpdatedBy: s.draftBy, draftUpdatedAt: s.draftAt, fallback: s.fallback };
+};
+const aiDetail = (d) => {
+  const s = aiState[d.key];
+  const schemaOf = aiCatalog.find((x) => x.kind === 'schema' && x.operation === d.operation);
+  return { summary: aiSummary(d), defaultText: d.defaultText, publishedText: s.live, draftText: s.draft, draftBaseVersion: s.draft === null ? null : s.version, variables: d.variables,
+    maxLength: d.kind === 'schema' ? null : d.kind === 'request' ? 2000 : d.kind === 'image' ? 4000 : d.kind === 'fragment' ? 500 : 12000, defaultStaticPrefix: prefix(d.defaultText),
+    trialMode: d.trialMode, imagesRequired: d.imagesRequired, sampleInput: aiSample[d.key] ?? null, schema: d.kind === 'schema' ? null : schemaOf?.defaultText ?? null,
+    warnings: s.draft !== null && d.variables.length && prefix(s.draft) < prefix(d.defaultText) ? ['cache_prefix_shorter'] : [], history: s.history };
+};
+const aiValidate = (d, text) => {
+  const errors = {};
+  if (d.kind === 'schema') return { text: ['read_only'] };
+  if (!text || !text.trim()) return { text: ['empty'] };
+  const used = [...new Set([...text.matchAll(/\{\{([A-Za-z][A-Za-z0-9]*)\}\}/g)].map((x) => x[1]))];
+  for (const x of d.variables) if (x.required && !used.includes(x.name)) errors[`placeholders.${x.name}`] = ['missing'];
+  for (const n of used) if (!d.variables.some((x) => x.name === n)) errors[`placeholders.${n}`] = ['unknown'];
+  return errors;
+};
+const aiLive = (d, text, action, sourceVersion, note) => {
+  const s = aiState[d.key];
+  s.history.forEach((h) => (h.live = false));
+  s.version += 1;
+  s.history.unshift({ version: s.version, action, text, sourceVersion, author: me.email, at: now(), note: note || null, live: true });
+  Object.assign(s, { live: text, by: me.email, at: now(), fallback: null });
+};
+const aiTrials = new Map();
+const aiModels = { ids: [], fetchedAt: null };
+const aiFields = (() => {
+  const ops = ['outfit', 'week_plan', 'packing', 'garment_draft', 'item_detection', 'item_match', 'palette_season', 'photo_check'];
+  const efforts = ['none', 'minimal', 'low', 'medium', 'high', 'xhigh'];
+  const q = ['low', 'medium', 'high', 'auto'];
+  const sizes = ['1024x1024', '1024x1536', '1536x1024', 'auto'];
+  const f = (key, type, value, extra = {}) => ({ key, type, min: extra.min ?? null, max: extra.max ?? null, value, options: extra.options ?? null, nullable: extra.nullable ?? false });
+  return [
+    f('TextModel', 'model', 'gpt-6-astra'), f('FastTextModel', 'model', 'gpt-5-mini', { nullable: true }), f('FastTextOperations', 'operationList', 'photo_check', { options: ops }),
+    f('ImageModel', 'model', 'gpt-image-2'), f('ReasoningEffort.Default', 'choice', 'low', { options: efforts, nullable: true }),
+    ...ops.map((op) => f(`ReasoningEffort.${op}`, 'choice', op === 'photo_check' ? 'minimal' : null, { options: efforts, nullable: true })),
+    f('ServiceTier', 'choice', null, { options: ['auto', 'default', 'flex', 'priority'], nullable: true }), f('PromptCacheKey', 'bool', true), f('TimeoutSeconds', 'int', 100, { min: 10, max: 110 }),
+    f('ImageSize', 'choice', '1024x1536', { options: sizes }), f('Image.Quality', 'choice', null, { options: q, nullable: true }), f('Image.Size', 'choice', null, { options: sizes, nullable: true }),
+    f('Image.TryOnQuality', 'choice', 'medium', { options: q, nullable: true }), f('Image.TryOnSize', 'choice', null, { options: sizes, nullable: true }),
+    f('Image.TryOnInputFidelity', 'choice', null, { options: ['high', 'low'], nullable: true }), f('Image.TryOnPreview', 'bool', false), f('Image.PreviewQuality', 'choice', 'low', { options: q, nullable: true }),
+    f('Image.CleanupQuality', 'choice', 'low', { options: q, nullable: true }), f('Image.CleanupSize', 'choice', '1024x1024', { options: sizes, nullable: true }),
+    f('Prompts.Enabled', 'bool', true), f('Prompts.CacheSeconds', 'int', 60, { min: 10, max: 600 }), f('Prompts.FailureThreshold', 'int', 5, { min: 0, max: 100 }), f('Prompts.FailureWindowMinutes', 'int', 10, { min: 1, max: 120 }),
+  ];
+})();
+const aiLimits = { group: 'aiLimits', parameters: ['/droblet/dev/api/AiLimits'], fields: [
+  { key: 'StylistJobsPerDay', type: 'int', min: 0, max: 10000, value: 40 }, { key: 'ItemRecognitionsPerDay', type: 'int', min: 0, max: 10000, value: 150 },
+  { key: 'PaletteAnalysesPerDay', type: 'int', min: 0, max: 1000, value: 5 }, { key: 'AiStartsPerMinute', type: 'int', min: 0, max: 1000, value: 20 }] };
+const aiModelSettings = () => ({ settings: { group: 'aiModels', parameters: ['/droblet/dev/worker/Ai'], fields: aiFields }, availableModels: aiModels.ids, modelsFetchedAt: aiModels.fetchedAt, reloadSeconds: 60,
+  limits: aiLimits, pricing: JSON.stringify({ Models: { 'gpt-6-astra': { Input: 10, CachedInput: 1, Output: 50 }, 'gpt-image-2': { Input: 5, ImageOutput: 30 } }, TierMultipliers: { flex: 0.5 } }) });
+
+function aiTrial(b) {
+  const id = `01JTRIAL${Date.now()}`;
+  const base = { id, type: b.type, status: 'queued', createdAt: now(), finishedAt: null, key: b.key ?? null, model: b.model ?? null, effort: b.effort ?? null, output: null, parsed: null, parseError: null,
+    error: null, latencyMs: null, usedModel: null, inputTokens: null, cachedTokens: null, outputTokens: null, systemPrompt: null, userPrompt: null };
+  let done;
+  if (b.type === 'models') {
+    aiModels.ids = ['gpt-5-mini', 'gpt-5-nano', 'gpt-6-astra', 'gpt-6-luna', 'gpt-6.1-sol', 'gpt-6.2-sol', 'gpt-image-1-mini', 'gpt-image-2'];
+    aiModels.fetchedAt = now();
+    done = { output: aiModels.ids.join('\n'), parsed: true };
+  } else if (b.type === 'model') {
+    done = b.model?.startsWith('gpt-') ? { output: b.modelKind === 'image' ? JSON.stringify({ id: b.model, object: 'model' }) : '{"ok":true}', parsed: true, latencyMs: 640, usedModel: `${b.model}-2026-10-01`, inputTokens: 21, cachedTokens: 0, outputTokens: 6 }
+      : { status: 'failed', error: `OpenAI model_test returned 404 (model_not_found).` };
+  } else {
+    const d = aiCatalog.find((x) => x.key === b.key);
+    if (!d || d.kind === 'schema') return [404, null];
+    const text = b.text ?? aiState[d.key].draft ?? aiState[d.key].live ?? d.defaultText;
+    const errors = aiValidate(d, text);
+    if (Object.keys(errors).length) return [400, errors];
+    if (d.trialMode === 'preview') {
+      const out = text.replace(/\{\{([A-Za-z][A-Za-z0-9]*)\}\}/g, (all, n) => d.variables.find((x) => x.name === n)?.sample ?? all);
+      return [200, { ...base, status: 'succeeded', finishedAt: now(), output: out, userPrompt: out }];
+    }
+    if (d.imagesRequired && (b.imageUrls ?? []).filter(Boolean).length < d.imagesRequired) return [400, { imageUrls: ['count'] }];
+    const output = d.feature === 'stylist' || d.key === 'common.language'
+      ? JSON.stringify({ suggestions: [{ title: 'Hafta sonu sadeliği', explanation: 'Beyaz ve bej, rahat bir gün için.', slots: { top: 't1', bottom: 'b1', outerwear: null, shoes: 's1', bagAccessory: null }, missing: [] }], refusal: null }, null, 2)
+      : JSON.stringify({ items: [{ category: 'top', name: 'Beyaz tişört', itemConfidence: 0.93 }] }, null, 2);
+    done = { output, parsed: !text.includes('prose'), parseError: text.includes('prose') ? 'The model answer is not valid JSON.' : null, latencyMs: 4820, usedModel: 'gpt-6-astra-2026-09-08',
+      inputTokens: 2310, cachedTokens: 1792, outputTokens: 412, systemPrompt: text, userPrompt: aiSample[d.key] ?? 'Describe the garment in this photo.' };
+  }
+  aiTrials.set(id, { ...base, polls: 0, done: { status: 'succeeded', finishedAt: now(), ...done } });
+  return [202, base];
+}
 
 function revenue(from, to) {
   const days = [];
@@ -278,6 +433,78 @@ createServer(async (req, res) => {
   const to = url.searchParams.get('to') ?? today;
   if (p === '/v1/admin/report/revenue') return send(200, revenue(from, to));
   if (p === '/v1/admin/report/funnel') return send(200, funnel(from, to));
+
+  // AI prompts, trials and models
+  if (p === '/v1/admin/ai/prompt') return send(200, { items: aiCatalog.map(aiSummary) });
+  const aiKey = m(/^\/v1\/admin\/ai\/prompt\/([^/]+)(?:\/(draft|publish|rollback|acknowledge))?$/);
+  if (aiKey) {
+    const d = aiCatalog.find((x) => x.key === decodeURIComponent(aiKey[1]));
+    if (!d) return problem(404, 'not_found');
+    const s = aiState[d.key];
+    const action = aiKey[2];
+    if (!action) return send(200, aiDetail(d));
+    if (action === 'draft' && req.method === 'PUT') {
+      const errors = aiValidate(d, b.text);
+      if (Object.keys(errors).length) return problem(400, 'validation_failed', { errors });
+      Object.assign(s, { draft: b.text, draftBy: me.email, draftAt: now() });
+      return send(200, aiDetail(d));
+    }
+    if (action === 'draft' && req.method === 'DELETE') {
+      Object.assign(s, { draft: null, draftBy: null, draftAt: null });
+      return send(200, aiDetail(d));
+    }
+    if (action === 'publish') {
+      if (s.draft === null) return problem(409, 'no_draft');
+      if (b.expectedVersion != null && b.expectedVersion !== s.version) return problem(409, 'version_conflict');
+      if (s.draft === s.live) return problem(409, 'already_live');
+      aiLive(d, s.draft, 'publish', null, b.note);
+      Object.assign(s, { draft: null, draftBy: null, draftAt: null });
+      return send(200, aiDetail(d));
+    }
+    if (action === 'rollback') {
+      const target = b.version === 0 ? { text: null } : s.history.find((h) => h.version === b.version);
+      if (!target) return problem(404, 'version_not_found');
+      if (target.text === s.live) return problem(409, 'already_live');
+      aiLive(d, target.text, 'rollback', b.version, b.note);
+      return send(200, aiDetail(d));
+    }
+    if (action === 'acknowledge') {
+      if (!s.fallback) return problem(404, 'not_found');
+      s.fallback = { ...s.fallback, acknowledged: true };
+      return send(200, aiDetail(d));
+    }
+  }
+  if (p === '/v1/admin/ai/trial' && req.method === 'POST') {
+    const [status, data] = aiTrial(b);
+    if (status === 404) return problem(404, 'not_found');
+    if (status === 400) return problem(400, 'validation_failed', { errors: data });
+    return send(status, data);
+  }
+  if (m(/^\/v1\/admin\/ai\/trial\/([^/]+)$/)) {
+    const t = aiTrials.get(m(/^\/v1\/admin\/ai\/trial\/([^/]+)$/)[1]);
+    if (!t) return problem(404, 'not_found');
+    t.polls += 1;
+    const { polls, done, ...view } = t;
+    return send(200, polls === 1 ? { ...view, status: 'running' } : { ...view, ...done });
+  }
+  if (p === '/v1/admin/ai/model' && req.method === 'GET') return send(200, aiModelSettings());
+  if (p === '/v1/admin/ai/limits' && req.method === 'PUT') {
+    for (const [k, value] of Object.entries(b.values ?? {})) { const f = aiLimits.fields.find((x) => x.key === k); if (f) f.value = value; }
+    return send(200, aiLimits);
+  }
+  if (p === '/v1/admin/ai/model' && req.method === 'PUT') {
+    const errors = {};
+    for (const [k, value] of Object.entries(b.values ?? {})) {
+      const f = aiFields.find((x) => x.key === k);
+      if (!f) errors[k] = ['unknown_field'];
+      else if (f.type === 'model' && value !== null && !aiModels.ids.length) errors[k] = ['models_unknown'];
+      else if (f.type === 'model' && value !== null && !aiModels.ids.includes(value)) errors[k] = ['not_available'];
+      else if (value === null && !f.nullable) errors[k] = ['invalid'];
+    }
+    if (Object.keys(errors).length) return problem(400, 'validation_failed', { errors });
+    for (const [k, value] of Object.entries(b.values ?? {})) aiFields.find((x) => x.key === k).value = value;
+    return send(200, aiModelSettings().settings);
+  }
 
   // Settings, admins, audit
   if (p === '/v1/admin/setting') return send(200, settings);

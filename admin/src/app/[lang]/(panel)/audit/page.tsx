@@ -28,7 +28,7 @@ function AuditInner() {
 
   const columns: Column<AuditEntry>[] = [
     { key: 'at', header: t.audit.at, render: (e) => <span className="whitespace-nowrap text-muted">{dateTime(e.at)}</span> },
-    { key: 'admin', header: t.audit.admin, render: (e) => e.adminEmail ?? <span className="font-mono text-xs">{e.adminId}</span> },
+    { key: 'admin', header: t.audit.admin, render: (e) => e.adminEmail ?? (e.adminId ? <span className="font-mono text-xs">{e.adminId}</span> : t.ai.system) },
     { key: 'action', header: t.audit.action, render: (e) => <Badge tone={e.action.startsWith('auth.') ? 'neutral' : e.action.startsWith('user.') ? 'amber' : 'brand'}>{e.action}</Badge> },
     { key: 'target', header: t.audit.target, render: (e) => (e.targetType ? <span className="text-xs">{e.targetType} · <span className="font-mono">{e.targetId}</span></span> : '—') },
     { key: 'ip', header: t.audit.ip, render: (e) => <span className="font-mono text-xs text-muted">{e.ip ?? '—'}</span> },

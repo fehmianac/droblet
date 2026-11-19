@@ -56,6 +56,13 @@ export const NAV: NavGroup[] = [
     ],
   },
   {
+    key: 'ai',
+    items: [
+      { key: 'prompts', href: '/ai/prompts/', icon: 'sparkle', permission: 'ai.manage' },
+      { key: 'models', href: '/ai/models/', icon: 'sliders', permission: 'ai.manage' },
+    ],
+  },
+  {
     key: 'system',
     items: [
       { key: 'settings', href: '/settings/', icon: 'sliders', permission: 'settings.manage' },

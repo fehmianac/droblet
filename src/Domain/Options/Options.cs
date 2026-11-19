@@ -287,6 +287,9 @@ public sealed class AiOptions
     /// <summary>Send prompt_cache_key = the operation, so requests sharing the static prefix land on the same cache.</summary>
     public bool PromptCacheKey { get; set; }
 
+    /// <summary>Prompt overrides from the admin panel (Ai:Prompts:*): cache and runtime safety.</summary>
+    public AiPromptOptions Prompts { get; set; } = new();
+
     /// <summary>
     /// Item photo: start the background removal of the whole photo together with the vision call; used when the photo
     /// holds one piece that is not small, cancelled otherwise (one wasted image call on multi-piece photos).
@@ -436,6 +439,21 @@ public sealed class AiImageOptions
     /// </summary>
     public bool TryOnPreview { get; set; }
     public string PreviewQuality { get; set; } = "low";
+}
+
+/// <summary>
+/// Admin prompt overrides (Ai:Prompts). A Lambda re-reads the published overrides at most every CacheSeconds, so a
+/// publish applies within about a minute. A published override whose answers fail FailureThreshold times within
+/// FailureWindowMinutes (invalid JSON / DTO, refusal, cut off) is switched back to the previous version automatically.
+/// </summary>
+public sealed class AiPromptOptions
+{
+    /// <summary>False = every prompt is the code default (overrides are ignored, nothing is read).</summary>
+    public bool Enabled { get; set; } = true;
+    public int CacheSeconds { get; set; } = 60;
+    /// <summary>0 = no automatic fallback.</summary>
+    public int FailureThreshold { get; set; } = 5;
+    public int FailureWindowMinutes { get; set; } = 10;
 }
 
 /// <summary>

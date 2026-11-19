@@ -36,6 +36,10 @@ public static class AdminDependencyInjection
         services.AddSingleton<ISettingsStore, SsmSettingsStore>();
         var stage = configuration["STAGE"] is { Length: > 0 } s ? s : "dev";
         services.AddSingleton<IAdminSettingsService>(sp => new AdminSettingsService(sp.GetRequiredService<ISettingsStore>(), sp.GetRequiredService<IAuditLog>(), stage));
+        services.AddSingleton<IAdminAiService>(sp => new AdminAiService(
+            sp.GetRequiredService<Domain.Manager.IRepository>(), sp.GetRequiredService<Domain.Manager.IEventManager>(), sp.GetRequiredService<ISettingsStore>(),
+            sp.GetRequiredService<IAuditLog>(), sp.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<CatalogImageOptions>>(),
+            sp.GetRequiredService<TimeProvider>(), stage));
         return services;
     }
 }

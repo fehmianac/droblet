@@ -146,7 +146,8 @@ async function request<T>(method: string, path: string, body: unknown, options: 
     storeSession(null);
   }
   if (!res.ok) throw await parseError(res);
-  if (res.status === 204 || res.status === 202) return undefined as T;
+  // 202 may carry a body (an AI trial that was queued); an empty 202 still resolves to undefined.
+  if (res.status === 204) return undefined as T;
   const text = await res.text();
   return (text ? JSON.parse(text) : undefined) as T;
 }

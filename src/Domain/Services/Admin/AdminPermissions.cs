@@ -20,6 +20,8 @@ public static class AdminPermissions
     public const string SettingsManage = "settings.manage";
     public const string AdminsManage = "admins.manage";
     public const string AuditView = "audit.view";
+    /// <summary>AI prompts (draft, dry-run, publish, rollback) and the AI model settings.</summary>
+    public const string AiManage = "ai.manage";
 
     /// <summary>Uploading an image: catalog or content editors.</summary>
     public const string ImageUpload = "image.upload";
@@ -27,7 +29,7 @@ public static class AdminPermissions
     public static readonly IReadOnlyList<string> All =
     [
         DashboardView, AnalyticsView, CatalogManage, ContentManage, UsersRead, UsersSuspend, UsersDelete, UsersGrant,
-        ModerationManage, SettingsManage, AdminsManage, AuditView, ImageUpload,
+        ModerationManage, SettingsManage, AdminsManage, AuditView, ImageUpload, AiManage,
     ];
 
     private static readonly IReadOnlyDictionary<AdminRole, HashSet<string>> Matrix = new Dictionary<AdminRole, HashSet<string>>

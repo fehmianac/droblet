@@ -35,6 +35,7 @@ keep the shapes of [store-social-settings.md §11](store-social-settings.md#11-a
 | `settings.manage` | ✓ | | | `GET/PUT v1/admin/setting…` |
 | `admins.manage` | ✓ | | | `v1/admin/admin-user…` |
 | `audit.view` | ✓ | | | `GET v1/admin/audit` |
+| `ai.manage` | ✓ | | | `v1/admin/ai/…` (prompts, trials, model settings — §5b) |
 
 `GET v1/admin/auth/me` returns the caller's permissions; the panel hides what it cannot use, the server refuses it anyway.
 
@@ -97,7 +98,8 @@ Actions: `auth.login`, `auth.login_failed`, `auth.logout`, `auth.logout_all`, `a
 `brand.upsert`, `brand.retire`, `product.upsert`, `product.retire`, `product.bulk`, `image.upload_url`, `edit.upsert`,
 `edit.retire`, `collection.upsert`, `collection.retire`, `collection_look.upsert`, `collection_look.retire`,
 `library.upsert`, `library.retire`, `user.suspend`, `user.unsuspend`, `user.delete`, `user.test_premium_grant`,
-`user.test_premium_revoke`, `user.credits_add`, `report.resolve`, `setting.update`.
+`user.test_premium_revoke`, `user.credits_add`, `report.resolve`, `setting.update`, `ai.prompt.publish`,
+`ai.prompt.rollback`, `ai.prompt.auto_fallback` (written by a worker, no admin), `ai.trial`, `ai.models.update`, `ai.limits.update`.
 
 ## 5. Dashboard, users, library, images, settings
 
@@ -153,6 +155,7 @@ Actions: `auth.login`, `auth.login_failed`, `auth.logout`, `auth.logout_all`, `a
   "fields": [ { "key": "Free.ItemRecognitionLimit", "type": "int", "min": 0, "max": 1000, "value": 10 },
               { "key": "Premium.TryOnCreditsPerMonth", "type": "int", "min": 0, "max": 1000, "value": 30 } ] }
 // field "type": int | bool | time ("HH:mm") | weekdayTime ("Mon 09:00") | timeZone (IANA id)
+//   (AI model group only, §5b: model | choice | operationList; with "options" and "nullable")
 
 // RevenueReport additions
 { …, "clicks": 40,
@@ -166,10 +169,166 @@ Setting groups (only these parameters are writable; IAM allows `ssm:PutParameter
 |---|---|---|
 | `entitlements` | `api/Entitlements`, `worker/Entitlements` (kept equal) | `Premium.TryOnCreditsPerMonth` 0–1000, `Free.ItemRecognitionLimit` 0–1000, `SelfServePremium.Enabled` bool (temporary self-serve premium in Ayarlar; dev on, prod off — [purchases-push.md §3a](purchases-push.md)) |
 | `packing` | `api/Packing`, `worker/Packing` | `CabinMaxItems` 0–100, `MaxTripDays` 1–60 |
-| `ai` | `worker/Ai` | `Enabled` (bool). Provider and model ids are shown read-only elsewhere — not editable here. |
+| `ai` | `worker/Ai` | `Enabled` (bool, the kill switch). Models, effort, tier and image settings: group `aiModels` on **AI → Modeller** (§5b, `ai.manage`). |
 | `notifications` | `api/Notifications` | `DefaultMorningLocal` (time), `DefaultTimeZone` (IANA), `MaxDevicesPerTenant` 1–50 |
 | `notifierSchedule` | `notifier/Notifications` | `DefaultMorningLocal` (time), `DefaultWeeklyEditLocal` (weekdayTime), `DefaultFriendRatingsLocal` (time) |
 | `authRateLimits` | `api/AuthRateLimits` | `LoginPerEmailPer15Minutes` 1–1000, `LoginPerIpPer15Minutes` 1–10000, `RegisterPerIpPerHour` 1–10000, `ForgotPerEmailPerHour` 1–100 |
+
+## 5b. AI prompts and models (`ai.manage`)
+
+The owner sees and edits every prompt the AI workers send and changes the AI models **without a deploy**. Each
+stage has its own table and SSM path, so dev and prod overrides are separate.
+
+### Prompt registry
+
+Every prompt has a stable key (`PromptCatalog`, Infrastructure). The shipped text stays the **code default**
+(`OpenAiPrompts` / `AiSchemas`, unchanged); a published override replaces it. 29 keys:
+
+| Feature | Keys | Variables (required **bold**) |
+|---|---|---|
+| common | `common.language` — suffix of the stylist, garment and detection system prompts | **`languageName`**, `languageCode` |
+| stylist | `stylist.outfit.instructions`, `stylist.week.instructions`, `stylist.pack.instructions` (system prompts); `stylist.compact_candidates` (appended before the language suffix when `Ai:CompactStylistPrompt` is on); `stylist.{outfit,week,pack}.schema` (view only) | — |
+| wardrobe | `item.detect.instructions`, `item.detect.request`, `item.describe.instructions`, `item.describe.request`; `item.{detect,describe}.schema` | — |
+| outfit_import | `item.match.instructions`, `item.match.request`; `item.match.schema` | request: **`candidates`**, `pieceHint` |
+| palette | `palette.instructions`, `palette.request`; `palette.schema` | — |
+| tryon | `photo_check.body.instructions`, `photo_check.face.instructions`, `photo_check.request`; `photo_check.schema`; `tryon.image.body`, `tryon.image.face` (image edit prompts) | body: **`garmentCount`**; face: **`garmentCount`**, **`bodyShape`**, `height`, `size` |
+| cleanup | `cleanup.item.image`, `cleanup.item.jewellery.image`, `cleanup.garment.image` | item: **`piece`** |
+
+Placeholders are `{{name}}`; rendering is one pass (a value is never expanded again). With no override the worker
+sends the code default exactly as before (tests assert that the default template, rendered with the call's values,
+is byte-identical to `OpenAiPrompts`).
+
+**Validation on save (draft) and again on publish** — `400 validation_failed`:
+`text`: `empty` | `too_long` (instructions 12 000, request 2 000, image 4 000, language suffix 500 chars) |
+`malformed_placeholder` (`{{ x }}`, an unmatched `{{`) | `read_only` (schemas); `placeholders.{name}`: `missing` (a
+required variable is absent) | `unknown` (not a variable of this prompt).
+
+**Response schemas are view only.** They are generated from the fixed vocabularies (colours, fabrics, categories,
+sub-types, season types) and must stay identical to the DTO the code deserializes and the guards check; a hand edit
+could only break parsing or drift from the catalogs. Behaviour is tuned through the instructions; a schema change
+is a code change.
+
+**Prompt caching.** OpenAI reuses cached input tokens for an identical request prefix: system prompt (instructions +
+language suffix), then the user text, then the images. The system prompts have no per-request variables. The
+detail's `warnings` contains `cache_prefix_shorter` when a draft moves a variable above static text that precedes it
+in the code default (fewer cached tokens per request); the editor shows it live. It never blocks a save.
+
+**Storage** (single table): live version `pk ai#prompt, sk {key}` (`publishedVersion`, `text` — null = code default,
+`publishedBy/At`, `note`, `fallback`); history `pk ai#prompt#{key}, sk v#000001…` (immutable: `publish`,
+`rollback`, `auto_fallback`, author, time, note, `sourceVersion`); one draft per key `pk ai#promptdraft, sk {key}`.
+Publish / rollback write the live row (optimistic version) and the history entry in one transaction.
+
+**How workers read it.** Every worker Lambda reads the whole `ai#prompt` partition in one Query, keeps it in memory
+for `Ai:Prompts:CacheSeconds` (60) and shares one refresh between concurrent calls. **A publish or rollback is live
+within about 60 s** (plus a job already running). If the read fails (throttling, permissions, network) the code
+defaults are used and the store is asked again after 15 s — the store can never stop a job. An override that no
+longer validates against the build (e.g. a placeholder renamed in code) is ignored the same way.
+
+### Runtime safety (automatic fallback)
+
+A call that used an override and got an unusable answer — invalid JSON / not the DTO (stylist answers are checked
+against `ModelOutfitOutput` / `ModelWeekOutput` / `ModelPackOutput`), a refusal, or a cut-off answer — is counted per
+key and version (`pk ai#promptfail`, fixed window). At `Ai:Prompts:FailureThreshold` (5) failures within
+`Ai:Prompts:FailureWindowMinutes` (10) the worker switches the key back to the entry that was live before (the
+previous version, or the code default), as a new history entry `auto_fallback`, only if the failed version is still
+live; writes the audit entry `ai.prompt.auto_fallback` (no admin, before / after) and sets `fallback` on the live row.
+The panel shows a banner until it is acknowledged. The job itself behaves exactly as before (the stylist falls back
+to its rules, other jobs fail with `ProviderError`). Dry-runs never count. Image prompts are not counted (an image
+answer has nothing to parse). `FailureThreshold = 0` turns the switch off.
+
+### Routes
+
+| Method | Path | Body | Result |
+|---|---|---|---|
+| GET | `v1/admin/ai/prompt` | — | `{ "items": [AiPromptSummaryDto] }` |
+| GET | `v1/admin/ai/prompt/{key}` | — | `AiPromptDetailDto`. `404 not_found` |
+| PUT | `v1/admin/ai/prompt/{key}/draft` | `{ "text" }` | `AiPromptDetailDto` (with `warnings`). `400` as above |
+| DELETE | `v1/admin/ai/prompt/{key}/draft` | — | `AiPromptDetailDto` |
+| POST | `v1/admin/ai/prompt/{key}/publish` | `{ "note"? (≤ 500), "expectedVersion"? }` | `AiPromptDetailDto`. `409 no_draft`, `409 version_conflict` (`expectedVersion` ≠ the live version), `409 already_live`. Audited `ai.prompt.publish` (before / after: version + text) |
+| POST | `v1/admin/ai/prompt/{key}/rollback` | `{ "version" (0 = code default), "note"? }` | `AiPromptDetailDto` — a new history entry with that text. `404 version_not_found`, `409 already_live`. Audited `ai.prompt.rollback` |
+| POST | `v1/admin/ai/prompt/{key}/acknowledge` | — | `AiPromptDetailDto` — hides the fallback banner. `404` without a fallback |
+| POST | `v1/admin/ai/trial` | `AiTrialRequest` | `202 AiTrialDto` (queued) or `200` (image prompt preview). `400`, `404`, `429 too_many_requests` (30 trials per admin per hour). Audited `ai.trial` |
+| GET | `v1/admin/ai/trial/{id}` | — | `AiTrialDto` (poll every 2 s until `succeeded` / `failed`) |
+| GET | `v1/admin/ai/model` | — | `AiModelSettingsDto` |
+| PUT | `v1/admin/ai/limits` | `{ "values": { "<field>": int } }` | `SettingGroupDto` of `aiLimits` (`api/AiLimits`: `StylistJobsPerDay`, `ItemRecognitionsPerDay` 0–10 000, `PaletteAnalysesPerDay`, `AiStartsPerMinute` 0–1000; 0 = no cap). Audited `ai.limits.update`. Template: `ssm:PutParameter` on `api/AiLimits` |
+| PUT | `v1/admin/ai/model` | `{ "values": { "<field>": value \| null } }` | `SettingGroupDto`. `400` (`invalid`, `out_of_range`, `unknown_field`, `models_unknown`, `not_available`), `503 settings_unavailable`. Audited `ai.models.update` (before / after of the changed keys) |
+
+```jsonc
+// AiPromptSummaryDto
+{ "key": "stylist.outfit.instructions", "feature": "stylist", "operation": "outfit",
+  "kind": "instructions"|"fragment"|"request"|"image"|"schema", "position": "system"|"system_suffix"|"user"|"image_prompt"|"response_format",
+  "description": "…", "editable": true, "publishedVersion": 3, "overridden": true, "publishedBy": "owner@…", "publishedAt": "…",
+  "hasDraft": false, "draftUpdatedBy": null, "draftUpdatedAt": null,
+  "fallback": { "at": "…", "fromVersion": 3, "toVersion": 4, "failures": 5, "reason": "invalid_output", "acknowledged": false } | null }
+
+// AiPromptDetailDto
+{ "summary": AiPromptSummaryDto, "defaultText": "…", "publishedText": "…"|null, "draftText": "…"|null, "draftBaseVersion": 3|null,
+  "variables": [ { "name": "garmentCount", "required": true, "description": "…", "sample": "2" } ],
+  "maxLength": 12000|null, "defaultStaticPrefix": 1830, "trialMode": "chat"|"preview"|"none", "imagesRequired": 0|1|2,
+  "sampleInput": "{…}"|null, "schema": "{…}"|null, "warnings": ["cache_prefix_shorter"],
+  "history": [ { "version": 4, "action": "publish"|"rollback"|"auto_fallback", "text": "…"|null, "sourceVersion": 1|null,
+                 "author": "owner@…"|null, "at": "…", "note": "…"|null, "live": true } ] }
+
+// AiTrialRequest
+{ "type": "prompt", "key": "stylist.outfit.instructions", "text"?: "…" /* default: the saved draft */,
+  "input"?: "{…}" /* stylist keys: the user message; default sampleInput */,
+  "imageUrls"?: ["https://<catalog image host>/catalog/…"] /* vision keys: imagesRequired (match: crop, then candidates), ≤ 6 */ }
+{ "type": "model", "model": "gpt-5-mini", "modelKind": "text"|"image", "effort"?: "minimal", "serviceTier"?: "flex" }
+{ "type": "models" }
+
+// AiTrialDto
+{ "id", "type", "status": "queued"|"running"|"succeeded"|"failed", "createdAt", "finishedAt", "key", "model", "effort",
+  "output": "raw model answer (≤ 20 000 chars)", "parsed": true|false|null, "parseError": "…"|null, "error": "OpenAI outfit returned 404 (model_not_found)"|null,
+  "latencyMs": 1830, "usedModel": "gpt-…", "inputTokens", "cachedTokens", "outputTokens", "systemPrompt", "userPrompt" }
+
+// AiModelSettingsDto
+{ "settings": SettingGroupDto /* group aiModels, parameter worker/Ai */, "availableModels": ["gpt-…"], "modelsFetchedAt": "…"|null, "reloadSeconds": 60,
+  "limits": SettingGroupDto /* group aiLimits, api/AiLimits */, "pricing": "{…}"|null /* worker/Ai/Pricing, read only (template: ssm:GetParameter) */ }
+```
+
+**Trials ("Dene" / "Test")** run in the **Stylist worker** (it holds the provider key; the Api never reads it): the
+Api stores the trial (`pk ai#trial`, 7 days) and puts `{ kind: "AiTrial", jobId }` on the stylist queue. A trial runs
+at most once (an SQS redelivery finds it claimed — a retry never costs a second call).
+- `prompt`, `trialMode: chat`: the draft is used for **exactly one call** through the production code path (other keys
+  keep their published text), with the built-in synthetic sample (stylist) or the given images (vision keys; only
+  https URLs on the catalog image host, uploaded with `POST v1/admin/image/upload-url`). Result: the raw answer, the
+  system / user text sent, whether it parses into the DTO the code reads, model, latency, tokens.
+- `prompt`, `trialMode: preview` (image prompts `tryon.*`, `cleanup.*`): rendered with the sample values only, no call —
+  an image call costs far more and its output would need storage; check a published image prompt with a real
+  try-on / cleanup on dev.
+- `model`, text: one tiny structured chat call (`{"ok": true}`, a few tokens) with the model, effort and tier; image:
+  an access check only (`GET /v1/models/{id}`), no image is generated.
+- `models`: `GET /v1/models` → the model allow-list (`pk ai#models`; embedding / audio ids left out).
+
+### Model settings
+
+`GET / PUT v1/admin/ai/model` edit the settings group `aiModels` = SSM String `/droblet/{stage}/worker/Ai` (the JSON
+the workers bind to `AiOptions`; the API key is the separate SecureString `worker/Ai/ApiKey` and never part of it).
+The group is not on `v1/admin/setting` (that page keeps `ai.Enabled`, the kill switch). `ssm:PutParameter` on
+`worker/Ai` was already granted to the Api — no template change. Field types: `model` (an id in the allow-list —
+`models_unknown` until a `models` trial has run, `not_available` when the key cannot use it), `choice` (`options`),
+`operationList` (comma-separated `options`), `bool`, `int`. `null` removes an optional key (the code default applies).
+
+| Field | Values |
+|---|---|
+| `TextModel`, `ImageModel` | model |
+| `FastTextModel` (optional), `FastTextOperations` | model; subset of `outfit, week_plan, packing, garment_draft, item_detection, item_match, palette_season, photo_check` |
+| `ReasoningEffort.Default`, `ReasoningEffort.{operation}` (each of the 8 operations) | `none, minimal, low, medium, high, xhigh` (optional) |
+| `ServiceTier`; `ServiceTiers.{operation}`, `ServiceTiers.outfit_import` (the background import flow) | `auto, default, flex, priority` (optional) |
+| `VisionDetail.{operation}` (operations that send images) | `low, high, auto` (optional) |
+| `MaxOutputTokens.Default`, `MaxOutputTokens.{operation}` | 256–64 000 (optional) |
+| `CompactStylistPrompt` (bool) | |
+| `PromptCacheKey` (bool), `TimeoutSeconds` 10–110 | |
+| `ImageSize`; `Image.Size`, `Image.TryOnSize`, `Image.CleanupSize` | `1024x1024, 1024x1536, 1536x1024, auto` (the `Image.*` ones optional) |
+| `Image.Quality`, `Image.TryOnQuality`, `Image.CleanupQuality`, `Image.PreviewQuality` | `low, medium, high, auto` (optional) |
+| `Image.TryOnInputFidelity` (`high, low`, optional), `Image.TryOnPreview` (bool) | |
+| `Prompts.Enabled` (bool — off = every prompt is the code default), `Prompts.CacheSeconds` 10–600, `Prompts.FailureThreshold` 0–100, `Prompts.FailureWindowMinutes` 1–120 | |
+
+**Change delay:** every Lambda re-reads its SSM path every 60 s (`SsmConfigurationExtensions`, `ReloadAfter`). The
+reload runs when a warm instance is invoked after the interval, so a model change applies **within about 60 s**; an
+instance that sat idle may finish one more job with the old value; a cold start reads the new value at once. More
+per-operation knobs (e.g. `ServiceTiers.{op}`, `VisionDetail.{op}`, `MaxOutputTokens.{op}`) are added as one
+`SettingsCatalog.PerOperation(…)` line each.
 
 ## 6. CSV import and moderation actions
 
