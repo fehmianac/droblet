@@ -24,7 +24,15 @@ public class Post : IEndpoint
         if (!validation.IsValid)
             return Results.BadRequest(validation.Errors.ToProblemDetails());
 
-        return (await trips.CreateAsync(apiContext.TenantId, request, cancellationToken)).ToHttp($"/v1/tenant/trip/{request.Id}");
+        try
+        {
+            return (await trips.CreateAsync(apiContext.TenantId, request, cancellationToken)).ToHttp($"/v1/tenant/trip/{request.Id}");
+        }
+        catch (WeatherUnavailableException)
+        {
+            // Only a trip without a city id is geocoded; it is not stored without a location.
+            return ApiResults.Problem(StatusCodes.Status503ServiceUnavailable, StoreSocialErrorCodes.WeatherUnavailable);
+        }
     }
 
     public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints)
@@ -32,7 +40,9 @@ public class Post : IEndpoint
         return endpoints.MapPost("v1/tenant/trip", Handler)
             .Produces<TripDto>(StatusCodes.Status200OK)
             .Produces<TripDto>(StatusCodes.Status201Created)
+            .Produces<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)
+            .Produces<ProblemDetails>(StatusCodes.Status503ServiceUnavailable)
             .Validated()
-            .Tenant("Tenant Trip", "Create trip", "Client-generated id (ULID), city, start and end day, trip types, cabinOnly. Sending the same id again returns the stored trip (200).");
+            .Tenant("Tenant Trip", "Create trip", "Client-generated id (ULID), city, start and end day, trip types, cabinOnly. cityId comes from the city search; without it the cityName is geocoded (first match stored; 422 trip_city_not_found when nothing matches, 503 weather_unavailable when the geocoder is down). Sending the same id again returns the stored trip (200).");
     }
 }

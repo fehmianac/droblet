@@ -319,7 +319,10 @@ public abstract class TripFieldsValidator<T> : AbstractValidator<T>
         Func<T, string> cityId, Func<T, string?> cityName, Func<T, string> start, Func<T, string> end,
         Func<T, IReadOnlyList<TripType>?> types, IOptionsMonitor<PackingOptions> options)
     {
-        RuleFor(x => cityId(x)).NotEmpty().MaximumLength(64).OverridePropertyName("cityId").WithErrorCode("city_id_invalid");
+        // A city id from the city search, or (older clients, typed cities) only a name the server geocodes.
+        RuleFor(x => cityId(x)).MaximumLength(64).OverridePropertyName("cityId").WithErrorCode("city_id_invalid");
+        RuleFor(x => x).Must(x => !string.IsNullOrWhiteSpace(cityId(x)) || !string.IsNullOrWhiteSpace(cityName(x)))
+            .OverridePropertyName("cityId").WithErrorCode("city_required");
         RuleFor(x => cityName(x)).MaximumLength(80).OverridePropertyName("cityName").WithErrorCode("city_name_too_long");
         RuleFor(x => start(x)).Must(CalendarDay.IsValid).OverridePropertyName("startDate").WithErrorCode("start_date_invalid");
         RuleFor(x => end(x)).Must(CalendarDay.IsValid).OverridePropertyName("endDate").WithErrorCode("end_date_invalid");

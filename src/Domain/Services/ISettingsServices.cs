@@ -96,7 +96,14 @@ public sealed class WeatherUnavailableException(string message, Exception? inner
 /// </summary>
 public interface IWeatherService
 {
+    /// <summary>Default length of <c>GET v1/weather</c> (brief §6: daily + 7-day forecast).</summary>
     public const int MaxDays = 7;
+
+    /// <summary>
+    /// How far ahead the provider forecasts (Open-Meteo: 16 days, today included). Every fetch caches the whole horizon,
+    /// so a trip a week or two away still gets its days; dates after it are simply unknown ("not available yet").
+    /// </summary>
+    public const int HorizonDays = 16;
 
     /// <summary>Null when the city id is unknown. Throws <see cref="WeatherUnavailableException"/> when the provider fails and nothing is cached.</summary>
     Task<WeatherForecast?> GetForecastByCityAsync(string cityId, int days, CancellationToken ct);

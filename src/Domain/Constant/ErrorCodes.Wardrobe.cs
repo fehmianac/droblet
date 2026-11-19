@@ -47,6 +47,8 @@ public static partial class ErrorCodes
     public const string SuggestionNotFound = "suggestion_not_found";
     public const string SuggestionStale = "suggestion_stale";
     public const string TripNotFound = "trip_not_found";
+    /// <summary>422: the trip has no city id and its city name matches no place (geocoding).</summary>
+    public const string TripCityNotFound = "trip_city_not_found";
     public const string TripIdTaken = "trip_id_taken";
     public const string RequestIdReused = "request_id_reused";
 
