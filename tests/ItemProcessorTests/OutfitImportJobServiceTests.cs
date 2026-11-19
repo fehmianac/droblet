@@ -35,6 +35,7 @@ public class OutfitImportJobServiceTests
         public int Detections { get; private set; }
         public List<int> MatchCandidateCounts { get; } = [];
         public List<bool> FastFlags { get; } = [];
+        public List<string?> Flows { get; } = [];
         public Func<IReadOnlyList<ImageInput>, ItemMatchResult> Answer { get; set; } = _ => new ItemMatchResult(null, 0.9);
         public Exception? DetectError { get; set; }
         public int? CurrentPhoto { get; set; }
@@ -43,6 +44,7 @@ public class OutfitImportJobServiceTests
         {
             Detections++;
             FastFlags.Add(fast);
+            Flows.Add(Infrastructure.Ai.AiCallContext.Current);
             if (DetectError is { } error)
                 throw error;
             return Task.FromResult(ByPhoto.TryGetValue(CurrentPhoto ?? 1, out var items) ? items : (IReadOnlyList<DetectedItem>)[]);
@@ -170,6 +172,8 @@ public class OutfitImportJobServiceTests
         Assert.Equal(3, (await PiecesAsync(s.Host)).Count);
         Assert.Empty(s.Ai.MatchCandidateCounts);   // nothing similar in the wardrobe: no match call
         Assert.Equal([true], s.Ai.FastFlags);        // detection asks for the fast model
+        Assert.Equal(["outfit_import"], s.Ai.Flows);  // …inside the outfit-import flow (Ai:ServiceTiers:outfit_import)
+        Assert.Null(Infrastructure.Ai.AiCallContext.Current);
         // The stripped photo is kept under the tenant prefix; the EXIF never reaches it.
         var stored = s.Host.Storage.Objects[photo.PhotoKey!].Data;
         Assert.StartsWith(StorageKeys.ImportPrefix(Tenant, SessionId), photo.PhotoKey);

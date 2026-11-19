@@ -4,6 +4,7 @@ name: Ops (dev)
 # image generation, Lambda logs. Manual only. The tool refuses prod for account / smoke commands on its own as well.
 #   gh workflow run ops-dev.yml --ref <branch> -f command=ai-smoke   (add -f args="--items-only" for the item flows only, -f args="--prereq-only" for canvas 11: thin wardrobe + face path)
 #   gh workflow run ops-dev.yml --ref <branch> -f command=ai-perf -f args="--runs 3"   (p50/p95 per AI flow and stage; --flows week,tryon --face)
+#   gh workflow run ops-dev.yml --ref <branch> -f command=ai-cost -f args="--usage-only --days 14"   (real dev usage priced; add --text-variants / --image-variants for synthetic A/B, docs/ai-cost.md)
 #   gh workflow run ops-dev.yml --ref <branch> -f command=ai-bench -f args="--reps 2 --efforts default,low"   (direct provider calls per setting)
 #   gh workflow run ops-dev.yml --ref <branch> -f command=generate-library-images -f args="--only lib-white-tshirt,lib-navy-blazer"
 #   gh workflow run ops-dev.yml --ref <branch> -f command=migrate-library-item-images -f args="--dry-run"
@@ -16,7 +17,7 @@ on:
       command:
         description: Komut
         type: choice
-        options: [ai-smoke, account-smoke, outfit-import-smoke, ai-perf, ai-bench, generate-library-images, migrate-library-item-images, grant-test-premium, revoke-test-premium, ai-probe, logs]
+        options: [ai-smoke, account-smoke, outfit-import-smoke, ai-perf, ai-bench, ai-cost, generate-library-images, migrate-library-item-images, grant-test-premium, revoke-test-premium, ai-probe, logs, ai-settings]
         default: ai-smoke
       args:
         description: 'Ek argumanlar (or. --email a@b.c --credits 10 · --only lib-a,lib-b --dry-run · --function stylist --minutes 30)'

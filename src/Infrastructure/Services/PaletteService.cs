@@ -18,7 +18,8 @@ public sealed class PaletteService(
     IEntitlementService entitlements,
     IWardrobeService wardrobe,
     Microsoft.Extensions.Options.IOptionsMonitor<Domain.Options.PaletteOptions> paletteOptions,
-    TimeProvider timeProvider) : IPaletteService
+    TimeProvider timeProvider,
+    IAiUsageGuard aiLimits) : IPaletteService
 {
     public async Task<ServiceResult<PaletteStartDto>> StartAsync(string tenantId, StartPaletteCommand command, string? requestLanguage, CancellationToken ct)
     {
@@ -40,6 +41,8 @@ public sealed class PaletteService(
         var decision = await entitlements.CheckAsync(tenantId, Capability.PaletteAnalysis, ct);
         if (!decision.Allowed)
             return ServiceResult.Forbidden<PaletteStartDto>(decision.Reason ?? ErrorCodes.PremiumRequired);
+        if (!await aiLimits.AllowAsync(tenantId, AiCap.Palette, 1, ct))
+            return ServiceResult.TooManyRequests<PaletteStartDto>(ErrorCodes.AiLimitReached);
 
         var job = JobStarter.New(tenantId, command.RequestId, JobKind.Palette, null, timeProvider.GetUtcNow().UtcDateTime);
         await repository.SaveAsync(job, ct);

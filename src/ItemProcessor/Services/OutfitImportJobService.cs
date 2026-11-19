@@ -7,6 +7,7 @@ using Domain.Manager;
 using Domain.Options;
 using Domain.Services;
 using Domain.Services.Ai;
+using Infrastructure.Ai;
 using Infrastructure.Telemetry;
 using Infrastructure.Workers;
 using Microsoft.Extensions.Logging;
@@ -62,6 +63,8 @@ public sealed class OutfitImportJobService(
             timings.JobId = holder;
             timings.JobKind = JobKind.OutfitImport.ToString();
         }
+        // Background flow: Ai:ServiceTiers:outfit_import (e.g. flex, half price) applies to its text calls.
+        using var flow = AiCallContext.Use(AiCallContext.OutfitImport);
 
         var session = await repository.GetAsync<OutfitImportSessionEntity>(OutfitImportSessionEntity.GetPk(tenantId), OutfitImportSessionEntity.GetSk(message.JobId), ct);
         var photo = await PhotoAsync(tenantId, message.JobId, message.Index, ct);
@@ -304,6 +307,7 @@ public sealed class OutfitImportJobService(
         photo.Status = OutfitImportPhotoStatus.Ready;
         photo.Failure = null;
         photo.Timings = AiTelemetry.Current?.Snapshot();
+        photo.AiCost = AiTelemetry.Current?.CostSnapshot();
         photo.UpdatedAt = Now;
         AiTelemetry.Add("match_calls", matchCalls);
         if (!await repository.SaveIfVersionAsync(photo, photo.Version, ct))
@@ -355,6 +359,7 @@ public sealed class OutfitImportJobService(
         photo.Status = OutfitImportPhotoStatus.Failed;
         photo.Failure = failure;
         photo.Timings = AiTelemetry.Current?.Snapshot();
+        photo.AiCost = AiTelemetry.Current?.CostSnapshot();
         photo.UpdatedAt = Now;
         if (!await repository.SaveIfVersionAsync(photo, photo.Version, ct))
             return;

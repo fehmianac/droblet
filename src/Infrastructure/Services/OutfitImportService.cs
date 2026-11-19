@@ -33,7 +33,8 @@ public sealed class OutfitImportService(
     IOptionsMonitor<OutfitImportOptions> importOptions,
     IOptionsMonitor<WardrobeOptions> wardrobeOptions,
     TimeProvider timeProvider,
-    ILogger<OutfitImportService> logger) : IOutfitImportService
+    ILogger<OutfitImportService> logger,
+    IAiUsageGuard aiLimits) : IOutfitImportService
 {
     private static readonly JsonSerializerOptions ResultJson = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) } };
 
@@ -56,6 +57,8 @@ public sealed class OutfitImportService(
             return ServiceResult.Ok(await CreatedAsync(existing, maxPhotos, ct));
 
         var keys = Enumerable.Range(1, command.Count).Select(i => OutfitImportPhotoEntity.RecognitionKey(command.RequestId, i)).ToList();
+        if (!await aiLimits.AllowAsync(tenantId, AiCap.ItemRecognition, command.Count, ct))
+            return ServiceResult.TooManyRequests<OutfitImportCreatedDto>(ErrorCodes.AiLimitReached);
         var grant = await itemRecognition.ReserveAsync(tenantId, keys, ct);
         if (grant.Granted == 0)
         {

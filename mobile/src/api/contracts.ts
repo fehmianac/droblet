@@ -120,7 +120,11 @@ export type PhotoUploadUrlRequest = { kind: PhotoKind; contentType: 'image/jpeg'
 /** GET v1/tenant/entitlement, mapped from the wire (`premium` → `member`, `credits.totalRemaining` → `remaining`). */
 export type Entitlement = {
   tier: 'free' | 'member';
-  credits: { monthlyAllowance: number; remaining: number; resetsAt: string };
+  /**
+   * `remaining` is what can be spent now (the month's allowance left + extra credits from packs or grants);
+   * the counter shows the allowance and the extra credits apart, so "30 görselden 47'si" never appears.
+   */
+  credits: { monthlyAllowance: number; remaining: number; allowanceRemaining?: number; extraRemaining?: number; resetsAt: string };
   /** Billing period of the active membership ("Yıllık" on 28 Profil), read from the store product id; absent when unknown. */
   plan?: 'monthly' | 'yearly';
   /**

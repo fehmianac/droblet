@@ -35,6 +35,8 @@ public static partial class ErrorCodes
     public const string SettingsUnavailable = "settings_unavailable";
     public const string ImageStorageNotConfigured = "image_storage_not_configured";
     public const string TooManyRequests = "too_many_requests";
+    /// <summary>429: a daily / per-minute cap of AI work without credits (AiLimits) is reached.</summary>
+    public const string AiLimitReached = "ai_limit_reached";
     /// <summary>503: the sign-in code e-mail could not be sent (SendGrid not configured or down).</summary>
     public const string EmailUnavailable = "email_unavailable";
 

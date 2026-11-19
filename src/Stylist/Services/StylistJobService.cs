@@ -40,7 +40,8 @@ public sealed class StylistJobService(
     ICatalogService catalog,
     IOptionsMonitor<StylistOptions> stylistOptions,
     IOptionsMonitor<PackingOptions> packingOptions,
-    ILogger<StylistJobService> logger) : IStylistJobService
+    ILogger<StylistJobService> logger,
+    IOptionsMonitor<AiOptions> aiOptions) : IStylistJobService
 {
     private sealed record Outcome(string? Result, JobFailure? Failure = null)
     {
@@ -113,25 +114,12 @@ public sealed class StylistJobService(
         }
 
         // Per-user context first (stable between requests → a cacheable prefix), the request itself last.
-        var prompt = StylingJson.Serialize(new
-        {
-            language,
-            styleProfile = await styleRead,
-            palette = await paletteRead,
-            candidates = candidates.Select(Describe),
-            productCandidates = Array.Empty<object>(), // filled by the catalog module ("Parçamı tamamla")
-            count = settings.SuggestionCount,
-            onlyMyWardrobe = input.OnlyMyWardrobe,
-            avoidCombinations = await dislikedRead,
-            date = input.Date,
-            season,
-            occasion = input.Occasion,
-            weather = forecast is null ? null : new { MinTempC = WeatherRules.WholeDegrees(forecast.MinC), MaxTempC = WeatherRules.WholeDegrees(forecast.MaxC), forecast.Condition },
-            freeText = input.FreeText,
-            pinnedItemId = input.PinnedItemId,
-        });
+        var aliases = CandidateAliases.For(candidates, aiOptions.CurrentValue.CompactStylistPrompt);
+        var prompt = StylistPrompts.Outfit(aliases, candidates, language, await styleRead, await paletteRead, settings.SuggestionCount, input.OnlyMyWardrobe,
+            await dislikedRead, input.Date, season, input.Occasion, Weather(forecast), input.FreeText, input.PinnedItemId);
 
-        var output = StylingJson.TryDeserialize<ModelOutfitOutput>(await model.GenerateAsync(new StylistPrompt(JobKind.StylistOutfit, prompt, language), ct));
+        var output = StylingJson.TryDeserialize<ModelOutfitOutput>(aliases.Restore(
+            await model.GenerateAsync(new StylistPrompt(JobKind.StylistOutfit, prompt, language, aliases.Compact), ct)));
         if (StylistOutputGuard.ViolatesContentPolicy(StylistOutputGuard.Texts(output)))
             return Outcome.Fail(JobFailure.GuardRejected);
         if (output?.Refusal == StylistRefusals.OutOfScope)
@@ -213,24 +201,15 @@ public sealed class StylistJobService(
 
         // Static context first (candidates, style), the batch's days last: the prefix is the same for every batch and job.
         var style = await style0;
-        string Prompt(IReadOnlyList<string> batch) => StylingJson.Serialize(new
-        {
-            language,
-            styleProfile = style,
-            candidates = candidates.Select(Describe),
-            weekStart = input.WeekStart,
-            days = input.Days.Where(d => batch.Contains(d.Date)).Select(d => new
-            {
-                d.Date,
-                d.Occasion,
-                weather = forecast.TryGetValue(d.Date, out var f) ? new { MinTempC = WeatherRules.WholeDegrees(f.MinC), MaxTempC = WeatherRules.WholeDegrees(f.MaxC), f.Condition } : null,
-            }),
-        });
+        var aliases = CandidateAliases.For(candidates, aiOptions.CurrentValue.CompactStylistPrompt);
+        string Prompt(IReadOnlyList<string> batch) => StylistPrompts.Week(aliases, candidates, language, style, input.WeekStart,
+            input.Days.Where(d => batch.Contains(d.Date)).Select(d => new StylistPrompts.WeekDay(d.Date, d.Occasion, Weather(forecast.GetValueOrDefault(d.Date)))));
 
         // The days in small batches, one model call each, in parallel (Stylist:WeekBatchDays; 0 = one call for the week).
         // A batch that fails is dressed by the rules below; only when every batch fails does the job fail (or retry).
         var batches = WeekPlanning.Split(dates, settings.WeekBatchDays);
-        var calls = batches.Select(batch => model.GenerateAsync(new StylistPrompt(JobKind.StylistWeek, Prompt(batch), language), ct)).ToList();
+        var calls = batches.Select(async batch => aliases.Restore(
+            await model.GenerateAsync(new StylistPrompt(JobKind.StylistWeek, Prompt(batch), language, aliases.Compact), ct))).ToList();
         try
         {
             await Task.WhenAll(calls);
@@ -352,11 +331,9 @@ public sealed class StylistJobService(
             && unlimited.ItemIds.Count > fallback.ItemIds.Count;
 
         var byDate = forecast.GroupBy(f => f.Date, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
-        var prompt = StylingJson.Serialize(new
-        {
-            language,
-            candidates = candidates.Select(Describe),
-            trip = new
+        var aliases = CandidateAliases.For(candidates, aiOptions.CurrentValue.CompactStylistPrompt);
+        var prompt = StylistPrompts.Pack(aliases, candidates, language,
+            new
             {
                 dates,
                 trip.TripTypes,
@@ -366,13 +343,13 @@ public sealed class StylistJobService(
                 weather = dates.Select(d => byDate.TryGetValue(d, out var f) ? new { date = d, MinTempC = WeatherRules.WholeDegrees(f.MinC), MaxTempC = WeatherRules.WholeDegrees(f.MaxC), f.Condition } : null).Where(w => w is not null),
             },
             // One look per date for that date's occasion; outerLayer = cold or wet (wear the outer layer that day).
-            days = dates.Select((d, i) => new { date = d, occasion = dayOccasions[i], outerLayer = layerDates.Contains(d) }),
+            dates.Select((d, i) => new { date = d, occasion = dayOccasions[i], outerLayer = layerDates.Contains(d) }),
             // The capsule the rules expect (CapsuleRules): about `pieces` in total, never more than maxPieces.
-            capsule = new { target.Tops, target.Bottoms, target.Shoes, target.Outerwear, target.Bags, pieces = target.Pieces, minPieces = range.Min, maxPieces = range.Max },
-            minRewearRatio = PackingRules.RequiresMinWears(dates.Count) ? CapsuleRules.MinRewearRatio : 1.0,
-        });
+            new { target.Tops, target.Bottoms, target.Shoes, target.Outerwear, target.Bags, pieces = target.Pieces, minPieces = range.Min, maxPieces = range.Max },
+            PackingRules.RequiresMinWears(dates.Count) ? CapsuleRules.MinRewearRatio : 1.0);
 
-        var output = StylingJson.TryDeserialize<ModelPackOutput>(await model.GenerateAsync(new StylistPrompt(JobKind.StylistPack, prompt, language), ct));
+        var output = StylingJson.TryDeserialize<ModelPackOutput>(aliases.Restore(
+            await model.GenerateAsync(new StylistPrompt(JobKind.StylistPack, prompt, language, aliases.Compact), ct)));
         if (StylistOutputGuard.ViolatesContentPolicy(StylistOutputGuard.Texts(output?.Days)))
             return Outcome.Fail(JobFailure.GuardRejected);
 
@@ -394,7 +371,8 @@ public sealed class StylistJobService(
 
     // ── Context ───────────────────────────────────────────────────────────────────────────────────────────────────
 
-    private static object Describe(CandidateItem item) => new { item.Id, item.Category, item.ColorIds, item.Fabric, item.Seasons };
+    private static PromptWeather? Weather(DailyForecast? forecast) =>
+        forecast is null ? null : new PromptWeather(WeatherRules.WholeDegrees(forecast.MinC), WeatherRules.WholeDegrees(forecast.MaxC), forecast.Condition);
 
     private static bool WantsOuterLayer(DailyForecast? forecast, StylistOptions settings) =>
         forecast is not null && (forecast.MinC < settings.ColdBelowC || WeatherRules.IsWet(forecast.Condition));

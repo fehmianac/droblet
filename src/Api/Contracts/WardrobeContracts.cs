@@ -32,6 +32,7 @@ public static class WardrobeApi
         ResultKind.Forbidden => ApiResults.Problem(StatusCodes.Status403Forbidden, result.Code ?? ErrorCodes.PremiumRequired),
         // 402: the client opens the credit-pack sheet (not the paywall) on credits_exhausted.
         ResultKind.PaymentRequired => ApiResults.Problem(StatusCodes.Status402PaymentRequired, result.Code ?? ErrorCodes.CreditsExhausted),
+        ResultKind.TooManyRequests => ApiResults.Problem(StatusCodes.Status429TooManyRequests, result.Code ?? ErrorCodes.TooManyRequests),
         _ => ApiResults.Problem(StatusCodes.Status500InternalServerError, "internal_error"),
     };
 
