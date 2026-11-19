@@ -99,6 +99,8 @@ export default function ItemAddScreen() {
   /** The last shot (or gallery pick): shown in the frame, and carried into the manual form if AI is not available. */
   const [captured, setCaptured] = useState<PreparedPhoto | null>(null);
   const [draftId, setDraftId] = useState<string | null>(null);
+  /** When the photo went to the AI: the chooser's stage sentences continue from there. */
+  const sentAt = useRef(0);
 
   const drafts = useItemDrafts({ enabled: draftId !== null && focused });
   const draft = draftId ? drafts.data?.find((d) => d.id === draftId) : undefined;
@@ -118,7 +120,9 @@ export default function ItemAddScreen() {
   useEffect(() => {
     if (!draftId) return;
     const toForm = () => router.replace({ pathname: '/item/form', params: { draftId } });
-    const toChooser = () => router.replace({ pathname: '/item/detect', params: { draftId } });
+    // The chooser continues with the same photo, scan line and wait (canvas 15), not a fresh placeholder.
+    const carried = captured ? { photo: captured.localUri, w: String(captured.width), h: String(captured.height), since: String(sentAt.current) } : {};
+    const toChooser = () => router.replace({ pathname: '/item/detect', params: { draftId, ...carried } });
     if (failed) {
       if (empty) toChooser();
       else toForm();
@@ -126,7 +130,7 @@ export default function ItemAddScreen() {
     }
     const timer = setTimeout(detected && !group ? toForm : toChooser, detected ? DETECTED_MS : RECOGNITION_WAIT_MS);
     return () => clearTimeout(timer);
-  }, [draftId, detected, failed, group, empty]);
+  }, [draftId, detected, failed, group, empty, captured]);
 
   // Free AI recognition used up: the paywall opens; this screen stays underneath with "Elle gir".
   const limitReached = () => {
@@ -148,6 +152,7 @@ export default function ItemAddScreen() {
     }
     setPhase('sending');
     setNotice('none');
+    sentAt.current = Date.now();
     startDrafts
       .start([photo.localUri])
       .then((res) => {
