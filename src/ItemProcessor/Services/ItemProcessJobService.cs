@@ -19,8 +19,12 @@ public interface IItemProcessJobService
 }
 
 /// <summary>
-/// Garment photo -> cleaned image + attribute suggestions on the ItemDraft (GarmentVisionGuard decides what is kept
-/// and what is flagged). "Split" jobs cut one outfit photo into one draft per piece.
+/// Item photo → drafts. One vision call per photo finds every wearable piece in it, jewellery included, each with a box
+/// (ItemDetectionGuard decides what is kept). One piece: it is cropped (unless it fills the photo), its background is removed
+/// and the photo's draft becomes a ready "single" draft — the review form opens directly. Two or more: the photo becomes a
+/// draft group (kind Outfit) and each piece a "detected" draft whose image is the plain crop — no image-model call yet; the
+/// background of a piece is removed only after the user selected it ("clean" jobs, one per piece, no recognition used), so
+/// pieces the user drops cost nothing.
 /// Never writes an Item: drafts become items only through the user's confirm endpoint.
 /// On failure the EXIF-stripped original stays with the (Failed) draft so the user can fill the fields by hand.
 /// Everything is written under the message's tenant prefix only; nothing here ever reaches a global cache.
@@ -29,9 +33,9 @@ public sealed class ItemProcessJobService(
     IJobLifecycle jobs,
     IRepository repository,
     IObjectStorage storage,
-    IImageCleanup cleanup,
-    IGarmentVision vision,
-    IOutfitSplitter splitter,
+    IItemDetector detector,
+    IItemImageCleanup cleanup,
+    IImageCropper cropper,
     IOptionsMonitor<AiOptions> aiOptions,
     IOptionsMonitor<WardrobeOptions> wardrobeOptions,
     TimeProvider timeProvider,
@@ -57,31 +61,9 @@ public sealed class ItemProcessJobService(
         var written = new List<string>();
         try
         {
-            var raw = await storage.ReadAsync(StorageKeys.Upload(message.TenantId, message.DraftId), MaxImageBytes, ct);
-            var clean = raw is null ? null : ImageMetadataStripper.Strip(raw);
-            if (clean is null)
-            {
-                await FinishAsync(job, draft, JobFailure.SourceDeleted, ct);
-                return;
-            }
-
-            // Keep the stripped original with the draft first: it survives a provider failure ("Orijinale dön", manual fill).
-            var originalKey = StorageKeys.ItemOriginal(message.TenantId, message.DraftId, clean.Extension);
-            await storage.PutAsync(originalKey, clean.Data, clean.ContentType, ct);
-            written.Add(originalKey);
-            draft.OriginalKey = originalKey;
-            draft.Status = ItemDraftStatus.Processing;
-            if (!await SaveExistingAsync(draft, ct))
-            {
-                await AbandonAsync(job, written, [], ct);
-                return;
-            }
-
-            var photo = new ImageInput(clean.Data, clean.ContentType);
-            var language = Localized.Language(draft.Language);
-            var outcome = message.Split
-                ? await SplitAsync(job, draft, photo, language, written, ct)
-                : await DescribeAsync(job, draft, photo, language, written, ct);
+            var outcome = message.Clean
+                ? await CleanAsync(job, draft, written, ct)
+                : await DetectAsync(job, draft, message, written, ct);
             if (outcome.WasDeleted)
                 return;
             if (outcome.Failure is { } failure)
@@ -89,7 +71,7 @@ public sealed class ItemProcessJobService(
         }
         catch (Exception ex) when (!WorkerFailure.IsRetryable(ex, isLastAttempt))
         {
-            logger.LogWarning(ex, "Item process job {JobId} failed for tenant {TenantId}", job.Id, job.TenantId);
+            logger.LogWarning(ex, "Item {Kind} job {JobId} failed for tenant {TenantId}", job.Kind, job.Id, job.TenantId);
             await FinishAsync(job, draft, JobFailure.ProviderError, ct);
         }
     }
@@ -102,92 +84,195 @@ public sealed class ItemProcessJobService(
         public static Outcome Failed(JobFailure failure) => new(false, failure);
     }
 
-    private async Task<Outcome> DescribeAsync(JobEntity job, ItemDraftEntity draft, ImageInput photo, string language, List<string> written, CancellationToken ct)
+    // ── Detection: one vision call per photo ───────────────────────────────────────────────────────────────────────
+
+    private async Task<Outcome> DetectAsync(JobEntity job, ItemDraftEntity draft, ItemProcessRequestedEvent message, List<string> written, CancellationToken ct)
     {
-        var processed = await cleanup.CleanupAsync(photo, ct);
-        var suggestion = await vision.DescribeAsync(processed, language, ct);
-        if (!GarmentVisionGuard.HasGarment(suggestion))
-            return Outcome.Failed(JobFailure.GuardRejected);
+        var raw = await storage.ReadAsync(StorageKeys.Upload(message.TenantId, message.DraftId), MaxImageBytes, ct);
+        var clean = raw is null ? null : ImageMetadataStripper.Strip(raw);
+        if (clean is null)
+            return Outcome.Failed(JobFailure.SourceDeleted);
 
-        var fields = GarmentVisionGuard.Apply(suggestion, aiOptions.CurrentValue.VisionConfidenceThreshold);
-        var processedKey = StorageKeys.ItemImage(job.TenantId, draft.Id);
-        await storage.PutAsync(processedKey, processed.Data, processed.ContentType, ct);
-        written.Add(processedKey);
-
-        Apply(draft, fields, processedKey, language);
+        // Keep the stripped original with the draft first: it survives a provider failure ("Orijinale dön", manual fill).
+        var originalKey = StorageKeys.ItemOriginal(message.TenantId, message.DraftId, clean.Extension);
+        await storage.PutAsync(originalKey, clean.Data, clean.ContentType, ct);
+        written.Add(originalKey);
+        draft.OriginalKey = originalKey;
+        draft.Status = ItemDraftStatus.Processing;
         if (!await SaveExistingAsync(draft, ct))
         {
             await AbandonAsync(job, written, [], ct);
             return Outcome.DraftDeleted;
         }
 
-        await jobs.CompleteAsync(job, StylingJson.Serialize(new { draftId = draft.Id, needsReview = fields.NeedsReview, flaggedFields = fields.FlaggedFields }), ct);
-        return Outcome.Done;
-    }
-
-    private async Task<Outcome> SplitAsync(JobEntity job, ItemDraftEntity source, ImageInput photo, string language, List<string> written, CancellationToken ct)
-    {
-        var pieces = (await splitter.DetectPiecesAsync(photo, language, ct))
-            .Where(GarmentVisionGuard.HasGarment)
-            .Take(Math.Max(1, wardrobeOptions.CurrentValue.MaxSplitPieces))
-            .ToList();
-        if (pieces.Count == 0)
+        var photo = new ImageInput(clean.Data, clean.ContentType);
+        var language = Localized.Language(draft.Language);
+        var items = ItemDetectionGuard.Filter(await detector.DetectItemsAsync(photo, language, ct), wardrobeOptions.CurrentValue.MaxDetectedItems);
+        if (items.Count == 0)
             return Outcome.Failed(JobFailure.GuardRejected);
 
-        var threshold = aiOptions.CurrentValue.VisionConfidenceThreshold;
-        var pieceDrafts = new List<ItemDraftEntity>();
-        foreach (var piece in pieces)
-        {
-            var image = await splitter.ExtractPieceAsync(photo, piece, ct);
-            var now = timeProvider.GetUtcNow().UtcDateTime;
-            var draft = new ItemDraftEntity
-            {
-                Id = Ulid.New(now),
-                TenantId = job.TenantId,
-                Kind = ItemDraftKind.Piece,
-                RequestId = source.RequestId,
-                JobId = job.Id,
-                ParentDraftId = source.Id,
-                CreatedAt = now,
-                UpdatedAt = now,
-            };
-            var key = StorageKeys.ItemImage(job.TenantId, draft.Id);
-            await storage.PutAsync(key, image.Data, image.ContentType, ct);
-            written.Add(key);
-            Apply(draft, GarmentVisionGuard.Apply(piece, threshold), key, language);
-            await repository.SaveAsync(draft, ct); // a new row: there is nothing the user could have deleted
-            pieceDrafts.Add(draft);
-        }
+        var size = cropper.Measure(photo);
+        draft.PhotoWidth = size?.Width;
+        draft.PhotoHeight = size?.Height;
+        return items.Count == 1
+            ? await SingleAsync(job, draft, photo, size, items[0], language, written, ct)
+            : await GroupAsync(job, draft, photo, size, items, language, written, ct);
+    }
 
-        source.Status = ItemDraftStatus.Ready; // consumed: its pieces are the drafts the user confirms
-        if (!await SaveExistingAsync(source, ct))
+    /// <summary>One piece: the review form opens directly, so its background is removed now (one image-model call).</summary>
+    private async Task<Outcome> SingleAsync(JobEntity job, ItemDraftEntity draft, ImageInput photo, PixelSize? size, DetectedItem item, string language,
+        List<string> written, CancellationToken ct)
+    {
+        var fields = ItemDetectionGuard.Fields(item, aiOptions.CurrentValue.VisionConfidenceThreshold);
+        var subcategory = ItemDetectionGuard.Subcategory(item, fields.Category);
+        var input = size is { } pixels && !CropMath.UseWholePhoto(item.Box)
+            ? cropper.Crop(photo, CropMath.Plan(item.Box, pixels, CropMath.IsSmall(item.Box, subcategory))) ?? photo
+            : photo;
+        var processed = await cleanup.CleanupItemAsync(input, item.Garment.Category, subcategory, ct);
+
+        var processedKey = StorageKeys.ItemImage(job.TenantId, draft.Id);
+        await storage.PutAsync(processedKey, processed.Data, processed.ContentType, ct);
+        written.Add(processedKey);
+
+        Apply(draft, fields, subcategory, item, language);
+        draft.Kind = ItemDraftKind.Single;
+        draft.ItemCount = 1;
+        draft.ProcessedKey = processedKey;
+        draft.Status = ItemDraftStatus.Ready;
+        if (!await SaveExistingAsync(draft, ct))
         {
-            // The outfit photo was deleted while its pieces were being cut out: the pieces go with it.
-            await AbandonAsync(job, written, pieceDrafts, ct);
+            await AbandonAsync(job, written, [], ct);
             return Outcome.DraftDeleted;
         }
 
-        await jobs.CompleteAsync(job, StylingJson.Serialize(new { draftId = source.Id, pieceDraftIds = pieceDrafts.Select(d => d.Id).ToList() }), ct);
+        await jobs.CompleteAsync(job, StylingJson.Serialize(new { draftId = draft.Id, itemCount = 1, needsReview = fields.NeedsReview, flaggedFields = fields.FlaggedFields }), ct);
         return Outcome.Done;
     }
 
-    private static void Apply(ItemDraftEntity draft, GarmentDraftFields fields, string processedKey, string language)
+    /// <summary>Two or more pieces: a draft group. Each piece gets its plain crop only — no image-model call before the user selects it.</summary>
+    private async Task<Outcome> GroupAsync(JobEntity job, ItemDraftEntity source, ImageInput photo, PixelSize? size, IReadOnlyList<DetectedItem> items,
+        string language, List<string> written, CancellationToken ct)
     {
-        draft.ProcessedKey = processedKey;
+        if (size is not { } pixels)
+            return Outcome.Failed(JobFailure.ProviderError); // the photo could not be decoded: nothing to crop
+
+        var threshold = aiOptions.CurrentValue.VisionConfidenceThreshold;
+        var pieces = new List<ItemDraftEntity>();
+        try
+        {
+            await CutPiecesAsync();
+        }
+        catch
+        {
+            // A retried message cuts the pieces again: never leave half a group behind.
+            foreach (var piece in pieces)
+                await repository.DeleteAsync(piece.Pk, piece.Sk, ct);
+            throw;
+        }
+
+        if (pieces.Count == 0)
+            return Outcome.Failed(JobFailure.ProviderError);
+
+        source.Kind = ItemDraftKind.Outfit;
+        source.ItemCount = pieces.Count;
+        source.Status = ItemDraftStatus.Ready; // the group: its pieces are what the user selects and confirms
+        if (!await SaveExistingAsync(source, ct))
+        {
+            // The photo was deleted while its pieces were being cut out: the pieces go with it.
+            await AbandonAsync(job, written, pieces, ct);
+            return Outcome.DraftDeleted;
+        }
+
+        await jobs.CompleteAsync(job, StylingJson.Serialize(new
+        {
+            draftId = source.Id, groupId = source.Id, itemCount = pieces.Count, pieceDraftIds = pieces.Select(d => d.Id).ToList(),
+        }), ct);
+        return Outcome.Done;
+
+        async Task CutPiecesAsync()
+        {
+            for (var index = 0; index < items.Count; index++)
+            {
+                var item = items[index];
+                var fields = ItemDetectionGuard.Fields(item, threshold);
+                var subcategory = ItemDetectionGuard.Subcategory(item, fields.Category);
+                var crop = cropper.Crop(photo, CropMath.Plan(item.Box, pixels, CropMath.IsSmall(item.Box, subcategory)));
+                if (crop is null)
+                    continue;
+
+                var now = timeProvider.GetUtcNow().UtcDateTime;
+                var piece = new ItemDraftEntity
+                {
+                    Id = Ulid.New(now.AddMilliseconds(index)),
+                    TenantId = job.TenantId,
+                    Kind = ItemDraftKind.Piece,
+                    Status = ItemDraftStatus.Detected,
+                    RequestId = source.RequestId,
+                    JobId = job.Id,
+                    ParentDraftId = source.Id,
+                    Index = pieces.Count + 1,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                };
+                var cropKey = StorageKeys.ItemOriginal(job.TenantId, piece.Id, "jpg");
+                await storage.PutAsync(cropKey, crop.Data, crop.ContentType, ct);
+                written.Add(cropKey);
+                piece.OriginalKey = cropKey;
+                Apply(piece, fields, subcategory, item, language);
+                await repository.SaveAsync(piece, ct); // a new row: there is nothing the user could have deleted
+                pieces.Add(piece);
+            }
+        }
+    }
+
+    // ── Background removal of a piece the user selected ─────────────────────────────────────────────────────────
+
+    private async Task<Outcome> CleanAsync(JobEntity job, ItemDraftEntity piece, List<string> written, CancellationToken ct)
+    {
+        var cropKey = piece.OriginalKey is { } key && StorageKeys.BelongsToTenant(key, job.TenantId) ? key : null;
+        var crop = cropKey is null ? null : await storage.ReadAsync(cropKey, MaxImageBytes, ct);
+        if (crop is null)
+            return Outcome.Failed(JobFailure.SourceDeleted);
+
+        var hint = piece.Category is { } category && System.Enum.TryParse<ItemCategoryHint>(category.ToString(), out var parsed) ? parsed : (ItemCategoryHint?)null;
+        var processed = await cleanup.CleanupItemAsync(new ImageInput(crop, "image/jpeg"), hint, piece.Subcategory, ct);
+        var processedKey = StorageKeys.ItemImage(job.TenantId, piece.Id);
+        await storage.PutAsync(processedKey, processed.Data, processed.ContentType, ct);
+        written.Add(processedKey);
+
+        piece.ProcessedKey = processedKey;
+        piece.Status = ItemDraftStatus.Ready;
+        piece.Failure = null;
+        if (!await SaveExistingAsync(piece, ct))
+        {
+            await AbandonAsync(job, written, [], ct);
+            return Outcome.DraftDeleted;
+        }
+
+        await jobs.CompleteAsync(job, StylingJson.Serialize(new { draftId = piece.Id }), ct);
+        return Outcome.Done;
+    }
+
+    private static void Apply(ItemDraftEntity draft, GarmentDraftFields fields, string? subcategory, DetectedItem item, string language)
+    {
         draft.Name = fields.Name;
         draft.Language = fields.Name is null ? null : language;
         draft.Category = fields.Category;
+        draft.Subcategory = subcategory;
         draft.ColorIds = fields.ColorIds.ToList();
         draft.Fabric = fields.Fabric;
         draft.Seasons = fields.Seasons.ToList();
         draft.FlaggedFields = fields.FlaggedFields.ToList();
         draft.NeedsReview = fields.NeedsReview;
-        draft.Status = ItemDraftStatus.Ready;
+        draft.Box = item.Box;
+        draft.Confidence = Math.Round(Math.Clamp(item.Confidence, 0, 1), 2);
+        draft.Failure = null;
     }
 
     private async Task FinishAsync(JobEntity job, ItemDraftEntity draft, JobFailure failure, CancellationToken ct)
     {
         draft.Status = ItemDraftStatus.Failed;
+        draft.Failure = failure;
         await SaveExistingAsync(draft, ct); // a deleted draft stays deleted
         await jobs.FailAsync(job, failure, ct);
     }
@@ -199,7 +284,7 @@ public sealed class ItemProcessJobService(
             await storage.DeleteAsync(key, ct);
         foreach (var piece in pieceDrafts)
             await repository.DeleteAsync(piece.Pk, piece.Sk, ct);
-        logger.LogInformation("Item process job {JobId}: the draft was deleted during processing; nothing was kept", job.Id);
+        logger.LogInformation("Item job {JobId}: the draft was deleted during processing; nothing was kept", job.Id);
         await jobs.FailAsync(job, JobFailure.SourceDeleted, ct);
     }
 

@@ -16,7 +16,7 @@ public static class AiSchemas
     public const string WeekPlan = "week_plan";
     public const string Packing = "packing";
     public const string GarmentDraft = "garment_draft";
-    public const string OutfitPieces = "outfit_pieces";
+    public const string ItemDetection = "item_detection";
     public const string PaletteSeason = "palette_season";
 
     public static string NameFor(JobKind kind) => kind switch
@@ -60,7 +60,22 @@ public static class AiSchemas
         ("garmentCount", Integer()),
         ("garment", Garment()));
 
-    public static JsonObject OutfitPiecesSchema() => Object(("pieces", Array(Garment())));
+    /// <summary>
+    /// Every wearable piece in one photo. box = edges as fractions of the photo (0 = left / top, 1 = right / bottom);
+    /// itemConfidence = how sure the model is that the box is one real, separate piece; isWearable = false for anything else.
+    /// </summary>
+    public static JsonObject ItemDetectionSchema() => Object(
+        ("items", Array(Object(
+            ("name", NullableString()),
+            ("category", NullableEnum(Names<ItemCategoryHint>())),
+            ("subcategory", NullableEnum(SubcategoryCatalog.Ids)),
+            ("colorIds", Array(Enum(ColorCatalog.Ids))),
+            ("fabric", NullableEnum(FabricCatalog.Ids)),
+            ("seasons", Array(Enum(Names<Season>()))),
+            ("isWearable", Boolean()),
+            ("itemConfidence", Number()),
+            ("box", Object(("left", Number()), ("top", Number()), ("right", Number()), ("bottom", Number()))),
+            ("confidence", FieldConfidence())))));
 
     public static JsonObject PaletteSchema() => Object(
         ("facesDetected", Integer()),
@@ -74,11 +89,13 @@ public static class AiSchemas
         ("colorIds", Array(Enum(ColorCatalog.Ids))),
         ("fabric", NullableEnum(FabricCatalog.Ids)),
         ("seasons", Array(Enum(Names<Season>()))),
-        ("confidence", Object(
-            (GarmentVisionGuard.FieldCategory, Number()),
-            (GarmentVisionGuard.FieldColors, Number()),
-            (GarmentVisionGuard.FieldFabric, Number()),
-            (GarmentVisionGuard.FieldSeasons, Number()))));
+        ("confidence", FieldConfidence()));
+
+    private static JsonObject FieldConfidence() => Object(
+        (GarmentVisionGuard.FieldCategory, Number()),
+        (GarmentVisionGuard.FieldColors, Number()),
+        (GarmentVisionGuard.FieldFabric, Number()),
+        (GarmentVisionGuard.FieldSeasons, Number()));
 
     private static JsonObject Day() => Object(
         ("date", String()),

@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Domain.Enum;
 
 namespace Domain.Services.Ai;
@@ -56,9 +57,45 @@ public interface IPaletteAnalyzer
     Task<PaletteAnalysis> AnalyzeAsync(ImageInput facePhoto, CancellationToken ct);
 }
 
-/// <summary>"Kombin fotoğrafından parçaları ayır": detect the pieces worn in one outfit photo, then cut each one out.</summary>
-public interface IOutfitSplitter
+/// <summary>Normalised (0..1) box of one piece in a photo: X / Y = top-left corner, Width / Height = size.</summary>
+public sealed record BoundingBox(
+    [property: JsonPropertyName("x")] double X,
+    [property: JsonPropertyName("y")] double Y,
+    [property: JsonPropertyName("width")] double Width,
+    [property: JsonPropertyName("height")] double Height)
 {
-    Task<IReadOnlyList<GarmentSuggestion>> DetectPiecesAsync(ImageInput outfitPhoto, string language, CancellationToken ct);
-    Task<ImageInput> ExtractPieceAsync(ImageInput outfitPhoto, GarmentSuggestion piece, CancellationToken ct);
+    [JsonIgnore] public double Area => Width * Height;
+    [JsonIgnore] public double Right => X + Width;
+    [JsonIgnore] public double Bottom => Y + Height;
 }
+
+/// <summary>
+/// One wearable piece the vision model found in a photo. Subcategory = a SubcategoryCatalog id (null = none fits);
+/// Confidence = the model's overall certainty that this box is one real, separate piece; IsWearable = false for anything that is
+/// not clothing, shoes, a bag, an accessory or jewellery (a person, a body part, furniture …) — the guard drops those.
+/// </summary>
+public sealed record DetectedItem(GarmentSuggestion Garment, BoundingBox Box, string? Subcategory, double Confidence, bool IsWearable = true);
+
+/// <summary>Multi-item detection: ALL distinct wearable pieces in one photo, each with its box (one vision call per photo).</summary>
+public interface IItemDetector
+{
+    Task<IReadOnlyList<DetectedItem>> DetectItemsAsync(ImageInput photo, string language, CancellationToken ct);
+}
+
+/// <summary>Background removal of one piece (already cropped to its box), as a product photo on the house background.</summary>
+public interface IItemImageCleanup
+{
+    Task<ImageInput> CleanupItemAsync(ImageInput crop, ItemCategoryHint? category, string? subcategory, CancellationToken ct);
+}
+
+public readonly record struct PixelSize(int Width, int Height);
+
+/// <summary>Decoding / cropping of an (EXIF-stripped) photo. Pure pixel work, no AI. Null = the bytes are not a decodable image.</summary>
+public interface IImageCropper
+{
+    PixelSize? Measure(ImageInput photo);
+    ImageInput? Crop(ImageInput photo, CropPlan plan);
+}
+
+/// <summary>Pixel rectangle to cut out of the photo, then scaled so the result is OutputWidth × OutputHeight.</summary>
+public readonly record struct CropPlan(int X, int Y, int Width, int Height, int OutputWidth, int OutputHeight);

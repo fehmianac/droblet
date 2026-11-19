@@ -88,7 +88,8 @@ public static class DependencyInjection
         services.AddSingleton<ITryOnRenderer>(sp => sp.GetRequiredService<OpenAiProvider>());
         services.AddSingleton<IStylistModel>(sp => sp.GetRequiredService<OpenAiProvider>());
         services.AddSingleton<IPaletteAnalyzer>(sp => sp.GetRequiredService<OpenAiProvider>());
-        services.AddSingleton<IOutfitSplitter>(sp => sp.GetRequiredService<OpenAiProvider>());
+        services.AddSingleton<IItemDetector>(sp => sp.GetRequiredService<OpenAiProvider>());
+        services.AddSingleton<IItemImageCleanup>(sp => sp.GetRequiredService<OpenAiProvider>());
         return services;
     }
 

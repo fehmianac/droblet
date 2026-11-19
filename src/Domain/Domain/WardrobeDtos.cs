@@ -57,7 +57,17 @@ public record ItemDraftDto(
     IReadOnlyList<string> FlaggedFields,
     bool NeedsReview,
     string? Language,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    string? Subcategory = null,
+    string? GroupId = null,
+    BoundingBox? Box = null,
+    int? Index = null,
+    double? Confidence = null,
+    bool Selected = false,
+    int? ItemCount = null,
+    int? PhotoWidth = null,
+    int? PhotoHeight = null,
+    JobFailure? Failure = null);
 
 /// <param name="Total">Drafts that are (or were) being processed; with Processed this is the "8 / 12" progress card.</param>
 public record ItemDraftsDto(IReadOnlyList<ItemDraftDto> Drafts, int Total, int Processed);

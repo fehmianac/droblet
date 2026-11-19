@@ -2,6 +2,7 @@ using Amazon.Lambda.Core;
 using Amazon.Lambda.Serialization.SystemTextJson;
 using Amazon.Lambda.SQSEvents;
 using Domain.Events;
+using Domain.Services.Ai;
 using Infrastructure.Workers;
 using ItemProcessor.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,7 +17,9 @@ public class Entrypoint
 {
     private readonly IServiceProvider _services;
 
-    public Entrypoint() : this(WorkerHost.BuildServices(services => services.AddSingleton<IItemProcessJobService, ItemProcessJobService>())) { }
+    public Entrypoint() : this(WorkerHost.BuildServices(services => services
+        .AddSingleton<IImageCropper, SkiaImageCropper>()
+        .AddSingleton<IItemProcessJobService, ItemProcessJobService>())) { }
 
     public Entrypoint(IServiceProvider services) => _services = services;
 

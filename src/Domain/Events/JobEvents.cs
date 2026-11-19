@@ -10,9 +10,11 @@ public interface IJobRequestedEvent
     JobKind Kind { get; }
 }
 
-public sealed record ItemProcessRequestedEvent(string TenantId, string JobId, string DraftId, bool Split = false) : IJobRequestedEvent
+/// <param name="Split">Legacy flag ("splitOutfit"): every photo now runs the same multi-item detection.</param>
+/// <param name="Clean">Background removal of one piece the user selected from a draft group (no recognition is used).</param>
+public sealed record ItemProcessRequestedEvent(string TenantId, string JobId, string DraftId, bool Split = false, bool Clean = false) : IJobRequestedEvent
 {
-    public JobKind Kind => Split ? JobKind.ItemSplit : JobKind.ItemProcess;
+    public JobKind Kind => Clean ? JobKind.ItemClean : Split ? JobKind.ItemSplit : JobKind.ItemProcess;
 }
 
 public sealed record StylistRequestedEvent(string TenantId, string JobId, JobKind Kind) : IJobRequestedEvent;

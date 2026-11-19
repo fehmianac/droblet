@@ -12,9 +12,13 @@ public enum Occasion { Office, Dinner, Weekend, Wedding, Travel, Sport }
 
 public enum TripType { Business, Dinner, Sightseeing }
 
-public enum ItemDraftStatus { Uploaded, Processing, Ready, Failed }
+/// <summary>Detected = a piece found in a multi-item photo, waiting for the user's selection (its image is the plain crop; no image-model call yet).</summary>
+public enum ItemDraftStatus { Uploaded, Processing, Ready, Failed, Detected }
 
-/// <summary>Single = one garment photo; Outfit = "Kombin fotoğrafından parçaları ayır" source photo; Piece = a piece cut out of an Outfit draft.</summary>
+/// <summary>
+/// Single = a photo with one piece (or a manual entry); Outfit = the source photo of a draft group (the AI found two or more
+/// pieces in it; kept as "outfit" on the wire); Piece = one piece found in such a photo (parentDraftId = the group).
+/// </summary>
 public enum ItemDraftKind { Single, Outfit, Piece }
 
 /// <summary>Brief §6 garment.kaynak: fotoğraf / kütüphane / satın alım; Manual = entered by hand without a photo.</summary>

@@ -137,6 +137,23 @@ public class ConfirmDraftsCommandValidator : AbstractValidator<ConfirmDraftsComm
     }
 }
 
+public class SelectDraftsCommandValidator : AbstractValidator<SelectDraftsCommand>
+{
+    /// <summary>A group never holds more pieces than this (Wardrobe:MaxDetectedItems is capped well below it).</summary>
+    public const int MaxPieces = 30;
+
+    public SelectDraftsCommandValidator()
+    {
+        // An empty list is allowed: "none of them" discards every detected piece of the group.
+        RuleFor(x => x.DraftIds).NotNull().WithErrorCode("draft_ids_required")
+            .Must(ids => ids is null || ids.Count <= MaxPieces).WithErrorCode("draft_ids_out_of_range")
+            .Must(ids => ids is null || ids.All(Ulid.IsValid)).WithErrorCode("draft_id_invalid");
+        RuleFor(x => x.Edits)
+            .Must(e => e is null || e.Count <= MaxPieces).WithErrorCode("edits_out_of_range")
+            .Must(e => e is null || e.All(edit => Ulid.IsValid(edit.DraftId))).WithErrorCode("draft_id_invalid");
+    }
+}
+
 public class AddLibraryItemsCommandValidator : AbstractValidator<AddLibraryItemsCommand>
 {
     public AddLibraryItemsCommandValidator()

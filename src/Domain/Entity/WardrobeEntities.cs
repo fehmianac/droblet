@@ -101,6 +101,21 @@ public class ItemDraftEntity : IEntity
     [JsonPropertyName("flaggedFields")] public List<string> FlaggedFields { get; set; } = [];
     // "Kategoriyi kontrol et": confirm requires reviewed = true; "select all" skips these.
     [JsonPropertyName("needsReview")] public bool NeedsReview { get; set; }
+    // Suggested sub-type id (SubcategoryCatalog), e.g. "necklace".
+    [JsonPropertyName("subcategory")] public string? Subcategory { get; set; }
+
+    // Multi-item detection. A piece: its normalised box in the group photo, its number (1-based, reading order) and the
+    // model's confidence that it is one separate piece; Selected once the user kept it (its background removal is queued).
+    [JsonPropertyName("box")] public BoundingBox? Box { get; set; }
+    [JsonPropertyName("index")] public int? Index { get; set; }
+    [JsonPropertyName("confidence")] public double? Confidence { get; set; }
+    [JsonPropertyName("selected")] public bool Selected { get; set; }
+    // The group source (kind Outfit): how many pieces were found, and the photo's pixel size (boxes are drawn on it).
+    [JsonPropertyName("itemCount")] public int? ItemCount { get; set; }
+    [JsonPropertyName("photoWidth")] public int? PhotoWidth { get; set; }
+    [JsonPropertyName("photoHeight")] public int? PhotoHeight { get; set; }
+    // Why a failed draft failed (guardRejected = no piece was found in the photo).
+    [JsonPropertyName("failure")] public JobFailure? Failure { get; set; }
 
     [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; }
     [JsonPropertyName("updatedAt")] public DateTime UpdatedAt { get; set; }

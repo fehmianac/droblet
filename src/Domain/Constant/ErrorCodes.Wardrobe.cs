@@ -9,6 +9,10 @@ public static partial class ErrorCodes
     public const string DraftNotFound = "draft_not_found";
     public const string DraftNotFailed = "draft_not_failed";
     public const string DraftIsOutfitSource = "draft_is_outfit_source";
+    /// <summary>Select: the draft is not a draft group whose pieces wait for the user's choice.</summary>
+    public const string DraftNotGroup = "draft_not_group";
+    /// <summary>Select: a draft id that is not one of the group's pieces.</summary>
+    public const string DraftNotInGroup = "draft_not_in_group";
     public const string CategoryRequired = "category_required";
     public const string ColorRequired = "color_required";
     public const string ColorUnknown = "color_unknown";
