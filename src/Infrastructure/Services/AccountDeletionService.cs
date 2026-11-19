@@ -24,7 +24,12 @@ public sealed class AccountDeletionService(
         await crossTenantCleanup.CleanAsync(tenantId, ct);
 
         foreach (var prefix in DeletionPlan.AccountS3Prefixes(tenantId))
-            await storage.DeletePrefixAsync(prefix, ct);
+        {
+            if (prefix == StorageKeys.ImportUploadsRoot(tenantId))
+                await Storage.ImportUploadsCleanup.DeletePrefixAsync(storage, prefix, logger, ct);
+            else
+                await storage.DeletePrefixAsync(prefix, ct);
+        }
 
         // Usage events: the day-partition rows, found through the per-actor copies (removed with the partitions below,
         // so a failed run can be retried).

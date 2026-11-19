@@ -344,7 +344,7 @@ public sealed class OutfitImportService(
         foreach (var key in await storage.ListKeysAsync(StorageKeys.ImportPrefix(tenantId, sessionId), ct))
             if (!keep.Contains(key) && StorageKeys.BelongsToTenant(key, tenantId))
                 await storage.DeleteAsync(key, ct);
-        await storage.DeletePrefixAsync(StorageKeys.ImportUploadPrefix(tenantId, sessionId), ct);
+        await Storage.ImportUploadsCleanup.DeletePrefixAsync(storage, StorageKeys.ImportUploadPrefix(tenantId, sessionId), logger, ct);
 
         // Photos never uploaded held a recognition: it is given back.
         foreach (var photo in photos.Where(p => p.Status == OutfitImportPhotoStatus.Pending))
@@ -375,7 +375,7 @@ public sealed class OutfitImportService(
         keys.Add((OutfitImportLeaseEntity.GetPk(tenantId), OutfitImportLeaseEntity.MatchLock(sessionId)));
         await repository.BatchDeleteKeysAsync(keys, ct);
 
-        await storage.DeletePrefixAsync(StorageKeys.ImportUploadPrefix(tenantId, sessionId), ct);
+        await Storage.ImportUploadsCleanup.DeletePrefixAsync(storage, StorageKeys.ImportUploadPrefix(tenantId, sessionId), logger, ct);
         if (session.Status != OutfitImportStatus.Committed)
             await storage.DeletePrefixAsync(StorageKeys.ImportPrefix(tenantId, sessionId), ct);
         logger.LogInformation("Outfit import {SessionId} of tenant {TenantId} discarded ({Status})", sessionId, tenantId, session.Status);
