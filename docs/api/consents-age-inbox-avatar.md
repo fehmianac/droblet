@@ -89,7 +89,8 @@ open; a guard still answers `403` (and the app opens its just-in-time sheet) whe
 | POST | `v1/auth/register` *(changed)* | `{ "name", "email", "password", "ageConfirmed": true }` | `ageConfirmed` must be `true` → else `400` with code `age_confirmation_required` on `ageConfirmed`. The confirmation time is stored. |
 | POST | `v1/tenant/profile/age-confirmation` | — | `ProfileDto`. One-time confirmation after the first Apple / Google sign-in; idempotent (the first time is kept). |
 
-`ProfileDto` (`GET/PUT v1/tenant/profile` and the other profile endpoints) gains `ageConfirmedAt` (null = not confirmed).
+`ProfileDto` (`GET/PUT v1/tenant/profile` and the other profile endpoints) gains `ageConfirmedAt` (null = not confirmed)
+and `moderation` (null, or `{ "hidden": true, "reason" }` while a moderator hides the profile's public fields — [S §11](store-social-settings.md)).
 The app routes an unconfirmed account to the confirmation screen before anything else.
 
 ## 4. Notification inbox
@@ -105,8 +106,11 @@ The app routes an unconfirmed account to the confirmation screen before anything
 
 - `type` / `data` are the push codes of [S §9](store-social-settings.md): `morning_outfit` (`day`), `weekly_edit`
   (`editId`), `friend_ratings` (`day`), `price_drop` (`productId`), `follow_request` (`handle`), `data_export_ready`
-  (`exportId`; written by the data export worker, never pushed — [V §2](verification-export.md)). Ids only — the app writes
-  the sentence.
+  (`exportId`; written by the data export worker, never pushed — [V §2](verification-export.md)), `content_removed`
+  (`targetKind`, `targetId`?, `reason`; written when a moderator removes the owner's look / item / profile fields, never
+  pushed — [S §11](store-social-settings.md); TR "Paylaşımın topluluk kurallarına aykırı bulunduğu için kaldırıldı.", EN
+  "Your post was removed because it was found to go against our community guidelines."). Ids only — the app writes the
+  sentence; an app that does not know a type drops the row.
 - Filled by the Notifier from the same events it pushes, once per event, with or without a device. `weekly_edit` and
   `price_drop` only with a valid marketing consent (and the switch on); `follow_request` and `friend_ratings` even when
   their push is off.
