@@ -83,6 +83,16 @@ export function isGone(error: unknown): error is ApiError {
   return error instanceof ApiError && error.status === 404;
 }
 
+/**
+ * A read that will never succeed on a retry because the thing is not there: 404 / 410 from the API (an
+ * unknown id, a deleted record, content not published yet) or a fixture lookup miss (`FixtureNotFound`).
+ * Screens show their not-found / empty state for it; "Tekrar dene" stays for network / 5xx failures.
+ */
+export function isNotFound(error: unknown): boolean {
+  if (error instanceof ApiError) return error.kind === 'http' && (error.status === 404 || error.status === 410);
+  return error instanceof Error && error.name === 'FixtureNotFound';
+}
+
 /** The server's stable snake_case `code` of a failed request, or null (network, non-API error). */
 export function apiErrorCode(error: unknown): string | null {
   return error instanceof ApiError ? error.code : null;

@@ -82,7 +82,8 @@
     "missingNote_one": "{{count}} piece isn't in your wardrobe; you can complete it from the store.",
     "missingNote_other": "{{count}} pieces aren't in your wardrobe; you can complete them from the store.",
     "deleted": "This look was deleted.",
-    "backToLooks": "Back to the lookbook"
+    "backToLooks": "Back to the lookbook",
+    "notFound": "This look is no longer in your lookbook."
   },
   "trips": {
     "eyebrow": "YOUR TRAVEL PLANS",
@@ -208,6 +209,8 @@
     "dayPieces_one": "{{count}} piece",
     "dayPieces_other": "{{count}} pieces",
     "dayTryOn": "See it on me",
-    "daySaveLook": "Save as a look"
+    "daySaveLook": "Save as a look",
+    "notFound": "This trip is no longer in your trips.",
+    "backToTrips": "Back to trips"
   }
 }

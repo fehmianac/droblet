@@ -192,8 +192,10 @@ describe('11 Parça detayı', () => {
 
   it('explains a piece that no longer exists', async () => {
     await open('/item/item_missing');
-    await waitFor(() => expect(screen.getByText('This piece is no longer in your wardrobe.')).toBeTruthy(), { timeout: 15000 });
-  }, 20000);
+    // A 404 is never retried, so the state shows at once.
+    await waitFor(() => expect(screen.getByText('This piece is no longer in your wardrobe.')).toBeTruthy(), WAIT);
+    expect(screen.queryByText('Try again')).toBeNull();
+  });
 });
 
 describe('12c Parça bilgisi', () => {
@@ -211,6 +213,22 @@ describe('12c Parça bilgisi', () => {
     await fireEvent.press(screen.getByText('Spring'));
     await waitFor(() => expect(screen.queryByText('Choose at least one season to save.')).toBeNull());
     expect(save().props.accessibilityState.disabled).toBe(false);
+  });
+});
+
+describe('12c Parça bilgisi — nothing to edit', () => {
+  it('explains a piece that no longer exists instead of an error', async () => {
+    await open('/item/form?itemId=item_missing');
+    await waitFor(() => expect(screen.getByText('This piece is no longer in your wardrobe.')).toBeTruthy(), WAIT);
+    expect(screen.queryByText('Try again')).toBeNull();
+    expect(screen.getByLabelText('Back to wardrobe')).toBeTruthy();
+  });
+
+  it('explains a draft that no longer exists', async () => {
+    await open('/item/form?draftId=draft_missing');
+    await waitFor(() => expect(screen.getByText('This draft no longer exists.')).toBeTruthy(), WAIT);
+    expect(screen.getByTestId('state-not-found')).toBeTruthy();
+    expect(screen.getByLabelText('Back to wardrobe')).toBeTruthy();
   });
 });
 

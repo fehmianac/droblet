@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
 import { useCartCount } from '@/api/cart';
-import { extractApiError } from '@/api/errors';
+import { extractApiError, isNotFound } from '@/api/errors';
 import { Button } from '@/components/ui/Button';
 import { IconButton } from '@/components/ui/IconButton';
 import { Text } from '@/components/ui/Text';
@@ -34,7 +34,7 @@ type Props<T> = {
 
 /**
  * The five states for a section inside a screen (a strip, a tab body, a sheet list) — the compact
- * sibling of `ScreenState`: skeleton · one-sentence empty · error + "Tekrar dene" · offline · content.
+ * sibling of `ScreenState`: skeleton · one-sentence empty (also for a 404) · error + "Tekrar dene" · offline · content.
  */
 export function SectionState<T>({ query, skeleton, isEmpty, emptyText, errorText, inset = true, children }: Props<T>) {
   const { t } = useTranslation();
@@ -50,6 +50,14 @@ export function SectionState<T>({ query, skeleton, isEmpty, emptyText, errorText
       );
     }
     return <>{children(query.data)}</>;
+  }
+  // 404: nothing there (not published, gone) — the empty sentence, never "Tekrar dene".
+  if (query.data === undefined && query.status === 'error' && isNotFound(query.error)) {
+    return (
+      <Text variant="body" tone="muted" className={`${pad} py-4`}>
+        {emptyText ?? t('states.notFound')}
+      </Text>
+    );
   }
   if (query.status === 'error' || !online || query.fetchStatus === 'paused') {
     const message =

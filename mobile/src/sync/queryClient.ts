@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import { defaultShouldDehydrateQuery, MutationCache, QueryCache, QueryClient, type Query } from '@tanstack/react-query';
 
-import { ApiError, isConsentRequired, missingConsents } from '@/api/errors';
+import { ApiError, isConsentRequired, isNotFound, missingConsents } from '@/api/errors';
 import { consentRequests } from '@/features/consent/store';
 
 import { registerMutationDefaults } from './mutationFns';
@@ -16,6 +16,8 @@ export const CACHE_BUSTER = 'v3';
 export const CACHE_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 7;
 
 function shouldRetry(failureCount: number, error: unknown): boolean {
+  // Not there (404 / 410, a fixture miss): a retry cannot bring it back, and the screen shows its not-found state at once.
+  if (isNotFound(error)) return false;
   if (error instanceof ApiError) {
     if (error.kind === 'config' || error.kind === 'session_expired') return false;
     if (error.status !== null && error.status >= 400 && error.status < 500 && error.status !== 429) {

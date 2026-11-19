@@ -82,7 +82,8 @@
     "missingNote_one": "{{count}} parça gardırobunda yok; mağazadan tamamlayabilirsin.",
     "missingNote_other": "{{count}} parça gardırobunda yok; mağazadan tamamlayabilirsin.",
     "deleted": "Bu look silindi.",
-    "backToLooks": "Lookbook'a dön"
+    "backToLooks": "Lookbook'a dön",
+    "notFound": "Bu look artık lookbook'unda yok."
   },
   "trips": {
     "eyebrow": "SEYAHAT PLANLARIN",
@@ -208,6 +209,8 @@
     "dayPieces_one": "{{count}} parça",
     "dayPieces_other": "{{count}} parça",
     "dayTryOn": "Üzerimde gör",
-    "daySaveLook": "Look olarak kaydet"
+    "daySaveLook": "Look olarak kaydet",
+    "notFound": "Bu bavul artık bavullarında yok.",
+    "backToTrips": "Bavullara dön"
   }
 }

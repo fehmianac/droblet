@@ -187,8 +187,17 @@ describe('19 Bavul detayı', () => {
     await waitFor(() => expect(fixtureListTrips()).toHaveLength(1), { timeout: 3000 });
   });
 
-  it('shows the error state with retry for an unknown trip', async () => {
+  it('shows the not-found state (no retry) for an unknown trip, with the way back to the trips', async () => {
     await renderRouter('./src/app', { initialUrl: '/trip/nope' });
-    await waitFor(() => expect(screen.getByText('Try again')).toBeTruthy(), { timeout: 3000 });
+    await waitFor(() => expect(screen.getByText('This trip is no longer in your trips.')).toBeTruthy(), { timeout: 3000 });
+    expect(screen.queryByText('Try again')).toBeNull();
+    await fireEvent.press(screen.getByLabelText('Back to trips'));
+    await waitFor(() => expect(screen).toHavePathname('/wardrobe/trips'), { timeout: 3000 });
+  });
+
+  it('shows the not-found state when editing an unknown trip', async () => {
+    await renderRouter('./src/app', { initialUrl: '/trip/new?id=nope' });
+    await waitFor(() => expect(screen.getByText('This trip is no longer in your trips.')).toBeTruthy(), { timeout: 3000 });
+    expect(screen.queryByText('Try again')).toBeNull();
   });
 });

@@ -107,6 +107,66 @@ describe('the five list states (canvas `Durum*` boards)', () => {
     expect(screen.queryByText('Screen sentence.')).toBeNull();
   });
 
+  it('not found (404): the screen\'s not-found sentence and its way back, never "Try again"', async () => {
+    const onAction = jest.fn();
+    const refetch = jest.fn();
+    await show(
+      <ScreenState
+        query={{ ...base, status: 'error', fetchStatus: 'idle', error: new ApiError('http', 404, { code: 'not_found' }), refetch }}
+        notFound={{ message: 'This look is no longer in your lookbook.', actionLabel: 'Back to the lookbook', onAction }}
+        error={{ title: "Couldn't load this look" }}
+      >
+        {list}
+      </ScreenState>,
+    );
+    expect(screen.getByTestId('state-not-found')).toBeTruthy();
+    expect(screen.queryByTestId('state-error')).toBeNull();
+    expect(screen.queryByText('Try again')).toBeNull();
+    expect(screen.queryByText("Couldn't load this look")).toBeNull();
+    await fireEvent.press(screen.getByLabelText('Back to the lookbook'));
+    expect(onAction).toHaveBeenCalledTimes(1);
+    expect(refetch).not.toHaveBeenCalled();
+  });
+
+  it('not found without its own copy: the empty state stands in (nothing published yet)', async () => {
+    const onAction = jest.fn();
+    await show(
+      <ScreenState
+        query={{ ...base, status: 'error', fetchStatus: 'idle', error: new ApiError('http', 404, null) }}
+        isEmpty={(items) => items.length === 0}
+        empty={{ message: "This week's edit is being prepared.", actionLabel: 'Browse the store', onAction }}
+      >
+        {list}
+      </ScreenState>,
+    );
+    expect(screen.getByTestId('state-empty')).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText('Browse the store'));
+    expect(onAction).toHaveBeenCalledTimes(1);
+  });
+
+  it('not found with neither: a generic "no longer here" + back, still no retry', async () => {
+    await show(
+      <ScreenState query={{ ...base, status: 'error', fetchStatus: 'idle', error: new ApiError('http', 410, null) }}>{list}</ScreenState>,
+    );
+    expect(screen.getByText('What you were looking for is no longer here.')).toBeTruthy();
+    expect(screen.getByLabelText('Go back')).toBeTruthy();
+    expect(screen.queryByText('Try again')).toBeNull();
+  });
+
+  it('a server error (5xx) keeps the error state with "Try again", even with not-found copy given', async () => {
+    await show(
+      <ScreenState
+        query={{ ...base, status: 'error', fetchStatus: 'idle', error: new ApiError('http', 503, null) }}
+        notFound={{ message: 'Gone.', actionLabel: 'Back', onAction: jest.fn() }}
+      >
+        {list}
+      </ScreenState>,
+    );
+    expect(screen.getByTestId('state-error')).toBeTruthy();
+    expect(screen.getByText('Try again')).toBeTruthy();
+    expect(screen.queryByText('Gone.')).toBeNull();
+  });
+
   it('offline with cached data: the list stays and no band pushes it (the root sync pill reports offline)', async () => {
     onlineManager.setOnline(false);
     await show(

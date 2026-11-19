@@ -105,9 +105,7 @@
     "photoTitle": "Profil fotoğrafını tamamla",
     "photoBody_one": "Bu haftanın {{count}} look'unu senin üzerinde görmek için bir boy fotoğrafı ekle.",
     "photoBody_other": "Bu haftanın {{count}} look'unu senin üzerinde görmek için bir boy fotoğrafı ekle.",
-    "photoAction": "Fotoğraf ekle",
-    "emptyMessage": "Bu haftanın edit'i henüz yayınlanmadı.",
-    "emptyAction": "Bugün'e dön"
+    "photoAction": "Fotoğraf ekle"
   },
   "calendarScreen": {
     "eyebrow": "NE GİYECEĞİM, NE GİYDİM",

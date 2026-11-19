@@ -75,7 +75,10 @@ export default function LookNewScreen() {
   }
   return shell(
     t('lookEditor.titleEdit'),
-    <ScreenState query={look}>
+    <ScreenState
+      query={look}
+      notFound={{ message: t('lookDetail.notFound'), actionLabel: t('lookDetail.backToLooks'), onAction: () => router.dismissTo('/wardrobe/looks') }}
+    >
       {() => <EditorSkeleton />}
     </ScreenState>,
   );

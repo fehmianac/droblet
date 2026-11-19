@@ -401,7 +401,10 @@ export default function TripDetailScreen() {
           ) : undefined
         }
       />
-      <ScreenState query={trip}>
+      <ScreenState
+        query={trip}
+        notFound={{ message: t('tripDetail.notFound'), actionLabel: t('tripDetail.backToTrips'), onAction: () => router.replace('/wardrobe/trips') }}
+      >
         {(detail) => {
           const range = formatDateRange(parseLocalDate(detail.startDate), parseLocalDate(detail.endDate), { day: 'numeric', month: 'long' });
           const days = t('trips.days', { count: tripLengthDays(detail.startDate, detail.endDate) });

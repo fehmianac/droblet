@@ -29,7 +29,10 @@ export default function TripNewScreen() {
     <Screen bottom>
       <ScreenHeader title={t(id ? 'tripNew.editTitle' : 'tripNew.title')} leading="close" leadingVariant="outline" onLeadingPress={leave} />
       {id ? (
-        <ScreenState query={trip}>
+        <ScreenState
+          query={trip}
+          notFound={{ message: t('tripDetail.notFound'), actionLabel: t('tripDetail.backToTrips'), onAction: () => router.dismissTo('/wardrobe/trips') }}
+        >
           {(data) => (
             <ScrollView contentContainerClassName="px-gutter pb-8 pt-1" keyboardShouldPersistTaps="handled">
               <View className="rounded-card border border-line bg-paper p-4">

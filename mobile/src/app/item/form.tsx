@@ -24,10 +24,11 @@ function leave(from: string | undefined) {
 }
 
 function EditForm({ itemId }: { itemId: string }) {
+  const { t } = useTranslation();
   const query = useItemDetail(itemId);
   const update = useUpdateItem();
   return (
-    <ScreenState query={query}>
+    <ScreenState query={query} notFound={{ message: t('itemDetail.goneTitle'), actionLabel: t('itemDetail.goneAction'), onAction: () => router.dismissTo('/wardrobe') }}>
       {(item) => (
         <ItemForm
           key={item.id}
@@ -55,13 +56,14 @@ function DraftForm({ draftId, from }: { draftId: string; from: string | undefine
   const retry = useRetryDraft();
   // "Elle doldur": stop waiting for the AI and type the fields in.
   const [manual, setManual] = useState(false);
+  const draftGone = { message: t('itemForm.draftGone'), actionLabel: t('itemDetail.goneAction'), onAction: () => router.dismissTo('/wardrobe') };
 
   return (
-    <ScreenState query={drafts}>
+    <ScreenState query={drafts} notFound={draftGone}>
       {(list) => {
         const draft = list.find((d) => d.id === draftId);
         if (!draft) {
-          return <StateMessage message={t('itemForm.draftGone')} actionLabel={t('itemDetail.goneAction')} onAction={() => router.dismissTo('/wardrobe')} />;
+          return <StateMessage testID="state-not-found" role="status" {...draftGone} />;
         }
         const submit = (fields: ItemFields) => {
           addItems.add([{ fields, draftId: draft.id, preview: fields.useOriginalImage ? draft.originalImageUrl : draft.imageUrl, reviewed: true }]);

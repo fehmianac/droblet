@@ -190,7 +190,7 @@ export function resetFixtureDb(options: { empty?: boolean } = {}): void {
 
 export const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
-/** 404-like error for fixture lookups, shaped so `ScreenState` shows the generic error + retry. */
+/** 404-like error for fixture lookups; `isNotFound` reads it as a 404, so `ScreenState` shows the not-found state. */
 export class FixtureNotFound extends Error {
   constructor(what: string) {
     super(`fixture not found: ${what}`);
