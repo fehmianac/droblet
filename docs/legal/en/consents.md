@@ -6,20 +6,20 @@
 >
 > Draft date: 19 November 2026 · Effective: [EFFECTIVE DATE]
 
-The texts below are shown one by one in the app when you first use the related feature. Each one is optional and covers only its own subject. This page collects them all so that you can read later what you agreed or did not agree to. General information on how your personal data is processed is in the KVKK Information Notice and the Privacy Policy.
+The texts below are shown together on one screen when you sign up for the app, each with its own unticked box. Each one is optional and covers only its own subject. If you did not give a consent there, you are asked again when you first use the related feature. This page collects them all so that you can read later what you agreed or did not agree to. General information on how your personal data is processed is in the KVKK Information Notice and the Privacy Policy.
 
 **Data controller:** Droblet Ltd, [COMPANY ADDRESS], London, United Kingdom · Company no. [COMPANY NUMBER] · [CONTACT E-MAIL]
 
 ## IN SHORT
 
 - You do not have to consent; if you don't, only the related feature does not work and you can use the rest of Droblet as usual.
-- Each consent is separate and covers only its own subject; you never give them all with one tap.
+- Each consent is separate, comes with its own box and covers only its own subject. The “Accept all” button ticks the boxes for you; you can leave any box unticked and tap “Continue with my choices”. [LEGAL REVIEW: “Accept all” button on one screen]
 - You can withdraw a consent you gave at any time in the app.
 - We record when you consented and to which version of the text.
 
 ## 1. How these texts work
 
-Each text comes with an unticked box or an “I agree” button on the related screen. You can read the whole text before agreeing. Your consent is specific, informed and freely given within the meaning of KVKK art. 3 and UK GDPR art. 4(11).
+The texts are shown on one screen when you sign up, each with its own unticked box; the related feature shows the same text again when needed. You can read each whole text before agreeing. Your consent is specific, informed and freely given within the meaning of KVKK art. 3 and UK GDPR art. 4(11).
 
 When you consent, the date, time, text version and which consent you gave are recorded with your account; the record is kept until you delete your account. [LEGAL REVIEW: retention of consent records]
 
@@ -109,11 +109,25 @@ If you do not consent or withdraw: transfers without appropriate safeguards are 
 
 Consent statement: “I give my explicit consent to my personal data being transferred abroad to the recipients and for the purposes above, in incidental cases where the safeguards of KVKK art. 9 are not in place.”
 
-## 8. Withdrawing your consent
+## 8. Consent 7 — Face photo and “See it on me”
+
+Purpose: when you have no full-body photo, to build your figure from your face photo together with the body type, height and size you choose, and to generate images that show outfits on that figure (“See it on me”).
+
+Data: the face photo you upload, the body type you choose, your height and size, and the images generated from them. Your weight is not used. No identification, verification or face recognition takes place; no face template that uniquely identifies you is extracted or stored.
+
+Who processes it and where: Droblet Ltd; the photo is stored on AWS servers in Frankfurt (Germany) and sent to OpenAI (US) to generate the images.
+
+How long: until you delete the face photo or the generated images, or your account. The photo and the images are never shown to other users in any setting.
+
+If you do not consent: you cannot use “See it on me” without a full-body photo; you can still use it by adding one. The colour palette analysis does not depend on this consent.
+
+Consent statement: “I give my explicit consent to Droblet Ltd processing my face photo, together with my body type, height and size and without identifying me, to generate ‘See it on me’ images, and transferring it for that purpose to AWS (Germany) and OpenAI (US).” [LEGAL REVIEW: new purpose — building a figure from the face photo]
+
+## 9. Withdrawing your consent
 
 You can withdraw any consent at any time:
 
-- Full-body and face photo: delete the photo under Profile › Privacy; the related consent counts as withdrawn and the generated images or the palette result are deleted.
+- Full-body and face photo: delete the photo under Profile › Privacy; the related consents count as withdrawn (for the face photo: the colour palette and the face-photo “See it on me” consents) and the generated images or the palette result are deleted. You can also switch each consent off under Profile › Privacy › My consents.
 - Weight: clear the weight field in your body profile in the app.
 - Contacts: switch off Droblet's contacts permission in your phone's settings.
 - Marketing notifications: switch off the notification under Profile › Settings › Notifications.

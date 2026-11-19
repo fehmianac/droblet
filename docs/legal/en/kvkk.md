@@ -40,14 +40,14 @@ Registration with the Data Controllers' Registry (VERBİS): [VERBIS REGISTRATION
 - Contacts: single-use hashes made on your phone from the e-mail addresses in your contacts (not stored; names, numbers and the addresses themselves never leave your phone).
 - Usage events: app events in which a hash replaces the account id and which contain no free text.
 
-Special categories of personal data: We use the face photo only for the colour palette analysis; we do not identify or verify anyone or run face recognition, and we do not extract or store a biometric template that uniquely identifies a person. We therefore consider that the face photo is not processed as biometric data. Weight may be regarded as health-related data. In both cases we process this data only with your explicit consent. [LEGAL REVIEW: KVKK art. 6 assessment]
+Special categories of personal data: We use the face photo for the colour palette analysis and — when there is no full-body photo — to build the “See it on me” figure; we do not identify or verify anyone or run face recognition, and we do not extract or store a biometric template that uniquely identifies a person. We therefore consider that the face photo is not processed as biometric data. Weight may be regarded as health-related data. In both cases we process this data only with your explicit consent. [LEGAL REVIEW: KVKK art. 6 assessment]
 
 ## 3. Purposes of processing
 
 - Creating your account, authentication and session management, password reset;
 - keeping your digital wardrobe, looks, calendar, wear log and trip plans;
 - AI item recognition, background removal, and outfit, weekly plan and packing suggestions;
-- with your explicit consent, generating “See it on me” images from your full-body photo and analysing your colour palette from your face photo;
+- with your explicit consent, generating “See it on me” images from your full-body photo — or, without one, from your face photo and the body type you choose — and analysing your colour palette from your face photo;
 - making suggestions based on the weather;
 - providing social features (search, follow, rating, saving, invitations, sharing) according to your visibility setting;
 - with your explicit consent, finding friends from your contacts;

@@ -79,6 +79,27 @@ Facts taken from the handoff and code — confirm or correct:
 ### Q1. Face photo — biometric data?
 We **do not** identify, verify or recognise anyone and extract/store **no template**; the face photo is sent to OpenAI only to pick a colour season; the prompt forbids identifying or describing the person. Under UK GDPR art. 4(14) / recital 51 a photo is biometric data only when processed "through specific technical processing allowing or confirming unique identification"; the KVKK Board's guidance is similar. The drafts state: *we consider this not biometric processing, but we ask for explicit consent anyway.* Please confirm (a) the wording, (b) whether the try-on output — which reproduces the face — changes the analysis, (c) whether OpenAI's processing of the face (any internal face detection, `facesDetected` count) matters.
 
+### Q1a. New purpose — face photo used to build the try-on figure (consent 7, `facePhotoTryOn`) — added 2026-11-19
+Owner decision (canvas 11): when a user has no full-body photo, "Üzerimde gör" can build a figure from the **face photo** +
+a chosen **body type** (hourglass, pear, apple, rectangle, inverted triangle, unsure) + height and size. This is a new
+purpose for the face photo, so it has its **own** explicit consent (consent 7, `/consents` §7, TR + EN, version
+`2026-11-19`), separate from the palette consent (2); it is sent together with consent 6 (OpenAI, US). Privacy §3–5, KVKK
+§2–3 and Terms §2 were updated to name the purpose. The image model is told to keep the same adult with the identity
+unchanged, fully clothed; a server-side photo check rejects photos with no / several faces and photos that appear to show
+a minor. Deleting the face photo withdraws consents 2 and 7 and removes the face-path images. Please approve (a) the text
+of consent 7, (b) whether generating a full-body image from a face (a synthetic likeness) changes the Q1 biometric
+analysis, (c) whether body type counts as special-category / health-related data (we think not: self-chosen silhouette,
+no measurement, never sent with weight).
+
+### Q1b. All consents on one onboarding screen with "Tümünü kabul et" — added 2026-11-19
+Owner decision: the seven consents are presented together once, in onboarding (existing accounts: once on next app open),
+each with its **own unticked box**, a one-line summary and "Metnin tamamı"; a primary "Tümünü kabul et" button ticks every
+box and continues, "Seçtiklerimle devam et" saves a partial choice (unticked boxes are recorded as declined, source
+`onboarding`). Just-in-time sheets remain only when a needed consent was declined; Ayarlar › Gizlilik keeps withdrawal.
+We believe per-purpose boxes keep each consent specific; please confirm that an "accept all" button on that screen is
+acceptable under KVKK (Board guidance on bundled consent) and UK GDPR art. 7 / ICO guidance, and whether the button must be
+visually equal to the partial option. `/consents` intro, summary and §0 were updated to describe this.
+
 ### Q2. Lawful basis per processing (explicit consent vs contract vs legitimate interest)
 Proposed matrix (privacy §5, KVKK §4):
 
@@ -159,6 +180,7 @@ change the text.
 | # | Gap | Text that depends on it |
 |---|---|---|
 | G1 | ~~No consent screens~~ **Implemented (2026-11-19):** just-in-time consent screens with the exact texts of `/consents` (TR + EN) before the first body photo / try-on (consent 1 + 6), face photo / palette (2 + 6), weight (3), contacts (4, mapped onto the existing screen) and the weekly-edit / price-drop opt-in (5); the server answers `403 consent_required` without them (docs/api/consents-age-inbox-avatar.md). Open: consent 6 is asked only with the photo features — garment recognition and the stylist also call OpenAI (US) without it; decide whether they need it too (Q3). | Consents 1, 2, 3, 5; privacy §4–5; KVKK §4 |
+| G1a | **Implemented (2026-11-19):** the all-in-one onboarding consent step (Q1b) and consent 7 `facePhotoTryOn` (Q1a); the try-on endpoints ask for the consents of the path actually used (body photo → 1 + 6, face photo only → 7 + 6). Texts pending lawyer approval. | Consents intro, §0, §7; privacy §3–5; KVKK §2–3; terms §2 |
 | G2 | ~~Weekly edit push defaults on~~ **Implemented:** the weekly edit (and price drops) start **off** and need Consent 5; one opt-in card after onboarding and in Bildirimler; the Notifier re-checks the consent before sending. The morning outfit reminder stays a service notification (default on). | Consent 5; privacy §16 |
 | G3 | ~~No age confirmation~~ **Implemented:** required "18 yaşından büyüğüm / I am 18 or older" box on e-mail sign-up and a one-time confirmation after the first Apple / Google sign-in, stored as `ageConfirmedAt`; unconfirmed accounts see the confirmation before anything else. Self-declaration only (no age verification) — confirm with Q6. | Terms §3; privacy §17 |
 | G4 | ~~No server-side consent record~~ **Implemented:** per-user records `{ type, granted, version, grantedAt, withdrawnAt, locale, source }` plus an append-only audit log; text versions come from config (`Consents:Versions`), a new version re-prompts. Kept until account deletion (deleted with the account). **There is no data-export (portability) endpoint yet** — the records are not in any export. | Consents §1 |

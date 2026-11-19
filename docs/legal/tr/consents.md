@@ -6,20 +6,20 @@
 >
 > Taslak tarihi: 19 Kasım 2026 · Yürürlük: [YÜRÜRLÜK TARİHİ]
 
-Aşağıdaki metinler, uygulamada ilgili özelliği ilk kullandığında ayrı ayrı gösterilir. Her biri isteğe bağlıdır ve yalnızca kendi konusunu kapsar. Bu sayfa, verdiğin ya da vermediğin rızaları sonradan okuyabilmen için hepsini bir arada sunar. Kişisel verilerinin işlenmesine ilişkin genel bilgiler KVKK Aydınlatma Metni'nde ve Gizlilik Politikası'ndadır.
+Aşağıdaki metinler, uygulamaya kayıt olurken tek bir ekranda bir arada gösterilir; her birinin ayrı ve işaretlenmemiş bir onay kutusu vardır. Her biri isteğe bağlıdır ve yalnızca kendi konusunu kapsar. Bir rızayı o ekranda vermediysen ilgili özelliği ilk kullandığında yeniden sorulur. Bu sayfa, verdiğin ya da vermediğin rızaları sonradan okuyabilmen için hepsini bir arada sunar. Kişisel verilerinin işlenmesine ilişkin genel bilgiler KVKK Aydınlatma Metni'nde ve Gizlilik Politikası'ndadır.
 
 **Veri sorumlusu:** Droblet Ltd, [ŞİRKET ADRESİ], Londra, Birleşik Krallık · Şirket no. [ŞİRKET NUMARASI] · [İLETİŞİM E-POSTASI]
 
 ## KISACA
 
 - Rıza vermek zorunda değilsin; vermezsen yalnızca ilgili özellik çalışmaz, Droblet'in geri kalanını aynen kullanırsın.
-- Her rıza ayrıdır ve yalnızca kendi konusunu kapsar; hepsini tek bir onayla vermezsin.
+- Her rıza ayrıdır, kendi kutusuyla sunulur ve yalnızca kendi konusunu kapsar. “Tümünü kabul et” düğmesi kutuları senin yerine işaretler; istediğin kutuyu işaretlemeden “Seçtiklerimle devam et” diyebilirsin. [HUKUK ONAYI: tek ekranda “Tümünü kabul et” düğmesi]
 - Verdiğin rızayı istediğin an uygulamadan geri alabilirsin.
 - Rızanı hangi metin sürümüyle ve ne zaman verdiğini kaydederiz.
 
 ## 1. Bu metinler nasıl çalışır
 
-Her metin, ilgili ekranda işaretlenmemiş bir onay kutusu ya da “Onaylıyorum” düğmesiyle sunulur. Onay vermeden önce metnin tamamını okuyabilirsin. Rızan, KVKK m. 3 ve UK GDPR m. 4(11) anlamında belirli bir konuya ilişkin, bilgilendirilmeye dayanan ve özgür iradeyle açıklanan rızadır.
+Metinler kayıt sırasında tek bir ekranda, her biri işaretlenmemiş kendi onay kutusuyla sunulur; ilgili özellikte gerekirse aynı metin yeniden gösterilir. Onay vermeden önce her metnin tamamını okuyabilirsin. Rızan, KVKK m. 3 ve UK GDPR m. 4(11) anlamında belirli bir konuya ilişkin, bilgilendirilmeye dayanan ve özgür iradeyle açıklanan rızadır.
 
 Rıza verdiğinde tarih, saat, metin sürümü ve hangi rızayı verdiğin hesabınla birlikte kaydedilir; bu kayıt hesabını silene kadar saklanır. [HUKUK ONAYI: rıza kaydının saklama süresi]
 
@@ -109,11 +109,25 @@ Vermezsen ya da geri alırsan: Uygun güvencesi olmayan aktarımlar yapılmaz; b
 
 Onay metni: “Kişisel verilerimin, yukarıda belirtilen alıcılara ve amaçlarla, KVKK m. 9'daki güvencelerin bulunmadığı arızi hâllerde yurt dışına aktarılmasına açık rıza veriyorum.”
 
-## 8. Rızanı geri alma
+## 8. Açık rıza 7 — Yüz fotoğrafı ve “Üzerimde gör”
+
+Ne için: Boy fotoğrafın yokken, yüz fotoğrafını seçtiğin vücut tipi, boyun ve bedeninle birlikte kullanarak senin figürünü oluşturmak ve kombinleri bu figür üzerinde gösteren görselleri (“Üzerimde gör”) üretmek.
+
+Hangi veriler: Yüklediğin yüz fotoğrafı, seçtiğin vücut tipi, boy ve beden bilgin ve bunlardan üretilen görseller. Kilo bilgin kullanılmaz. Kimlik tespiti, doğrulama ya da yüz tanıma yapılmaz; seni benzersiz biçimde tanımlayan bir yüz şablonu çıkarılmaz ve saklanmaz.
+
+Kim işler ve nerede: Droblet Ltd; fotoğraf AWS'nin Frankfurt (Almanya) sunucularında saklanır ve görsel üretmek için OpenAI'ye (ABD) gönderilir.
+
+Ne kadar: Yüz fotoğrafını ya da üretilen görselleri silene veya hesabını silene kadar. Fotoğraf ve görseller hiçbir ayarda başka kullanıcılara gösterilmez.
+
+Vermezsen: Boy fotoğrafı olmadan “Üzerimde gör”ü kullanamazsın; boy fotoğrafı ekleyerek kullanabilirsin. Renk paleti analizi bu rızadan bağımsızdır.
+
+Onay metni: “Yüz fotoğrafımın; vücut tipim, boyum ve bedenimle birlikte ‘Üzerimde gör’ görsellerini üretmek amacıyla, kimlik tespiti yapılmaksızın Droblet Ltd tarafından işlenmesine ve bu amaçla AWS (Almanya) ile OpenAI'ye (ABD) aktarılmasına açık rıza veriyorum.” [HUKUK ONAYI: yeni amaç — yüz fotoğrafından figür üretimi]
+
+## 9. Rızanı geri alma
 
 Rızalarını dilediğin an geri alabilirsin:
 
-- Boy ve yüz fotoğrafı: Profil › Gizlilik'ten fotoğrafı sil; ilgili rıza geri alınmış sayılır ve üretilen görseller ya da palet sonucu silinir.
+- Boy ve yüz fotoğrafı: Profil › Gizlilik'ten fotoğrafı sil; ilgili rızalar geri alınmış sayılır (yüz fotoğrafında renk paleti ve yüz fotoğrafıyla “Üzerimde gör” rızaları) ve üretilen görseller ya da palet sonucu silinir. Rızaları ayrıca Profil › Gizlilik › Açık rızalarım'dan tek tek kapatabilirsin.
 - Kilo: uygulamadaki beden profilinde kilo alanını temizle.
 - Rehber: telefonunun ayarlarından Droblet'in rehber iznini kapat.
 - Pazarlama bildirimleri: Profil › Ayarlar › Bildirimler'den ilgili bildirimi kapat.

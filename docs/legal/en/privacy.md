@@ -14,7 +14,7 @@ This policy explains how your personal data is processed when you use the Droble
 
 - Your full-body photo, your face photo and the images generated on you are visible only to you and are never shown to anyone else in any setting.
 - You can delete these photos and the generated images at any time under Profile › Privacy, without deleting your account.
-- We use your face photo only for the colour palette analysis; we do not identify you, run face recognition or extract a face template.
+- We use your face photo for the colour palette analysis and — with a separate consent, when you have no full-body photo — to build your “See it on me” figure; we do not identify you, run face recognition or extract a face template.
 - For AI features your photos and the information needed are sent to OpenAI; our data is stored with AWS in Frankfurt. This means transfers outside Türkiye and the UK.
 - If you choose to find friends from your contacts, your address book never leaves your phone; only single-use hashes are sent, and they are not stored.
 - We use no ad tracking, no third-party analytics or advertising SDKs, and we do not sell your data. When we send you to a brand we add only a click id for the commission.
@@ -65,7 +65,7 @@ Information from others:
 
 Uploading a full-body or face photo is optional; you can use the app without them. If you upload one, its location and device information (EXIF/XMP metadata) is removed in the first processing step, the clean copy is stored encrypted in storage that is closed to the public, and it is shown only to you, through private links that expire quickly.
 
-We use your face photo only for the colour palette analysis: the AI looks at the skin, hair and eye colours in the photo and chooses the season type that suits you. We do not identify or verify you or run face recognition; we do not extract or store a template that uniquely identifies you from your face (a biometric template). The AI is explicitly told not to identify or describe the person. For these reasons we consider that this is not processing of biometric data; even so, we process your face and full-body photos only with your explicit consent. [LEGAL REVIEW: biometric data assessment]
+We use your face photo for two purposes, each with its own explicit consent: the colour palette analysis (the AI looks at the skin, hair and eye colours in the photo and chooses the season type that suits you) and, when you have no full-body photo, “See it on me” (the AI combines your face photo with the body type, height and size you choose to build your figure). We do not identify or verify you or run face recognition; we do not extract or store a template that uniquely identifies you from your face (a biometric template). The AI is explicitly told not to identify, describe or change the person. For these reasons we consider that this is not processing of biometric data; even so, we process your face and full-body photos only with your explicit consent. [LEGAL REVIEW: biometric data assessment, building a figure from the face photo]
 
 We use your full-body photo only to generate “See it on me” images. Because the photo may show your body, it is never shown to other users or to our support or moderation staff under any setting, and it never enters a shared cache.
 
@@ -76,7 +76,7 @@ We do not infer special category information such as ethnic origin, health or re
 ## 5. Why we use your data and our lawful basis
 
 - Opening your account, signing you in, sending password reset e-mails and providing the Service (wardrobe, looks, calendar, trips, shop, social features): performance of our contract with you (UK GDPR art. 6(1)(b)).
-- Generating “See it on me” images from your full-body photo, analysing your colour palette from your face photo and storing your weight: your explicit consent (art. 6(1)(a) and, where needed, art. 9(2)(a)). You can withdraw it at any time.
+- Generating “See it on me” images from your full-body photo or, without one, from your face photo and body type, analysing your colour palette from your face photo and storing your weight: your explicit consent (art. 6(1)(a) and, where needed, art. 9(2)(a)). You can withdraw it at any time.
 - Suggesting type, colour and fabric from item photos with AI and removing backgrounds; preparing stylist, weekly plan and packing suggestions: performance of the contract.
 - Finding friends from contacts: your consent; for the people in your contacts, legitimate interests (art. 6(1)(f)), because their data never leaves your device in readable form and is not stored.
 - Showing your profile card in search and your closet to other users according to your visibility setting: performance of the contract (you choose the setting).
@@ -96,7 +96,7 @@ Our AI features are provided by OpenAI (OpenAI, L.L.C. / OpenAI Ireland Ltd [LEG
 
 - Item recognition and background removal: the item or outfit photo with its metadata removed.
 - “See it on me”: your full-body photo and the images of the selected pieces.
-- Colour palette: your face photo.
+- Colour palette, and “See it on me” without a full-body photo: your face photo (for the latter together with the body type, height and size you choose).
 - Stylist, weekly plan, packing: date, season, occasion, weather, your style profile, your palette result, the type, colour, fabric and season of your wardrobe items, any free text you write, and your language. Your name, e-mail, height and weight are not sent.
 
 OpenAI is a processor acting on our behalf and on our instructions. Under OpenAI's API terms, data sent through the API is not used to train its models; it may be retained for [OPENAI RETENTION] to monitor for abuse. [LEGAL REVIEW: data processing agreement and zero data retention option]

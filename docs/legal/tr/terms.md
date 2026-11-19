@@ -35,7 +35,7 @@ Droblet kişisel bir gardırop ve stil uygulamasıdır. Hizmet'le şunları yapa
 - kıyafetlerini fotoğraflayıp ya da elle girip dijital gardırobunu oluşturmak (yapay zekâ türü, rengi ve kumaşı önerir; kaydetmeden önce sen onaylarsın);
 - look (kombin) oluşturmak, takvimine plan yapmak, ne giydiğini kaydetmek;
 - stilistten günlük kombin, haftalık plan ve seyahat bavulu önerisi almak;
-- kombinleri ve mağaza ürünlerini kendi boy fotoğrafın üzerinde görmek (“Üzerimde gör”) ve yüz fotoğrafından renk paleti analizi almak;
+- kombinleri ve mağaza ürünlerini kendi boy fotoğrafın üzerinde — boy fotoğrafın yoksa yüz fotoğrafın ve seçtiğin vücut tipiyle oluşturulan figür üzerinde — görmek (“Üzerimde gör”) ve yüz fotoğrafından renk paleti analizi almak;
 - haftanın edit'ini ve mağaza kataloğunu keşfetmek, ürünleri markanın kendi mağazasında satın almak için yönlendirilmek;
 - arkadaşlarını takip etmek, görünürlük ayarının izin verdiği ölçüde dolaplarını ve look'larını görmek ve look'ları puanlamak.
 
