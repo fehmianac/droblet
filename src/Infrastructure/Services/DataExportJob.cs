@@ -98,11 +98,19 @@ public sealed class DataExportJob(
             export.ExpiresAt = now.Add(DataExportRules.FileLifetime);
             export.DownloadTokenHash = token.Sha256Hex();
             export.UpdatedAt = now;
-            await repository.TransactWriteAsync(
+            var stored = await repository.TransactWriteAsync(
             [
                 TransactWriteOperation.PutExisting(export),
                 TransactWriteOperation.Put(new DataExportTokenEntity { TokenHash = export.DownloadTokenHash, TenantId = tenantId, ExportId = exportId, ExpiresAt = export.ExpiresAt.Value }),
             ], ct);
+            if (!stored.Applied)
+            {
+                // The account was deleted while the ZIP was built: its exports/ prefix is already gone, so this file would
+                // outlive the account for the 7 days of the bucket rule. Remove it; no inbox row, no e-mail.
+                await storage.DeleteAsync(key, ct);
+                logger.LogInformation("Data export {ExportId}: the export was removed meanwhile (account deleted); the file is discarded", exportId);
+                return;
+            }
 
             await inbox.AddAsync(tenantId, NotificationType.DataExportReady, exportId, new Dictionary<string, string> { ["exportId"] = exportId }, now, ct);
             await SendEmailAsync(export, token, ct);

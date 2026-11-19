@@ -148,6 +148,27 @@ public class DataExportJobTests
     }
 
     [Fact]
+    public async Task Process_AccountDeletedWhileBuilding_LeavesNoZipInboxRowOrEmail()
+    {
+        var export = await SeedAsync();
+        // The account is deleted while the ZIP is being built (AccountDeletionService: the tenant's partitions and the
+        // exports/{tenantId}/ prefix are removed).
+        _host.Storage.BeforeList = async _ =>
+        {
+            await _host.Repository.DeleteAsync(export.Pk, export.Sk);
+            await _host.Storage.DeletePrefixAsync($"exports/{TenantId}/", default);
+        };
+
+        await _host.Get<IDataExportJob>().ProcessAsync(TenantId, export.Id, isLastAttempt: false, default);
+
+        Assert.DoesNotContain(_host.Storage.Objects.Keys, k => k.StartsWith($"exports/{TenantId}/"));
+        Assert.Null(await _host.Repository.GetAsync<DataExportEntity>(export.Pk, export.Sk));
+        Assert.Empty(await _host.Repository.GetAllAsync<NotificationInboxEntity>(NotificationInboxEntity.GetPk(TenantId)));
+        Assert.Empty(await _host.Repository.GetAllAsync<DataExportTokenEntity>(DataExportTokenEntity.GetPk()));
+        Assert.Empty(_email.Sent);
+    }
+
+    [Fact]
     public async Task Entrypoint_DataExport_RoutesTheMessage()
     {
         var export = await SeedAsync();

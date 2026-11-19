@@ -32,8 +32,15 @@ public sealed class FakeObjectStorage : IObjectStorage
         return Task.CompletedTask;
     }
 
-    public Task<IReadOnlyList<string>> ListKeysAsync(string prefix, CancellationToken ct) =>
-        Task.FromResult<IReadOnlyList<string>>(Objects.Keys.Where(k => k.StartsWith(prefix, StringComparison.Ordinal)).Order(StringComparer.Ordinal).ToList());
+    /// <summary>Runs before a listing answers (a test's hook for "something happened meanwhile").</summary>
+    public Func<string, Task>? BeforeList { get; set; }
+
+    public async Task<IReadOnlyList<string>> ListKeysAsync(string prefix, CancellationToken ct)
+    {
+        if (BeforeList is { } hook)
+            await hook(prefix);
+        return Objects.Keys.Where(k => k.StartsWith(prefix, StringComparison.Ordinal)).Order(StringComparer.Ordinal).ToList();
+    }
 
     public Task<Stream?> OpenReadAsync(string key, CancellationToken ct) =>
         Task.FromResult<Stream?>(Objects.TryGetValue(key, out var o) ? new MemoryStream(o.Data, writable: false) : null);
