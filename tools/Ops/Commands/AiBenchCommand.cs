@@ -62,6 +62,7 @@ internal static class AiBenchCommand
         var fixtures = new SmokeFixtures(s3, services.GetRequiredService<OpenAiProvider>(), OpsHost.PhotoBucket(args.Stage), budget, output);
         var rows = new List<Row>();
         output.Line($"ai-bench: text {baseline.TextModel}, image {baseline.ImageModel}, {reps} rep(s), efforts {string.Join(",", efforts)}, qualities {string.Join(",", qualities)}, models {string.Join(",", models)}");
+        await ListModelsAsync(baseline, output, ct);
 
         async Task Measure(string call, string variant, Func<OpenAiProvider, Task<string>> run, Action<AiOptions> configure)
         {
@@ -154,6 +155,29 @@ internal static class AiBenchCommand
         output.Summary($"### ai-bench ({args.Stage}) — text `{baseline.TextModel}`, image `{baseline.ImageModel}`, image calls {budget.Used}\n");
         output.Table(["call", "variant", "p50 / max (s)", "ok", "in tok", "cached", "out tok", "reasoning", "outcome"], table);
         return rows.Any(r => r.Outcome.StartsWith("failed", StringComparison.Ordinal)) ? 1 : 0;
+    }
+
+    /// <summary>The model ids the key can use (GET /v1/models) — to pick a fast text model for --models.</summary>
+    private static async Task ListModelsAsync(AiOptions options, OpsOutput output, CancellationToken ct)
+    {
+        try
+        {
+            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
+            using var request = new HttpRequestMessage(HttpMethod.Get, options.BaseUrl.TrimEnd('/') + "/v1/models");
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", options.ApiKey);
+            using var response = await http.SendAsync(request, ct);
+            var body = await response.Content.ReadAsStringAsync(ct);
+            var ids = (System.Text.Json.Nodes.JsonNode.Parse(body)?["data"] as System.Text.Json.Nodes.JsonArray ?? [])
+                .Select(m => m?["id"]?.GetValue<string>()).Where(id => id is not null).Select(id => id!)
+                .Where(id => !id.Contains("embedding", StringComparison.Ordinal) && !id.Contains("tts", StringComparison.Ordinal) && !id.Contains("whisper", StringComparison.Ordinal))
+                .Order(StringComparer.Ordinal).ToList();
+            output.Line($"models available ({ids.Count}): {string.Join(", ", ids.Take(120))}");
+            output.Summary($"Models available to the key: {string.Join(", ", ids.Take(120).Select(i => $"`{i}`"))}\n");
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
+        {
+            output.Line($"models: {ex.GetType().Name}");
+        }
     }
 
     private static List<string> List(string? raw, string fallback) =>
