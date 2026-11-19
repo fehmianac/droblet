@@ -28,7 +28,8 @@ public sealed class AuditLog(IRepository repository, TimeProvider timeProvider, 
         var now = timeProvider.GetUtcNow().UtcDateTime;
         var entry = new AdminAuditEntity
         {
-            Id = Ulid.New(now),
+            // Monotonic: a create and an update in the same millisecond must keep their order (newest first).
+            Id = Ulid.NewMonotonic(now),
             At = now,
             AdminId = actor?.Id,
             AdminEmail = actor?.Email,
