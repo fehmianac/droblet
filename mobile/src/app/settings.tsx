@@ -24,6 +24,7 @@ import { Text } from '@/components/ui/Text';
 import { photoDeleteLines } from '@/features/account/logic';
 import { useDeleteAllPhotos, useRemovePhoto, useSetVisibility } from '@/features/account/mutations';
 import { NotificationPrefsCard } from '@/features/account/NotificationPrefsCard';
+import { SelfPremiumCard } from '@/features/account/SelfPremiumCard';
 import { accountKeys, useMyPhotos, useMyProfile, usePalette } from '@/features/account/queries';
 import { ChoiceRow, ProfileMenuRow, RowCard } from '@/features/account/rows';
 import type { PreparedPhoto } from '@/features/photos/preparePhoto';
@@ -346,6 +347,9 @@ export default function SettingsScreen() {
         <Text variant="eyebrow">{t('settings.notificationsEyebrow')}</Text>
         {/* Every notification switch, the morning time and the push permission prompt (main's prefs card). */}
         <NotificationPrefsCard />
+
+        {/* Temporary self-serve premium; only while the server switch is on. */}
+        <SelfPremiumCard />
 
         <View className="flex-row flex-wrap items-center justify-between gap-3">
           <Text variant="eyebrow">{t('settings.languageEyebrow')}</Text>

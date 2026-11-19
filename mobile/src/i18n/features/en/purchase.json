@@ -22,5 +22,16 @@
   },
   "push": {
     "denied": "Notifications are off. To get reminders, turn on Droblet notifications in Settings."
+  },
+  "selfPremium": {
+    "eyebrow": "TEMPORARY MEMBERSHIP",
+    "title": "Temporary membership — until payments are live",
+    "bodyOff": "Until payments are live you can turn on Premium yourself, free: 30 AI images a month and every member feature.",
+    "bodyOn": "Premium is on. Once payments are live you can continue your membership through the store.",
+    "enable": "Turn on Premium",
+    "disable": "Turn off Premium",
+    "error": "Could not change it right now. Try again in a moment.",
+    "disabledError": "Temporary membership is no longer available.",
+    "paywallLink": "Turn on for free for now"
   }
 }
