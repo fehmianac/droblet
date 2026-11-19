@@ -34,7 +34,7 @@ import { CreditConfirmSheet } from '@/features/credits/CreditConfirmSheet';
 import { indexItems, LookCover } from '@/features/looks/LookCover';
 import { assignItemsToSlots, slotList } from '@/features/looks/logic';
 import { useTrip, useTripWrites } from '@/features/trips/api';
-import { groupByCategory, readiness, tripLengthDays, tripShareText } from '@/features/trips/logic';
+import { forecastNotice, groupByCategory, readiness, tripLengthDays, tripShareText } from '@/features/trips/logic';
 import { ReadinessRing } from '@/features/trips/ReadinessRing';
 import { TripDaySheet } from '@/features/trips/TripDaySheet';
 import { TripPacking } from '@/features/trips/TripPacking';
@@ -57,15 +57,22 @@ function leave() {
   else router.replace('/wardrobe/trips');
 }
 
+const NOTICE_TEXT = {
+  partial: 'tripDetail.forecastPartial',
+  notYet: 'tripDetail.forecastNotYet',
+  noLocation: 'tripDetail.forecastNoLocation',
+  unavailable: 'tripDetail.forecastUnavailable',
+} as const;
+
 function Forecast({ trip }: { trip: TripDetail }) {
   const { t } = useTranslation();
-  if (!trip.forecast || trip.forecast.length === 0) {
-    return (
-      <Text variant="caption" tone="muted">
-        {t('tripDetail.forecastUnavailable')}
-      </Text>
-    );
-  }
+  const notice = forecastNotice(trip);
+  const note = notice ? (
+    <Text variant="caption" tone="muted" testID={`trip-forecast-${notice}`}>
+      {t(NOTICE_TEXT[notice])}
+    </Text>
+  ) : null;
+  if (!trip.forecast || trip.forecast.length === 0) return note;
   const fits = trip.forecast.length <= FORECAST_ROW_MAX;
   const cards = trip.forecast.map((day) => {
     const weekday = weekdayShort(parseLocalDate(day.date));
@@ -85,14 +92,11 @@ function Forecast({ trip }: { trip: TripDetail }) {
       </View>
     );
   });
-  if (fits) {
-    return (
-      <View className="flex-row gap-1.5" accessibilityLabel={t('tripDetail.forecastLabel')}>
-        {cards}
-      </View>
-    );
-  }
-  return (
+  const strip = fits ? (
+    <View className="flex-row gap-1.5" accessibilityLabel={t('tripDetail.forecastLabel')}>
+      {cards}
+    </View>
+  ) : (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
@@ -102,6 +106,14 @@ function Forecast({ trip }: { trip: TripDetail }) {
     >
       {cards}
     </ScrollView>
+  );
+  return note ? (
+    <View className="gap-1.5">
+      {strip}
+      {note}
+    </View>
+  ) : (
+    strip
   );
 }
 

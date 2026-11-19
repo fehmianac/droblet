@@ -27,6 +27,14 @@ export type WeatherCondition = 'sun' | 'cloud' | 'rain' | 'snow';
 
 export type ForecastDay = { date: string; temperatureC: number; condition: WeatherCondition };
 
+/**
+ * Wire `TripDetailDto.forecast.status`: `available` (every day) · `partial` (the first days; the rest is past the
+ * provider's 16-day horizon) · `beyondRange` (the trip starts after the horizon — "not available yet") · `past` ·
+ * `unavailable` (provider down) · `noLocation` (the city could not be resolved).
+ */
+export const FORECAST_STATUSES = ['available', 'partial', 'beyondRange', 'past', 'unavailable', 'noLocation'] as const;
+export type ForecastStatus = (typeof FORECAST_STATUSES)[number];
+
 /** GET v1/tenant/trip → `Trip[]` (upcoming and past; the device splits them by `endDate`). */
 export type Trip = {
   /** ULID from the device. */
@@ -98,8 +106,10 @@ export type TripPlan = {
 /** GET v1/tenant/trip/{id} */
 export type TripDetail = Trip &
   TripPlan & {
-    /** Daily forecast for the trip dates; null when the weather could not be fetched. */
+    /** Daily forecast for the trip dates; null when nothing is known (see `forecastStatus` for why). */
     forecast: ForecastDay[] | null;
+    /** Why the forecast is what it is; absent on an optimistic (not yet confirmed) trip or an older server. */
+    forecastStatus?: ForecastStatus;
   };
 
 export type TripFields = Pick<Trip, 'cityId' | 'startDate' | 'endDate' | 'tripTypes' | 'cabinOnly'>;
@@ -112,7 +122,10 @@ export type PutTripRequest = TripFields & { baseVersion: number; clientMutationI
 
 /** DELETE v1/tenant/trip/{id} — no body. */
 
-/** POST v1/tenant/trip/{id}/pack → 202 job (`stylistPack`; 403 `premium_required`). Its `PackResult` maps to a draft `TripPlan`. */
+/**
+ * POST v1/tenant/trip/{id}/pack → 202 job (`stylistPack`; 403 `premium_required`). Its `PackResult` maps to a draft `TripPlan`.
+ * `requestId` must be a ULID (400 `request_id_invalid` otherwise): the first attempt uses the trip id itself.
+ */
 export type PackTripRequest = { requestId: string };
 export type PackTripResponse = JobAccepted;
 

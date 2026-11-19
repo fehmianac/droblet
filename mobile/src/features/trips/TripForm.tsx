@@ -15,7 +15,7 @@ import { useThemeColors } from '@/theme/useThemeColors';
 
 import { useCitySearch, type TripDraft } from './api';
 import { DateRangePicker, todayIso, type DateRange, type RangeField } from './DateRangePicker';
-import { CITY_QUERY_MIN, foldForSearch, validateTripDates } from './logic';
+import { CITY_QUERY_MIN, foldForSearch, matchTypedCity, validateTripDates } from './logic';
 
 type Props = {
   /** Edit mode: the trip being changed. */
@@ -69,8 +69,11 @@ export function TripForm({ initial, submitLabel, onSubmit }: Props) {
 
   const submit = () => {
     setSubmitted(true);
-    if (!city || dateError || !range.start || !range.end) return;
-    onSubmit({ city, cityId: city.id, startDate: range.start, endDate: range.end, tripTypes: types, cabinOnly });
+    // A typed city that exactly matches a search result is that result: the trip always gets an id with coordinates.
+    const chosen = city ?? matchTypedCity(cities.data ?? [], query);
+    if (chosen && !city) setCity(chosen);
+    if (!chosen || dateError || !range.start || !range.end) return;
+    onSubmit({ city: chosen, cityId: chosen.id, startDate: range.start, endDate: range.end, tripTypes: types, cabinOnly });
     if (!initial) {
       setCity(null);
       setQuery('');

@@ -3,7 +3,7 @@ import i18n from '@/i18n';
 
 import type { ProductWire } from './catalog';
 import { fromAcceptSuggestion, fromDislikeReasons, fromStylistRequest, toAcceptedSuggestion, toStylistResult, type OutfitResultWire } from './stylist';
-import { mergeTrip, toMissingPiece, toTrip, toTripDetail, toTripPlan, type PackResultWire, type TripDetailWire, type TripWire } from './trips';
+import { mergeTrip, toMissingPiece, toTrip, toTripDetail, toTripForecast, toTripPlan, type PackResultWire, type TripDetailWire, type TripWire } from './trips';
 import { cachedTryOnImageId, cachedTryOnJobId, toTryOnResult, toWeekJobs, toWeekQuote, toWireTarget } from './tryon';
 import { toCity, toForecast, toWeatherGlyph } from './weather';
 
@@ -224,6 +224,28 @@ describe('trip wire mapping', () => {
     expect(detail.missing[0]).toMatchObject({ category: 'outerwear', productId: null });
     expect(detail.missing[0]?.name.length).toBeGreaterThan(0);
     expect(detail.missing[0]?.reason).toBe('yağmur bekleniyor');
+  });
+
+  it('takes the forecast strip from the detail forecast block, also before anything is packed', () => {
+    // The reported case: London 25–29 Nov, nothing packed (no plan days), the server knows every day.
+    const weather = (date: string, max: number) => ({ date, minTempC: 4, maxTempC: max, condition: 'cloudy' as const, precipitationChance: 20 });
+    const fromBlock = toTripForecast({
+      days: [],
+      forecast: { status: 'available', days: [weather('2026-11-25', 9), weather('2026-11-26', 10)], horizonEnd: '2026-12-04' },
+    });
+    expect(fromBlock).toEqual({
+      forecast: [
+        { date: '2026-11-25', temperatureC: 9, condition: 'cloud' },
+        { date: '2026-11-26', temperatureC: 10, condition: 'cloud' },
+      ],
+      forecastStatus: 'available',
+    });
+    expect(toTripForecast({ days: [], forecast: { status: 'beyondRange', days: [], horizonEnd: '2026-12-04' } })).toEqual({ forecast: null, forecastStatus: 'beyondRange' });
+    // An unknown status from a newer server reads as "couldn't be loaded"; an older server without the block keeps the plan days' weather.
+    expect(toTripForecast({ days: [], forecast: { status: 'somethingNew' as never, days: [], horizonEnd: null } }).forecastStatus).toBe('unavailable');
+    expect(toTripForecast({ days: [{ date: '2026-11-25', label: null, occasion: null, slots: [], weather: weather('2026-11-25', 9) }] })).toEqual({
+      forecast: [{ date: '2026-11-25', temperatureC: 9, condition: 'cloud' }],
+    });
   });
 
   it('merges a write answer (wire trip only) into the cached detail', () => {
