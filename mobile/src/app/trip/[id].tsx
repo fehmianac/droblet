@@ -40,6 +40,7 @@ import { TripDaySheet } from '@/features/trips/TripDaySheet';
 import { TripPacking } from '@/features/trips/TripPacking';
 import { RequirementHint } from '@/features/requirements/RequirementHint';
 import { useGate } from '@/features/requirements/useRequirements';
+import { useCachedTryOns } from '@/features/tryon/cached';
 import { GapFillBanner, useAddSuggestedPieces } from '@/features/stylist/gapFill';
 import { ensureTryOnConsent, useStartTryOn } from '@/features/tryon/api';
 import { ItemThumb } from '@/features/wardrobe/ItemThumb';
@@ -287,13 +288,24 @@ function PackedTrip({ trip }: { trip: TripDetail }) {
   const lookDays = trip.days.filter((d) => d.look);
   const rows = groupByCategory(trip.items, ITEM_CATEGORIES).flatMap((group) => group.items);
 
-  const confirmDays = confirm === 'all' ? lookDays : lookDays.filter((d) => d.date === confirm);
+  // 13d: days whose image already exists cost nothing — they are never counted on the sheet nor started again.
+  const dayTarget = (d: TripDay) => ({ kind: 'trip-day' as const, id: `${trip.id}:${d.date}` });
+  const cachedDays = useCachedTryOns(lookDays.map(dayTarget));
+  const cachedJobOf = (d: TripDay) => cachedDays[dayTarget(d).id] ?? null;
+  const confirmDays = (confirm === 'all' ? lookDays : lookDays.filter((d) => d.date === confirm)).filter((d) => !cachedJobOf(d));
   const askTryOn = (scope: 'all' | string) => {
     if (!online) {
       setTryOnNote('offline');
       return;
     }
     setTryOnNote(null);
+    const scoped = scope === 'all' ? lookDays : lookDays.filter((d) => d.date === scope);
+    const firstCached = scoped.map(cachedJobOf).find((j): j is string => Boolean(j));
+    if (scoped.length > 0 && scoped.every((d) => cachedJobOf(d)) && firstCached) {
+      // Everything already exists: straight to the image, no sheet, no credit.
+      router.push({ pathname: '/tryon/[jobId]', params: { jobId: firstCached, title: trip.cityName } });
+      return;
+    }
     // What is missing first (requirements flow, canvas 11), then consent and the credit confirmation.
     pendingScope.current = scope;
     tryOnGate.run();
@@ -303,7 +315,7 @@ function PackedTrip({ trip }: { trip: TripDetail }) {
     void (async () => {
       try {
         // Target `tripDay` (`{tripId}/{date}` on the wire): the common job and cache, 1 credit per new image.
-        const jobs = await tryOn.startMany(confirmDays.map((d) => ({ kind: 'trip-day' as const, id: `${trip.id}:${d.date}` })));
+        const jobs = await tryOn.startMany(confirmDays.map(dayTarget));
         setConfirm(null);
         const first = jobs[0];
         if (first) router.push({ pathname: '/tryon/[jobId]', params: { jobId: first.jobId, title: trip.cityName } });

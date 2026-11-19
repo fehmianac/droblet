@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
 import { ImageSlot } from '@/components/ui/ImageSlot';
+import { Zoomable } from '@/components/ui/viewer';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
@@ -95,7 +96,15 @@ export default function ItemDetailScreen() {
           return (
             <>
               <ScrollView contentContainerClassName="gap-3 pb-6">
-                <ItemThumb category={item.category} color={item.color} uri={itemImage(item)} className="h-[350px] w-full" glyphSize={180} accessibilityLabel={item.name} />
+                {/* 13a: the item photo opens full screen (a glyph placeholder does not). */}
+                <Zoomable
+                  images={itemImage(item) ? [{ uri: itemImage(item) ?? '', label: item.name }] : []}
+                  disabled={!itemImage(item)}
+                  accessibilityLabel={item.name}
+                  testID="item-image-zoom"
+                >
+                  <ItemThumb category={item.category} color={item.color} uri={itemImage(item)} className="h-[350px] w-full" glyphSize={180} accessibilityLabel={item.name} />
+                </Zoomable>
                 <View className="gap-3 px-gutter pt-1">
                   <View className="gap-1">
                     <Text variant="brand" tone="muted">

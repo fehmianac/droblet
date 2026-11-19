@@ -49,6 +49,15 @@ export const palettes: { light: ColorPalette } = {
 };
 
 /**
+ * Colours that only live on the ink ground of the toast (canvas 13b): the action label and the error glyph.
+ * The palette's accent / danger are too dark to read on ink.
+ */
+export const onInkTones = {
+  action: '#E3D3BF',
+  danger: '#F0B4A8',
+} as const;
+
+/**
  * The one colour of the logo outside the palette: the small drop inside the "D" on the ink tile
  * (canvas v2 `Logo.dc.html`, direction B). On the cream tile the drop is `accent`.
  */
@@ -115,6 +124,14 @@ export const sheen = {
   peak: 'rgba(251, 249, 245, 0.45)',
 } as const;
 
+/** 12 scan line (canvas `EkleTaniniyor`): the cream line, its soft halo, and the veil over a blurred photo (13). */
+export const scanTones = {
+  line: '#F4F1EC',
+  halo: 'rgba(244, 241, 236, 0.16)',
+  haloClear: 'rgba(244, 241, 236, 0)',
+  veil: 'rgba(244, 241, 236, 0.3)',
+} as const;
+
 /** Ink fade under text set on a photograph (20 Keşfet edit cover): ink at 0% → 82%. */
 export const inkFade = {
   clear: 'rgba(28, 26, 23, 0)',
@@ -130,6 +147,11 @@ export const motion = {
   traceMs: 3200,
   pieceStaggerMs: 300,
   lineIntervalMs: 2000,
+  /** 12 scan line: one top → bottom sweep (then back), ease-in-out; fade-out when recognition ends. */
+  scanSweepMs: 2000,
+  scanFadeMs: 200,
+  /** 13 bulk rows: the cleaned image fading in over the blurred photo. */
+  cleanFadeMs: 400,
 } as const;
 
 /** Embedded font family names (loaded in `src/app/_layout.tsx`). Custom fonts carry their weight in the family. */

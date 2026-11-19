@@ -82,7 +82,13 @@
     "empty": "No suggestions came out for this request.",
     "expired": "This suggestion is no longer available. Ask again.",
     "ruleTitle": "Suggestion {{number}}",
-    "ruleNote": "Picked from your wardrobe for the day and the weather."
+    "ruleNote": "Picked from your wardrobe for the day and the weather.",
+    "unsave": "Remove from lookbook",
+    "inCalendar": "On calendar · {{date}}",
+    "dayPlannedA11y": "{{day}}, has a plan",
+    "changeDay": "Change day",
+    "removeFromCalendar": "Remove from calendar",
+    "plannedOn": "On {{date}}"
   },
   "stylistFeedback": {
     "title": "What didn't you like?",
@@ -112,7 +118,8 @@
     "creditCostOnly_other": "{{count}} credits",
     "imageA11y": "AI image on you",
     "imageA11yNamed": "{{name}}, AI image on you",
-    "imageFailed": "The image could not be loaded. Check your connection and try again."
+    "imageFailed": "The image could not be loaded. Check your connection and try again.",
+    "cachedNote": "Made earlier · no credit used"
   },
   "weatherCondition": {
     "clear": "clear",

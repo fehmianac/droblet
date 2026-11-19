@@ -186,11 +186,11 @@ export function useTryOnJob(
   };
 }
 
-/** The existing image of a target with the current body photo (`GET v1/tenant/tryon?kind=&id=&index=`); null when none. */
-export function useExistingTryOn(target: TryOnTarget | null, options: { enabled?: boolean } = {}) {
-  return useQuery({
+/** Query options of the existing-image check of one target (shared by `useExistingTryOn` and `useCachedTryOns`). */
+export function existingTryOnQuery(target: TryOnTarget | null, enabled = true) {
+  return {
     queryKey: ['tenant', 'tryon', 'target', target?.kind ?? 'none', target?.id ?? 'none'] as const,
-    enabled: Boolean(target) && (options.enabled ?? true),
+    enabled: Boolean(target) && enabled,
     queryFn: () =>
       fromSource<TryOnResult | null>(
         'jobs',
@@ -198,7 +198,12 @@ export function useExistingTryOn(target: TryOnTarget | null, options: { enabled?
         () => (target ? requestExistingTryOn(target) : Promise.resolve(null)),
       ),
     meta: { persist: false },
-  });
+  };
+}
+
+/** The existing image of a target with the current photo (`GET v1/tenant/tryon?kind=&id=&index=`); null when none. */
+export function useExistingTryOn(target: TryOnTarget | null, options: { enabled?: boolean } = {}) {
+  return useQuery(existingTryOnQuery(target, options.enabled ?? true));
 }
 
 type WeekQuoteVariables = {

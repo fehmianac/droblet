@@ -20,6 +20,7 @@ import { AnimatedSplash } from '@/components/brand/AnimatedSplash';
 import { sessionStore, useSession } from '@/auth/session';
 import { AppHosts } from '@/components/AppHosts';
 import { SyncPill } from '@/components/ui/SyncPill';
+import { ToastHost } from '@/components/ui/toast';
 import { restoreLanguagePreference } from '@/i18n/preference';
 import { ConflictHost } from '@/sync/ConflictHost';
 import { wireNetworkAndFocus } from '@/sync/network';
@@ -158,6 +159,8 @@ export default function RootLayout() {
       {/* Floating offline / sync status under the header: overlaid, never pushes a screen's content. */}
       {signedIn ? <SyncPill /> : null}
       <AppHosts userId={userId} />
+      {/* Canvas 13b: the one toast — every write that changes something says so. */}
+      <ToastHost />
       {splashDone ? null : <AnimatedSplash onDone={finishSplash} />}
     </QueryProvider>
   );

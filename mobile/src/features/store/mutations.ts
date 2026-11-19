@@ -1,8 +1,11 @@
 import { wardrobeKeys } from '@/features/wardrobe/queries';
 import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 import { track } from '@/analytics/track';
 import { apiRequest } from '@/api/client';
+import { toast } from '@/components/ui/toast';
 import type {
   AddCartLinesRequest,
   AddItemFromProductRequest,
@@ -221,9 +224,13 @@ export function registerStoreMutations(client: QueryClient): void {
 // ---------- Hooks ----------
 
 export function useSetFavorite() {
+  const { t } = useTranslation();
   const m = useMutation<void, unknown, SetFavoriteRequest>({ mutationKey: storeMutationKeys.setFavorite });
-  return (productId: string, favorite: boolean) =>
+  return (productId: string, favorite: boolean) => {
     m.mutate({ productId, favorite, clientMutationId: newClientMutation().clientMutationId });
+    // 13b: the heart says what it did (the write is queued and optimistic).
+    toast.success(t(favorite ? 'feedback.favorite.added' : 'feedback.favorite.removed'), { icon: favorite ? 'heartFilled' : 'heart', testID: 'toast-favorite' });
+  };
 }
 
 export function useAddItemFromProduct() {
@@ -240,12 +247,25 @@ export function useCreateLook() {
 
 /** "Sepete ekle" / "N ürünü satın al" — one queued write for all lines; tracks `cart_added` per product. */
 export function useAddToCart() {
+  const { t } = useTranslation();
   const m = useMutation<void, unknown, AddToCartVariables>({ mutationKey: storeMutationKeys.addCartLines });
-  return (items: { product: ProductSummary; size: ProductSize }[], source: string, look?: StoreLookRef) => {
+  const add = (items: { product: ProductSummary; size: ProductSize }[], source: string, look?: StoreLookRef) => {
     if (items.length === 0) return;
-    m.mutate({ lines: items.map((i) => ({ ...i, look, clientMutationId: ulid() })) });
+    m.mutate(
+      { lines: items.map((i) => ({ ...i, look, clientMutationId: ulid() })) },
+      {
+        onError: () =>
+          toast.error(t('feedback.cart.failed'), { action: { label: t('common.retry'), onPress: () => add(items, source, look) }, testID: 'toast-cart-failed' }),
+      },
+    );
     items.forEach((i) => track('cart_added', { productId: i.product.id, brandId: i.product.brandId, source }));
+    // 13b: "Sepete eklendi" + "Sepeti gör".
+    toast.success(t('feedback.cart.added', { count: items.length }), {
+      action: { label: t('feedback.cart.see'), onPress: () => router.push('/cart') },
+      testID: 'toast-cart',
+    });
   };
+  return add;
 }
 
 export function useRemoveCartLine() {

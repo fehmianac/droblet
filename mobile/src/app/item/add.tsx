@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AiDropPulse } from '@/components/ui/ai';
+import { AiDropPulse, AiScanLine } from '@/components/ui/ai';
 import { Icon } from '@/components/ui/Icon';
 import { Text } from '@/components/ui/Text';
 import { cameraStateOf } from '@/features/photos/cameraState';
@@ -109,6 +109,8 @@ export default function ItemAddScreen() {
   /** Nothing found ("Bu fotoğrafta parça bulamadık"): the chooser screen explains and offers retry / manual entry. */
   const empty = failed && draft?.failure === 'guardRejected';
   const busy = phase !== 'idle' || draftId !== null;
+  /** The photo is with the AI (upload + request, then the job): the scan line sweeps over it until a result or an error. */
+  const recognising = captured !== null && (phase === 'sending' || (draftId !== null && !detected && !failed));
 
   // Recognised → show the pill for a moment, then the review form (one piece) or the chooser (several).
   // Failed → the form (manual fill) or, when nothing was found, the chooser's empty state. Slow → the
@@ -238,7 +240,19 @@ export default function ItemAddScreen() {
 
   let frame;
   if (captured) {
-    frame = <Image source={{ uri: captured.localUri }} contentFit="cover" style={StyleSheet.absoluteFill} accessibilityLabel={t('itemAdd.capturedA11y')} />;
+    // Cover, never contain: the photo fills the frame edge to edge (no side bars), the corners crop it.
+    frame = (
+      <>
+        <Image
+          source={{ uri: captured.localUri }}
+          contentFit="cover"
+          style={[StyleSheet.absoluteFill, { backgroundColor: placeholderTones.dark }]}
+          accessibilityLabel={t('itemAdd.capturedA11y')}
+          testID="item-add-photo"
+        />
+        <AiScanLine active={recognising} />
+      </>
+    );
   } else if (cameraState === 'live' && focused) {
     frame = (
       <CameraView

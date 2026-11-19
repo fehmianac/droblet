@@ -1,4 +1,6 @@
 /* global jest */
+// Gesture handler (13a image viewer): detectors render their children; gestures are driven through accessibility actions in tests.
+require('react-native-gesture-handler/jestSetup');
 // Native modules without a JS fallback in Jest.
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),

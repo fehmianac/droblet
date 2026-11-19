@@ -28,6 +28,8 @@ import { ensureTryOnConsent, isConsentDeclined, TRY_ON_CREDIT_COST, useStartTryO
 import { RequirementHint, StepCountBadge } from '@/features/requirements/RequirementHint';
 import { useHandleGate } from '@/features/requirements/useHandleGate';
 import { useGate } from '@/features/requirements/useRequirements';
+import { useCachedTryOn } from '@/features/tryon/cached';
+import { Zoomable, type ViewerImage } from '@/components/ui/viewer';
 import { useItems } from '@/features/wardrobe/queries';
 import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { formatMoney, formatNumber } from '@/lib/format';
@@ -117,9 +119,16 @@ function LookBody({ look, itemsById, note }: { look: Look; itemsById: ItemsById;
   const rating = look.rating !== null ? formatNumber(look.rating, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : null;
   const side = look.slots.slice(0, 3);
   const missing = missingPieceCount(look);
+  // 13a: the try-on image (AI, labelled) and the piece photos page together in the viewer.
+  const viewerImages: ViewerImage[] = [
+    ...(look.tryOnImageUrl ? [{ uri: look.tryOnImageUrl, label: t('tryOn.imageA11yNamed', { name: look.name }), ai: { tag: t('aiBadge.onYou') } }] : []),
+    ...look.slots.filter((s) => s.imageUrl && !s.deleted).map((s) => ({ uri: s.imageUrl ?? '', label: s.name, caption: s.name })),
+  ];
+  const viewerIndex = (uri: string | null | undefined) => (uri ? viewerImages.findIndex((img) => img.uri === uri) : -1);
   return (
     <ScrollView contentContainerClassName="gap-3 px-gutter pb-6 pt-1">
       <View className="flex-row gap-2.5">
+        <Zoomable images={viewerImages} index={0} disabled={!look.tryOnImageUrl} accessibilityLabel={t('tryOn.imageA11yNamed', { name: look.name })} testID="look-cover">
         <LookCover
           seed={look.id}
           figureHeight={170}
@@ -133,6 +142,7 @@ function LookBody({ look, itemsById, note }: { look: Look; itemsById: ItemsById;
             className="absolute bottom-2 left-2"
           />
         </LookCover>
+        </Zoomable>
         <View className="flex-1 gap-2">
           {side.map((slot) => {
             const store = slot.source === 'store';
@@ -143,7 +153,9 @@ function LookBody({ look, itemsById, note }: { look: Look; itemsById: ItemsById;
                 accessible={false}
                 importantForAccessibility="no-hide-descendants"
               >
-                <SlotThumb slot={slot} itemsById={itemsById} className="h-full w-full" glyphSize={30} />
+                <Zoomable images={viewerImages} index={viewerIndex(slot.imageUrl)} disabled={viewerIndex(slot.imageUrl) < 0} className="h-full w-full">
+                  <SlotThumb slot={slot} itemsById={itemsById} className="h-full w-full" glyphSize={30} />
+                </Zoomable>
                 {store ? <MissingTag className="absolute right-1.5 top-1.5" /> : null}
               </View>
             );
@@ -231,6 +243,8 @@ export default function LookScreen() {
   // Consent of the photo path first (normally already given), then the credit confirmation.
   const gate = useGate('tryOn', () => void ensureTryOnConsent().then((ok) => ok && setConfirm(true)), { origin: look?.name ?? null });
   const withHandle = useHandleGate();
+  // 13d: an image that already exists for this look + photo opens without the credit sheet.
+  const cachedTryOn = useCachedTryOn(id ? { kind: 'look', id } : null, { enabled: Boolean(look) && !look?.tryOnImageUrl });
 
   if (deleted) {
     return (
@@ -259,6 +273,10 @@ export default function LookScreen() {
       return;
     }
     setNotice(null);
+    if (look && cachedTryOn.cachedJobId) {
+      router.push({ pathname: '/tryon/[jobId]', params: { jobId: cachedTryOn.cachedJobId, title: look.name, kind: 'look', id: look.id } });
+      return;
+    }
     // What is missing (photo, consent, membership…) opens the requirements flow, which comes back here (canvas 11).
     gate.run();
   };

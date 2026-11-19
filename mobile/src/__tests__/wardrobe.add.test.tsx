@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { act, fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
+import { AccessibilityInfo } from 'react-native';
 
 import { fixtureDb, resetFixtureDb } from '@/fixtures/db';
 import { fixtureDraftOptions, fixtureListDrafts, resetFixtureDrafts, setFixtureItemRecognition } from '@/fixtures/wardrobe';
@@ -35,6 +36,7 @@ jest.mock('@/features/photos/usePhotoPicker', () => ({
 }));
 
 const WAIT = { timeout: 6000 };
+const HIDDEN = { includeHiddenElements: true };
 /** Lets the entitlement (fixture latency) settle so the screen knows the quota. */
 const settle = () => waitFor(() => new Promise<void>((resolve) => setTimeout(resolve, 700)), { timeout: 2000 });
 
@@ -54,6 +56,10 @@ beforeEach(() => {
   mockCamera.take.mockImplementation(async () => ({ uri: 'file:///shot.jpg', width: 1200, height: 1600 }));
   mockPicker.takePhoto.mockClear();
   mockPicker.chooseFromLibrary.mockClear();
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
 });
 
 describe('12 Parça ekle — in-app camera', () => {
@@ -85,6 +91,39 @@ describe('12 Parça ekle — in-app camera', () => {
     await waitFor(() => expect(screen).toHavePathname('/item/form'), WAIT);
     await waitFor(() => expect(screen.getByText('AI GUESS · PLEASE CHECK')).toBeTruthy(), WAIT);
     expect(fixtureListDrafts()).toHaveLength(1);
+  }, 30_000);
+
+  it('a scan line sweeps over the photo only while it is being recognised, and stops on the result', async () => {
+    fixtureDraftOptions.baseMs = 1500;
+    await open('/item/add');
+    await waitFor(() => expect(screen.getByTestId('item-add-camera')).toBeTruthy(), WAIT);
+    await settle();
+    // The decorative line is hidden from assistive tech: the queries include hidden elements.
+    expect(screen.queryByTestId('scan-line-sweeping', HIDDEN)).toBeNull();
+    await fireEvent.press(screen.getByTestId('item-add-shutter'));
+    await waitFor(() => expect(screen.getByTestId('scan-line-sweeping', HIDDEN)).toBeTruthy(), WAIT);
+    // It already runs while the photo is sent, and keeps running through the recognition job.
+    await waitFor(() => expect(screen.getByTestId('item-add-pill').props.accessibilityLabel).toBe('Recognising the piece…'), WAIT);
+    expect(screen.getByTestId('scan-line-sweeping', HIDDEN)).toBeTruthy();
+    expect(screen.getByTestId('item-add-pill').props.accessibilityLiveRegion).toBe('polite');
+    // The photo covers the frame (no contain-fit side bars).
+    expect(screen.getByTestId('item-add-photo').props.contentFit).toBe('cover');
+
+    await waitFor(() => expect(screen.getByTestId('item-add-pill').props.accessibilityLabel).toMatch(/detected · /), WAIT);
+    expect(screen.getByTestId('scan-line-idle', HIDDEN)).toBeTruthy();
+    expect(screen.queryByTestId('scan-line-sweeping', HIDDEN)).toBeNull();
+  }, 30_000);
+
+  it('with reduce-motion there is no scan line: the "Recognising the piece…" pill alone', async () => {
+    jest.spyOn(AccessibilityInfo, 'isReduceMotionEnabled').mockResolvedValue(true);
+    fixtureDraftOptions.baseMs = 1500;
+    await open('/item/add');
+    await waitFor(() => expect(screen.getByTestId('item-add-camera')).toBeTruthy(), WAIT);
+    await settle();
+    await fireEvent.press(screen.getByTestId('item-add-shutter'));
+    await waitFor(() => expect(screen.getByTestId('item-add-pill').props.accessibilityLabel).toBe('Recognising the piece…'), WAIT);
+    expect(screen.queryByTestId('scan-line-sweeping', HIDDEN)).toBeNull();
+    expect(screen.queryByTestId('scan-line-idle', HIDDEN)).toBeNull();
   }, 30_000);
 
   it('permission not asked yet: explains why in the frame and asks on "Turn on camera"', async () => {

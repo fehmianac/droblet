@@ -1,0 +1,64 @@
+{
+  "viewer": {
+    "enlargeHint": "Enlarge",
+    "imageA11y": "Image",
+    "position": "{{current}} of {{total}}",
+    "pagerHint": "Swipe up or down for the other images.",
+    "next": "Next image",
+    "previous": "Previous image"
+  },
+  "feedback": {
+    "see": "View",
+    "undo": "Undo",
+    "save": {
+      "saved": "Saved to your looks",
+      "removed": "Removed from saved",
+      "keptPlanned": "It stays in your looks because it's on your calendar",
+      "failed": "Couldn't save"
+    },
+    "calendar": {
+      "added": "Added to {{date}}",
+      "updated": "{{date}} plan updated",
+      "alsoSaved": "Also saved to your looks",
+      "see": "See calendar",
+      "removed": "{{date}} removed from calendar",
+      "failed": "Couldn't add to calendar"
+    },
+    "favorite": {
+      "added": "Added to favourites",
+      "removed": "Removed from favourites"
+    },
+    "lookbook": {
+      "added": "Added to lookbook",
+      "removed": "Removed from lookbook"
+    },
+    "cart": {
+      "added_one": "Added to cart",
+      "added_other": "{{count}} items added to cart",
+      "see": "View cart",
+      "failed": "Couldn't add to cart"
+    },
+    "watch": {
+      "added": "Added to your watch list",
+      "removed": "Removed from your watch list",
+      "alertOn": "Price alert on",
+      "alertOff": "Price alert off"
+    },
+    "savedLooks": {
+      "added": "Added to your saved looks",
+      "removed": "Removed from your saved looks"
+    },
+    "follow": {
+      "following": "You're following @{{handle}}",
+      "requested": "Follow request sent to @{{handle}}",
+      "unfollowed": "Unfollowed @{{handle}}",
+      "failed": "Couldn't update follow"
+    },
+    "block": {
+      "done": "@{{handle}} blocked"
+    },
+    "settings": {
+      "saved": "Setting saved"
+    }
+  }
+}

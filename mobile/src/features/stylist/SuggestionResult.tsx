@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import type { TFunction } from 'i18next';
-import { Bell, Heart, Share as ShareIcon, X, type LucideIcon } from 'lucide-react-native';
+import { Bell, Check, Heart, Share as ShareIcon, X, type LucideIcon } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -35,17 +35,20 @@ import { aiCreditsKey, openCreditTopUp, useAiCredits } from '@/features/credits/
 import { RequirementHint } from '@/features/requirements/RequirementHint';
 import { useGate } from '@/features/requirements/useRequirements';
 import { ensureTryOnConsent, TRY_ON_CREDIT_COST, useStartTryOn, useTryOnJob } from '@/features/tryon/api';
+import { CachedTryOnNote, isCachedTryOnJob, useCachedTryOn } from '@/features/tryon/cached';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { formatDate, parseLocalDate } from '@/lib/format';
 import { useIsOnline } from '@/sync/network';
 
-import { useAcceptSuggestion, useSuggestionFeedback, useSuggestionTryOns } from './api';
+import { useSuggestionFeedback, useSuggestionTryOns } from './api';
 import { NoCreditsCard, SuggestionMedia, type MediaMode } from './SuggestionMedia';
-import { GapFillBanner, useAddSuggestedPieces } from './gapFill';
+import { GapFillBanner } from './gapFill';
 import { SuggestionPieces } from './SuggestionPieces';
-import { CalendarSheet, FeedbackSheet } from './SuggestionSheets';
+import { CalendarSheet, FeedbackSheet, PlannedSheet } from './SuggestionSheets';
+import { shortDay, useSuggestionActions } from './suggestionActions';
+import { HeartPop } from './HeartPop';
 
-type Sheet = 'none' | 'feedback' | 'calendar' | 'credit';
+type Sheet = 'none' | 'feedback' | 'calendar' | 'planned' | 'credit';
 
 /** A horizontal drag this long (and clearly more horizontal than vertical) turns the page when paging does not animate. */
 const SWIPE_MIN_DX = 48;
@@ -100,9 +103,8 @@ export function SuggestionResult({ jobId, title, result, focused, onAskAgain, as
   const credits = useAiCredits();
   const tryOns = useSuggestionTryOns(jobId);
   const startTryOn = useStartTryOn();
-  const accept = useAcceptSuggestion(jobId);
   const feedback = useSuggestionFeedback(jobId);
-  const suggestedPieces = useAddSuggestedPieces();
+  const actions = useSuggestionActions(jobId, result);
 
   const [current, setCurrent] = useState(0);
   const [dismissed, setDismissed] = useState<number[]>([]);
@@ -121,6 +123,11 @@ export function SuggestionResult({ jobId, title, result, focused, onAskAgain, as
   const tryOnJobId = index >= 0 ? (tryOns.jobs[index] ?? null) : null;
   const tryOn = useTryOnJob(tryOnJobId, { enabled: focused });
   const tryOnSettled = tryOn.isDone || tryOn.isFailed;
+  // 13d: an image that already exists for this outfit + photo opens without the credit sheet (checked on open).
+  const openSuggestion = index >= 0 ? (suggestions.find((s) => s.index === index) ?? null) : null;
+  const cachedTryOn = useCachedTryOn(index >= 0 ? { kind: 'suggestion', id: `${jobId}:${index}` } : null, {
+    enabled: focused && !tryOnJobId && !openSuggestion?.tryOnImageUrl,
+  });
   useEffect(() => {
     // A finished image spent the credit; a failed one got it back — either way re-read the balance.
     if (tryOnSettled) void client.invalidateQueries({ queryKey: aiCreditsKey });
@@ -169,7 +176,7 @@ export function SuggestionResult({ jobId, title, result, focused, onAskAgain, as
     : t('stylistResult.noCreditsBodyNoDate');
 
   /** Try-on state of a page. The open page is polled; the others read what the job cache already knows. */
-  const mediaOf = (s: StylistSuggestion): { mode: MediaMode; imageUrl: string | null; creditRefunded: boolean } => {
+  const mediaOf = (s: StylistSuggestion): { mode: MediaMode; imageUrl: string | null; creditRefunded: boolean; cached: boolean } => {
     const id = tryOns.jobs[s.index] ?? null;
     const live = s.index === index;
     const cached = id && !live ? client.getQueryData<Job<TryOnResult>>(jobQueryKey(id)) : undefined;
@@ -177,7 +184,7 @@ export function SuggestionResult({ jobId, title, result, focused, onAskAgain, as
     const failed = live ? tryOn.isFailed : cached?.status === 'failed';
     const imageUrl = (live ? tryOn.result?.imageUrl : cached?.result?.imageUrl) ?? s.tryOnImageUrl;
     const mode: MediaMode = done || s.tryOnImageUrl ? 'done' : id && failed ? 'failed' : id ? 'working' : outOfCredits ? 'noCredits' : 'idle';
-    return { mode, imageUrl, creditRefunded: live ? tryOn.creditRefunded : (cached?.error?.creditRefunded ?? false) };
+    return { mode, imageUrl, creditRefunded: live ? tryOn.creditRefunded : (cached?.error?.creditRefunded ?? false), cached: isCachedTryOnJob(id) };
   };
 
   const mode = mediaOf(suggestion).mode;
@@ -240,23 +247,15 @@ export function SuggestionResult({ jobId, title, result, focused, onAskAgain, as
     if (next) setCurrent(next.index);
   };
 
-  /** Library picks join the wardrobe first: the accepted look then holds the user's own pieces. */
-  const libraryOf = (target: StylistSuggestion) => target.pieces.filter((p) => p.source === 'library').map((p) => p.refId);
-  const acceptWithPieces = (date: string | null, savedLookId: string | null) => {
-    const ids = libraryOf(suggestion);
-    if (ids.length === 0) {
-      accept.accept(index, date, savedLookId);
-      return;
-    }
-    void suggestedPieces
-      .add(ids)
-      .then(() => accept.accept(index, date, savedLookId))
-      .catch(() => setNotice(t('req.gapFill.addFailed')));
+  /** "Üzerimde gör": an existing image opens at once (no sheet, no credit); otherwise the gate → consent → credit sheet. */
+  const onTryOn = () => {
+    if (cachedTryOn.cachedJobId) tryOns.set(index, cachedTryOn.cachedJobId);
+    else tryOnGate.run();
   };
 
   const addToCalendar = (date: string) => {
-    acceptWithPieces(date, suggestion.savedLookId);
     setSheet('none');
+    actions.addToCalendar(suggestion, date);
   };
 
   const share = () => {
@@ -315,7 +314,7 @@ export function SuggestionResult({ jobId, title, result, focused, onAskAgain, as
                     mode={media.mode}
                     imageUrl={media.imageUrl}
                     creditLine={creditLine}
-                    onTryOn={tryOnGate.run}
+                    onTryOn={onTryOn}
                     tryOnDisabled={!online}
                     creditRefunded={media.creditRefunded}
                     onRetry={() => {
@@ -352,7 +351,9 @@ export function SuggestionResult({ jobId, title, result, focused, onAskAgain, as
 
                   {pageWaiting ? <InfoNote icon={Bell} text={t('ai.leaveHint')} /> : null}
 
-                  {media.mode === 'done' && credits.remaining !== null ? (
+                  {media.mode === 'done' && media.cached ? (
+                    <CachedTryOnNote />
+                  ) : media.mode === 'done' && credits.remaining !== null ? (
                     <Text variant="caption" tone="muted">
                       {t('stylistResult.creditUsed', { count: cost, remaining: credits.remaining })}
                     </Text>
@@ -403,34 +404,81 @@ export function SuggestionResult({ jobId, title, result, focused, onAskAgain, as
         <View className="flex-row items-center gap-2.5">
           <BarRoundButton icon={X} onPress={() => setSheet('feedback')} accessibilityLabel={t('stylistResult.dislike')} />
           <View className="flex-1">
-            <Button
-              variant={mode === 'noCredits' ? 'secondary' : 'primary'}
-              size="lg"
-              label={t('stylistResult.addToCalendar')}
-              onPress={() => setSheet('calendar')}
-              testID="add-to-calendar"
-            />
+            {suggestion.plannedDate ? (
+              // 13c B: added — "✓ Takvimde · Sal 24 Kas"; tapping offers change day / remove.
+              <Button
+                variant="secondary"
+                size="lg"
+                icon={Check}
+                label={t('stylistResult.inCalendar', { date: shortDay(suggestion.plannedDate) })}
+                onPress={() => setSheet('planned')}
+                testID="in-calendar"
+              />
+            ) : (
+              <Button
+                variant={mode === 'noCredits' ? 'secondary' : 'primary'}
+                size="lg"
+                label={t('stylistResult.addToCalendar')}
+                onPress={() => setSheet('calendar')}
+                testID="add-to-calendar"
+              />
+            )}
           </View>
           <BarRoundButton
             icon={Heart}
             active={saved}
-            onPress={() => {
-              if (!saved) acceptWithPieces(null, null);
-            }}
-            accessibilityLabel={t(saved ? 'stylistResult.saved' : 'stylistResult.save')}
+            pop={!reduceMotion}
+            onPress={() => (saved ? actions.unsave(suggestion) : actions.save(suggestion))}
+            accessibilityLabel={t(saved ? 'stylistResult.unsave' : 'stylistResult.save')}
+            testID="save-suggestion"
           />
         </View>
       </BottomActionBar>
 
       <FeedbackSheet visible={sheet === 'feedback'} onClose={() => setSheet('none')} onSubmit={submitFeedback} />
-      <CalendarSheet visible={sheet === 'calendar'} onClose={() => setSheet('none')} requestDate={result.request.date} onConfirm={addToCalendar} />
+      <CalendarSheet
+        visible={sheet === 'calendar'}
+        onClose={() => setSheet('none')}
+        requestDate={result.request.date}
+        plannedDays={actions.plannedDays}
+        currentDate={suggestion.plannedDate}
+        onConfirm={addToCalendar}
+      />
+      <PlannedSheet
+        visible={sheet === 'planned'}
+        onClose={() => setSheet('none')}
+        date={suggestion.plannedDate}
+        onChangeDay={() => setSheet('calendar')}
+        onRemove={() => {
+          setSheet('none');
+          actions.removeFromCalendar(suggestion);
+        }}
+        onSeeWeek={() => {
+          setSheet('none');
+          router.push({ pathname: '/plan/week', params: { day: suggestion.plannedDate ?? '' } });
+        }}
+      />
       <CreditConfirmSheet visible={sheet === 'credit'} onClose={() => setSheet('none')} cost={cost} onConfirm={beginTryOn} confirming={startTryOn.isStarting} />
     </Screen>
   );
 }
 
-/** The 52 × 52 outlined round buttons beside "Takvime ekle" (✕ and the lookbook heart). */
-function BarRoundButton({ icon, active = false, onPress, accessibilityLabel }: { icon: LucideIcon; active?: boolean; onPress: () => void; accessibilityLabel: string }) {
+/** The 52 × 52 outlined round buttons beside "Takvime ekle" (✕ and the lookbook heart). The heart pops when it fills (not with reduce motion). */
+function BarRoundButton({
+  icon,
+  active = false,
+  pop = false,
+  onPress,
+  accessibilityLabel,
+  testID,
+}: {
+  icon: LucideIcon;
+  active?: boolean;
+  pop?: boolean;
+  onPress: () => void;
+  accessibilityLabel: string;
+  testID?: string;
+}) {
   return (
     <Pressable
       onPress={onPress}
@@ -438,8 +486,11 @@ function BarRoundButton({ icon, active = false, onPress, accessibilityLabel }: {
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ selected: active }}
       className="h-btn-primary w-[52px] items-center justify-center rounded-pill border border-line active:opacity-70"
+      testID={testID}
     >
-      <Icon icon={icon} size={20} filled={active} />
+      <HeartPop active={active} enabled={pop}>
+        <Icon icon={icon} size={20} filled={active} />
+      </HeartPop>
     </Pressable>
   );
 }

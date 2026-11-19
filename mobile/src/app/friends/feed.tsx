@@ -18,7 +18,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { lookShareUrl } from '@/features/social/feedMath';
 import { useRateLook, useSaveLook } from '@/features/social/mutations';
-import { Notice, useNotice } from '@/features/social/Notice';
+import { useNotice } from '@/features/social/Notice';
 import { useHandleGate } from '@/features/requirements/useHandleGate';
 import { FollowChip } from '@/features/social/PeopleRows';
 import { useFeed, useIncomingRequestCount, useInviteLink } from '@/features/social/queries';
@@ -157,7 +157,7 @@ export default function FriendsFeedScreen() {
   const [sharing, setSharing] = useState<FeedLook | null>(null);
   // Sharing needs an @handle: without one the handle step comes first, then the share sheet.
   const withHandle = useHandleGate();
-  const { notice, show } = useNotice();
+  const { show } = useNotice();
   const requestCount = useIncomingRequestCount();
 
   const shareUrl = sharing && invite.data ? lookShareUrl(linkDomain(), sharing.lookId, invite.data.code) : null;
@@ -234,7 +234,6 @@ export default function FriendsFeedScreen() {
         target={sharing ? { targetKind: 'look', targetId: sharing.lookId, ownerHandle: sharing.author.handle } : undefined}
         onCopied={show}
       />
-      <Notice notice={notice} />
       <ListTabBar owner="discover" />
     </Screen>
   );

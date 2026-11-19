@@ -18,6 +18,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
 import { Text } from '@/components/ui/Text';
 import { preferredSize, priceDropPercent } from '@/features/store/cartMath';
+import { toast } from '@/components/ui/toast';
 import { useAddToCart, useSetWatch } from '@/features/store/mutations';
 import { useWatchlist } from '@/features/store/queries';
 import { formatMoney, formatPercent } from '@/lib/format';
@@ -112,7 +113,10 @@ function WatchCard({ entry, profileSize }: { entry: WatchlistEntry; profileSize:
         </Pressable>
         {/* The bell is the price alert of this one product: ink when on, muted and struck through when off. */}
         <Pressable
-          onPress={() => setWatch({ productId: entry.productId, watching: true, alertEnabled: !entry.alertEnabled })}
+          onPress={() => {
+            setWatch({ productId: entry.productId, watching: true, alertEnabled: !entry.alertEnabled });
+            toast.success(t(entry.alertEnabled ? 'feedback.watch.alertOff' : 'feedback.watch.alertOn'), { testID: 'toast-watch-alert' });
+          }}
           accessibilityRole="switch"
           accessibilityLabel={alertLabel}
           accessibilityState={{ checked: entry.alertEnabled }}
