@@ -86,8 +86,14 @@ public sealed class StylistJobService(
 
         var settings = stylistOptions.CurrentValue;
         var language = Localized.Language(input.Language);
-        var wardrobe = await WardrobeAsync(job.TenantId, ct);
-        var forecast = (await ForecastAsync(input.CityId, input.Latitude, input.Longitude, input.Date, input.Date, ct)).FirstOrDefault();
+        // Independent reads in parallel; the prompt-only ones are awaited when the prompt is built.
+        var wardrobeRead = WardrobeAsync(job.TenantId, ct);
+        var forecastRead = ForecastAsync(input.CityId, input.Latitude, input.Longitude, input.Date, input.Date, ct);
+        var styleRead = StyleAsync(job.TenantId, ct);
+        var paletteRead = PaletteAsync(job.TenantId, ct);
+        var dislikedRead = DislikedAsync(job.TenantId, settings.DislikeMemory, ct);
+        var wardrobe = await wardrobeRead;
+        var forecast = (await forecastRead).FirstOrDefault();
         var season = SeasonRules.For(date);
         var candidates = StylistCandidateSelector.Select(wardrobe, new CandidateCriteria(
             new HashSet<Season> { season }, input.Occasion, forecast is null ? null : WeatherRules.WholeDegrees(forecast.MaxC), false, settings.MaxCandidates, settings.HotFromC, input.PinnedItemId));
@@ -106,22 +112,23 @@ public sealed class StylistJobService(
             return new Outcome(StylingJson.Serialize(filled.Count == 0 ? Result(StylistRefusals.InsufficientWardrobe, []) : Result(null, filled)));
         }
 
+        // Per-user context first (stable between requests → a cacheable prefix), the request itself last.
         var prompt = StylingJson.Serialize(new
         {
+            language,
+            styleProfile = await styleRead,
+            palette = await paletteRead,
+            candidates = candidates.Select(Describe),
+            productCandidates = Array.Empty<object>(), // filled by the catalog module ("Parçamı tamamla")
+            count = settings.SuggestionCount,
+            onlyMyWardrobe = input.OnlyMyWardrobe,
+            avoidCombinations = await dislikedRead,
             date = input.Date,
             season,
             occasion = input.Occasion,
             weather = forecast is null ? null : new { MinTempC = WeatherRules.WholeDegrees(forecast.MinC), MaxTempC = WeatherRules.WholeDegrees(forecast.MaxC), forecast.Condition },
             freeText = input.FreeText,
-            onlyMyWardrobe = input.OnlyMyWardrobe,
             pinnedItemId = input.PinnedItemId,
-            language,
-            count = settings.SuggestionCount,
-            styleProfile = await StyleAsync(job.TenantId, ct),
-            palette = await PaletteAsync(job.TenantId, ct),
-            avoidCombinations = await DislikedAsync(job.TenantId, settings.DislikeMemory, ct),
-            candidates = candidates.Select(Describe),
-            productCandidates = Array.Empty<object>(), // filled by the catalog module ("Parçamı tamamla")
         });
 
         var output = StylingJson.TryDeserialize<ModelOutfitOutput>(await model.GenerateAsync(new StylistPrompt(JobKind.StylistOutfit, prompt, language), ct));
@@ -169,8 +176,12 @@ public sealed class StylistJobService(
         var settings = stylistOptions.CurrentValue;
         var language = Localized.Language(input.Language);
         var dates = input.Days.Select(d => d.Date).ToList();
-        var wardrobe = await WardrobeAsync(job.TenantId, ct);
-        var forecast = (await ForecastAsync(input.CityId, input.Latitude, input.Longitude, dates.Min()!, dates.Max()!, ct))
+        // Independent reads in parallel (wardrobe, forecast, style profile).
+        var wardrobeRead = WardrobeAsync(job.TenantId, ct);
+        var forecastRead = ForecastAsync(input.CityId, input.Latitude, input.Longitude, dates.Min()!, dates.Max()!, ct);
+        var style0 = StyleAsync(job.TenantId, ct);
+        var wardrobe = await wardrobeRead;
+        var forecast = (await forecastRead)
             .GroupBy(f => f.Date, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
         var seasons = dates.Select(d => SeasonRules.For(CalendarDay.Parse(d))).ToHashSet();
         var candidates = StylistCandidateSelector.Select(wardrobe, new CandidateCriteria(seasons, null, null, false, settings.MaxCandidates, settings.HotFromC));
@@ -200,40 +211,67 @@ public sealed class StylistJobService(
                 : new WeekResult(input.WeekStart, null, filledPlan, language, true)));
         }
 
-        var prompt = StylingJson.Serialize(new
+        // Static context first (candidates, style), the batch's days last: the prefix is the same for every batch and job.
+        var style = await style0;
+        string Prompt(IReadOnlyList<string> batch) => StylingJson.Serialize(new
         {
-            weekStart = input.WeekStart,
             language,
-            days = input.Days.Select(d => new
+            styleProfile = style,
+            candidates = candidates.Select(Describe),
+            weekStart = input.WeekStart,
+            days = input.Days.Where(d => batch.Contains(d.Date)).Select(d => new
             {
                 d.Date,
                 d.Occasion,
                 weather = forecast.TryGetValue(d.Date, out var f) ? new { MinTempC = WeatherRules.WholeDegrees(f.MinC), MaxTempC = WeatherRules.WholeDegrees(f.MaxC), f.Condition } : null,
             }),
-            styleProfile = await StyleAsync(job.TenantId, ct),
-            candidates = candidates.Select(Describe),
         });
 
-        var output = StylingJson.TryDeserialize<ModelWeekOutput>(await model.GenerateAsync(new StylistPrompt(JobKind.StylistWeek, prompt, language), ct));
+        // The days in small batches, one model call each, in parallel (Stylist:WeekBatchDays; 0 = one call for the week).
+        // A batch that fails is dressed by the rules below; only when every batch fails does the job fail (or retry).
+        var batches = WeekPlanning.Split(dates, settings.WeekBatchDays);
+        var calls = batches.Select(batch => model.GenerateAsync(new StylistPrompt(JobKind.StylistWeek, Prompt(batch), language), ct)).ToList();
+        try
+        {
+            await Task.WhenAll(calls);
+        }
+        catch (Exception) when (calls.Any(c => c.IsCompletedSuccessfully))
+        {
+            logger.LogWarning("Week job {JobId}: {Failed} of {Batches} batches failed; their days are dressed by the rules",
+                job.Id, calls.Count(c => !c.IsCompletedSuccessfully), calls.Count);
+        }
+        var output = WeekPlanning.Merge(batches.Zip(calls)
+            .Where(b => b.Second.IsCompletedSuccessfully)
+            .Select(b => (b.First, StylingJson.TryDeserialize<ModelWeekOutput>(b.Second.Result))));
         if (StylistOutputGuard.ViolatesContentPolicy(StylistOutputGuard.Texts(output?.Days)))
             return Outcome.Fail(JobFailure.GuardRejected);
 
         var accepted = StylistOutputGuard.AcceptWeek(output, dates, GuardContext.For(candidates, true, null, settings.MaxTitleLength, settings.MaxExplanationLength));
+        // Consistency pass: a look the week already had (batches cannot see each other) makes way for another one.
+        var repeated = WeekPlanning.RepeatedDates(accepted, dates).ToHashSet(StringComparer.Ordinal);
+        var used = new HashSet<string>(StringComparer.Ordinal);
         var plan = new List<WeekDayPlan>();
         string? previous = null;
         for (var i = 0; i < input.Days.Count; i++)
         {
             var day = input.Days[i];
-            if (!accepted.TryGetValue(day.Date, out var outfit))
+            var wantsOuter = WantsOuterLayer(forecast.GetValueOrDefault(day.Date), settings);
+            if (repeated.Contains(day.Date)
+                && RuleBasedOutfit.Build(candidates, 1, new RuleOutfitOptions(null, wantsOuter, true, i,
+                    new HashSet<string>(used.Append(previous ?? ""), StringComparer.Ordinal))).FirstOrDefault() is { } fresh)
+                accepted = new Dictionary<string, SuggestedOutfit>(accepted, StringComparer.Ordinal) { [day.Date] = fresh };
+            // A replaced day can make the next model look a repeat of the day before: that one is replaced too.
+            if (!accepted.TryGetValue(day.Date, out var outfit) || GapFill.RawSignature(outfit) == previous)
             {
                 var exclude = previous is null ? null : new HashSet<string>(StringComparer.Ordinal) { previous };
-                var wantsOuter = WantsOuterLayer(forecast.GetValueOrDefault(day.Date), settings);
                 outfit = RuleBasedOutfit.Build(candidates, 1, new RuleOutfitOptions(null, wantsOuter, true, i, exclude)).FirstOrDefault()
                          ?? Filled(i, previous, forecast.GetValueOrDefault(day.Date));
             }
 
             outfit = outfit is null ? null : WithShoes([outfit], candidates, fill).First();
             previous = outfit is null ? null : GapFill.RawSignature(outfit);
+            if (previous is not null)
+                used.Add(previous);
             plan.Add(new WeekDayPlan(day.Date, day.Occasion, outfit is null ? null : outfit with { Index = i }));
         }
 
@@ -256,8 +294,9 @@ public sealed class StylistJobService(
         if (dates.Count == 0 || dates.Count > packing.MaxTripDays)
             return Outcome.Fail(JobFailure.GuardRejected);
 
-        var wardrobe = await WardrobeAsync(job.TenantId, ct);
+        var wardrobeRead = WardrobeAsync(job.TenantId, ct);
         var forecast = await ForecastAsync(trip.CityId, null, null, trip.StartDate, trip.EndDate, ct);
+        var wardrobe = await wardrobeRead;
         var seasons = dates.Select(d => SeasonRules.For(CalendarDay.Parse(d))).ToHashSet();
         var maxTemp = forecast.Count == 0 ? (int?)null : forecast.Min(f => WeatherRules.WholeDegrees(f.MaxC)); // outerwear stays unless every day is hot
         var candidates = StylistCandidateSelector.Select(wardrobe, new CandidateCriteria(seasons, null, maxTemp, true, settings.MaxCandidates, settings.HotFromC));
@@ -316,6 +355,7 @@ public sealed class StylistJobService(
         var prompt = StylingJson.Serialize(new
         {
             language,
+            candidates = candidates.Select(Describe),
             trip = new
             {
                 dates,
@@ -330,7 +370,6 @@ public sealed class StylistJobService(
             // The capsule the rules expect (CapsuleRules): about `pieces` in total, never more than maxPieces.
             capsule = new { target.Tops, target.Bottoms, target.Shoes, target.Outerwear, target.Bags, pieces = target.Pieces, minPieces = range.Min, maxPieces = range.Max },
             minRewearRatio = PackingRules.RequiresMinWears(dates.Count) ? CapsuleRules.MinRewearRatio : 1.0,
-            candidates = candidates.Select(Describe),
         });
 
         var output = StylingJson.TryDeserialize<ModelPackOutput>(await model.GenerateAsync(new StylistPrompt(JobKind.StylistPack, prompt, language), ct));
@@ -379,8 +418,13 @@ public sealed class StylistJobService(
         bool wantsOuterLayer, CancellationToken ct)
     {
         var settings = stylistOptions.CurrentValue;
-        var palette = await repository.GetAsync<PaletteResultEntity>(PaletteResultEntity.GetPk(tenantId), PaletteResultEntity.GetSk(), ct);
-        var style = await repository.GetAsync<StyleProfileEntity>(StyleProfileEntity.GetPk(tenantId), StyleProfileEntity.GetSk(), ct);
+        // Four independent reads: in parallel.
+        var paletteRead = repository.GetAsync<PaletteResultEntity>(PaletteResultEntity.GetPk(tenantId), PaletteResultEntity.GetSk(), ct);
+        var styleRead = repository.GetAsync<StyleProfileEntity>(StyleProfileEntity.GetPk(tenantId), StyleProfileEntity.GetSk(), ct);
+        var libraryRead = library.GetAllAsync(ct);
+        var catalogRead = catalog.GetProductsAsync(ct);
+        await Task.WhenAll(paletteRead, styleRead, libraryRead, catalogRead);
+        var (palette, style) = (paletteRead.Result, styleRead.Result);
         var band = style?.Budget switch
         {
             Budget.HighStreet => PriceBand.HighStreet,
@@ -388,8 +432,8 @@ public sealed class StylistJobService(
             _ => (PriceBand?)null,
         };
         return new GapFillContext(
-            await library.GetAllAsync(ct),
-            await catalog.GetProductsAsync(ct),
+            libraryRead.Result,
+            catalogRead.Result,
             seasons, occasion, maxTempC, settings.HotFromC, isTrip, wantsOuterLayer,
             (palette?.FlatteringColorIds ?? []).ToHashSet(StringComparer.Ordinal),
             (palette?.AvoidColorIds ?? []).ToHashSet(StringComparer.Ordinal),
