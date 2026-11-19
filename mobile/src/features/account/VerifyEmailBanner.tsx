@@ -14,11 +14,11 @@ import { useMyProfile } from './queries';
 const dismissedKey = (userId: string) => `droblet.verifyEmailBanner.${userId}`;
 
 /**
- * "E-postanı doğrula" on Bugün while an e-mail sign-up's address is unverified. Never blocks; × hides it on this
- * device (the "Profilini tamamla" item stays until the address is verified).
+ * Whether Bugün shows the "E-postanı doğrula" banner (unverified e-mail sign-up, not hidden on this device), and the
+ * × that hides it. One owner (the screen) so the "Profilini tamamla" card can leave out its e-mail row while the
+ * banner carries it (canvas "06 Bugün · e-posta doğrula + profilini tamamla").
  */
-export function VerifyEmailBanner({ testID = 'verifyEmail.banner' }: { testID?: string }) {
-  const { t } = useTranslation();
+export function useVerifyEmailBanner(): { visible: boolean; dismiss: () => void } {
   const session = useSession();
   const profile = useMyProfile();
   const userId = session.status === 'signedIn' ? session.user.id : null;
@@ -35,12 +35,21 @@ export function VerifyEmailBanner({ testID = 'verifyEmail.banner' }: { testID?: 
     };
   }, [userId]);
 
-  if (profile.data?.emailVerified !== false || dismissed !== false) return null;
-
   const dismiss = () => {
     setDismissed(true);
     if (userId) void AsyncStorage.setItem(dismissedKey(userId), '1').catch(() => undefined);
   };
+  return { visible: profile.data?.emailVerified === false && dismissed === false, dismiss };
+}
+
+/**
+ * "E-postanı doğrula" on Bugün while an e-mail sign-up's address is unverified. Never blocks; × hides it on this
+ * device (the "Profilini tamamla" item comes back then, until the address is verified).
+ */
+export function VerifyEmailBanner({ banner, testID = 'verifyEmail.banner' }: { banner: { visible: boolean; dismiss: () => void }; testID?: string }) {
+  const { t } = useTranslation();
+  if (!banner.visible) return null;
+  const { dismiss } = banner;
 
   return (
     <View className="flex-row items-center gap-3 rounded-card border border-line bg-paper py-2 pl-3.5 pr-1.5" testID={testID}>

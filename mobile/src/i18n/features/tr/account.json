@@ -223,7 +223,15 @@
       "body": "İstediğin veri kopyasını 7 gün içinde indirebilirsin."
     },
     "loadingMore": "Daha eski bildirimler yükleniyor",
-    "loadMoreRetry": "Daha eskileri yükle"
+    "loadMoreRetry": "Daha eskileri yükle",
+    "contentRemoved": {
+      "title": {
+        "look": "Look’un kaldırıldı",
+        "item": "Parçan kaldırıldı",
+        "profile": "Profil bilgilerin gizlendi"
+      },
+      "body": "Paylaşımın topluluk kurallarına aykırı bulunduğu için kaldırıldı."
+    }
   },
   "credits": {
     "eyebrow": "AI GÖRSELİ · BU AY",
@@ -236,7 +244,8 @@
     "packMeta": "Tek seferlik paket · hemen kullanılabilir",
     "note": "Kombin önerileri ve stil notları krediden düşmez; görselsiz önerilere devam edebilirsin. Aynı kombinin görseli ikinci kez kredi harcamaz.",
     "buy": "{{price}} · Paketi al",
-    "notNow": "Şimdilik değil"
+    "notNow": "Şimdilik değil",
+    "oneTimeNote": "Tek seferlik satın alma; abonelik değildir, yenilenmez. Ödeme {{store}} hesabından alınır."
   },
   "verifyEmail": {
     "eyebrow": "HESAP",
@@ -286,5 +295,12 @@
     "nextAt": "Yeni bir kopyayı {{when}} sonrasında isteyebilirsin.",
     "errorTooSoon": "Bugün zaten bir kopya istedin. Yarın tekrar deneyebilirsin.",
     "errorStart": "İstek gönderilemedi. Tekrar dene."
+  },
+  "moderation": {
+    "hiddenNote": {
+      "look": "Bu look topluluk kurallarına aykırı bulunduğu için yalnızca sana görünüyor.",
+      "item": "Bu parça topluluk kurallarına aykırı bulunduğu için yalnızca sana görünüyor.",
+      "profile": "Adın, fotoğrafın ve stil etiketlerin topluluk kurallarına aykırı bulunduğu için başkalarına gösterilmiyor."
+    }
   }
 }

@@ -4,9 +4,13 @@
  * shrinks further and the rest scrolls — the footer is a sibling of the scroll view, never laid over it,
  * so a price can never sit under the CTA.
  */
-export function paywallHeroHeight(windowHeight: number): number {
+export function paywallHeroHeight(windowHeight: number, availableHeight: number = windowHeight): number {
   if (paywallCompact(windowHeight)) return 76;
-  return windowHeight < 740 ? 136 : 176;
+  const base = windowHeight < 740 ? 136 : 176;
+  // Opened as a page sheet (Profil › Üyelik, Ayarlar, requirement steps) the screen is shorter than the window by
+  // the sheet's top gap: the strip gives that height back so both plans stay above the footer, as in the board.
+  const lost = Math.max(0, windowHeight - availableHeight);
+  return Math.max(76, Math.floor((base - lost) / 4) * 4);
 }
 
 /**

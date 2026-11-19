@@ -35,7 +35,11 @@ export function openProfileItem(key: ProfileItemKey): void {
  * that opens its step. Dismissible: it collapses to one row ("Profilini tamamla 3 / 6") and stays collapsed on this
  * device. Gone once everything is done.
  */
-export function ProfileCompleteCard({ testID = 'profile-complete' }: { testID?: string }) {
+/**
+ * `hideEmailRow`: Bugün shows "E-postanı doğrula" as its own banner right above, so the card leaves that row out
+ * there (it still counts in "1 / 7").
+ */
+export function ProfileCompleteCard({ testID = 'profile-complete', hideEmailRow = false }: { testID?: string; hideEmailRow?: boolean }) {
   const { t } = useTranslation();
   const session = useSession();
   const input = useRequirementInput();
@@ -62,6 +66,7 @@ export function ProfileCompleteCard({ testID = 'profile-complete' }: { testID?: 
   const done = items.filter((i) => i.done);
   const open = items.filter((i) => !i.done);
   if (open.length === 0) return null;
+  const rows = hideEmailRow ? open.filter((i) => i.key !== 'verifyEmail') : open;
   const counts = { done: done.length, total: items.length };
 
   if (collapsed) {
@@ -113,7 +118,7 @@ export function ProfileCompleteCard({ testID = 'profile-complete' }: { testID?: 
         </View>
       ) : null}
       <View>
-        {open.map((item, index) => (
+        {rows.map((item, index) => (
           <Pressable
             key={item.key}
             onPress={() => openProfileItem(item.key)}

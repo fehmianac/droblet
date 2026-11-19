@@ -1,8 +1,9 @@
 import { Sparkle, X } from 'lucide-react-native';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 
+import { openPrivacy, openTerms } from '@/components/LegalLinks';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
@@ -129,6 +130,18 @@ export function CreditPackSheet({ reason }: { reason: CreditSheetReason }) {
           />
           <PurchaseStatus state={flow} />
           <Button variant="text" label={t('credits.notNow')} onPress={close} />
+          {/* Store review: what is bought (one-time, no renewal) and the legal links, under the purchase button (canvas 05b). */}
+          <Text variant="caption" tone="muted" className="text-center text-[11px] leading-[15px]">
+            {t('credits.oneTimeNote', { store: Platform.OS === 'ios' ? 'App Store' : 'Google Play' })}
+          </Text>
+          <View className="flex-row flex-wrap items-center justify-center gap-x-3">
+            <Text variant="caption" tone="ink" className="min-h-[32px] py-2 text-[11.5px] underline" accessibilityRole="link" onPress={openTerms} testID="credits.terms">
+              {t('paywall.termsShort')}
+            </Text>
+            <Text variant="caption" tone="ink" className="min-h-[32px] py-2 text-[11.5px] underline" accessibilityRole="link" onPress={openPrivacy} testID="credits.privacy">
+              {t('paywall.privacyShort')}
+            </Text>
+          </View>
         </View>
       </View>
     </BottomSheet>

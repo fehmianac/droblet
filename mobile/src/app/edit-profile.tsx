@@ -30,6 +30,7 @@ import {
 } from "@/features/account/queries";
 import type { PreparedPhoto } from "@/features/photos/preparePhoto";
 import { usePhotoPicker } from "@/features/photos/usePhotoPicker";
+import { ModeratedNote } from "@/features/moderation/ModeratedNote";
 import { useIsOnline } from "@/sync/network";
 
 /** The server refused the handle itself (taken by someone else, or reserved): shown on the field. */
@@ -315,7 +316,16 @@ export default function EditProfileScreen() {
     <Screen>
       <ScreenHeader title={t("profileEdit.title")} leading="back" />
       <ScreenState query={profile}>
-        {(data) => <Form profile={data} />}
+        {(data) => (
+          <>
+            {data.moderation?.hidden ? (
+              <View className="px-gutter pb-2">
+                <ModeratedNote moderation={data.moderation} kind="profile" />
+              </View>
+            ) : null}
+            <Form profile={data} />
+          </>
+        )}
       </ScreenState>
     </Screen>
   );

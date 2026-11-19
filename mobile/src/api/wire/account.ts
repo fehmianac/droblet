@@ -9,6 +9,7 @@ import type { AppLanguage } from '@/i18n';
 import type { StyleTag } from '../contracts';
 import type { ClosetVisibility, MyPhotos, MyProfile, NotificationSettings, ProfileStats } from '../contracts/account';
 import type { PhotosWire, ProfileWire } from './core';
+import { toModeration } from './wardrobe';
 
 // ---------- profile ----------
 
@@ -40,6 +41,7 @@ export function toMyProfile(wire: ProfileWire, styleTags: StyleTag[]): MyProfile
     cityId: wire.cityId,
     email: wire.email,
     emailVerified: wire.emailVerified ?? true,
+    moderation: toModeration(wire.moderation),
     baseVersion: wire.version,
   };
 }

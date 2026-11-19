@@ -1,0 +1,55 @@
+# Builds a look by hand (no AI): 15 Look oluştur → top + bottom from the wardrobe → save → look detail.
+# Needs a signed-in account with a top and a bottom in the wardrobe (smoke.yaml adds both).
+# Run: maestro test -e LANG=tr -e LOCALE=tr_TR .maestro/look-manual.yaml
+appId: com.alatech.droplet
+env:
+  LANG: ${LANG}
+  LOCALE: ${LOCALE}
+---
+- launchApp:
+    stopApp: true
+    arguments:
+      AppleLanguages: "(${LANG})"
+      AppleLocale: ${LOCALE}
+- extendedWaitUntil:
+    visible:
+      id: "tab.today"
+    timeout: 30000
+- runFlow: { file: open.yaml, env: { URL: "droplet://look/new" } }
+- tapOn:
+    id: "look-slot-top"
+- extendedWaitUntil:
+    visible:
+      id: "look-slot-item-.*"
+    timeout: 10000
+- takeScreenshot: l15a-slot-sheet
+- tapOn:
+    id: "look-slot-item-.*"
+    index: 0
+- waitForAnimationToEnd
+- tapOn:
+    id: "look-slot-bottom"
+- extendedWaitUntil:
+    visible:
+      id: "look-slot-item-.*"
+    timeout: 10000
+- tapOn:
+    id: "look-slot-item-.*"
+    index: 0
+- waitForAnimationToEnd
+- takeScreenshot: l15b-look-dolu
+- tapOn:
+    id: "look-save"
+- waitForAnimationToEnd
+- takeScreenshot: l15c-kaydedildi
+- runFlow: { file: open.yaml, env: { URL: "droplet://wardrobe/looks" } }
+- takeScreenshot: l14-looklar-dolu
+# The first tile of the grid (left column, under the filter chips).
+- tapOn:
+    point: "25%,45%"
+- waitForAnimationToEnd
+- takeScreenshot: l14b-look-detay
+- scroll
+- takeScreenshot: l14b-look-detay-alt
+- runFlow: { file: open.yaml, env: { URL: "droplet://age-confirm" } }
+- takeScreenshot: l02f-yas-onay

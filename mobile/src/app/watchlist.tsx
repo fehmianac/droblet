@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Bell, BellOff } from 'lucide-react-native';
+import { Bell, BellOff, Bookmark } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { FlatList, Pressable, RefreshControl, View } from 'react-native';
 
@@ -156,7 +156,7 @@ export default function WatchlistScreen() {
       <ScreenState
         query={watchlist}
         isEmpty={(data) => data.items.length === 0}
-        empty={{ message: t('watchlist.empty'), actionLabel: t('watchlist.emptyAction'), onAction: () => router.push('/shop') }}
+        empty={{ icon: Bookmark, title: t('watchlist.title'), message: t('watchlist.empty'), actionLabel: t('watchlist.emptyAction'), onAction: () => router.push('/shop') }}
       >
         {(data) => (
           <FlatList

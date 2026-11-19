@@ -6,15 +6,25 @@ import type { WeekDay } from '@/api/contracts';
 import { Text } from '@/components/ui/Text';
 import { formatDate, formatNumber, parseLocalDate, weekdayShort } from '@/lib/format';
 
+import { weekDates } from './dates';
+
 /**
- * 7-day strip (06): paper cells 58 high with a 14 radius and a hairline; today filled ink; a 4 pt dot
+ * The strip always shows the calendar week of `today`, Monday → Sunday (canvas 06, 06 plan yok), whatever range the
+ * server sent: a day it did not send (a past day of this week) has no plan dot.
+ */
+export function calendarWeek(week: readonly WeekDay[], today: string): WeekDay[] {
+  return weekDates(today).map((date) => ({ date, hasPlan: week.find((d) => d.date === date)?.hasPlan ?? false }));
+}
+
+/**
+ * 7-day strip (06), Monday → Sunday: paper cells 58 high with a 14 radius and a hairline; today filled ink; a 4 pt dot
  * under planned days. Tap → 07 with that day's week.
  */
 export function WeekStrip({ week, today }: { week: WeekDay[]; today: string }) {
   const { t } = useTranslation();
   return (
     <View className="flex-row gap-1.5">
-      {week.map((d) => {
+      {calendarWeek(week, today).map((d) => {
         const date = parseLocalDate(d.date);
         const isToday = d.date === today;
         const weekday = weekdayShort(date);

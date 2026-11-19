@@ -186,3 +186,35 @@ Flows in `mobile/.maestro/`: `signed-out.yaml`, `login.yaml`, `onboard-existing.
 2. **Sign-in buttons.** They follow the canvas (paper pills). Apple's and Google's brand guidelines are stricter (white / black surfaces); this may come up in store review.
 3. **07 label.** "BU HAFTA · 16–22 KASIM" with Monday-first rows (the board's rows); say if "ÖNÜMÜZDEKİ 7 GÜN" with today-first rows is wanted instead.
 4. **Provisional contracts** that need backend confirmation: notification centre, edit profile (`PUT v1/tenant/profile`, avatar upload), `photoKey` on item-draft confirm (photo carried into manual entry), try-on target kind `edit-look`, `Entitlement.plan`, optional category / colour fields on cart lines, feed posts and person tiles.
+
+## Design QA pass — 2026-11-19 (canvas version 75)
+
+Walkthrough without AI features (TR + EN, Release build, iPhone 17; flows `smoke.yaml`, `tour.yaml`, `look-manual.yaml`).
+Owner rule: every app screen / state has a board. Screens that had none are now drawn in section
+**12 · Uygulamada olup tuvalde eksik olanlar**, and the app follows them.
+
+| Board (new) | Route / component | Status |
+|---|---|---|
+| `OnbRiza` — 03b Açık rızalar (onboarding 2 / 4) | `(onboarding)/consents.tsx` | matches |
+| `EpostaDogrula` — 02e | `verify-email.tsx` | matches |
+| `YasOnay` — 02f 18+ onayı | `age-confirm.tsx` | matches |
+| `BugunEposta` — 06 Bugün · e-posta + profilini tamamla | `(tabs)/index.tsx`, `VerifyEmailBanner`, `ProfileCompleteCard` | fixed now: the card leaves its e-mail row out while the banner shows |
+| `Rapor` — 09b Aylık rapor | `plan/report.tsx` | matches |
+| `LookDetay` — 14b Look detayı | `look/[id].tsx` | matches |
+| `YeniBavul` — 18b Yeni bavul | `trip/new.tsx` | matches |
+| `RizaGuncel` — 29g | `consent-review.tsx` | matches |
+| `ProfilUcretsiz` — 28 Profil · ücretsiz plan | `(tabs)/profile.tsx` | fixed now: compact membership card |
+| `ProfilDuzenle` — 28b, `Uyelik` — 28c, `Bildirimler` — 28d | `edit-profile.tsx`, `subscription.tsx`, `notifications.tsx` | matches |
+| `Moderasyon` — 28e Kaldırılan içerik | `content_removed` inbox row, `ModeratedNote` on look / item detail and Profili düzenle | built now |
+| `AyarlarDevam` — 29d (whole settings screen), `VerilerimiIndir` — 29e, `Engellenenler` — 29f | `settings.tsx`, `data-export.tsx`, `friends/blocked.tsx` | matches |
+| `Takipciler` — 27b, `TakipIstekleri` — 27c, `Kaydedilenler` — 27d, `Rehber` — 27e | `friends/*` | matches |
+
+Existing boards updated to what the app does: 02 Kayıt (18+ box, terms links), 03 / 04 / 04b step counters "x / 4" with
+03b in between, 05 "Şimdilik ücretsiz etkinleştir", 12 "Elle gir", 27 "Kullanıcı adını al" row.
+
+App fixed to the canvas: 06 week strip always Monday → Sunday; 05 paywall opened as a page sheet keeps both plans above
+the footer; 23 bar label no longer truncated ("Satın al" while no store product is picked); 24b empty state keeps the
+screen's name.
+
+Left as is: 03 has no back arrow (the account already exists; the board links back to 02); 07 eyebrow "BU HAFTA" vs the
+board's "ÖNÜMÜZDEKİ 7 GÜN" (open question 3 above).

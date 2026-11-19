@@ -13,6 +13,13 @@ describe('paywallHeroHeight (05)', () => {
     expect(paywallCompact(844)).toBe(false);
   });
 
+  it('gives the page sheet top gap back from the strip, never below the compact strip', () => {
+    expect(paywallHeroHeight(874, 874)).toBe(176);
+    expect(paywallHeroHeight(874, 812)).toBe(112);
+    expect(paywallHeroHeight(874, 600)).toBe(76);
+    expect(paywallHeroHeight(874, 900)).toBe(176);
+  });
+
   it('stays on the 4 pt grid', () => {
     for (const h of [568, 667, 739, 740, 844, 956]) expect(paywallHeroHeight(h) % 4).toBe(0);
   });

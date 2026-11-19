@@ -16,7 +16,7 @@ import { ScreenState } from '@/components/ui/ScreenState';
 import { Text } from '@/components/ui/Text';
 import { useMyProfile } from '@/features/account/queries';
 import { MarketingOptInCard } from '@/features/consent/MarketingOptIn';
-import { VerifyEmailBanner } from '@/features/account/VerifyEmailBanner';
+import { useVerifyEmailBanner, VerifyEmailBanner } from '@/features/account/VerifyEmailBanner';
 import { ProfileCompleteCard } from '@/features/requirements/ProfileCompleteCard';
 import { useUnreadNotificationCount } from '@/features/notifications/queries';
 import { useRefreshTodayLook, useSetLookFavorite } from '@/features/today/api';
@@ -36,6 +36,7 @@ import { useThemeColors } from '@/theme/useThemeColors';
 export default function TodayScreen() {
   const language = useAppLanguage();
   const { t } = useTranslation();
+  const verifyBanner = useVerifyEmailBanner();
   const colors = useThemeColors();
   const today = useToday();
   const wear = useWearToday();
@@ -110,8 +111,8 @@ export default function TodayScreen() {
 
               {/* "Profilini tamamla": ready before it is needed (canvas 11), dismissible to one row. */}
               <View className="gap-2.5 px-gutter">
-                <VerifyEmailBanner testID="today.verifyEmail" />
-                <ProfileCompleteCard testID="today.profileComplete" />
+                <VerifyEmailBanner banner={verifyBanner} testID="today.verifyEmail" />
+                <ProfileCompleteCard testID="today.profileComplete" hideEmailRow={verifyBanner.visible} />
               </View>
 
               {/* Marketing notifications are opt-in (explicit consent 5): one card, once. */}

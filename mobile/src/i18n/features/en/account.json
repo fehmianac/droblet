@@ -223,7 +223,15 @@
       "body": "You can download the copy of your data for 7 days."
     },
     "loadingMore": "Loading older notifications",
-    "loadMoreRetry": "Load older ones"
+    "loadMoreRetry": "Load older ones",
+    "contentRemoved": {
+      "title": {
+        "look": "Your look was removed",
+        "item": "Your piece was removed",
+        "profile": "Your profile details were hidden"
+      },
+      "body": "Your post was removed because it was found to go against our community guidelines."
+    }
   },
   "credits": {
     "eyebrow": "AI IMAGES · THIS MONTH",
@@ -236,7 +244,8 @@
     "packMeta": "One-off pack · ready to use right away",
     "note": "Outfit suggestions and style notes don't use credits; you can carry on with suggestions without images. The image of the same outfit never uses a credit twice.",
     "buy": "{{price}} · Get the pack",
-    "notNow": "Not now"
+    "notNow": "Not now",
+    "oneTimeNote": "One-time purchase; not a subscription and it does not renew. Payment is charged to your {{store}} account."
   },
   "verifyEmail": {
     "eyebrow": "ACCOUNT",
@@ -286,5 +295,12 @@
     "nextAt": "You can ask for a new copy after {{when}}.",
     "errorTooSoon": "You already asked for a copy today. You can try again tomorrow.",
     "errorStart": "The request could not be sent. Try again."
+  },
+  "moderation": {
+    "hiddenNote": {
+      "look": "Only you can see this look: it was found to go against our community guidelines.",
+      "item": "Only you can see this piece: it was found to go against our community guidelines.",
+      "profile": "Your name, photo and style tags are hidden from others: they were found to go against our community guidelines."
+    }
   }
 }

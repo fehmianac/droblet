@@ -117,13 +117,18 @@ describe('05 Üyelik', () => {
     expect(screen.getByText('₺199,99 / month')).toBeTruthy();
     expect(screen.getAllByText('7 days free')).toHaveLength(2);
     expect(screen.getByText('Try free for 7 days')).toBeTruthy();
-    expect(screen.getByText(/^After the trial ₺1\.499,99 yearly · Cancel any time/)).toBeTruthy();
+    // Store review: price and period, auto-renewal unless cancelled 24 h before the period ends, where to cancel.
+    expect(
+      screen.getByText(
+        /^After the free trial you pay ₺1\.499,99 a year\. The subscription renews automatically at the same price unless cancelled at least 24 hours before the end of the period\. Manage or cancel it in your (App Store|Google Play) account settings\.$/,
+      ),
+    ).toBeTruthy();
     expect(screen.getByText('Restore purchases')).toBeTruthy();
-    expect(screen.getByText('Terms')).toBeTruthy();
-    expect(screen.getByText('Privacy')).toBeTruthy();
+    expect(screen.getByText('Terms of Use')).toBeTruthy();
+    expect(screen.getByText('Privacy Policy')).toBeTruthy();
 
     await fireEvent.press(screen.getByTestId('plan-month'));
-    await waitFor(() => expect(screen.getByText(/^After the trial ₺199,99 monthly/)).toBeTruthy(), WAIT);
+    await waitFor(() => expect(screen.getByText(/^After the free trial you pay ₺199,99 a month\./)).toBeTruthy(), WAIT);
     expect(screen.getByTestId('plan-month').props.accessibilityState).toMatchObject({ checked: true });
   });
 

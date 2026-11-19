@@ -26,8 +26,9 @@ describe('deep links', () => {
   });
 
   it('leaves other links untouched and rejects malformed codes', () => {
-    const reset = 'droplet://reset-password?token=abc';
-    expect(mapIncomingLink(reset)).toEqual({ path: reset, inviteCode: null });
+    // E-mail links are normalised to their route (emailLinks.test.ts); other app routes pass through.
+    expect(mapIncomingLink('droplet://reset-password?token=abc')).toEqual({ path: '/reset-password?token=abc', inviteCode: null });
+    expect(mapIncomingLink('droplet://edit/e1')).toEqual({ path: 'droplet://edit/e1', inviteCode: null });
     expect(mapIncomingLink('exp://192.168.1.5:8081')).toEqual({ path: 'exp://192.168.1.5:8081', inviteCode: null });
     expect(mapIncomingLink('exp://192.168.1.5:8081/--/u/selin').path).toBe('/u/selin');
     expect(mapIncomingLink('droplet://u/selin?invite=<script>').inviteCode).toBeNull();

@@ -18,6 +18,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
+import { ModeratedNote } from '@/features/moderation/ModeratedNote';
 import { ItemThumb } from '@/features/wardrobe/ItemThumb';
 import { useDeleteItems, useUpdateItem } from '@/features/wardrobe/mutations';
 import { DeleteConfirmSheet, itemImage, SeasonSheet } from '@/features/wardrobe/parts';
@@ -107,6 +108,8 @@ export default function ItemDetailScreen() {
                       </Text>
                     ) : null}
                   </View>
+
+                  <ModeratedNote moderation={item.moderation} kind="item" />
 
                   <View className="flex-row flex-wrap gap-2">
                     <InfoCard label={t('itemDetail.size')} value={item.size ?? t('itemDetail.unknown')} />

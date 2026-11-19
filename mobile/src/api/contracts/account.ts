@@ -2,6 +2,7 @@ import type { AppLanguage } from '@/i18n';
 
 import type { StyleTag } from '../contracts';
 import type { CatalogColor } from './store';
+import type { ContentModeration } from './wardrobe';
 
 /**
  * E1 / E7 / E11 — Profil (28), Gizlilik ve ayarlar (29), Renk paletim (30).
@@ -33,6 +34,8 @@ export type MyProfile = {
   email?: string | null;
   /** False while an e-mail sign-up's address is not verified yet ("E-postanı doğrula"; nothing is blocked). */
   emailVerified?: boolean;
+  /** Owner-only: set while a moderator hides the name, photo and style tags from others (`ProfileDto.moderation`). */
+  moderation?: ContentModeration | null;
   baseVersion: number;
 };
 

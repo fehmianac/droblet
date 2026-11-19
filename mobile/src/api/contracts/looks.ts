@@ -4,7 +4,7 @@
  */
 import type { Money } from '@/lib/format';
 import type { Occasion } from '../contracts';
-import type { ItemCategory } from './wardrobe';
+import type { ContentModeration, ItemCategory } from './wardrobe';
 
 /** The five slots of the look builder (15): Üst · Alt · Dış giyim · Ayakkabı · Çanta / Aksesuar. */
 export const LOOK_SLOTS = ['top', 'bottom', 'outerwear', 'shoes', 'accessory'] as const;
@@ -51,6 +51,8 @@ export type Look = {
   tryOnImageUrl: string | null;
   createdAt: string;
   baseVersion: number;
+  /** Owner-only: set while a moderator hides the look from everybody else (`LookDto.moderation`). */
+  moderation?: ContentModeration | null;
 };
 
 /** GET v1/tenant/look → `Look[]` (favourite / occasion filters on the device). GET v1/tenant/look/{id} → `Look`. */
