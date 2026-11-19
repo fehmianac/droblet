@@ -27,7 +27,17 @@ public enum ItemSource { Photo, Library, Purchase, Manual }
 /// <summary>Phase 2 (second hand Jul 2027, rental Jan 2028). Phase 1 only ever stores None.</summary>
 public enum ItemListingStatus { None, ForSale, ForRent, Sold, Rented }
 
-public enum LookSource { User, Stylist, Edit, Builder }
+/// <summary>Import = created from an outfit photo by "Kombinlerini içe aktar" (the photo is the look's cover).</summary>
+public enum LookSource { User, Stylist, Edit, Builder, Import }
+
+/// <summary>
+/// Outfit import photo: Pending = slot issued, not uploaded yet · Uploaded = queued · Detected = pieces found (stage A),
+/// waiting for matching · Ready = matched and its look draft built · Failed = nothing usable (failure says why).
+/// </summary>
+public enum OutfitImportPhotoStatus { Pending, Uploaded, Detected, Ready, Failed }
+
+/// <summary>Stored session state. The wire status (uploading / processing / ready / failed / committed) is derived from the photos.</summary>
+public enum OutfitImportStatus { Open, Committed }
 
 // WeatherCondition: StoreSocialEnums.cs (the provider's condition set).
 

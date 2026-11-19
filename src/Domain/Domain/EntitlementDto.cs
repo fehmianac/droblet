@@ -16,7 +16,11 @@ public record EntitlementDto(Tier Tier, string? ProductId, StorePlatform? Platfo
     public string? StoreAccountToken { get; init; }
     /// <summary>Temporary self-serve premium (until store purchases are live): enabled = the switch is on, active = this account holds it. Null outside GET / self-premium.</summary>
     public SelfServePremiumDto? SelfServePremium { get; init; }
+    /// <summary>"Kombinlerini içe aktar" limits of this plan (maxPhotos per session; server configuration, never hard-coded in the app).</summary>
+    public OutfitImportLimitsDto? OutfitImport { get; init; }
 }
+
+public record OutfitImportLimitsDto(int MaxPhotos);
 
 public record SelfServePremiumDto(bool Enabled, bool Active);
 
@@ -33,7 +37,10 @@ public static class EntitlementDtoMapper
             snapshot.Credits.PackRemaining,
             snapshot.Credits.TotalRemaining,
             snapshot.Credits.ResetsAt),
-        (snapshot.ItemRecognition ?? EntitlementPolicy.ItemRecognition(snapshot.Active.Tier, 0, 0)).ToDto());
+        (snapshot.ItemRecognition ?? EntitlementPolicy.ItemRecognition(snapshot.Active.Tier, 0, 0)).ToDto())
+    {
+        OutfitImport = snapshot.OutfitImportMaxPhotos is { } max ? new OutfitImportLimitsDto(max) : null,
+    };
 
     /// <summary>The DTO for the signed-in tenant: adds the store account token the app passes to StoreKit / Play Billing.</summary>
     public static EntitlementDto ToDto(this EntitlementSnapshot snapshot, string tenantId) =>

@@ -48,6 +48,8 @@ public sealed class DataExportJob(
         typeof(DataExportEntity), typeof(DataExportLockEntity),
         // Exported on its own as data/analytics-events.json.
         typeof(AnalyticsActorEventEntity),
+        // Outfit import sessions are working state (7-day TTL); what they produced (items, looks) is exported as such.
+        typeof(OutfitImportSessionEntity), typeof(OutfitImportPhotoEntity), typeof(OutfitImportPieceEntity), typeof(OutfitImportLeaseEntity),
     ];
 
     /// <summary>Fields never exported: keys, secrets, hashes, storage internals.</summary>

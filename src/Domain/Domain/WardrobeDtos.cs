@@ -121,7 +121,10 @@ public record LookDto(
     // Friends' ratings of this look (average 1 decimal, count). Filled by GET look / GET look/{id}; null elsewhere and when nobody rated.
     LookRatingSummaryDto? Rating = null,
     // Owner-only: { hidden: true, reason } when a moderator removed the look from everyone else; null otherwise.
-    ModerationDto? Moderation = null);
+    ModerationDto? Moderation = null,
+    // Imported look: presigned GET of the outfit photo it came from (GET look / look/{id}, owner only); null otherwise.
+    string? CoverImageUrl = null,
+    DateTime? CoverImageUrlExpiresAt = null);
 
 public record LookRatingSummaryDto(double Average, long Count);
 

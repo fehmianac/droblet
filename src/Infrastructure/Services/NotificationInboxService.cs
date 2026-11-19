@@ -130,6 +130,7 @@ public static class NotificationCodes
         NotificationType.FollowRequest => "follow_request",
         NotificationType.DataExportReady => "data_export_ready",
         NotificationType.ContentRemoved => "content_removed",
+        NotificationType.OutfitImportReady => "outfit_import_ready",
         _ => "friend_ratings",
     };
 }

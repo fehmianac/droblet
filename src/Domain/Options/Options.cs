@@ -125,13 +125,22 @@ public sealed class EntitlementOptions
         /// Members are unlimited. Representative default; lives in SSM api/Entitlements and worker/Entitlements.
         /// </summary>
         public int ItemRecognitionLimit { get; set; } = 10;
+
+        /// <summary>Owner decision 2026-11-19: photos per "Kombinlerini içe aktar" session for a non-member (default 30).</summary>
+        public int OutfitImportMaxPhotos { get; set; } = DefaultOutfitImportMaxPhotos;
     }
 
     public sealed class PremiumLimits
     {
         /// <summary>Brief §5.2: 30 AI images per subscription month. Config so it can change without a deploy.</summary>
         public int TryOnCreditsPerMonth { get; set; }
+
+        /// <summary>Owner decision 2026-11-19: photos per "Kombinlerini içe aktar" session for a member (default 30).</summary>
+        public int OutfitImportMaxPhotos { get; set; } = DefaultOutfitImportMaxPhotos;
     }
+
+    /// <summary>Default photos per outfit import session (both plans) when the parameter does not set it.</summary>
+    public const int DefaultOutfitImportMaxPhotos = 30;
 }
 
 public sealed class StoreOptions
@@ -218,10 +227,12 @@ public sealed class QueueOptions
     public string? TryOnRequest { get; set; }
     public string? PaletteRequest { get; set; }
     public string? DataExportRequest { get; set; }
+    public string? OutfitImportRequest { get; set; }
 
     public string? UrlFor(JobKind kind) => kind switch
     {
         JobKind.ItemProcess or JobKind.ItemSplit or JobKind.ItemClean => ItemProcessRequest,
+        JobKind.OutfitImport => OutfitImportRequest,
         JobKind.TryOn => TryOnRequest,
         JobKind.Palette => PaletteRequest,
         JobKind.DataExport => DataExportRequest,
@@ -331,6 +342,37 @@ public sealed class AiImageOptions
     /// </summary>
     public bool TryOnPreview { get; set; }
     public string PreviewQuality { get; set; } = "low";
+}
+
+/// <summary>
+/// "Kombinlerini içe aktar" processing (/droblet/{stage}/{api|worker}/OutfitImport; every value has a code default, so the
+/// parameter is optional). The photo limit per session is a plan limit and lives in Entitlements (OutfitImportMaxPhotos).
+/// </summary>
+public sealed class OutfitImportOptions
+{
+    public const string Section = "OutfitImport";
+
+    /// <summary>Photos of one tenant processed at the same time (all sessions); the rest wait in the queue (fairness).</summary>
+    public int MaxInFlightPerTenant { get; set; } = 3;
+    /// <summary>A lease not released within this time (a crashed run) no longer counts.</summary>
+    public int LeaseSeconds { get; set; } = 150;
+    /// <summary>Delay of a photo put back on the queue because its tenant is at the cap or the session's match step is busy.</summary>
+    public int BusyDelaySeconds { get; set; } = 8;
+    /// <summary>OpenAI rate limit (429, not billing): first back-off delay, doubled per attempt up to MaxBackoffSeconds.</summary>
+    public int BackoffBaseSeconds { get; set; } = 20;
+    public int MaxBackoffSeconds { get; set; } = 600;
+    /// <summary>Rate-limit back-offs of one photo before it fails (its recognition is given back).</summary>
+    public int MaxBackoffs { get; set; } = 6;
+    /// <summary>Wardrobe / session thumbnails one match call compares a piece with (K).</summary>
+    public int MatchCandidates { get; set; } = 6;
+    /// <summary>Below this the match answer is treated as "new piece".</summary>
+    public double MatchConfidenceThreshold { get; set; } = 0.75;
+    /// <summary>Long side of a thumbnail sent to the match call (px).</summary>
+    public int ThumbnailEdge { get; set; } = 512;
+    /// <summary>Lifetime of an upload slot (presigned POST). The app uploads in the background, so longer than single uploads.</summary>
+    public int UploadUrlTtlSeconds { get; set; } = 900;
+    /// <summary>Use Ai:FastTextModel (when set) for the detection and match calls of an import.</summary>
+    public bool UseFastTextModel { get; set; } = true;
 }
 
 public sealed class AuthRateLimitOptions

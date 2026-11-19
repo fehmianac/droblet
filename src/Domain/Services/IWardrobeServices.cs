@@ -88,6 +88,8 @@ public sealed record AddProductItemCommand(string ClientMutationId, string Produ
 public interface IWardrobeService
 {
     Task<IReadOnlyList<ItemDto>> GetItemsAsync(string tenantId, CancellationToken ct);
+    /// <summary>Outfit import commit: one new piece as a wardrobe item (receipt + item; its original crop is the image until cleaned).</summary>
+    Task<ItemCreateResultDto> CreateImportedItemAsync(string tenantId, ImportedItemCommand command, CancellationToken ct);
     Task<ItemDetailDto?> GetItemAsync(string tenantId, string id, CancellationToken ct);
     Task<ServiceResult<ItemDto>> UpdateItemAsync(string tenantId, string id, UpdateItemCommand command, CancellationToken ct);
     Task<bool> DeleteItemAsync(string tenantId, string id, CancellationToken ct);

@@ -49,6 +49,21 @@ public sealed class ItemProcessJobService(
         if (job is null)
             return;
 
+        // A piece an outfit import commit already made a wardrobe item: the cleaned image goes onto that item.
+        if (message is { Clean: true, ItemId: { } itemId })
+        {
+            try
+            {
+                await CleanItemAsync(job, itemId, ct);
+            }
+            catch (Exception ex) when (!WorkerFailure.IsRetryable(ex, isLastAttempt))
+            {
+                logger.LogWarning(ex, "Item clean job {JobId} failed for tenant {TenantId}", job.Id, job.TenantId);
+                await jobs.FailAsync(job, JobFailure.ProviderError, ct);
+            }
+            return;
+        }
+
         var draft = await repository.GetAsync<ItemDraftEntity>(ItemDraftEntity.GetPk(message.TenantId), ItemDraftEntity.GetSk(message.DraftId), ct);
         if (draft is null)
         {
@@ -317,6 +332,51 @@ public sealed class ItemProcessJobService(
 
         await jobs.CompleteAsync(job, StylingJson.Serialize(new { draftId = piece.Id }), ct);
         return Outcome.Done;
+    }
+
+    /// <summary>
+    /// Background removal of an item created by an outfit import commit. The crop is in the upload slot of the item id; the
+    /// item keeps showing the crop (UseOriginalImage) until the cleaned image is set here. Versioned write: a user's edit in
+    /// between is kept (re-read and applied again); a deleted item stays deleted and the written image is removed.
+    /// </summary>
+    private async Task CleanItemAsync(JobEntity job, string itemId, CancellationToken ct)
+    {
+        var crop = await storage.ReadAsync(StorageKeys.Upload(job.TenantId, itemId), MaxImageBytes, ct);
+        var item = await repository.GetAsync<ItemEntity>(ItemEntity.GetPk(job.TenantId), ItemEntity.GetSk(itemId), ct);
+        if (crop is null || item is null)
+        {
+            await jobs.FailAsync(job, JobFailure.SourceDeleted, ct);
+            return;
+        }
+
+        var hint = System.Enum.TryParse<ItemCategoryHint>(item.Category.ToString(), out var parsed) ? parsed : (ItemCategoryHint?)null;
+        var processed = await cleanup.CleanupItemAsync(new ImageInput(crop, "image/jpeg"), hint, item.Subcategory, ct);
+        var processedKey = StorageKeys.ItemImage(job.TenantId, itemId);
+        await storage.PutAsync(processedKey, processed.Data, processed.ContentType, ct);
+
+        for (var attempt = 0; attempt < 4 && item is not null; attempt++)
+        {
+            // The crop stays the "Orijinale dön" image; the cleaned one becomes the shown image unless the user chose the original.
+            var showCleaned = item.ImageKey is null;
+            item.ImageKey = processedKey;
+            if (showCleaned)
+                item.UseOriginalImage = false;
+            item.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
+            if (await repository.SaveIfVersionAsync(item, item.Version, ct))
+            {
+                await jobs.CompleteAsync(job, StylingJson.Serialize(new { itemId }), ct);
+                return;
+            }
+            item = await repository.GetAsync<ItemEntity>(ItemEntity.GetPk(job.TenantId), ItemEntity.GetSk(itemId), ct);
+        }
+
+        if (item is null)
+        {
+            await storage.DeleteAsync(processedKey, ct);
+            await jobs.FailAsync(job, JobFailure.SourceDeleted, ct);
+            return;
+        }
+        throw new InvalidOperationException("Item image could not be saved (concurrent edits).");
     }
 
     private static void Apply(ItemDraftEntity draft, GarmentDraftFields fields, string? subcategory, DetectedItem item, string language)

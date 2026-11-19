@@ -12,8 +12,9 @@ public enum ClosetVisibility { Public, FollowersOnly, Private }
 
 public enum PhotoKind { Body, Face }
 
-/// <summary>DataExport: "Verilerimi indir" (not an AI job; only its queue routing uses the kind).</summary>
-public enum JobKind { ItemProcess, StylistOutfit, StylistWeek, StylistPack, StylistComplete, TryOn, Palette, ItemSplit, ItemClean, DataExport }
+/// <summary>DataExport: "Verilerimi indir" (not an AI job; only its queue routing uses the kind). OutfitImport: one photo of a
+/// "Kombinlerini içe aktar" session (no JobEntity; the photo row is the state, the kind routes the queue).</summary>
+public enum JobKind { ItemProcess, StylistOutfit, StylistWeek, StylistPack, StylistComplete, TryOn, Palette, ItemSplit, ItemClean, DataExport, OutfitImport }
 
 public enum JobStatus { Queued, Processing, Completed, Failed }
 
@@ -61,8 +62,9 @@ public enum StoreProductKind { Subscription, Consumable }
 public enum PushTokenType { Fcm, Apns }
 
 /// <summary>DataExportReady: inbox only (with the e-mail), never pushed. ContentRemoved: inbox only, written when a moderator
-/// removes a look / item / the profile's public fields (report resolved as contentRemoved).</summary>
-public enum NotificationType { MorningOutfit, WeeklyEdit, FriendRatings, PriceDrop, FollowRequest, DataExportReady, ContentRemoved }
+/// removes a look / item / the profile's public fields (report resolved as contentRemoved). OutfitImportReady: inbox only,
+/// written when every uploaded photo of an outfit import session was processed (ready for review).</summary>
+public enum NotificationType { MorningOutfit, WeeklyEdit, FriendRatings, PriceDrop, FollowRequest, DataExportReady, ContentRemoved, OutfitImportReady }
 
 public enum AuthProvider { Email, Apple, Google }
 

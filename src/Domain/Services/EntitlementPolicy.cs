@@ -61,6 +61,14 @@ public static class EntitlementPolicy
         return new ItemRecognitionGrant(granted, requested - granted, null);
     }
 
+    /// <summary>
+    /// Owner decision 2026-11-19: photos one "Kombinlerini içe aktar" session may hold — a plan limit from configuration
+    /// (Entitlements:Free:OutfitImportMaxPhotos / Entitlements:Premium:OutfitImportMaxPhotos, default 30 for both). Never
+    /// below 1. A non-member's photos still use their AI recognition allowance (one per photo, like bulk add).
+    /// </summary>
+    public static int OutfitImportMaxPhotos(Tier tier, Options.EntitlementOptions options) =>
+        Math.Max(1, tier == Tier.Premium ? options.Premium.OutfitImportMaxPhotos : options.Free.OutfitImportMaxPhotos);
+
     /// <param name="credits">Current balance; required for credit-consuming capabilities.</param>
     public static EntitlementDecision Check(Tier tier, Capability capability, CreditBalance? credits)
     {

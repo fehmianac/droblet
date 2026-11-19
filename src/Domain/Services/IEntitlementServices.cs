@@ -2,7 +2,8 @@ using Domain.Enum;
 
 namespace Domain.Services;
 
-public sealed record EntitlementSnapshot(ActiveEntitlement Active, CreditBalance Credits, ItemRecognitionQuota? ItemRecognition = null);
+/// <param name="OutfitImportMaxPhotos">Photos per outfit import session for this plan (EntitlementPolicy.OutfitImportMaxPhotos).</param>
+public sealed record EntitlementSnapshot(ActiveEntitlement Active, CreditBalance Credits, ItemRecognitionQuota? ItemRecognition = null, int? OutfitImportMaxPhotos = null);
 
 /// <summary>
 /// Server-side counter behind Entitlements:Free:ItemRecognitionLimit. Reserve when the Api queues the jobs, commit when

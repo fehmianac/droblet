@@ -88,6 +88,11 @@ public interface IRepository
     Task<bool> AtomicIncrementInMapAsync(string pk, string sk, string mapAttributeName, string mapKey, int increment = 1, CancellationToken ct = default);
     /// <summary>Atomically increments a numeric counter attribute (creating the item) and returns the new value. ttl is Unix seconds.</summary>
     Task<long> IncrementCounterAsync(string pk, string sk, string attributeName, long ttl, CancellationToken ct = default);
+    /// <summary>
+    /// Atomically ADDs each value to its top-level numeric attribute of an EXISTING item (nothing is created) and returns
+    /// every top-level numeric attribute after the update; null when the item does not exist.
+    /// </summary>
+    Task<IReadOnlyDictionary<string, long>?> AddCountersAsync(string pk, string sk, IReadOnlyDictionary<string, long> increments, CancellationToken ct = default);
 
     // Offline sync / multi device
     /// <summary>Writes when stored version == expectedVersion (0 = must not exist); sets entity.Version = expectedVersion + 1.</summary>

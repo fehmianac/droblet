@@ -547,6 +547,47 @@ public sealed class WardrobeService(
         }, [], ct);
     }
 
+    // ── Outfit import ("Kombinlerini içe aktar") ─────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// A new piece the user kept in an outfit import: created like every other item (entitlement, receipt by clientMutationId,
+    /// the same validation). Its image is the crop from the photo until the background removal queued by the commit
+    /// replaces it (UseOriginalImage until then).
+    /// </summary>
+    public async Task<ItemCreateResultDto> CreateImportedItemAsync(string tenantId, ImportedItemCommand command, CancellationToken ct)
+    {
+        var decision = await entitlements.CheckAsync(tenantId, Capability.WardrobeItem, ct);
+        if (!decision.Allowed)
+            return Rejected(command.ItemId, decision.Reason ?? ErrorCodes.PremiumRequired);
+        if (await ReplayAsync(tenantId, command.ClientMutationId, command.ItemId, command.ItemId, ct) is { } replay)
+            return replay;
+
+        var name = Clean(command.Name) is { } n && n.Length > ItemRules.MaxNameLength ? n[..ItemRules.MaxNameLength] : Clean(command.Name);
+        var errors = ItemRules.Validate(new ItemFields(name, command.Category, command.ColorIds, command.Fabric, command.Seasons, null, null,
+            Clean(command.Subcategory), null, null));
+        if (errors.Count > 0)
+            return new ItemCreateResultDto(command.ItemId, ItemCreateOutcome.Rejected, ErrorCodes.ValidationFailed, errors, null);
+
+        var now = Now;
+        var original = Owned(command.OriginalImageKey, tenantId);
+        return await CreateAsync(tenantId, command.ClientMutationId, command.ItemId, new ItemEntity
+        {
+            Id = command.ItemId,
+            TenantId = tenantId,
+            Name = name,
+            Category = command.Category,
+            Subcategory = Clean(command.Subcategory),
+            ColorIds = command.ColorIds.ToList(),
+            Fabric = command.Fabric,
+            Seasons = command.Seasons.Distinct().ToList(),
+            Source = ItemSource.Photo,
+            OriginalImageKey = original,
+            UseOriginalImage = original is not null,
+            CreatedAt = now,
+            UpdatedAt = now,
+        }, [], ct);
+    }
+
     // ── Library and catalog product ───────────────────────────────────────────────────────────────────────────────
 
     public async Task<IReadOnlyList<LibraryItemDto>> GetLibraryAsync(string tenantId, string? requestLanguage, CancellationToken ct)

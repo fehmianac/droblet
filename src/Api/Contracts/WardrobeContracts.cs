@@ -407,3 +407,33 @@ public class StartPaletteCommandValidator : AbstractValidator<StartPaletteComman
 {
     public StartPaletteCommandValidator() => RuleFor(x => x.RequestId).Must(Ulid.IsValid).WithErrorCode("request_id_invalid");
 }
+
+// ── Outfit import ("Kombinlerini içe aktar") ────────────────────────────────────────────────────────────────────────
+
+/// <summary>Shape only: the plan's photo limit (Entitlements:*:OutfitImportMaxPhotos) is enforced by the service.</summary>
+public class CreateOutfitImportCommandValidator : AbstractValidator<CreateOutfitImportCommand>
+{
+    /// <summary>Hard ceiling of one request, whatever the configuration says (the admin panel allows up to 100).</summary>
+    public const int MaxCount = 100;
+
+    public CreateOutfitImportCommandValidator()
+    {
+        RuleFor(x => x.RequestId).Must(Ulid.IsValid).WithErrorCode("request_id_invalid");
+        RuleFor(x => x.Count).InclusiveBetween(1, MaxCount).WithErrorCode("count_out_of_range");
+    }
+}
+
+public class CommitOutfitImportCommandValidator : AbstractValidator<CommitOutfitImportCommand>
+{
+    public CommitOutfitImportCommandValidator()
+    {
+        RuleFor(x => x.Looks).Must(l => l is null || l.Count <= CreateOutfitImportCommandValidator.MaxCount).WithErrorCode("looks_out_of_range");
+        RuleForEach(x => x.Looks).ChildRules(look =>
+        {
+            look.RuleFor(l => l.PhotoIndex).InclusiveBetween(1, CreateOutfitImportCommandValidator.MaxCount).WithErrorCode("photo_index_invalid");
+            look.RuleFor(l => l.Pieces).Must(p => p is null || p.Count <= 50).WithErrorCode("pieces_out_of_range");
+            look.RuleForEach(l => l.Pieces).ChildRules(piece =>
+                piece.RuleFor(p => p.Ref).NotEmpty().MaximumLength(16).WithErrorCode("ref_invalid"));
+        });
+    }
+}
