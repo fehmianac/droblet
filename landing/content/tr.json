@@ -531,7 +531,7 @@
             "heading": "Kullanım olayları (kendi analitiğimiz)",
             "paragraphs": [
               "Üçüncü taraf analitik, reklam ya da izleme SDK'sı kullanmayız ve reklam kimliğini (IDFA/AAID) okumayız. Ürünü geliştirmek için uygulama sınırlı bir listedeki olayları (ör. “kayıt tamamlandı”, “üyelik ekranı görüldü”, “kredi harcandı”) kendi sunucularımıza gönderir.",
-              "Olaylar kaydedilirken hesap kimliğin yerine geri döndürülemez bir karma kullanılır; olaylar ad, e-posta ya da serbest metin içeremez, yalnızca önceden tanımlı kısa değerler (ör. ekran adı, ürün kimliği, sayı) taşır. Olay kayıtları 400 gün sonra kendiliğinden silinir."
+              "Olaylar kaydedilirken hesap kimliğin yerine geri döndürülemez bir karma kullanılır; olaylar ad, e-posta ya da serbest metin içeremez, yalnızca önceden tanımlı kısa değerler (ör. ekran adı, ürün kimliği, sayı) taşır. Bu karmayı hesabından yeniden hesaplayabildiğimiz için bu olaylar yine de seninle ilgili kişisel veridir (takma adlı): verilerinin kopyasına (“Verilerimi indir”) dahil edilir ve hesabını sildiğinde silinir. Aksi hâlde olay kayıtları 400 gün sonra kendiliğinden silinir."
             ]
           },
           {
@@ -579,7 +579,7 @@
               "- İşlenmemiş yüklemeler (işlemeden önceki ham fotoğraf): en fazla 1 gün.",
               "- Onay bekleyen parça taslakları ve yapay zekâ iş kayıtları: 7 gün.",
               "- “Beğenmedim” geri bildirimleri, kredi hareketleri ve kredi rezervasyonları: 400 gün ya da hesabını silene kadar (hangisi önce gelirse).",
-              "- Kullanım olayları: 400 gün (takma adlı).",
+              "- Kullanım olayları: 400 gün ya da hesabını silene kadar (hangisi önce gelirse; takma adlı).",
               "- Şifre sıfırlama bağlantısı: 30 dakika. Oturum: erişim anahtarı 60 dakika, yenileme anahtarı 60 gün.",
               "- E-posta doğrulama kodu ve bağlantısı: 24 saat (yalnızca özetleri saklanır).",
               "- “Verilerimi indir” ile hazırlanan veri kopyası (ZIP dosyası): 7 gün; sonra kendiliğinden silinir. İsteğin kaydı 30 gün tutulur.",
@@ -597,7 +597,7 @@
             "paragraphs": [
               "Profil › Gizlilik › “Fotoğraflarımı ve üretilen görselleri sil” boy ve yüz fotoğraflarını, senin üzerinde üretilen tüm görselleri ve yüz fotoğrafından çıkarılan renk paleti sonucunu siler; bu fotoğraflarla bekleyen yapay zekâ işleri iptal edilir. Yalnızca boy fotoğrafını silersen onunla üretilen görseller, yalnızca yüz fotoğrafını silersen palet sonucu da silinir. Gardırop parçaların bu işlemden etkilenmez; onları tek tek silebilirsin.",
               "Hesabını uygulamadan (Profil › Ayarlar › Hesabımı sil) ya da droblet.alatech.co/delete-account adresinden silebilirsin. Silme; hesabın, giriş kimliklerin, profilin, tüm fotoğrafların ve üretilen görseller, gardırobun, look'ların, planların, bavulların, sepetin, izleme listen, cihaz ve bildirim kayıtların, takip ilişkilerin ve takip isteklerin (her iki taraftan), verdiğin ve aldığın puanlar, kaydedilen look'lar, engellemeler, hakkındaki şikâyetler, davet kodun ve rehber eşleştirme dizinindeki kaydını kapsar. Apple ile giriş yaptıysan Apple'daki bağlantı da iptal edilir.",
-              "Silme işleminden sonra kalanlar: gönderdiğin şikâyetler (kimliğin olmadan), hesabınla bağı kesilmiş anonim gelir kayıtları, takma adlı kullanım olayları (400 güne kadar) ve en fazla 30 gün boyunca yedekler.",
+              "Silme işleminden sonra kalanlar: gönderdiğin şikâyetler (kimliğin olmadan), hesabınla bağı kesilmiş anonim gelir kayıtları ve en fazla 30 gün boyunca yedekler. Kullanım olayların hesabınla birlikte silinir.",
               "Hesap silme App Store ya da Google Play aboneliğini iptal etmez; aboneliğini mağaza ayarlarından ayrıca iptal etmelisin."
             ]
           },
@@ -750,7 +750,7 @@
           {
             "heading": "Saklama süreleri",
             "paragraphs": [
-              "Kişisel verilerin, işleme amacı için gerekli süre boyunca saklanır: hesap ve içerik verileri sen silene ya da hesabını silene kadar; işlenmemiş yüklemeler en fazla 1 gün; parça taslakları ve yapay zekâ iş kayıtları 7 gün; kullanım olayları, kredi hareketleri ve stilist geri bildirimleri 400 gün; şifre sıfırlama bağlantısı 30 dakika; yenileme anahtarı 60 gün. Satış ortaklığı kayıtları [AFFILIATE KAYIT SAKLAMA SÜRESİ], şikâyet kayıtları [ŞİKAYET KAYDI SAKLAMA SÜRESİ], sunucu kayıtları [LOG SAKLAMA SÜRESİ] saklanır. Silinen veriler yedeklerden en geç 30 gün içinde çıkar. Ayrıntılı tablo Gizlilik Politikası'ndadır.",
+              "Kişisel verilerin, işleme amacı için gerekli süre boyunca saklanır: hesap ve içerik verileri sen silene ya da hesabını silene kadar; işlenmemiş yüklemeler en fazla 1 gün; parça taslakları ve yapay zekâ iş kayıtları 7 gün; kullanım olayları, kredi hareketleri ve stilist geri bildirimleri 400 gün ya da hesabını silene kadar (hangisi önce gelirse); şifre sıfırlama bağlantısı 30 dakika; yenileme anahtarı 60 gün. Satış ortaklığı kayıtları [AFFILIATE KAYIT SAKLAMA SÜRESİ], şikâyet kayıtları [ŞİKAYET KAYDI SAKLAMA SÜRESİ], sunucu kayıtları [LOG SAKLAMA SÜRESİ] saklanır. Silinen veriler yedeklerden en geç 30 gün içinde çıkar. Ayrıntılı tablo Gizlilik Politikası'ndadır.",
               "E-posta doğrulama kodu ve bağlantısı 24 saat, “Verilerimi indir” ile hazırlanan veri kopyası 7 gün saklanır.",
               "Süresi dolan veriler silinir, yok edilir ya da anonim hâle getirilir. [HUKUK ONAYI: kişisel veri saklama ve imha politikası]"
             ]

@@ -7,7 +7,8 @@ namespace Infrastructure.Services;
 
 /// <summary>
 /// "Hesabımı sil": every tenant partition (DeletionPlan), the tenant's S3 prefixes, then global records
-/// (handle, identities, credential, tenant, user). Global records go last so a failed run can be retried.
+/// (handle, identities, credential, tenant, user). Global records go last so a failed run can be retried. Usage events
+/// (pseudonymous, but derivable from the tenant id) go too, through their per-actor copies.
 /// Refresh tokens become unusable once the user record is gone and expire by TTL.
 /// Cross-tenant edges and global indexes (follows, ratings, blocks, reports, invite, watch list, click linkage) are
 /// removed first by <see cref="ICrossTenantCleanup"/> — the tenant partitions are their only index.
@@ -24,6 +25,12 @@ public sealed class AccountDeletionService(
 
         foreach (var prefix in DeletionPlan.AccountS3Prefixes(tenantId))
             await storage.DeletePrefixAsync(prefix, ct);
+
+        // Usage events: the day-partition rows, found through the per-actor copies (removed with the partitions below,
+        // so a failed run can be retried).
+        var analytics = await repository.GetAllAsync<AnalyticsActorEventEntity>(AnalyticsActorEventEntity.GetPk(tenantId), ct);
+        if (analytics.Count > 0)
+            await repository.BatchDeleteKeysAsync(analytics.Select(e => e.EventKey).ToList(), ct);
 
         foreach (var pk in DeletionPlan.TenantPartitionKeys(tenantId))
         {

@@ -131,6 +131,39 @@ public class AnalyticsEventEntity : IEntity
         $"{receivedAt.ToUnixTimeMilliseconds().ToString("D13", System.Globalization.CultureInfo.InvariantCulture)}#{id}";
 }
 
+/// <summary>
+/// Per-actor copy of an <see cref="AnalyticsEventEntity"/>, written with it: the user's own events in one partition,
+/// newest last (sk = OccurredAt ms + id). Keyed by the same one-way actor hash, never by the tenant id in clear, so the
+/// pseudonymisation of the day partitions is unchanged; Droblet derives the key from the tenant id only to answer the
+/// user's own requests: "Verilerimi indir" reads this partition with one Query, account deletion removes it and, through
+/// it, the day-partition rows (DeletionPlan + AccountDeletionService). Same 400-day TTL as the event.
+/// </summary>
+public class AnalyticsActorEventEntity : IEntity
+{
+    [JsonPropertyName("pk")] public string Pk => GetPkForActor(Actor);
+    [JsonPropertyName("sk")] public string Sk => GetSk(OccurredAt, Id);
+
+    [JsonPropertyName("id")] public string Id { get; set; } = null!;
+    [JsonPropertyName("actor")] public string Actor { get; set; } = null!;
+    [JsonPropertyName("day")] public string Day { get; set; } = null!;                    // the event row: pk analytics#{day}
+    [JsonPropertyName("name")] public string Name { get; set; } = null!;
+    [JsonPropertyName("occurredAt")] public DateTime OccurredAt { get; set; }
+    [JsonPropertyName("receivedAt")] public DateTime ReceivedAt { get; set; }             // the event row: sk {receivedAt ms}#{id}
+    [JsonPropertyName("platform")] public string? Platform { get; set; }
+    [JsonPropertyName("appVersion")] public string? AppVersion { get; set; }
+    [JsonPropertyName("props")] public Dictionary<string, string> Props { get; set; } = [];
+    [JsonPropertyName("ttl")] public long Ttl => ReceivedAt.AddDays(AnalyticsEventEntity.TtlDays).ToUnixTimeSeconds();
+
+    /// <summary>Tenant-scoped through the hash (listed in DeletionPlan): the tenant id itself is never stored here.</summary>
+    public static string GetPk(string tenantId) => GetPkForActor(Services.AnalyticsRules.Actor(tenantId));
+    public static string GetPkForActor(string actor) => $"analytics-actor#{actor}";
+    public static string GetSk(DateTime occurredAt, string id) =>
+        $"{occurredAt.ToUnixTimeMilliseconds().ToString("D13", System.Globalization.CultureInfo.InvariantCulture)}#{id}";
+
+    /// <summary>Key of the day-partition row this copy belongs to.</summary>
+    public (string Pk, string Sk) EventKey => (AnalyticsEventEntity.GetPk(Day), AnalyticsEventEntity.GetSk(ReceivedAt, Id));
+}
+
 /// <summary>Global weather cache: one row per location and calendar day. Stale rows are ignored by FetchedAt, removed by TTL.</summary>
 public class WeatherForecastEntity : IEntity
 {

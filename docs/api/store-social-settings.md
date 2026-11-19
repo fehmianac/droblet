@@ -379,7 +379,11 @@ never fail the batch; do not retry rejected events.
   stored as text matching `[A-Za-z0-9._:-]{1,64}` — **no free text, no names, no e-mail**.
 - Rejection codes: `name_required`, `name_not_allowed`, `name_server_only`, `occurred_at_out_of_range`, `too_many_props`,
   `prop_not_allowed`, `prop_value_invalid`.
-- Storage: no tenant or user id — a one-way hash as the actor; rows expire after 400 days.
+- Storage: no tenant or user id — a one-way hash as the actor; rows expire after 400 days. Each event is written twice:
+  the day row `analytics#{yyyy-MM-dd}` (funnel report) and a per-actor copy `analytics-actor#{hash}` / `{occurredAt ms}#{id}`.
+  The hash can be recomputed from the account id, so the events are pseudonymous personal data: the copy lets
+  "Verilerimi indir" include them with one Query and account deletion remove both rows. Events recorded before the copy
+  existed (dev) are not backfilled and expire by TTL.
 
 ## 9. Push notifications
 

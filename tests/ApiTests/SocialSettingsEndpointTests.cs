@@ -475,6 +475,31 @@ public class SettingsAnalyticsWeatherEndpointTests(StoreSocialApiFactory factory
     }
 
     [Fact]
+    public async Task Events_HaveAPerActorCopy_UnderTheHash_AndAreRemovedWithTheAccount()
+    {
+        var (client, auth) = await factory.RegisterAsync();
+        var (other, otherAuth) = await factory.RegisterAsync();
+        Assert.Equal(HttpStatusCode.OK, (await client.PostJsonAsync("v1/tenant/event", new { events = new object[] { new { name = "paywall_viewed" }, new { name = "signup_completed" } } })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await other.PostJsonAsync("v1/tenant/event", new { events = new object[] { new { name = "paywall_viewed" } } })).StatusCode);
+
+        var actorPk = AnalyticsActorEventEntity.GetPk(auth.TenantId);
+        Assert.Equal($"analytics-actor#{AnalyticsRules.Actor(auth.TenantId)}", actorPk);
+        var copies = await factory.Repository.GetAllAsync<AnalyticsActorEventEntity>(actorPk);
+        Assert.Equal(2, copies.Count);
+        Assert.All(copies, c => Assert.DoesNotContain(auth.TenantId, factory.Repository.Raw(c.Pk, c.Sk)));
+        var dayRows = copies.Select(c => c.EventKey).ToList();
+        Assert.All(dayRows, k => Assert.Contains(k, factory.Repository.Keys));
+
+        Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync("v1/auth/me")).StatusCode);
+
+        Assert.Empty(await factory.Repository.GetAllAsync<AnalyticsActorEventEntity>(actorPk));
+        Assert.All(dayRows, k => Assert.DoesNotContain(k, factory.Repository.Keys));
+        // Someone else's events stay.
+        var others = await factory.Repository.GetAllAsync<AnalyticsActorEventEntity>(AnalyticsActorEventEntity.GetPk(otherAuth.TenantId));
+        Assert.Contains(Assert.Single(others).EventKey, factory.Repository.Keys);
+    }
+
+    [Fact]
     public async Task Weather_CitySearch_ForecastByCityIsCached_ByLocationIsRounded_Errors()
     {
         var (client, _) = await factory.RegisterAsync();

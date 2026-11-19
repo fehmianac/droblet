@@ -531,7 +531,7 @@
             "heading": "Usage events (our own analytics)",
             "paragraphs": [
               "We use no third-party analytics, advertising or tracking SDKs and we do not read the advertising identifier (IDFA/AAID). To improve the product, the app sends events from a fixed list (for example “sign-up completed”, “membership screen viewed”, “credit spent”) to our own servers.",
-              "When events are stored, a one-way hash replaces your account id; events cannot contain names, e-mail addresses or free text, only short predefined values (for example a screen name, a product id or a number). Event records are deleted automatically after 400 days."
+              "When events are stored, a one-way hash replaces your account id; events cannot contain names, e-mail addresses or free text, only short predefined values (for example a screen name, a product id or a number). Because we can recompute this hash from your account, these events are still personal data about you (pseudonymous): they are included in the copy of your data (“Download my data”) and deleted when you delete your account. Otherwise event records are deleted automatically after 400 days."
             ]
           },
           {
@@ -579,7 +579,7 @@
               "- Unprocessed uploads (the raw photo before processing): 1 day at most.",
               "- Item drafts awaiting your confirmation and AI job records: 7 days.",
               "- “Not for me” feedback, credit movements and credit reservations: 400 days or until you delete your account, whichever comes first.",
-              "- Usage events: 400 days (pseudonymous).",
+              "- Usage events: 400 days or until you delete your account, whichever comes first (pseudonymous).",
               "- Password reset link: 30 minutes. Session: access token 60 minutes, refresh token 60 days.",
               "- E-mail verification code and link: 24 hours (only their hashes are stored).",
               "- The copy of your data prepared with “Download my data” (ZIP file): 7 days, then deleted automatically. The record of the request is kept for 30 days.",
@@ -597,7 +597,7 @@
             "paragraphs": [
               "Profile › Privacy › “Delete my photos and generated images” deletes your full-body and face photos, every image generated on you and the colour palette result derived from your face photo; pending AI jobs using these photos are cancelled. If you delete only the full-body photo, the images generated with it are deleted too; if you delete only the face photo, the palette result is deleted too. Your wardrobe items are not affected; you can delete them one by one.",
               "You can delete your account in the app (Profile › Settings › Delete my account) or at droblet.alatech.co/delete-account. Deletion covers your account, sign-in identities, profile, all photos and generated images, wardrobe, looks, plans, trips, cart, watch list, device and notification records, follow relationships and follow requests (on both sides), ratings you gave and received, saved looks, blocks, reports about you, your invite code and your entry in the contact-matching directory. If you signed in with Apple, the link with Apple is revoked too.",
-              "What remains after deletion: reports you filed (without your identity), anonymous revenue records no longer linked to your account, pseudonymous usage events (for up to 400 days) and backups for up to 30 days.",
+              "What remains after deletion: reports you filed (without your identity), anonymous revenue records no longer linked to your account and backups for up to 30 days. Your usage events are deleted with your account.",
               "Deleting your account does not cancel an App Store or Google Play subscription; you must cancel it separately in the store settings."
             ]
           },
@@ -750,7 +750,7 @@
           {
             "heading": "Retention periods",
             "paragraphs": [
-              "Your personal data is kept as long as needed for the purpose: account and content data until you delete it or your account; unprocessed uploads 1 day at most; item drafts and AI job records 7 days; usage events, credit movements and stylist feedback 400 days; password reset link 30 minutes; refresh token 60 days. Affiliate records are kept for [AFFILIATE RECORD RETENTION], reports for [REPORT RETENTION] and server logs for [LOG RETENTION]. Deleted data leaves backups within 30 days at the latest. The detailed table is in the Privacy Policy.",
+              "Your personal data is kept as long as needed for the purpose: account and content data until you delete it or your account; unprocessed uploads 1 day at most; item drafts and AI job records 7 days; usage events, credit movements and stylist feedback 400 days or until you delete your account, whichever comes first; password reset link 30 minutes; refresh token 60 days. Affiliate records are kept for [AFFILIATE RECORD RETENTION], reports for [REPORT RETENTION] and server logs for [LOG RETENTION]. Deleted data leaves backups within 30 days at the latest. The detailed table is in the Privacy Policy.",
               "The e-mail verification code and link are kept for 24 hours, and the copy of your data prepared with “Download my data” for 7 days.",
               "When the period ends, data is deleted, destroyed or anonymised. [LEGAL REVIEW: personal data retention and destruction policy]"
             ]

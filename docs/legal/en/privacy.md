@@ -125,7 +125,7 @@ The information you give on the brand's website (name, address, payment) is the 
 
 We use no third-party analytics, advertising or tracking SDKs and we do not read the advertising identifier (IDFA/AAID). To improve the product, the app sends events from a fixed list (for example “sign-up completed”, “membership screen viewed”, “credit spent”) to our own servers.
 
-When events are stored, a one-way hash replaces your account id; events cannot contain names, e-mail addresses or free text, only short predefined values (for example a screen name, a product id or a number). Event records are deleted automatically after 400 days.
+When events are stored, a one-way hash replaces your account id; events cannot contain names, e-mail addresses or free text, only short predefined values (for example a screen name, a product id or a number). Because we can recompute this hash from your account, these events are still personal data about you (pseudonymous): they are included in the copy of your data (“Download my data”) and deleted when you delete your account. Otherwise event records are deleted automatically after 400 days.
 
 ## 10. What other users can see
 
@@ -172,7 +172,7 @@ You can ask for a copy of the transfer safeguards at [CONTACT E-MAIL].
 - Unprocessed uploads (the raw photo before processing): 1 day at most.
 - Item drafts awaiting your confirmation and AI job records: 7 days.
 - “Not for me” feedback, credit movements and credit reservations: 400 days or until you delete your account, whichever comes first.
-- Usage events: 400 days (pseudonymous).
+- Usage events: 400 days or until you delete your account, whichever comes first (pseudonymous).
 - Password reset link: 30 minutes. Session: access token 60 minutes, refresh token 60 days.
 - E-mail verification code and link: 24 hours (only their hashes are stored).
 - The copy of your data prepared with “Download my data” (ZIP file): 7 days, then deleted automatically. The record of the request is kept for 30 days.
@@ -191,7 +191,7 @@ Profile › Privacy › “Delete my photos and generated images” deletes your
 
 You can delete your account in the app (Profile › Settings › Delete my account) or at droblet.alatech.co/delete-account. Deletion covers your account, sign-in identities, profile, all photos and generated images, wardrobe, looks, plans, trips, cart, watch list, device and notification records, follow relationships and follow requests (on both sides), ratings you gave and received, saved looks, blocks, reports about you, your invite code and your entry in the contact-matching directory. If you signed in with Apple, the link with Apple is revoked too.
 
-What remains after deletion: reports you filed (without your identity), anonymous revenue records no longer linked to your account, pseudonymous usage events (for up to 400 days) and backups for up to 30 days.
+What remains after deletion: reports you filed (without your identity), anonymous revenue records no longer linked to your account and backups for up to 30 days. Your usage events are deleted with your account.
 
 Deleting your account does not cancel an App Store or Google Play subscription; you must cancel it separately in the store settings.
 

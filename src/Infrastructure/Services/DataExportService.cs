@@ -23,7 +23,7 @@ public sealed class DataExportService(
     {
         var now = Now;
         var exports = await repository.GetAllAsync<DataExportEntity>(DataExportEntity.GetPk(tenantId), ct);
-        if (exports.Any(e => e.IsActive))
+        if (exports.Any(e => DataExportRules.IsActive(e, now)))
             return new DataExportStartResult(DataExportStartOutcome.InProgress, await StateAsync(exports, now, ct));
         if (DataExportRules.NextRequestAt(exports, now) is not null)
             return new DataExportStartResult(DataExportStartOutcome.TooSoon, await StateAsync(exports, now, ct));
@@ -38,7 +38,29 @@ public sealed class DataExportService(
             CreatedAt = now,
             UpdatedAt = now,
         };
-        await repository.SaveAsync(export, ct);
+        // The checks above read a snapshot: two simultaneous requests can both pass them. The lock row, written with the
+        // export in one transaction and conditioned on the version read here (absent = attribute_not_exists), lets only
+        // one of them commit. A lock whose export is no longer active (ready, failed, abandoned after 1 h, or gone) was
+        // let go and is simply overwritten — the checks above already decided that a new export may start.
+        var held = await repository.GetAsync<DataExportLockEntity>(DataExportLockEntity.GetPk(tenantId), DataExportLockEntity.GetSk(), ct);
+        if (held is not null && exports.FirstOrDefault(e => e.Id == held.ExportId) is { } holder && DataExportRules.IsActive(holder, now))
+            return new DataExportStartResult(DataExportStartOutcome.InProgress, await StateAsync(exports, now, ct));
+        var lockRow = new DataExportLockEntity { TenantId = tenantId, ExportId = export.Id, AcquiredAt = now, Version = held?.Version ?? 0 };
+        var written = await repository.TransactWriteAsync(
+        [
+            TransactWriteOperation.PutVersioned(lockRow),
+            TransactWriteOperation.Create(export),
+        ], ct);
+        if (!written.Applied)
+        {
+            // Lost the race: the other request's export is the active one now.
+            logger.LogInformation("Data export request for tenant {TenantId} lost the race to a simultaneous one", tenantId);
+            var current = await repository.GetAllAsync<DataExportEntity>(DataExportEntity.GetPk(tenantId), ct);
+            var outcome = DataExportRules.NextRequestAt(current, now) is not null && !current.Any(e => DataExportRules.IsActive(e, now))
+                ? DataExportStartOutcome.TooSoon
+                : DataExportStartOutcome.InProgress;
+            return new DataExportStartResult(outcome, await StateAsync(current, now, ct));
+        }
         try
         {
             await events.PublishAsync(new DataExportRequestedEvent(tenantId, export.Id), ct);
@@ -82,7 +104,7 @@ public sealed class DataExportService(
     {
         var latest = exports.MaxBy(e => e.CreatedAt);
         var next = DataExportRules.NextRequestAt(exports, now);
-        var canRequest = latest is not { IsActive: true } && next is null;
+        var canRequest = (latest is null || !DataExportRules.IsActive(latest, now)) && next is null;
         return new DataExportStateDto(latest is null ? null : await ToDtoAsync(latest, now, ct), canRequest, next);
     }
 
@@ -98,7 +120,7 @@ public sealed class DataExportService(
         }
         return new DataExportDto(
             export.Id,
-            expired ? "expired" : DataExportRules.Code(export.Status),
+            expired ? "expired" : DataExportRules.Code(export, now),
             export.CreatedAt,
             export.CompletedAt,
             export.ExpiresAt,

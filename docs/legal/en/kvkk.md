@@ -90,7 +90,7 @@ Transfers abroad are made under KVKK art. 9 on the basis of [TRANSFER MECHANISM]
 
 ## 7. Retention periods
 
-Your personal data is kept as long as needed for the purpose: account and content data until you delete it or your account; unprocessed uploads 1 day at most; item drafts and AI job records 7 days; usage events, credit movements and stylist feedback 400 days; password reset link 30 minutes; refresh token 60 days. Affiliate records are kept for [AFFILIATE RECORD RETENTION], reports for [REPORT RETENTION] and server logs for [LOG RETENTION]. Deleted data leaves backups within 30 days at the latest. The detailed table is in the Privacy Policy.
+Your personal data is kept as long as needed for the purpose: account and content data until you delete it or your account; unprocessed uploads 1 day at most; item drafts and AI job records 7 days; usage events, credit movements and stylist feedback 400 days or until you delete your account, whichever comes first; password reset link 30 minutes; refresh token 60 days. Affiliate records are kept for [AFFILIATE RECORD RETENTION], reports for [REPORT RETENTION] and server logs for [LOG RETENTION]. Deleted data leaves backups within 30 days at the latest. The detailed table is in the Privacy Policy.
 
 The e-mail verification code and link are kept for 24 hours, and the copy of your data prepared with “Download my data” for 7 days.
 

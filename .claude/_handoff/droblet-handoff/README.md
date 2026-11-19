@@ -291,6 +291,7 @@ Uygulama **çok dilli**; ilk diller **Türkçe ve İngilizce**, sonrası veriyle
 | 11 | Uygulama adı "Droblet" mağazalarda boş mu | `docs/store-listing/` yedek adlar |
 | 12 | İncelemede self-premium | Prod'da kapalı tutulması önerildi |
 | 13 | Supabase erişimi | |
+| 15 | App Privacy "Kullanım verisi" bağlı mı | Analitik olaylar artık hesaba göre indeksleniyor, dışa aktarılıyor ve hesapla siliniyor → "Linked: Yes" daha güvenli (`docs/store-listing/app-privacy.md`) |
 | 14 | Prod kurulumu | Altyapı + SSM + mağaza başvurusu; ürün sahibini bekler |
 
 Benim tarafımda (bekleme listesi dışı, sıradaki işler): paywall'a abonelik koşulları linki; moderasyonda "içerik kaldırıldı"nın gerçekten kaldırması; palette ai-perf zaman aşımı incelemesi.
