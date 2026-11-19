@@ -12,6 +12,7 @@ import type {
 import { ApiError } from '@/api/errors';
 
 import { clone, fixtureDb } from './db';
+import { L } from './showcase';
 
 /**
  * Fixture side of E2 Gardırop: item writes edit `fixtureDb.items` like the server would, and item
@@ -37,12 +38,12 @@ let sequence = 0;
 export const fixtureDraftOptions = { baseMs: 2500, stepMs: 900, failEvery: 0, lowConfidenceEvery: 3 };
 
 const SUGGESTIONS: Partial<ItemFields>[] = [
-  { name: 'Beyaz poplin gömlek', category: 'top', subcategory: 'Gömlek', color: 'white', fabric: 'Pamuk', seasons: ['spring', 'autumn'] },
-  { name: 'Düz jean', category: 'bottom', subcategory: 'Jean', color: 'blue', fabric: 'Denim', seasons: ['spring', 'summer', 'autumn', 'winter'] },
-  { name: 'Kroko babet', category: 'shoes', subcategory: 'Babet', color: 'black', fabric: 'Deri', seasons: ['spring', 'summer', 'autumn'] },
-  { name: 'Siyah deri çanta', category: 'bag', subcategory: 'Omuz çantası', color: 'black', fabric: 'Deri', seasons: ['spring', 'summer', 'autumn', 'winter'] },
-  { name: 'Krem triko', category: 'top', subcategory: 'Triko', color: 'cream', fabric: 'Yün', seasons: ['autumn', 'winter'] },
-  { name: 'Bej trençkot', category: 'outerwear', subcategory: 'Trençkot', color: 'beige', fabric: 'Pamuk', seasons: ['spring', 'autumn'] },
+  { name: L('Beyaz poplin gömlek'), category: 'top', subcategory: L('Gömlek'), color: 'white', fabric: L('Pamuk'), seasons: ['spring', 'autumn'] },
+  { name: L('Düz jean'), category: 'bottom', subcategory: L('Jean'), color: 'blue', fabric: L('Denim'), seasons: ['spring', 'summer', 'autumn', 'winter'] },
+  { name: L('Kroko babet'), category: 'shoes', subcategory: L('Babet'), color: 'black', fabric: L('Deri'), seasons: ['spring', 'summer', 'autumn'] },
+  { name: L('Siyah deri çanta'), category: 'bag', subcategory: L('Omuz çantası'), color: 'black', fabric: L('Deri'), seasons: ['spring', 'summer', 'autumn', 'winter'] },
+  { name: L('Krem triko'), category: 'top', subcategory: L('Triko'), color: 'cream', fabric: L('Yün'), seasons: ['autumn', 'winter'] },
+  { name: L('Bej trençkot'), category: 'outerwear', subcategory: L('Trençkot'), color: 'beige', fabric: L('Pamuk'), seasons: ['spring', 'autumn'] },
 ];
 
 function toDraft(stored: StoredDraft): ItemDraft {
