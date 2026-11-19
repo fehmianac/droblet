@@ -187,6 +187,14 @@ public class NotificationJobsTests
     }
 
     [Fact]
+    public void ContentRemoved_HasItsTurkishAndEnglishText_AndTheInboxCode()
+    {
+        Assert.Equal("Paylaşımın topluluk kurallarına aykırı bulunduğu için kaldırıldı.", NotificationTexts.For(NotificationType.ContentRemoved, "tr", "tr").Body);
+        Assert.Equal("Your post was removed because it was found to go against our community guidelines.", NotificationTexts.For(NotificationType.ContentRemoved, "en", "tr").Body);
+        Assert.Equal("content_removed", NotificationTexts.Code(NotificationType.ContentRemoved));
+    }
+
+    [Fact]
     public async Task EachDevice_IsSentThroughItsOwnChannel_ApnsOrFcm()
     {
         await PublishEditAsync("edit-47", "2026-11-16");

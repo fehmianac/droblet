@@ -140,7 +140,7 @@ public class AdminServiceTests
         var admin = await SeedAsync(host, "d@droblet.test");
         await host.Auth.RequestPasswordResetAsync("d@droblet.test", Request, CancellationToken.None);
         var token = Uri.UnescapeDataString(System.Text.RegularExpressions.Regex.Match(host.Mail.Sent[^1].TextBody, @"token=(\S+)").Groups[1].Value);
-        Assert.StartsWith("https://droblet-admin.alatech.co/reset-password?token=", System.Text.RegularExpressions.Regex.Match(host.Mail.Sent[^1].TextBody, @"https://\S+").Value);
+        Assert.StartsWith("https://droblet-admin.alatech.co/reset-password/?token=", System.Text.RegularExpressions.Regex.Match(host.Mail.Sent[^1].TextBody, @"https://\S+").Value);
 
         host.Clock.Advance(TimeSpan.FromMinutes(31));
         Assert.Equal(AdminAuthOutcome.InvalidToken, await host.Auth.ResetPasswordAsync(token, "New-password-22", null, CancellationToken.None));
@@ -182,7 +182,7 @@ public class AdminServiceTests
         var owner = await SeedAsync(host, "owner@droblet.test");
         Assert.Equal(AdminUserOutcome.Ok, (await host.Users.CreateAsync(owner, "New@Droblet.test", "New", AdminRole.Moderator, Request, CancellationToken.None)).Outcome);
         Assert.Equal(AdminUserOutcome.EmailTaken, (await host.Users.CreateAsync(owner, "NEW@droblet.TEST", "Dup", AdminRole.Moderator, Request, CancellationToken.None)).Outcome);
-        Assert.Contains("reset-password?token=", host.Mail.Sent[^1].TextBody);
+        Assert.Contains("reset-password/?token=", host.Mail.Sent[^1].TextBody);
     }
 
     [Fact]

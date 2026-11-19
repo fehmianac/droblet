@@ -248,6 +248,10 @@ public class ReportEntity : IEntity
     [JsonPropertyName("resolutionNote")] public string? ResolutionNote { get; set; }
     [JsonPropertyName("resolvedByUserId")] public string? ResolvedByUserId { get; set; }
     [JsonPropertyName("resolvedAt")] public DateTime? ResolvedAt { get; set; }
+    // contentRemoved: when the target was actually hidden (once per report), and the admin undo (POST …/restore).
+    [JsonPropertyName("contentRemovedAt")] public DateTime? ContentRemovedAt { get; set; }
+    [JsonPropertyName("contentRestoredAt")] public DateTime? ContentRestoredAt { get; set; }
+    [JsonPropertyName("contentRestoredByUserId")] public string? ContentRestoredByUserId { get; set; }
     [JsonPropertyName("ttl")] public long? Ttl => ReportRetention.Ttl(ResolvedAt);
 
     public static string GetPk(ReportStatus status) => $"report#{status.ToString().ToLowerInvariant()}";

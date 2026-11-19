@@ -5,7 +5,7 @@ using Domain.Enum;
 namespace Domain.Entity;
 
 // Profile / settings of the personal tenant (user = tenant in Droblet).
-public class TenantEntity : IVersionedEntity
+public class TenantEntity : IVersionedEntity, IModeratedEntity
 {
     [JsonPropertyName("pk")] public string Pk => GetPk();
     [JsonPropertyName("sk")] public string Sk => GetSk(Id);
@@ -18,6 +18,12 @@ public class TenantEntity : IVersionedEntity
     [JsonPropertyName("segment")] public Segment? Segment { get; set; }
     [JsonPropertyName("language")] public string Language { get; set; } = "tr";
     [JsonPropertyName("cityId")] public string? CityId { get; set; }
+
+    // Moderation (report resolved as contentRemoved): hidden from everyone but the owner. Written only by the moderation
+    // service; owner edits load and save the whole row, so they keep these fields.
+    [JsonPropertyName("moderationHiddenAt")] public DateTime? ModerationHiddenAt { get; set; }
+    [JsonPropertyName("moderationReportId")] public string? ModerationReportId { get; set; }
+    [JsonPropertyName("moderationReason")] public ReportReason? ModerationReason { get; set; }
     [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; }
     [JsonPropertyName("updatedAt")] public DateTime UpdatedAt { get; set; }
     [JsonPropertyName("version")] public long Version { get; set; }

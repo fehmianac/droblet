@@ -445,9 +445,9 @@ public class InviteAndReminderRulesTests
     [Fact]
     public void InviteLink_CarriesCodeAndTarget()
     {
-        Assert.Equal("https://droblet.alatech.co/i/ABCDEFGH", InviteCodeRules.Link("https://droblet.alatech.co/i/", "ABCDEFGH"));
-        Assert.Equal("https://droblet.alatech.co/i/ABCDEFGH?t=look&id=L1&u=ayse",
-            InviteCodeRules.Link("https://droblet.alatech.co/i", "ABCDEFGH", ShareTargetKind.Look, "L1", "ayse"));
+        Assert.Equal("https://droblet.alatech.co/invite/ABCDEFGH", InviteCodeRules.Link("https://droblet.alatech.co/invite/", "ABCDEFGH"));
+        Assert.Equal("https://droblet.alatech.co/invite/ABCDEFGH?t=look&id=L1&u=ayse",
+            InviteCodeRules.Link("https://droblet.alatech.co/invite", "ABCDEFGH", ShareTargetKind.Look, "L1", "ayse"));
     }
 
     [Theory]

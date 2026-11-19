@@ -110,9 +110,12 @@ Ready-made library (screens 04b, 12b). Names in the profile language.
   "imageUrl": "https://…", "imageUrlExpiresAt": "2026-11-18T09:05:00Z",
   "hasOriginalImage": true, "useOriginalImage": false,
   "wearCount": 3, "lastWornAt": "2026-11-17", "listingStatus": "none",
-  "createdAt": "…", "updatedAt": "…", "version": 2
+  "createdAt": "…", "updatedAt": "…", "version": 2,
+  "moderation": null
 }
 ```
+`moderation` is read-only and owner-only: `null`, or `{ "hidden": true, "reason": "inappropriate" }` when a moderator
+removed the item from everybody else (report resolved as `contentRemoved`, [S §11](store-social-settings.md)). Edits keep it.
 `colorIds[0]` is the main colour. `wearCount` / `lastWornAt` are server-computed from wear logs and cannot be written.
 Form fields that are kept as entered: `subcategory` (free sub-type id from the form, lower-case words joined by `-`,
 ≤ 40 chars, e.g. `blazer`, `mini-skirt` — the `category` still drives outfit slots), `fabricText` (free-text fabric
@@ -251,9 +254,11 @@ Validation codes (400 `errors`): `category_required`, `color_required`, `color_u
   ],
   "pieceCount": 2, "hasMissingPieces": true, "favorite": false, "source": "user",
   "createdAt": "…", "updatedAt": "…", "version": 1,
-  "rating": { "average": 4.5, "count": 2 }
+  "rating": { "average": 4.5, "count": 2 },
+  "moderation": null
 }
 ```
+`moderation`: as on `ItemDto` — `{ "hidden": true, "reason" }` while a moderator hides the look from everybody else.
 `rating` = what friends gave this look (`PUT v1/tenant/people/{handle}/look/{lookId}/rating`): average with one decimal and the number of ratings. It is filled by `GET v1/tenant/look` and `GET v1/tenant/look/{id}`; it is `null` while nobody rated the look and wherever a `LookDto` is embedded in another response (plan day, today, item detail, accept results). Deleting a look deletes its rating summary.
 `missing: true` = the slot is a catalog product the user does not own ("Eksik parça" → "Look'u tamamla"). `unavailable: true` = the wardrobe item was deleted.
 

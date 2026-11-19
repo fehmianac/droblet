@@ -280,6 +280,12 @@ public static class NotificationTexts
             ["tr"] = ("Verilerin hazır", "İstediğin veri kopyasını 7 gün içinde indirebilirsin."),
             ["en"] = ("Your data is ready", "You can download the copy of your data for 7 days."),
         },
+        // Inbox only (written by the admin moderation action, contentRemoved); kept here so every type has its text.
+        [NotificationType.ContentRemoved] = new()
+        {
+            ["tr"] = ("Paylaşımın kaldırıldı", "Paylaşımın topluluk kurallarına aykırı bulunduğu için kaldırıldı."),
+            ["en"] = ("Your post was removed", "Your post was removed because it was found to go against our community guidelines."),
+        },
     };
 
     public static (string Title, string Body) For(NotificationType type, string? language, string defaultLanguage)

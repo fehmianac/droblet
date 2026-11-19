@@ -31,7 +31,7 @@ keep the shapes of [store-social-settings.md §11](store-social-settings.md#11-a
 | `users.suspend` | ✓ | | ✓ | `POST v1/admin/user/{id}/suspend`, `…/unsuspend` |
 | `users.delete` | ✓ | | | `DELETE v1/admin/user/{id}` |
 | `users.grant` | ✓ | | | test premium, add credits |
-| `moderation.manage` | ✓ | | ✓ | `GET v1/admin/moderation/report`, `POST …/{id}/resolve` |
+| `moderation.manage` | ✓ | | ✓ | `GET v1/admin/moderation/report`, `POST …/{id}/resolve`, `POST …/{id}/restore` |
 | `settings.manage` | ✓ | | | `GET/PUT v1/admin/setting…` |
 | `admins.manage` | ✓ | | | `v1/admin/admin-user…` |
 | `audit.view` | ✓ | | | `GET v1/admin/audit` |
@@ -183,6 +183,18 @@ panel's validation preview. The real import (no `dryRun`) is audited as `product
 `POST v1/admin/moderation/report/{id}/resolve` (`moderation.manage`) keeps its body. The panel's three actions map to:
 **Dismiss** → `dismissed`; **Resolve** → `contentRemoved` / `userWarned`; **Block** → `userSuspended`, which now also
 suspends the reported account (same effect as `POST v1/admin/user/{id}/suspend`, reason = the report reason + note).
+
+**`contentRemoved` removes the content** (App Store UGC rule), once per report — details in
+[S §11](store-social-settings.md): the reported look / item disappears for everybody but its owner; a reported profile
+keeps its handle but shows others no name, avatar or style tags. The owner keeps it (read-only `moderation` field) and
+gets an inbox row `content_removed`. Audited as `report.resolve` + `report.contentRemove` (before / after = the target's
+moderation state). A target that no longer exists still resolves (audit outcome `targetMissing`).
+
+A resolved report cannot be reopened, so the undo is `POST v1/admin/moderation/report/{id}/restore`
+(`moderation.manage`, no body): the content is visible again, the report keeps `status: resolved` and gains
+`contentRestoredAt` / `contentRestoredByUserId`; audited as `report.contentRestore` (before / after). Idempotent; a later
+resolve call never hides it again. `404 not_found`; `409 report_not_resolved` (still open), `409 report_not_content_removed`.
+The panel lists resolved reports without actions, so it has no restore button yet — call the route directly.
 
 ## 7. First super admin (bootstrap)
 

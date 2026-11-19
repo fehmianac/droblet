@@ -57,7 +57,7 @@ public sealed class EmailVerificationService(
             TransactWriteOperation.Put(new EmailVerificationTokenEntity { TokenHash = tokenHash, UserId = user.Id, ExpiresAt = expiresAt }),
         ], ct);
 
-        var link = $"{appLinks.Value.EmailVerificationUrl}?token={Uri.EscapeDataString(token)}";
+        var link = WebLinks.WithQuery(appLinks.Value.EmailVerificationUrl, "token", token);
         try
         {
             await emailService.SendAsync(EmailTemplates.EmailVerification(user.Email, code, link, language, (int)Lifetime.TotalHours), ct);
