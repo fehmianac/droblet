@@ -148,6 +148,45 @@ public class DataExportJobTests
     }
 
     [Fact]
+    public async Task Process_LeavesOutTheGooglePlayPurchaseToken()
+    {
+        var export = await SeedAsync();
+        await _host.Repository.SaveAsync(new StorePurchaseEntity
+        {
+            TenantId = TenantId, Platform = StorePlatform.Google, Key = "hash-of-token", Kind = StoreProductKind.Consumable,
+            ProductId = "credits_10", PurchaseToken = "SECRET-PLAY-TOKEN", Credits = 10, CreatedAt = WorkerTestHost.Now, UpdatedAt = WorkerTestHost.Now,
+        });
+
+        await _host.Get<IDataExportJob>().ProcessAsync(TenantId, export.Id, false, default);
+
+        var stored = await _host.Repository.GetAsync<DataExportEntity>(export.Pk, export.Sk);
+        var purchases = System.Text.Encoding.UTF8.GetString(ReadZip(stored!.S3Key!)["data/store-purchase.json"]);
+        Assert.Contains("credits_10", purchases);
+        Assert.DoesNotContain("SECRET-PLAY-TOKEN", purchases);
+    }
+
+    [Fact]
+    public async Task Process_AccountDeletedWhileBuilding_LeavesNoZipInboxRowOrEmail()
+    {
+        var export = await SeedAsync();
+        // The account is deleted while the ZIP is being built (AccountDeletionService: the tenant's partitions and the
+        // exports/{tenantId}/ prefix are removed).
+        _host.Storage.BeforeList = async _ =>
+        {
+            await _host.Repository.DeleteAsync(export.Pk, export.Sk);
+            await _host.Storage.DeletePrefixAsync($"exports/{TenantId}/", default);
+        };
+
+        await _host.Get<IDataExportJob>().ProcessAsync(TenantId, export.Id, isLastAttempt: false, default);
+
+        Assert.DoesNotContain(_host.Storage.Objects.Keys, k => k.StartsWith($"exports/{TenantId}/"));
+        Assert.Null(await _host.Repository.GetAsync<DataExportEntity>(export.Pk, export.Sk));
+        Assert.Empty(await _host.Repository.GetAllAsync<NotificationInboxEntity>(NotificationInboxEntity.GetPk(TenantId)));
+        Assert.Empty(await _host.Repository.GetAllAsync<DataExportTokenEntity>(DataExportTokenEntity.GetPk()));
+        Assert.Empty(_email.Sent);
+    }
+
+    [Fact]
     public async Task Entrypoint_DataExport_RoutesTheMessage()
     {
         var export = await SeedAsync();

@@ -45,20 +45,38 @@ public static class DataExportRules
     public static readonly TimeSpan FileLifetime = TimeSpan.FromDays(DataExportEntity.FileDays);
 
     /// <summary>
+    /// A queued / processing export not touched for this long is dead: every attempt starts by stamping UpdatedAt, and
+    /// the queue gives up after 3 receives of at most 15 minutes each (visibility timeout 900 s). A last attempt killed
+    /// by the Lambda timeout, an out-of-memory crash or a full /tmp never marks the row failed, and without this rule it
+    /// would block every new request (409 export_in_progress) until the row's 30-day TTL.
+    /// </summary>
+    public static readonly TimeSpan StaleAfter = TimeSpan.FromHours(1);
+
+    /// <summary>Queued / processing and still alive (see <see cref="StaleAfter"/>).</summary>
+    public static bool IsActive(DataExportEntity export, DateTime now) =>
+        export.IsActive && now - export.UpdatedAt < StaleAfter;
+
+    /// <summary>Failed, or queued / processing but abandoned: counts as failed (never blocks, never counts for the day).</summary>
+    public static bool IsFailed(DataExportEntity export, DateTime now) =>
+        export.Status == DataExportStatus.Failed || (export.IsActive && !IsActive(export, now));
+
+    /// <summary>
     /// One active export at a time; at most one per day — a failed export does not count (the user may try again).
     /// Returns when the next request is allowed (null = now).
     /// </summary>
     public static DateTime? NextRequestAt(IEnumerable<DataExportEntity> exports, DateTime now)
     {
         var list = exports.ToList();
-        if (list.Any(e => e.IsActive))
+        if (list.Any(e => IsActive(e, now)))
             return null;
-        var last = list.Where(e => e.Status != DataExportStatus.Failed).MaxBy(e => e.CreatedAt);
+        var last = list.Where(e => !IsFailed(e, now)).MaxBy(e => e.CreatedAt);
         if (last is null)
             return null;
         var next = last.CreatedAt.Add(MinInterval);
         return next > now ? next : null;
     }
+
+    public static string Code(DataExportEntity export, DateTime now) => IsFailed(export, now) ? "failed" : Code(export.Status);
 
     public static string Code(DataExportStatus status) => status switch
     {

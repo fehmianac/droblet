@@ -112,6 +112,29 @@ public class TryOnJobServiceTests
     }
 
     [Fact]
+    public async Task Process_WithPreview_FullRenderCutByTheTimeBudgetOnTheLastAttempt_JobStaysCompleted()
+    {
+        // The full-quality render runs after the job completed; the worker's time budget (CancelAfter) can end it.
+        var renderer = new QualityRenderer();
+        using var budget = new CancellationTokenSource();
+        var (host, job, message) = await ArrangeAsync(renderer, configure: s => s.Configure<Domain.Options.AiOptions>(o => o.Image.TryOnPreview = true));
+        renderer.BeforeSecond = async () =>
+        {
+            await budget.CancelAsync();
+            budget.Token.ThrowIfCancellationRequested();
+        };
+
+        await host.Get<ITryOnJobService>().ProcessAsync(message, isLastAttempt: true, budget.Token);
+
+        var stored = await host.JobAsync(job);
+        Assert.Equal(JobStatus.Completed, stored!.Status);
+        Assert.Null(stored.Failure);
+        var image = Assert.Single(await host.Repository.GetAllAsync<TryOnImageEntity>(TryOnImageEntity.GetPk(Tenant)));
+        Assert.Equal(1, host.Storage.Objects[image.S3Key].Data[0]); // the preview stays
+        Assert.Equal(29, await host.RemainingCreditsAsync(Tenant));
+    }
+
+    [Fact]
     public async Task Process_WithPreview_ImageDeletedBeforeTheFullRender_IsNotWrittenBack()
     {
         var renderer = new QualityRenderer();

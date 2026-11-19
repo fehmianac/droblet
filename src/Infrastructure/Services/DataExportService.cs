@@ -23,7 +23,7 @@ public sealed class DataExportService(
     {
         var now = Now;
         var exports = await repository.GetAllAsync<DataExportEntity>(DataExportEntity.GetPk(tenantId), ct);
-        if (exports.Any(e => e.IsActive))
+        if (exports.Any(e => DataExportRules.IsActive(e, now)))
             return new DataExportStartResult(DataExportStartOutcome.InProgress, await StateAsync(exports, now, ct));
         if (DataExportRules.NextRequestAt(exports, now) is not null)
             return new DataExportStartResult(DataExportStartOutcome.TooSoon, await StateAsync(exports, now, ct));
@@ -82,7 +82,7 @@ public sealed class DataExportService(
     {
         var latest = exports.MaxBy(e => e.CreatedAt);
         var next = DataExportRules.NextRequestAt(exports, now);
-        var canRequest = latest is not { IsActive: true } && next is null;
+        var canRequest = (latest is null || !DataExportRules.IsActive(latest, now)) && next is null;
         return new DataExportStateDto(latest is null ? null : await ToDtoAsync(latest, now, ct), canRequest, next);
     }
 
@@ -98,7 +98,7 @@ public sealed class DataExportService(
         }
         return new DataExportDto(
             export.Id,
-            expired ? "expired" : DataExportRules.Code(export.Status),
+            expired ? "expired" : DataExportRules.Code(export, now),
             export.CreatedAt,
             export.CompletedAt,
             export.ExpiresAt,

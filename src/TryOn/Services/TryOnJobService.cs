@@ -133,8 +133,10 @@ public sealed class TryOnJobService(
                 return;
             await storage.PutAsync(image.S3Key, full.Data, full.ContentType, ct);
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (Exception ex)
         {
+            // Cancellation too (the worker's time budget): the job is already completed and charged, so nothing may escape
+            // to the job's failure handling, which would mark it failed on the last attempt.
             logger.LogWarning(ex, "Try-on job {JobId}: the full-quality image did not replace the preview", job.Id);
         }
     }
