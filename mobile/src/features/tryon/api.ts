@@ -46,6 +46,10 @@ function startFixtureTryOn(request: StartTryOnRequest): StartTryOnResponse {
   if (credits.remaining < TRY_ON_CREDIT_COST) {
     throw new ApiError('http', 409, { code: 'monthly_limit_reached' });
   }
+  // As the server: a look the server does not hold yet (its write still queued) is not a target.
+  if (request.target.kind === 'look' && !fixtureDb.looks.some((l) => l.id === request.target.id)) {
+    throw new ApiError('http', 404, { code: 'target_not_found' });
+  }
   // The server reserves the credit at start and returns it if the job fails.
   if (!fixtureJobOptions.failNext) credits.remaining -= TRY_ON_CREDIT_COST;
   const jobId = startFixtureJob<TryOnResult>(

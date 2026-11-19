@@ -37,6 +37,8 @@ type Props = {
   /** Pieces from the multi-select that could not be placed (their slot was already taken). */
   skippedCount?: number;
   items: Item[] | undefined;
+  /** "Üzerimde gör" failed just before this editor mounted (a new look's try-on, then edit mode). */
+  initialTryOnNote?: 'failed' | null;
 };
 
 function leave() {
@@ -48,7 +50,7 @@ function leave() {
  * 15 Look oluştur — name, occasion, five slots (min 2 pieces to save), slot picker sheet, and
  * "Üzerimde gör" behind the credit confirmation. Also the edit mode of a saved look.
  */
-export function LookEditor({ look, initialSlots, skippedCount = 0, items }: Props) {
+export function LookEditor({ look, initialSlots, skippedCount = 0, items, initialTryOnNote }: Props) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const online = useIsOnline();
@@ -61,7 +63,7 @@ export function LookEditor({ look, initialSlots, skippedCount = 0, items }: Prop
   const [sheetSlot, setSheetSlot] = useState<LookSlotKind | null>(null);
   const [menu, setMenu] = useState(false);
   const [confirm, setConfirm] = useState(false);
-  const [tryOnNote, setTryOnNote] = useState<'offline' | 'failed' | null>(null);
+  const [tryOnNote, setTryOnNote] = useState<'offline' | 'failed' | null>(initialTryOnNote ?? null);
   // Canvas 11a: what "Üzerimde gör" still needs is said under it; tapping opens the flow, which resumes here.
   const gate = useGate('tryOn', () => void ensureTryOnConsent().then((ok) => ok && setConfirm(true)), { origin: t(look ? 'lookEditor.titleEdit' : 'lookEditor.titleNew') });
 
@@ -95,16 +97,19 @@ export function LookEditor({ look, initialSlots, skippedCount = 0, items }: Prop
 
   const onTryOnConfirm = () => {
     void (async () => {
-      const id = save();
+      let savedId: string | null = look?.id ?? null;
       try {
-        const { jobId } = await tryOn.start({ kind: 'look', id });
+        // The job needs the look on the server: wait for its write before starting.
+        if (!look) savedId = await writes.createNow(draft);
+        else if (dirty) await writes.updateNow(look, draft);
+        const { jobId } = await tryOn.start({ kind: 'look', id: savedId ?? '' });
         setConfirm(false);
         router.replace({ pathname: '/tryon/[jobId]', params: { jobId, title: draft.name } });
       } catch {
         setConfirm(false);
         setTryOnNote('failed');
-        // The look itself is saved (or queued): continue in edit mode.
-        if (!look) router.setParams({ id });
+        // A new look that was saved continues in edit mode; the note travels along (the editor remounts there).
+        if (!look && savedId) router.setParams({ id: savedId, tryOn: 'failed' });
       }
     })();
   };
