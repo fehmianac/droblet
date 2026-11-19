@@ -2,7 +2,7 @@ import type { AppNotification } from '@/api/contracts/notifications';
 import { notificationFixtures, resetNotificationFixtures } from '@/fixtures/notifications';
 import { resetStoreFixtures } from '@/fixtures/store';
 
-import { groupByDay, markRead, targetOf, unreadCount } from './logic';
+import { appendPage, groupByDay, markRead, nearEnd, targetOf, unreadCount } from './logic';
 
 const at = (y: number, m: number, d: number, h: number) => new Date(y, m - 1, d, h).toISOString();
 const plan = (id: string, createdAt: string, readAt: string | null = null): AppNotification => ({
@@ -84,5 +84,32 @@ describe('notification targets and fixtures', () => {
     expect(unreadCount(notificationFixtures.list().items)).toBe(0);
     resetNotificationFixtures({ empty: true });
     expect(notificationFixtures.list().items).toEqual([]);
+  });
+});
+
+describe('inbox paging', () => {
+  it('appends the next page without repeating rows and takes the new cursor and count', () => {
+    const first = { items: [plan('a', at(2026, 11, 18, 9)), plan('b', at(2026, 11, 18, 8))], pageToken: 'c1', unreadCount: 5 };
+    const next = { items: [plan('b', at(2026, 11, 18, 8)), plan('c', at(2026, 11, 17, 8))], pageToken: null, unreadCount: 4 };
+    expect(appendPage(first, next)).toEqual({ items: [first.items[0], first.items[1], next.items[1]], pageToken: null, unreadCount: 4 });
+  });
+
+  it('pages the fixtures with a cursor until the last page', () => {
+    resetStoreFixtures();
+    resetNotificationFixtures({ older: 40 });
+    const page1 = notificationFixtures.page(null, 30);
+    const page2 = notificationFixtures.page(page1.pageToken, 30);
+    expect(page1.items).toHaveLength(30);
+    expect(page2.pageToken).toBeNull();
+    expect(appendPage(page1, page2).items).toHaveLength(notificationFixtures.list().items.length);
+  });
+
+  it('loads more within 400 pt of the end', () => {
+    expect(nearEnd({ layoutMeasurement: { height: 800 }, contentOffset: { y: 900 }, contentSize: { height: 2000 } })).toBe(true);
+    expect(nearEnd({ layoutMeasurement: { height: 800 }, contentOffset: { y: 0 }, contentSize: { height: 2000 } })).toBe(false);
+  });
+
+  it('opens "Verilerimi indir" from the data export notification', () => {
+    expect(targetOf({ id: 'x', kind: 'data_export_ready', createdAt: at(2026, 11, 18, 9), readAt: null, data: { exportId: 'e1' } })).toBe('/data-export');
   });
 });

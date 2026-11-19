@@ -30,6 +30,7 @@ export function toNotification(wire: NotificationWire): AppNotification | null {
       ...(data.editId ? { editId: data.editId } : {}),
       ...(data.productId ? { productId: data.productId } : {}),
       ...(data.handle ? { handle: data.handle } : {}),
+      ...(data.exportId ? { exportId: data.exportId } : {}),
     },
   };
 }

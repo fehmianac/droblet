@@ -1,5 +1,6 @@
 import { router } from "expo-router";
 import {
+  Download,
   Settings,
   Shirt,
   Sparkles,
@@ -11,7 +12,13 @@ import {
 } from "lucide-react-native";
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
-import { Pressable, RefreshControl, ScrollView, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  View,
+} from "react-native";
 
 import type {
   AppNotification,
@@ -30,11 +37,15 @@ import { NotificationPrefsCard } from "@/features/account/NotificationPrefsCard"
 import { RowCard } from "@/features/account/rows";
 import {
   groupByDay,
+  nearEnd,
   targetOf,
   type NotificationGroup,
 } from "@/features/notifications/logic";
 import { useMarkNotificationsRead } from "@/features/notifications/mutations";
-import { useNotifications } from "@/features/notifications/queries";
+import {
+  useLoadMoreNotifications,
+  useNotifications,
+} from "@/features/notifications/queries";
 import { useIncomingRequestCount } from "@/features/social/queries";
 import type { AppLanguage } from "@/i18n";
 import { useAppLanguage } from "@/i18n/useAppLanguage";
@@ -48,6 +59,7 @@ const ICONS: Record<NotificationKind, LucideIcon> = {
   friend_ratings: Star,
   price_drop: Tag,
   follow_request: UserPlus,
+  data_export_ready: Download,
 };
 
 /** The two lines of a notification, built in the app's language from the codes and ids the server sent. */
@@ -82,6 +94,11 @@ function describe(
           ? t("notifCenter.followRequest.title", { handle: n.data.handle })
           : t("notifCenter.followRequest.titleAnonymous"),
         body: t("notifCenter.followRequest.body"),
+      };
+    case "data_export_ready":
+      return {
+        title: t("notifCenter.dataExport.title"),
+        body: t("notifCenter.dataExport.body"),
       };
   }
 }
@@ -186,6 +203,7 @@ export default function NotificationsScreen() {
   const language = useAppLanguage();
   const notifications = useNotifications();
   const markRead = useMarkNotificationsRead();
+  const more = useLoadMoreNotifications();
   // What is waiting for the user: follow requests (followers-only accounts approve each one).
   const requestCount = useIncomingRequestCount();
 
@@ -217,7 +235,14 @@ export default function NotificationsScreen() {
           const groups = groupByDay(data.items);
           return (
             <ScrollView
+              testID="notifications-list"
               contentContainerClassName="gap-2.5 px-gutter pb-10 pt-0.5"
+              scrollEventThrottle={200}
+              onScroll={(e) => {
+                // Infinite scroll: the next page (cursor from the server) once the end is near.
+                if (more.hasMore && !more.failed && nearEnd(e.nativeEvent))
+                  void more.loadMore();
+              }}
               refreshControl={
                 <RefreshControl
                   refreshing={notifications.isRefetching}
@@ -292,6 +317,27 @@ export default function NotificationsScreen() {
                   </RowCard>
                 </View>
               ))}
+
+              {more.hasMore ? (
+                <View
+                  className="min-h-icon-btn items-center justify-center"
+                  testID="notifications-more"
+                >
+                  {more.failed ? (
+                    <Button
+                      variant="text"
+                      label={t("notifCenter.loadMoreRetry")}
+                      onPress={() => void more.loadMore()}
+                      testID="notifications-more-retry"
+                    />
+                  ) : (
+                    <ActivityIndicator
+                      color={colors.muted}
+                      accessibilityLabel={t("notifCenter.loadingMore")}
+                    />
+                  )}
+                </View>
+              ) : null}
 
               <Text
                 variant="eyebrow"

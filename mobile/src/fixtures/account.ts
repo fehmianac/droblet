@@ -11,6 +11,7 @@ import type {
   UpdateProfileRequest,
 } from '@/api/contracts/account';
 import { ApiError } from '@/api/errors';
+import type { DataExportState } from '@/features/account/dataExport';
 
 /**
  * Typed fixtures for Profil (28), Gizlilik ve ayarlar (29) and Renk paletim (30). Values are the
@@ -22,6 +23,8 @@ type State = {
   photos: MyPhotos;
   notifications: NotificationSettings;
   palette: 'ready' | 'none' | { pendingUntil: number };
+  dataExport: DataExportState;
+  verificationResends: number;
 };
 
 function initialState(): State {
@@ -44,16 +47,22 @@ function initialState(): State {
     },
     notifications: { morningReminder: true, morningTimeLocal: '07:30', weeklyEdit: false, friendRatings: false, priceDrop: false, followRequests: false, baseVersion: 1 },
     palette: 'ready',
+    dataExport: { export: null, canRequest: true, nextRequestAt: null },
+    verificationResends: 0,
   };
 }
 
 let state = initialState();
 
 /** Test helper: back to the seeded state (optionally without a palette / face photo). */
-export function resetAccountFixtures(overrides: { palette?: 'ready' | 'none'; facePhoto?: boolean } = {}): void {
+export function resetAccountFixtures(
+  overrides: { palette?: 'ready' | 'none'; facePhoto?: boolean; handle?: string | null; emailVerified?: boolean } = {},
+): void {
   state = initialState();
   if (overrides.palette) state.palette = overrides.palette;
   if (overrides.facePhoto === false) state.photos = { ...state.photos, face: null };
+  if (overrides.handle !== undefined) state.profile = { ...state.profile, handle: overrides.handle };
+  if (overrides.emailVerified !== undefined) state.profile = { ...state.profile, emailVerified: overrides.emailVerified };
 }
 
 const readyPalette: Palette = {
@@ -169,4 +178,43 @@ export const accountFixtures = {
       { id: 'item_grey_coat', name: 'Soğuk gri kaban', imageUrl: null, category: 'outerwear', color: 'grey' },
     ],
   }),
+
+  /** The 6-digit code of the sample e-mail is 123456; the link token is accepted as it is. */
+  verifyEmail: (code: string | null): void => {
+    if (code !== null && code !== '123456') throw new ApiError('http', 400, { status: 400, code: 'invalid_verification_code' });
+    state.profile = { ...state.profile, emailVerified: true };
+  },
+  resendVerification: (): void => {
+    state.verificationResends += 1;
+  },
+  verificationResends: (): number => state.verificationResends,
+
+  dataExport: (): DataExportState => state.dataExport,
+  startDataExport: (): DataExportState => {
+    if (!state.dataExport.canRequest) throw new ApiError('http', 429, { status: 429, code: 'export_rate_limited' });
+    state.dataExport = {
+      export: { id: 'export_1', status: 'processing', createdAt: new Date().toISOString(), completedAt: null, expiresAt: null, sizeBytes: null, downloadUrl: null },
+      canRequest: false,
+      nextRequestAt: null,
+    };
+    return state.dataExport;
+  },
+  /** Test helper: the worker finished (the ZIP is ready for 7 days; the next request tomorrow). */
+  completeDataExport: (): void => {
+    const current = state.dataExport.export;
+    if (!current) return;
+    const now = Date.now();
+    state.dataExport = {
+      export: {
+        ...current,
+        status: 'ready',
+        completedAt: new Date(now).toISOString(),
+        expiresAt: new Date(now + 7 * 86_400_000).toISOString(),
+        sizeBytes: 19_105_000,
+        downloadUrl: 'https://s3.test/exports/export_1.zip',
+      },
+      canRequest: false,
+      nextRequestAt: new Date(new Date(current.createdAt).getTime() + 86_400_000).toISOString(),
+    };
+  },
 };

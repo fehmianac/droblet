@@ -45,6 +45,8 @@ export type RequirementInput = {
   itemCount: number | null;
   /** The user chose "Şehirsiz devam et" in this session. */
   cityDeclined?: boolean;
+  /** False while the e-mail of an e-mail sign-up is not verified; true / undefined otherwise (nothing to do). */
+  emailVerified?: boolean;
 };
 
 export type Requirements = {
@@ -187,16 +189,20 @@ export function singleStepRequirements(kind: 'bodyPhoto' | 'facePhoto' | 'bodyTy
 
 // ── "Profilini tamamla" (Profil, Bugün) ──────────────────────────────────────────────────────────────────────────
 
-export type ProfileItemKey = 'bodyPhoto' | 'facePhoto' | 'bodyType' | 'city' | 'handle' | 'firstItems';
+export type ProfileItemKey = 'verifyEmail' | 'bodyPhoto' | 'facePhoto' | 'bodyType' | 'city' | 'handle' | 'firstItems';
 
 export type ProfileItem = { key: ProfileItemKey; done: boolean };
 
 /** Pieces after which "İlk 5 parça" counts as done. */
 export const FIRST_ITEMS_TARGET = 5;
 
-/** The six items of the card, in the board's order; unknown values count as not done. */
+/**
+ * The six items of the card, in the board's order; unknown values count as not done. "E-postanı doğrula" comes
+ * first, and only while the address is unverified (it never blocks anything, so others never see a seventh item).
+ */
 export function profileCompletion(input: RequirementInput): ProfileItem[] {
   return [
+    ...(input.emailVerified === false ? [{ key: 'verifyEmail' as const, done: false }] : []),
     { key: 'bodyPhoto', done: input.hasBodyPhoto === true },
     { key: 'facePhoto', done: input.hasFacePhoto === true },
     { key: 'bodyType', done: Boolean(input.bodyType) },

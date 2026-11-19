@@ -133,6 +133,7 @@ export default function RootLayout() {
           <Stack.Screen name="subscription" />
           <Stack.Screen name="notifications" />
           <Stack.Screen name="delete-account" />
+          <Stack.Screen name="data-export" />
           <Stack.Screen name="tryon/[jobId]" options={{ presentation: 'modal' }} />
           {/* Consents never answered (a new purpose): the all-in-one screen, once, on the next app open. */}
           <Stack.Screen name="consent-review" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
@@ -148,6 +149,8 @@ export default function RootLayout() {
 
         {/* Password reset deep link (droplet://reset-password?token=…), signed in or not. */}
         <Stack.Screen name="(auth)/reset-password" />
+        {/* E-mail verification: the code screen, and the link (droplet://verify-email?token=…), signed in or not. */}
+        <Stack.Screen name="verify-email" />
       </Stack>
       <ConflictHost />
       {/* Floating offline / sync status under the header: overlaid, never pushes a screen's content. */}

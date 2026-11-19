@@ -55,6 +55,24 @@ export function markRead(list: NotificationList | undefined, ids: string[] | nul
   return { ...list, items, unreadCount };
 }
 
+/**
+ * The next page appended to the loaded list: rows already shown are skipped (a row that arrived between two requests
+ * never appears twice), the cursor moves on, and the server's unread count (it covers every page) is taken.
+ */
+export function appendPage(list: NotificationList, page: NotificationList): NotificationList {
+  const seen = new Set(list.items.map((n) => n.id));
+  return {
+    items: [...list.items, ...page.items.filter((n) => !seen.has(n.id))],
+    pageToken: page.pageToken,
+    unreadCount: page.unreadCount,
+  };
+}
+
+/** True when the scroll position is within `threshold` points of the end (load the next page). */
+export function nearEnd(e: { layoutMeasurement: { height: number }; contentOffset: { y: number }; contentSize: { height: number } }, threshold = 400): boolean {
+  return e.layoutMeasurement.height + e.contentOffset.y >= e.contentSize.height - threshold;
+}
+
 export type NotificationTarget = PushRoute;
 
 /** Where a notification takes the user — the same place its push opens (`notify/routes`). */
