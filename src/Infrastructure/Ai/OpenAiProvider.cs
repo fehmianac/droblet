@@ -176,6 +176,10 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
             // error.param names the rejected request field (e.g. "model", "response_format") — never user content.
             logger.LogWarning("OpenAI {Operation} failed: {Status} {Code} (param {Param}, model {Model})",
                 operation, (int)response.StatusCode, code, OpenAiPayloads.ErrorParam(body) ?? "-", info.Model ?? "-");
+            // An exhausted balance / quota answers 429 too, but no retry can fix it: fail now (credit refunded) instead of
+            // keeping the user waiting through three SQS attempts (≈ 7 minutes with the 150 s visibility timeout).
+            if (response.StatusCode == HttpStatusCode.TooManyRequests && OpenAiPayloads.IsBillingError(code))
+                throw new AiProviderException($"OpenAI {operation} returned 429 ({code}).");
             if (response.StatusCode is HttpStatusCode.RequestTimeout or HttpStatusCode.TooManyRequests || (int)response.StatusCode >= 500)
                 throw new HttpRequestException($"OpenAI {operation} returned {(int)response.StatusCode} ({code}).", null, response.StatusCode);
             throw new AiProviderException($"OpenAI {operation} returned {(int)response.StatusCode} ({code}).");
@@ -423,6 +427,10 @@ public static class OpenAiPayloads
             return null;
         }
     }
+
+    /// <summary>429 codes that mean "no money / no quota left" rather than "slow down" — retrying cannot help.</summary>
+    public static bool IsBillingError(string code) =>
+        code is "insufficient_quota" or "credit_balance_exhausted" or "billing_hard_limit_reached" or "billing_not_active";
 
     /// <summary>error.code / error.type only — the message may echo user input and is never logged.</summary>
     public static string ErrorCode(string responseBody)
