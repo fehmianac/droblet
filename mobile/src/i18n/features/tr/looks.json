@@ -83,7 +83,18 @@
     "missingNote_other": "{{count}} parça gardırobunda yok; mağazadan tamamlayabilirsin.",
     "deleted": "Bu look silindi.",
     "backToLooks": "Lookbook'a dön",
-    "notFound": "Bu look artık lookbook'unda yok."
+    "notFound": "Bu look artık lookbook'unda yok.",
+    "heroInvite": "Bu look senin üzerinde nasıl durur?",
+    "heroInviteA11y": "Üzerimde gör. Bu look senin üzerinde nasıl durur? {{detail}}",
+    "heroAddPhoto": "Önce fotoğrafını ekle",
+    "heroMember": "Üyelikle açılır",
+    "heroPreparing": "Hazırlanıyor…",
+    "heroPreparingA11y": "{{name}}, senin üzerinde hazırlanıyor",
+    "heroPreparingNote": "Bitince burada görünür.",
+    "heroReadyNote": "Görselin hazır · kredi harcanmaz",
+    "heroMore_one": "+{{count}}",
+    "heroMore_other": "+{{count}}",
+    "tryOnPreparing": "Görsel hazırlanıyor…"
   },
   "trips": {
     "eyebrow": "SEYAHAT PLANLARIN",

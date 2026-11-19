@@ -8,7 +8,8 @@ import { cachedTryOnImageId, cachedTryOnJobId } from '@/api/wire/tryon';
 import { Icon } from '@/components/ui/Icon';
 import { Text } from '@/components/ui/Text';
 
-import { existingTryOnQuery, useExistingTryOn } from './api';
+import { currentTryOn, existingTryOnQuery, useExistingTryOn } from './api';
+import { useTryOnPhotoKey } from './photoKey';
 
 /**
  * Canvas 13d — "Üzerimde gör" for a target that already has an image with the current photo (same pieces + same
@@ -35,10 +36,11 @@ export function useCachedTryOn(target: TryOnTarget | null, options: { enabled?: 
  * A target missing from the map has not answered (yet) or failed — treat it as uncached.
  */
 export function useCachedTryOns(targets: TryOnTarget[], options: { enabled?: boolean } = {}): Record<string, string | null> {
-  const results = useQueries({ queries: targets.map((target) => existingTryOnQuery(target, options.enabled ?? true)) });
+  const photoKey = useTryOnPhotoKey();
+  const results = useQueries({ queries: targets.map((target) => existingTryOnQuery(target, options.enabled ?? true, photoKey)) });
   const map: Record<string, string | null> = {};
   targets.forEach((target, i) => {
-    const data = results[i]?.data;
+    const data = currentTryOn(results[i]?.data, photoKey);
     if (data !== undefined) map[target.id] = data?.tryOnId ? cachedTryOnJobId(data.tryOnId) : null;
   });
   return map;

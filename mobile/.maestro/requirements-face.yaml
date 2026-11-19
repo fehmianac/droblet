@@ -28,6 +28,9 @@ appId: com.alatech.droplet
     id: "wardrobe.view.looks"
 - tapOn:
     id: "looks.create"
+# "+" opens the add menu (create a look / import outfit photos).
+- tapOn:
+    id: "looks.addSheet.create"
 
 # 15 Look oluştur — a top and a bottom
 - extendedWaitUntil:

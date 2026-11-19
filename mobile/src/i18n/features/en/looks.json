@@ -83,7 +83,18 @@
     "missingNote_other": "{{count}} pieces aren't in your wardrobe; you can complete them from the store.",
     "deleted": "This look was deleted.",
     "backToLooks": "Back to the lookbook",
-    "notFound": "This look is no longer in your lookbook."
+    "notFound": "This look is no longer in your lookbook.",
+    "heroInvite": "How would this look sit on you?",
+    "heroInviteA11y": "Try it on me. How would this look sit on you? {{detail}}",
+    "heroAddPhoto": "Add your photo first",
+    "heroMember": "Unlocks with membership",
+    "heroPreparing": "Preparing…",
+    "heroPreparingA11y": "{{name}}, being prepared on you",
+    "heroPreparingNote": "It will appear here when done.",
+    "heroReadyNote": "Your image is ready · no credit used",
+    "heroMore_one": "+{{count}}",
+    "heroMore_other": "+{{count}}",
+    "tryOnPreparing": "Preparing image…"
   },
   "trips": {
     "eyebrow": "YOUR TRAVEL PLANS",

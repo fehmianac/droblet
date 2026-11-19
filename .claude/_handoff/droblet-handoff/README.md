@@ -292,6 +292,8 @@ Uygulama **çok dilli**; ilk diller **Türkçe ve İngilizce**, sonrası veriyle
 | 12 | İncelemede self-premium | Prod'da kapalı tutulması önerildi |
 | 13 | Supabase erişimi | |
 | 15 | App Privacy "Kullanım verisi" bağlı mı | Analitik olaylar artık hesaba göre indeksleniyor, dışa aktarılıyor ve hesapla siliniyor → "Linked: Yes" daha güvenli (`docs/store-listing/app-privacy.md`) |
+| 16 | OpenAI sıfır veri saklama (ZDR) talebi | Yüz/boy fotoğrafları şu an 30 güne kadar saklanabilir; ZDR ile 0. `privacy.md` [OPENAI RETENTION] boşluğu buna göre dolar (`docs/ai-cost/image-models.md`) |
+| 17 | Prod AI ayarları | Dev'deki ekonomik ayarlar (`ops-presets/dev-worker-ai.json`: terra, düşük kalite try-on, flare, kısa stilist talimatı) prod'a ne zaman? Günlük AI sınırları prod'da 0 (kapalı) |
 | 14 | Prod kurulumu | Altyapı + SSM + mağaza başvurusu; ürün sahibini bekler |
 
 Benim tarafımda (bekleme listesi dışı, sıradaki işler): paywall'a abonelik koşulları linki; moderasyonda "içerik kaldırıldı"nın gerçekten kaldırması; palette ai-perf zaman aşımı incelemesi.

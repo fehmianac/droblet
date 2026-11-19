@@ -1,13 +1,13 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { CalendarCheck, ChevronRight, CircleAlert, Ellipsis, Heart, MirrorRound, Pencil, Share as ShareIcon, Star, Trash2 } from 'lucide-react-native';
-import { useState } from 'react';
+import { CalendarCheck, ChevronRight, CircleAlert, Ellipsis, Heart, History, MirrorRound, Pencil, Share as ShareIcon, Star, Trash2 } from 'lucide-react-native';
+import { useState, type ComponentProps } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, Share, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { Look, LookSlot } from '@/api/contracts/looks';
 import { useWearToday } from '@/api/today';
-import { ImageTag, MissingTag, PopoverMenu } from '@/components/ui/Bits';
+import { PopoverMenu } from '@/components/ui/Bits';
 import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
@@ -20,7 +20,8 @@ import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { CreditConfirmSheet } from '@/features/credits/CreditConfirmSheet';
 import { useLookWrites } from '@/features/looks/api';
-import { indexItems, LookCover, SlotThumb, type ItemsById } from '@/features/looks/LookCover';
+import { indexItems, SlotThumb, type ItemsById } from '@/features/looks/LookCover';
+import { LookHero, useLookTryOn, type LookTryOn } from '@/features/looks/LookHero';
 import { lookPieceNames, missingPieceCount } from '@/features/looks/logic';
 import { useLook } from '@/features/looks/queries';
 import { ModeratedNote } from '@/features/moderation/ModeratedNote';
@@ -28,8 +29,6 @@ import { ensureTryOnConsent, isConsentDeclined, TRY_ON_CREDIT_COST, useStartTryO
 import { RequirementHint, StepCountBadge } from '@/features/requirements/RequirementHint';
 import { useHandleGate } from '@/features/requirements/useHandleGate';
 import { useGate } from '@/features/requirements/useRequirements';
-import { useCachedTryOn } from '@/features/tryon/cached';
-import { Zoomable, type ViewerImage } from '@/components/ui/viewer';
 import { useItems } from '@/features/wardrobe/queries';
 import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { formatMoney, formatNumber } from '@/lib/format';
@@ -112,56 +111,17 @@ function PieceRow({ slot, itemsById }: { slot: LookSlot; itemsById: ItemsById })
   );
 }
 
-function LookBody({ look, itemsById, note }: { look: Look; itemsById: ItemsById; note: string | null }) {
+type BodyProps = { look: Look; itemsById: ItemsById; note: string | null; tryOn: LookTryOn; invite: ComponentProps<typeof LookHero>['invite'] };
+
+function LookBody({ look, itemsById, note, tryOn, invite }: BodyProps) {
   const language = useAppLanguage();
   const { t } = useTranslation();
   const occasion = t(`occasion.${look.occasion}`);
   const rating = look.rating !== null ? formatNumber(look.rating, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : null;
-  const side = look.slots.slice(0, 3);
   const missing = missingPieceCount(look);
-  // 13a: the try-on image (AI, labelled) and the piece photos page together in the viewer.
-  const viewerImages: ViewerImage[] = [
-    ...(look.tryOnImageUrl ? [{ uri: look.tryOnImageUrl, label: t('tryOn.imageA11yNamed', { name: look.name }), ai: { tag: t('aiBadge.onYou') } }] : []),
-    ...look.slots.filter((s) => s.imageUrl && !s.deleted).map((s) => ({ uri: s.imageUrl ?? '', label: s.name, caption: s.name })),
-  ];
-  const viewerIndex = (uri: string | null | undefined) => (uri ? viewerImages.findIndex((img) => img.uri === uri) : -1);
   return (
     <ScrollView contentContainerClassName="gap-3 px-gutter pb-6 pt-1">
-      <View className="flex-row gap-2.5">
-        <Zoomable images={viewerImages} index={0} disabled={!look.tryOnImageUrl} accessibilityLabel={t('tryOn.imageA11yNamed', { name: look.name })} testID="look-cover">
-        <LookCover
-          seed={look.id}
-          figureHeight={170}
-          tryOnImageUrl={look.tryOnImageUrl ?? look.coverImageUrl ?? null}
-          slots={look.slots}
-          itemsById={itemsById}
-          className="h-[264px] w-[200px] rounded-image-lg"
-        >
-          <ImageTag
-            label={look.tryOnImageUrl ? t('aiBadge.onYou') : toDisplayUpper(occasion, language)}
-            className="absolute bottom-2 left-2"
-          />
-        </LookCover>
-        </Zoomable>
-        <View className="flex-1 gap-2">
-          {side.map((slot) => {
-            const store = slot.source === 'store';
-            return (
-              <View
-                key={slot.slot}
-                className={`h-[82px] overflow-hidden rounded-field ${store ? 'border-[1.5px] border-dashed border-accent' : ''}`}
-                accessible={false}
-                importantForAccessibility="no-hide-descendants"
-              >
-                <Zoomable images={viewerImages} index={viewerIndex(slot.imageUrl)} disabled={viewerIndex(slot.imageUrl) < 0} className="h-full w-full">
-                  <SlotThumb slot={slot} itemsById={itemsById} className="h-full w-full" glyphSize={30} />
-                </Zoomable>
-                {store ? <MissingTag className="absolute right-1.5 top-1.5" /> : null}
-              </View>
-            );
-          })}
-        </View>
-      </View>
+      <LookHero name={look.name} slots={look.slots} itemsById={itemsById} tryOn={tryOn} invite={invite} />
 
       <View className="flex-row items-start justify-between gap-3">
         <View className="flex-1 gap-1">
@@ -243,8 +203,9 @@ export default function LookScreen() {
   // Consent of the photo path first (normally already given), then the credit confirmation.
   const gate = useGate('tryOn', () => void ensureTryOnConsent().then((ok) => ok && setConfirm(true)), { origin: look?.name ?? null });
   const withHandle = useHandleGate();
-  // 13d: an image that already exists for this look + photo opens without the credit sheet.
-  const cachedTryOn = useCachedTryOn(id ? { kind: 'look', id } : null, { enabled: Boolean(look) && !look?.tryOnImageUrl });
+  // 14b hero: the image on the CURRENT photo, the run of this session, or none. 13d: an existing image opens
+  // without the credit sheet.
+  const lookTryOn = useLookTryOn(id, { enabled: Boolean(look) });
 
   if (deleted) {
     return (
@@ -273,8 +234,9 @@ export default function LookScreen() {
       return;
     }
     setNotice(null);
-    if (look && cachedTryOn.cachedJobId) {
-      router.push({ pathname: '/tryon/[jobId]', params: { jobId: cachedTryOn.cachedJobId, title: look.name, kind: 'look', id: look.id } });
+    if (lookTryOn.state === 'generating') return;
+    if (look && lookTryOn.cachedJobId) {
+      router.push({ pathname: '/tryon/[jobId]', params: { jobId: lookTryOn.cachedJobId, title: look.name, kind: 'look', id: look.id } });
       return;
     }
     // What is missing (photo, consent, membership…) opens the requirements flow, which comes back here (canvas 11).
@@ -304,6 +266,19 @@ export default function LookScreen() {
           ? t('lookDetail.wornNotice')
           : null;
 
+  // The invitation names what a tap leads to: a missing photo or membership first, otherwise the cost (a consent or
+  // credit step is said by the hint under the button; the tap opens the requirements flow either way).
+  const missingStep = gate.req.ready ? null : gate.req.hint;
+  const photoMissing = missingStep === 'bodyPhoto' || missingStep === 'facePhoto' || missingStep === 'bodyType';
+  const inviteFooter = photoMissing
+    ? t('lookDetail.heroAddPhoto')
+    : missingStep === 'premium'
+      ? t('lookDetail.heroMember')
+      : `${t('lookEditor.tryOn')} · ${t('ai.creditCost', { count: TRY_ON_CREDIT_COST })}`;
+  const invite = { footer: inviteFooter, ready: !photoMissing && missingStep !== 'premium', onPress: onTryOnPress };
+  const hasImage = lookTryOn.state === 'image';
+  const generating = lookTryOn.state === 'generating';
+
   return (
     <Screen bottom={!look}>
       <ScreenHeader
@@ -323,7 +298,7 @@ export default function LookScreen() {
         query={query}
         notFound={{ message: t('lookDetail.notFound'), actionLabel: t('lookDetail.backToLooks'), onAction: () => router.replace('/wardrobe/looks') }}
       >
-        {(data) => <LookBody look={data} itemsById={itemsById} note={noteText} />}
+        {(data) => <LookBody look={data} itemsById={itemsById} note={noteText} tryOn={lookTryOn} invite={invite} />}
       </ScreenState>
 
       {look ? (
@@ -336,8 +311,15 @@ export default function LookScreen() {
               accessibilityLabel={t(look.isFavorite ? 'looks.favoriteRemove' : 'looks.favoriteAdd', { name: look.name })}
             />
             <View className="flex-1">
-              <Button size="bar" icon={MirrorRound} label={t('lookEditor.tryOn')} onPress={onTryOnPress} testID="look-try-on" />
-              {gate.count > 0 ? (
+              <Button
+                size="bar"
+                icon={MirrorRound}
+                label={generating ? t('lookDetail.tryOnPreparing') : t('lookEditor.tryOn')}
+                onPress={onTryOnPress}
+                disabled={generating}
+                testID="look-try-on"
+              />
+              {gate.count > 0 && !hasImage && !generating ? (
                 <View className="absolute -right-1 -top-1" pointerEvents="none">
                   <StepCountBadge count={gate.count} />
                 </View>
@@ -345,7 +327,21 @@ export default function LookScreen() {
             </View>
             <IconButton icon={Pencil} onPress={edit} accessibilityLabel={t('lookDetail.edit')} testID="look-edit" />
           </View>
-          <RequirementHint hint={gate.hint} onPress={gate.run} className="mt-1.5" testID="look-try-on-hint" />
+          {hasImage ? (
+            // The image exists on this photo: "Üzerimde gör" opens it, and nothing is charged (13d).
+            <View className="mt-1.5 min-h-[28px] flex-row items-center justify-center gap-1.5" testID="look-try-on-ready">
+              <Icon icon={History} size={14} tone="accent" />
+              <Text variant="caption" tone="accent" className="font-sans-medium">
+                {t('lookDetail.heroReadyNote')}
+              </Text>
+            </View>
+          ) : generating ? (
+            <Text variant="caption" tone="muted" className="mt-1.5 min-h-[28px] text-center leading-[28px]" testID="look-try-on-preparing">
+              {t('lookDetail.heroPreparingNote')}
+            </Text>
+          ) : (
+            <RequirementHint hint={gate.hint} onPress={gate.run} className="mt-1.5" testID="look-try-on-hint" />
+          )}
         </BottomActionBar>
       ) : null}
 
