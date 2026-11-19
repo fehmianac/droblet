@@ -1,4 +1,4 @@
-import { act, fireEvent, render as rtlRender, screen } from '@testing-library/react-native';
+import { fireEvent, render as rtlRender, screen, waitFor } from '@testing-library/react-native';
 import type { ReactElement } from 'react';
 import { Text } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -22,8 +22,12 @@ beforeAll(async () => {
 });
 
 describe('13a ImageViewer', () => {
+  // Fake timers never outlive a test, even when an assertion fails half way (a leak hung CI on Node 22).
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it('opens from a tile with the "Enlarge" hint and closes with ×', async () => {
-    jest.useFakeTimers();
     await render(
       <Zoomable images={images} index={0} accessibilityLabel="Gece Laciverti on you" testID="tile">
         <Text>tile</Text>
@@ -35,15 +39,12 @@ describe('13a ImageViewer', () => {
     expect(screen.queryByTestId('image-viewer')).toBeNull();
 
     await fireEvent.press(tile);
-    await act(async () => {
-      jest.advanceTimersByTime(100);
-    });
-    expect(screen.getByTestId('image-viewer')).toBeTruthy();
+    // Real timers: advancing fake timers through the opening animation never returned on the CI runner.
+    await waitFor(() => expect(screen.getByTestId('image-viewer')).toBeTruthy());
     expect(screen.getByTestId('image-viewer.close').props.accessibilityLabel).toBe('Close');
 
     await fireEvent.press(screen.getByTestId('image-viewer.close'));
     expect(screen.queryByTestId('image-viewer')).toBeNull();
-    jest.useRealTimers();
   });
 
   it('keeps the AI label on an AI image and shows the caption on a photo', async () => {
