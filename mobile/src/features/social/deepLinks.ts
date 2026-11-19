@@ -8,10 +8,11 @@
  *   …/l/{lookId}[?invite=code]                                            → 25 Arkadaş akışı, that look first
  *   …/u/{handle}[?invite=code]                                            → 26 Kişi profili
  *   droplet://today                                                       → 06 Bugün
+ *   …/reset-password[/]?token=…  ·  …/verify-email[/]?token=… (also under /en/) → 02d Yeni şifre / E-postanı doğrula
  *
  * Every shared link carries the sharer's invite code; it is returned separately so the caller can
  * keep it until sign-up, and removed from the rewritten route. Unknown links pass through unchanged
- * (reset-password, edit/{id}, look/{id} … are real routes already).
+ * (edit/{id}, look/{id} … are real routes already).
  */
 export type MappedLink = { path: string; inviteCode: string | null };
 
@@ -82,6 +83,12 @@ export function mapIncomingLink(input: string): MappedLink {
   }
   if (first === 'u' && second) {
     return { path: withQuery(`/u/${encodeURIComponent(decode(second))}`), inviteCode };
+  }
+  // E-mail links: `/reset-password/?token=…` and `/verify-email/?token=…` (the trailing-slash form the site serves;
+  // the no-slash form and an `/en/` language prefix too) → the app routes with the token, nothing else changed.
+  const emailRoute = first === 'en' ? second : first;
+  if ((emailRoute === 'reset-password' || emailRoute === 'verify-email') && segments.length === (first === 'en' ? 2 : 1)) {
+    return { path: withQuery(`/${emailRoute}`), inviteCode };
   }
   if (first === 'today' && segments.length === 1) {
     return { path: withQuery('/'), inviteCode };
