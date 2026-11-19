@@ -220,7 +220,11 @@ const aiFields = (() => {
     f('Prompts.Enabled', 'bool', true), f('Prompts.CacheSeconds', 'int', 60, { min: 10, max: 600 }), f('Prompts.FailureThreshold', 'int', 5, { min: 0, max: 100 }), f('Prompts.FailureWindowMinutes', 'int', 10, { min: 1, max: 120 }),
   ];
 })();
-const aiModelSettings = () => ({ settings: { group: 'aiModels', parameters: ['/droblet/dev/worker/Ai'], fields: aiFields }, availableModels: aiModels.ids, modelsFetchedAt: aiModels.fetchedAt, reloadSeconds: 60 });
+const aiLimits = { group: 'aiLimits', parameters: ['/droblet/dev/api/AiLimits'], fields: [
+  { key: 'StylistJobsPerDay', type: 'int', min: 0, max: 10000, value: 40 }, { key: 'ItemRecognitionsPerDay', type: 'int', min: 0, max: 10000, value: 150 },
+  { key: 'PaletteAnalysesPerDay', type: 'int', min: 0, max: 1000, value: 5 }, { key: 'AiStartsPerMinute', type: 'int', min: 0, max: 1000, value: 20 }] };
+const aiModelSettings = () => ({ settings: { group: 'aiModels', parameters: ['/droblet/dev/worker/Ai'], fields: aiFields }, availableModels: aiModels.ids, modelsFetchedAt: aiModels.fetchedAt, reloadSeconds: 60,
+  limits: aiLimits, pricing: JSON.stringify({ Models: { 'gpt-6-astra': { Input: 10, CachedInput: 1, Output: 50 }, 'gpt-image-2': { Input: 5, ImageOutput: 30 } }, TierMultipliers: { flex: 0.5 } }) });
 
 function aiTrial(b) {
   const id = `01JTRIAL${Date.now()}`;
@@ -484,6 +488,10 @@ createServer(async (req, res) => {
     return send(200, polls === 1 ? { ...view, status: 'running' } : { ...view, ...done });
   }
   if (p === '/v1/admin/ai/model' && req.method === 'GET') return send(200, aiModelSettings());
+  if (p === '/v1/admin/ai/limits' && req.method === 'PUT') {
+    for (const [k, value] of Object.entries(b.values ?? {})) { const f = aiLimits.fields.find((x) => x.key === k); if (f) f.value = value; }
+    return send(200, aiLimits);
+  }
   if (p === '/v1/admin/ai/model' && req.method === 'PUT') {
     const errors = {};
     for (const [k, value] of Object.entries(b.values ?? {})) {

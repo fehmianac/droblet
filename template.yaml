@@ -641,6 +641,8 @@ Resources:
                   - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/worker/Entitlements
                   - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/worker/Packing
                   - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/worker/Ai
+                  # AI → Modeller shows the cost price list read-only (a String parameter, no secret).
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/worker/Ai/Pricing
                   - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/notifier/Notifications
               # …and write exactly the owner-editable, non-secret parameters (Domain SettingsCatalog). Nothing else.
               - Effect: Allow
@@ -654,6 +656,7 @@ Resources:
                   - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/api/Notifications
                   - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/notifier/Notifications
                   - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/api/AuthRateLimits
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/api/AiLimits
 
   ItemProcessorLambdaRole:
     Type: AWS::IAM::Role

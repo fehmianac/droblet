@@ -41,6 +41,16 @@ public sealed record SettingGroupDto(string Group, IReadOnlyList<string> Paramet
 public static partial class SettingsCatalog
 {
     public const string AiModelsGroup = "aiModels";
+    public const string AiLimitsGroup = "aiLimits";
+
+    /// <summary>Per-tenant caps of AI work without credits (SSM api/AiLimits; 0 = no cap), edited on AI → Modeller.</summary>
+    public static readonly SettingGroup AiLimits = new(AiLimitsGroup,
+        [new("api", "AiLimits")],
+        [
+            new("StylistJobsPerDay", SettingFieldType.Int, 0, 10000), new("ItemRecognitionsPerDay", SettingFieldType.Int, 0, 10000),
+            new("PaletteAnalysesPerDay", SettingFieldType.Int, 0, 1000), new("AiStartsPerMinute", SettingFieldType.Int, 0, 1000),
+        ],
+        AdminPermissions.AiManage);
 
     /// <summary>The chat operations (schema names) a per-operation AI setting can name (Ai:ReasoningEffort:{op}, Ai:FastTextOperations).</summary>
     public static readonly IReadOnlyList<string> AiTextOperations =
@@ -132,6 +142,7 @@ public static partial class SettingsCatalog
                 new("RegisterPerIpPerHour", SettingFieldType.Int, 1, 10000), new("ForgotPerEmailPerHour", SettingFieldType.Int, 1, 100),
             ]),
         AiModels,
+        AiLimits,
     ];
 
     public static SettingGroup? Find(string name) => Groups.FirstOrDefault(g => string.Equals(g.Name, name, StringComparison.Ordinal));

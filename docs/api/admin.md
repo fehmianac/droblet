@@ -99,7 +99,7 @@ Actions: `auth.login`, `auth.login_failed`, `auth.logout`, `auth.logout_all`, `a
 `edit.retire`, `collection.upsert`, `collection.retire`, `collection_look.upsert`, `collection_look.retire`,
 `library.upsert`, `library.retire`, `user.suspend`, `user.unsuspend`, `user.delete`, `user.test_premium_grant`,
 `user.test_premium_revoke`, `user.credits_add`, `report.resolve`, `setting.update`, `ai.prompt.publish`,
-`ai.prompt.rollback`, `ai.prompt.auto_fallback` (written by a worker, no admin), `ai.trial`, `ai.models.update`.
+`ai.prompt.rollback`, `ai.prompt.auto_fallback` (written by a worker, no admin), `ai.trial`, `ai.models.update`, `ai.limits.update`.
 
 ## 5. Dashboard, users, library, images, settings
 
@@ -182,12 +182,12 @@ stage has its own table and SSM path, so dev and prod overrides are separate.
 ### Prompt registry
 
 Every prompt has a stable key (`PromptCatalog`, Infrastructure). The shipped text stays the **code default**
-(`OpenAiPrompts` / `AiSchemas`, unchanged); a published override replaces it. 28 keys:
+(`OpenAiPrompts` / `AiSchemas`, unchanged); a published override replaces it. 29 keys:
 
 | Feature | Keys | Variables (required **bold**) |
 |---|---|---|
 | common | `common.language` — suffix of the stylist, garment and detection system prompts | **`languageName`**, `languageCode` |
-| stylist | `stylist.outfit.instructions`, `stylist.week.instructions`, `stylist.pack.instructions` (system prompts); `stylist.{outfit,week,pack}.schema` (view only) | — |
+| stylist | `stylist.outfit.instructions`, `stylist.week.instructions`, `stylist.pack.instructions` (system prompts); `stylist.compact_candidates` (appended before the language suffix when `Ai:CompactStylistPrompt` is on); `stylist.{outfit,week,pack}.schema` (view only) | — |
 | wardrobe | `item.detect.instructions`, `item.detect.request`, `item.describe.instructions`, `item.describe.request`; `item.{detect,describe}.schema` | — |
 | outfit_import | `item.match.instructions`, `item.match.request`; `item.match.schema` | request: **`candidates`**, `pieceHint` |
 | palette | `palette.instructions`, `palette.request`; `palette.schema` | — |
@@ -250,6 +250,7 @@ answer has nothing to parse). `FailureThreshold = 0` turns the switch off.
 | POST | `v1/admin/ai/trial` | `AiTrialRequest` | `202 AiTrialDto` (queued) or `200` (image prompt preview). `400`, `404`, `429 too_many_requests` (30 trials per admin per hour). Audited `ai.trial` |
 | GET | `v1/admin/ai/trial/{id}` | — | `AiTrialDto` (poll every 2 s until `succeeded` / `failed`) |
 | GET | `v1/admin/ai/model` | — | `AiModelSettingsDto` |
+| PUT | `v1/admin/ai/limits` | `{ "values": { "<field>": int } }` | `SettingGroupDto` of `aiLimits` (`api/AiLimits`: `StylistJobsPerDay`, `ItemRecognitionsPerDay` 0–10 000, `PaletteAnalysesPerDay`, `AiStartsPerMinute` 0–1000; 0 = no cap). Audited `ai.limits.update`. Template: `ssm:PutParameter` on `api/AiLimits` |
 | PUT | `v1/admin/ai/model` | `{ "values": { "<field>": value \| null } }` | `SettingGroupDto`. `400` (`invalid`, `out_of_range`, `unknown_field`, `models_unknown`, `not_available`), `503 settings_unavailable`. Audited `ai.models.update` (before / after of the changed keys) |
 
 ```jsonc
@@ -281,7 +282,8 @@ answer has nothing to parse). `FailureThreshold = 0` turns the switch off.
   "latencyMs": 1830, "usedModel": "gpt-…", "inputTokens", "cachedTokens", "outputTokens", "systemPrompt", "userPrompt" }
 
 // AiModelSettingsDto
-{ "settings": SettingGroupDto /* group aiModels, parameter worker/Ai */, "availableModels": ["gpt-…"], "modelsFetchedAt": "…"|null, "reloadSeconds": 60 }
+{ "settings": SettingGroupDto /* group aiModels, parameter worker/Ai */, "availableModels": ["gpt-…"], "modelsFetchedAt": "…"|null, "reloadSeconds": 60,
+  "limits": SettingGroupDto /* group aiLimits, api/AiLimits */, "pricing": "{…}"|null /* worker/Ai/Pricing, read only (template: ssm:GetParameter) */ }
 ```
 
 **Trials ("Dene" / "Test")** run in the **Stylist worker** (it holds the provider key; the Api never reads it): the
@@ -312,7 +314,10 @@ The group is not on `v1/admin/setting` (that page keeps `ai.Enabled`, the kill s
 | `TextModel`, `ImageModel` | model |
 | `FastTextModel` (optional), `FastTextOperations` | model; subset of `outfit, week_plan, packing, garment_draft, item_detection, item_match, palette_season, photo_check` |
 | `ReasoningEffort.Default`, `ReasoningEffort.{operation}` (each of the 8 operations) | `none, minimal, low, medium, high, xhigh` (optional) |
-| `ServiceTier` | `auto, default, flex, priority` (optional) |
+| `ServiceTier`; `ServiceTiers.{operation}`, `ServiceTiers.outfit_import` (the background import flow) | `auto, default, flex, priority` (optional) |
+| `VisionDetail.{operation}` (operations that send images) | `low, high, auto` (optional) |
+| `MaxOutputTokens.Default`, `MaxOutputTokens.{operation}` | 256–64 000 (optional) |
+| `CompactStylistPrompt` (bool) | |
 | `PromptCacheKey` (bool), `TimeoutSeconds` 10–110 | |
 | `ImageSize`; `Image.Size`, `Image.TryOnSize`, `Image.CleanupSize` | `1024x1024, 1024x1536, 1536x1024, auto` (the `Image.*` ones optional) |
 | `Image.Quality`, `Image.TryOnQuality`, `Image.CleanupQuality`, `Image.PreviewQuality` | `low, medium, high, auto` (optional) |

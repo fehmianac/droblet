@@ -936,7 +936,7 @@ public static class OpenAiPrompts
     /// <summary>Registry key tryon.image.body; {{garmentCount}} = the number of garment images after the body photo.</summary>
     public const string TryOnTemplate =
         "The first image is a full-body photo of a person. The following {{garmentCount}} image(s) are garments. " +
-        "Show the same person, with the same face, hair, skin tone, body shape and pose, wearing exactly these garments, keeping each garment's colour, pattern and cut. " +
+        "Show the same person, with the same face, hair, skin tone, body shape and pose, wearing exactly these garments, keeping each garment's colour, pattern, cut and every brand logo, monogram, print and lettering exactly as on the garment. " +
         "Realistic fit and proportions, neutral studio background, full body in frame. Do not change the person's body. No text.";
 
     /// <summary>
@@ -968,7 +968,7 @@ public static class OpenAiPrompts
                "The first image is a photo of an adult person's face. The following {{garmentCount}} image(s) are garments. " +
                "Create a realistic full-length photo of this same adult person with {{bodyShape}},{{height}}{{size}} standing in a relaxed, neutral pose. " +
                "Keep the face, facial features, skin tone, hair and apparent age exactly as in the face photo — do not change, beautify or replace the person's identity. " +
-               "The person is fully clothed, wearing exactly these garments, keeping each garment's colour, pattern and cut; add plain neutral basics only where a garment is missing so the person is never undressed. " +
+               "The person is fully clothed, wearing exactly these garments, keeping each garment's colour, pattern, cut and every brand logo, monogram, print and lettering exactly as on the garment; add plain neutral basics only where a garment is missing so the person is never undressed. " +
                "Never show nudity, underwear alone or a suggestive pose. Never exaggerate the body shape. Neutral studio background, full body in frame, no text.";
 
     public const string PhotoCheckRequest = "Check this photo.";
@@ -998,9 +998,10 @@ public static class OpenAiPrompts
     {
         return "Product photo of exactly the {{piece}} in this image, alone: remove the background and everything that is not this {{piece}} " +
                "(other clothing, other accessories, hands, skin, body, hangers, props). Keep its true colours, pattern, material, details and shape; do not redesign it. " +
+               "Keep every brand logo, monogram, emblem, label, print and lettering that is on the piece exactly as it is, in the same place, size and colour; never remove, blur, simplify or invent one. " +
                (jewellery
                    ? "Jewellery product shot: the piece large, sharp and centred, filling about 70% of the frame, metal and stones with their true colour and shine. "
                    : "Centred, the whole piece visible with even margins, natural shape (laid flat or as a ghost mannequin for garments, a pair side by side for shoes). ") +
-               $"Seamless solid sand-coloured studio background, exact colour {ProductBackground}, soft even light, a very subtle contact shadow, no person, no text, no logos.";
+               $"Seamless solid sand-coloured studio background, exact colour {ProductBackground}, soft even light, a very subtle contact shadow, no person; add no text or logo to the background.";
     }
 }

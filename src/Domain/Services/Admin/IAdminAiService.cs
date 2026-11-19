@@ -60,7 +60,10 @@ public sealed record AiTrialResult(AiTrialOutcome Outcome, AiTrialDto? Trial = n
 /// <param name="Settings">The aiModels settings group (worker/Ai) as stored.</param>
 /// <param name="AvailableModels">Model ids the provider key can use (allow-list), from the last refresh; empty = never fetched.</param>
 /// <param name="ReloadSeconds">How long until a Lambda applies a change (SSM reload interval).</param>
-public sealed record AiModelSettingsDto(SettingGroupDto Settings, IReadOnlyList<string> AvailableModels, DateTime? ModelsFetchedAt, int ReloadSeconds);
+/// <param name="Limits">The aiLimits group (api/AiLimits: per-tenant daily caps of AI work without credits).</param>
+/// <param name="Pricing">worker/Ai/Pricing as stored (cost accounting only, read-only here); null when unreadable.</param>
+public sealed record AiModelSettingsDto(SettingGroupDto Settings, IReadOnlyList<string> AvailableModels, DateTime? ModelsFetchedAt, int ReloadSeconds,
+    SettingGroupDto? Limits = null, string? Pricing = null);
 
 public interface IAdminAiService
 {
@@ -79,4 +82,5 @@ public interface IAdminAiService
 
     Task<AiModelSettingsDto> GetModelSettingsAsync(CancellationToken ct);
     Task<SettingWriteResult> UpdateModelSettingsAsync(AdminUserEntity actor, IReadOnlyDictionary<string, JsonElement> values, string? ip, CancellationToken ct);
+    Task<SettingWriteResult> UpdateLimitsAsync(AdminUserEntity actor, IReadOnlyDictionary<string, JsonElement> values, string? ip, CancellationToken ct);
 }

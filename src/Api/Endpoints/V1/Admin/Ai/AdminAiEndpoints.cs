@@ -184,6 +184,32 @@ public class GetModels : IEndpoint
             .WithTags("Admin AI");
 }
 
+public class PutLimits : IEndpoint
+{
+    private static async Task<IResult> Handler([FromBody] AdminSettingUpdateRequest request, [FromServices] IAdminAiService ai, [FromServices] IAdminContext admin,
+        CancellationToken ct)
+    {
+        try
+        {
+            var result = await ai.UpdateLimitsAsync(admin.Admin, request.Values ?? [], admin.Ip, ct);
+            return result.Outcome == SettingWriteOutcome.Ok ? Results.Ok(result.Group) : AdminResults.ValidationErrors(result.Errors!);
+        }
+        catch (SettingsUnavailableException)
+        {
+            return ApiResults.Problem(StatusCodes.Status503ServiceUnavailable, ErrorCodes.SettingsUnavailable);
+        }
+    }
+
+    public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints) =>
+        endpoints.MapPut("v1/admin/ai/limits", Handler)
+            .Produces<SettingGroupDto>(StatusCodes.Status200OK)
+            .Produces<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest)
+            .RequireAdmin(AdminPermissions.AiManage)
+            .WithSummary("Change the per-tenant daily caps of AI work without credits (api/AiLimits)")
+            .WithDescription("0 = no cap. The Api applies it within ~60 s. Audited (ai.limits.update) with before / after.")
+            .WithTags("Admin AI");
+}
+
 public class PutModels : IEndpoint
 {
     private static async Task<IResult> Handler([FromBody] AdminSettingUpdateRequest request, [FromServices] IAdminAiService ai, [FromServices] IAdminContext admin,

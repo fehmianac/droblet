@@ -830,6 +830,16 @@ export const en = {
     notInList: 'not in the list',
     range: '{min}–{max}',
     fastModelUnset: 'No fast model: every operation uses the text model.',
+    limits: 'Daily AI limits per account',
+    limitsHint: 'AI work that costs no credit, counted per account per UTC day; 0 = no limit. Over the limit the app answers ai_limit_reached.',
+    limitFields: {
+      StylistJobsPerDay: 'Stylist jobs per day (outfit, week, suitcase)',
+      ItemRecognitionsPerDay: 'Garment recognitions per day',
+      PaletteAnalysesPerDay: 'Colour analyses per day',
+      AiStartsPerMinute: 'AI starts per minute',
+    },
+    pricing: 'Price list (cost accounting)',
+    pricingHint: 'Read only: only used to estimate the cost of each call; it never changes a request.',
     fields: {
       TextModel: 'Text model',
       FastTextModel: 'Fast text model',

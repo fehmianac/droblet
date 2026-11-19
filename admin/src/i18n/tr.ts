@@ -831,6 +831,16 @@ export const tr: Dict = {
     notInList: 'listede yok',
     range: '{min}–{max}',
     fastModelUnset: 'Hızlı model yok: her işlem metin modelini kullanır.',
+    limits: 'Hesap başına günlük AI sınırları',
+    limitsHint: 'Kredi harcamayan AI işleri, hesap başına UTC günü sayılır; 0 = sınır yok. Sınır aşılınca uygulama ai_limit_reached yanıtı alır.',
+    limitFields: {
+      StylistJobsPerDay: 'Günlük stilist işi (kombin, hafta, bavul)',
+      ItemRecognitionsPerDay: 'Günlük parça tanıma',
+      PaletteAnalysesPerDay: 'Günlük renk analizi',
+      AiStartsPerMinute: 'Dakikada AI başlatma',
+    },
+    pricing: 'Fiyat listesi (maliyet hesabı)',
+    pricingHint: 'Yalnız görüntüleme: yalnızca her çağrının maliyetini tahmin etmek için kullanılır; hiçbir isteği değiştirmez.',
     fields: {
       TextModel: 'Metin modeli',
       FastTextModel: 'Hızlı metin modeli',

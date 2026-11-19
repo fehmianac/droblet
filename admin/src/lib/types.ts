@@ -467,4 +467,6 @@ export interface AiModelSettings {
   availableModels: string[];
   modelsFetchedAt: string | null;
   reloadSeconds: number;
+  limits: { group: string; parameters: string[]; fields: AiSettingField[] } | null;
+  pricing: string | null;
 }

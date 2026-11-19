@@ -118,6 +118,61 @@ function TestButton({ model, kind, effort, tier }: { model: string | null; kind:
   );
 }
 
+function pretty(json: string): string {
+  try {
+    return JSON.stringify(JSON.parse(json), null, 2);
+  } catch {
+    return json;
+  }
+}
+
+/** api/AiLimits: per-tenant daily caps of AI work without credits (0 = no cap); saved on its own. */
+function LimitsCard({ group, onSaved }: { group: NonNullable<AiModelSettings['limits']>; onSaved: () => void }) {
+  const { t, fmt, errorText, fieldError } = useI18n();
+  const toast = useToast();
+  const [values, setValues] = useState<Record<string, number | null>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState(false);
+  useEffect(() => setValues(Object.fromEntries(group.fields.map((f) => [f.key, typeof f.value === 'number' ? f.value : null]))), [group]);
+  const changed = group.fields.filter((f) => values[f.key] !== f.value);
+  return (
+    <Card
+      title={t.ai.limits}
+      subtitle={<span>{t.ai.limitsHint} · <span className="font-mono">{group.parameters.join(' · ')}</span></span>}
+      actions={
+        <Button size="sm" icon="check" disabled={!changed.length} loading={busy}
+          onClick={async () => {
+            setBusy(true);
+            setErrors({});
+            try {
+              await api.put('v1/admin/ai/limits', { values: Object.fromEntries(changed.map((f) => [f.key, values[f.key]])) });
+              toast.success(t.common.saved);
+              onSaved();
+            } catch (error) {
+              setErrors(fieldErrors(error, fieldError));
+              toast.error(errorText(error));
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          {t.ai.saveModels}
+        </Button>
+      }
+    >
+      <div className="grid gap-5 md:grid-cols-2">
+        {group.fields.map((f) => (
+          <Field key={f.key} label={(t.ai.limitFields as Record<string, string>)[f.key] ?? f.key} htmlFor={`limit-${f.key}`} error={errors[f.key] ?? null}
+            hint={<span>{fmt(t.ai.range, { min: f.min ?? 0, max: f.max ?? 0 })} · <span className="font-mono">{f.key}</span></span>}>
+            <Input id={`limit-${f.key}`} type="number" min={f.min ?? undefined} max={f.max ?? undefined} value={values[f.key] ?? ''}
+              onChange={(e) => setValues((s) => ({ ...s, [f.key]: e.target.value === '' ? null : Number(e.target.value) }))} />
+          </Field>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
 function ModelsInner() {
   const { t, fmt, dateTime, errorText, fieldError } = useI18n();
   const toast = useToast();
@@ -374,6 +429,14 @@ function ModelsInner() {
       <Card title={t.ai.safety} subtitle={t.ai.safetyHint}>
         <div className="grid gap-5 md:grid-cols-2">{SAFETY_FIELDS.map(control)}</div>
       </Card>
+
+      {data.data.limits && <LimitsCard group={data.data.limits} onSaved={data.reload} />}
+
+      {data.data.pricing && (
+        <Card title={t.ai.pricing} subtitle={t.ai.pricingHint}>
+          <pre className="max-h-72 overflow-auto rounded-lg border border-line bg-stone-50 p-3 font-mono text-xs leading-5 text-ink">{pretty(data.data.pricing)}</pre>
+        </Card>
+      )}
     </div>
   );
 }

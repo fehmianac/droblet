@@ -351,7 +351,34 @@ public sealed class AdminAiService(
     {
         var json = await settingsStore.GetAsync(AiParameter, ct);
         var models = await repository.GetAsync<AiModelListEntity>(AiModelListEntity.GetPk(), AiModelListEntity.GetSk(), ct);
-        return new AiModelSettingsDto(SettingsCatalog.Read(SettingsCatalog.AiModels, stage, json), models?.Ids ?? [], models?.FetchedAt, ReloadSeconds);
+        var limits = SettingsCatalog.Read(SettingsCatalog.AiLimits, stage, await settingsStore.GetAsync(SettingsCatalog.AiLimits.Parameters[0].Name(stage), ct));
+        string? pricing;
+        try
+        {
+            pricing = await settingsStore.GetAsync($"{AiParameter}/Pricing", ct);
+        }
+        catch (SettingsUnavailableException)
+        {
+            pricing = null; // read-only extra: never fails the page
+        }
+        return new AiModelSettingsDto(SettingsCatalog.Read(SettingsCatalog.AiModels, stage, json), models?.Ids ?? [], models?.FetchedAt, ReloadSeconds, limits, pricing);
+    }
+
+    public async Task<SettingWriteResult> UpdateLimitsAsync(AdminUserEntity actor, IReadOnlyDictionary<string, JsonElement> values, string? ip, CancellationToken ct)
+    {
+        var group = SettingsCatalog.AiLimits;
+        var errors = SettingsCatalog.Validate(group, values);
+        if (errors.Count > 0)
+            return new SettingWriteResult(SettingWriteOutcome.Invalid, Errors: errors);
+        var name = group.Parameters[0].Name(stage);
+        var current = await settingsStore.GetAsync(name, ct);
+        var next = SettingsCatalog.Apply(current, values);
+        await settingsStore.PutAsync(name, next, ct);
+        var before = SettingsCatalog.Read(group, stage, current);
+        var after = SettingsCatalog.Read(group, stage, next);
+        await audit.WriteAsync(actor, "ai.limits.update", "setting", group.Name,
+            before.Fields.ToDictionary(f => f.Key, f => f.Value), after.Fields.ToDictionary(f => f.Key, f => f.Value), ip, ct);
+        return new SettingWriteResult(SettingWriteOutcome.Ok, after);
     }
 
     public async Task<SettingWriteResult> UpdateModelSettingsAsync(AdminUserEntity actor, IReadOnlyDictionary<string, JsonElement> values, string? ip, CancellationToken ct)

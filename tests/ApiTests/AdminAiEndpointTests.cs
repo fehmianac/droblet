@@ -256,5 +256,26 @@ public class AdminAiEndpointTests(StoreSocialApiFactory factory) : IClassFixture
         var groups = (await (await admin.GetAsync("v1/admin/setting")).JsonAsync()).EnumerateArray().Select(g => g.GetProperty("group").GetString());
         Assert.DoesNotContain("aiModels", groups);
         Assert.Equal(HttpStatusCode.NotFound, (await admin.PutJsonAsync("v1/admin/setting/aiModels", new { values = new Dictionary<string, object> { ["PromptCacheKey"] = true } })).StatusCode);
+        Assert.DoesNotContain("aiLimits", groups);
+    }
+
+    [Fact]
+    public async Task AiLimits_AreEditable_PricingIsShownReadOnly()
+    {
+        factory.Settings.Values["/droblet/dev/api/AiLimits"] = """{"StylistJobsPerDay":40,"ItemRecognitionsPerDay":150,"PaletteAnalysesPerDay":5,"AiStartsPerMinute":20}""";
+        factory.Settings.Values["/droblet/dev/worker/Ai/Pricing"] = """{"Models":{"gpt-6-astra":{"Input":10}}}""";
+        var admin = await factory.AdminAsync();
+
+        var settings = await (await admin.GetAsync("v1/admin/ai/model")).JsonAsync();
+        Assert.Contains("gpt-6-astra", settings.GetProperty("pricing").GetString());
+        Assert.Equal(40, settings.GetProperty("limits").GetProperty("fields")[0].GetProperty("value").GetInt32());
+
+        var bad = await admin.PutJsonAsync("v1/admin/ai/limits", new { values = new Dictionary<string, object> { ["StylistJobsPerDay"] = -1 } });
+        Assert.Equal("out_of_range", (await bad.JsonAsync()).GetProperty("errors").GetProperty("StylistJobsPerDay")[0].GetString());
+        Assert.Equal(HttpStatusCode.OK, (await admin.PutJsonAsync("v1/admin/ai/limits", new { values = new Dictionary<string, object> { ["StylistJobsPerDay"] = 60 } })).StatusCode);
+        var stored = JsonDocument.Parse(factory.Settings.Values["/droblet/dev/api/AiLimits"]).RootElement;
+        Assert.Equal((60, 150), (stored.GetProperty("StylistJobsPerDay").GetInt32(), stored.GetProperty("ItemRecognitionsPerDay").GetInt32()));
+        var audit = (await (await admin.GetAsync("v1/admin/audit?action=ai.limits.&limit=10")).JsonAsync()).GetProperty("items")[0];
+        Assert.Contains("60", audit.GetProperty("after").GetString());
     }
 }
