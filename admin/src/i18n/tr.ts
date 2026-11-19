@@ -104,6 +104,8 @@ export const tr: Dict = {
       image_storage_not_configured: 'Sunucuda görsel depolama kurulmamış.',
       network: 'Sunucuya ulaşılamadı.',
       generic: 'Bir sorun oluştu.',
+      report_not_resolved: 'Şikâyet henüz çözülmemiş; geri alınacak bir kaldırma yok.',
+      report_not_content_removed: 'Bu şikâyet "içerik kaldırıldı" kararıyla çözülmemiş; geri alınacak bir kaldırma yok.',
     },
     fields: {
       password_too_short: 'En az 10 karakter.',
@@ -487,6 +489,13 @@ export const tr: Dict = {
     resolvedAt: '{date} çözüldü',
     anonymous: 'Bilinmiyor',
     empty: 'Kuyruk boş.',
+    contentRemovedHint: 'İçerik sahibi dışında herkesten gizlenir ve sahibine bildirim gider. Kaldırma sonradan geri alınabilir.',
+    removedAt: 'İçerik kaldırıldı · {date}',
+    restoredAt: 'Geri alındı · {date} · {admin}',
+    restore: 'Kaldırmayı geri al',
+    restoreTitle: 'Kaldırma geri alınsın mı?',
+    restoreHint: 'İçerik herkese yeniden görünür olur. Şikâyet çözülmüş olarak kalır; bu işlem denetim kaydına yazılır.',
+    restored: 'Kaldırma geri alındı. İçerik yeniden görünür.',
   },
   revenue: {
     title: 'Gelir',

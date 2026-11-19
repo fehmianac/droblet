@@ -7,13 +7,13 @@ import { Badge, Button, Card, ConfirmModal, DataTable, EmptyState, ErrorState, F
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
-import type { ModerationReport, Paged, ReportResolution, ReportStatus } from '@/lib/types';
+import type { AdminUser, ModerationReport, Paged, ReportResolution, ReportStatus } from '@/lib/types';
 
 type Action = { kind: 'dismiss' | 'resolve' | 'block'; report: ModerationReport };
 
 function ModerationInner() {
   const { t, fmt, href, dateTime, errorText } = useI18n();
-  const { can } = useAuth();
+  const { can, me } = useAuth();
   const toast = useToast();
   const [status, setStatus] = useState<ReportStatus>('open');
   const [tokens, setTokens] = useState<(string | null)[]>([null]);
@@ -23,6 +23,17 @@ function ModerationInner() {
   const [resolution, setResolution] = useState<ReportResolution>('contentRemoved');
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
+  const [restoring, setRestoring] = useState<ModerationReport | null>(null);
+  // Admin names for "restored by"; the list needs admins.manage, so others fall back to their own name or the id.
+  const admins = useAsync(
+    () => (status === 'resolved' && can('admins.manage') ? api.get<AdminUser[]>('v1/admin/admin-user').catch(() => [] as AdminUser[]) : Promise.resolve([] as AdminUser[])),
+    [status],
+  );
+  const adminName = (id: string | null) => {
+    if (!id) return t.moderation.anonymous;
+    if (id === me?.id) return me.name;
+    return admins.data?.find((a) => a.id === id)?.name ?? id;
+  };
 
   const open = (kind: Action['kind'], report: ModerationReport) => {
     setNote('');
@@ -41,6 +52,24 @@ function ModerationInner() {
       page.reload();
     } catch (error) {
       toast.error(errorText(error));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const restore = async () => {
+    if (!restoring) return;
+    setBusy(true);
+    try {
+      const updated = await api.post<ModerationReport>(`v1/admin/moderation/report/${encodeURIComponent(restoring.id)}/restore`);
+      if (page.data) page.setData({ ...page.data, items: page.data.items.map((r) => (r.id === updated.id ? updated : r)) });
+      toast.success(t.moderation.restored);
+      setRestoring(null);
+    } catch (error) {
+      toast.error(errorText(error));
+      // A 404 / 409 means the row on screen is stale: show the server's state.
+      page.reload();
+      setRestoring(null);
     } finally {
       setBusy(false);
     }
@@ -103,6 +132,22 @@ function ModerationInner() {
               {r.resolution && <Badge tone={r.resolution === 'userSuspended' ? 'red' : 'neutral'}>{t.enums.resolution[r.resolution]}</Badge>}
               <p className="mt-1 text-xs text-muted">{fmt(t.moderation.resolvedAt, { date: dateTime(r.resolvedAt) })}</p>
               {r.resolutionNote && <p className="text-xs text-muted">{r.resolutionNote}</p>}
+              {r.resolution === 'contentRemoved' && (
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  {r.contentRestoredAt ? (
+                    <Badge tone="green">{fmt(t.moderation.restoredAt, { date: dateTime(r.contentRestoredAt), admin: adminName(r.contentRestoredByUserId) })}</Badge>
+                  ) : (
+                    <>
+                      {r.contentRemovedAt && <Badge tone="amber">{fmt(t.moderation.removedAt, { date: dateTime(r.contentRemovedAt) })}</Badge>}
+                      {can('moderation.manage') && (
+                        <Button size="sm" variant="secondary" icon="refresh" onClick={() => setRestoring(r)}>
+                          {t.moderation.restore}
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           ),
         },
@@ -154,7 +199,7 @@ function ModerationInner() {
       >
         <div className="mt-3 space-y-3">
           {action?.kind === 'resolve' && (
-            <Field label={t.moderation.resolution} htmlFor="mod-res">
+            <Field label={t.moderation.resolution} htmlFor="mod-res" hint={resolution === 'contentRemoved' ? t.moderation.contentRemovedHint : undefined}>
               <Select id="mod-res" value={resolution} onChange={(e) => setResolution(e.target.value as ReportResolution)}>
                 <option value="contentRemoved">{t.enums.resolution.contentRemoved}</option>
                 <option value="userWarned">{t.enums.resolution.userWarned}</option>
@@ -166,6 +211,15 @@ function ModerationInner() {
           </Field>
         </div>
       </ConfirmModal>
+      <ConfirmModal
+        open={!!restoring}
+        title={t.moderation.restoreTitle}
+        body={t.moderation.restoreHint}
+        confirmLabel={t.moderation.restore}
+        busy={busy}
+        onClose={() => setRestoring(null)}
+        onConfirm={() => void restore()}
+      />
     </div>
   );
 }
