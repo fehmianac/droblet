@@ -111,7 +111,6 @@ function ViewerBody({ images, initialIndex, origin, onClose, onIndexChange, test
   const page = useSharedValue(initialIndex);
   const dragX = useSharedValue(0);
   const dismissY = useSharedValue(0);
-  const closing = useSharedValue(0);
   // Gesture start values.
   const start = useSharedValue({ s: 1, x: 0, y: 0, fx: 0, fy: 0 });
   const mode = useSharedValue<'none' | 'zoom' | 'page' | 'dismiss'>('none');
@@ -149,7 +148,6 @@ function ViewerBody({ images, initialIndex, origin, onClose, onIndexChange, test
       onClose();
       return;
     }
-    closing.set(1);
     resetZoom(true);
     progress.set(
       withTiming(0, { duration: 220 }, (finished) => {

@@ -18,6 +18,7 @@ import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
 import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Zoomable, type ViewerImage } from '@/components/ui/viewer';
+import { toast } from '@/components/ui/toast';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
@@ -366,7 +367,12 @@ function ProductBody({ product }: { product: ProductDetail }) {
           ) : null}
 
           <Pressable
-            onPress={() => setWatch({ productId: product.id, watching: !watching, alertEnabled: true, product })}
+            onPress={() => {
+              setWatch({ productId: product.id, watching: !watching, alertEnabled: true, product });
+              // 13b: the segment flips too, but the toast also says where the product went.
+              if (watching) toast.success(t('feedback.watch.removed'), { testID: 'toast-watch' });
+              else toast.success(t('feedback.watch.added'), { action: { label: t('feedback.see'), onPress: () => router.push('/watchlist') }, testID: 'toast-watch' });
+            }}
             accessibilityRole="button"
             accessibilityState={{ selected: watching }}
             accessibilityLabel={`${t(watching ? 'productDetail.watchAdded' : 'productDetail.watchAdd')}, ${t('productDetail.watchHint')}`}

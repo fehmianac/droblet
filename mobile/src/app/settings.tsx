@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Zoomable, type ViewerImage } from '@/components/ui/viewer';
+import { toast } from '@/components/ui/toast';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -352,7 +353,9 @@ export default function SettingsScreen() {
                     label={t(`settings.visibility.${v}`)}
                     checked={data.closetVisibility === v}
                     onPress={() => {
-                      if (data.closetVisibility !== v) setVisibility(v, data.baseVersion);
+                      if (data.closetVisibility === v) return;
+                      setVisibility(v, data.baseVersion);
+                      toast.success(t('feedback.settings.saved'), { testID: 'toast-settings' });
                     }}
                   />
                 ))}

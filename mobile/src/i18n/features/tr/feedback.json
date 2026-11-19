@@ -23,6 +23,42 @@
       "see": "Takvimi gör",
       "removed": "{{date}} takvimden çıkarıldı",
       "failed": "Takvime eklenemedi"
+    },
+    "favorite": {
+      "added": "Favorilere eklendi",
+      "removed": "Favorilerden çıkarıldı"
+    },
+    "lookbook": {
+      "added": "Lookbook'a eklendi",
+      "removed": "Lookbook'tan çıkarıldı"
+    },
+    "cart": {
+      "added_one": "Sepete eklendi",
+      "added_other": "{{count}} ürün sepete eklendi",
+      "see": "Sepeti gör",
+      "failed": "Sepete eklenemedi"
+    },
+    "watch": {
+      "added": "İzleme listene eklendi",
+      "removed": "İzleme listenden çıkarıldı",
+      "alertOn": "Fiyat uyarısı açıldı",
+      "alertOff": "Fiyat uyarısı kapatıldı"
+    },
+    "savedLooks": {
+      "added": "Kaydettiklerine eklendi",
+      "removed": "Kaydettiklerinden çıkarıldı"
+    },
+    "follow": {
+      "following": "@{{handle}} takip ediliyor",
+      "requested": "@{{handle}} kullanıcısına takip isteği gönderildi",
+      "unfollowed": "@{{handle}} takipten çıkarıldı",
+      "failed": "Takip güncellenemedi"
+    },
+    "block": {
+      "done": "@{{handle}} engellendi"
+    },
+    "settings": {
+      "saved": "Ayarın kaydedildi"
     }
   }
 }

@@ -45,7 +45,18 @@ export function Zoomable({ images, index = 0, disabled = false, accessibilityLab
       setOpen(true);
       return;
     }
+    // The measurement is asynchronous; if the platform never answers, open without a tile (fade + scale).
+    let opened = false;
+    const fallback = setTimeout(() => {
+      if (opened) return;
+      opened = true;
+      setOrigin(null);
+      setOpen(true);
+    }, 80);
     node.measureInWindow((x: number, y: number, width: number, height: number) => {
+      if (opened) return;
+      opened = true;
+      clearTimeout(fallback);
       setOrigin(width > 0 && height > 0 ? { x, y, width, height } : null);
       setOpen(true);
     });

@@ -1,4 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+
+import { toast } from '@/components/ui/toast';
 
 import type { Occasion } from '@/api/contracts';
 import type { Look } from '@/api/contracts/looks';
@@ -15,6 +18,7 @@ export type LookDraft = { name: string; occasion: Occasion; slots: SlotMap };
  * `clientMutationId`; ids are ULIDs made when the user acts. The cache is updated optimistically.
  */
 export function useLookWrites() {
+  const { t } = useTranslation();
   const create = useMutation<Look, unknown, CreateLookVariables>({ mutationKey: lookMutationKeys.create });
   const put = useMutation<Look, unknown, PutLookVariables>({ mutationKey: lookMutationKeys.put });
   const remove = useMutation<void, unknown, DeleteLookVariables>({ mutationKey: lookMutationKeys.remove });
@@ -86,6 +90,10 @@ export function useLookWrites() {
           clientMutationId,
         },
         optimistic: { ...look, isFavorite: !look.isFavorite },
+      });
+      toast.success(t(look.isFavorite ? 'feedback.lookbook.removed' : 'feedback.lookbook.added'), {
+        icon: look.isFavorite ? 'heart' : 'heartFilled',
+        testID: 'toast-lookbook',
       });
     },
     remove: (look: Pick<Look, 'id'>): void => {

@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 import { apiRequest } from '@/api/client';
+import { toast } from '@/components/ui/toast';
 import type { Occasion, TodayResponse } from '@/api/contracts';
 import type { CalendarMonth, PlanDay, PlanWeekRequest, PlanWeekResponse, PlanWeekResult, PriceBand, WeeklyEdit } from '@/api/contracts/today';
 import type { StylistOutfitRequest } from '@/api/contracts/stylist';
@@ -204,22 +206,39 @@ export function useRefreshTodayLook() {
 
 /** 06 heart — lookbook favourite through the write queue (optimistic). */
 export function useSetLookFavorite() {
+  const { t } = useTranslation();
   const m = useMutation<void, unknown, SetLookFavoriteVariables>({ mutationKey: todayMutationKeys.setLookFavorite });
-  return { ...m, set: (lookId: string, isFavorite: boolean) => m.mutate({ lookId, isFavorite, ...newClientMutation() }) };
+  return {
+    ...m,
+    set: (lookId: string, isFavorite: boolean) => {
+      m.mutate({ lookId, isFavorite, ...newClientMutation() });
+      toast.success(t(isFavorite ? 'feedback.lookbook.added' : 'feedback.lookbook.removed'), { icon: isFavorite ? 'heartFilled' : 'heart', testID: 'toast-lookbook' });
+    },
+  };
 }
 
 /** 08 — "İzleme listeme ekle" (price-drop watch, separate from the heart). `editLookId` = the look it was added from. */
 export function useAddToWatchlist() {
   const m = useMutation<void, unknown, AddWatchlistVariables>({ mutationKey: todayMutationKeys.addToWatchlist });
+  // 08 already confirms in place ("İzleme listene eklendi" under the piece, canvas 08): no second message.
   return { ...m, add: (productId: string, editLookId?: string) => m.mutate({ productId, editLookId, ...newClientMutation() }) };
 }
 
 /** 08 heart — saves the edit look to the lookbook (`POST v1/tenant/look`, `source: "edit"`). */
 export function useSaveEditLook() {
+  const { t } = useTranslation();
   const m = useMutation<void, unknown, SaveEditLookVariables>({ mutationKey: todayMutationKeys.saveEditLook });
   return {
     ...m,
-    save: (editLookId: string, band: PriceBand, editId?: string) => m.mutate({ id: ulid(), editLookId, band, editId, ...newClientMutation() }),
+    save: (editLookId: string, band: PriceBand, editId?: string) => {
+      const id = ulid();
+      m.mutate({ id, editLookId, band, editId, ...newClientMutation() });
+      toast.success(t('feedback.save.saved'), {
+        icon: 'heartFilled',
+        action: { label: t('feedback.see'), onPress: () => router.push({ pathname: '/look/[id]', params: { id } }) },
+        testID: 'toast-saved',
+      });
+    },
   };
 }
 
