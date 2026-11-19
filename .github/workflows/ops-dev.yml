@@ -5,6 +5,7 @@ name: Ops (dev)
 #   gh workflow run ops-dev.yml --ref <branch> -f command=ai-smoke   (add -f args="--items-only" for the item flows only, -f args="--prereq-only" for canvas 11: thin wardrobe + face path)
 #   gh workflow run ops-dev.yml --ref <branch> -f command=generate-library-images -f args="--only lib-white-tshirt,lib-navy-blazer"
 #   gh workflow run ops-dev.yml --ref <branch> -f command=migrate-library-item-images -f args="--dry-run"
+#   gh workflow run ops-dev.yml --ref <branch> -f command=account-smoke   (e-mail verification + data export end to end)
 
 on:
   workflow_dispatch:
@@ -12,7 +13,7 @@ on:
       command:
         description: Komut
         type: choice
-        options: [ai-smoke, generate-library-images, migrate-library-item-images, grant-test-premium, revoke-test-premium, ai-probe, logs]
+        options: [ai-smoke, account-smoke, generate-library-images, migrate-library-item-images, grant-test-premium, revoke-test-premium, ai-probe, logs]
         default: ai-smoke
       args:
         description: 'Ek argumanlar (or. --email a@b.c --credits 10 · --only lib-a,lib-b --dry-run · --function stylist --minutes 30)'
