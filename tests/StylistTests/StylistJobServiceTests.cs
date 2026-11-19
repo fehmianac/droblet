@@ -448,6 +448,111 @@ public class StylistJobServiceTests
         Assert.Empty(await host.Repository.GetKeysAsync(LookEntity.GetPk(Tenant)));
     }
 
+    /// <summary>Answers each week batch with one look per asked date (from the prompt), all calls held until every batch has started.</summary>
+    private sealed class BatchModel(int expectedBatches, Func<string, int, string?> slotsFor, int? failBatch = null) : IStylistModel
+    {
+        private readonly TaskCompletionSource _allStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private int _started;
+        public List<List<string>> Batches { get; } = [];
+
+        public async Task<string> GenerateAsync(StylistPrompt prompt, CancellationToken ct)
+        {
+            var dates = JsonDocument.Parse(prompt.InputJson).RootElement.GetProperty("days").EnumerateArray()
+                .Select(d => d.GetProperty("date").GetString()!).ToList();
+            int index;
+            lock (Batches)
+            {
+                index = Batches.Count;
+                Batches.Add(dates);
+            }
+            if (Interlocked.Increment(ref _started) == expectedBatches)
+                _allStarted.SetResult();
+            // Parallel: no batch answers before all of them were requested.
+            await _allStarted.Task.WaitAsync(TimeSpan.FromSeconds(5), ct);
+            if (index == failBatch)
+                throw new AiProviderException("batch failed");
+            var days = dates.Select((d, i) => slotsFor(d, i) is { } slots
+                ? $$"""{"date":"{{d}}","title":"Gün","explanation":null,"occasion":"office","slots":{{slots}}}"""
+                : null).Where(d => d is not null);
+            return $$"""{"days":[{{string.Join(',', days)}}],"refusal":null}""";
+        }
+    }
+
+    private static string Slots(string top, string bottom, string shoes) =>
+        $$"""{"top":"{{top}}","bottom":"{{bottom}}","outerwear":null,"shoes":"{{shoes}}","bagAccessory":null}""";
+
+    [Fact]
+    public async Task Week_IsPlannedInParallelBatches_3_2_2_EachWithItsOwnDates_AndTheSameCandidates()
+    {
+        string[] looks = [Slots("top1", "bot1", "shoe1"), Slots("top2", "bot2", "shoe2"), Slots("top1", "bot2", "shoe1"), Slots("top2", "bot1", "shoe2"),
+            Slots("top1", "bot1", "shoe2"), Slots("top2", "bot2", "shoe1"), Slots("top1", "bot2", "shoe2")];
+        var model = new BatchModel(3, (date, _) => looks[int.Parse(date[^2..]) - 16]);
+        var host = Host(model);
+        await SeedWardrobeAsync(host);
+        var job = await QueueAsync(host, JobKind.StylistWeek, WeekInput());
+
+        var stored = await RunAsync(host, job);
+
+        var result = StylingJson.TryDeserialize<WeekResult>(stored.Result)!;
+        Assert.Equal(JobStatus.Completed, stored.Status);
+        Assert.Equal([3, 2, 2], model.Batches.OrderBy(b => b[0]).Select(b => b.Count));
+        Assert.Equal(WeekInput().Days.Select(d => d.Date), model.Batches.OrderBy(b => b[0]).SelectMany(b => b));
+        Assert.All(result.Days, d => Assert.Equal("model", d.Outfit!.Source));
+    }
+
+    [Fact]
+    public async Task Week_RepeatsAcrossBatches_AreFixedByTheConsistencyPass()
+    {
+        // Every batch proposes the same look for its first day: Monday keeps it, Thursday and Saturday (other batches) get another one.
+        var model = new BatchModel(3, (_, i) => i == 0 ? Slots("top1", "bot1", "shoe1") : Slots("top2", "bot2", "shoe2"));
+        var host = Host(model);
+        await SeedWardrobeAsync(host);
+        var job = await QueueAsync(host, JobKind.StylistWeek, WeekInput());
+
+        var result = StylingJson.TryDeserialize<WeekResult>((await RunAsync(host, job)).Result)!;
+
+        var signatures = result.Days.Select(d => GapFill.RawSignature(d.Outfit!)).ToList();
+        Assert.Equal("model", result.Days[0].Outfit!.Source);
+        Assert.Equal(1, signatures.Count(s => s == signatures[0])); // the batch-first look appears once
+        for (var i = 1; i < signatures.Count; i++)
+            Assert.NotEqual(signatures[i - 1], signatures[i]);
+    }
+
+    [Fact]
+    public async Task Week_AFailedBatch_IsDressedByTheRules_TheOthersKeepTheModelLooks()
+    {
+        string[] looks = [Slots("top1", "bot1", "shoe1"), Slots("top2", "bot2", "shoe2"), Slots("top1", "bot2", "shoe1"), Slots("top2", "bot1", "shoe2"),
+            Slots("top1", "bot1", "shoe2"), Slots("top2", "bot2", "shoe1"), Slots("top1", "bot2", "shoe2")];
+        var model = new BatchModel(3, (date, _) => looks[int.Parse(date[^2..]) - 16], failBatch: 1);
+        var host = Host(model);
+        await SeedWardrobeAsync(host);
+        var job = await QueueAsync(host, JobKind.StylistWeek, WeekInput());
+
+        var stored = await RunAsync(host, job);
+
+        var result = StylingJson.TryDeserialize<WeekResult>(stored.Result)!;
+        Assert.Equal(JobStatus.Completed, stored.Status);
+        Assert.Equal(7, result.Days.Count);
+        Assert.All(result.Days, d => Assert.NotNull(d.Outfit));
+        var failedDates = model.Batches[1];
+        Assert.All(result.Days.Where(d => failedDates.Contains(d.Date)), d => Assert.Equal("rule", d.Outfit!.Source));
+        Assert.Contains(result.Days, d => d.Outfit!.Source == "model");
+    }
+
+    [Fact]
+    public async Task Week_EveryBatchFailing_FailsTheJob()
+    {
+        var host = Host(new BatchModel(1, (_, _) => null, failBatch: 0));
+        host.Get<Microsoft.Extensions.Options.IOptionsMonitor<Domain.Options.StylistOptions>>().CurrentValue.WeekBatchDays = 0;
+        await SeedWardrobeAsync(host);
+        var job = await QueueAsync(host, JobKind.StylistWeek, WeekInput());
+
+        var stored = await RunAsync(host, job);
+
+        Assert.Equal(JobStatus.Failed, stored.Status);
+        Assert.Equal(JobFailure.ProviderError, stored.Failure);
+    }
+
     [Fact]
     public async Task Week_EmptyWardrobe_EveryDayDressedFromTheLibrary_NoRepeatOnConsecutiveDays()
     {

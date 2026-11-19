@@ -383,6 +383,19 @@ public class OpenAiProviderTests
         Assert.False(Infrastructure.Workers.WorkerFailure.IsRetryable(ex, isLastAttempt: true));
     }
 
+    [Theory]
+    [InlineData("credit_balance_exhausted")]
+    [InlineData("insufficient_quota")]
+    public async Task ExhaustedBalance429_FailsAtOnce_NotRetried(string code)
+    {
+        var (provider, _) = Create($$$"""{"error":{"code":"{{{code}}}"}}""", HttpStatusCode.TooManyRequests);
+
+        var ex = await Assert.ThrowsAsync<AiProviderException>(() => provider.GenerateAsync(new StylistPrompt(JobKind.StylistOutfit, "{}"), default));
+
+        Assert.Contains(code, ex.Message);
+        Assert.False(Infrastructure.Workers.WorkerFailure.IsRetryable(ex, isLastAttempt: false));
+    }
+
     [Fact]
     public void ParseChatContent_RefusalTruncationEmptyOrGarbage_AreProviderErrors()
     {

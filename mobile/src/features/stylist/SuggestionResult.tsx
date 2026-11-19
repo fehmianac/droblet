@@ -21,7 +21,6 @@ import type { Job } from '@/api/contracts/jobs';
 import type { StylistDislikeReason, StylistOutfitResult, StylistSuggestion } from '@/api/contracts/stylist';
 import type { TryOnResult } from '@/api/contracts/tryon';
 import { jobQueryKey } from '@/api/jobs';
-import { AiSkeletonRows } from '@/components/ui/ai';
 import { InfoNote } from '@/components/ui/Bits';
 import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { Button } from '@/components/ui/Button';
@@ -107,7 +106,6 @@ export function SuggestionResult({ jobId, title, result, focused, onAskAgain, as
 
   const [current, setCurrent] = useState(0);
   const [dismissed, setDismissed] = useState<number[]>([]);
-  const [skippedWait, setSkippedWait] = useState<number[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const [sheet, setSheet] = useState<Sheet>('none');
   // Missing photo / consent / membership: the requirements flow, which then opens the credit confirmation (canvas 11).
@@ -183,7 +181,6 @@ export function SuggestionResult({ jobId, title, result, focused, onAskAgain, as
   };
 
   const mode = mediaOf(suggestion).mode;
-  const waiting = mode === 'working' && !skippedWait.includes(index);
 
   const select = (target: number) => {
     if (target === index) return;
@@ -228,7 +225,6 @@ export function SuggestionResult({ jobId, title, result, focused, onAskAgain, as
       .start({ kind: 'suggestion', id: `${jobId}:${index}` })
       .then(({ jobId: started }) => {
         tryOns.set(index, started);
-        setSkippedWait((prev) => prev.filter((i) => i !== index));
         setSheet('none');
       })
       .catch(() => setSheet('none'));
@@ -278,7 +274,7 @@ export function SuggestionResult({ jobId, title, result, focused, onAskAgain, as
       <ScreenHeader
         title={title}
         leading="back"
-        right={waiting ? undefined : <IconButton icon={ShareIcon} iconSize={19} onPress={share} accessibilityLabel={t('stylistResult.share')} testID="share-suggestion" />}
+        right={<IconButton icon={ShareIcon} iconSize={19} onPress={share} accessibilityLabel={t('stylistResult.share')} testID="share-suggestion" />}
       />
       <ScrollView contentContainerClassName="pb-6">
         {notice ? (
@@ -301,7 +297,9 @@ export function SuggestionResult({ jobId, title, result, focused, onAskAgain, as
             {open.map((s) => {
               const media = mediaOf(s);
               const live = s.index === index;
-              const pageWaiting = media.mode === 'working' && !skippedWait.includes(s.index);
+              // Text first: while the try-on image renders, only the image slot speaks the AI loading language (17c);
+              // the pieces, the note and every action stay usable.
+              const pageWaiting = media.mode === 'working';
               const pagePosition = suggestions.findIndex((x) => x.index === s.index) + 1;
               return (
                 <View
@@ -350,7 +348,7 @@ export function SuggestionResult({ jobId, title, result, focused, onAskAgain, as
                     <GapFillBanner libraryItemIds={s.pieces.filter((p) => p.source === 'library').map((p) => p.refId)} testID={`gapfill.banner.${s.index}`} />
                   ) : null}
 
-                  {pageWaiting ? <AiSkeletonRows /> : <SuggestionPieces pieces={s.pieces} />}
+                  <SuggestionPieces pieces={s.pieces} />
 
                   {pageWaiting ? <InfoNote icon={Bell} text={t('ai.leaveHint')} /> : null}
 
@@ -402,30 +400,26 @@ export function SuggestionResult({ jobId, title, result, focused, onAskAgain, as
       </ScrollView>
 
       <BottomActionBar>
-        {waiting ? (
-          <Button variant="secondary" size="lg" label={t('stylistResult.continueWithoutImage')} onPress={() => setSkippedWait((prev) => [...prev, index])} />
-        ) : (
-          <View className="flex-row items-center gap-2.5">
-            <BarRoundButton icon={X} onPress={() => setSheet('feedback')} accessibilityLabel={t('stylistResult.dislike')} />
-            <View className="flex-1">
-              <Button
-                variant={mode === 'noCredits' ? 'secondary' : 'primary'}
-                size="lg"
-                label={t('stylistResult.addToCalendar')}
-                onPress={() => setSheet('calendar')}
-                testID="add-to-calendar"
-              />
-            </View>
-            <BarRoundButton
-              icon={Heart}
-              active={saved}
-              onPress={() => {
-                if (!saved) acceptWithPieces(null, null);
-              }}
-              accessibilityLabel={t(saved ? 'stylistResult.saved' : 'stylistResult.save')}
+        <View className="flex-row items-center gap-2.5">
+          <BarRoundButton icon={X} onPress={() => setSheet('feedback')} accessibilityLabel={t('stylistResult.dislike')} />
+          <View className="flex-1">
+            <Button
+              variant={mode === 'noCredits' ? 'secondary' : 'primary'}
+              size="lg"
+              label={t('stylistResult.addToCalendar')}
+              onPress={() => setSheet('calendar')}
+              testID="add-to-calendar"
             />
           </View>
-        )}
+          <BarRoundButton
+            icon={Heart}
+            active={saved}
+            onPress={() => {
+              if (!saved) acceptWithPieces(null, null);
+            }}
+            accessibilityLabel={t(saved ? 'stylistResult.saved' : 'stylistResult.save')}
+          />
+        </View>
       </BottomActionBar>
 
       <FeedbackSheet visible={sheet === 'feedback'} onClose={() => setSheet('none')} onSubmit={submitFeedback} />

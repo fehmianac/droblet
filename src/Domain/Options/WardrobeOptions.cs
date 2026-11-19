@@ -36,6 +36,11 @@ public sealed class StylistOptions
     public int ColdBelowC { get; set; } = 12;
     /// <summary>How many recent "Beğenmedim" combinations are sent along as "avoid".</summary>
     public int DislikeMemory { get; set; } = 10;
+    /// <summary>
+    /// Week plan: at most this many days per model call; the batches run in parallel with the same candidates and a
+    /// rule-based consistency pass merges them (WeekPlanning). 0 = the whole week in one call.
+    /// </summary>
+    public int WeekBatchDays { get; set; } = 3;
 }
 
 public sealed class PackingOptions

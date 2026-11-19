@@ -8,6 +8,7 @@ using Domain.Options;
 using Domain.Services;
 using Domain.Services.Ai;
 using Domain.Services.Styling;
+using Infrastructure.Telemetry;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -34,6 +35,43 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
     public const string ImageGenerationPath = "/v1/images/generations";
 
     public string Name => ProviderName;
+
+    /// <summary>
+    /// One pooled connection reused across invocations (TLS to the API costs a few hundred ms from eu-central-1), but never
+    /// one that sat idle long enough for the server side to have closed it — a dead pooled connection fails a POST, and a
+    /// failed AI call costs an SQS retry. Connect is bounded separately from the (long) generation timeout.
+    /// </summary>
+    public static SocketsHttpHandler CreateHandler() => new()
+    {
+        PooledConnectionIdleTimeout = TimeSpan.FromSeconds(45),
+        PooledConnectionLifetime = TimeSpan.FromMinutes(10),
+        ConnectTimeout = TimeSpan.FromSeconds(10),
+        KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests,
+        AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
+    };
+
+    /// <summary>
+    /// Opens the TLS connection to the API ahead of the first job (GET /v1/models: no tokens, no content). Called in the
+    /// background at Lambda init, so the handshake overlaps with the job's own DynamoDB / S3 reads. Never throws.
+    /// </summary>
+    public async Task WarmUpAsync(CancellationToken ct)
+    {
+        var settings = options.CurrentValue;
+        if (!settings.Enabled || !settings.HasApiKey)
+            return;
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, Url(settings, "/v1/models"));
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", settings.ApiKey);
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeout.CancelAfter(TimeSpan.FromSeconds(5));
+            using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException)
+        {
+            logger.LogInformation("OpenAI warm-up skipped ({Error})", ex.GetType().Name);
+        }
+    }
 
     public bool IsConfigured
     {
@@ -68,16 +106,16 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
     }
 
     public Task<ImageInput> CleanupAsync(ImageInput garmentPhoto, CancellationToken ct) =>
-        EditImageAsync(OpenAiPrompts.Cleanup, [garmentPhoto], ct);
+        EditImageAsync(OpenAiPrompts.Cleanup, [garmentPhoto], ImageUse.Cleanup, null, "image_cleanup", ct);
 
     public Task<ImageInput> CleanupItemAsync(ImageInput crop, ItemCategoryHint? category, string? subcategory, CancellationToken ct) =>
-        EditImageAsync(OpenAiPrompts.CleanupItem(category, subcategory), [crop], ct);
+        EditImageAsync(OpenAiPrompts.CleanupItem(category, subcategory), [crop], ImageUse.Cleanup, null, "image_cleanup", ct);
 
-    public Task<ImageInput> RenderAsync(ImageInput bodyPhoto, IReadOnlyList<ImageInput> garments, CancellationToken ct) =>
-        EditImageAsync(OpenAiPrompts.TryOn(garments.Count), [bodyPhoto, .. garments], ct);
+    public Task<ImageInput> RenderAsync(ImageInput bodyPhoto, IReadOnlyList<ImageInput> garments, CancellationToken ct, string? quality = null) =>
+        EditImageAsync(OpenAiPrompts.TryOn(garments.Count), [bodyPhoto, .. garments], ImageUse.TryOn, quality, "image_tryon", ct);
 
-    public Task<ImageInput> RenderFromFaceAsync(ImageInput facePhoto, IReadOnlyList<ImageInput> garments, TryOnFigure figure, CancellationToken ct) =>
-        EditImageAsync(OpenAiPrompts.TryOnFromFace(garments.Count, figure), [facePhoto, .. garments], ct);
+    public Task<ImageInput> RenderFromFaceAsync(ImageInput facePhoto, IReadOnlyList<ImageInput> garments, TryOnFigure figure, CancellationToken ct, string? quality = null) =>
+        EditImageAsync(OpenAiPrompts.TryOnFromFace(garments.Count, figure), [facePhoto, .. garments], ImageUse.TryOn, quality, "image_tryon", ct);
 
     public async Task<PhotoInspection> InspectAsync(ImageInput photo, PhotoKind kind, CancellationToken ct)
     {
@@ -97,40 +135,48 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
         {
             Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json"),
         };
-        var response = await SendAsync(message, settings, "image_generation", ct);
+        var response = await SendAsync(message, settings, "image_generation", new CallInfo(settings.ImageModel, null, request.Size, request.Quality), ct);
         return OpenAiPayloads.ParseImage(response);
     }
 
     // ── HTTP ──────────────────────────────────────────────────────────────────────────────────────────────────────
 
+    /// <summary>What a call log line and its stage timing carry besides the outcome (never content).</summary>
+    private sealed record CallInfo(string? Model, string? Effort, string? ImageSize, string? ImageQuality, long? RequestBytes = null);
+
     private async Task<string> ChatAsync(string system, string userText, ImageInput? image, string schemaName, JsonObject schema, CancellationToken ct, bool highDetail = false)
     {
-        var settings = Require(o => o.TextModel);
-        var body = OpenAiPayloads.ChatRequest(settings.TextModel!, system, userText, image, schemaName, schema, highDetail);
+        var settings = Require(o => o.ModelFor(schemaName));
+        var model = settings.ModelFor(schemaName);
+        var tuning = new ChatTuning(settings.EffortFor(schemaName), settings.ServiceTier, settings.PromptCacheKey ? schemaName : null);
+        var body = OpenAiPayloads.ChatRequest(model, system, userText, image, schemaName, schema, highDetail, tuning).ToJsonString();
         using var request = new HttpRequestMessage(HttpMethod.Post, Url(settings, ChatPath))
         {
-            Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json"),
+            Content = new StringContent(body, Encoding.UTF8, "application/json"),
         };
-        var response = await SendAsync(request, settings, schemaName, ct);
+        var response = await SendAsync(request, settings, schemaName, new CallInfo(model, tuning.ReasoningEffort, null, null, Encoding.UTF8.GetByteCount(body)), ct);
         return OpenAiPayloads.ParseChatContent(response);
     }
 
-    private async Task<ImageInput> EditImageAsync(string prompt, IReadOnlyList<ImageInput> images, CancellationToken ct)
+    private async Task<ImageInput> EditImageAsync(string prompt, IReadOnlyList<ImageInput> images, ImageUse use, string? qualityOverride, string operation, CancellationToken ct)
     {
         var settings = Require(o => o.ImageModel);
+        var (size, quality) = settings.ImageFor(use, qualityOverride);
+        var fidelity = use == ImageUse.TryOn ? settings.Image.TryOnInputFidelity : null;
         using var request = new HttpRequestMessage(HttpMethod.Post, Url(settings, ImageEditPath))
         {
-            Content = OpenAiPayloads.ImageEditRequest(settings.ImageModel!, prompt, settings.ImageSize, images),
+            Content = OpenAiPayloads.ImageEditRequest(settings.ImageModel!, prompt, size, images, quality, fidelity),
         };
-        var response = await SendAsync(request, settings, "image_edit", ct);
+        var response = await SendAsync(request, settings, operation, new CallInfo(settings.ImageModel, null, size, quality ?? "default", images.Sum(i => (long)i.Data.Length)), ct);
         return OpenAiPayloads.ParseImage(response);
     }
 
-    private async Task<string> SendAsync(HttpRequestMessage request, AiOptions settings, string operation, CancellationToken ct)
+    private async Task<string> SendAsync(HttpRequestMessage request, AiOptions settings, string operation, CallInfo info, CancellationToken ct)
     {
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", settings.ApiKey);
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(TimeSpan.FromSeconds(Math.Max(1, settings.TimeoutSeconds)));
+        var started = System.Diagnostics.Stopwatch.GetTimestamp();
 
         HttpResponseMessage response;
         try
@@ -139,7 +185,13 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
+            Record(operation, info, started, 408, null);
             throw new HttpRequestException($"OpenAI {operation} timed out after {settings.TimeoutSeconds}s.");
+        }
+        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException)
+        {
+            Record(operation, info, started, 0, null);
+            throw;
         }
 
         using (response)
@@ -147,18 +199,36 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
             var body = await response.Content.ReadAsStringAsync(ct);
             if (response.IsSuccessStatusCode)
             {
-                logger.LogInformation("OpenAI {Operation} ok, model {Model}, total tokens {Tokens}", operation, OpenAiPayloads.ResponseModel(body) ?? "-", OpenAiPayloads.TotalTokens(body));
+                var usage = OpenAiPayloads.Usage(body);
+                var call = Record(operation, info with { Model = OpenAiPayloads.ResponseModel(body) ?? info.Model }, started, (int)response.StatusCode, usage);
+                logger.LogInformation(
+                    "OpenAI {Operation} ok, model {Model}, {DurationMs} ms, total tokens {Tokens}, input {InputTokens} (cached {CachedTokens}), output {OutputTokens} (reasoning {ReasoningTokens}), effort {Effort}, image {ImageSize}/{ImageQuality}, request {RequestBytes} B",
+                    operation, call.Model ?? "-", (long)call.DurationMs, OpenAiPayloads.TotalTokens(body), usage.Input, usage.Cached, usage.Output, usage.Reasoning,
+                    info.Effort ?? "-", info.ImageSize ?? "-", info.ImageQuality ?? "-", info.RequestBytes);
                 return body;
             }
 
+            Record(operation, info, started, (int)response.StatusCode, null);
             var code = OpenAiPayloads.ErrorCode(body);
             // error.param names the rejected request field (e.g. "model", "response_format") — never user content.
             logger.LogWarning("OpenAI {Operation} failed: {Status} {Code} (param {Param}, model {Model})",
-                operation, (int)response.StatusCode, code, OpenAiPayloads.ErrorParam(body) ?? "-", operation.StartsWith("image", StringComparison.Ordinal) ? settings.ImageModel : settings.TextModel);
+                operation, (int)response.StatusCode, code, OpenAiPayloads.ErrorParam(body) ?? "-", info.Model ?? "-");
+            // An exhausted balance / quota answers 429 too, but no retry can fix it: fail now (credit refunded) instead of
+            // keeping the user waiting through three SQS attempts (≈ 7 minutes with the 150 s visibility timeout).
+            if (response.StatusCode == HttpStatusCode.TooManyRequests && OpenAiPayloads.IsBillingError(code))
+                throw new AiProviderException($"OpenAI {operation} returned 429 ({code}).");
             if (response.StatusCode is HttpStatusCode.RequestTimeout or HttpStatusCode.TooManyRequests || (int)response.StatusCode >= 500)
                 throw new HttpRequestException($"OpenAI {operation} returned {(int)response.StatusCode} ({code}).", null, response.StatusCode);
             throw new AiProviderException($"OpenAI {operation} returned {(int)response.StatusCode} ({code}).");
         }
+    }
+
+    private static AiCallRecord Record(string operation, CallInfo info, long started, int status, TokenUsage? usage)
+    {
+        var call = new AiCallRecord(operation, info.Model, System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds, status,
+            usage?.Input, usage?.Output, usage?.Cached, usage?.Reasoning, info.ImageSize, info.ImageQuality, info.RequestBytes, info.Effort);
+        AiTelemetry.Current?.AddCall(call);
+        return call;
     }
 
     private AiOptions Require(Func<AiOptions, string?> model)
@@ -175,11 +245,51 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
     private static Uri Url(AiOptions settings, string path) => new(settings.BaseUrl.TrimEnd('/') + path);
 }
 
+/// <summary>Optional chat request fields (all omitted when null): reasoning_effort, service_tier, prompt_cache_key.</summary>
+public sealed record ChatTuning(string? ReasoningEffort = null, string? ServiceTier = null, string? PromptCacheKey = null);
+
+public sealed record TokenUsage(long? Input, long? Output, long? Cached, long? Reasoning);
+
 /// <summary>Request building and response parsing — pure, unit-tested without any network.</summary>
 public static class OpenAiPayloads
 {
     /// <param name="highDetail">Vision at full resolution ("detail": "high") — small pieces such as rings need it.</param>
-    public static JsonObject ChatRequest(string model, string system, string userText, ImageInput? image, string schemaName, JsonObject schema, bool highDetail = false)
+    public static JsonObject ChatRequest(string model, string system, string userText, ImageInput? image, string schemaName, JsonObject schema, bool highDetail = false,
+        ChatTuning? tuning = null)
+    {
+        var request = ChatRequestCore(model, system, userText, image, schemaName, schema, highDetail);
+        if (tuning?.ReasoningEffort is { Length: > 0 } effort)
+            request["reasoning_effort"] = effort;
+        if (tuning?.ServiceTier is { Length: > 0 } tier)
+            request["service_tier"] = tier;
+        if (tuning?.PromptCacheKey is { Length: > 0 } cacheKey)
+            request["prompt_cache_key"] = "droblet-" + cacheKey;
+        return request;
+    }
+
+    /// <summary>Token usage of a chat or image response (chat: prompt/completion tokens; images: input/output tokens).</summary>
+    public static TokenUsage Usage(string responseBody)
+    {
+        try
+        {
+            var usage = JsonNode.Parse(responseBody)?["usage"];
+            if (usage is null)
+                return new TokenUsage(null, null, null, null);
+            return new TokenUsage(
+                Long(usage["prompt_tokens"]) ?? Long(usage["input_tokens"]),
+                Long(usage["completion_tokens"]) ?? Long(usage["output_tokens"]),
+                Long(usage["prompt_tokens_details"]?["cached_tokens"]) ?? Long(usage["input_tokens_details"]?["cached_tokens"]),
+                Long(usage["completion_tokens_details"]?["reasoning_tokens"]) ?? Long(usage["output_tokens_details"]?["reasoning_tokens"]));
+        }
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException or FormatException or ArgumentOutOfRangeException)
+        {
+            return new TokenUsage(null, null, null, null);
+        }
+    }
+
+    private static long? Long(JsonNode? node) => node is not null && node.GetValueKind() == JsonValueKind.Number ? (long)node.GetValue<double>() : null;
+
+    private static JsonObject ChatRequestCore(string model, string system, string userText, ImageInput? image, string schemaName, JsonObject schema, bool highDetail)
     {
         var userContent = new JsonArray { new JsonObject { ["type"] = "text", ["text"] = userText } };
         if (image is not null)
@@ -223,7 +333,10 @@ public static class OpenAiPayloads
         return body;
     }
 
-    public static MultipartFormDataContent ImageEditRequest(string model, string prompt, string size, IReadOnlyList<ImageInput> images)
+    /// <param name="quality">low | medium | high | auto; null = not sent (provider default).</param>
+    /// <param name="inputFidelity">high | low; null = not sent.</param>
+    public static MultipartFormDataContent ImageEditRequest(string model, string prompt, string size, IReadOnlyList<ImageInput> images, string? quality = null,
+        string? inputFidelity = null)
     {
         var form = new MultipartFormDataContent
         {
@@ -233,6 +346,10 @@ public static class OpenAiPayloads
             { new StringContent("1"), "n" },
             { new StringContent("webp"), "output_format" },
         };
+        if (!string.IsNullOrWhiteSpace(quality))
+            form.Add(new StringContent(quality), "quality");
+        if (!string.IsNullOrWhiteSpace(inputFidelity))
+            form.Add(new StringContent(inputFidelity), "input_fidelity");
         for (var i = 0; i < images.Count; i++)
         {
             var part = new ByteArrayContent(images[i].Data);
@@ -347,6 +464,10 @@ public static class OpenAiPayloads
             return null;
         }
     }
+
+    /// <summary>429 codes that mean "no money / no quota left" rather than "slow down" — retrying cannot help.</summary>
+    public static bool IsBillingError(string code) =>
+        code is "insufficient_quota" or "credit_balance_exhausted" or "billing_hard_limit_reached" or "billing_not_active";
 
     /// <summary>error.code / error.type only — the message may echo user input and is never logged.</summary>
     public static string ErrorCode(string responseBody)

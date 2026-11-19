@@ -62,7 +62,7 @@ export function useItemDetail(id: string) {
 
 /**
  * 12c / 13 — pending AI drafts (they live on the server, so a reopened screen shows them again).
- * Polls with back-off while any draft is still processing; a screen that is not focused passes
+ * Polls while any draft is still processing (750 ms, then every 1.5 s); a screen that is not focused passes
  * `enabled: false`.
  */
 export function useItemDrafts(options: { enabled?: boolean } = {}) {
@@ -77,7 +77,7 @@ export function useItemDrafts(options: { enabled?: boolean } = {}) {
         async () => toItemDrafts(await apiRequest<ItemDraftsWire>('v1/tenant/item-draft')),
       ),
     refetchInterval: (q) =>
-      q.state.data?.some((d) => d.status === 'processing') ? jobPollInterval(Math.min(q.state.dataUpdateCount - 1, 1)) : false,
+      q.state.data?.some((d) => d.status === 'processing') ? jobPollInterval(q.state.dataUpdateCount > 1 ? 3000 : 0) : false,
     refetchIntervalInBackground: false,
     staleTime: 0,
   });

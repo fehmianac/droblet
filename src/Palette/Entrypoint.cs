@@ -30,7 +30,7 @@ public class Entrypoint
         foreach (var record in sqsEvent.Records)
         {
             var ok = await JobMessageHandler.HandleAsync<PaletteRequestedEvent>(
-                record.Body, WorkerHost.ReceiveCount(record.Attributes), service.ProcessAsync, logger, cts.Token);
+                record.Body, record.Attributes, service.ProcessAsync, logger, cts.Token);
             if (!ok)
                 failures.Add(new SQSBatchResponse.BatchItemFailure { ItemIdentifier = record.MessageId });
         }

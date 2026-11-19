@@ -3,12 +3,35 @@ import { fixtureJobOptions, getFixtureJob, resetFixtureJobs, startFixtureJob } f
 import { isJobSettled, jobPollInterval } from './jobs';
 
 describe('jobPollInterval', () => {
-  it('backs off 1 s → 2 → 4 → 8 and caps at 10 s', () => {
-    expect([0, 1, 2, 3, 4, 9].map(jobPollInterval)).toEqual([1000, 2000, 4000, 8000, 10_000, 10_000]);
+  it('polls every 750 ms for the first 3 s, then every 1.5 s, and every 3 s after 15 s', () => {
+    expect([0, 2999, 3000, 14_999, 15_000, 120_000].map((t) => jobPollInterval(t))).toEqual([750, 750, 1500, 1500, 3000, 3000]);
   });
 
-  it('treats a negative attempt (nothing fetched yet) as the first one', () => {
-    expect(jobPollInterval(-1)).toBe(1000);
+  it('treats a negative elapsed time (clock skew) as the start', () => {
+    expect(jobPollInterval(-500)).toBe(750);
+  });
+
+  it('follows the server hint, clamped to 500 ms … 3 s', () => {
+    expect(jobPollInterval(20_000, 1800)).toBe(1800);
+    expect(jobPollInterval(0, 120)).toBe(500);
+    expect(jobPollInterval(0, 18_000)).toBe(3000);
+    expect(jobPollInterval(5000, null)).toBe(1500);
+    expect(jobPollInterval(5000, 0)).toBe(1500);
+    expect(jobPollInterval(5000, Number.NaN)).toBe(1500);
+  });
+
+  it('notices a 26 s job within 3 s instead of at 35 s', () => {
+    const noticedAt = (completedMs: number, next: (elapsed: number) => number) => {
+      let t = 0;
+      while (t < completedMs) t += next(t);
+      return t;
+    };
+    const oldBackOff = (() => {
+      let attempt = 0;
+      return () => Math.min(1000 * 2 ** attempt++, 10_000);
+    })();
+    expect(noticedAt(26_000, oldBackOff)).toBe(35_000);
+    expect(noticedAt(26_000, (t) => jobPollInterval(t)) - 26_000).toBeLessThanOrEqual(3000);
   });
 });
 

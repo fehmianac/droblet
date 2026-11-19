@@ -29,6 +29,7 @@ public sealed class TryOnJobService(
     IPhotoInspector inspector,
     ICatalogProductLookup products,
     ILibraryCatalog library,
+    Microsoft.Extensions.Options.IOptionsMonitor<Domain.Options.AiOptions> aiOptions,
     TimeProvider timeProvider,
     ILogger<TryOnJobService> logger) : ITryOnJobService
 {
@@ -45,32 +46,41 @@ public sealed class TryOnJobService(
             // Body path: the body photo. Face path (no body photo): the face photo + body type + height / size.
             var face = message.Source == TryOnSource.Face;
             var (kind, photoId) = face ? (PhotoKind.Face, message.FacePhotoId ?? "") : (PhotoKind.Body, message.BodyPhotoId);
+            // Garment images (the tenant's own item images or global catalog images — never another tenant's) load in
+            // parallel with the source photo and its photo check; the image edit starts only once the check passed.
+            var garmentsRead = GarmentsAsync(job, ct);
             var source = await ActivePhotoAsync(message.TenantId, kind, photoId, ct);
             var bytes = source is null ? null : await storage.ReadAsync(source.S3Key, MaxImageBytes, ct);
             if (source is null || bytes is null)
             {
+                await Observe(garmentsRead);
                 await jobs.FailAsync(job, JobFailure.SourceDeleted, ct);
                 return;
             }
 
             var photo = new ImageInput(bytes, source.ContentType);
-            if (await InspectAsync(job, source, photo, ct) is { } rejected)
+            var inspection = InspectAsync(job, source, photo, ct);
+            await Task.WhenAll(inspection, garmentsRead);
+            if (inspection.Result is { } rejected)
             {
                 await jobs.FailAsync(job, rejected, ct);
                 return;
             }
 
-            // Garment images: the tenant's own item images or global catalog images — never another tenant's.
-            var garments = await GarmentsAsync(job, ct);
+            var garments = garmentsRead.Result;
             if (garments is null)
             {
                 await jobs.FailAsync(job, JobFailure.SourceDeleted, ct);
                 return;
             }
 
-            var output = face
-                ? await renderer.RenderFromFaceAsync(photo, garments, new TryOnFigure(message.BodyType ?? BodyType.Unsure, message.HeightCm, message.Size), ct)
-                : await renderer.RenderAsync(photo, garments, ct);
+            // Ai:Image:TryOnPreview: a fast low-quality image first (the job completes with it), the full one replaces it after.
+            var preview = aiOptions.CurrentValue.Image is { TryOnPreview: true } imageOptions ? imageOptions.PreviewQuality : null;
+            var figure = new TryOnFigure(message.BodyType ?? BodyType.Unsure, message.HeightCm, message.Size);
+            Task<ImageInput> Render(string? quality) => face
+                ? renderer.RenderFromFaceAsync(photo, garments, figure, ct, quality)
+                : renderer.RenderAsync(photo, garments, ct, quality);
+            var output = await Render(preview);
 
             // The user may have deleted/replaced the source photo while the provider was working.
             if (await ActivePhotoAsync(message.TenantId, kind, photoId, ct) is null)
@@ -97,6 +107,9 @@ public sealed class TryOnJobService(
             await storage.PutAsync(image.S3Key, output.Data, output.ContentType, ct);
             await repository.SaveAsync(image, ct);
             await jobs.CompleteAsync(job, $$"""{"tryOnImageId":"{{image.Id}}"}""", ct);
+
+            if (preview is not null)
+                await ReplacePreviewAsync(job, image, kind, photoId, () => Render(null), ct);
         }
         catch (Exception ex) when (!WorkerFailure.IsRetryable(ex, isLastAttempt))
         {
@@ -105,12 +118,50 @@ public sealed class TryOnJobService(
         }
     }
 
+    /// <summary>
+    /// After a preview: the full-quality render replaces the image under the same key (the next presigned GET serves it).
+    /// Best effort — the job already completed with the preview; nothing is written when the source photo or the image is
+    /// gone meanwhile.
+    /// </summary>
+    private async Task ReplacePreviewAsync(JobEntity job, TryOnImageEntity image, PhotoKind kind, string photoId, Func<Task<ImageInput>> render, CancellationToken ct)
+    {
+        try
+        {
+            var full = await render();
+            if (await ActivePhotoAsync(job.TenantId, kind, photoId, ct) is null
+                || await repository.GetAsync<TryOnImageEntity>(image.Pk, image.Sk, ct) is null)
+                return;
+            await storage.PutAsync(image.S3Key, full.Data, full.ContentType, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex, "Try-on job {JobId}: the full-quality image did not replace the preview", job.Id);
+        }
+    }
+
+    private static async Task Observe(Task task)
+    {
+        try
+        {
+            await task;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // The job fails for another reason; this read's own error does not matter.
+        }
+    }
+
     /// <summary>null = a piece of the outfit (or its image) no longer exists. A job without input renders the body photo alone.</summary>
     private async Task<IReadOnlyList<ImageInput>?> GarmentsAsync(JobEntity job, CancellationToken ct)
     {
         var pieces = StylingJson.TryDeserialize<TryOnJobInput>(job.Input)?.Pieces ?? [];
-        var garments = new List<ImageInput>(pieces.Count);
-        foreach (var piece in pieces)
+        // Every piece in parallel (DynamoDB + S3 / https downloads); the order of the pieces is kept.
+        var images = await Task.WhenAll(pieces.Select(piece => GarmentAsync(job, piece, ct)));
+        return images.Any(i => i is null) ? null : images.Select(i => i!).ToList();
+    }
+
+    private async Task<ImageInput?> GarmentAsync(JobEntity job, OutfitPiece piece, CancellationToken ct)
+    {
         {
             ImageInput? image = null;
             if (piece.ItemId is not null)
@@ -138,11 +189,8 @@ public sealed class TryOnJobService(
                     libraryItem.Category, libraryItem.ColorIds, libraryItem.Fabric, libraryItem.Seasons, libraryItem.ImageKey, false), ct);
             }
 
-            if (image is null)
-                return null;
-            garments.Add(image);
+            return image;
         }
-        return garments;
     }
 
     /// <summary>
