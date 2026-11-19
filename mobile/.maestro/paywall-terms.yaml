@@ -1,0 +1,24 @@
+# 05 Üyelik as a page sheet: plans, auto-renew disclosure and the legal links above the home indicator.
+# For a signed-in free account. Run: maestro test -e LANG=tr -e LOCALE=tr_TR .maestro/paywall-terms.yaml
+appId: com.alatech.droplet
+env:
+  LANG: ${LANG}
+  LOCALE: ${LOCALE}
+---
+- launchApp:
+    stopApp: true
+    arguments:
+      AppleLanguages: "(${LANG})"
+      AppleLocale: ${LOCALE}
+- extendedWaitUntil:
+    visible:
+      id: "tab.today"
+    timeout: 30000
+- runFlow: { file: open.yaml, env: { URL: "droplet://paywall" } }
+- extendedWaitUntil:
+    visible:
+      id: "paywall.buy"
+    timeout: 15000
+- assertVisible:
+    id: "paywall.restore"
+- takeScreenshot: p05-paywall-kosullar
