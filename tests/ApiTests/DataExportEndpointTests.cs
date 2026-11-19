@@ -87,6 +87,24 @@ public class DataExportEndpointTests(ApiFactory factory) : IClassFixture<ApiFact
     }
 
     [Fact]
+    public async Task AnAbandonedExport_ShowsFailed_AndDoesNotBlockANewOne()
+    {
+        // The worker's last attempt was killed (Lambda timeout / OOM): the row stays "processing" and nothing marks it failed.
+        var (client, auth) = await factory.RegisterAsync();
+        Assert.Equal(HttpStatusCode.Accepted, (await client.PostJsonAsync("v1/tenant/export", new { })).StatusCode);
+        var export = (await factory.Repository.GetAllAsync<DataExportEntity>(DataExportEntity.GetPk(auth.TenantId))).Single();
+        export.Status = DataExportStatus.Processing;
+        export.CreatedAt = DateTime.UtcNow.AddHours(-3);
+        export.UpdatedAt = DateTime.UtcNow.AddHours(-2);
+        await factory.Repository.SaveAsync(export);
+
+        var state = await StateAsync(client);
+        Assert.Equal("failed", state.GetProperty("export").GetProperty("status").GetString());
+        Assert.True(state.GetProperty("canRequest").GetBoolean());
+        Assert.Equal(HttpStatusCode.Accepted, (await client.PostJsonAsync("v1/tenant/export", new { })).StatusCode);
+    }
+
+    [Fact]
     public async Task AccountDeletion_RemovesTheExportsAndTheirFiles()
     {
         var (client, auth) = await factory.RegisterAsync();
