@@ -805,4 +805,54 @@ public class StylistJobServiceTests
 
         Assert.Equal((12, false, "model"), (result.CabinLimit, result.CabinTrimmed, result.Source));
     }
+
+    // ── Compact prompt (Stylist:CompactPrompt) ───────────────────────────────────────────────────────────────────
+
+    private static WorkerTestHost CompactHost(IStylistModel model) => new(s =>
+    {
+        s.AddSingleton<IStylistJobService, StylistJobService>();
+        s.RemoveAll<IStylistModel>();
+        s.AddSingleton(model);
+        s.Configure<Domain.Options.StylistOptions>(o => o.CompactPrompt = true);
+    });
+
+    [Fact]
+    public async Task Outfit_CompactPrompt_SendsAliasesOnly_AndMapsTheAnswerBackToRealIds()
+    {
+        // Candidates are ordered by id: bag1, bot1, bot2, coat1, dress1, shoe1, shoe2, top1, top2 → i1 … i9.
+        var model = new FixedModel(Outfits(Suggestion("i8", "i2", "i6"), Suggestion("i9", "i3", "i7"), Suggestion("i5", null, "i6")));
+        var host = CompactHost(model);
+        await SeedWardrobeAsync(host);
+        var job = await QueueAsync(host, JobKind.StylistOutfit, OutfitInput(pinned: "top1"));
+
+        var stored = await RunAsync(host, job);
+
+        var prompt = Assert.Single(model.Prompts);
+        Assert.True(prompt.CompactCandidates);
+        Assert.Contains("\"i8|top|black|-|spring,summer,autumn,winter\"", prompt.InputJson);
+        Assert.Contains("\"pinnedItemId\":\"i8\"", prompt.InputJson);
+        Assert.DoesNotContain("top1", prompt.InputJson);
+        Assert.DoesNotContain("null", prompt.InputJson);   // null fields are left out
+        Assert.Equal(JobStatus.Completed, stored.Status);
+        var result = StylingJson.TryDeserialize<OutfitResult>(stored.Result)!;
+        Assert.Equal(["top1", "bot1", "shoe1"], result.Suggestions[0].Slots.Select(s => s.ItemId));
+    }
+
+    [Fact]
+    public async Task Week_CompactPrompt_MapsEveryBatchBack()
+    {
+        // Real ids → aliases: bot1 i2, bot2 i3, shoe1 i6, shoe2 i7, top1 i8, top2 i9.
+        string[] looks = [Slots("i8", "i2", "i6"), Slots("i9", "i3", "i7"), Slots("i8", "i3", "i6"), Slots("i9", "i2", "i7"),
+            Slots("i8", "i2", "i7"), Slots("i9", "i3", "i6"), Slots("i8", "i3", "i7")];
+        var model = new BatchModel(3, (date, _) => looks[int.Parse(date[^2..]) - 16]);
+        var host = CompactHost(model);
+        await SeedWardrobeAsync(host);
+        var job = await QueueAsync(host, JobKind.StylistWeek, WeekInput());
+
+        var result = StylingJson.TryDeserialize<WeekResult>((await RunAsync(host, job)).Result)!;
+
+        Assert.All(result.Days, d => Assert.Equal("model", d.Outfit!.Source));
+        Assert.All(result.Days, d => Assert.All(d.Outfit!.Slots, s => Assert.DoesNotMatch("^i[0-9]+$", s.ItemId ?? "")));
+        Assert.Contains(result.Days, d => d.Outfit!.Slots.Any(s => s.ItemId == "top1"));
+    }
 }
