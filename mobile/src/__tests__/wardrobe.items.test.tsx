@@ -268,6 +268,35 @@ describe('13 Toplu ekle', () => {
     // Every photo runs the multi-item detection: there is no separate outfit-split mode any more.
     expect(screen.queryByText('Split an outfit photo')).toBeNull();
   });
+
+  it('processing rows: the picked photo blurred and "Recognising…", then the recognised name with the cleaned image', async () => {
+    const options = { ...fixtureDraftOptions };
+    Object.assign(fixtureDraftOptions, { baseMs: 1200, stepMs: 1200, lowConfidenceEvery: 0 });
+    try {
+      mockPicked.photos = [photo(1), photo(2)];
+      await open('/item/bulk');
+      await waitFor(() => expect(screen.getByTestId('bulk-pick')).toBeTruthy(), WAIT);
+      await settle();
+      await fireEvent.press(screen.getByTestId('bulk-pick'));
+
+      await waitFor(() => expect(screen.getAllByText('Recognising…')).toHaveLength(2), WAIT);
+      // No generic "Photo N" titles while the name is unknown.
+      expect(screen.queryByText('Photo 1')).toBeNull();
+      expect(screen.getAllByTestId(/^bulk-tile-blurred-/)).toHaveLength(2);
+      // Row bars are determinate (simulated, below 90 %); the header bar is their average, not an empty 0 / 2.
+      expect(screen.getByLabelText('0 of 2 photos processed').props.accessibilityValue.now).toBeLessThan(90);
+
+      await waitFor(() => expect(screen.getByText('Beyaz poplin gömlek')).toBeTruthy(), WAIT);
+      expect(screen.getByText('Tops · White')).toBeTruthy();
+      await waitFor(() => expect(screen.getByText('Düz jean')).toBeTruthy(), WAIT);
+      expect(screen.queryByText('Recognising…')).toBeNull();
+      expect(screen.getAllByTestId(/^bulk-tile-clean-/)).toHaveLength(2);
+      expect(screen.getAllByLabelText('Background removed')).toHaveLength(2);
+      expect(screen.getByLabelText('2 of 2 photos processed').props.accessibilityValue.now).toBe(100);
+    } finally {
+      Object.assign(fixtureDraftOptions, options);
+    }
+  }, 20_000);
 });
 
 describe('AI recognition quota (12, 13)', () => {
