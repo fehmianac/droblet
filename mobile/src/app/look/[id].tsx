@@ -289,7 +289,10 @@ export default function LookScreen() {
           ) : undefined
         }
       />
-      <ScreenState query={query}>
+      <ScreenState
+        query={query}
+        notFound={{ message: t('lookDetail.notFound'), actionLabel: t('lookDetail.backToLooks'), onAction: () => router.replace('/wardrobe/looks') }}
+      >
         {(data) => <LookBody look={data} itemsById={itemsById} note={noteText} />}
       </ScreenState>
 

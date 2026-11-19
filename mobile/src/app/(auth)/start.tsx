@@ -190,6 +190,8 @@ export default function AuthStartScreen() {
               onSubmitEditing={() => passwordRef.current?.focus()}
             />
             <TextField
+              // Remounted per tab: switching between Kayıt ol / Giriş yap always starts with the password hidden.
+              key={`password-${mode}`}
               ref={passwordRef}
               testID="auth.password"
               label={t('auth.password')}

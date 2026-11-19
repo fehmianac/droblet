@@ -199,6 +199,15 @@ describe("08 Haftanın edit'i", () => {
     expect(screen.getByText('2 missing pieces')).toBeTruthy();
   });
 
+  it("shows the Keşfet cover's empty state (not an error) for an edit that does not exist", async () => {
+    await renderRouter('./src/app', { initialUrl: '/edit/weekly_nope' });
+    await waitFor(() => expect(screen.getByText("This week's edit is being prepared.")).toBeTruthy(), WAIT);
+    expect(screen.queryByText('Try again')).toBeNull();
+    expect(screen.getByLabelText('Go back')).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText('Browse the store'));
+    await waitFor(() => expect(screen).toHavePathname('/shop'), WAIT);
+  });
+
   it('marks a sponsored edit', async () => {
     todayFixtureOptions.sponsoredBy = 'Marks & Spencer';
     await renderRouter('./src/app', { initialUrl: `/edit/current?look=${firstLook}` });

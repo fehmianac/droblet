@@ -1,4 +1,6 @@
-import { ApiError, extractApiError, fieldErrors, isConflict } from './errors';
+import { FixtureNotFound } from '@/fixtures/db';
+
+import { ApiError, extractApiError, fieldErrors, isConflict, isNotFound } from './errors';
 
 describe('extractApiError', () => {
   it('maps business codes to their translation key', () => {
@@ -26,5 +28,24 @@ describe('extractApiError', () => {
   it('detects conflicts', () => {
     expect(isConflict(new ApiError('http', 409, null))).toBe(true);
     expect(isConflict(new ApiError('http', 400, null))).toBe(false);
+  });
+});
+
+describe('isNotFound', () => {
+  it('is true for a 404 / 410 answer and a fixture miss', () => {
+    expect(isNotFound(new ApiError('http', 404, { code: 'not_found' }))).toBe(true);
+    expect(isNotFound(new ApiError('http', 404, null))).toBe(true);
+    expect(isNotFound(new ApiError('http', 410, null))).toBe(true);
+    expect(isNotFound(new FixtureNotFound('look x'))).toBe(true);
+  });
+
+  it('is false for network, server, auth and other client errors (they keep "Try again")', () => {
+    expect(isNotFound(new ApiError('network', null, null))).toBe(false);
+    expect(isNotFound(new ApiError('http', 500, null))).toBe(false);
+    expect(isNotFound(new ApiError('http', 503, null))).toBe(false);
+    expect(isNotFound(new ApiError('http', 409, null))).toBe(false);
+    expect(isNotFound(new ApiError('session_expired', 404, null))).toBe(false);
+    expect(isNotFound(new Error('boom'))).toBe(false);
+    expect(isNotFound(null)).toBe(false);
   });
 });

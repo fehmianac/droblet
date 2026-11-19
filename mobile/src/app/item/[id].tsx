@@ -6,6 +6,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { ItemDetail } from '@/api/contracts/wardrobe';
+import { isNotFound } from '@/api/errors';
 import { Badge, ImageTag, PopoverMenu } from '@/components/ui/Bits';
 import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { Button } from '@/components/ui/Button';
@@ -58,7 +59,7 @@ export default function ItemDetailScreen() {
   const [deleted, setDeleted] = useState(false);
 
   // The piece is gone (deleted here or on another device): one sentence + the way back.
-  if (deleted || (query.data === undefined && query.status === 'error' && query.fetchStatus === 'idle' && isMissing(query.error))) {
+  if (deleted || (query.data === undefined && query.status === 'error' && query.fetchStatus === 'idle' && isNotFound(query.error))) {
     return (
       <Screen bottom>
         <ScreenHeader leading="back" />
@@ -240,7 +241,3 @@ export default function ItemDetailScreen() {
   );
 }
 
-function isMissing(error: unknown): boolean {
-  if (error instanceof Error && error.name === 'FixtureNotFound') return true;
-  return typeof error === 'object' && error !== null && 'status' in error && (error as { status: unknown }).status === 404;
-}

@@ -80,7 +80,9 @@ export default function WeeklyEditScreen() {
   const noPhoto = edit !== undefined && !edit.hasBodyPhoto;
   // The actions sit on the image. Offline, the cached-data band takes the top of the screen, so the
   // screen falls back to a plain header above it (as it does when there is no image at all).
-  const overlay = !noPhoto && online;
+  // Without an edit to show (none published, an unknown id, a failed read) there is no image either.
+  const nothingToShow = (edit === undefined && query.status === 'error') || (edit !== undefined && edit.looks.length === 0);
+  const overlay = !noPhoto && online && !nothingToShow;
 
   const goTo = (next: number) => {
     setPicked(next);
@@ -146,7 +148,9 @@ export default function WeeklyEditScreen() {
       <ScreenState
         query={query}
         isEmpty={(data) => data.looks.length === 0}
-        empty={{ message: t('weekEdit.emptyMessage'), actionLabel: t('weekEdit.emptyAction'), onAction: () => router.dismissTo('/') }}
+        // No edit this week (404 `not_found` on current or on an id, or an edit without looks): the Keşfet cover's
+        // empty state, word for word. `ScreenState` uses it for the 404 too.
+        empty={{ message: t('explore.editEmpty'), actionLabel: t('explore.editEmptyAction'), onAction: () => router.push('/shop') }}
       >
         {(data) => {
           const current = data.looks[index];

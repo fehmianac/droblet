@@ -1,9 +1,10 @@
 import { CircleAlert, RotateCcw, WifiOff, type LucideIcon } from 'lucide-react-native';
 import type { ReactNode } from 'react';
+import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
-import { extractApiError } from '@/api/errors';
+import { extractApiError, isNotFound } from '@/api/errors';
 import { DropLoader } from '@/components/brand/DropLoader';
 import { useIsOnline } from '@/sync/network';
 
@@ -33,6 +34,15 @@ type EmptyState = {
   onSecondaryAction?: () => void;
 };
 
+/** Not found (404): one sentence + the way back, as on 11 Parça detayı ("Bu parça artık gardırobunda yok"). */
+type NotFoundState = {
+  message: string;
+  actionLabel: string;
+  onAction: () => void;
+  icon?: LucideIcon;
+  title?: string;
+};
+
 type Props<T> = {
   query: QueryLike<T>;
   isEmpty?: (data: T) => boolean;
@@ -43,18 +53,27 @@ type Props<T> = {
    * a known cause. Known causes (no connection, session, server) keep their own sentence.
    */
   error?: { title?: string; message?: string };
+  /**
+   * What a 404 / 410 shows (an unknown id, a deleted record, content not published yet). Without it the
+   * screen's `empty` state is used, and without that a generic "not found" + back. Never "Tekrar dene":
+   * retrying cannot bring the thing back.
+   */
+  notFound?: NotFoundState;
   /** Screen-reader name of the loading state ("Gardırop yükleniyor"). */
   loadingLabel?: string;
   children: (data: T) => ReactNode;
 };
 
+/** Without history (deep link / cold start), back goes to Bugün. */
+const goBack = () => (router.canGoBack() ? router.back() : router.replace('/'));
+
 /**
  * The five states of every list screen, drawn as on the `Durum*` boards (canvas note "Tüm liste ekranları
  * için ortak durumlar"): loading = skeleton boxes shaped like the content (never a spinner) · empty = one
- * sentence + one action · error = "Tekrar dene" · offline = cached data (the root sync pill says so) or an explained
+ * sentence + one action · not found (404) = the screen's not-found sentence + the way back · error = "Tekrar dene" (network / 5xx) · offline = cached data (the root sync pill says so) or an explained
  * state when nothing is cached · success.
  */
-export function ScreenState<T>({ query, isEmpty, empty, error, loadingLabel, children }: Props<T>) {
+export function ScreenState<T>({ query, isEmpty, empty, error, notFound, loadingLabel, children }: Props<T>) {
   const { t } = useTranslation();
   const online = useIsOnline();
   const retry = () => void query.refetch();
@@ -79,6 +98,36 @@ export function ScreenState<T>({ query, isEmpty, empty, error, loadingLabel, chi
       ) : (
         children(query.data)
       );
+  } else if (query.status === 'error' && isNotFound(query.error)) {
+    if (!notFound && empty) {
+      body = (
+        <StateMessage
+          testID="state-empty"
+          role="status"
+          icon={empty.icon}
+          title={empty.title}
+          message={empty.message}
+          actionLabel={empty.actionLabel}
+          onAction={empty.onAction}
+          actionVariant="primary"
+          secondaryActionLabel={empty.secondaryActionLabel}
+          onSecondaryAction={empty.onSecondaryAction}
+        />
+      );
+    } else {
+      const state = notFound ?? { message: t('states.notFound'), actionLabel: t('states.notFoundAction'), onAction: goBack };
+      body = (
+        <StateMessage
+          testID="state-not-found"
+          role="status"
+          icon={state.icon}
+          title={state.title}
+          message={state.message}
+          actionLabel={state.actionLabel}
+          onAction={state.onAction}
+        />
+      );
+    }
   } else if (query.status === 'error') {
     const code = extractApiError(query.error);
     body = (

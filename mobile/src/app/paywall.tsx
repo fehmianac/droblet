@@ -3,7 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Briefcase, Palette, Sparkles, X, type LucideIcon } from 'lucide-react-native';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { track } from '@/analytics/track';
@@ -23,6 +23,7 @@ import { CanvasGlyph } from '@/features/account/rows';
 import type { StoreProduct } from '@/fixtures/storeProducts';
 import { syncPushRegistration } from '@/notify/push';
 import { PurchaseStatus } from '@/purchases/PurchaseStatus';
+import { paywallHeroHeight } from '@/purchases/paywallLayout';
 import { purchaseFlow, usePurchaseState } from '@/purchases/purchaseFlow';
 import { placeholderTones, type PlaceholderTone } from '@/theme/tokens';
 import { useThemeColors } from '@/theme/useThemeColors';
@@ -129,6 +130,8 @@ export default function PaywallScreen() {
   const { t } = useTranslation();
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  const hero = paywallHeroHeight(windowHeight);
   const { from } = useLocalSearchParams<{ from?: string }>();
   const session = useSession();
   const store = useStoreProducts();
@@ -217,16 +220,18 @@ export default function PaywallScreen() {
 
   return (
     <View className="flex-1 bg-cream">
-      <ScrollView className="flex-1" contentContainerClassName="pb-3">
-        <View className="h-[250px]" accessible={false} importantForAccessibility="no-hide-descendants">
+      {/* The footer below is laid out after the scroll view (not over it): the scroll area ends where the footer
+          starts, so the bottom padding of the content is exactly the footer's height and nothing hides under it. */}
+      <ScrollView className="flex-1" contentContainerClassName="pb-4" testID="paywall.scroll">
+        <View style={{ height: hero }} accessible={false} importantForAccessibility="no-hide-descendants">
           <View style={StyleSheet.absoluteFill} className="flex-row gap-1.5 p-1.5">
             {TILES.map((tile) => (
               <View
                 key={tile.tone}
-                className="h-[238px] flex-1 items-center justify-center overflow-hidden rounded-[16px]"
+                className="flex-1 items-center justify-center overflow-hidden rounded-[16px]"
                 style={{ backgroundColor: placeholderTones[tile.tone] }}
               >
-                <Silhouette height={160} tone={tile.figure} opacity={0.16} />
+                <Silhouette height={Math.round(hero * 0.64)} tone={tile.figure} opacity={0.16} />
               </View>
             ))}
           </View>
@@ -238,7 +243,7 @@ export default function PaywallScreen() {
           />
         </View>
 
-        <View className="-mt-[30px] gap-3.5 px-6">
+        <View className="-mt-6 gap-3 px-6">
           <Text variant="eyebrow" tone="accent">
             {t('paywall.eyebrow')}
           </Text>
@@ -246,11 +251,11 @@ export default function PaywallScreen() {
             {t('paywall.tagline')}
           </Text>
 
-          <View className="mt-0.5 gap-2.5">
+          <View className="gap-2">
             {BENEFITS.map(({ title, body, icon }) => (
               <View key={title} className="flex-row items-center gap-3">
-                <View className="h-9 w-9 items-center justify-center rounded-pill border border-line bg-paper">
-                  {icon === 'mirror' ? <CanvasGlyph name="mirror" size={18} /> : <Icon icon={icon} size={18} />}
+                <View className="h-8 w-8 items-center justify-center rounded-pill border border-line bg-paper">
+                  {icon === 'mirror' ? <CanvasGlyph name="mirror" size={16} /> : <Icon icon={icon} size={16} />}
                 </View>
                 <View className="flex-1">
                   <Text variant="bodyMedium">{t(title)}</Text>
@@ -263,7 +268,7 @@ export default function PaywallScreen() {
           </View>
 
           {isMember ? (
-            <View className="mt-0.5 gap-2 rounded-card bg-sand p-4">
+            <View className="gap-2 rounded-card bg-sand p-4">
               <Text variant="bodyMedium">{t('paywall.active')}</Text>
               {entitlement.data?.inGracePeriod ? (
                 <Text variant="caption" tone="danger">
@@ -272,7 +277,7 @@ export default function PaywallScreen() {
               ) : null}
             </View>
           ) : (
-            <View accessibilityRole="radiogroup" className="mt-0.5 flex-row gap-2.5">
+            <View accessibilityRole="radiogroup" className="mt-1 flex-row gap-2">
               <PlanOption plan="year" product={yearly} selected={plan === 'year'} onSelect={() => setPlan('year')} loading={store.isPending} />
               <PlanOption plan="month" product={monthly} selected={plan === 'month'} onSelect={() => setPlan('month')} loading={store.isPending} />
             </View>
@@ -280,11 +285,12 @@ export default function PaywallScreen() {
         </View>
       </ScrollView>
 
-      <View className="absolute right-5" style={{ top: insets.top + 4 }}>
+      {/* iOS presents 05 as a page sheet (below the status bar), so the × sits in the strip's top corner; elsewhere it is full screen. */}
+      <View className="absolute right-5" style={{ top: Platform.OS === 'ios' ? 16 : insets.top + 4 }}>
         <IconButton icon={X} onPress={() => void close()} variant="inverse" accessibilityLabel={t('a11y.close')} className="border border-line" testID="paywall.close" />
       </View>
 
-      <View className="gap-1.5 px-6 pt-3" style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
+      <View className="gap-1 px-6 pt-3" style={{ paddingBottom: Math.max(insets.bottom, 12) }} testID="paywall.footer">
         {action}
         <View className="flex-row flex-wrap items-center justify-center gap-x-1">
           <FooterLink label={t('paywall.restore')} onPress={restore} testID="paywall.restore" />

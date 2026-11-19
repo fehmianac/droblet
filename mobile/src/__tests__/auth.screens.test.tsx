@@ -69,6 +69,26 @@ describe('02 Kayıt / giriş', () => {
   });
 });
 
+describe('02 password field', () => {
+  it('starts hidden on the login tab, shows only after the eye is tapped, and hides again on a tab switch', async () => {
+    await renderRouter('./src/app', { initialUrl: '/start?mode=login' });
+    await waitFor(() => expect(screen.getByText('Welcome back')).toBeTruthy(), WAIT);
+    expect(screen.getByTestId('auth.password').props.secureTextEntry).toBe(true);
+    await fireEvent.changeText(screen.getByTestId('auth.password'), 'Sm0keTest2026');
+    expect(screen.getByTestId('auth.password').props.secureTextEntry).toBe(true);
+
+    await fireEvent.press(screen.getByTestId('auth.password.toggle'));
+    expect(screen.getByTestId('auth.password').props.secureTextEntry).toBe(false);
+
+    await fireEvent.press(screen.getByTestId('auth.tab.register'));
+    await waitFor(() => expect(screen.getByText('Create your account')).toBeTruthy(), WAIT);
+    expect(screen.getByTestId('auth.password').props.secureTextEntry).toBe(true);
+    await fireEvent.press(screen.getByTestId('auth.tab.login'));
+    await waitFor(() => expect(screen.getByText('Welcome back')).toBeTruthy(), WAIT);
+    expect(screen.getByTestId('auth.password').props.secureTextEntry).toBe(true);
+  });
+});
+
 describe('02b Şifremi unuttum → 02c Bağlantı gönderildi', () => {
   it('shows the note, validates the address, then the sent state with the countdown', async () => {
     await renderRouter('./src/app', { initialUrl: '/forgot-password' });

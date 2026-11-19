@@ -210,9 +210,18 @@ describe('Look detail (derived from 17)', () => {
     await waitFor(() => expect(fixtureDb.looks.some((l) => l.id === 'look_krem_katmanlar')).toBe(false), { timeout: 3000 });
   });
 
-  it('shows the error state with retry for an unknown look', async () => {
+  it('shows the not-found state (no retry) for an unknown look, with the way back to the lookbook', async () => {
     await renderRouter('./src/app', { initialUrl: '/look/nope' });
-    await waitFor(() => expect(screen.getByText('Try again')).toBeTruthy(), { timeout: 3000 });
+    await waitFor(() => expect(screen.getByText('This look is no longer in your lookbook.')).toBeTruthy(), { timeout: 3000 });
+    expect(screen.queryByText('Try again')).toBeNull();
     expect(screen.queryByTestId('look-try-on')).toBeNull();
+    await fireEvent.press(screen.getByLabelText('Back to the lookbook'));
+    await waitFor(() => expect(screen).toHavePathname('/wardrobe/looks'), { timeout: 3000 });
+  });
+
+  it('shows the not-found state when editing an unknown look', async () => {
+    await renderRouter('./src/app', { initialUrl: '/look/new?id=nope' });
+    await waitFor(() => expect(screen.getByText('This look is no longer in your lookbook.')).toBeTruthy(), { timeout: 3000 });
+    expect(screen.queryByText('Try again')).toBeNull();
   });
 });

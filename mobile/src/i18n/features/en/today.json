@@ -105,9 +105,7 @@
     "photoTitle": "Complete your profile photo",
     "photoBody_one": "Add a full-length photo to see this week's {{count}} look on you.",
     "photoBody_other": "Add a full-length photo to see this week's {{count}} looks on you.",
-    "photoAction": "Add a photo",
-    "emptyMessage": "This week's edit hasn't been published yet.",
-    "emptyAction": "Back to Today"
+    "photoAction": "Add a photo"
   },
   "calendarScreen": {
     "eyebrow": "WHAT I'LL WEAR, WHAT I WORE",

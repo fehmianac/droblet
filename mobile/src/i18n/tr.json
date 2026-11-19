@@ -66,7 +66,9 @@
       "error": "Senkronize edilemedi"
     },
     "crashTitle": "Bu ekran açılamadı",
-    "crashBody": "Bir şeyler ters gitti. Uygulamanın geri kalanı çalışıyor; bu ekranı yeniden deneyebilirsin."
+    "crashBody": "Bir şeyler ters gitti. Uygulamanın geri kalanı çalışıyor; bu ekranı yeniden deneyebilirsin.",
+    "notFound": "Aradığın içerik artık burada değil.",
+    "notFoundAction": "Geri dön"
   },
   "conflict": {
     "changedTitle": "Bunu başka bir cihazda değiştirdin",
