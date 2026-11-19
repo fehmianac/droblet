@@ -22,6 +22,11 @@ beforeAll(async () => {
 });
 
 describe('13a ImageViewer', () => {
+  // Fake timers never outlive a test, even when an assertion fails half way (a leak hung CI on Node 22).
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it('opens from a tile with the "Enlarge" hint and closes with ×', async () => {
     jest.useFakeTimers();
     await render(

@@ -201,7 +201,9 @@ jobs:
       - run: npm ci
       # tsc passes on imports a bundler refuses; expo export is the bundling EAS is about to do.
       # check = typecheck + lint + test
-      - run: npm run check
+      # Never hang a release: the check normally takes ~2 min; jest exits even if a test leaves a handle open.
+      - run: npx tsc --noEmit && npx eslint . && npx jest --ci --forceExit --testTimeout=30000
+        timeout-minutes: 20
       - run: npx expo export --platform ${{ steps.tag.outputs.ios == 'true' && 'ios' || 'android' }} --output-dir "$RUNNER_TEMP/export-check"
       # The store version is app.json's expo.version (EAS uploads the working tree, uncommitted change included);
       # the build number is EAS's (appVersionSource remote + autoIncrement on the production profile).
