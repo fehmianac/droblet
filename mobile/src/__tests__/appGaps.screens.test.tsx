@@ -48,11 +48,13 @@ beforeEach(async () => {
 });
 
 describe('E-mail verification', () => {
-  it('Today shows the dismissible banner and the profile item; the code screen verifies with auto-submit', async () => {
+  it('Today shows the dismissible banner (the profile card leaves its e-mail row out meanwhile); the code screen verifies with auto-submit', async () => {
     resetAccountFixtures({ emailVerified: false });
     await open('/');
     await waitFor(() => expect(screen.getByTestId('today.verifyEmail')).toBeTruthy(), WAIT);
-    await waitFor(() => expect(screen.getByTestId('today.profileComplete.item.verifyEmail')).toBeTruthy(), WAIT);
+    await waitFor(() => expect(screen.getByTestId('today.profileComplete')).toBeTruthy(), WAIT);
+    // Canvas "06 Bugün · e-posta doğrula + profilini tamamla": the banner carries the e-mail step, not the card.
+    expect(screen.queryByTestId('today.profileComplete.item.verifyEmail')).toBeNull();
 
     await fireEvent.press(screen.getByTestId('today.verifyEmail.open'));
     await waitFor(() => expect(screen.getByTestId('verify.code')).toBeTruthy(), WAIT);
@@ -92,6 +94,8 @@ describe('E-mail verification', () => {
     await fireEvent.press(screen.getByTestId('today.verifyEmail.hide'));
     await waitFor(() => expect(screen.queryByTestId('today.verifyEmail')).toBeNull(), WAIT);
     expect(await AsyncStorage.getItem('droblet.verifyEmailBanner.u1')).toBe('1');
+    // With the banner gone, the profile card carries the e-mail step again.
+    await waitFor(() => expect(screen.getByTestId('today.profileComplete.item.verifyEmail')).toBeTruthy(), WAIT);
   });
 });
 
