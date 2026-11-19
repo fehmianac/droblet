@@ -64,8 +64,15 @@ internal sealed class AiCostCommand(IServiceProvider services, OpsArguments args
             await RealUsageAsync(pricing, args.IntOption("days", 7), ct);
         if (!args.Flag("usage-only"))
         {
-            await SyntheticAsync(ct);
-            ReportSynthetic(pricing);
+            try
+            {
+                await SyntheticAsync(ct);
+            }
+            finally
+            {
+                // What was measured is reported even when a later call aborts the run.
+                ReportSynthetic(pricing);
+            }
         }
         return _samples.Any(s => !s.Ok) ? 1 : 0;
     }

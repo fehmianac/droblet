@@ -68,6 +68,7 @@ public class AiCostCommandTests
         Assert.Null(options.ImageFor(ImageUse.TryOn).Quality);               // uses=cleanup leaves try-on alone
         Assert.True(variants[0].Compact(true));
         Assert.Equal(30, CostVariant.ParseAll("c:cap=30,compact=1")[0].Cap(60));
+        CostVariant.ParseAll("c:cap=30,compact=1,weekbatch=0")[0].Apply(new AiOptions());   // stylist keys leave the AI options alone
     }
 
     [Theory]

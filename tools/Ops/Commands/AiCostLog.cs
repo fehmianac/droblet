@@ -130,9 +130,12 @@ internal sealed record CostVariant(string Name, IReadOnlyDictionary<string, stri
                 case "fastops": o.FastTextOperations = value.Replace('|', ','); break;
                 case "tier": o.ServiceTier = value == "default" ? null : value; break;
                 case "cachekey": o.PromptCacheKey = value is "1" or "true"; break;
-                case "quality" or "size" or "fidelity" or "uses": break; // image keys: ApplyImage
+                case "quality" or "size" or "fidelity" or "uses": break; // image keys: below
+                case "compact" or "cap" or "weekbatch": break;              // stylist keys: Compact / Cap / WeekBatch
                 default:
                     var dot = key.IndexOf('.', StringComparison.Ordinal);
+                    if (dot <= 0)
+                        break;
                     var (prefix, op) = (key[..dot], key[(dot + 1)..]);
                     if (prefix == "effort") o.ReasoningEffort[op] = value;
                     else if (prefix == "detail") o.VisionDetail[op] = value;
