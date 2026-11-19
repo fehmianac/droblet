@@ -17,6 +17,8 @@ import type {
 import { ApiError } from '@/api/errors';
 import { applyRating } from '@/features/social/feedMath';
 
+import { L } from './showcase';
+
 /**
  * Typed fixtures for E9 (arkadaş akışı, kişi profili, dolapları keşfet). First names and handles are
  * invented samples — no real people. Looks carry no image (piece collage placeholder): another
@@ -46,7 +48,7 @@ function seedPeople(): Person[] {
     { handle: 'ayse', displayName: 'Ayşe', avatarUrl: null, styleTags: ['boho', 'vintage', 'romantic'], itemCount: 58, lookCount: 9, styleMatch: 69, isFollowing: true, closetVisible: true, blocked: false },
     { handle: 'deniz', displayName: 'Deniz', avatarUrl: null, styleTags: ['classic', 'vintage', 'minimal'], itemCount: null, lookCount: null, styleMatch: 74, isFollowing: false, closetVisible: false, blocked: false },
     { handle: 'ornek_stilist', displayName: '@ornek_stilist', avatarUrl: null, styleTags: ['quiet_luxury', 'office_chic', 'classic'], itemCount: 210, lookCount: 64, styleMatch: 77, isFollowing: false, closetVisible: true, blocked: false },
-    { handle: 'ornek_editor', displayName: 'Stil editörü', avatarUrl: null, styleTags: ['minimal', 'classic', 'street'], itemCount: 180, lookCount: 52, styleMatch: 72, isFollowing: false, closetVisible: true, blocked: false },
+    { handle: 'ornek_editor', displayName: L('Stil editörü'), avatarUrl: null, styleTags: ['minimal', 'classic', 'street'], itemCount: 180, lookCount: 52, styleMatch: 72, isFollowing: false, closetVisible: true, blocked: false },
   ];
   return seed.map(withRelations);
 }
@@ -232,7 +234,7 @@ export const socialFixtures = {
     visiblePerson(handle);
     return handle === 'selin'
       ? [
-          { id: 'trip_1', city: 'Roma', month: '2026-09' },
+          { id: 'trip_1', city: L('Roma'), month: '2026-09' },
           { id: 'trip_2', city: 'Bodrum', month: '2026-07' },
         ]
       : [];

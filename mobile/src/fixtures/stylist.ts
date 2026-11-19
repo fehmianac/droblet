@@ -1,4 +1,4 @@
-import { productsFixture } from './store';
+import { localizedCatalogue, productsFixture } from './store';
 import type { Look, LookSlot, LookSlotKind } from '@/api/contracts/looks';
 import {
   STYLIST_SUGGESTION_COUNT,
@@ -15,10 +15,11 @@ import {
 import type { Item, ItemCategory } from '@/api/contracts/wardrobe';
 import { fixtureDb, FixtureNotFound, slotFromItem } from '@/fixtures/db';
 import { getFixtureJob, startFixtureJob } from '@/fixtures/jobs';
+import { L, SHOWCASE } from '@/fixtures/showcase';
 
 /** Fixture weather (sample from the 16 board). Set to null to exercise "hava alınamadı". */
 export const stylistFixtureOptions: { weather: StylistWeather | null } = {
-  weather: { temperatureC: 14, summary: 'Hafif yağmur', city: 'İstanbul' },
+  weather: { temperatureC: 14, summary: L('Hafif yağmur'), city: L('İstanbul') },
 };
 
 const SLOT_OF: Record<ItemCategory, LookSlotKind> = {
@@ -34,7 +35,8 @@ const SLOT_OF: Record<ItemCategory, LookSlotKind> = {
 };
 
 /** The missing piece the stylist proposes — a product of the catalogue fixture (leather belt). */
-const STORE_PRODUCT = productsFixture.find((p) => p.id === 'prod_023') ?? (productsFixture[0] as (typeof productsFixture)[number]);
+const CATALOGUE = SHOWCASE ? localizedCatalogue() : productsFixture;
+const STORE_PRODUCT = CATALOGUE.find((p) => p.id === 'prod_023') ?? (CATALOGUE[0] as (typeof CATALOGUE)[number]);
 
 const STORE_PIECE: StylistPiece = {
   slot: 'accessory',
@@ -48,11 +50,11 @@ const STORE_PIECE: StylistPiece = {
   color: null,
 };
 
-const NAMES = ['Gece Laciverti', 'Krem Katmanlar', 'Sade Şıklık'] as const;
+const NAMES = [L('Gece Laciverti'), L('Krem Katmanlar'), L('Sade Şıklık')] as const;
 const NOTES = [
-  'Koyu tonları tek bir açık parçayla dengele; yağmura karşı kapalı burunlu ayakkabı seç.',
-  'Açık tonları katman katman kullan; üstüne atacağın parça günü toparlar.',
-  'Az parça, net çizgi: rahat ama özenli bir görünüm.',
+  L('Koyu tonları tek bir açık parçayla dengele; yağmura karşı kapalı burunlu ayakkabı seç.'),
+  L('Açık tonları katman katman kullan; üstüne atacağın parça günü toparlar.'),
+  L('Az parça, net çizgi: rahat ama özenli bir görünüm.'),
 ] as const;
 
 function pieceFromItem(item: Item): StylistPiece {

@@ -1,0 +1,59 @@
+<!doctype html>
+<!--
+  Store screenshot frame: a short caption over the app capture, in the brand style (cream ground,
+  Cormorant Garamond caption, Jost eyebrow). Rendered with headless Chrome by render.sh, one call per
+  screenshot; everything comes from the query string:
+    ?w=1320&h=2868&shot=<capture.png>&eyebrow=BUGÜN&title=Sabah%20…&lang=tr
+  All sizes are relative to the width, so one template serves 1320×2868, 1284×2778 and 1080×1920.
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@400;500&display=swap">
+<style>
+  :root { --w: 1320px; --h: 2868px; }
+  html, body { margin: 0; width: var(--w); height: var(--h); overflow: hidden; background: #F4F1EC; color: #1C1A17; }
+  body { position: relative; font-family: 'Jost', sans-serif; }
+  .caption { position: absolute; left: calc(var(--w) * .085); right: calc(var(--w) * .085); top: calc(var(--w) * .1);
+    display: flex; flex-direction: column; align-items: center; text-align: center; gap: calc(var(--w) * .026); }
+  .brand { display: flex; align-items: center; gap: calc(var(--w) * .012); }
+  .brand svg { width: calc(var(--w) * .042); height: calc(var(--w) * .042); }
+  .brand span { font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: calc(var(--w) * .036); letter-spacing: -0.01em; }
+  .eyebrow { font-size: calc(var(--w) * .025); font-weight: 500; letter-spacing: .16em; color: #665F56; }
+  h1 { margin: 0; font-family: 'Cormorant Garamond', serif; font-weight: 500; font-size: calc(var(--w) * .084);
+    line-height: 1.04; letter-spacing: -0.015em; text-wrap: balance; }
+  .rule { width: calc(var(--w) * .06); height: max(2px, calc(var(--w) * .0016)); background: #6E5640; }
+  .phone { position: absolute; left: 50%; transform: translateX(-50%); width: calc(var(--w) * var(--phone, .74));
+    top: var(--top, calc(var(--w) * .5)); padding: calc(var(--w) * .016); border-radius: calc(var(--w) * .11);
+    background: #1C1A17; box-shadow: 0 calc(var(--w) * .03) calc(var(--w) * .07) calc(var(--w) * -.02) rgb(28 26 23 / .35); }
+  .phone img { display: block; width: 100%; border-radius: calc(var(--w) * .094); }
+  .island { position: absolute; top: calc(var(--w) * .036); left: 50%; width: 30%; height: calc(var(--w) * .052);
+    border-radius: 99px; background: #1C1A17; transform: translateX(-50%); }
+</style>
+</head>
+<body>
+  <div class="caption">
+    <div class="brand">
+      <svg viewBox="6 10 44 44" aria-hidden="true"><rect x="6" y="10" width="44" height="44" rx="12" fill="#1C1A17"/><path d="M20 22v20h6.5a10 10 0 0 0 0-20H20M20 22c0-3 1.6-5 4-5.4" fill="none" stroke="#F4F1EC" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M27 27c0 0-3.2 3.6-3.2 6a3.2 3.2 0 0 0 6.4 0c0-2.4-3.2-6-3.2-6z" fill="#B49A80"/></svg>
+      <span>Droblet</span>
+    </div>
+    <div class="eyebrow" id="eyebrow"></div>
+    <h1 id="title"></h1>
+    <div class="rule"></div>
+  </div>
+  <div class="phone"><img id="shot" alt=""><span class="island"></span></div>
+<script>
+  const q = new URLSearchParams(location.search);
+  const w = Number(q.get('w') || 1320), h = Number(q.get('h') || 2868);
+  const root = document.documentElement.style;
+  root.setProperty('--w', w + 'px');
+  root.setProperty('--h', h + 'px');
+  // Wider canvases (Play 9:16) get a smaller phone that starts higher, so the caption still fits above it.
+  if (h / w < 2) { root.setProperty('--phone', '.66'); root.setProperty('--top', (w * .5) + 'px'); }
+  document.documentElement.lang = q.get('lang') || 'tr';
+  document.getElementById('eyebrow').textContent = q.get('eyebrow') || '';
+  document.getElementById('title').textContent = q.get('title') || '';
+  document.getElementById('shot').src = q.get('shot') || '';
+</script>
+</body>
+</html>

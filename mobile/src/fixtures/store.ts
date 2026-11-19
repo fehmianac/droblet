@@ -28,6 +28,8 @@ import { slotOfCategory, slotOfItemCategory } from '@/features/store/slots';
 import { currentLanguage } from '@/i18n';
 import { moneyFromMajor, sumMoney, toIsoDate, type Money } from '@/lib/format';
 
+import { L } from './showcase';
+
 /**
  * Typed fixtures for E8 (Keşfet, mağaza, sepet, izleme listesi), used while `DATA_SOURCE` points the
  * feature at 'fixture'. Brands and product names follow the design canvas / brief; prices are the
@@ -190,7 +192,7 @@ function currentEdit(today: Date = new Date()): WeeklyEditSummary {
   const monday = addDays(today, -((today.getDay() + 6) % 7));
   return {
     id: 'current',
-    title: 'Net Ofis Klasikleri',
+    title: L('Net Ofis Klasikleri'),
     startDate: toIsoDate(monday),
     endDate: toIsoDate(addDays(monday, 6)),
     lookCount: 7,
@@ -200,9 +202,9 @@ function currentEdit(today: Date = new Date()): WeeklyEditSummary {
 
 /** Placeholder creators — sample handles only, no real people (README §9.1 A-7). */
 export const creatorsFixture: CreatorCard[] = [
-  { id: 'creator_1', handle: 'ornek_stilist', displayName: '@ornek_stilist', role: 'Stil danışmanı', lookTitle: 'Quiet luxury ofis', imageUrl: null, sponsored: false },
-  { id: 'creator_2', handle: 'ornek_editor', displayName: '@ornek_editor', role: 'Editör', lookTitle: 'Hafta sonu katman', imageUrl: null, sponsored: false },
-  { id: 'creator_3', handle: null, displayName: 'Marka vitrini', role: null, lookTitle: 'Lüks dokunuş', imageUrl: null, sponsored: true },
+  { id: 'creator_1', handle: 'ornek_stilist', displayName: '@ornek_stilist', role: L('Stil danışmanı'), lookTitle: L('Quiet luxury ofis'), imageUrl: null, sponsored: false },
+  { id: 'creator_2', handle: 'ornek_editor', displayName: '@ornek_editor', role: L('Editör'), lookTitle: L('Hafta sonu katman'), imageUrl: null, sponsored: false },
+  { id: 'creator_3', handle: null, displayName: L('Marka vitrini'), role: null, lookTitle: L('Lüks dokunuş'), imageUrl: null, sponsored: true },
 ];
 
 // ---------- In-memory state ----------
@@ -224,7 +226,7 @@ function initialState(): State {
       { lineId: 'line_3', productId: 'prod_004', size: ONE_SIZE },
     ],
     watch: new Map([
-      ['prod_003', { alertEnabled: true, source: { kind: 'look', lookName: 'Beyaz Gömlek, Net Çizgi' }, previousPrice: lira(4125) }],
+      ['prod_003', { alertEnabled: true, source: { kind: 'look', lookName: L('Beyaz Gömlek, Net Çizgi') }, previousPrice: lira(4125) }],
       ['prod_004', { alertEnabled: true, source: { kind: 'edit' }, previousPrice: null }],
       ['prod_009', { alertEnabled: false, source: { kind: 'manual' }, previousPrice: null }],
     ]),
