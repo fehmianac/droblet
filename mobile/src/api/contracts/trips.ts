@@ -90,8 +90,10 @@ export type TripMissingPiece = {
   reason: string;
   /** Category of the missing piece (placeholder glyph, shop filter); null when unknown. */
   category: ItemCategory | null;
-  /** Catalogue product suggested for it, when any. */
+  /** Catalogue product suggested for it, when any ("Önerilen · Mağaza"). */
   productId: string | null;
+  /** Ready-made library piece Droblet picked for it ("Önerilen · Kütüphane", one tap "Gardıroba ekle"). */
+  libraryItemId?: string | null;
 };
 
 /** The generated content of a suitcase: job result of `trip-pack` (a draft) and part of `TripDetail` once accepted. */
@@ -99,6 +101,8 @@ export type TripPlan = {
   items: TripItem[];
   days: TripDay[];
   missing: TripMissingPiece[];
+  /** Some pieces were picked by Droblet (library / catalogue) because the wardrobe is thin. */
+  gapFilled?: boolean;
   /** "Her parça en az N kez giyiliyor": 2 when the wire says `everyPieceWornTwice`, else null. */
   minWearsPerItem: number | null;
 };

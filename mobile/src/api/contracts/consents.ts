@@ -1,5 +1,5 @@
 /**
- * Açık rıza kayıtları (docs/legal: Açık Rıza Metinleri 1–6) — `GET/PUT v1/tenant/consents`.
+ * Açık rıza kayıtları (docs/legal: Açık Rıza Metinleri 1–7) — `GET/PUT v1/tenant/consents`.
  *
  * The server keeps the current state per type plus an append-only history. `valid` = granted on the
  * text version the server currently requires: that is what it enforces (403 `consent_required`
@@ -12,6 +12,7 @@ export const CONSENT_TYPES = [
   'contacts',
   'marketingNotifications',
   'crossBorderTransfer',
+  'facePhotoTryOn',
 ] as const;
 export type ConsentType = (typeof CONSENT_TYPES)[number];
 
@@ -27,6 +28,7 @@ export const CONSENT_TEXT_VERSION: Record<ConsentType, string> = {
   contacts: '2026-11-19',
   marketingNotifications: '2026-11-19',
   crossBorderTransfer: '2026-11-19',
+  facePhotoTryOn: '2026-11-19',
 };
 
 /** Where in the app the decision was taken (stored with the record). */
@@ -41,6 +43,7 @@ export type ConsentSource =
   | 'notifications'
   | 'settings'
   | 'onboarding'
+  | 'requirements'
   | 'server';
 
 export type ConsentRecord = {
@@ -56,7 +59,7 @@ export type ConsentRecord = {
   source: string | null;
 };
 
-/** GET v1/tenant/consents — always all six types. */
+/** GET v1/tenant/consents — always all seven types. */
 export type ConsentState = { consents: ConsentRecord[] };
 
 /** PUT v1/tenant/consents → `ConsentState`. Granting needs `version === currentVersion` (409 `consent_version_outdated`). */
@@ -70,6 +73,8 @@ export type PutConsentsRequest = {
 export const CONSENTS_FOR = {
   bodyPhoto: ['bodyPhotoAi', 'crossBorderTransfer'],
   tryOn: ['bodyPhotoAi', 'crossBorderTransfer'],
+  /** "Üzerimde gör" without a body photo: the face photo + the chosen body type (consent 7, new purpose). */
+  tryOnFace: ['facePhotoTryOn', 'crossBorderTransfer'],
   facePhoto: ['facePhotoPalette', 'crossBorderTransfer'],
   palette: ['facePhotoPalette', 'crossBorderTransfer'],
   weight: ['weight'],

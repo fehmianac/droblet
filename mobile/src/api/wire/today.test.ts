@@ -137,9 +137,11 @@ describe('today wire mappers', () => {
     expect(toPlanWeekResult(wire, { jobId: 'J1', only: ['2026-11-16', '2026-11-17', '2026-11-18'], untitled: 'Günün kombini' })).toEqual({
       jobId: 'J1',
       days: [
-        { date: '2026-11-16', occasion: 'office', lookId: '', lookName: 'Gece Laciverti' },
-        { date: '2026-11-17', occasion: 'weekend', lookId: '', lookName: 'Günün kombini' },
+        { date: '2026-11-16', occasion: 'office', lookId: '', lookName: 'Gece Laciverti', suggested: 0 },
+        { date: '2026-11-17', occasion: 'weekend', lookId: '', lookName: 'Günün kombini', suggested: 0 },
       ],
+      gapFilled: false,
+      libraryItemIds: [],
     });
   });
 

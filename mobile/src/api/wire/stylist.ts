@@ -5,6 +5,10 @@
  */
 import i18n from '@/i18n';
 import { getActiveQueryClient } from '@/sync/activeClient';
+import { queryKeys } from '@/sync/queryKeys';
+
+import { apiRequest } from '../client';
+import type { LibraryItem } from '../contracts';
 
 import type { Job } from '../contracts/jobs';
 import type {
@@ -17,12 +21,13 @@ import type {
   StylistRefusal,
   StylistSuggestion,
 } from '../contracts/stylist';
-import type { Item, ItemCategory } from '../contracts/wardrobe';
+import type { Item, ItemCategory, ItemColor } from '../contracts/wardrobe';
 import { fetchProductWires, toMoney, type ProductCategoryWire, type ProductWire } from './catalog';
 import type { JobWire } from './core';
 import {
   fetchItemMap,
   fromOccasion,
+  toItemColor,
   toOccasion,
   toSlotKind,
   type LookWire,
@@ -111,6 +116,8 @@ export type MissingPieceWire = {
   reason: MissingPieceReasonWire;
   /** Null until the catalogue matches a product. */
   productId: string | null;
+  /** A ready-made library piece picked to fill the slot (thin wardrobe); absent on older servers. */
+  libraryItemId?: string | null;
 };
 
 export type OutfitSuggestionWire = {
@@ -120,7 +127,7 @@ export type OutfitSuggestionWire = {
   explanation: string | null;
   source: 'model' | 'rule';
   slots: { slot: OutfitSlotWire; itemId: string | null; productId: string | null }[];
-  /** Always empty when `onlyMyWardrobe` is true. */
+  /** System-picked pieces of a thin wardrobe (library / catalogue) — also when `onlyMyWardrobe` is true. */
   missing: MissingPieceWire[];
 };
 
@@ -132,6 +139,8 @@ export type OutfitResultWire = {
   refusal: string | null;
   language: string;
   suggestions: OutfitSuggestionWire[];
+  /** True when some pieces were picked by Droblet (library / catalogue) to complete the outfits. */
+  gapFilled?: boolean;
 };
 
 /** Catalogue category → wardrobe category (the server's own mapping, docs §3 "from-product"). */
@@ -196,12 +205,66 @@ function storePiece(slot: OutfitSlotWire, product: ProductWire, category: ItemCa
   };
 }
 
-type Context = { items: Map<string, Item>; products: Map<string, ProductWire> };
+type LibraryRowWire = { id: string; name: string; category: string; colorIds: string[]; imageUrl: string | null };
+
+async function requestLibrary(): Promise<LibraryItem[]> {
+  const rows = await apiRequest<LibraryRowWire[]>('v1/tenant/library/item');
+  return rows.map((w) => ({ id: w.id, name: w.name, category: w.category, imageUrl: w.imageUrl ?? null, color: w.colorIds?.[0] ? toItemColor(w.colorIds[0]) : null }));
+}
+
+/** The ready-made library by id (names / pictures of the pieces the stylist picked); the cached list when there is one. */
+export async function fetchLibraryMap(): Promise<Map<string, LibraryItem>> {
+  const client = getActiveQueryClient();
+  const list = client ? await client.fetchQuery({ queryKey: queryKeys.library, queryFn: requestLibrary, staleTime: 5 * 60_000 }) : await requestLibrary();
+  return new Map(list.map((i) => [i.id, i]));
+}
+
+function libraryPiece(slot: OutfitSlotWire, item: LibraryItem, category: ItemCategory | null): StylistPiece {
+  return {
+    slot: toSlotKind(slot),
+    source: 'library',
+    suggested: true,
+    refId: item.id,
+    name: item.name,
+    brand: null,
+    price: null,
+    imageUrl: item.imageUrl,
+    category: category ?? (item.category as ItemCategory),
+    color: (item.color as ItemColor | null | undefined) ?? null,
+  };
+}
+
+type Context = { items: Map<string, Item>; products: Map<string, ProductWire>; library?: Map<string, LibraryItem> };
+
+/**
+ * The missing pieces of one outfit as rows: a library pick the user already added shows as their own piece,
+ * one not added yet as "Önerilen · Kütüphane", a catalogue pick as a store piece. Shared by outfit, week and trip.
+ */
+export function missingPieces(missing: readonly MissingPieceWire[], ctx: Context, taken: readonly StylistPiece[], suggested: boolean): StylistPiece[] {
+  const pieces: StylistPiece[] = [];
+  const owned = new Map<string, Item>();
+  for (const item of ctx.items.values()) if (item.libraryItemId) owned.set(item.libraryItemId, item);
+  for (const m of missing) {
+    const has = (id: string) => taken.some((p) => p.refId === id) || pieces.some((p) => p.refId === id);
+    if (m.libraryItemId) {
+      const mine = owned.get(m.libraryItemId);
+      const lib = ctx.library?.get(m.libraryItemId);
+      if (mine && !has(mine.id)) pieces.push(wardrobePiece(m.slot, mine));
+      else if (!mine && lib && !has(lib.id)) pieces.push(libraryPiece(m.slot, lib, m.category ?? SLOT_CATEGORY[m.slot]));
+      continue;
+    }
+    // A missing piece without a catalogue match has nothing to show or buy yet.
+    const product = m.productId ? ctx.products.get(m.productId) : undefined;
+    if (product && !has(product.id)) pieces.push({ ...storePiece(m.slot, product, m.category ?? SLOT_CATEGORY[m.slot]), ...(suggested ? { suggested: true } : {}) });
+  }
+  return pieces;
+}
 
 export function toStylistSuggestion(
   wire: OutfitSuggestionWire,
   ctx: Context,
   previous?: Pick<StylistSuggestion, 'savedLookId' | 'plannedDate' | 'tryOnImageUrl'>,
+  suggested = false,
 ): StylistSuggestion {
   const pieces: StylistPiece[] = [];
   for (const slot of wire.slots) {
@@ -211,13 +274,7 @@ export function toStylistSuggestion(
     if (item) pieces.push(wardrobePiece(slot.slot, item));
     else if (product) pieces.push(storePiece(slot.slot, product, null));
   }
-  for (const missing of wire.missing) {
-    // A missing piece without a catalogue match has nothing to show or buy yet.
-    const product = missing.productId ? ctx.products.get(missing.productId) : undefined;
-    if (product && !pieces.some((p) => p.refId === product.id)) {
-      pieces.push(storePiece(missing.slot, product, missing.category ?? SLOT_CATEGORY[missing.slot]));
-    }
-  }
+  pieces.push(...missingPieces(wire.missing, ctx, pieces, suggested));
   return {
     index: wire.index,
     // The rule-based fallback has no AI text: the app's own neutral wording is shown instead.
@@ -247,10 +304,11 @@ export function toStylistResult(
       wardrobeOnly: wire.onlyMyWardrobe,
     },
     suggestions: (wire.suggestions ?? []).map((s) =>
-      toStylistSuggestion(s, ctx, previous?.suggestions.find((p) => p.index === s.index)),
+      toStylistSuggestion(s, ctx, previous?.suggestions.find((p) => p.index === s.index), wire.gapFilled === true),
     ),
     weather: null,
     refusal,
+    gapFilled: wire.gapFilled === true,
   };
 }
 
@@ -265,9 +323,10 @@ export async function mapStylistResult(result: unknown, job: JobWire): Promise<S
     ...s.slots.map((x) => (x.itemId ? null : x.productId)),
     ...s.missing.map((m) => m.productId),
   ]);
-  const [items, products] = await Promise.all([fetchItemMap(), fetchProductWires(productIds)]);
+  const needsLibrary = (wire.suggestions ?? []).some((s) => s.missing.some((m) => m.libraryItemId));
+  const [items, products, library] = await Promise.all([fetchItemMap(), fetchProductWires(productIds), needsLibrary ? fetchLibraryMap() : Promise.resolve(undefined)]);
   const client = getActiveQueryClient();
   const previous = client?.getQueryData<Job<StylistOutfitResult>>(['tenant', 'job', job.id])?.result ?? null;
   const request = client?.getQueryData<Pick<StylistOutfitRequest, 'text'>>(['tenant', 'stylist', 'request', job.id]) ?? null;
-  return toStylistResult(wire, { items, products }, previous, request);
+  return toStylistResult(wire, { items, products, library }, previous, request);
 }

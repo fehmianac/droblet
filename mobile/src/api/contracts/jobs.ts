@@ -16,6 +16,8 @@ export type JobError = {
   code: string;
   /** True when the reserved credit was given back (the UI says so). */
   creditRefunded: boolean;
+  /** `photo_unsuitable` only: what was wrong with which photo (the server deleted it). */
+  photo?: { issue: 'notFullBody' | 'tooDark' | 'multiplePeople' | 'blurry' | 'noFace'; kind: 'body' | 'face' } | null;
 };
 
 /** GET v1/tenant/job/{id} */

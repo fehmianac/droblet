@@ -144,7 +144,7 @@ export function acceptFixtureSuggestion(jobId: string, index: number, request: A
       const item = p.source === 'wardrobe' ? fixtureDb.items.find((i) => i.id === p.refId) : undefined;
       return item
         ? slotFromItem(p.slot, item)
-        : { slot: p.slot, source: p.source, refId: p.refId, name: p.name, imageUrl: p.imageUrl, brand: p.brand, price: p.price, deleted: false };
+        : { slot: p.slot, source: p.source === 'library' ? 'wardrobe' : p.source, refId: p.refId, name: p.name, imageUrl: p.imageUrl, brand: p.brand, price: p.price, deleted: false };
     });
     const look: Look = {
       id: lookId,
