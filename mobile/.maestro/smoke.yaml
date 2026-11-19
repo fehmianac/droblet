@@ -43,9 +43,10 @@ env:
 - tapOn:
     id: "auth.password"
 - inputText: "Sm0keTest2026"
-# Close the keyboard by tapping the screen title (hideKeyboard is unreliable on iOS secure fields).
+# Close the keyboard by tapping a plain label (hideKeyboard is unreliable on iOS secure fields). A fixed
+# point is not safe: on a 4.7" screen (iPhone SE) the focused form has scrolled and 12 % lands on Google.
 - tapOn:
-    point: "50%,12%"
+    text: "VEYA E-POSTA|OR EMAIL"
 # 18+ confirmation is required on e-mail sign-up.
 - scrollUntilVisible:
     element:

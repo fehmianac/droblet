@@ -152,6 +152,7 @@ export function LookEditor({ look, initialSlots, skippedCount = 0, items }: Prop
               onChangeText={setName}
               maxLength={60}
               returnKeyType="done"
+              testID="look-name"
             />
             <View className="gap-1.5">
               <Text variant="label">{t('lookEditor.occasion')}</Text>

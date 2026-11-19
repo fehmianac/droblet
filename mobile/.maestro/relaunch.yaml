@@ -1,0 +1,21 @@
+# Restarts the app on Bugün (signed in) and opens URL as a plain push from there, so no earlier modal is under it.
+appId: com.alatech.droplet
+env:
+  LANG: ${LANG}
+  LOCALE: ${LOCALE}
+  URL: ${URL}
+---
+- launchApp:
+    stopApp: true
+    arguments:
+      AppleLanguages: "(${LANG})"
+      AppleLocale: ${LOCALE}
+- extendedWaitUntil:
+    visible:
+      id: "tab.today"
+    timeout: 30000
+- extendedWaitUntil:
+    notVisible:
+      id: "animated-splash"
+    timeout: 10000
+- runFlow: { file: open.yaml, env: { URL: "${URL}" } }

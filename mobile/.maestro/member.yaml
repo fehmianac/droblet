@@ -1,0 +1,90 @@
+# Member screens on a signed-in account: turns the temporary self-serve premium on (Ayarlar › GEÇİCİ ÜYELİK, only while
+# the server switch is on), then 28c Üyelik yönetimi with its credit counter, 05b Ek kredi paketi, restore, the paywall
+# in its member state and Profil's member row. No purchase and no AI job.
+# Run: maestro test -e LANG=tr -e LOCALE=tr_TR .maestro/member.yaml
+appId: com.alatech.droplet
+env:
+  LANG: ${LANG}
+  LOCALE: ${LOCALE}
+---
+- runFlow: { file: relaunch.yaml, env: { URL: "droplet://settings" } }
+- scrollUntilVisible:
+    element:
+      id: "settings.selfPremium"
+    direction: DOWN
+    timeout: 20000
+- runFlow:
+    when:
+      visible:
+        id: "settings.selfPremium.enable"
+    commands:
+      - takeScreenshot: m29-gecici-uyelik-kapali
+      - tapOn:
+          id: "settings.selfPremium.enable"
+- scrollUntilVisible:
+    element:
+      id: "settings.selfPremium.disable"
+    direction: DOWN
+    timeout: 20000
+- takeScreenshot: m29-gecici-uyelik-acik
+
+- runFlow: { file: relaunch.yaml, env: { URL: "droplet://subscription" } }
+- extendedWaitUntil:
+    visible:
+      id: "subscription-credits"
+    timeout: 15000
+- takeScreenshot: m28c-uyelik-yonetimi
+- scroll
+- takeScreenshot: m28c-uyelik-yonetimi-alt
+- scrollUntilVisible:
+    element:
+      id: "subscription-top-up"
+    direction: UP
+- tapOn:
+    id: "subscription-top-up"
+- extendedWaitUntil:
+    visible:
+      id: "credits.buy"
+    timeout: 10000
+- waitForAnimationToEnd
+- takeScreenshot: m05b-ek-kredi
+- tapOn:
+    id: "credit-pack-close"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: "subscription-restore"
+    direction: DOWN
+- tapOn:
+    id: "subscription-restore"
+- waitForAnimationToEnd
+- takeScreenshot: m28c-geri-yukle
+
+- runFlow: { file: relaunch.yaml, env: { URL: "droplet://paywall" } }
+- waitForAnimationToEnd
+- takeScreenshot: m05-paywall-uye
+
+- launchApp:
+    stopApp: true
+    arguments:
+      AppleLanguages: "(${LANG})"
+      AppleLocale: ${LOCALE}
+- extendedWaitUntil:
+    visible:
+      id: "tab.today"
+    timeout: 30000
+- extendedWaitUntil:
+    notVisible:
+      id: "animated-splash"
+    timeout: 10000
+- takeScreenshot: m06-bugun-uye
+- tapOn:
+    id: "tab.profile"
+- waitForAnimationToEnd
+- takeScreenshot: m28-profil-uye
+- scroll
+- takeScreenshot: m28-profil-uye-alt
+- tapOn:
+    id: "tab.stylist"
+- waitForAnimationToEnd
+- takeScreenshot: m16-stilist-uye

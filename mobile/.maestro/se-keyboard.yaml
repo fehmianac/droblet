@@ -1,0 +1,76 @@
+# Small-screen keyboard check (iPhone SE, 667 pt): every form field the tour reaches, focused, with the keyboard up.
+# Each screen is opened from a fresh launch (relaunch.yaml), as a user gets there, never on top of an earlier modal.
+# The screenshot must show the focused field and the screen's action (or a scroll that reaches it) above the keyboard.
+# Run: maestro test -e LANG=tr -e LOCALE=tr_TR .maestro/se-keyboard.yaml   (signed-in, onboarded account)
+appId: com.alatech.droplet
+env:
+  LANG: ${LANG}
+  LOCALE: ${LOCALE}
+---
+# 02e E-postanı doğrula: the code boxes take the focus on open; "Kodu tekrar gönder" must clear the keyboard.
+- runFlow: { file: relaunch.yaml, env: { URL: "droplet://verify-email" } }
+- extendedWaitUntil:
+    visible:
+      id: "verify.code"
+    timeout: 10000
+- waitForAnimationToEnd
+- takeScreenshot: k02e-dogrula-klavye
+- assertVisible:
+    id: "verify.resend"
+
+# 28b Profili düzenle: the handle and the city search, the last field on the screen.
+- runFlow: { file: relaunch.yaml, env: { URL: "droplet://edit-profile" } }
+- tapOn:
+    id: "profileEdit.handle"
+- inputText: "se_tester"
+- waitForAnimationToEnd
+- takeScreenshot: k28b-kullanici-adi-klavye
+- scrollUntilVisible:
+    element:
+      id: "profileEdit.citySearch"
+    direction: DOWN
+- tapOn:
+    id: "profileEdit.citySearch"
+- inputText: "Ist"
+- waitForAnimationToEnd
+- takeScreenshot: k28b-sehir-ara-klavye
+
+# 18b Yeni bavul: the city field.
+- runFlow: { file: relaunch.yaml, env: { URL: "droplet://trip/new" } }
+- tapOn:
+    id: "trip.city"
+- inputText: "Lon"
+- waitForAnimationToEnd
+- takeScreenshot: k18b-bavul-sehir-klavye
+
+# 12c Parça bilgileri: the last text field (Kumaş) with Gardıroba kaydet.
+- runFlow: { file: relaunch.yaml, env: { URL: "droplet://item/form" } }
+- scrollUntilVisible:
+    element:
+      id: "item-form-fabric"
+    direction: DOWN
+- tapOn:
+    id: "item-form-fabric"
+- inputText: "Pamuk"
+- waitForAnimationToEnd
+- takeScreenshot: k12c-kumas-klavye
+
+# 29c Hesap silme: the confirm word is the last field, the red button right under it.
+- runFlow: { file: relaunch.yaml, env: { URL: "droplet://delete-account" } }
+- scrollUntilVisible:
+    element:
+      id: "deleteAccount.confirm"
+    direction: DOWN
+- tapOn:
+    id: "deleteAccount.confirm"
+- inputText: "AB"
+- waitForAnimationToEnd
+- takeScreenshot: k29c-sil-klavye
+
+# 15 Look oluştur: the name field.
+- runFlow: { file: relaunch.yaml, env: { URL: "droplet://look/new" } }
+- tapOn:
+    id: "look-name"
+- inputText: "SE"
+- waitForAnimationToEnd
+- takeScreenshot: k15-look-adi-klavye
