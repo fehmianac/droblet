@@ -53,6 +53,8 @@ public sealed class DataExportJob(
     {
         "pk", "sk", "ttl", "pushToken", "salt", "codeHash", "tokenHash", "passwordHash", "appleRefreshToken", "downloadTokenHash",
         "creditIdempotencyKey", "identities",
+        // Google Play purchase token: a credential for the Play Developer API (re-read / acknowledge the purchase).
+        "purchaseToken",
     };
 
     private static readonly JsonSerializerOptions Json = new()

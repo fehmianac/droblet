@@ -148,6 +148,24 @@ public class DataExportJobTests
     }
 
     [Fact]
+    public async Task Process_LeavesOutTheGooglePlayPurchaseToken()
+    {
+        var export = await SeedAsync();
+        await _host.Repository.SaveAsync(new StorePurchaseEntity
+        {
+            TenantId = TenantId, Platform = StorePlatform.Google, Key = "hash-of-token", Kind = StoreProductKind.Consumable,
+            ProductId = "credits_10", PurchaseToken = "SECRET-PLAY-TOKEN", Credits = 10, CreatedAt = WorkerTestHost.Now, UpdatedAt = WorkerTestHost.Now,
+        });
+
+        await _host.Get<IDataExportJob>().ProcessAsync(TenantId, export.Id, false, default);
+
+        var stored = await _host.Repository.GetAsync<DataExportEntity>(export.Pk, export.Sk);
+        var purchases = System.Text.Encoding.UTF8.GetString(ReadZip(stored!.S3Key!)["data/store-purchase.json"]);
+        Assert.Contains("credits_10", purchases);
+        Assert.DoesNotContain("SECRET-PLAY-TOKEN", purchases);
+    }
+
+    [Fact]
     public async Task Process_AccountDeletedWhileBuilding_LeavesNoZipInboxRowOrEmail()
     {
         var export = await SeedAsync();
