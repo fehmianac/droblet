@@ -22,6 +22,9 @@ type AiImageProps = {
   accessibilityLabel?: string;
   /** What stands in while there is no generated image (e.g. the look's piece collage). Defaults to the figure. */
   placeholder?: SlotPlaceholder;
+  onLoad?: () => void;
+  onError?: () => void;
+  testID?: string;
 };
 
 /**
@@ -29,10 +32,10 @@ type AiImageProps = {
  * AI output is always marked (BRIEF §3 Görseller). It sits bottom-left, 8 in, as on 06 / 08 / 17 / 22.
  * Without an image nothing was generated, so there is no AI marker — only the placeholder.
  */
-export function AiImage({ kind, uri, className, accessibilityLabel, placeholder }: AiImageProps) {
+export function AiImage({ kind, uri, className, accessibilityLabel, placeholder, onLoad, onError, testID }: AiImageProps) {
   return (
     <View className={className}>
-      <ImageSlot uri={uri} className="h-full w-full rounded-image-lg" accessibilityLabel={accessibilityLabel} placeholder={placeholder} />
+      <ImageSlot uri={uri} className="h-full w-full rounded-image-lg" accessibilityLabel={accessibilityLabel} placeholder={placeholder} onLoad={onLoad} onError={onError} testID={testID} />
       {uri ? (
         <View className="absolute bottom-2 left-2" pointerEvents="none" testID="ai-image-tag">
           <AiBadge kind={kind} />

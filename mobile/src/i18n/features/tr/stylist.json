@@ -112,7 +112,8 @@
     "creditCostOnly_one": "{{count}} kredi",
     "creditCostOnly_other": "{{count}} kredi",
     "imageA11y": "Senin üzerinde AI görseli",
-    "imageA11yNamed": "{{name}}, senin üzerinde AI görseli"
+    "imageA11yNamed": "{{name}}, senin üzerinde AI görseli",
+    "imageFailed": "Görsel yüklenemedi. Bağlantını kontrol edip tekrar dene."
   },
   "weatherCondition": {
     "clear": "açık",
