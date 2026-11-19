@@ -4,12 +4,13 @@ import { pageMetadata } from '@/lib/metadata';
 import { InviteFallback, LookFallback } from './LinkFallback';
 import { PageShell } from './PageShell';
 import { ResetPasswordFlow } from './ResetPasswordFlow';
+import { VerifyEmailFlow } from './VerifyEmailFlow';
 
 /**
  * Deep-link fallbacks: what a shared link shows when the app did not open it. Each is one static file
  * (`out/{route}/index.html`); the parameter is read in the browser. None of them is indexed.
  */
-const routes = { reset: '/reset-password/', invite: '/invite/', look: '/l/' } as const;
+const routes = { reset: '/reset-password/', verify: '/verify-email/', invite: '/invite/', look: '/l/' } as const;
 
 export function resetPasswordMetadata(locale: Locale): Metadata {
   const t = getDictionary(locale).resetPassword;
@@ -28,6 +29,28 @@ export function ResetPasswordPage({ locale }: { locale: Locale }) {
           <p className="m-0 text-[17px] leading-relaxed text-muted">{t.intro}</p>
         </header>
         <ResetPasswordFlow locale={locale} t={t} common={dictionary.common} homeHref={localePath(locale, '/')} />
+      </div>
+    </PageShell>
+  );
+}
+
+export function verifyEmailMetadata(locale: Locale): Metadata {
+  const t = getDictionary(locale).verifyEmail;
+  return pageMetadata({ locale, page: routes.verify, title: t.metaTitle, description: t.metaDescription, index: false });
+}
+
+export function VerifyEmailPage({ locale }: { locale: Locale }) {
+  const dictionary = getDictionary(locale);
+  const t = dictionary.verifyEmail;
+  return (
+    <PageShell locale={locale} page={routes.verify}>
+      <div className="flex flex-col gap-8">
+        <header className="flex flex-col gap-3">
+          <p className="eyebrow">{t.eyebrow}</p>
+          <h1 className="m-0 font-serif text-[clamp(36px,6vw,52px)] leading-[1.05] font-medium">{t.title}</h1>
+          <p className="m-0 text-[17px] leading-relaxed text-muted">{t.intro}</p>
+        </header>
+        <VerifyEmailFlow locale={locale} t={t} common={dictionary.common} homeHref={localePath(locale, '/')} />
       </div>
     </PageShell>
   );

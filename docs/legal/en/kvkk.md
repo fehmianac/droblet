@@ -92,6 +92,8 @@ Transfers abroad are made under KVKK art. 9 on the basis of [TRANSFER MECHANISM]
 
 Your personal data is kept as long as needed for the purpose: account and content data until you delete it or your account; unprocessed uploads 1 day at most; item drafts and AI job records 7 days; usage events, credit movements and stylist feedback 400 days; password reset link 30 minutes; refresh token 60 days. Affiliate records are kept for [AFFILIATE RECORD RETENTION], reports for [REPORT RETENTION] and server logs for [LOG RETENTION]. Deleted data leaves backups within 30 days at the latest. The detailed table is in the Privacy Policy.
 
+The e-mail verification code and link are kept for 24 hours, and the copy of your data prepared with “Download my data” for 7 days.
+
 When the period ends, data is deleted, destroyed or anonymised. [LEGAL REVIEW: personal data retention and destruction policy]
 
 ## 8. Your rights under KVKK art. 11
@@ -115,6 +117,8 @@ In line with the Communiqué on the Procedures and Principles of Application to 
 We resolve your application free of charge as soon as possible and within 30 days at the latest. If the action involves an additional cost, the fee in the Board's tariff may be charged. If your application is refused, you find the answer insufficient or we do not answer in time, you can complain to the Personal Data Protection Board within 30 days of learning the answer and in any case within 60 days of your application.
 
 You can see, correct and delete most of your data yourself in the app: Profile › Privacy for photos, and Profile › Settings › Delete my account or droblet.alatech.co/delete-account for your account.
+
+You do not need to apply to learn whether your data is processed and to get a copy: Profile › Settings › Privacy › “Download my data” prepares a ZIP file with all your records (JSON) and images, usually within a few minutes; the download link arrives at your registered e-mail address and in Notifications and is valid for 7 days. One copy can be requested per day. This is an addition to the application channels above; you can still apply in writing.
 
 ## 10. Updates
 

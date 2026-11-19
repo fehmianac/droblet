@@ -92,6 +92,8 @@ Yurt dışına aktarım KVKK m. 9 kapsamında [YURT DIŞI AKTARIM MEKANİZMASI] 
 
 Kişisel verilerin, işleme amacı için gerekli süre boyunca saklanır: hesap ve içerik verileri sen silene ya da hesabını silene kadar; işlenmemiş yüklemeler en fazla 1 gün; parça taslakları ve yapay zekâ iş kayıtları 7 gün; kullanım olayları, kredi hareketleri ve stilist geri bildirimleri 400 gün; şifre sıfırlama bağlantısı 30 dakika; yenileme anahtarı 60 gün. Satış ortaklığı kayıtları [AFFILIATE KAYIT SAKLAMA SÜRESİ], şikâyet kayıtları [ŞİKAYET KAYDI SAKLAMA SÜRESİ], sunucu kayıtları [LOG SAKLAMA SÜRESİ] saklanır. Silinen veriler yedeklerden en geç 30 gün içinde çıkar. Ayrıntılı tablo Gizlilik Politikası'ndadır.
 
+E-posta doğrulama kodu ve bağlantısı 24 saat, “Verilerimi indir” ile hazırlanan veri kopyası 7 gün saklanır.
+
 Süresi dolan veriler silinir, yok edilir ya da anonim hâle getirilir. [HUKUK ONAYI: kişisel veri saklama ve imha politikası]
 
 ## 8. KVKK m. 11 kapsamındaki hakların
@@ -115,6 +117,8 @@ Başvurunu Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ'e uygun
 Başvurunu niteliğine göre en kısa sürede ve en geç 30 gün içinde ücretsiz olarak sonuçlandırırız. İşlemin ayrıca bir maliyet gerektirmesi hâlinde Kurul'ca belirlenen tarifedeki ücret alınabilir. Başvurun reddedilirse, yanıtı yetersiz bulursan ya da süresinde yanıt verilmezse, yanıtı öğrendiğin tarihten itibaren 30 gün ve her hâlükârda başvuru tarihinden itibaren 60 gün içinde Kişisel Verileri Koruma Kurulu'na şikâyette bulunabilirsin.
 
 Verilerinin büyük bölümünü uygulamada kendin görebilir, düzeltebilir ve silebilirsin: fotoğraflar için Profil › Gizlilik, hesabın için Profil › Ayarlar › Hesabımı sil ya da droblet.alatech.co/delete-account.
+
+Verilerinin işlenip işlenmediğini öğrenmek ve bir kopyasını almak için başvuru yapmana gerek yok: Profil › Ayarlar › Gizlilik › “Verilerimi indir” ile tüm kayıtlarının (JSON) ve görsellerinin yer aldığı bir ZIP dosyası genellikle birkaç dakika içinde hazırlanır; indirme bağlantısı kayıtlı e-posta adresine ve Bildirimler'e gelir ve 7 gün geçerlidir. Günde bir kopya istenebilir. Bu yol, yukarıdaki başvuru yollarına ek bir kolaylıktır; dilersen yine yazılı başvuru yapabilirsin.
 
 ## 10. Güncellemeler
 

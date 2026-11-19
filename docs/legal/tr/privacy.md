@@ -174,6 +174,8 @@ Aktarım güvencelerinin bir kopyasını [İLETİŞİM E-POSTASI] adresinden ist
 - “Beğenmedim” geri bildirimleri, kredi hareketleri ve kredi rezervasyonları: 400 gün ya da hesabını silene kadar (hangisi önce gelirse).
 - Kullanım olayları: 400 gün (takma adlı).
 - Şifre sıfırlama bağlantısı: 30 dakika. Oturum: erişim anahtarı 60 dakika, yenileme anahtarı 60 gün.
+- E-posta doğrulama kodu ve bağlantısı: 24 saat (yalnızca özetleri saklanır).
+- “Verilerimi indir” ile hazırlanan veri kopyası (ZIP dosyası): 7 gün; sonra kendiliğinden silinir. İsteğin kaydı 30 gün tutulur.
 - Rehber eşleştirme tuzu: en fazla 10 dakika; yüklenen karmalar: hiç saklanmaz.
 - Bildirim gönderim kayıtları: 14 gün; mağaza bildirim kayıtları: 90 gün.
 - Markaya gidiş tıklamaları ve sipariş bildirimleri: [AFFILIATE KAYIT SAKLAMA SÜRESİ]; hesabını sildiğinde bu kayıtlarla hesabın arasındaki bağ silinir, kalan gelir kaydı anonimdir.
@@ -211,6 +213,8 @@ Türkiye'de yaşıyorsan KVKK m. 11'deki hakların KVKK Aydınlatma Metni'nde an
 Başvurunu [İLETİŞİM E-POSTASI] adresine, hesabına kayıtlı e-posta adresinden gönder. Kimliğini doğrulamak için ek bilgi isteyebiliriz. Başvurulara en geç bir ay içinde yanıt veririz (karmaşık başvurularda bu süre iki ay daha uzatılabilir; bunu sana bildiririz). Başvuru ücretsizdir.
 
 Verilerinin büyük bölümünü uygulamada kendin görebilir, düzeltebilir ve silebilirsin.
+
+Verilerinin bir kopyasını uygulamadan kendin alabilirsin: Profil › Ayarlar › Gizlilik › “Verilerimi indir”. Hazırlanan dosya; profilini, stil ve beden profilini, rızalarını ve rıza geçmişini, gardırobunu, look'larını, planlarını ve giyim kayıtlarını, bavullarını, takip ilişkilerini, verdiğin ve aldığın puanları, sepet ve izleme listeni, bildirimlerini, satın alma, üyelik ve kredi geçmişini, kullanım olaylarını (takma adlı) ve yüklediğin ya da senin için üretilen görselleri içerir. Kayıtlar makinece okunabilir JSON dosyaları, görseller asıl dosyalarıyla tek bir ZIP dosyasında yer alır. Kopya genellikle birkaç dakika içinde hazırlanır; hazır olduğunda indirme bağlantısı hesabına kayıtlı e-posta adresine ve uygulamadaki Bildirimler'e gelir. Bağlantı ve dosya 7 gün geçerlidir. Aynı anda bir kopya hazırlanabilir ve günde en fazla bir kopya istenebilir. Güvenlik için şifre özetleri, oturum anahtarları, bildirim jetonları ve iç anahtarlar kopyaya eklenmez.
 
 Bize yazdıktan sonra memnun kalmazsan Birleşik Krallık Bilgi Komiserliği'ne (ICO, ico.org.uk) ya da Türkiye'de Kişisel Verileri Koruma Kurulu'na şikâyette bulunabilirsin.
 

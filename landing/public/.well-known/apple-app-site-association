@@ -6,6 +6,7 @@
         "appID": "4LB4RD97A9.com.alatech.droplet",
         "paths": [
           "/reset-password*",
+          "/verify-email*",
           "/invite/*",
           "/l/*"
         ]
@@ -18,6 +19,10 @@
           {
             "/": "/reset-password*",
             "comment": "Password reset link from the e-mail"
+          },
+          {
+            "/": "/verify-email*",
+            "comment": "E-mail verification link"
           },
           {
             "/": "/invite/*",

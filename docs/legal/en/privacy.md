@@ -174,6 +174,8 @@ You can ask for a copy of the transfer safeguards at [CONTACT E-MAIL].
 - “Not for me” feedback, credit movements and credit reservations: 400 days or until you delete your account, whichever comes first.
 - Usage events: 400 days (pseudonymous).
 - Password reset link: 30 minutes. Session: access token 60 minutes, refresh token 60 days.
+- E-mail verification code and link: 24 hours (only their hashes are stored).
+- The copy of your data prepared with “Download my data” (ZIP file): 7 days, then deleted automatically. The record of the request is kept for 30 days.
 - Contact-matching salt: 10 minutes at most; uploaded hashes: never stored.
 - Notification delivery records: 14 days; store notification records: 90 days.
 - Clicks through to brands and order notifications: [AFFILIATE RECORD RETENTION]; when you delete your account the link between these records and your account is deleted, and the remaining revenue record is anonymous.
@@ -211,6 +213,8 @@ If you live in Türkiye, your rights under KVKK art. 11 are explained in the KVK
 Send your request to [CONTACT E-MAIL] from the e-mail address registered to your account. We may ask for more information to confirm your identity. We answer within one month at the latest (for complex requests this may be extended by two further months; we will tell you if so). Requests are free of charge.
 
 You can see, correct and delete most of your data yourself in the app.
+
+You can get a copy of your data yourself in the app: Profile › Settings › Privacy › “Download my data”. The file contains your profile, style and body profile, consents and consent history, wardrobe, looks, plans and wear log, trips, follow relationships, ratings you gave and received, cart and watch list, notifications, purchase, membership and credit history, usage events (pseudonymous) and the images you uploaded or that were generated for you. Records come as machine-readable JSON files and images as their original files, in one ZIP file. The copy is usually ready within a few minutes; a download link then arrives at the e-mail address registered to your account and in Notifications in the app. The link and the file are valid for 7 days. One copy can be prepared at a time and at most one copy can be requested per day. For security, password hashes, session keys, push tokens and internal keys are not included.
 
 If you are not satisfied after contacting us, you can complain to the UK Information Commissioner's Office (ICO, ico.org.uk) or, in Türkiye, to the Personal Data Protection Board (Kişisel Verileri Koruma Kurulu).
 
