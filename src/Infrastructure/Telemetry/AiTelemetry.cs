@@ -64,6 +64,31 @@ public sealed class StageTimings
         }
     }
 
+    /// <summary>
+    /// Estimated AI cost of the run in micro-USD (Ai:Pricing): one entry per operation (summed over its calls), "calls.{op}"
+    /// with the number of calls, and "total". Calls without a price count in "calls.*" but add no cost. null = no AI call.
+    /// </summary>
+    public Dictionary<string, long>? CostSnapshot()
+    {
+        lock (_gate)
+        {
+            if (_calls.Count == 0)
+                return null;
+            var cost = new Dictionary<string, long>(StringComparer.Ordinal);
+            foreach (var call in _calls)
+            {
+                cost["calls." + call.Operation] = cost.GetValueOrDefault("calls." + call.Operation) + 1;
+                if (call.CostUsd is { } usd)
+                {
+                    var micro = Domain.Services.AiCost.Micro(usd);
+                    cost[call.Operation] = cost.GetValueOrDefault(call.Operation) + micro;
+                    cost["total"] = cost.GetValueOrDefault("total") + micro;
+                }
+            }
+            return cost;
+        }
+    }
+
     public int CountOf(string stage)
     {
         lock (_gate)
@@ -95,7 +120,10 @@ public sealed record AiCallRecord(
     string? ImageSize = null,
     string? ImageQuality = null,
     long? RequestBytes = null,
-    string? ReasoningEffort = null);
+    string? ReasoningEffort = null,
+    long? InputImageTokens = null,
+    string? ServiceTier = null,
+    decimal? CostUsd = null);
 
 public readonly struct StageScope(StageTimings? timings, string stage) : IDisposable
 {
@@ -147,7 +175,8 @@ public static class AiTelemetry
 
 /// <summary>
 /// CloudWatch Embedded Metric Format: one JSON document per stage (dimensions Env × Job × Stage, metric DurationMs)
-/// and one per provider call (Env × Job × Stage=ai.{operation}, metrics InputTokens / OutputTokens / CachedTokens).
+/// and one per provider call (Env × Job × Stage=ai.{operation}, metrics InputTokens / OutputTokens / CachedTokens /
+/// ReasoningTokens / CostMicroUsd — the estimated cost from Ai:Pricing).
 /// Written straight to the process stdout (not Console.Out, which the .NET Lambda runtime prefixes with a timestamp
 /// and request id — a prefixed line is not parsed as EMF).
 /// </summary>
@@ -174,6 +203,8 @@ public static class EmbeddedMetrics
             if (call.InputTokens is { } input) metrics["InputTokens"] = input;
             if (call.OutputTokens is { } output) metrics["OutputTokens"] = output;
             if (call.CachedTokens is { } cached) metrics["CachedTokens"] = cached;
+            if (call.ReasoningTokens is { } reasoning) metrics["ReasoningTokens"] = reasoning;
+            if (call.CostUsd is { } usd) metrics["CostMicroUsd"] = Domain.Services.AiCost.Micro(usd);
             if (metrics.Count > 0)
                 documents.Add(Document(env, job, "ai." + call.Operation, timestamp, metrics, "Count", timings, call));
         }
@@ -216,6 +247,7 @@ public static class EmbeddedMetrics
             root["Model"] = call.Model;
             root["ImageSize"] = call.ImageSize;
             root["ImageQuality"] = call.ImageQuality;
+            root["ServiceTier"] = call.ServiceTier;
         }
         foreach (var (name, value) in metrics)
             root[name] = value;

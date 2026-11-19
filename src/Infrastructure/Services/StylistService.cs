@@ -40,7 +40,8 @@ public sealed class StylistService(
     IEventManager events,
     IEntitlementService entitlements,
     ILookService looks,
-    TimeProvider timeProvider) : IStylistService
+    TimeProvider timeProvider,
+    IAiUsageGuard aiLimits) : IStylistService
 {
     private const int MaxVersionRetries = 4;
 
@@ -198,7 +199,10 @@ public sealed class StylistService(
         if (await JobStarter.ExistingAsync(repository, tenantId, requestId, kind, ct) is { } existing)
             return existing;
         var decision = await entitlements.CheckAsync(tenantId, Capability.DailyStylist, ct);
-        return decision.Allowed ? null : ServiceResult.Forbidden<JobDto>(decision.Reason ?? ErrorCodes.PremiumRequired);
+        if (!decision.Allowed)
+            return ServiceResult.Forbidden<JobDto>(decision.Reason ?? ErrorCodes.PremiumRequired);
+        // Text stylist costs no credit: a per-tenant daily cap (AiLimits) keeps one account from running up the bill.
+        return await aiLimits.AllowAsync(tenantId, AiCap.Stylist, 1, ct) ? null : ServiceResult.TooManyRequests<JobDto>(ErrorCodes.AiLimitReached);
     }
 
     private async Task<ServiceResult<JobDto>> QueueAsync(string tenantId, string requestId, JobKind kind, string input, CancellationToken ct)

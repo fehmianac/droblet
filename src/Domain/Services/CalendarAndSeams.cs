@@ -198,7 +198,7 @@ public interface IEditLookLookup
 
 // ── Service result shared by the E2–E7 services (the Api maps Kind to an HTTP status in one place).
 
-public enum ResultKind { Ok, Created, Accepted, NoContent, NotFound, Conflict, Invalid, Forbidden, PaymentRequired }
+public enum ResultKind { Ok, Created, Accepted, NoContent, NotFound, Conflict, Invalid, Forbidden, PaymentRequired, TooManyRequests }
 
 public sealed record ServiceResult<T>(ResultKind Kind, T? Value = default, string? Code = null)
 {
@@ -217,4 +217,5 @@ public static class ServiceResult
     public static ServiceResult<T> Invalid<T>(string code) => new(ResultKind.Invalid, default, code);
     public static ServiceResult<T> Forbidden<T>(string code) => new(ResultKind.Forbidden, default, code);
     public static ServiceResult<T> PaymentRequired<T>(string code) => new(ResultKind.PaymentRequired, default, code);
+    public static ServiceResult<T> TooManyRequests<T>(string code) => new(ResultKind.TooManyRequests, default, code);
 }

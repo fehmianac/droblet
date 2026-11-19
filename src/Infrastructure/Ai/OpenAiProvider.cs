@@ -86,7 +86,7 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
     // ── Capabilities ──────────────────────────────────────────────────────────────────────────────────────────────
 
     public Task<string> GenerateAsync(StylistPrompt prompt, CancellationToken ct) =>
-        ChatAsync(OpenAiPrompts.Stylist(prompt.Kind, prompt.Language), prompt.InputJson, (ImageInput?)null, AiSchemas.NameFor(prompt.Kind), AiSchemas.For(prompt.Kind), ct);
+        ChatAsync(OpenAiPrompts.Stylist(prompt.Kind, prompt.Language, prompt.CompactCandidates), prompt.InputJson, (ImageInput?)null, AiSchemas.NameFor(prompt.Kind), AiSchemas.For(prompt.Kind), ct);
 
     public async Task<GarmentSuggestion> DescribeAsync(ImageInput garmentImage, string language, CancellationToken ct)
     {
@@ -158,7 +158,7 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
     // ── HTTP ──────────────────────────────────────────────────────────────────────────────────────────────────────
 
     /// <summary>What a call log line and its stage timing carry besides the outcome (never content).</summary>
-    private sealed record CallInfo(string? Model, string? Effort, string? ImageSize, string? ImageQuality, long? RequestBytes = null);
+    private sealed record CallInfo(string? Model, string? Effort, string? ImageSize, string? ImageQuality, long? RequestBytes = null, string? ServiceTier = null);
 
     private Task<string> ChatAsync(string system, string userText, ImageInput? image, string schemaName, JsonObject schema, CancellationToken ct, bool highDetail = false) =>
         ChatAsync(system, userText, image is null ? [] : [image], schemaName, schema, ct, highDetail);
@@ -170,13 +170,14 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
         string ModelOf(AiOptions o) => fast && !string.IsNullOrWhiteSpace(o.FastTextModel) ? o.FastTextModel! : o.ModelFor(schemaName);
         var settings = Require(ModelOf);
         var model = ModelOf(settings);
-        var tuning = new ChatTuning(settings.EffortFor(schemaName), settings.ServiceTier, settings.PromptCacheKey ? schemaName : null);
+        var tuning = new ChatTuning(settings.EffortFor(schemaName), settings.TierFor(schemaName, AiCallContext.Current), settings.PromptCacheKey ? schemaName : null,
+            settings.DetailFor(schemaName, highDetail ? "high" : null), settings.MaxOutputTokensFor(schemaName));
         var body = OpenAiPayloads.ChatRequest(model, system, userText, images, schemaName, schema, highDetail, tuning).ToJsonString();
         using var request = new HttpRequestMessage(HttpMethod.Post, Url(settings, ChatPath))
         {
             Content = new StringContent(body, Encoding.UTF8, "application/json"),
         };
-        var response = await SendAsync(request, settings, schemaName, new CallInfo(model, tuning.ReasoningEffort, null, null, Encoding.UTF8.GetByteCount(body)), ct);
+        var response = await SendAsync(request, settings, schemaName, new CallInfo(model, tuning.ReasoningEffort, null, null, Encoding.UTF8.GetByteCount(body), tuning.ServiceTier), ct);
         return OpenAiPayloads.ParseChatContent(response);
     }
 
@@ -224,9 +225,9 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
                 var usage = OpenAiPayloads.Usage(body);
                 var call = Record(operation, info with { Model = OpenAiPayloads.ResponseModel(body) ?? info.Model }, started, (int)response.StatusCode, usage);
                 logger.LogInformation(
-                    "OpenAI {Operation} ok, model {Model}, {DurationMs} ms, total tokens {Tokens}, input {InputTokens} (cached {CachedTokens}), output {OutputTokens} (reasoning {ReasoningTokens}), effort {Effort}, image {ImageSize}/{ImageQuality}, request {RequestBytes} B",
-                    operation, call.Model ?? "-", (long)call.DurationMs, OpenAiPayloads.TotalTokens(body), usage.Input, usage.Cached, usage.Output, usage.Reasoning,
-                    info.Effort ?? "-", info.ImageSize ?? "-", info.ImageQuality ?? "-", info.RequestBytes);
+                    "OpenAI {Operation} ok, model {Model}, {DurationMs} ms, total tokens {Tokens}, input {InputTokens} (cached {CachedTokens}, image {InputImageTokens}), output {OutputTokens} (reasoning {ReasoningTokens}), effort {Effort}, tier {ServiceTier}, image {ImageSize}/{ImageQuality}, request {RequestBytes} B, est. cost {CostUsd} USD",
+                    operation, call.Model ?? "-", (long)call.DurationMs, OpenAiPayloads.TotalTokens(body), usage.Input, usage.Cached, usage.InputImage, usage.Output, usage.Reasoning,
+                    info.Effort ?? "-", info.ServiceTier ?? "-", info.ImageSize ?? "-", info.ImageQuality ?? "-", info.RequestBytes, call.CostUsd);
                 return body;
             }
 
@@ -245,10 +246,16 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
         }
     }
 
-    private static AiCallRecord Record(string operation, CallInfo info, long started, int status, TokenUsage? usage)
+    private AiCallRecord Record(string operation, CallInfo info, long started, int status, TokenUsage? usage)
     {
+        // A failed call is not billed (4xx / 5xx): no cost. A timeout or dropped connection may be — unknown, so none either.
+        var cost = usage is null
+            ? null
+            : AiCost.Estimate(options.CurrentValue.Pricing, operation, info.Model, info.ServiceTier,
+                new AiUsage(usage.Input, usage.Cached, usage.Output, usage.InputImage), info.ImageSize, info.ImageQuality);
         var call = new AiCallRecord(operation, info.Model, System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds, status,
-            usage?.Input, usage?.Output, usage?.Cached, usage?.Reasoning, info.ImageSize, info.ImageQuality, info.RequestBytes, info.Effort);
+            usage?.Input, usage?.Output, usage?.Cached, usage?.Reasoning, info.ImageSize, info.ImageQuality, info.RequestBytes, info.Effort,
+            usage?.InputImage, info.ServiceTier, cost);
         AiTelemetry.Current?.AddCall(call);
         return call;
     }
@@ -267,10 +274,15 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
     private static Uri Url(AiOptions settings, string path) => new(settings.BaseUrl.TrimEnd('/') + path);
 }
 
-/// <summary>Optional chat request fields (all omitted when null): reasoning_effort, service_tier, prompt_cache_key.</summary>
-public sealed record ChatTuning(string? ReasoningEffort = null, string? ServiceTier = null, string? PromptCacheKey = null);
+/// <summary>
+/// Optional chat request fields (all omitted when null): reasoning_effort, service_tier, prompt_cache_key, the vision
+/// detail of every image (low | high | auto) and max_completion_tokens.
+/// </summary>
+public sealed record ChatTuning(string? ReasoningEffort = null, string? ServiceTier = null, string? PromptCacheKey = null, string? Detail = null,
+    int? MaxOutputTokens = null);
 
-public sealed record TokenUsage(long? Input, long? Output, long? Cached, long? Reasoning);
+/// <param name="InputImage">Image models: the image part of the input tokens (input_tokens_details.image_tokens).</param>
+public sealed record TokenUsage(long? Input, long? Output, long? Cached, long? Reasoning, long? InputImage = null);
 
 /// <summary>Request building and response parsing — pure, unit-tested without any network.</summary>
 public static class OpenAiPayloads
@@ -284,7 +296,10 @@ public static class OpenAiPayloads
     public static JsonObject ChatRequest(string model, string system, string userText, IReadOnlyList<ImageInput> images, string schemaName, JsonObject schema,
         bool highDetail = false, ChatTuning? tuning = null)
     {
-        var request = ChatRequestCore(model, system, userText, images, schemaName, schema, highDetail);
+        var detail = tuning?.Detail is { Length: > 0 } explicitDetail ? explicitDetail : highDetail ? "high" : null;
+        var request = ChatRequestCore(model, system, userText, images, schemaName, schema, detail);
+        if (tuning?.MaxOutputTokens is > 0 and var maxTokens)
+            request["max_completion_tokens"] = maxTokens;
         if (tuning?.ReasoningEffort is { Length: > 0 } effort)
             request["reasoning_effort"] = effort;
         if (tuning?.ServiceTier is { Length: > 0 } tier)
@@ -306,7 +321,8 @@ public static class OpenAiPayloads
                 Long(usage["prompt_tokens"]) ?? Long(usage["input_tokens"]),
                 Long(usage["completion_tokens"]) ?? Long(usage["output_tokens"]),
                 Long(usage["prompt_tokens_details"]?["cached_tokens"]) ?? Long(usage["input_tokens_details"]?["cached_tokens"]),
-                Long(usage["completion_tokens_details"]?["reasoning_tokens"]) ?? Long(usage["output_tokens_details"]?["reasoning_tokens"]));
+                Long(usage["completion_tokens_details"]?["reasoning_tokens"]) ?? Long(usage["output_tokens_details"]?["reasoning_tokens"]),
+                Long(usage["input_tokens_details"]?["image_tokens"]));
         }
         catch (Exception ex) when (ex is JsonException or InvalidOperationException or FormatException or ArgumentOutOfRangeException)
         {
@@ -316,14 +332,14 @@ public static class OpenAiPayloads
 
     private static long? Long(JsonNode? node) => node is not null && node.GetValueKind() == JsonValueKind.Number ? (long)node.GetValue<double>() : null;
 
-    private static JsonObject ChatRequestCore(string model, string system, string userText, IReadOnlyList<ImageInput> images, string schemaName, JsonObject schema, bool highDetail)
+    private static JsonObject ChatRequestCore(string model, string system, string userText, IReadOnlyList<ImageInput> images, string schemaName, JsonObject schema, string? detail)
     {
         var userContent = new JsonArray { new JsonObject { ["type"] = "text", ["text"] = userText } };
         foreach (var image in images)
         {
             var imageUrl = new JsonObject { ["url"] = $"data:{image.ContentType};base64,{Convert.ToBase64String(image.Data)}" };
-            if (highDetail)
-                imageUrl["detail"] = "high";
+            if (detail is not null)
+                imageUrl["detail"] = detail;
             userContent.Add(new JsonObject { ["type"] = "image_url", ["image_url"] = imageUrl });
         }
 
@@ -594,7 +610,12 @@ public static class OpenAiPrompts
     private static string WriteIn(string? language) =>
         $" Write every title, name, label and explanation in {LanguageName(language)} (language code: {Localized.Language(language)}).";
 
-    public static string Stylist(JobKind kind, string? language) => (kind switch
+    /// <summary>Compact candidates (CandidateAliases): how to read one descriptor string.</summary>
+    public const string CompactCandidates =
+        " Each candidate is one string 'id|category|colorIds|fabric|seasons' (lists comma-separated, - = unknown); slots, itemIds, pinnedItemId and " +
+        "avoidCombinations use only the id part (e.g. i7).";
+
+    public static string Stylist(JobKind kind, string? language, bool compactCandidates = false) => (kind switch
     {
         JobKind.StylistOutfit =>
             "You are Droblet's personal stylist. The user message is a JSON object with the context (date, season, occasion, weather, " +
@@ -625,7 +646,7 @@ public static class OpenAiPrompts
             "Slot rules: top <- top|dress|beachwear|skiwear, bottom <- bottom|beachwear|skiwear, outerwear <- outerwear|skiwear, shoes <- shoes, bagAccessory <- bag|accessory. " +
             "A dress goes in `top` and leaves `bottom` null. `title` is a short day label (e.g. flight + dinner) in the given language; `explanation` may be null. " + Tone,
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "No stylist prompt for this job kind."),
-    }) + WriteIn(language);
+    }) + (compactCandidates ? CompactCandidates : "") + WriteIn(language);
 
     public static string GarmentVision(string? language) => GarmentVisionBase + WriteIn(language);
 

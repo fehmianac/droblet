@@ -163,7 +163,7 @@ public class Repository(IAmazonDynamoDB client) : IRepository
         return true;
     }
 
-    public async Task<long> IncrementCounterAsync(string pk, string sk, string attributeName, long ttl, CancellationToken ct = default)
+    public async Task<long> IncrementCounterAsync(string pk, string sk, string attributeName, long ttl, CancellationToken ct = default, long amount = 1)
     {
         var response = await client.UpdateItemAsync(new UpdateItemRequest
         {
@@ -171,7 +171,7 @@ public class Repository(IAmazonDynamoDB client) : IRepository
             Key = Key(pk, sk),
             UpdateExpression = "ADD #a :one SET #ttl = if_not_exists(#ttl, :ttl)",
             ExpressionAttributeNames = new Dictionary<string, string> { ["#a"] = attributeName, ["#ttl"] = "ttl" },
-            ExpressionAttributeValues = new Dictionary<string, AttributeValue> { [":one"] = Number(1), [":ttl"] = Number(ttl) },
+            ExpressionAttributeValues = new Dictionary<string, AttributeValue> { [":one"] = Number(amount), [":ttl"] = Number(ttl) },
             ReturnValues = ReturnValue.UPDATED_NEW,
         }, ct);
         return long.Parse(response.Attributes[attributeName].N, System.Globalization.CultureInfo.InvariantCulture);

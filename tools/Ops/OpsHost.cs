@@ -42,7 +42,12 @@ internal static class OpsHost
         Environment.SetEnvironmentVariable("TABLE_NAME", TableName(stage));
         Environment.SetEnvironmentVariable("STAGE", stage);
 
-        var configuration = new ConfigurationBuilder()
+        var builder = new ConfigurationBuilder();
+        // The price list of template.yaml as the base: a branch can measure costs before its template is deployed;
+        // the stage's own worker/Ai/Pricing (SSM, below) wins once it exists.
+        if (TemplatePricing.Json() is { } pricing)
+            builder.AddInMemoryCollection(TemplatePricing.Flatten(pricing, "Ai:Pricing"));
+        var configuration = builder
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["STAGE"] = stage,

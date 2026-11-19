@@ -87,7 +87,8 @@ public interface IRepository
     // Atomic operations
     Task<bool> AtomicIncrementInMapAsync(string pk, string sk, string mapAttributeName, string mapKey, int increment = 1, CancellationToken ct = default);
     /// <summary>Atomically increments a numeric counter attribute (creating the item) and returns the new value. ttl is Unix seconds.</summary>
-    Task<long> IncrementCounterAsync(string pk, string sk, string attributeName, long ttl, CancellationToken ct = default);
+    /// <param name="amount">What is added (default 1; e.g. the photos of one bulk request against a daily cap).</param>
+    Task<long> IncrementCounterAsync(string pk, string sk, string attributeName, long ttl, CancellationToken ct = default, long amount = 1);
     /// <summary>
     /// Atomically ADDs each value to its top-level numeric attribute of an EXISTING item (nothing is created) and returns
     /// every top-level numeric attribute after the update; null when the item does not exist.

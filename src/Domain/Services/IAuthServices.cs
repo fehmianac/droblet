@@ -75,6 +75,9 @@ public interface IRateLimiter
 {
     /// <summary>Fixed-window counter. Returns false when the limit is exceeded. The key is hashed before storage.</summary>
     Task<bool> TryAcquireAsync(string scope, string key, int limit, TimeSpan window, CancellationToken ct);
+
+    /// <summary>The same counter, taking <paramref name="units"/> at once (a bulk request); false when the window would exceed the limit.</summary>
+    Task<bool> TryAcquireAsync(string scope, string key, int limit, TimeSpan window, int units, CancellationToken ct);
 }
 
 public sealed record EmailMessage(string To, string Subject, string TextBody, string HtmlBody);

@@ -149,9 +149,11 @@ public static class JobMessageHandler
         }
     }
 
-    private static string Describe(AiCallRecord c) =>
+    /// <summary>One provider call in the "Job timings" line; ai-cost parses this format (AiCallLog), keep both in step.</summary>
+    public static string Describe(AiCallRecord c) =>
         $"{c.Operation} {c.Model} {c.DurationMs:0}ms {c.Status} in {c.InputTokens} (cached {c.CachedTokens}) out {c.OutputTokens} (reasoning {c.ReasoningTokens}) " +
-        $"effort {c.ReasoningEffort ?? "-"} img {c.ImageSize ?? "-"}/{c.ImageQuality ?? "-"} req {c.RequestBytes}B";
+        $"effort {c.ReasoningEffort ?? "-"} img {c.ImageSize ?? "-"}/{c.ImageQuality ?? "-"} req {c.RequestBytes}B" +
+        $" imgin {c.InputImageTokens?.ToString(CultureInfo.InvariantCulture) ?? "-"} tier {c.ServiceTier ?? "-"} usd {c.CostUsd?.ToString("0.######", CultureInfo.InvariantCulture) ?? "-"}";
 
     /// <summary>now − SentTimestamp (epoch ms, an SQS system attribute); null when the attribute is missing.</summary>
     public static TimeSpan? QueueWait(IDictionary<string, string>? attributes, DateTimeOffset now) =>

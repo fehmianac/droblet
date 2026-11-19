@@ -104,6 +104,8 @@ public class OutfitImportPhotoEntity : IVersionedEntity
     [JsonPropertyName("backoffs")] public int Backoffs { get; set; }
     // Stage durations (ms) of the photo (detect, match, …) — diagnostics only.
     [JsonPropertyName("timings")] public Dictionary<string, long>? Timings { get; set; }
+    // Estimated AI cost of the photo's runs in micro-USD (see JobEntity.AiCost) — diagnostics only.
+    [JsonPropertyName("aiCost")] public Dictionary<string, long>? AiCost { get; set; }
     [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; }
     [JsonPropertyName("updatedAt")] public DateTime UpdatedAt { get; set; }
     [JsonPropertyName("version")] public long Version { get; set; }

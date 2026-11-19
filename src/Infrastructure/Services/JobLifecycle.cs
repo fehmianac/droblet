@@ -39,6 +39,7 @@ public sealed class JobLifecycle(IRepository repository, ICreditService credits,
         job.Result = resultJson;
         job.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
         job.Timings = AiTelemetry.Current?.Snapshot();
+        job.AiCost = AiTelemetry.Current?.CostSnapshot();
         await repository.SaveAsync(job, ct);
         await RecordDurationAsync(job, ct);
 
@@ -55,6 +56,7 @@ public sealed class JobLifecycle(IRepository repository, ICreditService credits,
         job.Failure = failure;
         job.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
         job.Timings = AiTelemetry.Current?.Snapshot();
+        job.AiCost = AiTelemetry.Current?.CostSnapshot();
         await repository.SaveAsync(job, ct);
 
         // A failed AI call never costs the user a credit.
