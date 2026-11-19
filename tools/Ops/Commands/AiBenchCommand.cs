@@ -105,6 +105,12 @@ internal static class AiBenchCommand
                     await Measure("outfit (3 looks, 12 candidates)", effort, async p => Summ(await p.GenerateAsync(new StylistPrompt(JobKind.StylistOutfit, OutfitInput, "tr"), ct)), Effort);
                     await Measure("week (7 days, one call)", effort, async p => Summ(await p.GenerateAsync(new StylistPrompt(JobKind.StylistWeek, WeekInput(7), "tr"), ct)), Effort);
                     await Measure("week (3 days, one batch)", effort, async p => Summ(await p.GenerateAsync(new StylistPrompt(JobKind.StylistWeek, WeekInput(3), "tr"), ct)), Effort);
+                    // What the worker does now (Stylist:WeekBatchDays 3): 3 + 2 + 2 days in parallel — wall time of all three.
+                    await Measure("week (7 days, 3 parallel batches)", effort, async p =>
+                    {
+                        var answers = await Task.WhenAll(new[] { 3, 2, 2 }.Select(days => p.GenerateAsync(new StylistPrompt(JobKind.StylistWeek, WeekInput(days), "tr"), ct)));
+                        return $"ok, {answers.Sum(a => a.Length)} chars";
+                    }, Effort);
                     await Measure("photo check (face)", effort, async p => (await p.InspectAsync(new ImageInput(face, "image/jpeg"), PhotoKind.Face, ct)).ToString(), Effort);
                     await Measure("item detection (1 garment)", effort, async p => $"{(await p.DetectItemsAsync(new ImageInput(garment, "image/jpeg"), "tr", ct)).Count} item(s)", Effort);
                 }
