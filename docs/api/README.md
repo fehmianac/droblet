@@ -354,6 +354,17 @@ Admin panel at `https://droblet-admin.alatech.co` ([admin.md](admin.md)). Admin 
 | POST | `v1/admin/image/upload-url` | admin:image.upload | [A](admin.md) | Presigned upload for a catalog / content image |
 | GET | `v1/admin/setting` | admin:settings.manage | [A](admin.md) | Owner-editable Parameter Store settings |
 | PUT | `v1/admin/setting/{group}` | admin:settings.manage | [A](admin.md) | Update a settings group |
+| GET | `v1/admin/ai/prompt` | admin:ai.manage | [A](admin.md) | Every AI prompt by key (live version, draft, fallback) |
+| GET | `v1/admin/ai/prompt/{key}` | admin:ai.manage | [A](admin.md) | One prompt: default, live, draft, variables, schema, history |
+| PUT | `v1/admin/ai/prompt/{key}/draft` | admin:ai.manage | [A](admin.md) | Save a prompt draft (validated) |
+| DELETE | `v1/admin/ai/prompt/{key}/draft` | admin:ai.manage | [A](admin.md) | Discard a prompt draft |
+| POST | `v1/admin/ai/prompt/{key}/publish` | admin:ai.manage | [A](admin.md) | Publish the draft (live within ~60 s) |
+| POST | `v1/admin/ai/prompt/{key}/rollback` | admin:ai.manage | [A](admin.md) | Make an earlier version or the code default live |
+| POST | `v1/admin/ai/prompt/{key}/acknowledge` | admin:ai.manage | [A](admin.md) | Hide an automatic-fallback banner |
+| POST | `v1/admin/ai/trial` | admin:ai.manage | [A](admin.md) | Dry-run a draft, test a model, refresh the model list |
+| GET | `v1/admin/ai/trial/{id}` | admin:ai.manage | [A](admin.md) | A trial's status and result |
+| GET | `v1/admin/ai/model` | admin:ai.manage | [A](admin.md) | AI model settings and the model allow-list |
+| PUT | `v1/admin/ai/model` | admin:ai.manage | [A](admin.md) | Change AI models / effort / tier / image settings |
 
 ## Where the two halves meet
 

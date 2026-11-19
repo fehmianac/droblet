@@ -27,6 +27,15 @@ public record AdminCreditsRequest(int Credits, string? Note);
 public record AdminImageUploadRequest(CatalogImagePurpose Purpose, string ContentType);
 public record AdminSettingUpdateRequest(Dictionary<string, JsonElement>? Values);
 
+public record AdminAiDraftRequest(string? Text);
+
+public record AdminAiPublishRequest(string? Note, int? ExpectedVersion);
+
+public record AdminAiRollbackRequest(int Version, string? Note);
+
+public record AdminAiTrialRequest(Domain.Entity.AiTrialType Type, string? Key, string? Text, string? Input, List<string>? ImageUrls, string? Model, string? ModelKind,
+    string? Effort, string? ServiceTier);
+
 public record AdminLibraryItemRequest(
     IReadOnlyDictionary<string, string>? Name, ItemCategory? Category, IReadOnlyList<string>? ColorIds, string? Fabric,
     IReadOnlyList<Season>? Seasons, string? ImageUrl, int SortOrder, bool Retired = false);

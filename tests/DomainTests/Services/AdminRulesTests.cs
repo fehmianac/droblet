@@ -75,6 +75,9 @@ public class AdminRulesTests
     {
         var secretSections = new[] { "Jwt", "AdminJwt", "Email", "AppleAuth", "GoogleAuth", "AffiliatePostback", "Store" };
         Assert.DoesNotContain(SettingsCatalog.WritableParameters, p => secretSections.Contains(p.Section));
-        Assert.DoesNotContain(SettingsCatalog.Groups.SelectMany(g => g.Fields), f => f.Key.Contains("Key", StringComparison.OrdinalIgnoreCase) || f.Key.Contains("Secret", StringComparison.OrdinalIgnoreCase));
+        // PromptCacheKey is a switch (send prompt_cache_key = the operation name), not a secret.
+        string[] notSecret = ["PromptCacheKey"];
+        Assert.DoesNotContain(SettingsCatalog.Groups.SelectMany(g => g.Fields).Where(f => !notSecret.Contains(f.Key)),
+            f => f.Key.Contains("Key", StringComparison.OrdinalIgnoreCase) || f.Key.Contains("Secret", StringComparison.OrdinalIgnoreCase));
     }
 }

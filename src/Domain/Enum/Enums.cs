@@ -14,7 +14,8 @@ public enum PhotoKind { Body, Face }
 
 /// <summary>DataExport: "Verilerimi indir" (not an AI job; only its queue routing uses the kind). OutfitImport: one photo of a
 /// "Kombinlerini içe aktar" session (no JobEntity; the photo row is the state, the kind routes the queue).</summary>
-public enum JobKind { ItemProcess, StylistOutfit, StylistWeek, StylistPack, StylistComplete, TryOn, Palette, ItemSplit, ItemClean, DataExport, OutfitImport }
+/// <remarks>AiTrial: an admin prompt dry-run / model test (AiTrialEntity, not a JobEntity); only its queue routing uses the kind.</remarks>
+public enum JobKind { ItemProcess, StylistOutfit, StylistWeek, StylistPack, StylistComplete, TryOn, Palette, ItemSplit, ItemClean, DataExport, OutfitImport, AiTrial }
 
 public enum JobStatus { Queued, Processing, Completed, Failed }
 

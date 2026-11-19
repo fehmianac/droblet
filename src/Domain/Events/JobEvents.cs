@@ -30,6 +30,14 @@ public sealed record OutfitImportPhotoRequestedEvent(string TenantId, string Job
 
 public sealed record StylistRequestedEvent(string TenantId, string JobId, JobKind Kind) : IJobRequestedEvent;
 
+/// <summary>Admin "Dene" / model "Test" / model list refresh (JobId = the AiTrialEntity id). Routed to the Stylist worker.</summary>
+public sealed record AiTrialRequestedEvent(string JobId) : IJobRequestedEvent
+{
+    public const string AdminTenant = "admin";
+    public string TenantId => AdminTenant;
+    public JobKind Kind => JobKind.AiTrial;
+}
+
 public sealed record TryOnTarget(TryOnTargetKind Kind, string Id, long Version);
 
 /// <param name="BodyPhotoId">The cache subject: the body photo id, or on the face path the face subject key (TryOnRules.FaceSubjectKey).</param>

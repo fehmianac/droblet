@@ -35,6 +35,10 @@ public static partial class ErrorCodes
     public const string SettingsUnavailable = "settings_unavailable";
     public const string ImageStorageNotConfigured = "image_storage_not_configured";
     public const string TooManyRequests = "too_many_requests";
+    /// <summary>AI prompts (admin): publish without a saved draft / the text is already live / unknown history entry.</summary>
+    public const string NoDraft = "no_draft";
+    public const string AlreadyLive = "already_live";
+    public const string VersionNotFound = "version_not_found";
     /// <summary>503: the sign-in code e-mail could not be sent (SendGrid not configured or down).</summary>
     public const string EmailUnavailable = "email_unavailable";
 

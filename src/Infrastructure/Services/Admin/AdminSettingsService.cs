@@ -48,15 +48,16 @@ public sealed class AdminSettingsService(ISettingsStore store, IAuditLog audit, 
     public async Task<IReadOnlyList<SettingGroupDto>> GetAllAsync(CancellationToken ct)
     {
         var groups = new List<SettingGroupDto>();
-        foreach (var group in SettingsCatalog.Groups)
+        foreach (var group in SettingsCatalog.Groups.Where(g => g.Permission == AdminPermissions.SettingsManage))
             groups.Add(SettingsCatalog.Read(group, stage, await store.GetAsync(group.Parameters[0].Name(stage), ct)));
         return groups;
     }
 
     public async Task<SettingWriteResult> UpdateAsync(AdminUserEntity actor, string groupName, IReadOnlyDictionary<string, JsonElement> values, string? ip, CancellationToken ct)
     {
+        // Groups owned by another permission (AI models: ai.manage) are written only through their own endpoint.
         var group = SettingsCatalog.Find(groupName);
-        if (group is null)
+        if (group is null || group.Permission != AdminPermissions.SettingsManage)
             return new SettingWriteResult(SettingWriteOutcome.NotFound);
         var errors = SettingsCatalog.Validate(group, values);
         if (errors.Count > 0)
