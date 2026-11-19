@@ -44,7 +44,7 @@ public class Put : IEndpoint
     public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints)
     {
         return endpoints.MapPut("v1/tenant/photo/{kind}", Handler)
-            .RequireConsent(c => PhotoKindRoute.TryParse(c.HttpContext.Request.RouteValues["kind"] as string, out var k) ? ConsentRules.ForPhoto(k) : [])
+            .RequirePhotoConsent(c => PhotoKindRoute.TryParse(c.HttpContext.Request.RouteValues["kind"] as string, out var k) ? k : null)
             .Produces<PhotoDto>(StatusCodes.Status200OK)
             .Produces<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest)
             .Produces<ProblemDetails>(StatusCodes.Status404NotFound)

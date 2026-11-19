@@ -32,7 +32,7 @@ public class PostUploadUrl : IEndpoint
     public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints)
     {
         return endpoints.MapPost("v1/tenant/photo/upload-url", Handler)
-            .RequireConsent(c => ConsentRules.ForPhoto(c.Argument<PhotoUploadUrlRequest>()?.Kind ?? PhotoKind.Body))
+            .RequirePhotoConsent(c => c.Argument<PhotoUploadUrlRequest>()?.Kind ?? PhotoKind.Body)
             .Produces<PhotoUploadDto>(StatusCodes.Status200OK)
             .Produces<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status500InternalServerError)

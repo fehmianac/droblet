@@ -51,6 +51,26 @@ public static class ConsentGuard
             return TryOnRules.ConsentsFor(path);
         });
 
+    /// <summary>
+    /// Photo upload / activation. Body: bodyPhotoAi + crossBorderTransfer. Face: either purpose is enough — the colour
+    /// palette (facePhotoPalette + crossBorderTransfer) or try-on from the face (facePhotoTryOn + crossBorderTransfer) —
+    /// so a user who agreed only to the face try-on path is not forced into the palette consent to upload the photo.
+    /// When neither set is complete, the palette set is reported as missing (the default purpose of a face photo).
+    /// </summary>
+    public static RouteHandlerBuilder RequirePhotoConsent(this RouteHandlerBuilder builder, Func<EndpointFilterInvocationContext, PhotoKind?> kindOf) =>
+        builder.RequireConsentAsync(async context =>
+        {
+            var kind = kindOf(context);
+            if (kind is null) return [];
+            if (kind == PhotoKind.Body) return ConsentRules.BodyPhoto;
+
+            var http = context.HttpContext;
+            var tenantId = http.RequestServices.GetRequiredService<IApiContext>().TenantId;
+            var consents = http.RequestServices.GetRequiredService<IConsentService>();
+            var tryOnMissing = await consents.MissingAsync(tenantId, ConsentRules.FaceTryOn, http.RequestAborted);
+            return tryOnMissing.Count == 0 ? [] : ConsentRules.FacePhoto;
+        });
+
     public static IResult Problem(IReadOnlyList<ConsentType> missing) =>
         TypedResults.Problem(new ProblemDetails
         {

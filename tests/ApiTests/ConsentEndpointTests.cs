@@ -118,6 +118,22 @@ public class ConsentEndpointTests(ApiFactory factory) : IClassFixture<ApiFactory
     }
 
     [Fact]
+    public async Task FacePhotoUpload_IsAllowed_WithTheFaceTryOnConsent_WithoutThePaletteOne()
+    {
+        var (client, _) = await factory.RegisterAsync(grantConsents: false);
+
+        var locked = await client.PostJsonAsync("v1/tenant/photo/upload-url", new { kind = "face", contentType = "image/jpeg" });
+        (await client.PutJsonAsync("v1/tenant/consents",
+            new { consents = new[] { Grant("facePhotoTryOn"), Grant("crossBorderTransfer") }, source = "tryon" })).EnsureSuccessStatusCode();
+        var face = await client.PostJsonAsync("v1/tenant/photo/upload-url", new { kind = "face", contentType = "image/jpeg" });
+        var body = await client.PostJsonAsync("v1/tenant/photo/upload-url", new { kind = "body", contentType = "image/jpeg" });
+
+        Assert.Equal(["crossBorderTransfer", "facePhotoPalette"], (await MissingAsync(locked)).Order().ToArray());
+        Assert.Equal(HttpStatusCode.OK, face.StatusCode);              // the face try-on purpose is enough for the upload
+        Assert.Equal(["bodyPhotoAi"], await MissingAsync(body));        // the body photo still needs its own consent
+    }
+
+    [Fact]
     public async Task GrantOnAnOutdatedText_409_WritesNothing()
     {
         var (client, auth) = await factory.RegisterAsync(grantConsents: false);
