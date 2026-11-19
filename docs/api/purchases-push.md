@@ -63,6 +63,25 @@ token names another account is refused (409); a notification without an index en
 like §2; then every subscription this account already owns is re-read from the store server API (when configured).
 200 → `{ "entitlement": EntitlementDto, "restored": 1, "ownedByAnotherAccount": 0 }`. 501 only when nothing could be read.
 
+## 3a. Temporary self-serve premium (`POST` / `DELETE v1/tenant/entitlement/self-premium`)
+
+Owner decision 2026-11-19: until store purchases are live, a user can make their **own** account premium from Ayarlar
+(and from the paywall's "Şimdilik ücretsiz etkinleştir"). Central switch: `Entitlements:SelfServePremium:Enabled` in
+`api/Entitlements` (and the same JSON in `worker/Entitlements`) — template default **true on dev, false on prod**; the
+super admin flips it in the panel (Settings → `entitlements` → `SelfServePremium.Enabled`).
+
+`GET v1/tenant/entitlement` → `"selfServePremium": { "enabled": true, "active": false }` — `enabled` = the switch,
+`active` = this account holds a self-serve grant. The app shows the section only when `enabled`.
+
+| Call | Result |
+|---|---|
+| `POST …/self-premium` (no body) | 200 `EntitlementDto` (with `selfServePremium`). The same grant as the admin test premium: Premium tier + the monthly try-on credits (`Premium.TryOnCreditsPerMonth`, 30), an `admin` entitlement row with id / `productId` **`self_test`**, valid one subscription month, audited (`user.self_premium_grant`). Idempotent: an active grant is kept (its credit month does not restart). |
+| `DELETE …/self-premium` | 200 `EntitlementDto`. Deletes only the `self_test` row (audited `user.self_premium_revoke`); idempotent. |
+| switch off | **403 `self_premium_disabled`** on both calls. |
+| store subscription active | `POST` → **409 `store_subscription_active`**. A store subscription is never written or deleted by these calls, and at the same tier the store entitlement is always the one reported (`productId`, `platform`, credit month). |
+
+After either call the app invalidates its entitlement / credit queries so premium features and credits update at once.
+
 ## 4. Store server notifications (anonymous, server to server)
 
 ### `POST v1/store/apple/notifications` — App Store Server Notifications v2

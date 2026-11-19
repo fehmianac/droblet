@@ -41,7 +41,7 @@ import { TripPacking } from '@/features/trips/TripPacking';
 import { ensureTryOnConsent, useStartTryOn } from '@/features/tryon/api';
 import { ItemThumb } from '@/features/wardrobe/ItemThumb';
 import { useItems } from '@/features/wardrobe/queries';
-import { currentLanguage } from '@/i18n';
+import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { formatDateRange, formatTemperature, parseLocalDate, weekdayShort } from '@/lib/format';
 import { toDisplayUpper } from '@/lib/upper';
 import { useIsOnline } from '@/sync/network';
@@ -123,6 +123,7 @@ function daySlots(day: TripDay, items: Item[] | undefined) {
 }
 
 function DayLooks({ days, onOpen }: { days: TripDay[]; onOpen: (day: TripDay) => void }) {
+  const language = useAppLanguage();
   const { t } = useTranslation();
   const items = useItems();
   const itemsById = indexItems(items.data);
@@ -159,7 +160,7 @@ function DayLooks({ days, onOpen }: { days: TripDay[]; onOpen: (day: TripDay) =>
             >
               <View className="absolute bottom-1 left-1 rounded-tag bg-paper/90 px-1 py-0.5">
                 <Text variant="tag" numberOfLines={1} className="text-[8.5px] leading-[11px]">
-                  {toDisplayUpper(weekday, currentLanguage())}
+                  {toDisplayUpper(weekday, language)}
                 </Text>
               </View>
             </LookCover>
@@ -372,6 +373,7 @@ function PackedTrip({ trip }: { trip: TripDetail }) {
  * A trip without an accepted list shows the AI packing wait / draft instead.
  */
 export default function TripDetailScreen() {
+  const language = useAppLanguage();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -423,7 +425,7 @@ export default function TripDetailScreen() {
           return (
             <ScrollView contentContainerClassName="gap-3 px-gutter pb-8">
               <View className="gap-1">
-                <Text variant="eyebrow">{toDisplayUpper(t('tripDetail.headerEyebrow', { range, days }), currentLanguage())}</Text>
+                <Text variant="eyebrow">{toDisplayUpper(t('tripDetail.headerEyebrow', { range, days }), language)}</Text>
                 <Text variant="display" numberOfLines={2}>
                   {detail.cityName}
                 </Text>

@@ -22,7 +22,7 @@ import { useCalendarMonth } from '@/features/today/api';
 import { combineQueries } from '@/features/today/combineQueries';
 import { monthGrid, monthOf, shiftMonth, weekDates } from '@/features/today/dates';
 import { dayStatus, type DayStatus } from '@/features/today/logic';
-import { currentLanguage } from '@/i18n';
+import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { formatDate, formatMonthYear, formatNumber, parseLocalDate, toIsoDate, weekdayShort } from '@/lib/format';
 import { toDisplayUpper } from '@/lib/upper';
 import { useThemeColors } from '@/theme/useThemeColors';
@@ -39,6 +39,7 @@ const goBack = () => (router.canGoBack() ? router.back() : router.replace('/'));
  * look or a stylist suggestion, and the month's summary with "Rapor" → the month report.
  */
 export default function CalendarScreen() {
+  const language = useAppLanguage();
   const { t } = useTranslation();
   const colors = useThemeColors();
   const today = toIsoDate(new Date());
@@ -171,7 +172,7 @@ export default function CalendarScreen() {
                   <View className="gap-3.5">
                     <View className="flex-row items-center justify-between gap-3">
                       <Text variant="eyebrow" className="flex-1">
-                        {toDisplayUpper(formatDate(parseLocalDate(selected), { day: 'numeric', month: 'long' }), currentLanguage())}
+                        {toDisplayUpper(formatDate(parseLocalDate(selected), { day: 'numeric', month: 'long' }), language)}
                       </Text>
                       <IconButton icon={X} variant="plain" onPress={() => setSelected(null)} accessibilityLabel={t('a11y.close')} />
                     </View>

@@ -164,7 +164,7 @@ Setting groups (only these parameters are writable; IAM allows `ssm:PutParameter
 
 | Group | Parameters | Fields |
 |---|---|---|
-| `entitlements` | `api/Entitlements`, `worker/Entitlements` (kept equal) | `Premium.TryOnCreditsPerMonth` 0–1000, `Free.ItemRecognitionLimit` 0–1000 |
+| `entitlements` | `api/Entitlements`, `worker/Entitlements` (kept equal) | `Premium.TryOnCreditsPerMonth` 0–1000, `Free.ItemRecognitionLimit` 0–1000, `SelfServePremium.Enabled` bool (temporary self-serve premium in Ayarlar; dev on, prod off — [purchases-push.md §3a](purchases-push.md)) |
 | `packing` | `api/Packing`, `worker/Packing` | `CabinMaxItems` 0–100, `MaxTripDays` 1–60 |
 | `ai` | `worker/Ai` | `Enabled` (bool). Provider and model ids are shown read-only elsewhere — not editable here. |
 | `notifications` | `api/Notifications` | `DefaultMorningLocal` (time), `DefaultTimeZone` (IANA), `MaxDevicesPerTenant` 1–50 |

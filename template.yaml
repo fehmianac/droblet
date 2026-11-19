@@ -310,8 +310,11 @@ Resources:
     Properties:
       Name: !Sub /droblet/${Stage}/api/Entitlements
       Type: String
-      Description: Premium try-on credits per month; Free.ItemRecognitionLimit = lifetime AI garment recognitions of a non-member (0 = members only).
-      Value: '{"Premium":{"TryOnCreditsPerMonth":30},"Free":{"ItemRecognitionLimit":10}}'
+      Description: Premium try-on credits per month; Free.ItemRecognitionLimit = lifetime AI garment recognitions of a non-member (0 = members only); SelfServePremium.Enabled = temporary self-serve premium (on in dev, off in prod).
+      Value: !If
+        - IsProd
+        - '{"Premium":{"TryOnCreditsPerMonth":30},"Free":{"ItemRecognitionLimit":10},"SelfServePremium":{"Enabled":false}}'
+        - '{"Premium":{"TryOnCreditsPerMonth":30},"Free":{"ItemRecognitionLimit":10},"SelfServePremium":{"Enabled":true}}'
   SsmApiPhotos:
     Type: AWS::SSM::Parameter
     Properties:
@@ -347,7 +350,10 @@ Resources:
       Name: !Sub /droblet/${Stage}/worker/Entitlements
       Type: String
       Description: Same values as api/Entitlements (workers commit / release credits and the recognition allowance).
-      Value: '{"Premium":{"TryOnCreditsPerMonth":30},"Free":{"ItemRecognitionLimit":10}}'
+      Value: !If
+        - IsProd
+        - '{"Premium":{"TryOnCreditsPerMonth":30},"Free":{"ItemRecognitionLimit":10},"SelfServePremium":{"Enabled":false}}'
+        - '{"Premium":{"TryOnCreditsPerMonth":30},"Free":{"ItemRecognitionLimit":10},"SelfServePremium":{"Enabled":true}}'
   SsmNotifierNotifications:
     Type: AWS::SSM::Parameter
     Properties:

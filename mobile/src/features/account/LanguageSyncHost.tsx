@@ -1,11 +1,12 @@
+import { useMutationState } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 
-import type { MyProfile } from '@/api/contracts/account';
-import { currentLanguage, type AppLanguage } from '@/i18n';
+import type { MyProfile, PutProfileLanguageRequest } from '@/api/contracts/account';
+import type { AppLanguage } from '@/i18n';
 import { restoreLanguagePreference } from '@/i18n/preference';
+import { useAppLanguage } from '@/i18n/useAppLanguage';
 
-import { useSaveProfileLanguage } from './mutations';
+import { accountMutationKeys, useSaveProfileLanguage } from './mutations';
 import { useMyProfile } from './queries';
 
 /**
@@ -26,11 +27,17 @@ export function languageToSync(profile: Pick<MyProfile, 'language'> | undefined,
  * it also goes through when the change was made offline.
  */
 export function LanguageSyncHost() {
-  const { i18n } = useTranslation();
   const profile = useMyProfile();
   const save = useSaveProfileLanguage();
   const [restored, setRestored] = useState(false);
   const lastWrite = useRef<string | null>(null);
+  // The language of the newest queued write: a write still waiting is not queued a second time (the
+  // profile answer of an earlier write may briefly carry the earlier language).
+  const pending = useMutationState({
+    filters: { mutationKey: accountMutationKeys.putLanguage, status: 'pending' },
+    select: (m) => (m.state.variables as PutProfileLanguageRequest | undefined)?.language ?? null,
+  });
+  const queuedLanguage = pending.length > 0 ? pending[pending.length - 1] : null;
 
   useEffect(() => {
     let active = true;
@@ -42,12 +49,12 @@ export function LanguageSyncHost() {
     };
   }, []);
 
-  const language = i18n.language;
+  const language = useAppLanguage();
   const data = profile.data;
   useEffect(() => {
     if (!restored || !data) return;
-    const next = languageToSync(data, currentLanguage());
-    if (!next) return;
+    const next = languageToSync(data, language);
+    if (!next || next === queuedLanguage) return;
     // One write per (language, profile version): a failed write is not repeated in a loop.
     const attempt = `${next}:${data.baseVersion}`;
     if (lastWrite.current === attempt) return;
@@ -55,7 +62,7 @@ export function LanguageSyncHost() {
     save(next, data.baseVersion);
     // `save` is a new function every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [restored, language, data?.language, data?.baseVersion]);
+  }, [restored, language, data?.language, data?.baseVersion, queuedLanguage]);
 
   return null;
 }

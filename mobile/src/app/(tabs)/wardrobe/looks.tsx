@@ -18,12 +18,13 @@ import { filterLooks, LOOK_FILTERS, type LookFilter } from '@/features/looks/log
 import { useLooks } from '@/features/looks/queries';
 import { useItems } from '@/features/wardrobe/queries';
 import { WardrobeHeader } from '@/features/wardrobe/WardrobeHeader';
-import { currentLanguage } from '@/i18n';
+import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { formatNumber } from '@/lib/format';
 import { toDisplayUpper } from '@/lib/upper';
 import { useThemeColors } from '@/theme/useThemeColors';
 
 function LookTile({ look, itemsById, onToggleFavorite }: { look: Look; itemsById: ItemsById; onToggleFavorite: () => void }) {
+  const language = useAppLanguage();
   const { t } = useTranslation();
   const occasion = t(`occasion.${look.occasion}`);
   const rating = look.rating !== null ? formatNumber(look.rating, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : null;
@@ -36,7 +37,7 @@ function LookTile({ look, itemsById, onToggleFavorite }: { look: Look; itemsById
         className="gap-2 active:opacity-80"
       >
         <LookCover seed={look.id} tryOnImageUrl={look.tryOnImageUrl} slots={look.slots} itemsById={itemsById} className="h-[210px] w-full rounded-image-lg">
-          <ImageTag label={toDisplayUpper(occasion, currentLanguage())} className="absolute bottom-2 left-2" />
+          <ImageTag label={toDisplayUpper(occasion, language)} className="absolute bottom-2 left-2" />
         </LookCover>
         <View className="flex-row items-center justify-between gap-2">
           <Text variant="segment" numberOfLines={1} className="flex-1">

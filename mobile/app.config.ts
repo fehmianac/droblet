@@ -62,7 +62,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     // package and versionCode come from app.json.
     ...config.android,
     adaptiveIcon: {
-      // Default icon: cream drop on ink (canvas v2 `LogoIkon`). Regenerate with scripts/render-brand-assets.mjs.
+      // Logo B: the cream hanger "D" + drop on the ink tile (canvas v2 `Logo.dc.html`). Regenerate with scripts/render-brand-assets.mjs.
       backgroundColor: INK,
       foregroundImage: './assets/images/android-icon-foreground.png',
       backgroundImage: './assets/images/android-icon-background.png',

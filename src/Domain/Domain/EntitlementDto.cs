@@ -14,7 +14,11 @@ public record EntitlementDto(Tier Tier, string? ProductId, StorePlatform? Platfo
     public StoreSubscriptionState? State { get; init; }
     /// <summary>UUID the app passes as StoreKit appAccountToken / Play obfuscatedAccountId (StoreAccountToken).</summary>
     public string? StoreAccountToken { get; init; }
+    /// <summary>Temporary self-serve premium (until store purchases are live): enabled = the switch is on, active = this account holds it. Null outside GET / self-premium.</summary>
+    public SelfServePremiumDto? SelfServePremium { get; init; }
 }
+
+public record SelfServePremiumDto(bool Enabled, bool Active);
 
 public static class EntitlementDtoMapper
 {

@@ -27,7 +27,7 @@ import { CanvasGlyph } from '@/features/account/rows';
 import { useAiGate } from '@/features/credits/useAiGate';
 import type { PreparedPhoto } from '@/features/photos/preparePhoto';
 import { usePhotoPicker } from '@/features/photos/usePhotoPicker';
-import { currentLanguage } from '@/i18n';
+import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { formatPercent } from '@/lib/format';
 import { suffixed } from '@/lib/trSuffix';
 import { mutationKeys } from '@/sync/queryKeys';
@@ -61,7 +61,7 @@ function ToneBlock({ tone, className }: { tone: PaletteTone; className: string }
 
 function ReadyView({ palette, faceUrl }: { palette: ReadyPalette; faceUrl: string | null }) {
   const { t } = useTranslation();
-  const language = currentLanguage();
+  const language = useAppLanguage();
   const [mismatchOpen, setMismatchOpen] = useState(false);
   const mismatch = usePaletteMismatch(mismatchOpen);
   const colors = paletteCatalogColors(palette.tones);

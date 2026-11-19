@@ -253,7 +253,7 @@ export function HomePage({ locale }: { locale: Locale }) {
         {/* Closing call to action */}
         <section className="bg-sand">
           <div className="mx-auto flex max-w-narrow flex-col items-center gap-5 px-4 py-16 text-center sm:px-6 sm:py-20">
-            <LogoSymbol width={40} surface="sand" strokeWidth={2.2} />
+            <LogoSymbol width={44} />
             <h2 className="m-0 font-serif text-[clamp(32px,4.4vw,52px)] leading-[1.05] font-medium">{t.final.title}</h2>
             <StoreButtons labels={dictionary.common} centered />
           </div>

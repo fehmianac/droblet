@@ -84,7 +84,7 @@ const reports = Array.from({ length: 6 }, (_, i) => ({
   createdAt: daysAgo(i), resolution: i >= 4 ? 'dismissed' : null, resolutionNote: null, resolvedByUserId: i >= 4 ? me.id : null, resolvedAt: i >= 4 ? daysAgo(0) : null,
 }));
 const settings = [
-  { group: 'entitlements', parameters: ['/droblet/dev/api/Entitlements', '/droblet/dev/worker/Entitlements'], fields: [{ key: 'Premium.TryOnCreditsPerMonth', type: 'int', min: 0, max: 1000, value: 30 }, { key: 'Free.ItemRecognitionLimit', type: 'int', min: 0, max: 1000, value: 10 }] },
+  { group: 'entitlements', parameters: ['/droblet/dev/api/Entitlements', '/droblet/dev/worker/Entitlements'], fields: [{ key: 'Premium.TryOnCreditsPerMonth', type: 'int', min: 0, max: 1000, value: 30 }, { key: 'Free.ItemRecognitionLimit', type: 'int', min: 0, max: 1000, value: 10 }, { key: 'SelfServePremium.Enabled', type: 'bool', value: true }] },
   { group: 'packing', parameters: ['/droblet/dev/api/Packing', '/droblet/dev/worker/Packing'], fields: [{ key: 'CabinMaxItems', type: 'int', min: 0, max: 100, value: 12 }, { key: 'MaxTripDays', type: 'int', min: 1, max: 60, value: 21 }] },
   { group: 'ai', parameters: ['/droblet/dev/worker/Ai'], fields: [{ key: 'Enabled', type: 'bool', value: false }] },
   { group: 'notifications', parameters: ['/droblet/dev/api/Notifications'], fields: [{ key: 'DefaultMorningLocal', type: 'time', value: '07:30' }, { key: 'DefaultTimeZone', type: 'timeZone', value: 'Europe/Istanbul' }, { key: 'MaxDevicesPerTenant', type: 'int', min: 1, max: 50, value: 10 }] },

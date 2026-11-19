@@ -38,7 +38,7 @@ import { creditSheetStore } from '@/features/credits/creditSheetStore';
 import { useIncomingRequestCount } from '@/features/social/queries';
 import { priceDropPercent } from '@/features/store/cartMath';
 import { useWatchlist } from '@/features/store/queries';
-import { currentLanguage } from '@/i18n';
+import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { formatDayMonth, formatMonthName } from '@/lib/format';
 import { suffixed } from '@/lib/trSuffix';
 import { toDisplayUpper } from '@/lib/upper';
@@ -51,7 +51,7 @@ import { useThemeColors } from '@/theme/useThemeColors';
 function CreditCard({ entitlement, hasBodyPhoto }: { entitlement: Entitlement; hasBodyPhoto: boolean | null }) {
   const { t } = useTranslation();
   const colors = useThemeColors();
-  const language = currentLanguage();
+  const language = useAppLanguage();
   const { monthlyAllowance, remaining, resetsAt } = entitlement.credits;
   const renewal = new Date(resetsAt);
   // The allowance belongs to the month before the renewal date.

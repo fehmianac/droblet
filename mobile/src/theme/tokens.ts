@@ -49,6 +49,14 @@ export const palettes: { light: ColorPalette } = {
 };
 
 /**
+ * The one colour of the logo outside the palette: the small drop inside the "D" on the ink tile
+ * (canvas v2 `Logo.dc.html`, direction B). On the cream tile the drop is `accent`.
+ */
+export const brandTones = {
+  dropOnInk: '#B49A80',
+} as const;
+
+/**
  * Third-party brand colours that must not be re-themed (Google sign-in button brand rules,
  * UX_DESIGNER §Marka butonları). Used only by the Google button.
  */

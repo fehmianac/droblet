@@ -37,7 +37,7 @@ import {
   useWatchlist,
 } from '@/features/store/queries';
 import { ensureTryOnConsent, isConsentDeclined, TRY_ON_CREDIT_COST, useStartTryOn, useTryOnJob } from '@/features/tryon/api';
-import { currentLanguage } from '@/i18n';
+import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { formatMoney } from '@/lib/format';
 import { suffixed } from '@/lib/trSuffix';
 import { useIsOnline } from '@/sync/network';
@@ -68,7 +68,7 @@ function ViewOption({ label, selected, onPress, glyph }: { label: string; select
 
 function ProductBody({ product }: { product: ProductDetail }) {
   const { t } = useTranslation();
-  const language = currentLanguage();
+  const language = useAppLanguage();
   const insets = useSafeAreaInsets();
   const client = useQueryClient();
   const online = useIsOnline();
