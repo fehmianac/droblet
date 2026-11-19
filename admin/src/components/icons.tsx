@@ -63,15 +63,24 @@ export function Icon({ name, className = 'h-5 w-5' }: { name: IconName; classNam
   );
 }
 
-export function Logo({ className = 'h-8 w-8' }: { className?: string }) {
-  // The Droblet drop with a hanger hook (mobile/assets/brand/favicon.svg).
+/**
+ * The Droblet mark, logo direction B (canvas `Logo.dc.html`): the hanger "D" with a drop in a rounded
+ * square — same geometry as mobile/src/components/brand/logoPaths.ts. `cream` = reversed, for the dark sidebar.
+ */
+export function Logo({ className = 'h-8 w-8', tone = 'ink' }: { className?: string; tone?: 'ink' | 'cream' }) {
+  const ink = tone === 'ink';
   return (
-    <svg viewBox="0 0 48 48" className={className} aria-hidden="true">
-      <rect width="48" height="48" rx="11" fill="#6E5640" />
-      <svg x="11.76" y="7" width="24.48" height="34" viewBox="8 4 36 50">
-        <path d="M26 6C26 6 10 24 10 36a16 16 0 0 0 32 0C42 24 26 6 26 6z" fill="#F4F1EC" />
-        <path d="M23.4 27a2.7 2.7 0 1 1 3.8 2.5c-.8.3-1.2.9-1.2 1.7v1.5M26 32.7 15.8 40.6h20.4z" fill="none" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" stroke="#6E5640" />
-      </svg>
+    <svg viewBox="6 10 44 44" className={className} aria-hidden="true">
+      <rect x="6" y="10" width="44" height="44" rx="12" fill={ink ? '#1C1A17' : '#F4F1EC'} />
+      <path
+        d="M20 22v20h6.5a10 10 0 0 0 0-20H20M20 22c0-3 1.6-5 4-5.4"
+        fill="none"
+        stroke={ink ? '#F4F1EC' : '#1C1A17'}
+        strokeWidth="2.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M27 27c0 0-3.2 3.6-3.2 6a3.2 3.2 0 0 0 6.4 0c0-2.4-3.2-6-3.2-6z" fill={ink ? '#B49A80' : '#6E5640'} />
     </svg>
   );
 }
