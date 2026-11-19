@@ -61,7 +61,6 @@
     "creditCostOnly_other": "{{count}} credits",
     "creditUsed_one": "The AI image used {{count}} credit · {{remaining}} left this month",
     "creditUsed_other": "The AI image used {{count}} credits · {{remaining}} left this month",
-    "continueWithoutImage": "Continue without the image",
     "collageBadge": "Piece collage",
     "noCreditsTitle": "This month's AI images are used up",
     "noCreditsBody": "We're showing the outfit as a piece collage. Add credits to see it on you; credits renew on {{date}}.",
