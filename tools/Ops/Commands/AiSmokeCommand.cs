@@ -18,7 +18,9 @@ namespace Ops.Commands;
 /// ai-smoke: every AI flow end to end through the public API on dev, as a throw-away user
 /// (ai-smoke+{ts}@example.com): register → test premium (admin service, audited as ops:github-actions) → style / body
 /// profile → synthetic body + face photo → library pieces → stylist outfit, week, trip pack (cabin), item processing,
-/// palette, try-on (1 credit, then the cached repeat is free) → DELETE v1/auth/me, and the tenant's S3 objects are checked
+/// palette, try-on (1 credit, then the cached repeat is free) → canvas 11 on a second user (2-piece wardrobe: complete
+/// outfits with library / catalog picks; face photo only + body type: face-path try-on, image.source face)
+/// → DELETE v1/auth/me, and the tenant's S3 objects are checked
 /// to be gone. Prints endpoint · job status · duration · failure · notable output; model ids from the worker logs.
 /// </summary>
 internal sealed partial class AiSmokeCommand(IServiceProvider services, OpsArguments args, OpsOutput output)
@@ -80,11 +82,21 @@ internal sealed partial class AiSmokeCommand(IServiceProvider services, OpsArgum
             Add("grant test premium (admin service)", grant?.Entitlement.Tier.ToString() ?? "not found", watch.Elapsed, null,
                 $"credits {grant?.Credits.AllowanceRemaining}/{grant?.Credits.AllowanceTotal}");
 
+            // The all-in-one consent step of onboarding ("Tümünü kabul et"): every purpose, current text version.
+            await GrantConsentsAsync(ct);
+
             // --items-only: just the item flows (single photo + multi-item detection), for prompt iteration.
             if (args.Flag("items-only"))
             {
                 await ItemProcessingAsync(fixtures, ct);
                 await MultiItemAsync(fixtures, ct);
+                return _rows.Any(r => r.Status is "failed" or "timeout" or "error" || r.Failure.Length > 0) ? 1 : 0;
+            }
+
+            // --prereq-only: canvas 11 flows only (thin-wardrobe gap filling + face-path try-on), on this user.
+            if (args.Flag("prereq-only"))
+            {
+                await ThinWardrobeAndFacePathAsync(fixtures, ct);
                 return _rows.Any(r => r.Status is "failed" or "timeout" or "error" || r.Failure.Length > 0) ? 1 : 0;
             }
 
@@ -164,6 +176,9 @@ internal sealed partial class AiSmokeCommand(IServiceProvider services, OpsArgum
                 await TryOnAsync(outfitJob, ct);
             else
                 Add("POST v1/tenant/tryon", "skipped", TimeSpan.Zero, "no outfit job");
+
+            // ── canvas 11 on a second, fresh user: 2-piece wardrobe + face photo only ────────────────────────────
+            await SecondUserAsync(s3, photoBucket, ct, () => ThinWardrobeAndFacePathAsync(fixtures, ct));
         }
         catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
         {
@@ -330,6 +345,125 @@ internal sealed partial class AiSmokeCommand(IServiceProvider services, OpsArgum
         var cached = status == 200 && body?["status"]?.GetValue<string>() == "cached";
         Add("POST v1/tenant/tryon (same outfit again)", $"{status} {body?["status"]}", elapsed, cached && beforeRepeat == afterRepeat ? null : "not_cached_or_charged",
             $"credits {beforeRepeat} → {afterRepeat} ({(beforeRepeat == afterRepeat ? "free ✓" : "charged ✗")})");
+    }
+
+    // ── canvas 11: thin wardrobe gap filling + the face path of try-on ────────────────────────────────────────────────
+
+    private static readonly string[] ConsentTypes =
+        ["bodyPhotoAi", "facePhotoPalette", "weight", "contacts", "marketingNotifications", "crossBorderTransfer", "facePhotoTryOn"];
+
+    private async Task GrantConsentsAsync(CancellationToken ct)
+    {
+        var consents = new JsonArray(ConsentTypes.Select(t => (JsonNode)new JsonObject { ["type"] = t, ["granted"] = true, ["version"] = ConsentOptions.DefaultVersion }).ToArray());
+        await Step("PUT v1/tenant/consents (all 7, onboarding)", HttpMethod.Put, "v1/tenant/consents",
+            new JsonObject { ["consents"] = consents, ["source"] = "onboarding", ["locale"] = "tr" }, 200, ct);
+    }
+
+    /// <summary>Runs <paramref name="flow"/> as a second throw-away user (premium, all consents), then deletes it and switches back.</summary>
+    private async Task SecondUserAsync(IAmazonS3 s3, string bucket, CancellationToken ct, Func<Task> flow)
+    {
+        var mainToken = _token;
+        var email = $"ai-smoke-thin+{DateTime.UtcNow:yyyyMMddHHmmss}@example.com";
+        _token = null;
+        try
+        {
+            var (status, body, elapsed) = await CallAsync(HttpMethod.Post, "v1/auth/register",
+                new JsonObject { ["name"] = "AI Smoke Thin", ["email"] = email, ["password"] = "Smoke-" + Guid.NewGuid().ToString("N"), ["ageConfirmed"] = true }, ct);
+            Add("POST v1/auth/register (second user)", status.ToString(), elapsed, status == 201 ? null : Code(body), email);
+            if (status != 201)
+                return;
+            _token = body!["accessToken"]!.GetValue<string>();
+            var tenantId = body["tenantId"]!.GetValue<string>();
+            await services.GetRequiredService<IAdminAppUserService>().GrantTestPremiumAsync(OpsHost.Actor, body["userId"]!.GetValue<string>(), 1, "ai-smoke", null, ct);
+            await GrantConsentsAsync(ct);
+            try
+            {
+                await flow();
+            }
+            finally
+            {
+                if (!args.Flag("keep-user"))
+                    await DeleteUserAsync(s3, bucket, tenantId, email, ct);
+            }
+        }
+        finally
+        {
+            _token = mainToken;
+        }
+    }
+
+    /// <summary>
+    /// Owner decisions 3 + 4 end to end: a 2-piece wardrobe gets complete outfits (picks from the library / catalog in
+    /// `missing`, gapFilled), then a face photo + body type (no body photo) renders the first suggestion on the face path.
+    /// </summary>
+    private async Task ThinWardrobeAndFacePathAsync(SmokeFixtures fixtures, CancellationToken ct)
+    {
+        await Step("PUT v1/tenant/style-profile (thin)", HttpMethod.Put, "v1/tenant/style-profile",
+            new JsonObject { ["segment"] = "women", ["styleTags"] = new JsonArray("minimal", "classic", "quietLuxury"), ["budget"] = "mixed", ["baseVersion"] = 0 }, 200, ct);
+        await Step("PUT v1/tenant/body-profile (bodyType pear)", HttpMethod.Put, "v1/tenant/body-profile",
+            new JsonObject { ["heightCm"] = 166, ["size"] = "s", ["bodyType"] = "pear", ["baseVersion"] = 0 }, 200, ct);
+
+        string[] pieces = ["lib-white-tshirt", "lib-white-sneakers"];
+        var rows = new JsonArray(pieces.Select(id => (JsonNode)new JsonObject { ["clientMutationId"] = Ulid.New(), ["libraryItemId"] = id }).ToArray());
+        var (status, body, elapsed) = await CallAsync(HttpMethod.Post, "v1/tenant/item/from-library", new JsonObject { ["items"] = rows }, ct);
+        Add("POST v1/tenant/item/from-library (2 pieces)", status.ToString(), elapsed, status is 200 or 201 ? null : Code(body), string.Join(", ", pieces));
+
+        string? problem = null;
+        var outfitJob = await JobStepAsync("stylist outfit (thin wardrobe)", "v1/tenant/stylist/outfit",
+            new JsonObject { ["requestId"] = Ulid.New(), ["date"] = Day(DateOnly.FromDateTime(DateTime.UtcNow)), ["occasion"] = "office", ["onlyMyWardrobe"] = true }, ct,
+            result =>
+            {
+                var suggestions = result?["suggestions"]?.AsArray() ?? [];
+                var missing = suggestions.SelectMany(s => s?["missing"]?.AsArray() ?? []).ToList();
+                var library = missing.Count(m => m?["libraryItemId"] is JsonValue);
+                var catalog = missing.Count(m => m?["productId"] is JsonValue);
+                var complete = suggestions.Count(s => Complete(s));
+                if (result?["refusal"] is JsonValue || suggestions.Count == 0 || complete != suggestions.Count || result?["gapFilled"]?.GetValue<bool>() != true)
+                    problem = "not_filled";
+                var first = suggestions.FirstOrDefault();
+                var own = string.Join("+", (first?["slots"]?.AsArray() ?? []).Select(s => s?["itemId"] is null ? "?" : s["slot"]?.ToString()));
+                var picks = string.Join("+", (first?["missing"]?.AsArray() ?? []).Select(m => $"{m?["slot"]}:{m?["libraryItemId"] ?? m?["productId"]}"));
+                return $"{suggestions.Count} suggestion(s), {complete} complete, gapFilled {result?["gapFilled"]}, refusal {result?["refusal"]?.ToString() ?? "null"}; " +
+                       $"picks: {library} library, {catalog} catalog; first: own {own} + {picks}";
+            });
+        if (problem is not null && _rows.LastOrDefault() is { } row)
+            _rows[^1] = row with { Failure = problem };
+        if (outfitJob is null)
+            return;
+
+        // Face photo only (no body photo) → the face path.
+        var watch = Stopwatch.StartNew();
+        var (face, _) = await fixtures.GetAsync(SmokeFixtures.Face, ct);
+        var photo = await UploadProfilePhotoAsync("face", face, ct);
+        Add("photo face only (PUT v1/tenant/photo/face)", photo.Ok ? "200" : "failed", watch.Elapsed, photo.Error, "no body photo");
+
+        var target = new JsonObject { ["kind"] = "suggestion", ["id"] = outfitJob, ["index"] = 0 };
+        (status, body, elapsed) = await CallAsync(HttpMethod.Post, "v1/tenant/tryon", new JsonObject { ["requestId"] = Ulid.New(), ["target"] = target }, ct);
+        if (status != 202 || body?["job"]?["id"]?.GetValue<string>() is not { } jobId)
+        {
+            Add("POST v1/tenant/tryon (face path)", status.ToString(), elapsed, Code(body), body?["status"]?.ToString());
+            return;
+        }
+        string? imageId = null;
+        if (!await PollStepAsync("try-on (face path, bodyType pear)", "POST v1/tenant/tryon", jobId, elapsed, ct, result =>
+            {
+                imageId = result?["tryOnImageId"]?.GetValue<string>();
+                return $"image {imageId}";
+            }) || imageId is null)
+            return;
+
+        (status, body, elapsed) = await CallAsync(HttpMethod.Get, $"v1/tenant/tryon/{imageId}", null, ct);
+        var source = body?["source"]?.ToString();
+        Add("GET v1/tenant/tryon/{id} (face path)", status.ToString(), elapsed, status == 200 && source == "face" ? null : "source_not_face", $"source {source}");
+    }
+
+    /// <summary>A base (top + bottom, or a dress) and shoes, counting own slots and picked pieces.</summary>
+    private static bool Complete(JsonNode? suggestion)
+    {
+        var slots = (suggestion?["slots"]?.AsArray() ?? []).Select(s => s?["slot"]?.ToString())
+            .Concat((suggestion?["missing"]?.AsArray() ?? []).Select(m => m?["slot"]?.ToString())).ToList();
+        var dress = (suggestion?["missing"]?.AsArray() ?? []).Any(m => m?["category"]?.ToString() == "dress");
+        return slots.Contains("top") && (dress || slots.Contains("bottom")) && slots.Contains("shoes");
     }
 
     private async Task<int> CreditsAsync(CancellationToken ct)
