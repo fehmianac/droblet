@@ -2,9 +2,10 @@ import { router } from 'expo-router';
 import { Calendar } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { KeyboardAvoider } from '@/components/ui/KeyboardAvoider';
 import { extractApiError } from '@/api/errors';
 import { InfoNote } from '@/components/ui/Bits';
 import { Button } from '@/components/ui/Button';
@@ -39,7 +40,7 @@ export default function DeleteAccountScreen() {
   return (
     <Screen>
       <ScreenHeader leading="back" />
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
+      <KeyboardAvoider>
         <ScrollView contentContainerClassName="gap-[18px] px-6 pb-6 pt-2" keyboardShouldPersistTaps="handled">
           <View className="gap-2.5">
             <Text variant="eyebrow" tone="danger">
@@ -80,6 +81,7 @@ export default function DeleteAccountScreen() {
             autoCorrect={false}
             autoComplete="off"
             error={error}
+            testID="deleteAccount.confirm"
           />
         </ScrollView>
         <View className="gap-1.5 px-6" style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
@@ -92,7 +94,7 @@ export default function DeleteAccountScreen() {
           />
           <Button variant="text" label={t('common.cancel')} onPress={() => router.back()} />
         </View>
-      </KeyboardAvoidingView>
+      </KeyboardAvoider>
     </Screen>
   );
 }

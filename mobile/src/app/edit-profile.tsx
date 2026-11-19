@@ -1,9 +1,10 @@
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { KeyboardAvoider } from "@/components/ui/KeyboardAvoider";
 import type { MyProfile } from "@/api/contracts/account";
 import { ApiError, extractApiError } from "@/api/errors";
 import { BottomSheet } from "@/components/ui/BottomSheet";
@@ -177,10 +178,7 @@ function Form({ profile }: { profile: MyProfile }) {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      className="flex-1"
-    >
+    <KeyboardAvoider>
       <ScrollView
         contentContainerClassName="gap-5 px-gutter pb-6 pt-2"
         keyboardShouldPersistTaps="handled"
@@ -299,7 +297,7 @@ function Form({ profile }: { profile: MyProfile }) {
         </View>
       </BottomSheet>
       {picker.sheet}
-    </KeyboardAvoidingView>
+    </KeyboardAvoider>
   );
 }
 

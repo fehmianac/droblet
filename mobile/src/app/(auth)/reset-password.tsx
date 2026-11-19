@@ -2,8 +2,9 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { X } from 'lucide-react-native';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { KeyboardAvoidingView, Platform, ScrollView, View, type TextInputInstance } from 'react-native';
+import { ScrollView, View, type TextInputInstance } from 'react-native';
 
+import { KeyboardAvoider } from '@/components/ui/KeyboardAvoider';
 import { useLogin, useResetPassword } from '@/api/auth';
 import { extractApiError } from '@/api/errors';
 import { useSession } from '@/auth/session';
@@ -91,7 +92,7 @@ export default function ResetPasswordScreen() {
 
   return (
     <Screen bottom>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
+      <KeyboardAvoider>
         <ScreenHeader
           leading="none"
           right={<IconButton icon={X} variant="plain" onPress={goLogin} accessibilityLabel={t('a11y.close')} />}
@@ -144,7 +145,7 @@ export default function ResetPasswordScreen() {
         <View className="px-6 pb-4">
           <Button testID="reset.submit" label={t('reset.submit')} onPress={submit} loading={reset.isPending || signingIn} />
         </View>
-      </KeyboardAvoidingView>
+      </KeyboardAvoider>
     </Screen>
   );
 }

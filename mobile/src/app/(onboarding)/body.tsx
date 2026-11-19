@@ -3,9 +3,10 @@ import { router } from 'expo-router';
 import { CameraOff, CircleAlert, Lock, Plus, X } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AppState, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, View } from 'react-native';
+import { AppState, Linking, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { KeyboardAvoider } from '@/components/ui/KeyboardAvoider';
 import { track } from '@/analytics/track';
 import { SIZES, type Size } from '@/api/contracts';
 import { CONSENTS_FOR } from '@/api/contracts/consents';
@@ -183,7 +184,7 @@ export default function BodyScreen() {
 
   return (
     <Screen>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
+      <KeyboardAvoider>
         <StepHeader step={3} total={4} onSkip={skip} skipTestID="body.skip" />
         <ScrollView className="flex-1" contentContainerClassName="gap-4 px-6 pb-6 pt-[18px]" keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
           <View className="gap-2">
@@ -362,7 +363,7 @@ export default function BodyScreen() {
         <View className="px-6 pt-2" style={{ paddingBottom: Math.max(insets.bottom, 16) + 8 }}>
           <Button testID="body.continue" label={t('common.continue')} onPress={submit} />
         </View>
-      </KeyboardAvoidingView>
+      </KeyboardAvoider>
 
       <BottomSheet visible={sizeSheet} onClose={() => setSizeSheet(false)} title={t('body.sizeSheetTitle')}>
         <ChipWrap>

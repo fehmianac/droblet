@@ -2,8 +2,9 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Mail } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
-import { KeyboardAvoidingView, Linking, Platform, ScrollView, View } from 'react-native';
+import { Linking, Platform, ScrollView, View } from 'react-native';
 
+import { KeyboardAvoider } from '@/components/ui/KeyboardAvoider';
 import { useForgotPassword } from '@/api/auth';
 import { extractApiError } from '@/api/errors';
 import { InfoNote } from '@/components/ui/Bits';
@@ -120,7 +121,7 @@ export default function ForgotPasswordScreen() {
 
   return (
     <Screen bottom>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
+      <KeyboardAvoider>
         <ScreenHeader leading="back" />
         <ScrollView className="flex-1" contentContainerClassName="gap-6 px-6 pb-6 pt-2" keyboardShouldPersistTaps="handled">
           <View className="gap-2.5">
@@ -153,7 +154,7 @@ export default function ForgotPasswordScreen() {
           <Button testID="forgot.submit" label={t('forgot.submit')} onPress={submit} loading={forgot.isPending} />
           <Button variant="text" label={t('forgot.backToLogin')} onPress={backToLogin} />
         </View>
-      </KeyboardAvoidingView>
+      </KeyboardAvoider>
     </Screen>
   );
 }
