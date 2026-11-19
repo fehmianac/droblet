@@ -72,13 +72,15 @@ public static class DeletionPlan
         // Profile picture (own prefix tenant/{id}/avatar/, removed with TenantRoot).
         typeof(AvatarEntity),
         typeof(AvatarUploadEntity),
+        // "Verilerimi indir" (the ZIP itself lives under exports/{tenantId}/, see AccountS3Prefixes).
+        typeof(DataExportEntity),
     ];
 
     public static IReadOnlyList<string> TenantPartitionKeys(string tenantId) =>
         TenantScopedEntityTypes.Select(t => InvokeGetPk(t, tenantId)).ToList();
 
     public static IReadOnlyList<string> AccountS3Prefixes(string tenantId) =>
-        [StorageKeys.TenantRoot(tenantId), StorageKeys.UploadsRoot(tenantId)];
+        [StorageKeys.TenantRoot(tenantId), StorageKeys.UploadsRoot(tenantId), StorageKeys.ExportsRoot(tenantId)];
 
     /// <summary>Photo deletion (screen 29): body + face + all try-on outputs. Item images stay.</summary>
     public static IReadOnlyList<string> PhotoS3Prefixes(string tenantId) =>

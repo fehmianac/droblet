@@ -83,4 +83,13 @@ public sealed class TimedObjectStorage(IObjectStorage inner) : IObjectStorage
     }
 
     public Task DeletePrefixAsync(string prefix, CancellationToken ct) => inner.DeletePrefixAsync(prefix, ct);
+
+    // Data export only (not an AI job): passed through untimed.
+    public Task<IReadOnlyList<string>> ListKeysAsync(string prefix, CancellationToken ct) => inner.ListKeysAsync(prefix, ct);
+
+    public Task<Stream?> OpenReadAsync(string key, CancellationToken ct) => inner.OpenReadAsync(key, ct);
+
+    public Task PutFileAsync(string key, string filePath, string contentType, CancellationToken ct) => inner.PutFileAsync(key, filePath, contentType, ct);
+
+    public Task<string> CreateDownloadUrlAsync(string key, string fileName, TimeSpan ttl, CancellationToken ct) => inner.CreateDownloadUrlAsync(key, fileName, ttl, ct);
 }

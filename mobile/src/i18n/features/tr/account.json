@@ -217,7 +217,13 @@
       "body": "İsteği onayla ya da reddet"
     },
     "bellUnread_one": "Bildirimler, {{count}} okunmamış",
-    "bellUnread_other": "Bildirimler, {{count}} okunmamış"
+    "bellUnread_other": "Bildirimler, {{count}} okunmamış",
+    "dataExport": {
+      "title": "Verilerin hazır",
+      "body": "İstediğin veri kopyasını 7 gün içinde indirebilirsin."
+    },
+    "loadingMore": "Daha eski bildirimler yükleniyor",
+    "loadMoreRetry": "Daha eskileri yükle"
   },
   "credits": {
     "eyebrow": "AI GÖRSELİ · BU AY",
@@ -231,5 +237,54 @@
     "note": "Kombin önerileri ve stil notları krediden düşmez; görselsiz önerilere devam edebilirsin. Aynı kombinin görseli ikinci kez kredi harcamaz.",
     "buy": "{{price}} · Paketi al",
     "notNow": "Şimdilik değil"
+  },
+  "verifyEmail": {
+    "eyebrow": "HESAP",
+    "title": "E-postanı doğrula",
+    "body": "{{email}} adresine 6 haneli bir kod gönderdik. Kodu buraya yaz ya da e-postadaki bağlantıyı aç.",
+    "bodyNoEmail": "E-posta adresine 6 haneli bir kod gönderdik. Kodu buraya yaz ya da e-postadaki bağlantıyı aç.",
+    "codeLabel": "6 haneli doğrulama kodu",
+    "submit": "Doğrula",
+    "resend": "Kodu tekrar gönder",
+    "resendIn": "Tekrar gönder · {{seconds}} sn",
+    "sent": "Yeni kodu gönderdik. Önceki kod artık geçmiyor.",
+    "note": "Doğrulamadan da uygulamayı kullanabilirsin. Doğrulanmış adres, arkadaşlarının seni rehberden bulmasını ve hesabının güvende kalmasını sağlar.",
+    "doneTitle": "E-postan doğrulandı",
+    "doneBody": "Teşekkürler. Arkadaşların artık seni rehberinden bulabilir.",
+    "continue": "Devam et",
+    "checking": "Bağlantıyı kontrol ediyoruz",
+    "linkFailedTitle": "Bağlantı kullanılamadı",
+    "enterCode": "Kodla doğrula",
+    "signIn": "Giriş yap",
+    "bannerTitle": "E-postanı doğrula",
+    "bannerBody": "Kodu e-postana gönderdik; bir dakikanı alır.",
+    "bannerHide": "Doğrulama hatırlatmasını gizle",
+    "error": {
+      "invalid": "Kod ya da bağlantı geçerli değil. Son gelen e-postadakini dene.",
+      "expired": "Kodun süresi doldu. Yeni bir kod iste.",
+      "tooMany": "Çok fazla deneme oldu. Biraz bekleyip yeni bir kod iste.",
+      "network": "Bağlantı kurulamadı. İnternetini kontrol edip tekrar dene."
+    }
+  },
+  "dataExport": {
+    "menu": "Verilerimi indir",
+    "title": "Verilerimi indir",
+    "lead": "Hesabında tuttuğumuz her şeyin bir kopyasını alabilirsin.",
+    "factContent": "Profilin, gardırobun, kombinlerin, planların, seyahatlerin, rızaların, takip ve puanların, satın almaların ve fotoğrafların; JSON dosyaları ve görseller olarak tek bir ZIP içinde.",
+    "factTime": "Hazırlamak genellikle birkaç dakika sürer; uygulamayı kapatabilirsin.",
+    "factDelivery": "Hazır olunca e-postana ve Bildirimler'e bir indirme bağlantısı gelir; dosya 7 gün saklanır.",
+    "factLimit": "Aynı anda bir kopya, günde en fazla bir istek.",
+    "request": "Kopyamı hazırla",
+    "requestAgain": "Yeni kopya iste",
+    "preparingTitle": "Kopyan hazırlanıyor",
+    "preparingBody": "Hazır olunca haber veririz.",
+    "readyTitle": "Kopyan hazır",
+    "until": "{{when}} tarihine kadar",
+    "download": "İndir",
+    "failed": "Kopyan hazırlanamadı. Tekrar deneyebilirsin.",
+    "expired": "Önceki kopyanın süresi doldu ve silindi.",
+    "nextAt": "Yeni bir kopyayı {{when}} sonrasında isteyebilirsin.",
+    "errorTooSoon": "Bugün zaten bir kopya istedin. Yarın tekrar deneyebilirsin.",
+    "errorStart": "İstek gönderilemedi. Tekrar dene."
   }
 }

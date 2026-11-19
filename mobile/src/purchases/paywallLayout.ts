@@ -5,5 +5,15 @@
  * so a price can never sit under the CTA.
  */
 export function paywallHeroHeight(windowHeight: number): number {
+  if (paywallCompact(windowHeight)) return 76;
   return windowHeight < 740 ? 136 : 176;
+}
+
+/**
+ * Below 700 pt (iPhone SE 3rd gen: 667) the plans still fell under the fixed footer — a price is only visible after
+ * scrolling. Compact mode: the 76 pt strip, a 26 pt tagline, tighter gaps and the benefit titles without their second line, so the
+ * benefits and both plans fit above the footer (checked on the SE simulator, Release build).
+ */
+export function paywallCompact(windowHeight: number): boolean {
+  return windowHeight < 700;
 }

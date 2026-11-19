@@ -134,9 +134,9 @@ appId: com.alatech.droplet
     id: "requirements.bodyType.height"
 - eraseText: 4
 - inputText: "168"
-# The number pad has no Done key in this build: tap the step title to close it before choosing the size.
+# The number pad has no Return key: the accessory bar's "Bitti" closes it (it would cover the save button).
 - tapOn:
-    point: "50%,20%"
+    id: "keyboard.done"
 - tapOn:
     id: "requirements.bodyType.size.M"
 - takeScreenshot: 11e-vucut-tipi

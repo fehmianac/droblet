@@ -59,10 +59,11 @@ export function profileFromWire(client: QueryClient, wire: ProfileWire): MyProfi
 }
 
 /** 28 / 29 — the user's own profile card and closet visibility (`GET v1/tenant/profile`). */
-export function useMyProfile() {
+export function useMyProfile(options: { enabled?: boolean } = {}) {
   const client = useQueryClient();
   return useQuery({
     queryKey: accountKeys.profile,
+    enabled: options.enabled ?? true,
     queryFn: () =>
       fromSource('account', accountFixtures.profile, async () => {
         const [wire, styleTags] = await Promise.all([apiRequest<ProfileWire>('v1/tenant/profile'), readStyleTags(client)]);

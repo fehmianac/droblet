@@ -7,6 +7,7 @@
  *   friend_rating(s) {lookId}  → the rated look; without an id the user's looks
  *   follow_request             → follow requests
  *   price_drop {productId}     → 22 Ürün; without an id the watch list
+ *   data_export_ready          → Verilerimi indir (inbox only today)
  * Unknown types or unusable ids open Bugün.
  */
 export type PushData = Record<string, unknown>;
@@ -16,6 +17,7 @@ export type PushRoute =
   | '/friends/requests'
   | '/watchlist'
   | '/wardrobe/looks'
+  | '/data-export'
   | { pathname: '/edit/[id]'; params: { id: string } }
   | { pathname: '/look/[id]'; params: { id: string } }
   | { pathname: '/shop/product/[id]'; params: { id: string } }
@@ -46,6 +48,8 @@ export function routeForPush(data: PushData | null | undefined): PushRoute {
       const lookId = id(data, 'lookId');
       return lookId ? { pathname: '/look/[id]', params: { id: lookId } } : '/wardrobe/looks';
     }
+    case 'data_export_ready':
+      return '/data-export';
     default:
       return '/';
   }

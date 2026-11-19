@@ -39,6 +39,7 @@ export function toMyProfile(wire: ProfileWire, styleTags: StyleTag[]): MyProfile
     language: APP_LANGUAGES.includes(wire.language) ? (wire.language as AppLanguage) : null,
     cityId: wire.cityId,
     email: wire.email,
+    emailVerified: wire.emailVerified ?? true,
     baseVersion: wire.version,
   };
 }

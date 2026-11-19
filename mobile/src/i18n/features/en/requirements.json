@@ -65,16 +65,47 @@
       "creditsUnknown": "Uses 1 credit"
     },
     "step": {
-      "age": { "title": "18+ confirmation", "body": "Confirm that you are over 18 to use Droblet." },
-      "consent": { "title_one": "Explicit consent · {{count}} approval", "title_other": "Explicit consent · {{count}} approvals", "body": "Let us process your photo only to create your own images." },
-      "photo": { "title": "Your picture", "body": "Choose one so we can put the look on you." },
-      "bodyPhoto": { "title": "Full-length photo", "body": "A full-length photo for the most realistic result." },
-      "facePhoto": { "title": "Face photo", "body": "In daylight, facing the camera." },
-      "bodyType": { "title": "Body type", "body": "You choose it once for your figure." },
-      "premium": { "title": "Membership", "body": "This feature comes with membership." },
-      "credits": { "title": "AI image", "body": "No AI images left this month." },
-      "city": { "title": "City", "body": "To suggest for the weather." },
-      "handle": { "title": "Username", "body": "Your friends find you by this name." }
+      "age": {
+        "title": "18+ confirmation",
+        "body": "Confirm that you are over 18 to use Droblet."
+      },
+      "consent": {
+        "title_one": "Explicit consent · {{count}} approval",
+        "title_other": "Explicit consent · {{count}} approvals",
+        "body": "Let us process your photo only to create your own images."
+      },
+      "photo": {
+        "title": "Your picture",
+        "body": "Choose one so we can put the look on you."
+      },
+      "bodyPhoto": {
+        "title": "Full-length photo",
+        "body": "A full-length photo for the most realistic result."
+      },
+      "facePhoto": {
+        "title": "Face photo",
+        "body": "In daylight, facing the camera."
+      },
+      "bodyType": {
+        "title": "Body type",
+        "body": "You choose it once for your figure."
+      },
+      "premium": {
+        "title": "Membership",
+        "body": "This feature comes with membership."
+      },
+      "credits": {
+        "title": "AI image",
+        "body": "No AI images left this month."
+      },
+      "city": {
+        "title": "City",
+        "body": "To suggest for the weather."
+      },
+      "handle": {
+        "title": "Username",
+        "body": "Your friends find you by this name."
+      }
     },
     "path": {
       "body": "Add a full-length photo",
@@ -145,6 +176,7 @@
       "title": "Choose the body type closest to yours",
       "lead": "We build your figure from your face photo, height and size. There is no right or wrong.",
       "groupLabel": "Body type",
+      "choose": "Choose a body type; \"Not sure\" is a choice too.",
       "height": "Height (cm)",
       "size": "Size",
       "fromProfile": "from your profile",
@@ -254,11 +286,26 @@
       },
       "body": "We didn't keep the photo and no credit was used. These usually help:",
       "tips": {
-        "notFullBody": { "a": "Get your feet in the frame too; step back 2–3 steps.", "b": "Hold the phone upright at waist height or use the timer." },
-        "tooDark": { "a": "Face the daylight; no light from behind.", "b": "In the evening, stand under the ceiling light." },
-        "multiplePeople": { "a": "Be the only person in the photo.", "b": "In a mirror shot, make sure nobody is behind you." },
-        "blurry": { "a": "Hold the phone still or lean it on something.", "b": "Tap the screen once to focus the camera." },
-        "noFace": { "a": "In daylight, facing the camera.", "b": "No glasses; hair off your face." }
+        "notFullBody": {
+          "a": "Get your feet in the frame too; step back 2–3 steps.",
+          "b": "Hold the phone upright at waist height or use the timer."
+        },
+        "tooDark": {
+          "a": "Face the daylight; no light from behind.",
+          "b": "In the evening, stand under the ceiling light."
+        },
+        "multiplePeople": {
+          "a": "Be the only person in the photo.",
+          "b": "In a mirror shot, make sure nobody is behind you."
+        },
+        "blurry": {
+          "a": "Hold the phone still or lean it on something.",
+          "b": "Tap the screen once to focus the camera."
+        },
+        "noFace": {
+          "a": "In daylight, facing the camera.",
+          "b": "No glasses; hair off your face."
+        }
       },
       "otherReasons": "Same screen, other reasons",
       "retake": "Take it again",
@@ -278,7 +325,8 @@
         "bodyType": "Body type",
         "city": "City",
         "handle": "@username",
-        "firstItems": "First 5 pieces"
+        "firstItems": "First 5 pieces",
+        "verifyEmail": "Verify your e-mail"
       },
       "note": {
         "bodyPhoto": "Most realistic result for See it on me",
@@ -286,7 +334,8 @@
         "bodyType": "For your figure while there is no full-length photo",
         "city": "For suggestions that fit the weather",
         "handle": "So your friends can find you",
-        "firstItems": "For outfit suggestions"
+        "firstItems": "For outfit suggestions",
+        "verifyEmail": "Enter the 6-digit code from your e-mail."
       },
       "cityDone": "City: {{city}}"
     },

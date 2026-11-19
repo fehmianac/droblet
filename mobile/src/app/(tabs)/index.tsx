@@ -16,6 +16,7 @@ import { ScreenState } from '@/components/ui/ScreenState';
 import { Text } from '@/components/ui/Text';
 import { useMyProfile } from '@/features/account/queries';
 import { MarketingOptInCard } from '@/features/consent/MarketingOptIn';
+import { VerifyEmailBanner } from '@/features/account/VerifyEmailBanner';
 import { ProfileCompleteCard } from '@/features/requirements/ProfileCompleteCard';
 import { useUnreadNotificationCount } from '@/features/notifications/queries';
 import { useRefreshTodayLook, useSetLookFavorite } from '@/features/today/api';
@@ -108,7 +109,8 @@ export default function TodayScreen() {
               </View>
 
               {/* "Profilini tamamla": ready before it is needed (canvas 11), dismissible to one row. */}
-              <View className="px-gutter">
+              <View className="gap-2.5 px-gutter">
+                <VerifyEmailBanner testID="today.verifyEmail" />
                 <ProfileCompleteCard testID="today.profileComplete" />
               </View>
 

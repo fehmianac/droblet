@@ -10,6 +10,12 @@ internal static class ProfileView
     public static async Task<ProfileDto> ToProfileDtoAsync(this TenantEntity tenant, UserEntity? user, IAvatarService avatars, CancellationToken ct)
     {
         var avatar = await avatars.GetAsync(tenant.Id, ct);
-        return tenant.ToDto(user?.Email, user?.AgeConfirmedAt) with { AvatarUrl = avatar?.Url, AvatarUrlExpiresAt = avatar?.UrlExpiresAt };
+        return tenant.ToDto(user?.Email, user?.AgeConfirmedAt) with
+        {
+            AvatarUrl = avatar?.Url,
+            AvatarUrlExpiresAt = avatar?.UrlExpiresAt,
+            EmailVerified = user?.IsEmailVerified ?? true,
+            EmailVerifiedAt = user?.EmailVerifiedAt,
+        };
     }
 }

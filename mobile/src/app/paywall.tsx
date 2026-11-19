@@ -24,7 +24,7 @@ import { CanvasGlyph } from '@/features/account/rows';
 import type { StoreProduct } from '@/fixtures/storeProducts';
 import { syncPushRegistration } from '@/notify/push';
 import { PurchaseStatus } from '@/purchases/PurchaseStatus';
-import { paywallHeroHeight } from '@/purchases/paywallLayout';
+import { paywallCompact, paywallHeroHeight } from '@/purchases/paywallLayout';
 import { purchaseFlow, usePurchaseState } from '@/purchases/purchaseFlow';
 import { placeholderTones, type PlaceholderTone } from '@/theme/tokens';
 import { useThemeColors } from '@/theme/useThemeColors';
@@ -133,6 +133,7 @@ export default function PaywallScreen() {
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const hero = paywallHeroHeight(windowHeight);
+  const compact = paywallCompact(windowHeight);
   const { from } = useLocalSearchParams<{ from?: string }>();
   const session = useSession();
   const store = useStoreProducts();
@@ -263,15 +264,15 @@ export default function PaywallScreen() {
           />
         </View>
 
-        <View className="-mt-6 gap-3 px-6">
+        <View className={`-mt-6 px-6 ${compact ? 'gap-2' : 'gap-3'}`}>
           <Text variant="eyebrow" tone="accent">
             {t('paywall.eyebrow')}
           </Text>
-          <Text variant="display" className="text-[32px] leading-[34px]">
+          <Text variant="display" className={compact ? 'text-[26px] leading-[30px]' : 'text-[32px] leading-[34px]'}>
             {t('paywall.tagline')}
           </Text>
 
-          <View className="gap-2">
+          <View className={compact ? 'gap-1' : 'gap-2'}>
             {BENEFITS.map(({ title, body, icon }) => (
               <View key={title} className="flex-row items-center gap-3">
                 <View className="h-8 w-8 items-center justify-center rounded-pill border border-line bg-paper">
@@ -279,9 +280,11 @@ export default function PaywallScreen() {
                 </View>
                 <View className="flex-1">
                   <Text variant="bodyMedium">{t(title)}</Text>
-                  <Text variant="caption" tone="muted">
-                    {t(body)}
-                  </Text>
+                  {compact ? null : (
+                    <Text variant="caption" tone="muted">
+                      {t(body)}
+                    </Text>
+                  )}
                 </View>
               </View>
             ))}

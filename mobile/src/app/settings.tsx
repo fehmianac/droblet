@@ -1,6 +1,6 @@
 import { useIsMutating, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { Ban, Pencil, Plus, Trash2, X } from 'lucide-react-native';
+import { Ban, Download, Pencil, Plus, Trash2, X } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, ScrollView, View } from 'react-native';
@@ -343,6 +343,10 @@ export default function SettingsScreen() {
         <Text variant="eyebrow">{t('consent.privacyEyebrow')}</Text>
         {/* Every explicit consent with its date; on / off here is the in-app withdrawal (Consents §8). */}
         <ConsentList />
+        {/* KVKK m.11 / GDPR art. 15 + 20: a copy of everything stored about the account. */}
+        <RowCard>
+          <ProfileMenuRow first icon={Download} label={t('dataExport.menu')} onPress={() => router.push('/data-export')} testID="settings.dataExport" />
+        </RowCard>
 
         <Text variant="eyebrow">{t('settings.notificationsEyebrow')}</Text>
         {/* Every notification switch, the morning time and the push permission prompt (main's prefs card). */}

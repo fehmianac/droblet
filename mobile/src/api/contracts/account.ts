@@ -31,6 +31,8 @@ export type MyProfile = {
   /** City id from `GET v1/weather/city` (weather on Bugün, stylist); null until chosen. */
   cityId?: string | null;
   email?: string | null;
+  /** False while an e-mail sign-up's address is not verified yet ("E-postanı doğrula"; nothing is blocked). */
+  emailVerified?: boolean;
   baseVersion: number;
 };
 

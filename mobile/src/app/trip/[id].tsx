@@ -214,6 +214,37 @@ function MissingCard({ piece }: { piece: TripMissingPiece }) {
       </View>
     );
   }
+  // A catalog pick (gap filling from the store): the same "Önerilen · Mağaza" + "Gör" as the stylist results.
+  if (productId) {
+    const open = () => router.push({ pathname: '/shop/product/[id]', params: { id: productId } });
+    return (
+      <View className="flex-row items-center gap-2.5 rounded-card border border-accent bg-paper px-3 py-2.5" testID={`trip-store-${productId}`}>
+        <View className="overflow-hidden rounded-[8px] border-[1.5px] border-dashed" style={{ borderColor: placeholderTones.camel }}>
+          <ItemThumb category={piece.category ?? 'accessory'} color="black" className="h-[41px] w-[37px]" glyphSize={20} />
+        </View>
+        <View className="flex-1 gap-0.5" accessible accessibilityLabel={`${t('req.gapFill.store')}: ${piece.name}`}>
+          <Text variant="eyebrow" tone="accent">
+            {t('req.gapFill.store')}
+          </Text>
+          <Text variant="body" className="text-[13.5px]" numberOfLines={2}>
+            {piece.name}
+          </Text>
+        </View>
+        <Pressable
+          onPress={open}
+          accessibilityRole="button"
+          accessibilityLabel={`${t('req.gapFill.see')}: ${piece.name}`}
+          hitSlop={{ top: 4, bottom: 4 }}
+          testID={`trip-store-see-${productId}`}
+          className="h-chip items-center justify-center rounded-pill border border-accent px-[15px] active:opacity-80"
+        >
+          <Text variant="chip" tone="accent" numberOfLines={1}>
+            {t('req.gapFill.see')}
+          </Text>
+        </Pressable>
+      </View>
+    );
+  }
   const line = t('tripDetail.missingLine', { name: piece.name, reason: piece.reason });
   return (
     <Pressable

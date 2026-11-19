@@ -9,7 +9,6 @@ import Svg, { Rect } from 'react-native-svg';
 
 import type { TryOnTarget } from '@/api/contracts/tryon';
 import { AiBackgroundAction, AiFailure, AiProgressLines, AiTryOnStage } from '@/components/ui/ai';
-import { AiImage } from '@/components/ui/AiBadge';
 import { Badge } from '@/components/ui/Bits';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
@@ -21,6 +20,7 @@ import { aiCreditsKey, useAiCredits } from '@/features/credits/useAiCredits';
 import { PhotoRejected } from '@/features/requirements/PhotoRejected';
 import { requirementsFlow } from '@/features/requirements/store';
 import { isTryOnTargetKind, TRY_ON_CREDIT_COST, useStartTryOn, useTryOnJob } from '@/features/tryon/api';
+import { TryOnResultImage } from '@/features/tryon/TryOnResultImage';
 import { useThemeColors } from '@/theme/useThemeColors';
 
 /** "AI önizleme" on the stage: the ink badge at its 28-high size (`AiYukleniyor`). */
@@ -115,9 +115,9 @@ export default function TryOnScreen() {
         <ScreenHeader title={t('screens.tryon')} leading="close" onLeadingPress={close} />
         <ScrollView contentContainerClassName="gap-4 px-gutter pb-4">
           <View>
-            <AiImage
-              kind="onYou"
-              uri={job.result?.imageUrl ?? null}
+            <TryOnResultImage
+              tryOnId={job.result?.tryOnId ?? null}
+              url={job.result?.imageUrl ?? null}
               className="aspect-[4/5] w-full"
               accessibilityLabel={title ? t('tryOn.imageA11yNamed', { name: title }) : t('tryOn.imageA11y')}
             />

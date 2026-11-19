@@ -17,6 +17,14 @@ public interface IObjectStorage
     Task PutAsync(string key, byte[] data, string contentType, CancellationToken ct);
     Task DeleteAsync(string key, CancellationToken ct);
     Task DeletePrefixAsync(string prefix, CancellationToken ct);
+    /// <summary>Every key under a folder prefix (data export).</summary>
+    Task<IReadOnlyList<string>> ListKeysAsync(string prefix, CancellationToken ct);
+    /// <summary>Streams an object (null when missing). The caller disposes the stream.</summary>
+    Task<Stream?> OpenReadAsync(string key, CancellationToken ct);
+    /// <summary>Uploads a local file (multipart for large files), SSE-S3.</summary>
+    Task PutFileAsync(string key, string filePath, string contentType, CancellationToken ct);
+    /// <summary>Presigned GET that downloads as <paramref name="fileName"/> (Content-Disposition: attachment).</summary>
+    Task<string> CreateDownloadUrlAsync(string key, string fileName, TimeSpan ttl, CancellationToken ct);
 }
 
 public sealed record PhotoUploadSlot(string UploadId, PresignedUpload Upload, long MaxBytes);

@@ -28,6 +28,7 @@ import { FOLLOW_LABEL } from '@/features/social/PeopleRows';
 import { useInviteLink, usePerson, usePersonItems, usePersonLooks, usePersonTrips } from '@/features/social/queries';
 import { ReportSheet } from '@/features/social/ReportSheet';
 import { requestShareUrl } from '@/features/social/share';
+import { useHandleGate } from '@/features/requirements/useHandleGate';
 import { copyLink } from '@/features/social/ShareSheet';
 import { formatNumber, formatPercent, formatYearMonth } from '@/lib/format';
 
@@ -274,13 +275,16 @@ export default function PersonScreen() {
   const [reporting, setReporting] = useState(false);
   const { notice, show } = useNotice();
 
-  const copyProfileLink = async () => {
+  const withHandle = useHandleGate();
+  const copyProfileLinkNow = async () => {
     const local = profileShareUrl(linkDomain(), handle, invite.data?.code ?? null);
     // The server records the share and returns the link to send; offline, the device-built link is used.
     const url = (await requestShareUrl({ targetKind: 'profile', ownerHandle: handle }, 'link')) ?? local;
     if (await copyLink(url)) show(t('person.linkCopied'));
     else show(t('share.copyFailed'), 'problem');
   };
+  // The profile link carries my invite code and names me: it needs my @handle first.
+  const copyProfileLink = () => withHandle(() => void copyProfileLinkNow());
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/friends/feed'));
 
   return (

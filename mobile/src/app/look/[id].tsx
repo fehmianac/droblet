@@ -25,6 +25,7 @@ import { lookPieceNames, missingPieceCount } from '@/features/looks/logic';
 import { useLook } from '@/features/looks/queries';
 import { ensureTryOnConsent, isConsentDeclined, TRY_ON_CREDIT_COST, useStartTryOn } from '@/features/tryon/api';
 import { RequirementHint, StepCountBadge } from '@/features/requirements/RequirementHint';
+import { useHandleGate } from '@/features/requirements/useHandleGate';
 import { useGate } from '@/features/requirements/useRequirements';
 import { useItems } from '@/features/wardrobe/queries';
 import { useAppLanguage } from '@/i18n/useAppLanguage';
@@ -226,6 +227,7 @@ export default function LookScreen() {
   const itemsById = indexItems(items.data);
   // Consent of the photo path first (normally already given), then the credit confirmation.
   const gate = useGate('tryOn', () => void ensureTryOnConsent().then((ok) => ok && setConfirm(true)), { origin: look?.name ?? null });
+  const withHandle = useHandleGate();
 
   if (deleted) {
     return (
@@ -238,13 +240,15 @@ export default function LookScreen() {
 
   const edit = () => router.push({ pathname: '/look/new', params: { id } });
 
-  const share = () => {
+  const shareNow = () => {
     if (!look) return;
     const pieces = lookPieceNames(look)
       .map((name) => t('lookDetail.shareLine', { name }))
       .join('\n');
     void Share.share({ message: t('lookDetail.shareMessage', { name: look.name, occasion: t(`occasion.${look.occasion}`), pieces }) }).catch(() => undefined);
   };
+  // Sharing needs an @handle: without one the handle step comes first, then the share sheet opens.
+  const share = () => withHandle(shareNow, look?.name ?? null);
 
   const onTryOnPress = () => {
     if (!online) {

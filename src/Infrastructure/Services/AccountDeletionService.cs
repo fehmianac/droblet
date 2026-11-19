@@ -40,6 +40,7 @@ public sealed class AccountDeletionService(
             (CredentialEntity.GetPk(), CredentialEntity.GetSk(userId)),
             (UserTenantIndexEntity.GetPk(userId), UserTenantIndexEntity.GetSk(tenantId)),
             (TenantEntity.GetPk(), TenantEntity.GetSk(tenantId)),
+            (EmailVerificationEntity.GetPk(), EmailVerificationEntity.GetSk(userId)),
         };
         if (tenant?.Handle is { Length: > 0 } handle)
             globals.Add((HandleEntity.GetPk(), HandleEntity.GetSk(handle)));

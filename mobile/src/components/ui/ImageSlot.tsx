@@ -251,9 +251,12 @@ type Props = {
   /** Overlays (tags, heart). */
   children?: ReactNode;
   testID?: string;
+  /** The picture arrived / could not be loaded (e.g. an expired presigned URL: the caller fetches a fresh one). */
+  onLoad?: () => void;
+  onError?: () => void;
 };
 
-export function ImageSlot({ uri, placeholder = { kind: 'figure' }, className, accessibilityLabel, children, testID }: Props) {
+export function ImageSlot({ uri, placeholder = { kind: 'figure' }, className, accessibilityLabel, children, testID, onLoad, onError }: Props) {
   const [failedUri, setFailedUri] = useState<string | null>(null);
   const [loadedUri, setLoadedUri] = useState<string | null>(null);
   const showImage = Boolean(uri) && failedUri !== uri;
@@ -280,8 +283,14 @@ export function ImageSlot({ uri, placeholder = { kind: 'figure' }, className, ac
             className="h-full w-full"
             transition={200}
             cachePolicy="memory-disk"
-            onLoad={() => setLoadedUri(uri)}
-            onError={() => setFailedUri(uri)}
+            onLoad={() => {
+              setLoadedUri(uri);
+              onLoad?.();
+            }}
+            onError={() => {
+              setFailedUri(uri);
+              onError?.();
+            }}
           />
         </>
       ) : (

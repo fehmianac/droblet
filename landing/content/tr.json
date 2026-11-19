@@ -581,6 +581,8 @@
               "- “Beğenmedim” geri bildirimleri, kredi hareketleri ve kredi rezervasyonları: 400 gün ya da hesabını silene kadar (hangisi önce gelirse).",
               "- Kullanım olayları: 400 gün (takma adlı).",
               "- Şifre sıfırlama bağlantısı: 30 dakika. Oturum: erişim anahtarı 60 dakika, yenileme anahtarı 60 gün.",
+              "- E-posta doğrulama kodu ve bağlantısı: 24 saat (yalnızca özetleri saklanır).",
+              "- “Verilerimi indir” ile hazırlanan veri kopyası (ZIP dosyası): 7 gün; sonra kendiliğinden silinir. İsteğin kaydı 30 gün tutulur.",
               "- Rehber eşleştirme tuzu: en fazla 10 dakika; yüklenen karmalar: hiç saklanmaz.",
               "- Bildirim gönderim kayıtları: 14 gün; mağaza bildirim kayıtları: 90 gün.",
               "- Markaya gidiş tıklamaları ve sipariş bildirimleri: [AFFILIATE KAYIT SAKLAMA SÜRESİ]; hesabını sildiğinde bu kayıtlarla hesabın arasındaki bağ silinir, kalan gelir kaydı anonimdir.",
@@ -614,6 +616,7 @@
               "Türkiye'de yaşıyorsan KVKK m. 11'deki hakların KVKK Aydınlatma Metni'nde anlatılır.",
               "Başvurunu [İLETİŞİM E-POSTASI] adresine, hesabına kayıtlı e-posta adresinden gönder. Kimliğini doğrulamak için ek bilgi isteyebiliriz. Başvurulara en geç bir ay içinde yanıt veririz (karmaşık başvurularda bu süre iki ay daha uzatılabilir; bunu sana bildiririz). Başvuru ücretsizdir.",
               "Verilerinin büyük bölümünü uygulamada kendin görebilir, düzeltebilir ve silebilirsin.",
+              "Verilerinin bir kopyasını uygulamadan kendin alabilirsin: Profil › Ayarlar › Gizlilik › “Verilerimi indir”. Hazırlanan dosya; profilini, stil ve beden profilini, rızalarını ve rıza geçmişini, gardırobunu, look'larını, planlarını ve giyim kayıtlarını, bavullarını, takip ilişkilerini, verdiğin ve aldığın puanları, sepet ve izleme listeni, bildirimlerini, satın alma, üyelik ve kredi geçmişini, kullanım olaylarını (takma adlı) ve yüklediğin ya da senin için üretilen görselleri içerir. Kayıtlar makinece okunabilir JSON dosyaları, görseller asıl dosyalarıyla tek bir ZIP dosyasında yer alır. Kopya genellikle birkaç dakika içinde hazırlanır; hazır olduğunda indirme bağlantısı hesabına kayıtlı e-posta adresine ve uygulamadaki Bildirimler'e gelir. Bağlantı ve dosya 7 gün geçerlidir. Aynı anda bir kopya hazırlanabilir ve günde en fazla bir kopya istenebilir. Güvenlik için şifre özetleri, oturum anahtarları, bildirim jetonları ve iç anahtarlar kopyaya eklenmez.",
               "Bize yazdıktan sonra memnun kalmazsan Birleşik Krallık Bilgi Komiserliği'ne (ICO, ico.org.uk) ya da Türkiye'de Kişisel Verileri Koruma Kurulu'na şikâyette bulunabilirsin."
             ]
           },
@@ -748,6 +751,7 @@
             "heading": "Saklama süreleri",
             "paragraphs": [
               "Kişisel verilerin, işleme amacı için gerekli süre boyunca saklanır: hesap ve içerik verileri sen silene ya da hesabını silene kadar; işlenmemiş yüklemeler en fazla 1 gün; parça taslakları ve yapay zekâ iş kayıtları 7 gün; kullanım olayları, kredi hareketleri ve stilist geri bildirimleri 400 gün; şifre sıfırlama bağlantısı 30 dakika; yenileme anahtarı 60 gün. Satış ortaklığı kayıtları [AFFILIATE KAYIT SAKLAMA SÜRESİ], şikâyet kayıtları [ŞİKAYET KAYDI SAKLAMA SÜRESİ], sunucu kayıtları [LOG SAKLAMA SÜRESİ] saklanır. Silinen veriler yedeklerden en geç 30 gün içinde çıkar. Ayrıntılı tablo Gizlilik Politikası'ndadır.",
+              "E-posta doğrulama kodu ve bağlantısı 24 saat, “Verilerimi indir” ile hazırlanan veri kopyası 7 gün saklanır.",
               "Süresi dolan veriler silinir, yok edilir ya da anonim hâle getirilir. [HUKUK ONAYI: kişisel veri saklama ve imha politikası]"
             ]
           },
@@ -771,7 +775,8 @@
             "paragraphs": [
               "Başvurunu Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ'e uygun olarak; Droblet'e kayıtlı e-posta adresinden [İLETİŞİM E-POSTASI] adresine, güvenli elektronik imza veya mobil imzayla, kayıtlı elektronik posta (KEP) yoluyla [KEP ADRESİ] adresine ya da yazılı olarak [ŞİRKET ADRESİ] adresine iletebilirsin. Başvuruda adını, soyadını, (Türk vatandaşıysan) T.C. kimlik numaranı ya da (yabancıysan) uyruğunu ve pasaport veya kimlik numaranı, tebligata esas adresini, varsa e-posta adresini ve talebinin konusunu belirtmelisin.",
               "Başvurunu niteliğine göre en kısa sürede ve en geç 30 gün içinde ücretsiz olarak sonuçlandırırız. İşlemin ayrıca bir maliyet gerektirmesi hâlinde Kurul'ca belirlenen tarifedeki ücret alınabilir. Başvurun reddedilirse, yanıtı yetersiz bulursan ya da süresinde yanıt verilmezse, yanıtı öğrendiğin tarihten itibaren 30 gün ve her hâlükârda başvuru tarihinden itibaren 60 gün içinde Kişisel Verileri Koruma Kurulu'na şikâyette bulunabilirsin.",
-              "Verilerinin büyük bölümünü uygulamada kendin görebilir, düzeltebilir ve silebilirsin: fotoğraflar için Profil › Gizlilik, hesabın için Profil › Ayarlar › Hesabımı sil ya da droblet.alatech.co/delete-account."
+              "Verilerinin büyük bölümünü uygulamada kendin görebilir, düzeltebilir ve silebilirsin: fotoğraflar için Profil › Gizlilik, hesabın için Profil › Ayarlar › Hesabımı sil ya da droblet.alatech.co/delete-account.",
+              "Verilerinin işlenip işlenmediğini öğrenmek ve bir kopyasını almak için başvuru yapmana gerek yok: Profil › Ayarlar › Gizlilik › “Verilerimi indir” ile tüm kayıtlarının (JSON) ve görsellerinin yer aldığı bir ZIP dosyası genellikle birkaç dakika içinde hazırlanır; indirme bağlantısı kayıtlı e-posta adresine ve Bildirimler'e gelir ve 7 gün geçerlidir. Günde bir kopya istenebilir. Bu yol, yukarıdaki başvuru yollarına ek bir kolaylıktır; dilersen yine yazılı başvuru yapabilirsin."
             ]
           },
           {
@@ -1271,6 +1276,30 @@
       "invalid_or_expired_token": "Bu bağlantının süresi dolmuş ya da daha önce kullanılmış. Uygulamadan yeni bir bağlantı iste.",
       "too_many_attempts": "Çok fazla deneme yapıldı. Lütfen bir süre sonra yeniden dene.",
       "validation": "Bu şifre kabul edilmedi. 8 ile 128 karakter arasında bir şifre seç.",
+      "network": "Bağlantı kurulamadı. İnternetini kontrol edip yeniden dene.",
+      "unknown": "Bir şeyler ters gitti. Lütfen yeniden dene."
+    }
+  },
+  "verifyEmail": {
+    "metaTitle": "E-posta doğrulama — Droblet",
+    "metaDescription": "Droblet hesabının e-posta adresini doğrula.",
+    "eyebrow": "E-POSTA DOĞRULAMA",
+    "title": "E-postanı doğrula",
+    "intro": "Droblet uygulaması yüklüyse doğrulamayı orada tamamlayabilirsin. Ya da bu tarayıcıda tek dokunuşla doğrula.",
+    "orWeb": "Ya da buradan doğrula",
+    "webBody": "Bu adres Droblet hesabına ait. Doğrulamak için aşağıdaki düğmeye bas.",
+    "submit": "E-postamı doğrula",
+    "submitting": "Doğrulanıyor…",
+    "missingTitle": "Bağlantı eksik ya da geçersiz",
+    "missingBody": "Bu sayfa e-postandaki doğrulama bağlantısıyla açılır. Uygulamada \"E-postanı doğrula\" ekranından yeni bir kod isteyebilirsin.",
+    "unavailableBody": "Web üzerinden doğrulama şu an kullanılamıyor. Bağlantıyı Droblet uygulamasının yüklü olduğu telefonda aç ya da e-postadaki 6 haneli kodu uygulamaya gir.",
+    "successTitle": "E-postan doğrulandı",
+    "successBody": "Teşekkürler. Uygulamaya dönebilirsin; arkadaşların artık seni rehberinden bulabilir.",
+    "errors": {
+      "invalid_verification_code": "Bu bağlantı geçerli değil ya da yerine yenisi gönderildi. Son gelen e-postadaki bağlantıyı kullan.",
+      "verification_expired": "Bu bağlantının süresi dolmuş. Uygulamadan yeni bir kod iste.",
+      "too_many_attempts": "Çok fazla deneme yapıldı. Lütfen bir süre sonra yeniden dene.",
+      "validation": "Bu bağlantı geçerli değil. Son gelen e-postadaki bağlantıyı kullan.",
       "network": "Bağlantı kurulamadı. İnternetini kontrol edip yeniden dene.",
       "unknown": "Bir şeyler ters gitti. Lütfen yeniden dene."
     }

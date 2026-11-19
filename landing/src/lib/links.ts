@@ -54,5 +54,6 @@ export const appLinks = {
   look: (id: string, invite: string | null) =>
     `${appScheme}://l/${encodeURIComponent(id)}${invite ? `?invite=${encodeURIComponent(invite)}` : ''}`,
   resetPassword: (token: string) => `${appScheme}://reset-password?token=${encodeURIComponent(token)}`,
+  verifyEmail: (token: string) => `${appScheme}://verify-email?token=${encodeURIComponent(token)}`,
   home: () => `${appScheme}://`,
 };

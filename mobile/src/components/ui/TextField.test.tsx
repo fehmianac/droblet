@@ -1,9 +1,10 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { useState } from 'react';
+import { Keyboard } from 'react-native';
 
 import '@/i18n';
 
-import { TextField } from './TextField';
+import { needsDoneBar, TextField } from './TextField';
 
 function Form({ password }: { password: boolean }) {
   const [value, setValue] = useState('');
@@ -32,5 +33,23 @@ describe('TextField', () => {
     await render(<Form password={false} />);
     await fireEvent.changeText(screen.getByTestId('field'), 'Damla');
     expect(screen.getByTestId('field').props.value).toBe('Damla');
+  });
+
+  it('gives a number field a "Done" bar on iOS that closes the keyboard (the number pad has no Return key)', async () => {
+    const dismiss = jest.spyOn(Keyboard, 'dismiss');
+    await render(<TextField testID="height" label="Height" value="" keyboardType="number-pad" />);
+    const input = screen.getByTestId('height');
+    expect(input.props.inputAccessoryViewID).toMatch(/^keyboard-done-/);
+    await fireEvent.press(screen.getByTestId('keyboard.done'));
+    expect(dismiss).toHaveBeenCalled();
+    dismiss.mockRestore();
+  });
+
+  it('adds no bar to text fields or on Android', async () => {
+    await render(<TextField testID="name" label="Name" value="" />);
+    expect(screen.queryByTestId('keyboard.done')).toBeNull();
+    expect(needsDoneBar('decimal-pad', 'ios')).toBe(true);
+    expect(needsDoneBar('number-pad', 'android')).toBe(false);
+    expect(needsDoneBar('email-address', 'ios')).toBe(false);
   });
 });

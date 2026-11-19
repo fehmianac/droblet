@@ -14,6 +14,43 @@ public static class Ulid
         return Build((utcNow ?? DateTime.UtcNow).ToUnixTimeMilliseconds(), random);
     }
 
+    private static readonly object MonotonicGate = new();
+    private static string _lastMonotonic = "";
+
+    /// <summary>
+    /// A ULID strictly greater than every earlier one from this process: two ids made in the same millisecond (or with a
+    /// clock that stepped back) still sort in the order they were made. Used where the sort key alone orders a log
+    /// (admin audit trail) and a random tie-break would show two quick writes in the wrong order.
+    /// </summary>
+    public static string NewMonotonic(DateTime? utcNow = null)
+    {
+        var candidate = New(utcNow);
+        lock (MonotonicGate)
+        {
+            if (string.CompareOrdinal(candidate, _lastMonotonic) <= 0)
+                candidate = Increment(_lastMonotonic);
+            _lastMonotonic = candidate;
+            return candidate;
+        }
+    }
+
+    /// <summary>The next ULID after <paramref name="value"/> (base32 +1 with carry; the time part only moves on overflow).</summary>
+    internal static string Increment(string value)
+    {
+        var chars = value.ToCharArray();
+        for (var i = chars.Length - 1; i >= 0; i--)
+        {
+            var digit = Alphabet.IndexOf(chars[i]);
+            if (digit < Alphabet.Length - 1)
+            {
+                chars[i] = Alphabet[digit + 1];
+                return new string(chars);
+            }
+            chars[i] = Alphabet[0];
+        }
+        throw new OverflowException("ULID space exhausted.");
+    }
+
     /// <summary>
     /// A ULID that is a pure function of (time, seed): the same server-side action always yields the same id, so a
     /// retried mutation is idempotent without the client supplying an id.

@@ -5,7 +5,7 @@
  * The server sends codes and ids only; every sentence is built in the app, per language.
  */
 
-export const NOTIFICATION_TYPES = ['morning_outfit', 'weekly_edit', 'friend_ratings', 'price_drop', 'follow_request'] as const;
+export const NOTIFICATION_TYPES = ['morning_outfit', 'weekly_edit', 'friend_ratings', 'price_drop', 'follow_request', 'data_export_ready'] as const;
 export type NotificationKind = (typeof NOTIFICATION_TYPES)[number];
 
 /** The ids the event carries (the same keys as the push `data`). */
@@ -16,6 +16,8 @@ export type NotificationData = {
   productId?: string;
   /** Requester of a follow request (without @). */
   handle?: string;
+  /** "Verilerimi indir": the export that is ready (inbox only, never pushed). */
+  exportId?: string;
 };
 
 export type AppNotification = {

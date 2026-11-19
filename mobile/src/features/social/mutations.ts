@@ -22,6 +22,7 @@ import { fromSource } from '@/api/dataSource';
 import { ApiError } from '@/api/errors';
 import { fromReportReason, type FollowResultWire, type RatingWire, type ReportRequestWire } from '@/api/wire/social';
 import { socialFixtures } from '@/fixtures/social';
+import { useHandleGate } from '@/features/requirements/useHandleGate';
 import { newClientMutation } from '@/sync/clientMutation';
 import { TENANT_WRITE_SCOPE } from '@/sync/queryKeys';
 
@@ -314,10 +315,18 @@ export function useSaveLook() {
   return (handle: string, lookId: string, saved: boolean) => m.mutate({ handle, lookId, saved, clientMutationId: id() });
 }
 
-/** `follow: true` = follow / send a request; `false` = unfollow or cancel the pending request. */
+/**
+ * `follow: true` = follow / send a request; `false` = unfollow or cancel the pending request. Following needs an
+ * @handle (the other side sees who follows): without one the handle step opens first and the follow is sent after it.
+ */
 export function useFollow() {
   const m = useMutation<FollowState, unknown, FollowRequest>({ mutationKey: socialMutationKeys.follow });
-  return (handle: string, follow: boolean) => m.mutate({ handle, follow, clientMutationId: id() });
+  const withHandle = useHandleGate();
+  return (handle: string, follow: boolean) => {
+    const send = () => m.mutate({ handle, follow, clientMutationId: id() });
+    if (follow) withHandle(send, `@${handle}`);
+    else send();
+  };
 }
 
 /** Approve / decline a request to follow me, or cancel my own pending request. */

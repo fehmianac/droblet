@@ -61,6 +61,9 @@ export type ProfileWire = {
   /** Profile photo (presigned GET, short-lived); null = none. Older servers omit it. */
   avatarUrl?: string | null;
   avatarUrlExpiresAt?: string | null;
+  /** E-mail verification (docs/api/verification-export.md §1). Older servers omit it (= verified). */
+  emailVerified?: boolean;
+  emailVerifiedAt?: string | null;
 };
 
 // ---------- style / body profile ----------

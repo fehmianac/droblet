@@ -9,19 +9,22 @@ Every HTTP endpoint of the Api Lambda (`src/Api/Endpoints/V1`), with the contrac
 | **A** — [admin.md](admin.md) | Admin panel: admin sign-in (password + e-mailed code), roles and permissions, admin users, audit log, dashboard, app users and moderation actions, library, catalog images, Parameter Store settings |
 | **C** — [consents-age-inbox-avatar.md](consents-age-inbox-avatar.md) | Explicit consents (records, audit log, versions, `403 consent_required` enforcement, withdrawal), 18+ confirmation, notification inbox, profile picture |
 | **P** — [purchases-push.md](purchases-push.md) | In-app purchases (StoreKit 2 / Play Billing verified on the server), restore, App Store / Play store notifications, device push tokens (APNs / FCM) and notification deep links, Sign in with Apple token revocation |
+| **V** — [verification-export.md](verification-export.md) | E-mail verification (code + link, resend, profile `emailVerified`), data export ("Verilerimi indir": ZIP job, status, e-mailed download link) |
 | **—** | Foundation endpoints (sign-in, profile basics, photos, style / body profile, purchases, jobs). No contract document yet: the request / response records sit next to each endpoint in `src/Api/Endpoints/V1/Auth` and `src/Api/Endpoints/V1/Tenant/{Profile,Photo,StyleProfile,BodyProfile,Entitlement}`; the one-line summary below is the endpoint's own (`WithSummary`). |
 
 Shared conventions (both documents, §1): camelCase JSON and enum strings; `Authorization: Bearer <accessToken>`; errors are ProblemDetails with a stable snake_case `code`; calendar days are `yyyy-MM-dd`, instants UTC ISO-8601; the API returns codes, never sentences; text content is resolved to the request language (profile language → `Accept-Language` → `tr`, languages from `Localization:SupportedLanguages`).
 
 **Auth** column: `user` = signed-in user (tenant from the token) · `admin:<permission>` = signed-in **admin panel** account (separate admin token, never an app token) whose role holds that permission ([A §2](admin.md)); `admin` = any signed-in admin · `anonymous` = no token (postbacks and store notifications are authenticated by signature / OIDC token; admin sign-in routes are rate limited per IP).
 
-209 endpoints.
+214 endpoints.
 
 ## Auth and account (foundation)
 
 | Method | Path | Auth | Doc | What |
 |---|---|---|---|---|
 | POST | `v1/auth/apple` | anonymous | [P](purchases-push.md) | Sign in with Apple |
+| POST | `v1/auth/email/resend` | user | [V](verification-export.md) | Send the verification e-mail again |
+| POST | `v1/auth/email/verify` | anonymous | [V](verification-export.md) | Verify the e-mail address (code signed in, or link token) |
 | POST | `v1/auth/google` | anonymous | — | Sign in with Google |
 | POST | `v1/auth/login` | anonymous | — | Sign in with e-mail and password |
 | POST | `v1/auth/logout` | user | — | Sign out |
@@ -62,6 +65,14 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | GET | `v1/tenant/consents/history` | user | [C](consents-age-inbox-avatar.md) | My consent history |
 | GET | `v1/tenant/style-profile` | user | — | Get style profile |
 | PUT | `v1/tenant/style-profile` | user | — | Create or update style profile |
+
+## Data export
+
+| Method | Path | Auth | Doc | What |
+|---|---|---|---|---|
+| GET | `v1/export/download` | anonymous | [V](verification-export.md) | Download a data export (e-mailed link token → 302) |
+| GET | `v1/tenant/export` | user | [V](verification-export.md) | My data export (status, download link, whether a new one may start) |
+| POST | `v1/tenant/export` | user | [V](verification-export.md) | Request a copy of my data |
 
 ## Entitlement, purchases and jobs
 

@@ -274,6 +274,12 @@ public static class NotificationTexts
             ["tr"] = ("Yeni takip isteği", "Biri dolabını takip etmek istiyor."),
             ["en"] = ("New follow request", "Someone would like to follow your closet."),
         },
+        // Inbox + e-mail only today (the data export worker writes the inbox row); kept here so every type has its text.
+        [NotificationType.DataExportReady] = new()
+        {
+            ["tr"] = ("Verilerin hazır", "İstediğin veri kopyasını 7 gün içinde indirebilirsin."),
+            ["en"] = ("Your data is ready", "You can download the copy of your data for 7 days."),
+        },
     };
 
     public static (string Title, string Body) For(NotificationType type, string? language, string defaultLanguage)

@@ -95,6 +95,27 @@ public static class DependencyInjection
         return services;
     }
 
+    /// <summary>
+    /// The data export worker (Notifier zip, function data-export): the job plus the e-mail service, which otherwise
+    /// only the Api has. Reads its config from /droblet/{stage}/api (Email, App) like the Api.
+    /// </summary>
+    public static IServiceCollection AddDrobletDataExportWorker(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.Configure<DataExportOptions>(configuration.GetSection(DataExportOptions.Section));
+        services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.Section));
+        services.PostConfigure<EmailOptions>(o => o.SendGrid.ApiKey = ConfigSecret.OrNull(o.SendGrid.ApiKey));
+        services.AddSingleton(sp => new SendGridEmailService(
+            new HttpClient { Timeout = TimeSpan.FromSeconds(10) },
+            sp.GetRequiredService<IOptionsMonitor<EmailOptions>>()));
+        services.AddSingleton<SmtpEmailService>();
+        services.AddSingleton<IEmailService>(sp =>
+            string.Equals(sp.GetRequiredService<IOptions<EmailOptions>>().Value.Provider, "Smtp", StringComparison.OrdinalIgnoreCase)
+                ? sp.GetRequiredService<SmtpEmailService>()
+                : sp.GetRequiredService<SendGridEmailService>());
+        services.AddSingleton<IDataExportJob, DataExportJob>();
+        return services;
+    }
+
     public static IServiceCollection AddDrobletApiServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.Section));
@@ -119,8 +140,10 @@ public static class DependencyInjection
         services.AddSingleton<ITokenService, TokenService>();
         services.AddSingleton<IRateLimiter, RateLimiter>();
         services.AddSingleton<IContactDirectory, Infrastructure.Services.Social.ContactDirectory>();
+        services.AddSingleton<IEmailVerificationService, EmailVerificationService>();
         services.AddSingleton<IAuthService, AuthService>();
         services.AddSingleton<IAccountDeletionService, AccountDeletionService>();
+        services.AddSingleton<IDataExportService, DataExportService>();
         services.AddSingleton<IPhotoService, PhotoService>();
         // E10 in-app purchases: StoreKit 2 / Play Billing verified on the server, no third-party service.
         services.AddSingleton<IAppleRootCertificates, AppleRootCertificates>();

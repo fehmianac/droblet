@@ -176,6 +176,7 @@
       "title": "Sana en yakın vücut tipini seç",
       "lead": "Yüz fotoğrafın, boyun ve bedeninle figürünü oluştururuz. Doğrusu, yanlışı yok.",
       "groupLabel": "Vücut tipi",
+      "choose": "Bir vücut tipi seç; emin değilsen \"Emin değilim\" de bir seçim.",
       "height": "Boy (cm)",
       "size": "Beden",
       "fromProfile": "profilinden",
@@ -324,7 +325,8 @@
         "bodyType": "Vücut tipi",
         "city": "Şehir",
         "handle": "@kullanıcı adı",
-        "firstItems": "İlk 5 parça"
+        "firstItems": "İlk 5 parça",
+        "verifyEmail": "E-postanı doğrula"
       },
       "note": {
         "bodyPhoto": "Üzerimde gör için en gerçekçi sonuç",
@@ -332,7 +334,8 @@
         "bodyType": "Boy fotoğrafın yokken figürün için",
         "city": "Hava durumuna göre öneriler için",
         "handle": "Arkadaşların seni bulsun",
-        "firstItems": "Kombin önerileri için"
+        "firstItems": "Kombin önerileri için",
+        "verifyEmail": "E-postana gelen 6 haneli kodu gir."
       },
       "cityDone": "Şehir: {{city}}"
     },

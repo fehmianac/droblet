@@ -103,6 +103,7 @@
     "searchError": "Arama şu an yapılamadı.",
     "similarEmpty": "Gardırobun doldukça sana benzeyen dolapları burada göstereceğiz.",
     "similarEmptyAction": "Davet linki paylaş",
-    "influencersEmpty": "Influencer dolapları yakında burada olacak."
+    "influencersEmpty": "Influencer dolapları yakında burada olacak.",
+    "claimHandle": "Kullanıcı adını al · arkadaşların seni bulsun"
   }
 }

@@ -20,14 +20,15 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
     public const int MaxPerfRuns = 10;
     public const string Logs = "logs";
     public const string MigrateLibraryItemImages = "migrate-library-item-images";
+    public const string AccountSmoke = "account-smoke";
 
     /// <summary>Hard ceiling of image-model calls in one run (library images and synthetic fixtures together).</summary>
     public const int MaxImageCallsPerRun = 30;
 
-    public static readonly IReadOnlyList<string> Commands = [GrantTestPremium, RevokeTestPremium, GenerateLibraryImages, AiSmoke, AiProbe, AiPerf, AiBench, Logs, MigrateLibraryItemImages];
+    public static readonly IReadOnlyList<string> Commands = [GrantTestPremium, RevokeTestPremium, GenerateLibraryImages, AiSmoke, AiProbe, AiPerf, AiBench, Logs, MigrateLibraryItemImages, AccountSmoke];
 
     /// <summary>Commands that create or change test accounts or spend AI credit on a throw-away user: never on prod.</summary>
-    public static readonly IReadOnlySet<string> DevOnly = new HashSet<string>(StringComparer.Ordinal) { GrantTestPremium, RevokeTestPremium, AiSmoke, AiProbe, AiPerf, AiBench };
+    public static readonly IReadOnlySet<string> DevOnly = new HashSet<string>(StringComparer.Ordinal) { GrantTestPremium, RevokeTestPremium, AiSmoke, AiProbe, AiPerf, AiBench, AccountSmoke };
 
     private static readonly IReadOnlyDictionary<string, string[]> AllowedOptions = new Dictionary<string, string[]>(StringComparer.Ordinal)
     {
@@ -40,6 +41,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [AiBench] = ["reps", "efforts", "qualities", "models", "max-calls"],
         [Logs] = ["function", "minutes", "filter", "limit"],
         [MigrateLibraryItemImages] = [],
+        [AccountSmoke] = ["api-url"],
     };
 
     private static readonly IReadOnlyDictionary<string, string[]> AllowedFlags = new Dictionary<string, string[]>(StringComparer.Ordinal)
@@ -53,6 +55,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [AiBench] = ["text-only", "image-only"],
         [Logs] = [],
         [MigrateLibraryItemImages] = ["dry-run"],
+        [AccountSmoke] = ["keep-user"],
     };
 
     [GeneratedRegex("^lib-[a-z0-9]+(-[a-z0-9]+)*$")]
@@ -185,6 +188,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         "  revoke-test-premium     --email <e>                            (dev only)\n" +
         "  generate-library-images [--only id,id] [--dry-run] [--force] [--max-calls N<=30] [--quality high]\n" +
         "  ai-smoke                [--api-url URL] [--keep-user] [--items-only | --prereq-only]  (dev only)\n" +
+        "  account-smoke           [--api-url URL] [--keep-user]  (dev only; e-mail verification + data export)\n" +
         "  ai-perf                 [--runs N<=10] [--flows outfit,week,pack,item,palette,tryon] [--face] [--keep-user]  (dev only; p50/p95 per stage)\n" +
         "  ai-bench                [--reps N<=5] [--efforts default,low,minimal] [--qualities default,low,medium] [--text-only | --image-only]  (dev only; direct provider calls)\n" +
         "  ai-probe                                                        (dev only; one direct text-model call)\n" +

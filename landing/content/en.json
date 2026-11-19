@@ -581,6 +581,8 @@
               "- “Not for me” feedback, credit movements and credit reservations: 400 days or until you delete your account, whichever comes first.",
               "- Usage events: 400 days (pseudonymous).",
               "- Password reset link: 30 minutes. Session: access token 60 minutes, refresh token 60 days.",
+              "- E-mail verification code and link: 24 hours (only their hashes are stored).",
+              "- The copy of your data prepared with “Download my data” (ZIP file): 7 days, then deleted automatically. The record of the request is kept for 30 days.",
               "- Contact-matching salt: 10 minutes at most; uploaded hashes: never stored.",
               "- Notification delivery records: 14 days; store notification records: 90 days.",
               "- Clicks through to brands and order notifications: [AFFILIATE RECORD RETENTION]; when you delete your account the link between these records and your account is deleted, and the remaining revenue record is anonymous.",
@@ -614,6 +616,7 @@
               "If you live in Türkiye, your rights under KVKK art. 11 are explained in the KVKK Information Notice.",
               "Send your request to [CONTACT E-MAIL] from the e-mail address registered to your account. We may ask for more information to confirm your identity. We answer within one month at the latest (for complex requests this may be extended by two further months; we will tell you if so). Requests are free of charge.",
               "You can see, correct and delete most of your data yourself in the app.",
+              "You can get a copy of your data yourself in the app: Profile › Settings › Privacy › “Download my data”. The file contains your profile, style and body profile, consents and consent history, wardrobe, looks, plans and wear log, trips, follow relationships, ratings you gave and received, cart and watch list, notifications, purchase, membership and credit history, usage events (pseudonymous) and the images you uploaded or that were generated for you. Records come as machine-readable JSON files and images as their original files, in one ZIP file. The copy is usually ready within a few minutes; a download link then arrives at the e-mail address registered to your account and in Notifications in the app. The link and the file are valid for 7 days. One copy can be prepared at a time and at most one copy can be requested per day. For security, password hashes, session keys, push tokens and internal keys are not included.",
               "If you are not satisfied after contacting us, you can complain to the UK Information Commissioner's Office (ICO, ico.org.uk) or, in Türkiye, to the Personal Data Protection Board (Kişisel Verileri Koruma Kurulu)."
             ]
           },
@@ -748,6 +751,7 @@
             "heading": "Retention periods",
             "paragraphs": [
               "Your personal data is kept as long as needed for the purpose: account and content data until you delete it or your account; unprocessed uploads 1 day at most; item drafts and AI job records 7 days; usage events, credit movements and stylist feedback 400 days; password reset link 30 minutes; refresh token 60 days. Affiliate records are kept for [AFFILIATE RECORD RETENTION], reports for [REPORT RETENTION] and server logs for [LOG RETENTION]. Deleted data leaves backups within 30 days at the latest. The detailed table is in the Privacy Policy.",
+              "The e-mail verification code and link are kept for 24 hours, and the copy of your data prepared with “Download my data” for 7 days.",
               "When the period ends, data is deleted, destroyed or anonymised. [LEGAL REVIEW: personal data retention and destruction policy]"
             ]
           },
@@ -771,7 +775,8 @@
             "paragraphs": [
               "In line with the Communiqué on the Procedures and Principles of Application to the Data Controller, you can send your application to [CONTACT E-MAIL] from the e-mail address registered with Droblet, with a secure electronic or mobile signature, by registered electronic mail (KEP) to [KEP ADDRESS], or in writing to [COMPANY ADDRESS]. Your application must include your name, surname, Turkish ID number (if you are a Turkish citizen) or nationality and passport or ID number (if you are not), your address for notifications, your e-mail address if any, and the subject of your request.",
               "We resolve your application free of charge as soon as possible and within 30 days at the latest. If the action involves an additional cost, the fee in the Board's tariff may be charged. If your application is refused, you find the answer insufficient or we do not answer in time, you can complain to the Personal Data Protection Board within 30 days of learning the answer and in any case within 60 days of your application.",
-              "You can see, correct and delete most of your data yourself in the app: Profile › Privacy for photos, and Profile › Settings › Delete my account or droblet.alatech.co/delete-account for your account."
+              "You can see, correct and delete most of your data yourself in the app: Profile › Privacy for photos, and Profile › Settings › Delete my account or droblet.alatech.co/delete-account for your account.",
+              "You do not need to apply to learn whether your data is processed and to get a copy: Profile › Settings › Privacy › “Download my data” prepares a ZIP file with all your records (JSON) and images, usually within a few minutes; the download link arrives at your registered e-mail address and in Notifications and is valid for 7 days. One copy can be requested per day. This is an addition to the application channels above; you can still apply in writing."
             ]
           },
           {
@@ -1272,6 +1277,30 @@
       "too_many_attempts": "Too many attempts. Please try again in a while.",
       "validation": "This password was not accepted. Choose a password between 8 and 128 characters.",
       "network": "Could not connect. Check your internet connection and try again.",
+      "unknown": "Something went wrong. Please try again."
+    }
+  },
+  "verifyEmail": {
+    "metaTitle": "E-mail verification — Droblet",
+    "metaDescription": "Verify the e-mail address of your Droblet account.",
+    "eyebrow": "E-MAIL VERIFICATION",
+    "title": "Verify your e-mail",
+    "intro": "If the Droblet app is installed you can finish in the app. Or verify in this browser with one tap.",
+    "orWeb": "Or verify here",
+    "webBody": "This address belongs to a Droblet account. Press the button below to verify it.",
+    "submit": "Verify my e-mail",
+    "submitting": "Verifying…",
+    "missingTitle": "The link is missing or invalid",
+    "missingBody": "This page opens from the verification link in your e-mail. You can ask for a new code on the \"Verify your e-mail\" screen in the app.",
+    "unavailableBody": "Verifying on the web is not available right now. Open the link on the phone that has the Droblet app, or type the 6-digit code from the e-mail in the app.",
+    "successTitle": "Your e-mail is verified",
+    "successBody": "Thank you. You can go back to the app; friends can now find you from their contacts.",
+    "errors": {
+      "invalid_verification_code": "This link is not valid or a newer one was sent. Use the link in the latest e-mail.",
+      "verification_expired": "This link has expired. Ask for a new code in the app.",
+      "too_many_attempts": "Too many attempts. Please try again in a while.",
+      "validation": "This link is not valid. Use the link in the latest e-mail.",
+      "network": "Could not connect. Check your internet and try again.",
       "unknown": "Something went wrong. Please try again."
     }
   },

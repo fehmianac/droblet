@@ -23,7 +23,8 @@ public sealed class AuthService(
     IOptions<AuthRateLimitOptions> rateLimits,
     TimeProvider timeProvider,
     ILogger<AuthService> logger,
-    IContactDirectory contactDirectory) : IAuthService
+    IContactDirectory contactDirectory,
+    IEmailVerificationService emailVerification) : IAuthService
 {
     private static readonly TimeSpan PasswordResetLifetime = TimeSpan.FromMinutes(30);
     // Verified against when the account does not exist, so response time does not reveal registered e-mails.
@@ -69,6 +70,8 @@ public sealed class AuthService(
             throw new InvalidOperationException($"Registration transaction failed: {result.Outcome}.");
 
         logger.LogInformation("Registered user {UserId} tenant {TenantId} via {Provider}", userId, tenantId, AuthProvider.Email);
+        // The code + link e-mail; the app works meanwhile ("E-postanı doğrula" until then). Never fails the sign-up.
+        await emailVerification.SendAsync(user, language, ct);
         return AuthResult.Ok(await IssueAsync(user, familyId: null, isNewUser: true, ct));
     }
 
@@ -157,6 +160,8 @@ public sealed class AuthService(
 
         var now = Now;
         user.TokensValidAfter = now; // every existing refresh token is revoked
+        // The reset link reached the inbox: the address is proven (same as the verification e-mail).
+        user.EmailVerifiedAt ??= string.IsNullOrEmpty(user.Email) ? null : now;
         var result = await repository.TransactWriteAsync(
         [
             TransactWriteOperation.DeleteExisting(reset.Pk, reset.Sk), // single use
@@ -166,6 +171,7 @@ public sealed class AuthService(
 
         if (!result.Applied)
             return AuthOutcome.InvalidToken;
+        await repository.DeleteAsync(EmailVerificationEntity.GetPk(), EmailVerificationEntity.GetSk(user.Id), ct);
 
         logger.LogInformation("Password reset completed for user {UserId}", user.Id);
         // The reset link proved the address: it may now be found by contact matching (decision 13).
@@ -241,7 +247,13 @@ public sealed class AuthService(
         {
             var known = await repository.GetAsync<UserEntity>(UserEntity.GetPk(), UserEntity.GetSk(existing.UserId), ct);
             if (known is not null)
-                return known.SuspendedAt is not null ? AuthResult.Fail(AuthOutcome.Suspended) : AuthResult.Ok(await IssueAsync(known, null, false, ct));
+            {
+                if (known.SuspendedAt is not null)
+                    return AuthResult.Fail(AuthOutcome.Suspended);
+                if (ProviderVouchesFor(external, known.Email))
+                    await emailVerification.MarkVerifiedAsync(known, ct);
+                return AuthResult.Ok(await IssueAsync(known, null, false, ct));
+            }
         }
 
         var identity = new AuthIdentityEntity { Provider = provider, Subject = external.Subject, CreatedAt = now };
@@ -260,6 +272,8 @@ public sealed class AuthService(
             {
                 identity.UserId = linked.Id;
                 linked.Identities = linked.Identities.Append(identity.Sk).Distinct().ToList();
+                // Linked only because the provider verified this very address: it counts as verified.
+                linked.EmailVerifiedAt ??= now;
                 var link = await repository.TransactWriteAsync([TransactWriteOperation.Create(identity), TransactWriteOperation.Put(linked)], ct);
                 if (!link.Applied)
                     return AuthResult.Fail(AuthOutcome.InvalidToken);
@@ -278,6 +292,8 @@ public sealed class AuthService(
             Email = string.IsNullOrWhiteSpace(external.Email) ? null : NormalizeEmail(external.Email),
             CreatedAt = now,
             Identities = [identity.Sk],
+            // Apple / Google sign-ins count as verified when the provider says so.
+            EmailVerifiedAt = external.EmailVerified && !string.IsNullOrWhiteSpace(external.Email) ? now : null,
         };
 
         var operations = new List<TransactWriteOperation> { TransactWriteOperation.Create(identity) };
@@ -340,4 +356,9 @@ public sealed class AuthService(
     }
 
     public static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
+
+    private static bool ProviderVouchesFor(ExternalIdentity external, string? email) =>
+        external is { EmailVerified: true, Email: { Length: > 0 } providerEmail }
+        && email is { Length: > 0 }
+        && string.Equals(NormalizeEmail(providerEmail), email, StringComparison.Ordinal);
 }

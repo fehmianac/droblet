@@ -59,6 +59,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     `resetPasswordMetadata('${locale}')`,
     `<ResetPasswordPage locale="${locale}" />`,
   ),
+  'verify-email/page.tsx': page(
+    "import { VerifyEmailPage, verifyEmailMetadata } from '@/components/FallbackPages';",
+    `verifyEmailMetadata('${locale}')`,
+    `<VerifyEmailPage locale="${locale}" />`,
+  ),
   'invite/page.tsx': page(
     "import { InvitePage, inviteMetadata } from '@/components/FallbackPages';",
     `inviteMetadata('${locale}')`,

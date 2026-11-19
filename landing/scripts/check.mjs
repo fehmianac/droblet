@@ -93,6 +93,7 @@ const pages = [
   'community-guidelines',
   'delete-account',
   'reset-password',
+  'verify-email',
   'invite',
   'l',
 ];
@@ -153,7 +154,7 @@ if (aasa) {
   const ids = details.flatMap((detail) => [detail.appID, ...(detail.appIDs ?? [])]).filter(Boolean);
   expect(ids.length > 0 && ids.every((id) => /^[A-Z0-9]{10}\.[A-Za-z0-9.-]+$/.test(id)), 'apple-app-site-association: appID must be TEAMID.bundle');
   const paths = details.flatMap((detail) => detail.paths ?? []);
-  for (const path of ['/reset-password*', '/invite/*', '/l/*']) {
+  for (const path of ['/reset-password*', '/verify-email*', '/invite/*', '/l/*']) {
     expect(paths.includes(path), `apple-app-site-association: path "${path}" is missing`);
   }
 }

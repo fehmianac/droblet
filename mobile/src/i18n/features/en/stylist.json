@@ -111,7 +111,8 @@
     "creditCostOnly_one": "{{count}} credit",
     "creditCostOnly_other": "{{count}} credits",
     "imageA11y": "AI image on you",
-    "imageA11yNamed": "{{name}}, AI image on you"
+    "imageA11yNamed": "{{name}}, AI image on you",
+    "imageFailed": "The image could not be loaded. Check your connection and try again."
   },
   "weatherCondition": {
     "clear": "clear",

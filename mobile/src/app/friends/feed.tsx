@@ -19,6 +19,7 @@ import { Text } from '@/components/ui/Text';
 import { lookShareUrl } from '@/features/social/feedMath';
 import { useRateLook, useSaveLook } from '@/features/social/mutations';
 import { Notice, useNotice } from '@/features/social/Notice';
+import { useHandleGate } from '@/features/requirements/useHandleGate';
 import { FollowChip } from '@/features/social/PeopleRows';
 import { useFeed, useIncomingRequestCount, useInviteLink } from '@/features/social/queries';
 import { ShareSheet } from '@/features/social/ShareSheet';
@@ -154,6 +155,8 @@ export default function FriendsFeedScreen() {
   const feed = useFeed();
   const invite = useInviteLink();
   const [sharing, setSharing] = useState<FeedLook | null>(null);
+  // Sharing needs an @handle: without one the handle step comes first, then the share sheet.
+  const withHandle = useHandleGate();
   const { notice, show } = useNotice();
   const requestCount = useIncomingRequestCount();
 
@@ -209,7 +212,7 @@ export default function FriendsFeedScreen() {
                   tintColor={colors.muted}
                 />
               }
-              renderItem={({ item }) => <LookPost look={item} onShare={() => setSharing(item)} />}
+              renderItem={({ item }) => <LookPost look={item} onShare={() => withHandle(() => setSharing(item))} />}
               ListFooterComponent={
                 feed.isFetchingNextPage ? (
                   <View className="px-gutter pt-7" accessible accessibilityLabel={t('a11y.loading')}>

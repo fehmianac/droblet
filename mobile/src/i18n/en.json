@@ -13,7 +13,8 @@
     "comingSoon": "Soon",
     "openSettings": "Open Settings",
     "stepOf": "{{current}} / {{total}}",
-    "eyebrowWithStep": "{{label}} · {{step}}"
+    "eyebrowWithStep": "{{label}} · {{step}}",
+    "keyboardDone": "Done"
   },
   "a11y": {
     "back": "Go back",

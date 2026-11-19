@@ -35,6 +35,7 @@ export function useRequirementInput(): RequirementInput {
     handle: profile.data ? profile.data.handle : undefined,
     itemCount: items.data ? items.data.length : null,
     cityDeclined: flow.cityDeclined,
+    emailVerified: profile.data?.emailVerified,
   };
 }
 

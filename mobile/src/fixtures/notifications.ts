@@ -49,13 +49,16 @@ const SEEDS: Seed[] = [
   },
 ];
 
-type State = { empty: boolean; read: Set<string>; allReadAt: number | null };
+type State = { empty: boolean; read: Set<string>; allReadAt: number | null; older: number };
 
-let state: State = { empty: false, read: new Set(), allReadAt: null };
+let state: State = { empty: false, read: new Set(), allReadAt: null, older: 0 };
 
-/** Test helper: back to the seeded list (or to an account without notifications). */
-export function resetNotificationFixtures(overrides: { empty?: boolean } = {}): void {
-  state = { empty: overrides.empty ?? false, read: new Set(), allReadAt: null };
+/**
+ * Test helper: back to the seeded list (or to an account without notifications). `older` adds that many read weekly-edit
+ * rows before the seeds (10+ days ago), so the inbox spans several pages.
+ */
+export function resetNotificationFixtures(overrides: { empty?: boolean; older?: number } = {}): void {
+  state = { empty: overrides.empty ?? false, read: new Set(), allReadAt: null, older: overrides.older ?? 0 };
 }
 
 export const notificationFixtures = {
@@ -73,7 +76,19 @@ export const notificationFixtures = {
       const read = seed.read || state.read.has(id) || state.allReadAt !== null;
       return seed.build({ id, createdAt, readAt: read ? createdAt : null });
     }).filter((n): n is AppNotification => n !== null);
+    for (let i = 0; i < state.older; i += 1) {
+      const createdAt = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 10 - Math.floor(i / 4), 18 - (i % 4)).toISOString();
+      items.push({ id: `notif_old_${i + 1}`, kind: 'weekly_edit', createdAt, readAt: createdAt, data: { editId: 'edit_current' } });
+    }
     return { items, pageToken: null, unreadCount: items.filter((n) => n.readAt === null).length };
+  },
+  /** One page of the inbox, newest first; the token is the offset (the server's is an opaque cursor). */
+  page: (pageToken: string | null, limit: number): NotificationList => {
+    const all = notificationFixtures.list();
+    const offset = pageToken ? Number(pageToken) : 0;
+    const items = all.items.slice(offset, offset + limit);
+    const next = offset + limit < all.items.length ? String(offset + limit) : null;
+    return { items, pageToken: next, unreadCount: all.unreadCount };
   },
   markRead: (request: MarkNotificationsReadRequest): void => {
     if (request.ids === null) state.allReadAt = Date.now();

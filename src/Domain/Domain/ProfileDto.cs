@@ -17,7 +17,10 @@ public record ProfileDto(
     DateTime? AgeConfirmedAt = null,
     // Profile picture (public to whoever may see the closet), presigned and short-lived. Never a body / face photo.
     string? AvatarUrl = null,
-    DateTime? AvatarUrlExpiresAt = null);
+    DateTime? AvatarUrlExpiresAt = null,
+    // E-mail verification (the app shows "E-postanı doğrula" while false; nothing is blocked).
+    bool EmailVerified = true,
+    DateTime? EmailVerifiedAt = null);
 
 public static class ProfileDtoMapper
 {

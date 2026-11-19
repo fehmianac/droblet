@@ -132,6 +132,11 @@ Resources:
             Status: Enabled
             Prefix: uploads/tmp/
             ExpirationInDays: 1
+          # "Verilerimi indir" ZIPs: the e-mailed link promises 7 days.
+          - Id: expire-data-exports
+            Status: Enabled
+            Prefix: exports/
+            ExpirationInDays: 7
           - Id: abort-incomplete-multipart
             Status: Enabled
             AbortIncompleteMultipartUpload:
@@ -295,6 +300,23 @@ Resources:
         deadLetterTargetArn: !GetAtt PaletteRequestDlq.Arn
         maxReceiveCount: 3
 
+  # "Verilerimi indir": not an AI call, so a retry is cheap; the visibility outlasts the 10-minute function.
+  DataExportRequestDlq:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub droblet-${Stage}-data-export-request-dlq
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+  DataExportRequestQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub droblet-${Stage}-data-export-request
+      VisibilityTimeout: 900
+      SqsManagedSseEnabled: true
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt DataExportRequestDlq.Arn
+        maxReceiveCount: 3
+
   AlarmTopic:
     Type: AWS::SNS::Topic
     Properties:
@@ -329,7 +351,7 @@ Resources:
     Properties:
       Name: !Sub /droblet/${Stage}/api/App
       Type: String
-      Value: '{"PasswordResetUrl":"https://droblet.alatech.co/reset-password","Scheme":"droplet","BundleId":"com.alatech.droplet"}'
+      Value: '{"PasswordResetUrl":"https://droblet.alatech.co/reset-password","EmailVerificationUrl":"https://droblet.alatech.co/verify-email","Scheme":"droplet","BundleId":"com.alatech.droplet"}'
   SsmApiStore:
     Type: AWS::SSM::Parameter
     Properties:
@@ -532,6 +554,7 @@ Resources:
                   - !GetAtt StylistRequestQueue.Arn
                   - !GetAtt TryOnRequestQueue.Arn
                   - !GetAtt PaletteRequestQueue.Arn
+                  - !GetAtt DataExportRequestQueue.Arn
               - Effect: Allow
                 Action: [ssm:GetParameter, ssm:GetParameters, ssm:GetParametersByPath]
                 Resource:
@@ -542,12 +565,16 @@ Resources:
                 Resource:
                   - !Sub '${PhotoBucket.Arn}/uploads/tmp/*'
                   - !Sub '${PhotoBucket.Arn}/tenant/*'
+              # Data export ZIPs: presigned download (GetObject) and account deletion (DeleteObject); written by the worker.
+              - Effect: Allow
+                Action: [s3:GetObject, s3:DeleteObject]
+                Resource: !Sub '${PhotoBucket.Arn}/exports/*'
               - Effect: Allow
                 Action: s3:ListBucket
                 Resource: !GetAtt PhotoBucket.Arn
                 Condition:
                   StringLike:
-                    's3:prefix': ['uploads/tmp/*', 'tenant/*']
+                    's3:prefix': ['uploads/tmp/*', 'tenant/*', 'exports/*']
               # Admin panel image uploads (presigned POST signed with this role).
               - Effect: Allow
                 Action: s3:PutObject
@@ -750,6 +777,52 @@ Resources:
                   - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/notifier
                   - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/notifier/*
 
+  DataExportLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub droblet-${Stage}-data-export-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+      Policies:
+        - PolicyName: data-export
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [sqs:ReceiveMessage, sqs:DeleteMessage, sqs:GetQueueAttributes, sqs:ChangeMessageVisibility]
+                Resource: !GetAtt DataExportRequestQueue.Arn
+              - Effect: Allow
+                # Reads every partition of the tenant (and the analytics day partitions); writes the export row, its
+                # download token and the inbox row (TransactWriteItems: PutItem + ConditionCheckItem).
+                Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:Query, dynamodb:ConditionCheckItem]
+                Resource: !GetAtt DrobletTable.Arn
+              # The user's own files go into the ZIP: read-only on tenant/, write only under exports/.
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub '${PhotoBucket.Arn}/tenant/*'
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource: !GetAtt PhotoBucket.Arn
+                Condition:
+                  StringLike:
+                    's3:prefix': ['tenant/*']
+              - Effect: Allow
+                Action: [s3:PutObject, s3:AbortMultipartUpload]
+                Resource: !Sub '${PhotoBucket.Arn}/exports/*'
+              # Same configuration as the Api (Email for the link e-mail, App links).
+              - Effect: Allow
+                Action: [ssm:GetParameter, ssm:GetParameters, ssm:GetParametersByPath]
+                Resource:
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/api
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/api/*
+
   # ── API Gateway ───────────────────────────────────────────────────────────
   HttpApiGateway:
     Type: AWS::Serverless::HttpApi
@@ -830,6 +903,12 @@ Resources:
       LogGroupName: !Sub /droblet/${Stage}/lambda/notifier-lifecycle
       RetentionInDays: !If [HasLogRetentionOverride, !Ref LogRetentionDays, !If [IsProd, 400, 90]]
 
+  NotifierDataExportLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /droblet/${Stage}/lambda/notifier-data-export
+      RetentionInDays: !If [HasLogRetentionOverride, !Ref LogRetentionDays, !If [IsProd, 400, 90]]
+
   # ── Lambdas ───────────────────────────────────────────────────────────────
   ApiFunction:
     Type: AWS::Serverless::Function
@@ -848,6 +927,7 @@ Resources:
           STYLIST_REQUEST_QUEUE_URL: !Ref StylistRequestQueue
           TRYON_REQUEST_QUEUE_URL: !Ref TryOnRequestQueue
           PALETTE_REQUEST_QUEUE_URL: !Ref PaletteRequestQueue
+          DATA_EXPORT_REQUEST_QUEUE_URL: !Ref DataExportRequestQueue
           PHOTO_BUCKET: !Ref PhotoBucket
           CATALOG_IMAGE_BUCKET: !Ref CatalogImageBucket
           CATALOG_IMAGE_BASE_URL: !Sub https://${CatalogImageBucket}.s3.${AWS::Region}.amazonaws.com
@@ -1038,6 +1118,34 @@ Resources:
             Name: !Sub droblet-${Stage}-notifier-lifecycle
             ScheduleExpression: cron(0 3 * * ? *)
 
+  # "Verilerimi indir": SQS data-export-request → the ZIP (Notifier zip, own role, reads the api config).
+  NotifierDataExportFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub droblet-${Stage}-notifier-data-export
+      LoggingConfig:
+        LogGroup: !Ref NotifierDataExportLogGroup
+      Handler: Notifier::Notifier.Entrypoint::DataExport
+      Role: !GetAtt DataExportLambdaRole.Arn
+      Timeout: 600
+      MemorySize: 1024
+      EphemeralStorage:
+        Size: 2048   # the ZIP is written to /tmp before the upload
+      Environment:
+        Variables:
+          SYSTEMS_MANAGER_PATH: !Sub /droblet/${Stage}/api
+          PHOTO_BUCKET: !Ref PhotoBucket
+          PUBLIC_API_BASE_URL: !Sub https://${HttpApiGateway}.execute-api.${AWS::Region}.amazonaws.com
+      Events:
+        Queue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt DataExportRequestQueue.Arn
+            BatchSize: 1
+            FunctionResponseTypes: [ReportBatchItemFailures]
+            ScalingConfig:
+              MaximumConcurrency: 2
+
   # ── Alarms (all to AlarmTopic) ─────────────────────────────────────────────
   ItemProcessorDlqAlarm:
     Type: AWS::CloudWatch::Alarm
@@ -1090,6 +1198,20 @@ Resources:
       Namespace: AWS/SQS
       MetricName: ApproximateNumberOfMessagesVisible
       Dimensions: [{ Name: QueueName, Value: !GetAtt PaletteRequestDlq.QueueName }]
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+  DataExportDlqAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub droblet-${Stage}-data-export-dlq
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions: [{ Name: QueueName, Value: !GetAtt DataExportRequestDlq.QueueName }]
       Statistic: Maximum
       Period: 300
       EvaluationPeriods: 1

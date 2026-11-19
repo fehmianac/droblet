@@ -217,7 +217,13 @@
       "body": "Approve or decline the request"
     },
     "bellUnread_one": "Notifications, {{count}} unread",
-    "bellUnread_other": "Notifications, {{count}} unread"
+    "bellUnread_other": "Notifications, {{count}} unread",
+    "dataExport": {
+      "title": "Your data is ready",
+      "body": "You can download the copy of your data for 7 days."
+    },
+    "loadingMore": "Loading older notifications",
+    "loadMoreRetry": "Load older ones"
   },
   "credits": {
     "eyebrow": "AI IMAGES · THIS MONTH",
@@ -231,5 +237,54 @@
     "note": "Outfit suggestions and style notes don't use credits; you can carry on with suggestions without images. The image of the same outfit never uses a credit twice.",
     "buy": "{{price}} · Get the pack",
     "notNow": "Not now"
+  },
+  "verifyEmail": {
+    "eyebrow": "ACCOUNT",
+    "title": "Verify your e-mail",
+    "body": "We sent a 6-digit code to {{email}}. Type it here or open the link in the e-mail.",
+    "bodyNoEmail": "We sent a 6-digit code to your e-mail address. Type it here or open the link in the e-mail.",
+    "codeLabel": "6-digit verification code",
+    "submit": "Verify",
+    "resend": "Send the code again",
+    "resendIn": "Send again · {{seconds}} s",
+    "sent": "We sent a new code. The previous one no longer works.",
+    "note": "You can use the app without verifying. A verified address lets friends find you from their contacts and keeps your account safe.",
+    "doneTitle": "Your e-mail is verified",
+    "doneBody": "Thank you. Friends can now find you from their contacts.",
+    "continue": "Continue",
+    "checking": "Checking the link",
+    "linkFailedTitle": "The link could not be used",
+    "enterCode": "Verify with a code",
+    "signIn": "Sign in",
+    "bannerTitle": "Verify your e-mail",
+    "bannerBody": "We sent the code to your e-mail; it takes a minute.",
+    "bannerHide": "Hide the verification reminder",
+    "error": {
+      "invalid": "The code or link is not valid. Try the one in the latest e-mail.",
+      "expired": "The code has expired. Ask for a new one.",
+      "tooMany": "Too many tries. Wait a moment and ask for a new code.",
+      "network": "Could not connect. Check your internet and try again."
+    }
+  },
+  "dataExport": {
+    "menu": "Download my data",
+    "title": "Download my data",
+    "lead": "You can get a copy of everything we keep for your account.",
+    "factContent": "Your profile, wardrobe, looks, plans, trips, consents, follows and ratings, purchases and photos, as JSON files and images in one ZIP.",
+    "factTime": "Preparing it usually takes a few minutes; you can close the app.",
+    "factDelivery": "When it is ready, a download link arrives by e-mail and in Notifications; the file is kept for 7 days.",
+    "factLimit": "One copy at a time, at most one request a day.",
+    "request": "Prepare my copy",
+    "requestAgain": "Ask for a new copy",
+    "preparingTitle": "Your copy is being prepared",
+    "preparingBody": "We will let you know when it is ready.",
+    "readyTitle": "Your copy is ready",
+    "until": "until {{when}}",
+    "download": "Download",
+    "failed": "Your copy could not be prepared. You can try again.",
+    "expired": "The previous copy has expired and was deleted.",
+    "nextAt": "You can ask for a new copy after {{when}}.",
+    "errorTooSoon": "You already asked for a copy today. You can try again tomorrow.",
+    "errorStart": "The request could not be sent. Try again."
   }
 }

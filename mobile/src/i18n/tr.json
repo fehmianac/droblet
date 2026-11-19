@@ -13,7 +13,8 @@
     "comingSoon": "Yakında",
     "openSettings": "Ayarlar'a git",
     "stepOf": "{{current}} / {{total}}",
-    "eyebrowWithStep": "{{label}} · {{step}}"
+    "eyebrowWithStep": "{{label}} · {{step}}",
+    "keyboardDone": "Bitti"
   },
   "a11y": {
     "back": "Geri dön",

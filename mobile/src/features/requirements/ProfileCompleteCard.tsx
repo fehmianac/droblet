@@ -22,6 +22,10 @@ export function openProfileItem(key: ProfileItemKey): void {
     router.push('/item/library');
     return;
   }
+  if (key === 'verifyEmail') {
+    router.push('/verify-email');
+    return;
+  }
   requirementsFlow.open({ action: key === 'city' ? 'stylist' : key === 'handle' ? 'social' : 'tryOn', start: 'steps', only: key });
 }
 

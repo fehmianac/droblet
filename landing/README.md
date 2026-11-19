@@ -23,6 +23,7 @@ Turkish is the default language at the root; English lives under `/en/`. Every p
 | `/terms/`, `/privacy/`, `/kvkk/`, `/consents/`, `/subscription-terms/`, `/cookies/`, `/community-guidelines/` (and `/en/…`) | Legal pages — **comprehensive drafts pending legal review**, `noindex` |
 | `/delete-account/` | Web account deletion (store requirement) |
 | `/reset-password/?token=…` | Password reset fallback: "Uygulamada aç" + web form |
+| `/verify-email/?token=…` | E-mail verification fallback: "Uygulamada aç" + verify-in-browser button (never on load) |
 | `/invite/?c=CODE` | Friend invite fallback |
 | `/l/?id=ID` | Shared look fallback |
 | `404.html` | Bucket error document (both languages on one page) |
