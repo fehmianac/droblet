@@ -8,9 +8,36 @@ import type { Job, JobKind } from './contracts/jobs';
 import { fromSource } from './dataSource';
 import { toJob, type JobWire } from './wire/core';
 
-/** Poll back-off: 1 s → 2 → 4 → 8 → 10 s cap (MOBILE_ENGINEER §Uzun süren sunucu işleri). */
-export function jobPollInterval(attempt: number): number {
-  return Math.min(1000 * 2 ** Math.max(0, attempt), 10_000);
+/** Poll bounds: never sooner than 500 ms, never later than 3 s (a 26 s job used to be noticed at ~35 s with the old 1-2-4-8-10 s back-off). */
+export const POLL_MIN_MS = 500;
+export const POLL_MAX_MS = 3000;
+
+/**
+ * Next poll of a running job, `elapsedMs` after the first poll: every 750 ms for the first 3 s (text jobs often finish
+ * there), then every 1.5 s, and every 3 s after 15 s. A server hint (`retryAfterMs`, from the typical duration of the job
+ * kind) wins, clamped to 500 ms … 3 s. Polling pauses while the app is in the background (TanStack focus manager,
+ * `wireNetworkAndFocus`) and refetches on return.
+ */
+export function jobPollInterval(elapsedMs: number, hintMs?: number | null): number {
+  if (typeof hintMs === 'number' && Number.isFinite(hintMs) && hintMs > 0) {
+    return Math.min(Math.max(Math.round(hintMs), POLL_MIN_MS), POLL_MAX_MS);
+  }
+  const elapsed = Math.max(0, elapsedMs);
+  if (elapsed < 3000) return 750;
+  if (elapsed < 15_000) return 1500;
+  return POLL_MAX_MS;
+}
+
+/** When each job query was first scheduled (the fast start of the schedule is measured from here). */
+const pollStartedAt = new Map<string, number>();
+
+function sincePollStart(key: string, now = Date.now()): number {
+  const start = pollStartedAt.get(key);
+  if (start === undefined) {
+    pollStartedAt.set(key, now);
+    return 0;
+  }
+  return now - start;
 }
 
 export function isJobSettled(job: Pick<Job<unknown>, 'status'> | undefined): boolean {
@@ -54,7 +81,7 @@ type Options<T> = {
 
 /**
  * The single polling hook for 202-style AI jobs (`GET v1/tenant/job/{id}`; wire status `queued |
- * processing | completed | failed` → app `queued | running | done | failed`). Polls with a growing interval until `done` /
+ * processing | completed | failed` → app `queued | running | done | failed`). Polls fast at first (`jobPollInterval`, or the server's `retryAfterMs`) until `done` /
  * `failed`; pauses when the screen is unfocused (`enabled`) or the app is in the background
  * (TanStack focus manager). The job id lives in the route / persisted cache, so a restarted app
  * resumes the same job instead of starting a new one.
@@ -70,7 +97,13 @@ export function useJob<T>(kind: JobKind, id: string | null | undefined, options:
         () => getFixtureJob<T>(id ?? '', kind),
         async () => toJob<T>(await apiRequest<JobWire>(`v1/tenant/job/${id}`), mapResult),
       ),
-    refetchInterval: (q) => (isJobSettled(q.state.data) ? false : jobPollInterval(q.state.dataUpdateCount - 1)),
+    refetchInterval: (q) => {
+      if (isJobSettled(q.state.data)) {
+        pollStartedAt.delete(q.queryHash);
+        return false;
+      }
+      return jobPollInterval(sincePollStart(q.queryHash), q.state.data?.retryAfterMs);
+    },
     refetchIntervalInBackground: false,
     staleTime: 0,
   });

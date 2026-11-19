@@ -31,4 +31,6 @@ export type Job<TResult> = {
   result: TResult | null;
   /** Present when `status === 'failed'`. */
   error: JobError | null;
+  /** While running: when the server suggests polling next (ms, from recent jobs of this kind); absent otherwise. */
+  retryAfterMs?: number | null;
 };
