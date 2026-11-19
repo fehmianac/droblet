@@ -116,6 +116,21 @@ env:
       id: "body.skip"
     timeout: 20000
 - takeScreenshot: 04-beden-foto
+# 04c: a body slot offers both sources (camera and library); closed again without picking.
+- tapOn:
+    text: "Boy fotoğrafı ekle|Add full-length photo"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: "photoSource.body.library"
+    timeout: 10000
+- assertVisible:
+    id: "photoSource.body.camera"
+- waitForAnimationToEnd
+- takeScreenshot: 04c-foto-kaynagi
+- tapOn:
+    id: "photoSource.close"
+- waitForAnimationToEnd
 - tapOn:
     id: "body.skip"
 

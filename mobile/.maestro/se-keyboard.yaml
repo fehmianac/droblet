@@ -25,6 +25,8 @@ env:
 - inputText: "se_tester"
 - waitForAnimationToEnd
 - takeScreenshot: k28b-kullanici-adi-klavye
+# Fresh screen (no keyboard) so the scroll really brings the city search up.
+- runFlow: { file: relaunch.yaml, env: { URL: "droplet://edit-profile" } }
 - scrollUntilVisible:
     element:
       id: "profileEdit.citySearch"
