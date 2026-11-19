@@ -15,6 +15,10 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
     public const string AiProbe = "ai-probe";
     public const string AiPerf = "ai-perf";
     public const string AiBench = "ai-bench";
+    public const string AiCost = "ai-cost";
+
+    /// <summary>ai-cost: ceiling of synthetic text-model calls in one run (image calls use <see cref="MaxImageCallsPerRun"/>).</summary>
+    public const int MaxTextCallsPerRun = 120;
 
     /// <summary>ai-perf: at most this many runs of every flow (each run renders one try-on and cleans one item photo).</summary>
     public const int MaxPerfRuns = 10;
@@ -26,10 +30,10 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
     /// <summary>Hard ceiling of image-model calls in one run (library images and synthetic fixtures together).</summary>
     public const int MaxImageCallsPerRun = 30;
 
-    public static readonly IReadOnlyList<string> Commands = [GrantTestPremium, RevokeTestPremium, GenerateLibraryImages, AiSmoke, AiProbe, AiPerf, AiBench, Logs, MigrateLibraryItemImages, AccountSmoke, OutfitImportSmoke];
+    public static readonly IReadOnlyList<string> Commands = [GrantTestPremium, RevokeTestPremium, GenerateLibraryImages, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, Logs, MigrateLibraryItemImages, AccountSmoke, OutfitImportSmoke];
 
     /// <summary>Commands that create or change test accounts or spend AI credit on a throw-away user: never on prod.</summary>
-    public static readonly IReadOnlySet<string> DevOnly = new HashSet<string>(StringComparer.Ordinal) { GrantTestPremium, RevokeTestPremium, AiSmoke, AiProbe, AiPerf, AiBench, AccountSmoke, OutfitImportSmoke };
+    public static readonly IReadOnlySet<string> DevOnly = new HashSet<string>(StringComparer.Ordinal) { GrantTestPremium, RevokeTestPremium, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, AccountSmoke, OutfitImportSmoke };
 
     private static readonly IReadOnlyDictionary<string, string[]> AllowedOptions = new Dictionary<string, string[]>(StringComparer.Ordinal)
     {
@@ -40,6 +44,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [AiProbe] = [],
         [AiPerf] = ["api-url", "runs", "flows"],
         [AiBench] = ["reps", "efforts", "qualities", "models", "max-calls"],
+        [AiCost] = ["days", "reps", "ops", "text-variants", "image-variants", "max-calls", "max-text-calls"],
         [Logs] = ["function", "minutes", "filter", "limit"],
         [MigrateLibraryItemImages] = [],
         [AccountSmoke] = ["api-url"],
@@ -55,6 +60,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [AiProbe] = [],
         [AiPerf] = ["keep-user", "face"],
         [AiBench] = ["text-only", "image-only"],
+        [AiCost] = ["usage-only", "synthetic-only", "text-only", "image-only"],
         [Logs] = [],
         [MigrateLibraryItemImages] = ["dry-run"],
         [AccountSmoke] = ["keep-user"],
@@ -175,6 +181,20 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
                 if (Option("max-calls") is { } maxCalls && (!int.TryParse(maxCalls, out var mc) || mc is < 0 or > MaxImageCallsPerRun))
                     return $"--max-calls must be 0–{MaxImageCallsPerRun}";
                 break;
+            case AiCost:
+                if (Option("days") is { } days2 && (!int.TryParse(days2, out var dd) || dd is < 1 or > 90))
+                    return "--days must be 1–90";
+                if (Option("reps") is { } costReps && (!int.TryParse(costReps, out var cr) || cr is < 1 or > 3))
+                    return "--reps must be 1–3";
+                if (Option("max-calls") is { } costCalls && (!int.TryParse(costCalls, out var cc) || cc is < 0 or > MaxImageCallsPerRun))
+                    return $"--max-calls must be 0–{MaxImageCallsPerRun}";
+                if (Option("max-text-calls") is { } textCalls && (!int.TryParse(textCalls, out var tc) || tc is < 0 or > MaxTextCallsPerRun))
+                    return $"--max-text-calls must be 0–{MaxTextCallsPerRun}";
+                if (Option("text-variants") is { } tv && Ops.Commands.CostVariant.ParseError(tv) is { } tvError)
+                    return "--text-variants: " + tvError;
+                if (Option("image-variants") is { } iv && Ops.Commands.CostVariant.ParseError(iv) is { } ivError)
+                    return "--image-variants: " + ivError;
+                break;
             case Logs:
                 if (Option("function") is not { } fn || !FunctionPattern().IsMatch(fn))
                     return "--function is required (e.g. stylist, tryon, palette, item-processor, api)";
@@ -195,6 +215,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         "  outfit-import-smoke     [--api-url URL] [--keep-user]  (dev only; 3 outfit photos → review → commit, then a re-import that matches)\n" +
         "  ai-perf                 [--runs N<=10] [--flows outfit,week,pack,item,palette,tryon] [--face] [--keep-user]  (dev only; p50/p95 per stage)\n" +
         "  ai-bench                [--reps N<=5] [--efforts default,low,minimal] [--qualities default,low,medium] [--text-only | --image-only]  (dev only; direct provider calls)\n" +
+        "  ai-cost                 [--days 7] [--usage-only | --synthetic-only] [--reps N<=3] [--ops outfit,week,…] [--text-variants base;low:effort=low] [--image-variants low:quality=low,size=1024x1024]  (dev only; real usage from logs + synthetic cost per call)\n" +
         "  ai-probe                                                        (dev only; one direct text-model call)\n" +
         "  logs                    --function stylist [--minutes 30] [--filter OpenAI] [--limit 200]\n" +
         "  migrate-library-item-images [--dry-run]                         (one-off, idempotent: library pieces → current library image)";
