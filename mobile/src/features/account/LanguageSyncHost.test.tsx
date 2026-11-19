@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { act, render, waitFor } from '@testing-library/react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { act, render as rtlRender, waitFor } from '@testing-library/react-native';
+import type { ReactElement } from 'react';
 
 import i18n from '@/i18n';
 import { resetLanguagePreferenceForTests, setAppLanguage } from '@/i18n/preference';
@@ -9,8 +11,14 @@ import { LanguageSyncHost, languageToSync } from './LanguageSyncHost';
 const mockSave = jest.fn();
 const mockProfile: { data: { language: string | null; baseVersion: number } | undefined } = { data: undefined };
 
-jest.mock('./mutations', () => ({ useSaveProfileLanguage: () => mockSave }));
+jest.mock('./mutations', () => ({
+  accountMutationKeys: { putLanguage: ['tenant', 'profile', 'language', 'put'] },
+  useSaveProfileLanguage: () => mockSave,
+}));
 jest.mock('./queries', () => ({ useMyProfile: () => mockProfile }));
+
+const client = new QueryClient();
+const render = (ui: ReactElement) => rtlRender(ui, { wrapper: ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider> });
 
 beforeEach(async () => {
   mockSave.mockClear();

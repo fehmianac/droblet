@@ -12,7 +12,7 @@ import { InfoNote } from '@/components/ui/Bits';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
 import { ItemThumb } from '@/features/wardrobe/ItemThumb';
-import { currentLanguage } from '@/i18n';
+import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { parseLocalDate, weekdayShort } from '@/lib/format';
 import { ulid } from '@/lib/ids';
 import { toDisplayUpper } from '@/lib/upper';
@@ -30,6 +30,7 @@ const MAX_DAY_BOXES = 7;
  * trip, so reopening the screen resumes the same job.
  */
 export function TripPacking({ trip }: { trip: TripDetail }) {
+  const language = useAppLanguage();
   const { t } = useTranslation();
   const online = useIsOnline();
   const focused = useIsFocused();
@@ -118,7 +119,7 @@ export function TripPacking({ trip }: { trip: TripDetail }) {
         <View className="flex-row gap-2" accessible={false} importantForAccessibility="no-hide-descendants">
           {dates.map((date) => (
             <Text key={date} variant="caption" tone="muted" numberOfLines={1} className="flex-1 text-center" maxFontSizeMultiplier={1.2}>
-              {toDisplayUpper(weekdayShort(parseLocalDate(date)), currentLanguage())}
+              {toDisplayUpper(weekdayShort(parseLocalDate(date)), language)}
             </Text>
           ))}
         </View>

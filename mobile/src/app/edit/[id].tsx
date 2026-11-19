@@ -31,7 +31,7 @@ import { EditProductRow } from '@/features/today/EditProductRow';
 import { editSummary } from '@/features/today/logic';
 import { OnYouImage } from '@/features/today/OnYouImage';
 import { OnYouCta } from '@/features/tryon/OnYouCta';
-import { currentLanguage } from '@/i18n';
+import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { formatDate, formatIsoDateRange, formatMoney, parseLocalDate, toIsoDate } from '@/lib/format';
 import { toDisplayUpper } from '@/lib/upper';
 import { useIsOnline } from '@/sync/network';
@@ -59,6 +59,7 @@ function initialIndex(edit: WeeklyEdit, lookId: string | undefined): number {
  * in place of the image.
  */
 export default function WeeklyEditScreen() {
+  const language = useAppLanguage();
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -162,7 +163,7 @@ export default function WeeklyEditScreen() {
               weekday: formatDate(parseLocalDate(current.date), { weekday: 'long' }),
               occasion: t(`occasion.${current.occasion}`),
             }),
-            currentLanguage(),
+            language,
           );
           return (
             <>

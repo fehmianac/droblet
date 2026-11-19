@@ -11,7 +11,7 @@ import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Text } from '@/components/ui/Text';
 import { coverPieces } from '@/features/looks/LookCover';
 import { useTryOnJob } from '@/features/tryon/api';
-import { currentLanguage } from '@/i18n';
+import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { formatDate, parseLocalDate } from '@/lib/format';
 import { toDisplayUpper } from '@/lib/upper';
 
@@ -34,6 +34,7 @@ type Props = {
  * name, the date and the borderless ⋯ button) or the dashed empty day (sand "+" tile, "Kombin seçilmedi", "Öner").
  */
 export function WeekDayRow({ row, onOpenMenu, onSuggest, tryOnJobId, focused, onRetryTryOn }: Props) {
+  const language = useAppLanguage();
   const { t } = useTranslation();
   const anchor = useRef<ViewInstance>(null);
   const date = parseLocalDate(row.date);
@@ -42,7 +43,7 @@ export function WeekDayRow({ row, onOpenMenu, onSuggest, tryOnJobId, focused, on
   const occasion = row.plan?.occasion ?? row.look?.occasion ?? null;
   const eyebrow = toDisplayUpper(
     occasion ? t('weekPlan.dayEyebrow', { weekday, occasion: t(`occasion.${occasion}`) }) : weekday,
-    currentLanguage(),
+    language,
   );
   const job = useTryOnJob(tryOnJobId, { enabled: focused });
   const image = job.result?.imageUrl ?? row.look?.tryOnImageUrl ?? null;

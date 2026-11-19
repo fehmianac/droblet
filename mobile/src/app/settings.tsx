@@ -29,7 +29,8 @@ import { ChoiceRow, ProfileMenuRow, RowCard } from '@/features/account/rows';
 import type { PreparedPhoto } from '@/features/photos/preparePhoto';
 import { usePhotoPicker } from '@/features/photos/usePhotoPicker';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
-import { currentLanguage, LANGUAGES, SUPPORTED_LANGUAGES, type AppLanguage } from '@/i18n';
+import { LANGUAGES, SUPPORTED_LANGUAGES, type AppLanguage } from '@/i18n';
+import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { setAppLanguage } from '@/i18n/preference';
 import { mutationKeys } from '@/sync/queryKeys';
 
@@ -297,7 +298,7 @@ export default function SettingsScreen() {
   const setVisibility = useSetVisibility();
   const [deletePhotos, setDeletePhotos] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
-  const language = currentLanguage();
+  const language = useAppLanguage();
 
   const switchLanguage = (next: AppLanguage) => {
     if (next === language) return;

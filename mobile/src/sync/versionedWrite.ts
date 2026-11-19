@@ -21,8 +21,11 @@ type Options<TVars extends Versioned, TRecord extends { baseVersion: number }> =
   mapCurrent?: (wire: unknown) => TRecord | Promise<TRecord>;
   /**
    * A partial write of one field whose value the device decides (the profile language — owner decision
-   * 2026-11-18 —, the city): on 409 it is re-sent once on the server's current version instead of asking
-   * "which one should we keep?". A version that moved on again after that still asks.
+   * 2026-11-18 —, the city). It is sent on the newest version this device knows when it actually goes
+   * out (a write queued behind another one would otherwise carry the version from before that one), and
+   * on 409 it is re-sent once on the server's current version instead of asking "which one should we
+   * keep?" — the record keeps showing the device's value meanwhile. A version that moved on again after
+   * that still asks.
    */
   rebaseOnConflict?: boolean;
 };
@@ -43,9 +46,15 @@ export function registerVersionedWrite<TVars extends Versioned, TRecord extends 
   const execute = (vars: TVars) =>
     client.getMutationCache().build(client, { mutationKey, scope: TENANT_WRITE_SCOPE }).execute(vars);
 
+  /** The version to send: never older than the one in the cache (the last server answer). */
+  const latest = (vars: TVars): TVars => {
+    const known = client.getQueryData<TRecord>(queryKey)?.baseVersion;
+    return typeof known === 'number' && known > vars.baseVersion ? { ...vars, baseVersion: known } : vars;
+  };
+
   client.setMutationDefaults(mutationKey, {
     scope: TENANT_WRITE_SCOPE,
-    mutationFn: send,
+    mutationFn: (vars: TVars) => send(rebaseOnConflict ? latest(vars) : vars),
     onMutate: async (vars: TVars) => {
       await client.cancelQueries({ queryKey });
       client.setQueryData<TRecord>(queryKey, (prev) => optimistic(prev, vars));
@@ -64,7 +73,8 @@ export function registerVersionedWrite<TVars extends Versioned, TRecord extends 
         if (rebaseOnConflict && current && !rebased.has(vars.clientMutationId)) {
           const clientMutationId = ulid();
           rebased.add(clientMutationId);
-          client.setQueryData(queryKey, current);
+          // The server's record with the device's value: the choice is not reverted, not even for a moment.
+          client.setQueryData(queryKey, optimistic(current, vars) ?? current);
           // Its own failure goes through this same onError (a second conflict asks the user).
           void execute({ ...vars, baseVersion: current.baseVersion, clientMutationId }).catch(() => undefined);
           return;

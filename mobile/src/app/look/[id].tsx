@@ -25,7 +25,7 @@ import { lookPieceNames, missingPieceCount } from '@/features/looks/logic';
 import { useLook } from '@/features/looks/queries';
 import { ensureTryOnConsent, isConsentDeclined, TRY_ON_CREDIT_COST, useStartTryOn } from '@/features/tryon/api';
 import { useItems } from '@/features/wardrobe/queries';
-import { currentLanguage } from '@/i18n';
+import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { formatMoney, formatNumber } from '@/lib/format';
 import { toDisplayUpper } from '@/lib/upper';
 import { useIsOnline } from '@/sync/network';
@@ -107,6 +107,7 @@ function PieceRow({ slot, itemsById }: { slot: LookSlot; itemsById: ItemsById })
 }
 
 function LookBody({ look, itemsById, note }: { look: Look; itemsById: ItemsById; note: string | null }) {
+  const language = useAppLanguage();
   const { t } = useTranslation();
   const occasion = t(`occasion.${look.occasion}`);
   const rating = look.rating !== null ? formatNumber(look.rating, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : null;
@@ -124,7 +125,7 @@ function LookBody({ look, itemsById, note }: { look: Look; itemsById: ItemsById;
           className="h-[264px] w-[200px] rounded-image-lg"
         >
           <ImageTag
-            label={look.tryOnImageUrl ? t('aiBadge.onYou') : toDisplayUpper(occasion, currentLanguage())}
+            label={look.tryOnImageUrl ? t('aiBadge.onYou') : toDisplayUpper(occasion, language)}
             className="absolute bottom-2 left-2"
           />
         </LookCover>
@@ -149,7 +150,7 @@ function LookBody({ look, itemsById, note }: { look: Look; itemsById: ItemsById;
       <View className="flex-row items-start justify-between gap-3">
         <View className="flex-1 gap-1">
           <Text variant="eyebrow">
-            {toDisplayUpper(t('lookDetail.eyebrow', { occasion, pieces: t('trips.pieces', { count: look.slots.length }) }), currentLanguage())}
+            {toDisplayUpper(t('lookDetail.eyebrow', { occasion, pieces: t('trips.pieces', { count: look.slots.length }) }), language)}
           </Text>
           <Text variant="h2">{look.name}</Text>
         </View>
