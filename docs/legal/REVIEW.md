@@ -66,7 +66,7 @@ Facts taken from the handoff and code — confirm or correct:
 6. **Push**: APNs directly for iOS, FCM for Android. Default on after the first device registration: morning outfit + weekly edit; off: friend ratings, price drop, follow requests (decision 9).
 7. **Weather**: Open-Meteo, city chosen in the profile; the app does not request device location (the API accepts coordinates, rounded to 0.1°, but the app does not send them). No user identifier goes to Open-Meteo.
 8. **Affiliate**: Admitad, Gelir Ortakları (ReklamAction — assumed a Turkish company) and direct brand deals; only a `click_id` goes out; postbacks return order id, amount, currency, status; commission 7–12 %; 48 h auto-add to watch list.
-9. **Analytics**: own pipeline only, actor = one-way hash, no free text, 400-day TTL; rows are **not** deleted on account deletion (treated as pseudonymous).
+9. **Analytics**: own pipeline only, actor = one-way hash, no free text, 400-day TTL. The hash is unsalted per user and Droblet can recompute it from the account id, so the events are **pseudonymous personal data** (GDPR recital 26; KVKK treats re-identifiable data the same way), not anonymous: since 2026-11-19 every event also has a per-actor copy keyed by the hash, so the events are **in the data export and deleted with the account** (G9 closed).
 10. **Contacts matching**: as in `docs/privacy/contacts-matching.md` (salted hashes, nothing stored, 10/day, e-mail only).
 11. **Social**: visibility default "Followers only"; ratings anonymous to the owner; report reasons spam / inappropriate / harassment / impersonation / minor safety / other, note ≤ 500 chars, 20 reports/day; outcomes dismissed / content removed / user warned / user suspended. No comments or DMs.
 12. **Subscriptions**: monthly + yearly in group "Droblet Üyelik", store-configured free trial (currently 1 week), 30 AI images per subscription month, non-rollover, consumable 20-credit pack usable only while premium (try-on requires premium), refunded pack credits removed, data kept after expiry, free tier = 10 AI recognitions. Prices are never in the texts — "shown in the store".
@@ -112,7 +112,7 @@ Proposed matrix (privacy §5, KVKK §4):
 | AI item recognition / background removal / stylist text | contract | 5/2-c — is sending item photos to OpenAI abroad still "contract" under KVKK, given the transfer rules (Q3)? |
 | Contacts matching (uploader / the contacts) | consent / legitimate interest | açık rıza / meşru menfaat |
 | Affiliate click ↔ order matching, auto watch-list add | legitimate interest | 5/2-f |
-| Own analytics (hashed actor) | legitimate interest | 5/2-f — or anonymous data outside KVKK? |
+| Own analytics (hashed actor) | legitimate interest | 5/2-f (pseudonymous, so still personal data: exported and deleted with the account) |
 | Security, rate limits, moderation | legitimate interest / legal obligation | 5/2-f, 5/2-ç |
 | Weekly edit, price-drop pushes | consent | açık rıza + 6563 (Q8) |
 
@@ -129,7 +129,7 @@ Data leaves Türkiye to the UK (controller), Germany (AWS) and the US (OpenAI, T
 Droblet is a UK company serving Turkish users. Does KVKK treat the collection by Droblet Ltd itself as a transfer abroad, and what does that mean for VERBİS and the representative (Q7)?
 
 ### Q5. Retention periods
-Approve the periods in privacy §13 (most come from code TTLs) and fill the four open ones (logs, reports, affiliate, OpenAI). Under KVKK a **"kişisel veri saklama ve imha politikası"** is required when VERBİS registration is required — needed? Retention of consent records (drafted: until account deletion). Should analytics rows (hashed actor) be deleted on account deletion rather than kept 400 days?
+Approve the periods in privacy §13 (most come from code TTLs) and fill the four open ones (logs, reports, affiliate, OpenAI). Under KVKK a **"kişisel veri saklama ve imha politikası"** is required when VERBİS registration is required — needed? Retention of consent records (drafted: until account deletion). Analytics rows (hashed actor) are now deleted on account deletion (G9) — confirm.
 
 ### Q6. Minors
 Phase 1 is 18+, enforced only by a statement in the terms. Is a self-declaration at sign-up (checkbox or birth date) needed for KVKK/UK GDPR and the store age rating? The planned 13–18 segment (phase 1b, parent account) will need parental consent (UK GDPR art. 8: 13; KVKK: parent/guardian consent for minors' explicit consent), the UK Age Appropriate Design Code, and a fresh review of photo/AI/social features for teens — out of scope for these drafts.
@@ -188,7 +188,7 @@ change the text.
 | G6 | ~~No retention~~ **Implemented defaults** (lawyer to confirm): Lambda log retention, TTLs on resolved reports and unconverted affiliate clicks — see §5a. Conversions / revenue ledger still have no period. | Privacy §13; KVKK §7 |
 | G7 | No automated objectionable-content filter on item photos beyond AI garment detection; "content removed" is a recorded resolution — confirm the admin action really removes/hides the item or look. | Community guidelines §8; Apple 1.2 |
 | G8 | Paywall: check the subscription terms link and the 24-hour auto-renew disclosure; mobile `LegalLinks` currently links Terms and Privacy only. | Subscription terms |
-| G9 | Analytics rows survive account deletion (hashed actor). | Privacy §9, §14 |
+| G9 | ~~Analytics rows survive account deletion~~ **Implemented (2026-11-19):** the events are pseudonymous personal data (the hash is recomputable from the account id); each event has a per-actor copy (`analytics-actor#{hash}`), so "Verilerimi indir" includes them (`data/analytics-events.json`) and account deletion removes them. Events recorded before this change have no copy and only age out by the 400-day TTL (not backfilled). | Privacy §9, §13, §14; KVKK §7 |
 | G10 | OpenAI data retention / ZDR not configured in code; confirm at account level. | Privacy §6 |
 | G11 | Footer contact link appears only when `NEXT_PUBLIC_CONTACT_EMAIL` is set. | All pages |
 | G12 | ~~Unverified e-mail sign-ups could be matched by contacts~~ **Implemented (2026-11-19):** e-mail sign-ups get a 6-digit code + link (24 h); only a verified address (code / link, a completed password reset, or Apple / Google saying it is verified) enters the contact-matching directory. Unverified accounts can use the app; nothing else is blocked. | Privacy §7; consents §4 |
@@ -207,7 +207,7 @@ whatever the period.
 | **Affiliate clicks not linked to a conversion** (the user's click row + the global click index) | **13 months after the click** | DynamoDB TTL `AffiliateClickRetention`; a conversion postback removes the TTL from both rows. |
 | Affiliate conversions and the revenue ledger | No period (financial / commission records; the ledger loses the person on account deletion) | — · *lawyer: tax / commercial retention period?* |
 | Anonymous click ledger (brand, source, network, click id; no user id) | No period (revenue report) | — · *after 13 months the click id no longer resolves to a person* |
-| Analytics events (salted hash of the account, allow-listed properties) | 400 days | DynamoDB TTL (`AnalyticsEventEntity`); survive account deletion (G9) |
+| Analytics events (one-way hash of the account, allow-listed properties) | 400 days or account deletion | DynamoDB TTL (`AnalyticsEventEntity` + per-actor copy `AnalyticsActorEventEntity`); removed with the account (G9) |
 | AI jobs (inputs / results of stylist, try-on, palette, item jobs) | 7 days | DynamoDB TTL (`JobEntity`, `ItemDraftEntity`) |
 | Credit reservations and ledger entries | 400 days | DynamoDB TTL |
 | Stylist "Beğenmedim" feedback | 400 days | DynamoDB TTL |

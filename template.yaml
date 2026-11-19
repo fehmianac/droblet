@@ -799,7 +799,7 @@ Resources:
                 Action: [sqs:ReceiveMessage, sqs:DeleteMessage, sqs:GetQueueAttributes, sqs:ChangeMessageVisibility]
                 Resource: !GetAtt DataExportRequestQueue.Arn
               - Effect: Allow
-                # Reads every partition of the tenant (and the analytics day partitions); writes the export row, its
+                # Reads every partition of the tenant (incl. its per-actor analytics partition); writes the export row, its
                 # download token and the inbox row (TransactWriteItems: PutItem + ConditionCheckItem).
                 Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:Query, dynamodb:ConditionCheckItem]
                 Resource: !GetAtt DrobletTable.Arn

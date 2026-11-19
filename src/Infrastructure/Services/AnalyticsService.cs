@@ -9,7 +9,8 @@ namespace Infrastructure.Services;
 
 /// <summary>
 /// Own analytics in DynamoDB (README §9.2 — no third-party SDK). Events are TTL'd (400 days) and carry no personal
-/// content. The funnel report reads the day partitions of the requested range.
+/// content. The funnel report reads the day partitions of the requested range. Every event is written twice: the day
+/// row (funnel) and a per-actor copy (<see cref="AnalyticsActorEventEntity"/>: data export and account deletion).
 /// </summary>
 public sealed class AnalyticsService(IRepository repository, TimeProvider timeProvider, ILogger<AnalyticsService> logger) : IAnalyticsService
 {
@@ -20,7 +21,7 @@ public sealed class AnalyticsService(IRepository repository, TimeProvider timePr
     {
         var now = Now;
         var rejected = new List<AnalyticsEventRejection>();
-        var entities = new List<IEntity>();
+        var entities = new List<IEntity>(); // event row + per-actor copy, in pairs
 
         for (var i = 0; i < events.Count; i++)
         {
@@ -39,12 +40,14 @@ public sealed class AnalyticsService(IRepository repository, TimeProvider timePr
             var props = input.Props?.ToDictionary(p => p.Key, p => p.Value) ?? [];
             if (AnalyticsRules.IsSafeValue(platform)) props.TryAdd("platform", platform);
             if (AnalyticsRules.IsSafeValue(appVersion)) props.TryAdd("appVersion", appVersion);
-            entities.Add(AnalyticsRules.ToEntity(input.Name!, tenantId, input.OccurredAt?.ToUniversalTime() ?? now, now, props, Ulid.New(now)));
+            var entity = AnalyticsRules.ToEntity(input.Name!, tenantId, input.OccurredAt?.ToUniversalTime() ?? now, now, props, Ulid.New(now));
+            entities.Add(AnalyticsRules.ToActorEntity(entity));
+            entities.Add(entity);
         }
 
         if (entities.Count > 0)
             await repository.BatchWriteAsync(entities, ct);
-        return new AnalyticsBatchResult(entities.Count, rejected);
+        return new AnalyticsBatchResult(entities.Count / 2, rejected);
     }
 
     public async Task RecordServerEventAsync(string name, string tenantId, IReadOnlyDictionary<string, string?>? props, CancellationToken ct)
@@ -54,7 +57,8 @@ public sealed class AnalyticsService(IRepository repository, TimeProvider timePr
             var now = Now;
             var safe = props?.Where(p => AnalyticsRules.AllowedProps.Contains(p.Key) && AnalyticsRules.IsSafeValue(p.Value))
                 .ToDictionary(p => p.Key, p => p.Value);
-            await repository.SaveAsync(AnalyticsRules.ToEntity(name, tenantId, now, now, safe, Ulid.New(now)), ct);
+            var entity = AnalyticsRules.ToEntity(name, tenantId, now, now, safe, Ulid.New(now));
+            await repository.BatchWriteAsync([AnalyticsRules.ToActorEntity(entity), entity], ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

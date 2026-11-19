@@ -90,7 +90,7 @@ Yurt dışına aktarım KVKK m. 9 kapsamında [YURT DIŞI AKTARIM MEKANİZMASI] 
 
 ## 7. Saklama süreleri
 
-Kişisel verilerin, işleme amacı için gerekli süre boyunca saklanır: hesap ve içerik verileri sen silene ya da hesabını silene kadar; işlenmemiş yüklemeler en fazla 1 gün; parça taslakları ve yapay zekâ iş kayıtları 7 gün; kullanım olayları, kredi hareketleri ve stilist geri bildirimleri 400 gün; şifre sıfırlama bağlantısı 30 dakika; yenileme anahtarı 60 gün. Satış ortaklığı kayıtları [AFFILIATE KAYIT SAKLAMA SÜRESİ], şikâyet kayıtları [ŞİKAYET KAYDI SAKLAMA SÜRESİ], sunucu kayıtları [LOG SAKLAMA SÜRESİ] saklanır. Silinen veriler yedeklerden en geç 30 gün içinde çıkar. Ayrıntılı tablo Gizlilik Politikası'ndadır.
+Kişisel verilerin, işleme amacı için gerekli süre boyunca saklanır: hesap ve içerik verileri sen silene ya da hesabını silene kadar; işlenmemiş yüklemeler en fazla 1 gün; parça taslakları ve yapay zekâ iş kayıtları 7 gün; kullanım olayları, kredi hareketleri ve stilist geri bildirimleri 400 gün ya da hesabını silene kadar (hangisi önce gelirse); şifre sıfırlama bağlantısı 30 dakika; yenileme anahtarı 60 gün. Satış ortaklığı kayıtları [AFFILIATE KAYIT SAKLAMA SÜRESİ], şikâyet kayıtları [ŞİKAYET KAYDI SAKLAMA SÜRESİ], sunucu kayıtları [LOG SAKLAMA SÜRESİ] saklanır. Silinen veriler yedeklerden en geç 30 gün içinde çıkar. Ayrıntılı tablo Gizlilik Politikası'ndadır.
 
 E-posta doğrulama kodu ve bağlantısı 24 saat, “Verilerimi indir” ile hazırlanan veri kopyası 7 gün saklanır.
 

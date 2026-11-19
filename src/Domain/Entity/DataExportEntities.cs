@@ -45,6 +45,29 @@ public class DataExportEntity : IEntity
     public static string GetSk(string id) => id;
 }
 
+/// <summary>
+/// Per-tenant "one active export" lock. POST v1/tenant/export writes it in the same transaction as the new export row,
+/// conditioned on the version it read (0 = absent, i.e. attribute_not_exists): of two simultaneous requests only one
+/// commits; the other sees a version conflict and answers 409 export_in_progress. The lock holds while its export is
+/// queued / processing and alive (DataExportRules.IsActive, same 1-hour abandonment rule); once that export is ready,
+/// failed, abandoned or gone, the next request overwrites it. Removed with the account (DeletionPlan); TTL = the row's.
+/// </summary>
+public class DataExportLockEntity : IVersionedEntity
+{
+    [JsonPropertyName("pk")] public string Pk => GetPk(TenantId);
+    [JsonPropertyName("sk")] public string Sk => GetSk();
+
+    [JsonPropertyName("tenantId")] public string TenantId { get; set; } = null!;
+    [JsonPropertyName("exportId")] public string ExportId { get; set; } = null!;
+    [JsonPropertyName("acquiredAt")] public DateTime AcquiredAt { get; set; }
+    [JsonPropertyName("version")] public long Version { get; set; }
+
+    [JsonPropertyName("ttl")] public long Ttl => AcquiredAt.AddDays(DataExportEntity.RowDays).ToUnixTimeSeconds();
+
+    public static string GetPk(string tenantId) => $"tenant#{tenantId}#dataexportlock";
+    public static string GetSk() => "active";
+}
+
 /// <summary>Download token hash → export (GET v1/export/download?token=…, anonymous). Expires with the file.</summary>
 public class DataExportTokenEntity : IEntity
 {

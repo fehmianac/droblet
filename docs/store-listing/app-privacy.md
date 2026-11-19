@@ -45,7 +45,7 @@ make a type "shared" for tracking. `[ASSUMPTION]` = judgment call the owner / la
 | Identifiers › User ID | Yes | Yes | App Functionality | Account ID (also bound to purchases as `appAccountToken`), Apple / Google account subject. |
 | Identifiers › Device ID | Yes | Yes | App Functionality | An app-generated device ID and the push token (APNs), only when notifications are allowed. Not the IDFA. |
 | Purchases › Purchase History | Yes | Yes | App Functionality | Subscription status, store transaction IDs, AI credit balance. Brand purchases: when the user taps "buy", a click ID ties the order the brand reports (order ID, amount, status) to the account for commission and the "Add to wardrobe?" prompt `[ASSUMPTION — declared here, not as tracking: the click ID is first-party and only the click ID goes to the affiliate network]`. |
-| Usage Data › Product Interaction | Yes | **No** `[ASSUMPTION]` | Analytics | First-party events from an allow-list (sign-up completed, paywall viewed, credit spent …), no free text; the actor is stored as a one-way hash. No third-party analytics. If counsel considers the hash linkable, switch to Linked: Yes. |
+| Usage Data › Product Interaction | Yes | **No** `[ASSUMPTION]` | Analytics | First-party events from an allow-list (sign-up completed, paywall viewed, credit spent …), no free text; the actor is stored as a one-way hash. No third-party analytics. **Re-check before submission:** Droblet can recompute the hash from the account id and, since G9 was closed, indexes the events per actor to include them in the data export and delete them with the account — that is linkable by Apple's definition, so the safer answer is Linked: Yes. |
 | Usage Data › Advertising Data | No | — | — | No ads. |
 | Usage Data › Other Usage Data | No | — | — | |
 | Diagnostics › Crash Data | No | — | — | No crash-reporting SDK. |
@@ -65,5 +65,5 @@ make a type "shared" for tracking. `[ASSUMPTION]` = judgment call the owner / la
 
 ## Open items that can change these answers
 
-Biometric classification of face photos (Q1/Q1a), OpenAI retention/DPA (G10, Q3), analytics events surviving account
-deletion (G9), weight/body type as health data. Re-check this page when `docs/legal/REVIEW.md` closes them.
+Biometric classification of face photos (Q1/Q1a), OpenAI retention/DPA (G10, Q3), Usage Data linked or not (the
+events are now exported and deleted with the account, G9 closed), weight/body type as health data. Re-check this page when `docs/legal/REVIEW.md` closes them.
