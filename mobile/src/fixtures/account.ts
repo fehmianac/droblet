@@ -11,6 +11,13 @@ import type {
   UpdateProfileRequest,
 } from '@/api/contracts/account';
 import { ApiError } from '@/api/errors';
+import { setBodyProfileFixture } from '@/api/profile';
+
+import { fixtureDb } from './db';
+import { L, SHOWCASE } from './showcase';
+
+// The showcase build starts with a complete body profile (the Bugün / Profil "complete your profile" card stays away).
+if (SHOWCASE) setBodyProfileFixture({ heightCm: 168, weightKg: null, size: 'M', bodyType: 'hourglass', baseVersion: 1 });
 
 /**
  * Typed fixtures for Profil (28), Gizlilik ve ayarlar (29) and Renk paletim (30). Values are the
@@ -82,7 +89,11 @@ const PALETTE_DURATION_MS = 1500;
 
 export const accountFixtures = {
   profile: (): MyProfile => state.profile,
-  stats: (): ProfileStats => ({ itemCount: 86, lookCount: 24, followerCount: 12, followingCount: 18, tripCount: 3 }),
+  // The showcase build counts the fixture wardrobe, so Profil matches Gardırop and Looklar.
+  stats: (): ProfileStats =>
+    SHOWCASE
+      ? { itemCount: fixtureDb.items.length, lookCount: fixtureDb.looks.length, followerCount: 12, followingCount: 18, tripCount: 2 }
+      : { itemCount: 86, lookCount: 24, followerCount: 12, followingCount: 18, tripCount: 3 },
   setVisibility: (closetVisibility: ClosetVisibility): MyProfile => {
     state.profile = { ...state.profile, closetVisibility, baseVersion: state.profile.baseVersion + 1 };
     return state.profile;
@@ -164,9 +175,9 @@ export const accountFixtures = {
   },
   mismatch: (): PaletteMismatch => ({
     items: [
-      { id: 'item_fuchsia_knit', name: 'Fuşya triko', imageUrl: null, category: 'top', color: 'pink' },
-      { id: 'item_icy_shirt', name: 'Buz mavisi gömlek', imageUrl: null, category: 'top', color: 'blue' },
-      { id: 'item_grey_coat', name: 'Soğuk gri kaban', imageUrl: null, category: 'outerwear', color: 'grey' },
+      { id: 'item_fuchsia_knit', name: L('Fuşya triko'), imageUrl: null, category: 'top', color: 'pink' },
+      { id: 'item_icy_shirt', name: L('Buz mavisi gömlek'), imageUrl: null, category: 'top', color: 'blue' },
+      { id: 'item_grey_coat', name: L('Soğuk gri kaban'), imageUrl: null, category: 'outerwear', color: 'grey' },
     ],
   }),
 };

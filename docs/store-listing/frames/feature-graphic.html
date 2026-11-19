@@ -1,0 +1,53 @@
+<!doctype html>
+<!--
+  Google Play feature graphic (1024 × 500). Rendered with headless Chrome by render.sh:
+    ?lang=tr|en&front=<capture.png>&back=<capture.png>
+  Play may crop the edges and overlays a play button on video: the copy stays in the left 60 %, inside
+  a safe margin, and nothing important sits at the very edge.
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@400;500&display=swap">
+<style>
+  html, body { margin: 0; width: 1024px; height: 500px; overflow: hidden; background: #F4F1EC; color: #1C1A17; }
+  body { position: relative; font-family: 'Jost', sans-serif; }
+  .copy { position: absolute; left: 72px; top: 0; bottom: 0; width: 520px; display: flex; flex-direction: column; justify-content: center; gap: 20px; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand span { font-family: 'Cormorant Garamond', serif; font-size: 36px; font-weight: 600; letter-spacing: -0.01em; }
+  h1 { margin: 0; font-family: 'Cormorant Garamond', serif; font-weight: 500; font-size: 50px; line-height: 1.04; letter-spacing: -0.015em; text-wrap: balance; }
+  .eyebrow { font-size: 12.5px; font-weight: 500; letter-spacing: 0.15em; color: #665F56; }
+  .rule { width: 60px; height: 1px; background: #6E5640; }
+  .stage { position: absolute; right: 0; top: 0; width: 400px; height: 500px; background: #E8E1D7; overflow: hidden; }
+  .phone { position: absolute; padding: 7px; border-radius: 34px; background: #1C1A17; box-shadow: 0 20px 40px -16px rgb(28 26 23 / .38); }
+  .phone img { display: block; width: 100%; border-radius: 27px; }
+  .island { position: absolute; top: 13px; left: 50%; width: 29%; height: 18px; border-radius: 99px; background: #1C1A17; transform: translateX(-50%); }
+  .front { width: 206px; left: 40px; top: 48px; z-index: 2; }
+  .back { width: 172px; right: 26px; top: 104px; }
+</style>
+</head>
+<body>
+  <div class="copy">
+    <div class="brand">
+      <svg width="40" height="40" viewBox="6 10 44 44" aria-hidden="true"><rect x="6" y="10" width="44" height="44" rx="12" fill="#1C1A17"/><path d="M20 22v20h6.5a10 10 0 0 0 0-20H20M20 22c0-3 1.6-5 4-5.4" fill="none" stroke="#F4F1EC" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M27 27c0 0-3.2 3.6-3.2 6a3.2 3.2 0 0 0 6.4 0c0-2.4-3.2-6-3.2-6z" fill="#B49A80"/></svg>
+      <span>Droblet</span>
+    </div>
+    <h1 id="title"></h1>
+    <div class="rule"></div>
+    <div class="eyebrow" id="eyebrow"></div>
+  </div>
+  <div class="stage">
+    <div class="phone back"><img id="back" alt=""><span class="island"></span></div>
+    <div class="phone front"><img id="front" alt=""><span class="island"></span></div>
+  </div>
+<script>
+  const q = new URLSearchParams(location.search);
+  const en = q.get('lang') === 'en';
+  document.documentElement.lang = en ? 'en' : 'tr';
+  document.getElementById('title').textContent = en ? 'Your wardrobe now thinks for you.' : 'Dolabın artık senin için düşünüyor.';
+  document.getElementById('eyebrow').textContent = en ? 'PERSONAL WARDROBE · STYLE ASSISTANT · SUITCASE' : 'KİŞİSEL GARDIROP · STİL ASİSTANI · BAVUL';
+  document.getElementById('front').src = q.get('front') || '';
+  document.getElementById('back').src = q.get('back') || '';
+</script>
+</body>
+</html>
