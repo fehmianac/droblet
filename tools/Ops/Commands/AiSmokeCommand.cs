@@ -35,7 +35,7 @@ internal sealed partial class AiSmokeCommand(IServiceProvider services, OpsArgum
     private static readonly IReadOnlyDictionary<string, string> WorkerOf = new Dictionary<string, string>
     {
         ["stylist outfit"] = "stylist", ["stylist week"] = "stylist", ["trip pack"] = "stylist",
-        ["item processing"] = "item-processor", ["palette"] = "palette", ["try-on"] = "tryon",
+        ["item processing"] = "item-processor", ["multi-item detection"] = "item-processor", ["piece background removal"] = "item-processor", ["palette"] = "palette", ["try-on"] = "tryon",
     };
 
     private readonly List<Row> _rows = [];
@@ -79,6 +79,14 @@ internal sealed partial class AiSmokeCommand(IServiceProvider services, OpsArgum
             var grant = await services.GetRequiredService<IAdminAppUserService>().GrantTestPremiumAsync(OpsHost.Actor, userId, 1, "ai-smoke", null, ct);
             Add("grant test premium (admin service)", grant?.Entitlement.Tier.ToString() ?? "not found", watch.Elapsed, null,
                 $"credits {grant?.Credits.AllowanceRemaining}/{grant?.Credits.AllowanceTotal}");
+
+            // --items-only: just the item flows (single photo + multi-item detection), for prompt iteration.
+            if (args.Flag("items-only"))
+            {
+                await ItemProcessingAsync(fixtures, ct);
+                await MultiItemAsync(fixtures, ct);
+                return _rows.Any(r => r.Status is "failed" or "timeout" or "error" || r.Failure.Length > 0) ? 1 : 0;
+            }
 
             await Step("PUT v1/tenant/style-profile", HttpMethod.Put, "v1/tenant/style-profile",
                 new JsonObject { ["segment"] = "women", ["styleTags"] = new JsonArray("minimal", "classic", "quietLuxury"), ["budget"] = "mixed", ["baseVersion"] = 0 }, 200, ct);
@@ -139,6 +147,9 @@ internal sealed partial class AiSmokeCommand(IServiceProvider services, OpsArgum
 
             // ── item processing on one photo ─────────────────────────────────────────────────────────────────────
             await ItemProcessingAsync(fixtures, ct);
+
+            // ── multi-item detection: a 5-piece flat-lay → draft group → select 2 → background removal ─────────
+            await MultiItemAsync(fixtures, ct);
 
             // ── palette ──────────────────────────────────────────────────────────────────────────────────────────
             (status, body, elapsed) = await CallAsync(HttpMethod.Post, "v1/tenant/palette/analyze", new JsonObject { ["requestId"] = Ulid.New() }, ct);
@@ -216,6 +227,82 @@ internal sealed partial class AiSmokeCommand(IServiceProvider services, OpsArgum
                           $"background removed: {(cleaned ? "yes (cleaned image)" : "no (original shown)")}",
             };
         }
+    }
+
+    /// <summary>The pieces the synthetic flat-lay holds: every one must be found, the necklace included.</summary>
+    private static readonly (string Category, string? Subcategory)[] FlatLayExpected =
+        [("top", null), ("bottom", null), ("shoes", null), ("bag", null), ("accessory", "necklace")];
+
+    private async Task MultiItemAsync(SmokeFixtures fixtures, CancellationToken ct)
+    {
+        var watch = Stopwatch.StartNew();
+        var (photo, generated) = await fixtures.GetAsync(SmokeFixtures.FlatLay, ct);
+        var (status, body, _) = await CallAsync(HttpMethod.Post, "v1/tenant/item/upload-url", new JsonObject { ["count"] = 1, ["contentType"] = "image/jpeg" }, ct);
+        var slot = body?["uploads"]?[0];
+        if (status != 200 || slot is null || await PresignedPostAsync(slot, photo, "image/jpeg", ct) is { } uploadError)
+        {
+            Add("multi-item detection", "failed", watch.Elapsed, "upload_failed");
+            return;
+        }
+        var uploadId = slot["uploadId"]!.GetValue<string>();
+        (status, body, var elapsed) = await CallAsync(HttpMethod.Post, "v1/tenant/item-draft",
+            new JsonObject { ["requestId"] = Ulid.New(), ["uploadIds"] = new JsonArray(uploadId), ["splitOutfit"] = false, ["manual"] = false }, ct);
+        var jobId = body?["jobs"]?[0]?["id"]?.GetValue<string>();
+        if (status != 202 || jobId is null)
+        {
+            Add("multi-item detection", status.ToString(), elapsed, Code(body));
+            return;
+        }
+        if (!await PollStepAsync("multi-item detection", "POST v1/tenant/item-draft (5-piece flat-lay)", jobId, watch.Elapsed, ct, r => $"itemCount {r?["itemCount"]}"))
+            return;
+
+        var (_, drafts, _) = await CallAsync(HttpMethod.Get, "v1/tenant/item-draft", null, ct);
+        var all = drafts?["drafts"]?.AsArray().OfType<JsonObject>().ToList() ?? [];
+        var group = all.FirstOrDefault(d => d["id"]?.GetValue<string>() == uploadId);
+        var pieces = all.Where(d => d["groupId"]?.GetValue<string>() == uploadId && d["kind"]?.GetValue<string>() == "piece")
+            .OrderBy(d => d["index"]?.GetValue<int>() ?? 0).ToList();
+        string Describe(JsonObject p)
+        {
+            var box = p["box"];
+            string F(string k) => (box?[k]?.GetValue<double>() ?? 0).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
+            return $"#{p["index"]} {p["category"]}/{p["subcategory"]} “{p["name"]}” [{string.Join(",", p["colorIds"]?.AsArray().Select(c => c?.ToString()) ?? [])}] " +
+                   $"conf {p["confidence"]}{(p["needsReview"]?.GetValue<bool>() == true ? " (Kontrol et)" : "")} box x{F("x")} y{F("y")} w{F("width")} h{F("height")}";
+        }
+        foreach (var piece in pieces)
+            output.Line($"  detected {Describe(piece)}");
+
+        var missing = FlatLayExpected.Where(e => !pieces.Any(p => p["category"]?.GetValue<string>() == e.Category
+                                                                 && (e.Subcategory is null || p["subcategory"]?.GetValue<string>() == e.Subcategory)))
+            .Select(e => e.Subcategory ?? e.Category).ToList();
+        var singleKind = group?["kind"]?.GetValue<string>();
+        _rows[^1] = _rows[^1] with
+        {
+            Failure = missing.Count == 0 ? "" : "missing:" + string.Join(",", missing),
+            Notable = $"group kind {singleKind ?? "-"}, {pieces.Count} piece(s) ({(generated ? "fixture generated now" : "fixture from ops-fixtures/")}): " +
+                      string.Join("; ", pieces.Select(Describe)),
+        };
+        if (pieces.Count < 2)
+            return;
+
+        // Keep the necklace (jewellery crop) and the first other piece; the rest is discarded and costs nothing.
+        var keep = pieces.Where(p => p["subcategory"]?.GetValue<string>() == "necklace").Take(1)
+            .Concat(pieces.Where(p => p["subcategory"]?.GetValue<string>() != "necklace").Take(1)).ToList();
+        watch.Restart();
+        (status, body, elapsed) = await CallAsync(HttpMethod.Post, $"v1/tenant/item-draft/{uploadId}/select",
+            new JsonObject { ["draftIds"] = new JsonArray(keep.Select(p => (JsonNode)p["id"]!.GetValue<string>()).ToArray()) }, ct);
+        var cleanJobs = body?["jobs"]?.AsArray().Select(j => j?["id"]?.GetValue<string>()).Where(j => j is not null).ToList() ?? [];
+        Add("POST v1/tenant/item-draft/{id}/select", status.ToString(), elapsed, status == 202 ? null : Code(body),
+            $"kept {keep.Count} of {pieces.Count}, {cleanJobs.Count} background-removal job(s)");
+        foreach (var cleanJob in cleanJobs)
+            await PollStepAsync("piece background removal", "itemClean job", cleanJob!, TimeSpan.Zero, ct, _ => "");
+
+        (_, drafts, _) = await CallAsync(HttpMethod.Get, "v1/tenant/item-draft", null, ct);
+        var after = drafts?["drafts"]?.AsArray().OfType<JsonObject>().Where(d => d["groupId"]?.GetValue<string>() == uploadId).ToList() ?? [];
+        var cleaned = after.Count(d => d["status"]?.GetValue<string>() == "ready" && d["imageUrl"]?.GetValue<string>() is { } image
+                                       && d["originalImageUrl"]?.GetValue<string>() is { } original && StripQuery(image) != StripQuery(original));
+        Add("draft group after selection", "checked", watch.Elapsed, after.Count == keep.Count && cleaned == keep.Count ? null : "unexpected_group_state",
+            $"{after.Count} piece draft(s) left (expected {keep.Count}), {cleaned} with a cleaned image; " +
+            $"the group photo {(after.Any(d => d["kind"]?.GetValue<string>() == "outfit") ? "still listed ✗" : "no longer listed ✓")}");
     }
 
     private async Task TryOnAsync(string outfitJobId, CancellationToken ct)

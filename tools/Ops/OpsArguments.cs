@@ -40,7 +40,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [GrantTestPremium] = [],
         [RevokeTestPremium] = [],
         [GenerateLibraryImages] = ["dry-run", "force"],
-        [AiSmoke] = ["keep-user"],
+        [AiSmoke] = ["keep-user", "items-only"],
         [AiProbe] = [],
         [Logs] = [],
         [MigrateLibraryItemImages] = ["dry-run"],
