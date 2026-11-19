@@ -55,6 +55,9 @@ The only prose the API returns is (a) AI-generated text and (b) reference names.
 | `WeatherCondition` | `clear`, `partlyCloudy`, `cloudy`, `fog`, `drizzle`, `rain`, `snow`, `showers`, `thunderstorm`, `unknown` (one enum for the whole API — same as `GET v1/weather`) |
 | `DislikeReason` | `notMyStyle`, `wrongOccasion`, `wrongWeather`, `colorMismatch`, `wornTooOften`, `other` |
 | `MissingPieceReason` | `emptySlot`, `rain`, `cold`, `noShoes`, `suggested` |
+| `BodyType` | `hourglass`, `pear`, `apple`, `rectangle`, `invertedTriangle`, `unsure` (body profile; face try-on path) |
+| `TryOnSource` | `body`, `face` |
+| `JobFailure` (added) | `photoUnsuitable` |
 | `TryOnTargetKind` | `item`, `look`, `product`, `editLook`, `suggestion`, `tripDay` |
 | `StartStatus` | `cached`, `queued` |
 
@@ -326,7 +329,7 @@ Text stylist jobs cost **no credit**; they need the membership (403 `premium_req
 { "requestId": "01J…", "date": "2026-11-18", "occasion": "dinner", "freeText": "akşam iş yemeği, yağmurlu",
   "onlyMyWardrobe": true, "pinnedItemId": null, "cityId": null, "latitude": null, "longitude": null }
 ```
-Only `requestId` and `date` are required. `freeText` ≤ 200 chars. `pinnedItemId` = "Bununla kombin yap". `onlyMyWardrobe: false` allows missing-piece placeholders.
+Only `requestId` and `date` are required. `freeText` ≤ 200 chars. `pinnedItemId` = "Bununla kombin yap". `onlyMyWardrobe: false` allows missing-piece placeholders. A thin wardrobe never ends in a refusal: see **gap filling** in §9.
 Errors: 403 · 409 `request_id_reused` · 422 `item_not_found` (pinned) · 400 `request_id_invalid`, `date_invalid`, `free_text_too_long`, `pinned_item_id_invalid`, `latitude_invalid`, `longitude_invalid`.
 Result: `OutfitResult` (§9).
 
@@ -334,7 +337,7 @@ Result: `OutfitResult` (§9).
 ```json
 { "clientMutationId": "01J…", "lookId": null, "name": null, "planDate": "2026-11-18", "favorite": false }
 ```
-→ 200 `{ "look": LookDto, "planDay": PlanDayDto | null }`. Creates the look (`source: "stylist"`, id = `lookId ?? clientMutationId`, name = `name ?? title`) and, with `planDate`, plans it ("Takvime ekle"). Without `planDate` it only saves to the lookbook (heart). Missing pieces that carry a `productId` become product slots. **Nothing is written before this call.**
+→ 200 `{ "look": LookDto, "planDay": PlanDayDto | null }`. Creates the look (`source: "stylist"`, id = `lookId ?? clientMutationId`, name = `name ?? title`) and, with `planDate`, plans it ("Takvime ekle"). Without `planDate` it only saves to the lookbook (heart). Missing pieces that carry a `productId` become product slots; a picked library piece (`libraryItemId`) joins the look as the user's own item once it has been added to the wardrobe (`POST v1/tenant/item/from-library` — the app adds it before saving), otherwise it is left out. **Nothing is written before this call.**
 Errors: 404 `job_not_found` / `suggestion_not_found` · 409 `job_not_completed` / `suggestion_stale` / `look_id_taken`.
 
 ### POST `v1/tenant/stylist/suggestion/{jobId}/{index}/dislike`
@@ -360,7 +363,7 @@ Plans the 7 days from `weekStart`. `days` is optional; a day without an occasion
   "missing": [{ "slot": "outerwear", "category": "outerwear", "reason": "rain", "productId": null }],
   "createdAt": "…", "updatedAt": "…", "version": 2 }
 ```
-`archived` = archived by the user **or** already over. `packedCount / itemCount` = the preparation ring. Show "Her parça en az 2 kez giyiliyor" **only when `everyPieceWornTwice` is true** (never on a 1-day trip). `missing` = pieces the wardrobe cannot cover, as catalog slot placeholders (`productId` null until the catalog matches one → "Eksikleri tamamla").
+`archived` = archived by the user **or** already over. `packedCount / itemCount` = the preparation ring. Show "Her parça en az 2 kez giyiliyor" **only when `everyPieceWornTwice` is true** (never on a 1-day trip). `missing` = pieces the wardrobe cannot cover; since the gap filling each names a concrete pick when there is one — `libraryItemId` (ready library, "Önerilen · Kütüphane" → "Gardıroba ekle") or `productId` (shop, "Önerilen · Mağaza" → "Gör"); both null = nothing suitable to pick.
 
 `TripDetailDto`
 ```json
@@ -397,6 +400,21 @@ Packing rules (enforced in the job and again at accept): only pieces of the ward
 
 One generated image = 1 credit. The credit is reserved when the job is queued, kept on success and **refunded automatically when the job fails** ("Şu an oluşturamadık. Kredin iade edildi."). The same outfit with the same body photo is never rendered or charged twice — an outfit is identified by its set of pieces, so a suggestion, the look saved from it and the same look on another day share one image.
 
+**Path** (canvas 11, owner decision 4). The active **body photo** is always preferred. Without one, the **face path** renders
+from the active **face photo** together with the body profile's `bodyType` (null counts as `unsure`), `heightCm` and `size`:
+the image model is asked for the same adult, identity unchanged, fully clothed, in a neutral pose. The face path needs
+`facePhotoTryOn` + `crossBorderTransfer` (C §2) and is cached like any try-on; its cache subject is the face photo **plus**
+body type, height and size, so changing one of them makes a new image. `TryOnImageDto.source` = `body` | `face` — for
+`face` the app says "Senin yüzün ve seçtiğin vücut tipiyle oluşturuldu" and offers "Daha gerçekçi sonuç için boy
+fotoğrafı ekle". With neither photo: 422 `body_photo_required`.
+
+**Photo check.** Before a photo's first render the worker checks it (vision model, no identification): body photo — exactly
+one person, head to feet in frame; face photo — exactly one clearly visible face; both — not too dark, not blurry. A
+rejected photo fails the job with `photoUnsuitable` (credit refunded), the job `result` is
+`{ "photoIssue": "notFullBody" | "tooDark" | "multiplePeople" | "blurry" | "noFace", "photoKind": "body" | "face" }` and the
+photo is **removed** (the app asks for another one with tips). A person who appears to be under 18 → `guardRejected`. A
+photo that passed is not checked again.
+
 ### POST `v1/tenant/tryon`
 ```json
 { "requestId": "01J…", "target": { "kind": "look", "id": "01J…", "index": null } }
@@ -406,21 +424,22 @@ One generated image = 1 credit. The credit is reserved when the job is queued, k
 
 | Status | Body | Meaning |
 |---|---|---|
-| 200 | `{ "status": "cached", "image": { "id", "url", "urlExpiresAt", "createdAt" }, "job": null }` | Image already exists — no credit |
+| 200 | `{ "status": "cached", "image": { "id", "url", "urlExpiresAt", "createdAt", "source" }, "job": null }` | Image already exists — no credit |
 | 202 | `{ "status": "queued", "image": null, "job": JobDto }` | Job running (1 credit reserved, or an already running job for the same outfit — no second credit). Poll the job; its `result` is `{ "tryOnImageId": "…" }`, then `GET v1/tenant/tryon/{id}` |
 | 402 | `credits_exhausted` | Open the credit-pack sheet; show the piece collage |
 | 403 | `premium_required` | Paywall |
 | 404 | `target_not_found` | Unknown target (also: someone else's look/item, retired product) |
-| 422 | `body_photo_required` | No body photo → "Profil fotoğrafını tamamla" |
+| 422 | `body_photo_required` | Neither a body nor a face photo → the requirements sheet (body photo, or face photo + body type) |
+| 403 | `consent_required` + `missing` | The consents of the path (body: `bodyPhotoAi` + `crossBorderTransfer`; face: `facePhotoTryOn` + `crossBorderTransfer`) |
 | 422 | `tryon_target_empty` | Every piece of the look is gone |
 | 409 | `request_id_reused` | |
 | 400 | `request_id_invalid`, `target_required`, `target_kind_invalid`, `target_id_invalid`, `target_index_invalid` | |
 
-Job failures: `sourceDeleted` (body photo or a piece was deleted meanwhile — or a product has no downloadable image: not https, not an image, larger than `Catalog:MaxImageBytes`, or its host is not in `Catalog:ImageHosts` when that list is set), `providerError`, `guardRejected`. In every case the credit is refunded.
+Job failures: `sourceDeleted` (the body / face photo or a piece was deleted meanwhile — or a product has no downloadable image: not https, not an image, larger than `Catalog:MaxImageBytes`, or its host is not in `Catalog:ImageHosts` when that list is set), `photoUnsuitable` (photo check, see above), `providerError`, `guardRejected`. In every case the credit is refunded. A `suggestion` target also renders the library pieces the stylist picked (owned copy once added, else the library image).
 
 | Method | Path | Response |
 |---|---|---|
-| GET | `v1/tenant/tryon?kind=&id=&index=` | `TryOnImageDto` for that target with the current body photo, generating nothing · 404 when there is none · 400 |
+| GET | `v1/tenant/tryon?kind=&id=&index=` | `TryOnImageDto` for that target on the current path (body photo, or face photo + figure), generating nothing · 404 when there is none · 400 |
 | GET | `v1/tenant/tryon/{id}` | `TryOnImageDto` (fresh presigned URL) · 404 (also for anyone but the owner) |
 
 ### Batch — the planned week (screen 07 → 07b)
@@ -487,14 +506,26 @@ All are **drafts**: nothing is in the wardrobe, lookbook, plan or trip until the
     "missing": [{ "slot": "bagAccessory", "category": "bag", "reason": "suggested", "productId": null }]
   }] }
 ```
-Up to 3 suggestions. `source: "rule"` = rule-based fallback: `title` and `explanation` are **null** — show the app's own neutral text. Piece names and images come from the client's own item cache by `itemId`. `refusal`: `insufficient_wardrobe` (the wardrobe cannot dress the day → "ilk parçalarını ekle") or `out_of_scope`; `suggestions` is then empty. `missing` is always empty when `onlyMyWardrobe` is true.
+Up to 3 suggestions. `source: "rule"` = rule-based fallback: `title` and `explanation` are **null** — show the app's own neutral text. Piece names and images come from the client's own item cache by `itemId`. `refusal`: `out_of_scope` (`suggestions` empty); `insufficient_wardrobe` is **internal only** now (answered only when even the library and the catalog are empty).
+
+**Gap filling** (owner decision 3, `GapFill`, deterministic): when the wardrobe cannot dress the day, dresses it only once or
+twice, or has no shoes, Droblet picks the missing pieces itself and still returns complete outfits (a top + bottom or a
+dress, shoes, and an outer layer when the weather asks). Picks come from the **ready library** first — per slot the best
+in-season pieces by colour harmony with the user's pieces, palette (flattering / avoid) and occasion; the user's own outer
+layer, shoes and bag are kept — and from the **catalog** only for a slot the library cannot fill (same harmony, the user's
+budget band). The user's pieces stay in `slots`; every pick is in `missing` with `reason: "suggested"` and
+`libraryItemId` (free → "Önerilen · Kütüphane", one tap "Gardıroba ekle") or `productId` ("Önerilen · Mağaza" → "Gör").
+`slots` may then hold 0–1 pieces. This also happens with `onlyMyWardrobe: true` (week plans and trips always). The
+result's `gapFilled: true` says some suggestion carries picks → the soft banner "Önerilerin bir kısmı senin gardırobundan
+değil — eklemek ister misin?".
 
 **`stylistWeek`** — `WeekResult`
 ```json
 { "weekStart": "2026-11-16", "refusal": null, "language": "tr",
-  "days": [{ "date": "2026-11-16", "occasion": "office", "outfit": { "index": 0, "title": "…", "explanation": "…", "source": "model", "slots": [], "missing": [] } }] }
+  "days": [{ "date": "2026-11-16", "occasion": "office", "outfit": { "index": 0, "title": "…", "explanation": "…", "source": "model", "slots": [], "missing": [] } }],
+  "gapFilled": false }
 ```
-`outfit` can be null for a day that could not be dressed.
+A day the wardrobe cannot dress is dressed with picks (gap filling, see `OutfitResult`); `outfit` is null only when nothing can be picked either.
 
 **`stylistPack`** — `PackResult`
 ```json
@@ -502,11 +533,14 @@ Up to 3 suggestions. `source: "rule"` = rule-based fallback: `title` and `explan
   "items": [{ "itemId": "…", "plannedWears": 2 }],
   "days": [{ "date": "2027-03-01", "label": "Uçuş + akşam yemeği", "occasion": "dinner", "slots": [{ "slot": "top", "itemId": "…", "productId": null }] }],
   "missing": [{ "slot": "outerwear", "category": "outerwear", "reason": "rain", "productId": null }],
-  "cabinLimit": 12, "cabinTrimmed": false, "droppedItemIds": [] }
+  "cabinLimit": 12, "cabinTrimmed": false, "droppedItemIds": [], "gapFilled": false }
 ```
+`missing[]`: `{ "slot", "category", "reason", "productId", "libraryItemId" }` — a generic placeholder (`noShoes`, `rain`,
+`cold`) names a concrete library / shop pick when there is one. A wardrobe that cannot dress the trip is packed with picks:
+they are listed in `missing` only (never in `items` or the day `slots`), `gapFilled: true`.
 `cabinLimit` = the piece limit applied to this cabin-only trip (`null` for a normal trip or when the limit is 0). `cabinTrimmed: true` = pieces were left out to stay within it; `droppedItemIds` lists the pieces a rule removed from the stylist's list (empty when the shorter list was built from scratch by the rule-based fallback, `source: "rule"`).
 
-**`tryOn`** `{ "tryOnImageId": "…" }` · **`palette`** `{ "seasonTypeId": "…", "lowConfidence": false }`
+**`tryOn`** `{ "tryOnImageId": "…" }` (failed with `photoUnsuitable`: `{ "photoIssue", "photoKind" }`) · **`palette`** `{ "seasonTypeId": "…", "lowConfidence": false }`
 
 ---
 

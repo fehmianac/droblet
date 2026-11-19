@@ -13,7 +13,8 @@ camelCase JSON and enum strings, ProblemDetails with a stable snake_case `code`,
 | `weight` | Consent 3 — weight | saving a body profile **with** `weightKg` (weight stays optional) |
 | `contacts` | Consent 4 — finding friends from contacts | contact salt and match |
 | `marketingNotifications` | Consent 5 — marketing notifications | switching on `weeklyEdit` / `priceDrop`; sending either push |
-| `crossBorderTransfer` | Consent 6 — transfers abroad | together with `bodyPhotoAi` / `facePhotoPalette` (OpenAI, US, processes the photos) |
+| `crossBorderTransfer` | Consent 6 — transfers abroad | together with `bodyPhotoAi` / `facePhotoPalette` / `facePhotoTryOn` (OpenAI, US, processes the photos) |
+| `facePhotoTryOn` | Consent 7 — face photo and "See it on me" (new purpose, lawyer to approve) | try-on on the **face path**: no body photo, the face photo + body type + height / size build the figure |
 
 - **Versions** come from configuration, `Consents:Versions:{type}` (Api and Notifier `appsettings.json`, overridable from
   Parameter Store); the default is `2026-11-19`, the date of the current drafts. Publishing a new text = bumping its version:
@@ -28,7 +29,7 @@ camelCase JSON and enum strings, ProblemDetails with a stable snake_case `code`,
 
 | Method | Path | Body | Result / errors |
 |---|---|---|---|
-| GET | `v1/tenant/consents` | — | `ConsentsDto` — always all six types |
+| GET | `v1/tenant/consents` | — | `ConsentsDto` — always all seven types (enum order; `facePhotoTryOn` last) |
 | PUT | `v1/tenant/consents` | `{ "consents": [ { "type", "granted", "version" } ], "source": "tryon", "locale": "tr" }` | `ConsentsDto`. `409 consent_version_outdated` when a grant names a version that is not current (nothing is written). `400`: `consents_required` (1–12), `consent_type_invalid`, `consent_version_required` (on a grant), `consent_source_invalid` (snake_case ≤ 40), `language_unsupported`. |
 | GET | `v1/tenant/consents/history` | — | `{ "items": [ { "type", "granted", "version", "at", "locale", "source" } ] }`, newest first |
 
@@ -39,21 +40,24 @@ camelCase JSON and enum strings, ProblemDetails with a stable snake_case `code`,
     "grantedAt": "2026-11-19T08:00:00Z", "withdrawnAt": null, "locale": "tr", "source": "tryon" },
   { "type": "weight", "granted": false, "version": null, "currentVersion": "2026-11-19", "valid": false,
     "grantedAt": null, "withdrawnAt": null, "locale": null, "source": null }
-  // … all six
+  // … all seven
 ] }
 ```
 
 - `locale` defaults to the profile language. `source` says where the decision was made (`tryon`, `body_photo`,
   `face_photo`, `palette`, `weight`, `contacts`, `marketing_card`, `settings`, `onboarding`, …; the server writes
   `photo_deleted` itself).
-- A decision equal to the current state is a no-op (no audit row). "Not now" on a never-given consent is not recorded.
+- A decision equal to the current state is a no-op (no audit row). "Not now" on a never-given consent is not recorded —
+  **except** with `source: "onboarding"`: the all-in-one consent step (onboarding, and once for existing accounts) sends a
+  decision for every purpose, and an unticked box there is recorded as declined (`granted: false`, `version` set). The app
+  shows that step while any record still has `version: null`.
 - `grantedAt` keeps the last grant after a withdrawal, so the settings list can show both dates.
 - **Side effects of a withdrawal**: `marketingNotifications` → `weeklyEdit` and `priceDrop` off and both send lists
   cleared; `weight` → the stored weight is cleared. Withdrawing a photo consent does **not** delete the photo by itself —
   the app offers the existing delete endpoints.
 - **Deleting a photo counts as withdrawing its consent** (legal text, "withdrawing your consent"):
-  `DELETE v1/tenant/photo/body/{id}` → `bodyPhotoAi`, `DELETE v1/tenant/photo/face/{id}` → `facePhotoPalette`,
-  `DELETE v1/tenant/photo` → both (source `photo_deleted`).
+  `DELETE v1/tenant/photo/body/{id}` → `bodyPhotoAi`, `DELETE v1/tenant/photo/face/{id}` → `facePhotoPalette` and
+  `facePhotoTryOn` (the face-path try-on images go too), `DELETE v1/tenant/photo` → all three (source `photo_deleted`).
 
 ### Enforcement
 
@@ -67,14 +71,15 @@ A gated endpoint answers before its handler runs:
 | Endpoint | Required |
 |---|---|
 | `POST v1/tenant/photo/upload-url` · `PUT v1/tenant/photo/{kind}` | body: `bodyPhotoAi` + `crossBorderTransfer`; face: `facePhotoPalette` + `crossBorderTransfer` |
-| `POST v1/tenant/tryon` · `POST v1/tenant/tryon/plan-week` | `bodyPhotoAi` + `crossBorderTransfer` |
+| `POST v1/tenant/tryon` · `POST v1/tenant/tryon/plan-week` | the path the render takes now: active body photo → `bodyPhotoAi` + `crossBorderTransfer`; face photo only → `facePhotoTryOn` + `crossBorderTransfer`; no photo → `bodyPhotoAi` + `crossBorderTransfer` |
 | `POST v1/tenant/palette/analyze` | `facePhotoPalette` + `crossBorderTransfer` |
 | `POST v1/tenant/contacts/salt` · `POST v1/tenant/contacts/match` | `contacts` |
 | `PUT v1/tenant/body-profile` with `weightKg` ≠ null | `weight` |
 | `PUT v1/tenant/user/me/notifications` with `weeklyEdit` or `priceDrop` = true | `marketingNotifications` |
 
 The Notifier checks `marketingNotifications` again at send time, so a switch stored before consents existed (or left on
-after a text change) sends nothing. Existing accounts without records simply get `403` on next use and the app asks.
+after a text change) sends nothing. Existing accounts without records see the all-in-one consent step once on next app
+open; a guard still answers `403` (and the app opens its just-in-time sheet) when a needed consent was declined.
 `GET v1/tenant/tryon` (cached image lookup) and quotes are not gated.
 
 ## 3. Age confirmation (18+)
