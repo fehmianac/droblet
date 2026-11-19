@@ -106,6 +106,8 @@ internal sealed class AiAdminSmokeCommand(IServiceProvider services, OpsArgument
                 return 1;
             }
             userToken = body!["accessToken"]!.GetValue<string>();
+            // Same set-up as ai-smoke: a test premium (admin service, audited as ops:github-actions), all consents, library pieces.
+            await services.GetRequiredService<IAdminAppUserService>().GrantTestPremiumAsync(OpsHost.Actor, body["userId"]!.GetValue<string>(), 1, "ai-admin-smoke", null, ct);
             var consents = new JsonArray(AiSmokeCommand.ConsentTypes.Select(t => (JsonNode)new JsonObject { ["type"] = t, ["granted"] = true, ["version"] = ConsentOptions.DefaultVersion }).ToArray());
             await CallAsync(HttpMethod.Put, "v1/tenant/consents", new JsonObject { ["consents"] = consents, ["source"] = "onboarding", ["locale"] = "tr" }, userToken, ct);
             var rows = new JsonArray(AiSmokeCommand.LibraryPieces.Select(id => (JsonNode)new JsonObject { ["clientMutationId"] = Ulid.New(), ["libraryItemId"] = id }).ToArray());
@@ -115,6 +117,8 @@ internal sealed class AiAdminSmokeCommand(IServiceProvider services, OpsArgument
             (status, body) = await CallAsync(HttpMethod.Post, "v1/tenant/stylist/outfit",
                 new JsonObject { ["requestId"] = Ulid.New(), ["date"] = DateTime.UtcNow.ToString("yyyy-MM-dd"), ["occasion"] = "weekend", ["onlyMyWardrobe"] = true }, userToken, ct);
             var jobId = body?["id"]?.GetValue<string>() ?? body?["job"]?["id"]?.GetValue<string>();
+            if (jobId is null)
+                output.Line($"POST v1/tenant/stylist/outfit → {status}: {Truncate(body?.ToJsonString() ?? "", 600)}");
             JsonNode? job = null;
             while (jobId is not null && watch.Elapsed < TimeSpan.FromMinutes(4))
             {
@@ -128,7 +132,7 @@ internal sealed class AiAdminSmokeCommand(IServiceProvider services, OpsArgument
             var sources = string.Join(",", suggestions.Select(s => s?["source"]?.GetValue<string>()).Distinct());
             Check("stylist outfit job uses the published prompt (titles start with \"QA \")",
                 job?["status"]?.GetValue<string>() == "completed" && titles.Count > 0 && titles.All(t => t.StartsWith("QA", StringComparison.Ordinal)), watch.Elapsed,
-                $"job {jobId} {job?["status"]}, source {sources}, titles: {string.Join(" | ", titles.Select(t => $"“{t}”"))}");
+                $"POST {status}, job {jobId} {job?["status"]} {job?["failure"]}, source {sources}, titles: {string.Join(" | ", titles.Select(t => $"“{t}”"))}");
         }
         finally
         {
