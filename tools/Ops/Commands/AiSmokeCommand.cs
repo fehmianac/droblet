@@ -67,7 +67,7 @@ internal sealed partial class AiSmokeCommand(IServiceProvider services, OpsArgum
         {
             // ── account ──────────────────────────────────────────────────────────────────────────────────────────
             var password = "Smoke-" + Guid.NewGuid().ToString("N");
-            var (status, body, elapsed) = await CallAsync(HttpMethod.Post, "v1/auth/register", new JsonObject { ["name"] = "AI Smoke", ["email"] = email, ["password"] = password }, ct);
+            var (status, body, elapsed) = await CallAsync(HttpMethod.Post, "v1/auth/register", new JsonObject { ["name"] = "AI Smoke", ["email"] = email, ["password"] = password, ["ageConfirmed"] = true }, ct);
             Add("POST v1/auth/register", status.ToString(), elapsed, status == 201 ? null : Code(body), email);
             if (status != 201)
                 return 1;
