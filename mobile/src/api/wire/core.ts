@@ -217,6 +217,8 @@ export function toEntitlement(wire: EntitlementWire): Entitlement {
     credits: {
       monthlyAllowance: wire.credits.monthlyAllowance,
       remaining: wire.credits.totalRemaining,
+      allowanceRemaining: wire.credits.allowanceRemaining,
+      extraRemaining: wire.credits.packRemaining,
       // Null for an account without a subscription period; the calendar month is the app's neutral fallback.
       resetsAt: wire.credits.resetsAt ?? startOfNextMonth(),
     },
