@@ -28,7 +28,7 @@ const routes = {
     version: 1,
     updatedAt: iso(now),
   }),
-  'GET /v1/tenant/body-profile': () => ({ heightCm: 168, weightKg: null, size: 'm', version: 1, updatedAt: iso(now) }),
+  'GET /v1/tenant/body-profile': () => ({ heightCm: 168, weightKg: null, size: 'm', bodyType: 'hourglass', version: 1, updatedAt: iso(now) }),
   // A member with most of this month's AI images left (the Profil credit counter).
   'GET /v1/tenant/entitlement': () => ({
     tier: 'premium',
@@ -38,13 +38,14 @@ const routes = {
     credits: { monthlyAllowance: 30, allowanceRemaining: 24, packRemaining: 0, totalRemaining: 24, resetsAt: null },
     itemRecognition: { limit: null, used: 14, remaining: null },
   }),
-  'GET /v1/tenant/profile': () => ({
+  'GET /v1/tenant/profile': (req) => ({
     tenantId: 'tenant_capture',
     displayName: 'Damla',
     handle: 'damla',
     email: 'damla@example.com',
     closetVisibility: 'followersOnly',
-    language: process.env.CAPTURE_LANG ?? 'tr',
+    // The capture language (the app sends it as Accept-Language), so the profile never switches the app back.
+    language: process.env.CAPTURE_LANG ?? ((req.headers['accept-language'] ?? '').toLowerCase().startsWith('en') ? 'en' : 'tr'),
     cityId: null,
     version: 1,
     updatedAt: iso(now),
@@ -59,7 +60,7 @@ createServer((req, res) => {
   console.log(`${req.method} ${path} -> ${status}`);
   if (handler) {
     res.writeHead(200, { 'content-type': 'application/json' });
-    res.end(JSON.stringify(handler()));
+    res.end(JSON.stringify(handler(req)));
   } else if (status === 404) {
     res.writeHead(404, { 'content-type': 'application/problem+json' });
     res.end(JSON.stringify({ status: 404, code: 'not_found' }));

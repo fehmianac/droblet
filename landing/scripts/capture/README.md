@@ -4,7 +4,9 @@
 feature reads the app's typed fixtures (`EXPO_PUBLIC_DROBLET_FIXTURES=1`, see `mobile/src/api/dataSource.ts`),
 so the screens show rich, realistic content without a backend. Signing in is the one thing fixtures do not
 cover; the build is pointed at `mock-auth.mjs`, a small local server that answers sign-in, the profile, the
-style / body profile and the entitlement (a member with 24 of 30 AI images left, shown on Profil). No account
+style / body profile (complete, so no "Profilini tamamla" card) and the entitlement (a member with 24 of 30 AI images
+left, shown on Profil — the fixtures' credit balance matches it). In English the fixtures' own text (items, looks,
+weekly edit, stylist, trips) is English too (`mobile/src/fixtures/showcase.ts`). No account
 is created anywhere. The paywall is not used: its prices are placeholder data and the site says the price is
 shown in the store.
 
@@ -41,12 +43,13 @@ The script
 
 1. builds and installs the Release showcase build (`--build`; leave it out when the app is already installed):
    `EXPO_PUBLIC_DROBLET_FIXTURES=1 DROBLET_API_BASE_URL=http://127.0.0.1:4010 npx expo run:ios --configuration Release --device <udid> --no-bundler`;
-2. overrides the status bar (9:41, full battery, 4 bars, Wi-Fi);
+2. overrides the status bar (9:41, full battery not charging, 4 bars, Wi-Fi);
 3. starts `mock-auth.mjs` on port 4010;
 4. runs `screens.yaml` with Maestro once in Turkish (`AppleLanguages (tr)`, `tr_TR`) and once in English
    (`(en)`, `en_GB`): sign in, then one app link per screen (`open.yaml` confirms the "Open in Droblet?" prompt);
 5. scales every capture to 1290 px tall (`sips`) and writes WebP at quality 90 (`cwebp`) into
-   `public/screens/{tr,en}/`.
+   `public/screens/{tr,en}/`. With `CAPTURE_RAW_DIR=<dir>` it also keeps the full-size PNGs as `<dir>/{tr,en}/<name>.png`
+   — the input of the store listing screenshots (`docs/store-listing/frames/render.sh`).
 
 **Without a native build** (low disk space, or a Release simulator build of the same commit already exists in
 DerivedData — the 2026-11-19 set was made this way): copy that `Droblet.app`, replace its JavaScript with a
