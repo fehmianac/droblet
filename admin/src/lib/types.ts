@@ -18,7 +18,8 @@ export type Permission =
   | 'moderation.manage'
   | 'settings.manage'
   | 'admins.manage'
-  | 'audit.view';
+  | 'audit.view'
+  | 'ai.manage';
 
 export interface AdminMe {
   id: string;
@@ -339,7 +340,7 @@ export interface AdminUser {
 export interface AuditEntry {
   id: string;
   at: string;
-  adminId: string;
+  adminId: string | null;
   adminEmail: string | null;
   action: string;
   targetType: string | null;
@@ -347,4 +348,123 @@ export interface AuditEntry {
   before: string | null;
   after: string | null;
   ip: string | null;
+}
+
+// ── AI prompts and models (docs/api/admin.md §5b) ──────────────────────────────────────────────────────
+
+export type AiPromptKind = 'instructions' | 'fragment' | 'request' | 'image' | 'schema';
+
+export interface AiPromptFallback {
+  at: string;
+  fromVersion: number;
+  toVersion: number;
+  failures: number;
+  reason: string;
+  acknowledged: boolean;
+}
+
+export interface AiPromptSummary {
+  key: string;
+  feature: string;
+  operation: string;
+  kind: AiPromptKind;
+  position: string;
+  description: string;
+  editable: boolean;
+  publishedVersion: number;
+  overridden: boolean;
+  publishedBy: string | null;
+  publishedAt: string | null;
+  hasDraft: boolean;
+  draftUpdatedBy: string | null;
+  draftUpdatedAt: string | null;
+  fallback: AiPromptFallback | null;
+}
+
+export interface AiPromptVariable {
+  name: string;
+  required: boolean;
+  description: string;
+  sample: string;
+}
+
+export interface AiPromptVersion {
+  version: number;
+  action: 'publish' | 'rollback' | 'auto_fallback';
+  text: string | null;
+  sourceVersion: number | null;
+  author: string | null;
+  at: string;
+  note: string | null;
+  live: boolean;
+}
+
+export interface AiPromptDetail {
+  summary: AiPromptSummary;
+  defaultText: string;
+  publishedText: string | null;
+  draftText: string | null;
+  draftBaseVersion: number | null;
+  variables: AiPromptVariable[];
+  maxLength: number | null;
+  defaultStaticPrefix: number;
+  trialMode: 'chat' | 'preview' | 'none';
+  imagesRequired: number;
+  sampleInput: string | null;
+  schema: string | null;
+  warnings: string[];
+  history: AiPromptVersion[];
+}
+
+export type AiTrialStatus = 'queued' | 'running' | 'succeeded' | 'failed';
+
+export interface AiTrial {
+  id: string;
+  type: 'prompt' | 'model' | 'models';
+  status: AiTrialStatus;
+  createdAt: string;
+  finishedAt: string | null;
+  key: string | null;
+  model: string | null;
+  effort: string | null;
+  output: string | null;
+  parsed: boolean | null;
+  parseError: string | null;
+  error: string | null;
+  latencyMs: number | null;
+  usedModel: string | null;
+  inputTokens: number | null;
+  cachedTokens: number | null;
+  outputTokens: number | null;
+  systemPrompt: string | null;
+  userPrompt: string | null;
+}
+
+export interface AiTrialRequest {
+  type: 'prompt' | 'model' | 'models';
+  key?: string;
+  text?: string;
+  input?: string;
+  imageUrls?: string[];
+  model?: string;
+  modelKind?: 'text' | 'image';
+  effort?: string | null;
+  serviceTier?: string | null;
+}
+
+export interface AiSettingField {
+  key: string;
+  type: 'int' | 'bool' | 'model' | 'choice' | 'operationList';
+  min?: number | null;
+  max?: number | null;
+  value: number | boolean | string | null;
+  options?: string[] | null;
+  nullable?: boolean;
+}
+
+export interface AiModelSettings {
+  settings: { group: string; parameters: string[]; fields: AiSettingField[] };
+  availableModels: string[];
+  modelsFetchedAt: string | null;
+  reloadSeconds: number;
 }
