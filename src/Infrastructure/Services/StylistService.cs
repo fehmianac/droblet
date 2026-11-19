@@ -213,8 +213,18 @@ public sealed class StylistService(
     private async Task<LookEntity?> BuildLookAsync(string tenantId, string lookId, SuggestedOutfit suggestion, string? name, Occasion? occasion,
         bool favorite, DateTime now, CancellationToken ct)
     {
+        // Library pieces Droblet picked for a thin wardrobe join the look once the user has added them ("Gardıroba ekle");
+        // a library piece not added yet is left out (the app adds them before saving).
+        var libraryIds = suggestion.Missing.Where(m => m.LibraryItemId is not null).Select(m => m.LibraryItemId!).ToHashSet(StringComparer.Ordinal);
+        var owned = libraryIds.Count == 0
+            ? []
+            : (await repository.GetAllAsync<ItemEntity>(ItemEntity.GetPk(tenantId), ct))
+                .Where(i => i.LibraryItemId is not null && libraryIds.Contains(i.LibraryItemId))
+                .GroupBy(i => i.LibraryItemId!).ToDictionary(g => g.Key, g => g.OrderBy(i => i.CreatedAt).First().Id, StringComparer.Ordinal);
         var slots = suggestion.Slots
             .Concat(suggestion.Missing.Where(m => m.ProductId is not null).Select(m => new SlotRef(m.Slot, ProductId: m.ProductId)))
+            .Concat(suggestion.Missing.Where(m => m.LibraryItemId is not null && owned.ContainsKey(m.LibraryItemId))
+                .Select(m => new SlotRef(m.Slot, ItemId: owned[m.LibraryItemId!])))
             .ToList();
         // Pieces may have been deleted since the draft was made: the same rule set decides again at accept time.
         if ((await looks.ValidateSlotsAsync(tenantId, slots, ct)).Count > 0)
