@@ -15,6 +15,7 @@ using Infrastructure.Services.Purchases;
 using Infrastructure.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 
 namespace Infrastructure;
@@ -80,10 +81,18 @@ public static class DependencyInjection
     {
         // OpenAI over plain HTTP. With Ai:Enabled = false (default) or a missing key / model id every call throws
         // AiProviderException, so jobs fail with ProviderError and credits are refunded — same as before.
+        // Admin prompt overrides (published in the panel; read through a ~60 s cache, code default when absent or unreachable).
+        services.TryAddSingleton<Domain.Services.Admin.IAuditLog, Services.Admin.AuditLog>();
+        services.AddSingleton(sp => new PromptRegistry(
+            new Lazy<IRepository>(sp.GetRequiredService<IRepository>), sp.GetRequiredService<IOptionsMonitor<AiOptions>>(),
+            new Lazy<Domain.Services.Admin.IAuditLog>(sp.GetRequiredService<Domain.Services.Admin.IAuditLog>), sp.GetRequiredService<TimeProvider>(),
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<PromptRegistry>>()));
+        services.AddSingleton<IPromptRegistry>(sp => sp.GetRequiredService<PromptRegistry>());
         services.AddSingleton(sp => new OpenAiProvider(
             new HttpClient(OpenAiProvider.CreateHandler()) { Timeout = Timeout.InfiniteTimeSpan },
             sp.GetRequiredService<IOptionsMonitor<AiOptions>>(),
-            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<OpenAiProvider>>()));
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<OpenAiProvider>>(),
+            sp.GetRequiredService<IPromptRegistry>()));
         services.AddSingleton<IAiProvider>(sp => sp.GetRequiredService<OpenAiProvider>());
         services.AddSingleton<IImageCleanup>(sp => sp.GetRequiredService<OpenAiProvider>());
         services.AddSingleton<IGarmentVision>(sp => sp.GetRequiredService<OpenAiProvider>());

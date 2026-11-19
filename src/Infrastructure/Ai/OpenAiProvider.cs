@@ -26,7 +26,7 @@ namespace Infrastructure.Ai;
 /// 408 / 429 / 5xx and network errors -> HttpRequestException (SQS retries, last attempt fails the job).
 /// Nothing but ids, status codes and token counts is ever logged — no prompt, no answer, no image, no key.
 /// </summary>
-public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> options, ILogger<OpenAiProvider> logger)
+public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> options, ILogger<OpenAiProvider> logger, IPromptRegistry? prompts = null)
     : IAiProvider, IImageCleanup, IGarmentVision, ITryOnRenderer, IStylistModel, IPaletteAnalyzer, IItemDetector, IItemImageCleanup, IPhotoInspector,
       IItemMatcher, IFastItemDetector
 {
@@ -84,14 +84,38 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
     }
 
     // ── Capabilities ──────────────────────────────────────────────────────────────────────────────────────────────
+    // Every prompt text goes through PromptAsync: the published admin override (IPromptRegistry) when there is one,
+    // else the code default from OpenAiPrompts exactly as shipped. An unusable answer of a call that used an override
+    // is reported to the registry (runtime safety); the call itself behaves exactly as before.
 
-    public Task<string> GenerateAsync(StylistPrompt prompt, CancellationToken ct) =>
-        ChatAsync(OpenAiPrompts.Stylist(prompt.Kind, prompt.Language), prompt.InputJson, (ImageInput?)null, AiSchemas.NameFor(prompt.Kind), AiSchemas.For(prompt.Kind), ct);
+    public async Task<string> GenerateAsync(StylistPrompt prompt, CancellationToken ct)
+    {
+        var used = new List<PromptOverride>();
+        var system = await PromptAsync(PromptCatalog.StylistInstructions(prompt.Kind), OpenAiPrompts.StylistInstructions(prompt.Kind), used, ct)
+                     + await LanguageAsync(prompt.Language, used, ct);
+        var content = await ChatAsync(system, prompt.InputJson, [], AiSchemas.NameFor(prompt.Kind), AiSchemas.For(prompt.Kind), used, ct);
+        // The job parses the answer itself (and falls back to its rules); here it is only checked for the safety switch.
+        if (!StylistAnswerParses(prompt.Kind, content))
+            await ReportAsync(used, "invalid_output", ct);
+        return content;
+    }
+
+    /// <summary>Does a stylist answer deserialize into the DTO the job reads (ModelOutfitOutput / ModelWeekOutput / ModelPackOutput)?</summary>
+    public static bool StylistAnswerParses(JobKind kind, string content) => kind switch
+    {
+        JobKind.StylistOutfit => StylingJson.TryDeserialize<ModelOutfitOutput>(content) is not null,
+        JobKind.StylistWeek => StylingJson.TryDeserialize<ModelWeekOutput>(content) is not null,
+        JobKind.StylistPack => StylingJson.TryDeserialize<ModelPackOutput>(content) is not null,
+        _ => false,
+    };
 
     public async Task<GarmentSuggestion> DescribeAsync(ImageInput garmentImage, string language, CancellationToken ct)
     {
-        var content = await ChatAsync(OpenAiPrompts.GarmentVision(language), "Describe the garment in this photo.", garmentImage, AiSchemas.GarmentDraft, AiSchemas.GarmentSchema(), ct);
-        return OpenAiPayloads.ParseGarment(content);
+        var used = new List<PromptOverride>();
+        var system = await PromptAsync(PromptCatalog.DescribeInstructions, OpenAiPrompts.GarmentVisionBase, used, ct) + await LanguageAsync(language, used, ct);
+        var user = await PromptAsync(PromptCatalog.DescribeRequest, OpenAiPrompts.GarmentVisionRequest, used, ct);
+        var content = await ChatAsync(system, user, [garmentImage], AiSchemas.GarmentDraft, AiSchemas.GarmentSchema(), used, ct);
+        return await ParseAsync(OpenAiPayloads.ParseGarment, content, used, ct);
     }
 
     public Task<IReadOnlyList<DetectedItem>> DetectItemsAsync(ImageInput photo, string language, CancellationToken ct) =>
@@ -100,9 +124,11 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
     /// <summary>The same detection; <paramref name="fast"/> = Ai:FastTextModel when it is set (outfit import).</summary>
     public async Task<IReadOnlyList<DetectedItem>> DetectItemsAsync(ImageInput photo, string language, bool fast, CancellationToken ct)
     {
-        var content = await ChatAsync(OpenAiPrompts.ItemDetection(language), OpenAiPrompts.ItemDetectionRequest, [photo], AiSchemas.ItemDetection,
-            AiSchemas.ItemDetectionSchema(), ct, highDetail: true, fast: fast);
-        return OpenAiPayloads.ParseDetection(content);
+        var used = new List<PromptOverride>();
+        var system = await PromptAsync(PromptCatalog.DetectInstructions, OpenAiPrompts.ItemDetectionBase, used, ct) + await LanguageAsync(language, used, ct);
+        var user = await PromptAsync(PromptCatalog.DetectRequest, OpenAiPrompts.ItemDetectionRequest, used, ct);
+        var content = await ChatAsync(system, user, [photo], AiSchemas.ItemDetection, AiSchemas.ItemDetectionSchema(), used, ct, highDetail: true, fast: fast);
+        return await ParseAsync(OpenAiPayloads.ParseDetection, content, used, ct);
     }
 
     /// <summary>Outfit import: is the cropped piece (first image) the same physical piece as one of the candidates?</summary>
@@ -110,33 +136,165 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
     {
         if (candidates.Count == 0)
             return new ItemMatchResult(null, 1);
-        var content = await ChatAsync(OpenAiPrompts.ItemMatch, OpenAiPrompts.ItemMatchRequest(candidates.Count, pieceHint), [crop, .. candidates], AiSchemas.ItemMatch,
-            AiSchemas.ItemMatchSchema(), ct, fast: fast);
-        return OpenAiPayloads.ParseMatch(content, candidates.Count);
+        var used = new List<PromptOverride>();
+        var system = await PromptAsync(PromptCatalog.MatchInstructions, OpenAiPrompts.ItemMatch, used, ct);
+        var user = await PromptAsync(PromptCatalog.MatchRequest, OpenAiPrompts.ItemMatchRequest(candidates.Count, pieceHint), used, ct,
+            OpenAiPrompts.ItemMatchRequestValues(candidates.Count, pieceHint));
+        var content = await ChatAsync(system, user, [crop, .. candidates], AiSchemas.ItemMatch, AiSchemas.ItemMatchSchema(), used, ct, fast: fast);
+        return await ParseAsync(c => OpenAiPayloads.ParseMatch(c, candidates.Count), content, used, ct);
     }
 
     public async Task<PaletteAnalysis> AnalyzeAsync(ImageInput facePhoto, CancellationToken ct)
     {
-        var content = await ChatAsync(OpenAiPrompts.Palette, "Determine the seasonal colour type of the person in this photo.", facePhoto, AiSchemas.PaletteSeason, AiSchemas.PaletteSchema(), ct);
-        return OpenAiPayloads.ParsePalette(content);
+        var used = new List<PromptOverride>();
+        var system = await PromptAsync(PromptCatalog.PaletteInstructions, OpenAiPrompts.Palette, used, ct);
+        var user = await PromptAsync(PromptCatalog.PaletteRequest, OpenAiPrompts.PaletteRequest, used, ct);
+        var content = await ChatAsync(system, user, [facePhoto], AiSchemas.PaletteSeason, AiSchemas.PaletteSchema(), used, ct);
+        return await ParseAsync(OpenAiPayloads.ParsePalette, content, used, ct);
     }
 
-    public Task<ImageInput> CleanupAsync(ImageInput garmentPhoto, CancellationToken ct) =>
-        EditImageAsync(OpenAiPrompts.Cleanup, [garmentPhoto], ImageUse.Cleanup, null, "image_cleanup", ct);
+    public async Task<ImageInput> CleanupAsync(ImageInput garmentPhoto, CancellationToken ct) =>
+        await EditImageAsync(await PromptAsync(PromptCatalog.CleanupGarment, OpenAiPrompts.Cleanup, [], ct), [garmentPhoto], ImageUse.Cleanup, null, "image_cleanup", ct);
 
-    public Task<ImageInput> CleanupItemAsync(ImageInput crop, ItemCategoryHint? category, string? subcategory, CancellationToken ct) =>
-        EditImageAsync(OpenAiPrompts.CleanupItem(category, subcategory), [crop], ImageUse.Cleanup, null, "image_cleanup", ct);
+    public async Task<ImageInput> CleanupItemAsync(ImageInput crop, ItemCategoryHint? category, string? subcategory, CancellationToken ct)
+    {
+        var prompt = await PromptAsync(PromptCatalog.CleanupItem(SubcategoryCatalog.IsJewellery(subcategory)), OpenAiPrompts.CleanupItem(category, subcategory), [], ct,
+            new Dictionary<string, string> { ["piece"] = OpenAiPrompts.CleanupPiece(category, subcategory) });
+        return await EditImageAsync(prompt, [crop], ImageUse.Cleanup, null, "image_cleanup", ct);
+    }
 
-    public Task<ImageInput> RenderAsync(ImageInput bodyPhoto, IReadOnlyList<ImageInput> garments, CancellationToken ct, string? quality = null) =>
-        EditImageAsync(OpenAiPrompts.TryOn(garments.Count), [bodyPhoto, .. garments], ImageUse.TryOn, quality, "image_tryon", ct);
+    public async Task<ImageInput> RenderAsync(ImageInput bodyPhoto, IReadOnlyList<ImageInput> garments, CancellationToken ct, string? quality = null)
+    {
+        var prompt = await PromptAsync(PromptCatalog.TryOnBody, OpenAiPrompts.TryOn(garments.Count), [], ct,
+            new Dictionary<string, string> { ["garmentCount"] = garments.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) });
+        return await EditImageAsync(prompt, [bodyPhoto, .. garments], ImageUse.TryOn, quality, "image_tryon", ct);
+    }
 
-    public Task<ImageInput> RenderFromFaceAsync(ImageInput facePhoto, IReadOnlyList<ImageInput> garments, TryOnFigure figure, CancellationToken ct, string? quality = null) =>
-        EditImageAsync(OpenAiPrompts.TryOnFromFace(garments.Count, figure), [facePhoto, .. garments], ImageUse.TryOn, quality, "image_tryon", ct);
+    public async Task<ImageInput> RenderFromFaceAsync(ImageInput facePhoto, IReadOnlyList<ImageInput> garments, TryOnFigure figure, CancellationToken ct, string? quality = null)
+    {
+        var prompt = await PromptAsync(PromptCatalog.TryOnFace, OpenAiPrompts.TryOnFromFace(garments.Count, figure), [], ct,
+            OpenAiPrompts.TryOnFromFaceValues(garments.Count, figure));
+        return await EditImageAsync(prompt, [facePhoto, .. garments], ImageUse.TryOn, quality, "image_tryon", ct);
+    }
 
     public async Task<PhotoInspection> InspectAsync(ImageInput photo, PhotoKind kind, CancellationToken ct)
     {
-        var content = await ChatAsync(OpenAiPrompts.PhotoCheck(kind), OpenAiPrompts.PhotoCheckRequest, photo, AiSchemas.PhotoCheck, AiSchemas.PhotoCheckSchema(), ct);
-        return OpenAiPayloads.ParsePhotoCheck(content);
+        var used = new List<PromptOverride>();
+        var system = await PromptAsync(PromptCatalog.PhotoCheckInstructions(kind), OpenAiPrompts.PhotoCheck(kind), used, ct);
+        var user = await PromptAsync(PromptCatalog.PhotoCheckRequest, OpenAiPrompts.PhotoCheckRequest, used, ct);
+        var content = await ChatAsync(system, user, [photo], AiSchemas.PhotoCheck, AiSchemas.PhotoCheckSchema(), used, ct);
+        return await ParseAsync(OpenAiPayloads.ParsePhotoCheck, content, used, ct);
+    }
+
+    // ── Prompts ───────────────────────────────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// The text of <paramref name="key"/>: a dry-run's draft, else the published override rendered with
+    /// <paramref name="values"/> (recorded in <paramref name="used"/>), else <paramref name="codeDefault"/> unchanged.
+    /// </summary>
+    private async ValueTask<string> PromptAsync(string key, string codeDefault, List<PromptOverride> used, CancellationToken ct,
+        IReadOnlyDictionary<string, string>? values = null)
+    {
+        if (PromptDryRun.Current is { } run && run.Drafts.TryGetValue(key, out var draft))
+            return PromptTemplate.Render(draft, values);
+        if (prompts is null)
+            return codeDefault;
+        var published = await prompts.GetAsync(key, ct);
+        if (published is null)
+            return codeDefault;
+        used.Add(published);
+        return PromptTemplate.Render(published.Template, values);
+    }
+
+    private ValueTask<string> LanguageAsync(string? language, List<PromptOverride> used, CancellationToken ct) =>
+        PromptAsync(PromptCatalog.Language, OpenAiPrompts.WriteIn(language), used, ct, new Dictionary<string, string>
+        {
+            ["languageName"] = OpenAiPrompts.LanguageName(language),
+            ["languageCode"] = Localized.Language(language),
+        });
+
+    private async Task<T> ParseAsync<T>(Func<string, T> parse, string content, List<PromptOverride> used, CancellationToken ct)
+    {
+        try
+        {
+            return parse(content);
+        }
+        catch (AiProviderException)
+        {
+            await ReportAsync(used, "invalid_output", ct);
+            throw;
+        }
+    }
+
+    /// <summary>Runtime safety: only calls that used a published override count; dry-runs never do.</summary>
+    private async Task ReportAsync(List<PromptOverride> used, string reason, CancellationToken ct)
+    {
+        if (used.Count == 0 || prompts is null || PromptDryRun.Current is not null)
+            return;
+        try
+        {
+            await prompts.ReportFailureAsync(used, reason, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning("Prompt failure report failed ({Error})", ex.GetType().Name);
+        }
+    }
+
+    // ── Admin probes (model list, model test) ─────────────────────────────────────────────────────────────────────
+
+    /// <summary>The model ids the key can use (GET /v1/models), sorted. Throws like any call (AiProviderException / HttpRequestException).</summary>
+    public async Task<IReadOnlyList<string>> ListModelsAsync(CancellationToken ct)
+    {
+        var settings = RequireKey();
+        using var request = new HttpRequestMessage(HttpMethod.Get, Url(settings, "/v1/models"));
+        var body = await SendAsync(request, settings, "models", new CallInfo(null, null, null, null), ct);
+        return OpenAiPayloads.ModelIds(body);
+    }
+
+    /// <summary>
+    /// One tiny structured chat call with <paramref name="model"/> (answer {"ok": true}; a few tokens) — the admin
+    /// "Test" of a text model with its reasoning effort and service tier.
+    /// </summary>
+    public async Task<ModelProbe> ProbeTextModelAsync(string model, string? effort, string? serviceTier, CancellationToken ct)
+    {
+        var settings = RequireKey();
+        var schema = new JsonObject
+        {
+            ["type"] = "object",
+            ["properties"] = new JsonObject { ["ok"] = new JsonObject { ["type"] = "boolean" } },
+            ["required"] = new JsonArray("ok"),
+            ["additionalProperties"] = false,
+        };
+        var body = OpenAiPayloads.ChatRequest(model, "Health check. Answer with ok = true.", "ping", (ImageInput?)null, "model_test", schema, false,
+            new ChatTuning(effort, serviceTier)).ToJsonString();
+        using var request = new HttpRequestMessage(HttpMethod.Post, Url(settings, ChatPath))
+        {
+            Content = new StringContent(body, Encoding.UTF8, "application/json"),
+        };
+        var started = System.Diagnostics.Stopwatch.GetTimestamp();
+        var response = await SendAsync(request, settings, "model_test", new CallInfo(model, effort, null, null, Encoding.UTF8.GetByteCount(body)), ct);
+        var elapsed = System.Diagnostics.Stopwatch.GetElapsedTime(started);
+        var content = OpenAiPayloads.ParseChatContent(response);
+        return new ModelProbe(OpenAiPayloads.ResponseModel(response) ?? model, (long)elapsed.TotalMilliseconds, content, OpenAiPayloads.Usage(response));
+    }
+
+    /// <summary>An image model is only checked for access (GET /v1/models/{id}): an image call would cost far more than a test should.</summary>
+    public async Task<ModelProbe> ProbeModelAccessAsync(string model, CancellationToken ct)
+    {
+        var settings = RequireKey();
+        using var request = new HttpRequestMessage(HttpMethod.Get, Url(settings, "/v1/models/" + Uri.EscapeDataString(model)));
+        var started = System.Diagnostics.Stopwatch.GetTimestamp();
+        var response = await SendAsync(request, settings, "model_test", new CallInfo(model, null, null, null), ct);
+        return new ModelProbe(OpenAiPayloads.ResponseId(response) ?? model, (long)System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds, response, null);
+    }
+
+    private AiOptions RequireKey()
+    {
+        var settings = options.CurrentValue;
+        if (!settings.HasApiKey)
+            throw new AiProviderException("AI provider 'OpenAI' is not configured (Ai:ApiKey).");
+        return settings;
     }
 
     /// <summary>
@@ -160,12 +318,9 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
     /// <summary>What a call log line and its stage timing carry besides the outcome (never content).</summary>
     private sealed record CallInfo(string? Model, string? Effort, string? ImageSize, string? ImageQuality, long? RequestBytes = null);
 
-    private Task<string> ChatAsync(string system, string userText, ImageInput? image, string schemaName, JsonObject schema, CancellationToken ct, bool highDetail = false) =>
-        ChatAsync(system, userText, image is null ? [] : [image], schemaName, schema, ct, highDetail);
-
     /// <param name="fast">Ai:FastTextModel when it is set, whatever Ai:FastTextOperations lists (outfit import).</param>
-    private async Task<string> ChatAsync(string system, string userText, IReadOnlyList<ImageInput> images, string schemaName, JsonObject schema, CancellationToken ct,
-        bool highDetail = false, bool fast = false)
+    private async Task<string> ChatAsync(string system, string userText, IReadOnlyList<ImageInput> images, string schemaName, JsonObject schema,
+        List<PromptOverride> used, CancellationToken ct, bool highDetail = false, bool fast = false)
     {
         string ModelOf(AiOptions o) => fast && !string.IsNullOrWhiteSpace(o.FastTextModel) ? o.FastTextModel! : o.ModelFor(schemaName);
         var settings = Require(ModelOf);
@@ -176,8 +331,32 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
         {
             Content = new StringContent(body, Encoding.UTF8, "application/json"),
         };
+        var dryRun = PromptDryRun.Current;
+        if (dryRun is not null)
+        {
+            dryRun.SystemPrompt = system;
+            dryRun.UserPrompt = userText;
+        }
+        var started = System.Diagnostics.Stopwatch.GetTimestamp();
         var response = await SendAsync(request, settings, schemaName, new CallInfo(model, tuning.ReasoningEffort, null, null, Encoding.UTF8.GetByteCount(body)), ct);
-        return OpenAiPayloads.ParseChatContent(response);
+        if (dryRun is not null)
+        {
+            dryRun.DurationMs = System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+            dryRun.UsedModel = OpenAiPayloads.ResponseModel(response) ?? model;
+            dryRun.Usage = OpenAiPayloads.Usage(response);
+        }
+        try
+        {
+            var content = OpenAiPayloads.ParseChatContent(response);
+            if (dryRun is not null)
+                dryRun.RawOutput = content;
+            return content;
+        }
+        catch (AiProviderException)
+        {
+            await ReportAsync(used, "refused_or_cut_off", ct);
+            throw;
+        }
     }
 
     private async Task<ImageInput> EditImageAsync(string prompt, IReadOnlyList<ImageInput> images, ImageUse use, string? qualityOverride, string operation, CancellationToken ct)
@@ -271,6 +450,9 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
 public sealed record ChatTuning(string? ReasoningEffort = null, string? ServiceTier = null, string? PromptCacheKey = null);
 
 public sealed record TokenUsage(long? Input, long? Output, long? Cached, long? Reasoning);
+
+/// <summary>Result of an admin model test: the model id the API answered with, the latency and the raw answer.</summary>
+public sealed record ModelProbe(string Model, long LatencyMs, string Output, TokenUsage? Usage);
 
 /// <summary>Request building and response parsing — pure, unit-tested without any network.</summary>
 public static class OpenAiPayloads
@@ -488,6 +670,36 @@ public static class OpenAiPayloads
         }
     }
 
+    /// <summary>The ids of a GET /v1/models answer, sorted (embedding / audio models left out).</summary>
+    public static IReadOnlyList<string> ModelIds(string responseBody)
+    {
+        try
+        {
+            return (JsonNode.Parse(responseBody)?["data"] as JsonArray ?? [])
+                .Select(m => Text(m?["id"])).Where(id => id is not null).Select(id => id!)
+                .Where(id => !id.Contains("embedding", StringComparison.Ordinal) && !id.Contains("tts", StringComparison.Ordinal)
+                             && !id.Contains("whisper", StringComparison.Ordinal) && !id.Contains("transcribe", StringComparison.Ordinal))
+                .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();
+        }
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException or FormatException)
+        {
+            throw new AiProviderException("The model list could not be read.", ex);
+        }
+    }
+
+    /// <summary>Top-level "id" (GET /v1/models/{id}).</summary>
+    public static string? ResponseId(string responseBody)
+    {
+        try
+        {
+            return Text(JsonNode.Parse(responseBody)?["id"]);
+        }
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException or FormatException or ArgumentOutOfRangeException)
+        {
+            return null;
+        }
+    }
+
     /// <summary>error.param — the name of the rejected request field (never a value).</summary>
     public static string? ErrorParam(string responseBody)
     {
@@ -591,10 +803,17 @@ public static class OpenAiPrompts
         }
     }
 
-    private static string WriteIn(string? language) =>
-        $" Write every title, name, label and explanation in {LanguageName(language)} (language code: {Localized.Language(language)}).";
+    /// <summary>The "write in …" suffix of every text prompt (registry key common.language).</summary>
+    public const string LanguageTemplate =
+        " Write every title, name, label and explanation in {{languageName}} (language code: {{languageCode}}).";
 
-    public static string Stylist(JobKind kind, string? language) => (kind switch
+    public static string WriteIn(string? language) =>
+        PromptTemplate.Render(LanguageTemplate, ("languageName", LanguageName(language)), ("languageCode", Localized.Language(language)));
+
+    public static string Stylist(JobKind kind, string? language) => StylistInstructions(kind) + WriteIn(language);
+
+    /// <summary>The stylist system prompt without the language suffix (registry keys stylist.*.instructions).</summary>
+    public static string StylistInstructions(JobKind kind) => kind switch
     {
         JobKind.StylistOutfit =>
             "You are Droblet's personal stylist. The user message is a JSON object with the context (date, season, occasion, weather, " +
@@ -625,13 +844,17 @@ public static class OpenAiPrompts
             "Slot rules: top <- top|dress|beachwear|skiwear, bottom <- bottom|beachwear|skiwear, outerwear <- outerwear|skiwear, shoes <- shoes, bagAccessory <- bag|accessory. " +
             "A dress goes in `top` and leaves `bottom` null. `title` is a short day label (e.g. flight + dinner) in the given language; `explanation` may be null. " + Tone,
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "No stylist prompt for this job kind."),
-    }) + WriteIn(language);
+    };
 
     public static string GarmentVision(string? language) => GarmentVisionBase + WriteIn(language);
 
     public static string ItemDetection(string? language) => ItemDetectionBase + WriteIn(language);
 
     public const string ItemDetectionRequest = "List every wearable piece in this photo, jewellery and small accessories included, each with its box.";
+
+    public const string GarmentVisionRequest = "Describe the garment in this photo.";
+
+    public const string PaletteRequest = "Determine the seasonal colour type of the person in this photo.";
 
     /// <summary>Outfit import (stage B / C): the same physical piece, not a similar one.</summary>
     public const string ItemMatch =
@@ -642,15 +865,25 @@ public static class OpenAiPrompts
         "is clearly the same piece. confidence: 0..1, how sure you are of that answer. Never describe the person.";
 
     public static string ItemMatchRequest(int candidates, string? pieceHint) =>
-        $"First image: the piece{(string.IsNullOrWhiteSpace(pieceHint) ? "" : $" ({pieceHint})")}. Then {candidates} candidate(s), numbered 1 to {candidates} in order. Which candidate is the same piece?";
+        PromptTemplate.Render(ItemMatchRequestTemplate, ItemMatchRequestValues(candidates, pieceHint));
 
-    private const string GarmentVisionBase =
+    /// <summary>{{pieceHint}} = "" or " (hint)"; {{candidates}} = the number of candidates.</summary>
+    public const string ItemMatchRequestTemplate =
+        "First image: the piece{{pieceHint}}. Then {{candidates}} candidate(s), numbered 1 to {{candidates}} in order. Which candidate is the same piece?";
+
+    public static IReadOnlyDictionary<string, string> ItemMatchRequestValues(int candidates, string? pieceHint) => new Dictionary<string, string>
+    {
+        ["pieceHint"] = string.IsNullOrWhiteSpace(pieceHint) ? "" : $" ({pieceHint})",
+        ["candidates"] = candidates.ToString(System.Globalization.CultureInfo.InvariantCulture),
+    };
+
+    public const string GarmentVisionBase =
         "You label one clothing photo for a wardrobe app. Use only the values allowed by the response schema. " +
         "isGarment is false when the photo shows no clothing, shoe, bag or accessory. garmentCount is the number of separate pieces visible. " +
         "colorIds: main colour first, at most 3. name: a short neutral description (max 40 characters). " +
         "confidence: 0..1 per field — be honest, a low value is useful. Leave a field null / empty rather than guessing.";
 
-    private const string ItemDetectionBase =
+    public const string ItemDetectionBase =
         "You catalogue one photo for a wardrobe app. List EVERY distinct wearable piece that is visible: garments (tops, shirts, knitwear, trousers, jeans, skirts, " +
         "dresses, outerwear), shoes, bags, belts, hats, scarves, sunglasses, watches, gloves and jewellery (rings, necklaces, earrings, bracelets, brooches). " +
         "Look carefully for small pieces — jewellery, watches, sunglasses, belts — also when they lie on top of or next to a garment, and for pieces that are only partly visible. " +
@@ -673,8 +906,13 @@ public static class OpenAiPrompts
         "Product photo of exactly this garment: remove the background and anything that is not the garment, centre it, keep its true colours, pattern, fabric and shape, " +
         "plain off-white background, soft even light, no person, no hanger, no text.";
 
-    public static string TryOn(int garmentCount) =>
-        $"The first image is a full-body photo of a person. The following {garmentCount} image(s) are garments. " +
+    public static string TryOn(int garmentCount) => PromptTemplate.Render(TryOnTemplate, ("garmentCount", Count(garmentCount)));
+
+    private static string Count(int value) => value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    /// <summary>Registry key tryon.image.body; {{garmentCount}} = the number of garment images after the body photo.</summary>
+    public const string TryOnTemplate =
+        "The first image is a full-body photo of a person. The following {{garmentCount}} image(s) are garments. " +
         "Show the same person, with the same face, hair, skin tone, body shape and pose, wearing exactly these garments, keeping each garment's colour, pattern and cut. " +
         "Realistic fit and proportions, neutral studio background, full body in frame. Do not change the person's body. No text.";
 
@@ -682,7 +920,11 @@ public static class OpenAiPrompts
     /// Face path (owner decision 4): build a full-body figure from a face photo + the chosen body type, height and size.
     /// Guard in the prompt: the same adult, identity unchanged, fully clothed, neutral pose, no comment on the body.
     /// </summary>
-    public static string TryOnFromFace(int garmentCount, TryOnFigure figure)
+    public static string TryOnFromFace(int garmentCount, TryOnFigure figure) =>
+        PromptTemplate.Render(TryOnFromFaceTemplate, TryOnFromFaceValues(garmentCount, figure));
+
+    /// <summary>{{garmentCount}}, {{bodyShape}}, {{height}} (" about 170 cm tall," or ""), {{size}} (" wearing clothing size M," or "").</summary>
+    public static IReadOnlyDictionary<string, string> TryOnFromFaceValues(int garmentCount, TryOnFigure figure)
     {
         var shape = figure.BodyType switch
         {
@@ -695,12 +937,16 @@ public static class OpenAiPrompts
         };
         var height = figure.HeightCm is { } cm ? $" about {cm} cm tall," : "";
         var size = figure.Size is { } s ? $" wearing clothing size {s}," : "";
-        return $"The first image is a photo of an adult person's face. The following {garmentCount} image(s) are garments. " +
-               $"Create a realistic full-length photo of this same adult person with {shape},{height}{size} standing in a relaxed, neutral pose. " +
+        return new Dictionary<string, string> { ["garmentCount"] = Count(garmentCount), ["bodyShape"] = shape, ["height"] = height, ["size"] = size };
+    }
+
+    /// <summary>Registry key tryon.image.face (the face path).</summary>
+    public const string TryOnFromFaceTemplate =
+               "The first image is a photo of an adult person's face. The following {{garmentCount}} image(s) are garments. " +
+               "Create a realistic full-length photo of this same adult person with {{bodyShape}},{{height}}{{size}} standing in a relaxed, neutral pose. " +
                "Keep the face, facial features, skin tone, hair and apparent age exactly as in the face photo — do not change, beautify or replace the person's identity. " +
                "The person is fully clothed, wearing exactly these garments, keeping each garment's colour, pattern and cut; add plain neutral basics only where a garment is missing so the person is never undressed. " +
                "Never show nudity, underwear alone or a suggestive pose. Never exaggerate the body shape. Neutral studio background, full body in frame, no text.";
-    }
 
     public const string PhotoCheckRequest = "Check this photo.";
 
@@ -717,11 +963,17 @@ public static class OpenAiPrompts
     public const string ProductBackground = "#E8E1D7";
 
     /// <summary>Background removal of one piece's crop: only that piece, on the sand house background; jewellery shown large and sharp.</summary>
-    public static string CleanupItem(ItemCategoryHint? category, string? subcategory)
+    public static string CleanupItem(ItemCategoryHint? category, string? subcategory) =>
+        PromptTemplate.Render(CleanupItemTemplate(SubcategoryCatalog.IsJewellery(subcategory)), ("piece", CleanupPiece(category, subcategory)));
+
+    /// <summary>{{piece}}: the sub-type with spaces ("ankle boots"), else the category in lower case, else "piece".</summary>
+    public static string CleanupPiece(ItemCategoryHint? category, string? subcategory) =>
+        subcategory?.Replace('-', ' ') ?? category?.ToString().ToLowerInvariant() ?? "piece";
+
+    /// <summary>Registry keys cleanup.item.image (jewellery = false) and cleanup.item.jewellery.image.</summary>
+    public static string CleanupItemTemplate(bool jewellery)
     {
-        var piece = subcategory?.Replace('-', ' ') ?? category?.ToString().ToLowerInvariant() ?? "piece";
-        var jewellery = SubcategoryCatalog.IsJewellery(subcategory);
-        return $"Product photo of exactly the {piece} in this image, alone: remove the background and everything that is not this {piece} " +
+        return "Product photo of exactly the {{piece}} in this image, alone: remove the background and everything that is not this {{piece}} " +
                "(other clothing, other accessories, hands, skin, body, hangers, props). Keep its true colours, pattern, material, details and shape; do not redesign it. " +
                (jewellery
                    ? "Jewellery product shot: the piece large, sharp and centred, filling about 70% of the frame, metal and stones with their true colour and shine. "
