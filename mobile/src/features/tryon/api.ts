@@ -31,6 +31,9 @@ import { fixtureDb } from '@/fixtures/db';
 import { fixtureJobOptions, startFixtureJob } from '@/fixtures/jobs';
 import { ulid } from '@/lib/ids';
 
+import { matchesPhotoKey, useTryOnPhotoKey, type TryOnPhotoKey } from './photoKey';
+import { tryOnRuns } from './runs';
+
 /** Every try-on image costs one credit (README §9.1). Shown before starting; the server is authoritative. */
 export const TRY_ON_CREDIT_COST = 1;
 
@@ -135,7 +138,10 @@ export function useStartTryOn() {
     reset: mutation.reset,
     start: async (target: TryOnTarget) => {
       await requireTryOnConsent();
-      return mutation.mutateAsync({ requestId: ulid(), target });
+      const accepted = await mutation.mutateAsync({ requestId: ulid(), target });
+      // 14b's hero shows "Hazırlanıyor…" for this target until the job ends.
+      tryOnRuns.record(target, accepted.jobId);
+      return accepted;
     },
     /** Several targets under one confirmation (07b "7 kredi harcanacak"); resolves with the job ids in order. */
     startMany: async (targets: TryOnTarget[]) => {
@@ -186,11 +192,15 @@ export function useTryOnJob(
   };
 }
 
-/** Query options of the existing-image check of one target (shared by `useExistingTryOn` and `useCachedTryOns`). */
-export function existingTryOnQuery(target: TryOnTarget | null, enabled = true) {
+/**
+ * Query options of the existing-image check of one target (shared by `useExistingTryOn` and `useCachedTryOns`).
+ * `photoKey` (`useTryOnPhotoKey`) is part of the key: a new photo or body type asks again. The check waits until
+ * the photos are known and never runs without a usable picture (null: no image can match).
+ */
+export function existingTryOnQuery(target: TryOnTarget | null, enabled = true, photoKey: TryOnPhotoKey = undefined) {
   return {
-    queryKey: ['tenant', 'tryon', 'target', target?.kind ?? 'none', target?.id ?? 'none'] as const,
-    enabled: Boolean(target) && enabled,
+    queryKey: ['tenant', 'tryon', 'target', target?.kind ?? 'none', target?.id ?? 'none', photoKey ?? 'none'] as const,
+    enabled: Boolean(target) && enabled && typeof photoKey === 'string',
     queryFn: () =>
       fromSource<TryOnResult | null>(
         'jobs',
@@ -201,9 +211,21 @@ export function existingTryOnQuery(target: TryOnTarget | null, enabled = true) {
   };
 }
 
-/** The existing image of a target with the current photo (`GET v1/tenant/tryon?kind=&id=&index=`); null when none. */
+/** The check's answer under the stale-photo rule: an image made on another picture path is no image. */
+export function currentTryOn(data: TryOnResult | null | undefined, photoKey: TryOnPhotoKey): TryOnResult | null | undefined {
+  if (photoKey === null) return null;
+  if (data === undefined || data === null) return data;
+  return matchesPhotoKey(data, photoKey) ? data : null;
+}
+
+/**
+ * The existing image of a target with the CURRENT photo (`GET v1/tenant/tryon?kind=&id=&index=`); null when none,
+ * also when the photo changed and the old image no longer matches it.
+ */
 export function useExistingTryOn(target: TryOnTarget | null, options: { enabled?: boolean } = {}) {
-  return useQuery(existingTryOnQuery(target, options.enabled ?? true));
+  const photoKey = useTryOnPhotoKey();
+  const query = useQuery(existingTryOnQuery(target, options.enabled ?? true, photoKey));
+  return { ...query, data: currentTryOn(query.data, photoKey) };
 }
 
 type WeekQuoteVariables = {
