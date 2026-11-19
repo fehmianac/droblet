@@ -271,3 +271,26 @@ Uygulama **çok dilli**; ilk diller **Türkçe ve İngilizce**, sonrası veriyle
 | 19 | Prod / API adresi | Şimdilik API Gateway adresi; özel alan adı yok |
 | 20 | OpenAI modelleri | `gpt-6-astra` (metin), `gpt-image-2.5-sunburst` (görsel) — teyitli |
 | 21 | Ürün sahibi kurulumları (tamam) | Apple profili + App Store Connect kaydı, Cloudflare proxy + SSL, SendGrid. **Bekleyen:** Google OAuth client id'leri, Firebase servis hesabı, Android imza anahtarı + Play kaydı, Supabase erişimi |
+
+## 14. Bekleme listesi — prod'a çıkarken veya ürün sahibi çağırdığında (2026-11-19)
+
+Ürün sahibi kararı: aşağıdakiler şimdilik **bekliyor**; prod hazırlığına başlanırken ya da ürün sahibi istediğinde **tek tek** (her seferinde bir soru) ele alınır.
+
+| # | Konu | Gerekçe / not |
+|---|---|---|
+| 1 | Destek e-posta adresi + `/support` sayfası | App Store ve Play zorunlu; `NEXT_PUBLIC_CONTACT_EMAIL` ve yasal metinlerdeki `[CONTACT E-MAIL]` |
+| 2 | Cloudflare `droblet-admin` CNAME | Admin paneli alan adından açılmıyor (wildcard 192.168.1.1'e çözüyor) |
+| 3 | SSM `api/Email` gönderici adresi | "droplet" → "droblet" |
+| 4 | App Store Connect IAP ürünleri + anahtar | Ödeme entegrasyonu; o zamana kadar geçici self-premium (prod'da kapalı) |
+| 5 | APNs, Firebase, Google client ID'leri, Sign in with Apple anahtarı | Bildirim ve sosyal giriş |
+| 6 | Android keystore + Play hesabı | Android sürümü |
+| 7 | Yasal metinlerdeki 17 madde | Unvan, adres, VERBİS vb.; yasal sayfalar "taslak" etiketli; hukukçu onayı |
+| 8 | Open-Meteo ücretli plan | Ticari kullanım |
+| 9 | SnapStart / provisioned concurrency | API soğuk başlangıç ~3 sn → ~0,5 sn; ~3–4 $/ay/fonksiyon (PC: ~9 $/ay); deploy-lambdas alias'a geçmeli, prod'u etkiler |
+| 10 | AI hız/kalite ayarları | `Ai:ReasoningEffort:*`, `Ai:FastTextModel`, `Ai:Image:TryOnPreview`; kalite karşılaştırması sonrası öneri |
+| 11 | Uygulama adı "Droblet" mağazalarda boş mu | `docs/store-listing/` yedek adlar |
+| 12 | İncelemede self-premium | Prod'da kapalı tutulması önerildi |
+| 13 | Supabase erişimi | |
+| 14 | Prod kurulumu | Altyapı + SSM + mağaza başvurusu; ürün sahibini bekler |
+
+Benim tarafımda (bekleme listesi dışı, sıradaki işler): paywall'a abonelik koşulları linki; moderasyonda "içerik kaldırıldı"nın gerçekten kaldırması; palette ai-perf zaman aşımı incelemesi.
