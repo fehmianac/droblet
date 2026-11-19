@@ -11,9 +11,13 @@ import type {
   UpdateProfileRequest,
 } from '@/api/contracts/account';
 import { ApiError } from '@/api/errors';
+import { setBodyProfileFixture } from '@/api/profile';
 
 import { fixtureDb } from './db';
 import { L, SHOWCASE } from './showcase';
+
+// The showcase build starts with a complete body profile (the Bugün / Profil "complete your profile" card stays away).
+if (SHOWCASE) setBodyProfileFixture({ heightCm: 168, weightKg: null, size: 'M', bodyType: 'hourglass', baseVersion: 1 });
 
 /**
  * Typed fixtures for Profil (28), Gizlilik ve ayarlar (29) and Renk paletim (30). Values are the
