@@ -76,7 +76,9 @@ public sealed record CandidateItem(
 
 // ── Job results (JobEntity.Result) — drafts; nothing is written to Look / PlanDay / Trip until the user accepts ───
 
-public sealed record MissingPiece(OutfitSlot Slot, ItemCategory? Category, MissingPieceReason Reason, string? ProductId = null);
+/// <param name="LibraryItemId">Gap filling (owner decision 3): a ready-library piece the rules picked for this slot (free, "Gardıroba ekle").</param>
+/// <param name="ProductId">A catalog piece for the slot ("Önerilen · Mağaza") — from the model's catalog candidates or the gap filling.</param>
+public sealed record MissingPiece(OutfitSlot Slot, ItemCategory? Category, MissingPieceReason Reason, string? ProductId = null, string? LibraryItemId = null);
 
 /// <summary>Title / explanation are AI text in the language recorded on the enclosing result (Language).</summary>
 /// <param name="Source">"model" or "rule" (rule-based fallback; title and explanation are then null).</param>
@@ -88,17 +90,19 @@ public sealed record SuggestedOutfit(
     IReadOnlyList<SlotRef> Slots,
     IReadOnlyList<MissingPiece> Missing);
 
+/// <param name="GapFilled">True when some suggestion carries pieces Droblet picked from the library / catalog (thin wardrobe) — the app shows the soft banner.</param>
 public sealed record OutfitResult(
     string Date,
     Occasion? Occasion,
     bool OnlyMyWardrobe,
     string? Refusal,
     IReadOnlyList<SuggestedOutfit> Suggestions,
-    string Language = Localized.Default);
+    string Language = Localized.Default,
+    bool GapFilled = false);
 
 public sealed record WeekDayPlan(string Date, Occasion? Occasion, SuggestedOutfit? Outfit);
 
-public sealed record WeekResult(string WeekStart, string? Refusal, IReadOnlyList<WeekDayPlan> Days, string Language = Localized.Default);
+public sealed record WeekResult(string WeekStart, string? Refusal, IReadOnlyList<WeekDayPlan> Days, string Language = Localized.Default, bool GapFilled = false);
 
 public sealed record PackItem(string ItemId, int PlannedWears);
 
@@ -120,11 +124,13 @@ public sealed record PackResult(
     string Language = Localized.Default,
     int? CabinLimit = null,
     bool CabinTrimmed = false,
-    IReadOnlyList<string>? DroppedItemIds = null);
+    IReadOnlyList<string>? DroppedItemIds = null,
+    bool GapFilled = false);
 
 public static class StylistRefusals
 {
     public const string OutOfScope = "out_of_scope";
+    /// <summary>Internal only since owner decision 3: answered only when even the ready library cannot fill the gaps.</summary>
     public const string InsufficientWardrobe = "insufficient_wardrobe";
     public const string PhotoUnsuitable = "photo_unsuitable";
 }

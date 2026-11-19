@@ -60,8 +60,8 @@ public sealed class ConsentService(
             rows.TryGetValue(decision.Type, out var row);
             if (row is not null && row.Granted == decision.Granted && (!decision.Granted || row.Version == decision.Version))
                 continue; // unchanged: nothing to record
-            if (row is null && !decision.Granted)
-                continue; // "not now" on a consent never given is not a decision worth an audit row
+            if (row is null && !decision.Granted && !string.Equals(source, ConsentRules.OnboardingSource, StringComparison.Ordinal))
+                continue; // "not now" on a consent never given is not a decision worth an audit row (the all-in-one step records it)
 
             var version = decision.Granted ? decision.Version : row?.Version ?? settings.CurrentVersion(decision.Type);
             await RecordAsync(tenantId, userId, row, decision.Type, decision.Granted, version, source, locale, now, ct);

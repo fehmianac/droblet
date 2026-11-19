@@ -666,9 +666,17 @@ Resources:
                 Resource: !GetAtt DrobletTable.Arn
               - Effect: Allow
                 Action: s3:GetObject
+                # face/: the face path of "Üzerimde gör" (no body photo: face photo + body type).
                 Resource:
                   - !Sub '${PhotoBucket.Arn}/tenant/*/body/*'
+                  - !Sub '${PhotoBucket.Arn}/tenant/*/face/*'
                   - !Sub '${PhotoBucket.Arn}/tenant/*/items/*'
+              - Effect: Allow
+                # A photo rejected by the server-side photo check (not full body, too dark, …) is removed, not kept.
+                Action: s3:DeleteObject
+                Resource:
+                  - !Sub '${PhotoBucket.Arn}/tenant/*/body/*'
+                  - !Sub '${PhotoBucket.Arn}/tenant/*/face/*'
               - Effect: Allow
                 Action: s3:PutObject
                 Resource: !Sub '${PhotoBucket.Arn}/tenant/*/tryon/*'

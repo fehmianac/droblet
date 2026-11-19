@@ -160,7 +160,8 @@ public record AcceptedSuggestionDto(LookDto Look, PlanDayDto? PlanDay);
 
 public record AcceptedWeekDto(IReadOnlyList<PlanDayDto> Days);
 
-public record MissingPieceDto(OutfitSlot Slot, ItemCategory? Category, MissingPieceReason Reason, string? ProductId);
+/// <param name="LibraryItemId">A ready-library piece Droblet picked to fill the gap ("Önerilen · Kütüphane"); ProductId = a shop piece ("Önerilen · Mağaza").</param>
+public record MissingPieceDto(OutfitSlot Slot, ItemCategory? Category, MissingPieceReason Reason, string? ProductId, string? LibraryItemId = null);
 
 public enum TripStatus { Upcoming, Active, Past }
 
@@ -205,7 +206,8 @@ public record TripDetailDto(TripDto Trip, IReadOnlyList<TripItemDto> Items, IRea
 
 public enum StartStatus { Cached, Queued }
 
-public record TryOnImageDto(string Id, string Url, DateTime UrlExpiresAt, DateTime CreatedAt);
+/// <param name="Source">body = rendered on the body photo; face = built from the face photo + chosen body type (the app says so on the image).</param>
+public record TryOnImageDto(string Id, string Url, DateTime UrlExpiresAt, DateTime CreatedAt, TryOnSource Source = TryOnSource.Body);
 
 /// <param name="Status">cached = image already exists (no credit charged); queued = a job is running (1 credit reserved).</param>
 public record TryOnStartDto(StartStatus Status, TryOnImageDto? Image, JobDto? Job);
@@ -284,10 +286,10 @@ public static class WardrobeDtoMapper
     public static WeatherDto ToDto(this DailyForecast forecast) =>
         new(forecast.Date, WeatherRules.WholeDegrees(forecast.MinC), WeatherRules.WholeDegrees(forecast.MaxC), forecast.Condition, forecast.PrecipitationProbability);
 
-    public static MissingPieceDto ToDto(this MissingPieceValue value) => new(value.Slot, value.Category, value.Reason, value.ProductId);
+    public static MissingPieceDto ToDto(this MissingPieceValue value) => new(value.Slot, value.Category, value.Reason, value.ProductId, value.LibraryItemId);
 
     public static MissingPieceValue ToValue(this MissingPiece piece) =>
-        new() { Slot = piece.Slot, Category = piece.Category, Reason = piece.Reason, ProductId = piece.ProductId };
+        new() { Slot = piece.Slot, Category = piece.Category, Reason = piece.Reason, ProductId = piece.ProductId, LibraryItemId = piece.LibraryItemId };
 
     public static LookSlotValue ToValue(this SlotRef slot) => new() { Slot = slot.Slot, ItemId = slot.ItemId, ProductId = slot.ProductId };
 

@@ -17,15 +17,18 @@ public interface ITryOnJobService
 }
 
 /// <summary>
-/// "Üzerimde gör". Output goes only to tenant/{tenantId}/tryon/, only if the source body photo is still active at
-/// write time (TryOnOutputPolicy), and never to a global cache. Any failure refunds the reserved credit.
+/// "Üzerimde gör". Output goes only to tenant/{tenantId}/tryon/, only if the source photo (body photo, or the face photo
+/// on the face path) is still active at write time (TryOnOutputPolicy), and never to a global cache. Before a photo's
+/// first render it passes the server-side photo check. Any failure refunds the reserved credit.
 /// </summary>
 public sealed class TryOnJobService(
     IJobLifecycle jobs,
     IRepository repository,
     IObjectStorage storage,
     ITryOnRenderer renderer,
+    IPhotoInspector inspector,
     ICatalogProductLookup products,
+    ILibraryCatalog library,
     TimeProvider timeProvider,
     ILogger<TryOnJobService> logger) : ITryOnJobService
 {
@@ -39,11 +42,21 @@ public sealed class TryOnJobService(
 
         try
         {
-            var body = await ActiveBodyPhotoAsync(message.TenantId, message.BodyPhotoId, ct);
-            var bytes = body is null ? null : await storage.ReadAsync(body.S3Key, MaxImageBytes, ct);
-            if (body is null || bytes is null)
+            // Body path: the body photo. Face path (no body photo): the face photo + body type + height / size.
+            var face = message.Source == TryOnSource.Face;
+            var (kind, photoId) = face ? (PhotoKind.Face, message.FacePhotoId ?? "") : (PhotoKind.Body, message.BodyPhotoId);
+            var source = await ActivePhotoAsync(message.TenantId, kind, photoId, ct);
+            var bytes = source is null ? null : await storage.ReadAsync(source.S3Key, MaxImageBytes, ct);
+            if (source is null || bytes is null)
             {
                 await jobs.FailAsync(job, JobFailure.SourceDeleted, ct);
+                return;
+            }
+
+            var photo = new ImageInput(bytes, source.ContentType);
+            if (await InspectAsync(job, source, photo, ct) is { } rejected)
+            {
+                await jobs.FailAsync(job, rejected, ct);
                 return;
             }
 
@@ -55,10 +68,12 @@ public sealed class TryOnJobService(
                 return;
             }
 
-            var output = await renderer.RenderAsync(new ImageInput(bytes, body.ContentType), garments, ct);
+            var output = face
+                ? await renderer.RenderFromFaceAsync(photo, garments, new TryOnFigure(message.BodyType ?? BodyType.Unsure, message.HeightCm, message.Size), ct)
+                : await renderer.RenderAsync(photo, garments, ct);
 
-            // The user may have deleted/replaced the body photo while the provider was working.
-            if (await ActiveBodyPhotoAsync(message.TenantId, message.BodyPhotoId, ct) is null)
+            // The user may have deleted/replaced the source photo while the provider was working.
+            if (await ActivePhotoAsync(message.TenantId, kind, photoId, ct) is null)
             {
                 await jobs.FailAsync(job, JobFailure.SourceDeleted, ct);
                 return;
@@ -70,6 +85,8 @@ public sealed class TryOnJobService(
                 Id = Ulid.New(now),
                 TenantId = message.TenantId,
                 BodyPhotoId = message.BodyPhotoId,
+                Source = message.Source,
+                SourcePhotoId = source.Id,
                 TargetKind = message.Target.Kind,
                 TargetId = message.Target.Id,
                 TargetVersion = message.Target.Version,
@@ -112,6 +129,14 @@ public sealed class TryOnJobService(
             {
                 image = await products.ReadImageAsync(product, ct);
             }
+            else if (piece.LibraryItemId is not null
+                     && (await library.GetAllAsync(ct)).FirstOrDefault(l => l.Id == piece.LibraryItemId) is { } libraryItem
+                     && LibraryItemImageRules.IsResolvable(libraryItem.ImageKey))
+            {
+                // A ready-library piece the stylist picked for a thin wardrobe (not added yet): its global https image.
+                image = await products.ReadImageAsync(new ProductSnapshot(libraryItem.Id, libraryItem.Name.GetValueOrDefault("tr") ?? "", null, null,
+                    libraryItem.Category, libraryItem.ColorIds, libraryItem.Fabric, libraryItem.Seasons, libraryItem.ImageKey, false), ct);
+            }
 
             if (image is null)
                 return null;
@@ -135,9 +160,41 @@ public sealed class TryOnJobService(
         return LibraryItemImageRules.CurrentImageFor(item, source);
     }
 
-    private async Task<PhotoEntity?> ActiveBodyPhotoAsync(string tenantId, string photoId, CancellationToken ct)
+    private async Task<PhotoEntity?> ActivePhotoAsync(string tenantId, PhotoKind kind, string photoId, CancellationToken ct)
     {
-        var photo = await repository.GetAsync<PhotoEntity>(PhotoEntity.GetPk(tenantId), PhotoEntity.GetSk(PhotoKind.Body, photoId), ct);
+        if (string.IsNullOrEmpty(photoId))
+            return null;
+        var photo = await repository.GetAsync<PhotoEntity>(PhotoEntity.GetPk(tenantId), PhotoEntity.GetSk(kind, photoId), ct);
         return photo is { Active: true } && StorageKeys.BelongsToTenant(photo.S3Key, tenantId) ? photo : null;
+    }
+
+    /// <summary>
+    /// The server-side photo check, once per photo before its first try-on (canvas 11 "Fotoğraf uygun değil"). A rejected
+    /// photo is removed (the user is asked for another one) and the job fails with PhotoUnsuitable + the issue in the
+    /// result, so no credit is charged. A photo of someone who appears to be under 18 fails the job (GuardRejected).
+    /// Returns null when the photo may be used.
+    /// </summary>
+    private async Task<JobFailure?> InspectAsync(JobEntity job, PhotoEntity photo, ImageInput image, CancellationToken ct)
+    {
+        if (photo.InspectedAt is not null || !inspector.IsConfigured)
+            return null;
+
+        var inspection = await inspector.InspectAsync(image, photo.Kind, ct);
+        if (inspection.AppearsMinor)
+            return JobFailure.GuardRejected;
+
+        if (TryOnRules.IssueOf(photo.Kind, inspection) is { } issue)
+        {
+            job.Result = StylingJson.Serialize(new { photoIssue = issue, photoKind = photo.Kind });
+            await repository.DeleteAsync(photo.Pk, photo.Sk, ct);
+            if (StorageKeys.BelongsToTenant(photo.S3Key, job.TenantId))
+                await storage.DeleteAsync(photo.S3Key, ct);
+            logger.LogInformation("Try-on job {JobId}: {Kind} photo rejected by the photo check ({Issue})", job.Id, photo.Kind, issue);
+            return JobFailure.PhotoUnsuitable;
+        }
+
+        photo.InspectedAt = timeProvider.GetUtcNow().UtcDateTime;
+        await repository.SaveAsync(photo, ct);
+        return null;
     }
 }

@@ -30,11 +30,11 @@ public class Post : IEndpoint
     public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints)
     {
         return endpoints.MapPost("v1/tenant/tryon", Handler)
-            .RequireConsent(ConsentRules.BodyPhoto)
+            .RequireTryOnConsent()
             .Produces<TryOnStartDto>(StatusCodes.Status200OK)
             .Produces<TryOnStartDto>(StatusCodes.Status202Accepted)
             .Problems(StatusCodes.Status402PaymentRequired, StatusCodes.Status403Forbidden, StatusCodes.Status404NotFound, StatusCodes.Status409Conflict, StatusCodes.Status422UnprocessableEntity)
             .Validated()
-            .Tenant("Tenant TryOn", "See it on me", "target.kind = item | look | product | editLook | suggestion (id = stylist job id + index). 200 status = cached when the image already exists (no credit); 202 status = queued with the job (1 credit reserved, refunded if the job fails). 402 credits_exhausted -> credit-pack sheet; 403 premium_required -> paywall; 422 body_photo_required.");
+            .Tenant("Tenant TryOn", "See it on me", "target.kind = item | look | product | editLook | suggestion (id = stylist job id + index). 200 status = cached when the image already exists (no credit); 202 status = queued with the job (1 credit reserved, refunded if the job fails). 402 credits_exhausted -> credit-pack sheet; 403 premium_required -> paywall; 403 consent_required (missing) -> consent step; 422 body_photo_required (neither a body nor a face photo). Path: the body photo when present, else the face photo + body profile (bodyType, height, size); image.source = body | face.");
     }
 }

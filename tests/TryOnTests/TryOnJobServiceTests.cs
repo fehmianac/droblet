@@ -18,7 +18,7 @@ public class TryOnJobServiceTests
 {
     private const string Tenant = "01JTENANT0000000000000000A";
 
-    private static async Task<(WorkerTestHost Host, JobEntity Job, TryOnRequestedEvent Message)> ArrangeAsync(ITryOnRenderer? renderer = null)
+    private static async Task<(WorkerTestHost Host, JobEntity Job, TryOnRequestedEvent Message)> ArrangeAsync(ITryOnRenderer? renderer = null, IPhotoInspector? inspector = null)
     {
         var host = new WorkerTestHost(services =>
         {
@@ -27,6 +27,11 @@ public class TryOnJobServiceTests
             {
                 services.RemoveAll<ITryOnRenderer>();
                 services.AddSingleton(renderer);
+            }
+            if (inspector is not null)
+            {
+                services.RemoveAll<IPhotoInspector>();
+                services.AddSingleton(inspector);
             }
         });
         await host.MakePremiumAsync(Tenant);
@@ -142,14 +147,139 @@ public class TryOnJobServiceTests
         Assert.Equal(JobStatus.Failed, (await host.JobAsync(job))!.Status);
     }
 
+    // ── Face path (owner decision 4) and the photo check (canvas 11 "Fotoğraf uygun değil") ─────────────────────────
+
+    private static async Task<(WorkerTestHost Host, JobEntity Job, TryOnRequestedEvent Message, PhotoEntity Face)> ArrangeFaceAsync(
+        FakeRenderer renderer, IPhotoInspector? inspector = null)
+    {
+        var (host, _, _) = await ArrangeAsync(renderer, inspector);
+        foreach (var key in await host.Repository.GetKeysAsync(PhotoEntity.GetPk(Tenant)))
+            await host.Repository.DeleteAsync(key.Pk, key.Sk);
+        var face = await host.AddPhotoAsync(Tenant, PhotoKind.Face);
+        var subject = TryOnRules.FaceSubjectKey(face.Id, BodyType.Pear, 168, ClothingSize.M);
+        var target = new TryOnTarget(TryOnTargetKind.Look, "look2", 1);
+        var key2 = CreditLedger.TryOnIdempotencyKey(subject, target.Kind, target.Id, target.Version);
+        var job = await host.QueueJobAsync(Tenant, JobKind.TryOn, key2);
+        await host.Get<ICreditService>().ReserveAsync(Tenant, key2, job.Id, default);
+        return (host, job, new TryOnRequestedEvent(Tenant, job.Id, target, subject, key2, TryOnSource.Face, face.Id, BodyType.Pear, 168, ClothingSize.M), face);
+    }
+
+    [Fact]
+    public async Task Process_FacePath_RendersFromTheFacePhotoWithTheFigure_AndMarksTheImageFace()
+    {
+        var renderer = new FakeRenderer();
+        var (host, job, message, face) = await ArrangeFaceAsync(renderer);
+
+        await host.Get<ITryOnJobService>().ProcessAsync(message, false, default);
+
+        Assert.Equal(JobStatus.Completed, (await host.JobAsync(job))!.Status);
+        Assert.Equal(new TryOnFigure(BodyType.Pear, 168, ClothingSize.M), Assert.Single(renderer.Figures));
+        Assert.Equal(0, renderer.BodyRenders);
+        var image = Assert.Single(await host.Repository.GetAllAsync<TryOnImageEntity>(TryOnImageEntity.GetPk(Tenant)));
+        Assert.Equal(TryOnSource.Face, image.Source);
+        Assert.Equal(face.Id, image.SourcePhotoId);
+        Assert.Equal(message.BodyPhotoId, image.BodyPhotoId);
+        Assert.Equal(28, await host.RemainingCreditsAsync(Tenant)); // the body-path arrange reserved one too
+    }
+
+    [Fact]
+    public async Task Process_FacePath_WhenFacePhotoGone_SourceDeleted_Refunds()
+    {
+        var (host, job, message, face) = await ArrangeFaceAsync(new FakeRenderer());
+        await host.Repository.DeleteAsync(face.Pk, face.Sk);
+
+        await host.Get<ITryOnJobService>().ProcessAsync(message, false, default);
+
+        Assert.Equal(JobFailure.SourceDeleted, (await host.JobAsync(job))!.Failure);
+    }
+
+    [Theory]
+    [InlineData(2, true, false, false, "multiplePeople")]
+    [InlineData(1, false, false, false, "notFullBody")]
+    [InlineData(1, true, true, false, "tooDark")]
+    [InlineData(1, true, false, true, "blurry")]
+    public async Task Process_BodyPhotoRejectedByTheCheck_NoCredit_PhotoRemoved_IssueInResult(int people, bool fullBody, bool dark, bool blurry, string issue)
+    {
+        var renderer = new FakeRenderer();
+        var (host, job, message) = await ArrangeAsync(renderer, new FakeInspector(new PhotoInspection(people, fullBody, true, dark, blurry, false)));
+
+        await host.Get<ITryOnJobService>().ProcessAsync(message, false, default);
+
+        var stored = (await host.JobAsync(job))!;
+        Assert.Equal(JobFailure.PhotoUnsuitable, stored.Failure);
+        Assert.Contains($"\"photoIssue\":\"{issue}\"", stored.Result);
+        Assert.Contains("\"photoKind\":\"body\"", stored.Result);
+        Assert.Equal(0, renderer.BodyRenders);
+        Assert.Empty(await host.Repository.GetAllAsync<PhotoEntity>(PhotoEntity.GetPk(Tenant)));
+        Assert.DoesNotContain(host.Storage.Objects.Keys, k => k.Contains("/photos/body/", StringComparison.Ordinal) || k.Contains("/body/", StringComparison.Ordinal));
+        Assert.Equal(30, await host.RemainingCreditsAsync(Tenant));
+    }
+
+    [Fact]
+    public async Task Process_PhotoPassesTheCheck_IsInspectedOnce()
+    {
+        var inspector = new FakeInspector(new PhotoInspection(1, true, true, false, false, false));
+        var (host, job, message) = await ArrangeAsync(new FakeRenderer(), inspector);
+
+        await host.Get<ITryOnJobService>().ProcessAsync(message, false, default);
+
+        Assert.Equal(JobStatus.Completed, (await host.JobAsync(job))!.Status);
+        Assert.Equal(1, inspector.Calls);
+        var photo = Assert.Single(await host.Repository.GetAllAsync<PhotoEntity>(PhotoEntity.GetPk(Tenant)));
+        Assert.NotNull(photo.InspectedAt);
+    }
+
+    [Fact]
+    public async Task Process_FacePhotoOfAMinor_GuardRejected_NoRender()
+    {
+        var renderer = new FakeRenderer();
+        var (host, job, message, _) = await ArrangeFaceAsync(renderer, new FakeInspector(new PhotoInspection(1, false, true, false, false, AppearsMinor: true)));
+
+        await host.Get<ITryOnJobService>().ProcessAsync(message, false, default);
+
+        Assert.Equal(JobFailure.GuardRejected, (await host.JobAsync(job))!.Failure);
+        Assert.Empty(renderer.Figures);
+    }
+
+    [Fact]
+    public void PhotoIssue_FaceNeedsExactlyOneVisibleFace()
+    {
+        Assert.Equal(PhotoIssue.NoFace, TryOnRules.IssueOf(PhotoKind.Face, new PhotoInspection(1, false, false, false, false, false)));
+        Assert.Equal(PhotoIssue.MultiplePeople, TryOnRules.IssueOf(PhotoKind.Face, new PhotoInspection(3, false, true, false, false, false)));
+        Assert.Null(TryOnRules.IssueOf(PhotoKind.Face, new PhotoInspection(1, false, true, false, false, false)));
+    }
+
+    private sealed class FakeInspector(PhotoInspection verdict) : IPhotoInspector
+    {
+        public int Calls { get; private set; }
+        public bool IsConfigured => true;
+
+        public Task<PhotoInspection> InspectAsync(ImageInput photo, PhotoKind kind, CancellationToken ct)
+        {
+            Calls++;
+            return Task.FromResult(verdict);
+        }
+    }
+
     private sealed class FakeRenderer(Func<Task>? during = null) : ITryOnRenderer
     {
         public FakeRenderer(Action during) : this(() => { during(); return Task.CompletedTask; }) { }
 
+        public int BodyRenders { get; private set; }
+        public List<TryOnFigure> Figures { get; } = [];
+
         public async Task<ImageInput> RenderAsync(ImageInput bodyPhoto, IReadOnlyList<ImageInput> garments, CancellationToken ct)
         {
+            BodyRenders++;
             if (during is not null) await during();
             return new ImageInput([9, 9, 9], "image/webp");
+        }
+
+        public async Task<ImageInput> RenderFromFaceAsync(ImageInput facePhoto, IReadOnlyList<ImageInput> garments, TryOnFigure figure, CancellationToken ct)
+        {
+            Figures.Add(figure);
+            if (during is not null) await during();
+            return new ImageInput([8, 8, 8], "image/webp");
         }
     }
 }

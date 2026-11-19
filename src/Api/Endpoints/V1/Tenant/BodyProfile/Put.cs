@@ -37,6 +37,9 @@ public class Put : IEndpoint
         entity.HeightCm = request.HeightCm;
         entity.WeightKg = request.WeightKg;
         entity.Size = request.Size;
+        // Optional: omitted / null keeps the stored body type (older clients never send it).
+        if (request.BodyType is { } bodyType)
+            entity.BodyType = bodyType;
         entity.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
 
         if (!await repository.SaveIfVersionAsync(entity, request.BaseVersion, cancellationToken))
@@ -59,12 +62,12 @@ public class Put : IEndpoint
             .ProducesProblem(StatusCodes.Status500InternalServerError)
             .RequireAuthorization(ClaimNames.TenantUserPolicy)
             .WithSummary("Create or update body profile")
-            .WithDescription("Height 100–230 cm, weight optional 30–250 kg, size. baseVersion 0 creates.")
+            .WithDescription("Height 100–230 cm, weight optional 30–250 kg, size, bodyType optional (hourglass | pear | apple | rectangle | invertedTriangle | unsure; omitted = unchanged). baseVersion 0 creates.")
             .WithTags("Tenant BodyProfile");
     }
 }
 
-public record UpdateBodyProfileRequest(int HeightCm, decimal? WeightKg, ClothingSize Size, long BaseVersion);
+public record UpdateBodyProfileRequest(int HeightCm, decimal? WeightKg, ClothingSize Size, long BaseVersion, BodyType? BodyType = null);
 
 public class UpdateBodyProfileRequestValidator : AbstractValidator<UpdateBodyProfileRequest>
 {
@@ -73,6 +76,7 @@ public class UpdateBodyProfileRequestValidator : AbstractValidator<UpdateBodyPro
         RuleFor(x => x.HeightCm).InclusiveBetween(100, 230).WithErrorCode("height_out_of_range");
         RuleFor(x => x.WeightKg).InclusiveBetween(30m, 250m).WithErrorCode("weight_out_of_range").When(x => x.WeightKg is not null);
         RuleFor(x => x.Size).IsInEnum().WithErrorCode("size_invalid");
+        RuleFor(x => x.BodyType).IsInEnum().WithErrorCode("body_type_invalid").When(x => x.BodyType is not null);
         RuleFor(x => x.BaseVersion).GreaterThanOrEqualTo(0).WithErrorCode("base_version_invalid");
     }
 }
