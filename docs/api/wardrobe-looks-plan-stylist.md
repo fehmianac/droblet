@@ -255,9 +255,11 @@ Validation codes (400 `errors`): `category_required`, `color_required`, `color_u
   "pieceCount": 2, "hasMissingPieces": true, "favorite": false, "source": "user",
   "createdAt": "…", "updatedAt": "…", "version": 1,
   "rating": { "average": 4.5, "count": 2 },
-  "moderation": null
+  "moderation": null,
+  "coverImageUrl": null, "coverImageUrlExpiresAt": null
 }
 ```
+`coverImageUrl`: an imported look (`source: "import"`, [O](outfit-import.md)) — presigned GET of the outfit photo it came from; filled by `GET v1/tenant/look` and `GET v1/tenant/look/{id}`, `null` elsewhere. Deleting the look deletes the photo.
 `moderation`: as on `ItemDto` — `{ "hidden": true, "reason" }` while a moderator hides the look from everybody else.
 `rating` = what friends gave this look (`PUT v1/tenant/people/{handle}/look/{lookId}/rating`): average with one decimal and the number of ratings. It is filled by `GET v1/tenant/look` and `GET v1/tenant/look/{id}`; it is `null` while nobody rated the look and wherever a `LookDto` is embedded in another response (plan day, today, item detail, accept results). Deleting a look deletes its rating summary.
 `missing: true` = the slot is a catalog product the user does not own ("Eksik parça" → "Look'u tamamla"). `unavailable: true` = the wardrobe item was deleted.
@@ -554,7 +556,7 @@ they are listed in `missing` only (never in `items` or the day `slots`), `gapFil
 | Method | Path | Response |
 |---|---|---|
 | GET | `v1/tenant/profile/stats` | Screen 28 counters of the signed-in account: `{ "itemCount": 42, "lookCount": 9, "tripCount": 2, "followerCount": 12, "followingCount": 30 }` |
-| GET | `v1/tenant/entitlement` | Tier and AI credits, plus `"itemRecognition": { "limit": 10, "used": 3, "remaining": 7 }` — the AI garment recognition allowance (§3). `limit` / `remaining` are `null` for members (unlimited); `used` = completed + in progress. `limit: 0` = the feature is members-only. |
+| GET | `v1/tenant/entitlement` | Tier and AI credits, plus `"itemRecognition": { "limit": 10, "used": 3, "remaining": 7 }` — the AI garment recognition allowance (§3). `limit` / `remaining` are `null` for members (unlimited); `used` = completed + in progress. `limit: 0` = the feature is members-only. Plus `"outfitImport": { "maxPhotos": 30 }` — photos per outfit import for the caller's plan ([O §2](outfit-import.md)). |
 
 ## 11. Not in this document
 

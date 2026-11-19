@@ -10,13 +10,14 @@ Every HTTP endpoint of the Api Lambda (`src/Api/Endpoints/V1`), with the contrac
 | **C** — [consents-age-inbox-avatar.md](consents-age-inbox-avatar.md) | Explicit consents (records, audit log, versions, `403 consent_required` enforcement, withdrawal), 18+ confirmation, notification inbox, profile picture |
 | **P** — [purchases-push.md](purchases-push.md) | In-app purchases (StoreKit 2 / Play Billing verified on the server), restore, App Store / Play store notifications, device push tokens (APNs / FCM) and notification deep links, Sign in with Apple token revocation |
 | **V** — [verification-export.md](verification-export.md) | E-mail verification (code + link, resend, profile `emailVerified`), data export ("Verilerimi indir": ZIP job, status, e-mailed download link) |
+| **O** — [outfit-import.md](outfit-import.md) | "Kombinlerini içe aktar": bulk import of outfit photos (session, background uploads, per-photo processing: detect, match, de-duplicate, look draft), review, commit, discard; plan limit `outfitImport.maxPhotos` |
 | **—** | Foundation endpoints (sign-in, profile basics, photos, style / body profile, purchases, jobs). No contract document yet: the request / response records sit next to each endpoint in `src/Api/Endpoints/V1/Auth` and `src/Api/Endpoints/V1/Tenant/{Profile,Photo,StyleProfile,BodyProfile,Entitlement}`; the one-line summary below is the endpoint's own (`WithSummary`). |
 
 Shared conventions (both documents, §1): camelCase JSON and enum strings; `Authorization: Bearer <accessToken>`; errors are ProblemDetails with a stable snake_case `code`; calendar days are `yyyy-MM-dd`, instants UTC ISO-8601; the API returns codes, never sentences; text content is resolved to the request language (profile language → `Accept-Language` → `tr`, languages from `Localization:SupportedLanguages`).
 
 **Auth** column: `user` = signed-in user (tenant from the token) · `admin:<permission>` = signed-in **admin panel** account (separate admin token, never an app token) whose role holds that permission ([A §2](admin.md)); `admin` = any signed-in admin · `anonymous` = no token (postbacks and store notifications are authenticated by signature / OIDC token; admin sign-in routes are rate limited per IP).
 
-214 endpoints.
+220 endpoints.
 
 ## Auth and account (foundation)
 
@@ -105,6 +106,17 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | DELETE | `v1/tenant/item/{id}` | user | [W](wardrobe-looks-plan-stylist.md) | Delete item |
 | GET | `v1/tenant/library/item` | user | [W](wardrobe-looks-plan-stylist.md) | Get the ready-made library |
 | GET | `v1/tenant/reference/wardrobe` | user | [W](wardrobe-looks-plan-stylist.md) | Get wardrobe vocabularies |
+
+## Outfit import ("Kombinlerini içe aktar")
+
+| Method | Path | Auth | Doc | What |
+|---|---|---|---|---|
+| GET | `v1/tenant/outfit-import` | user | [O](outfit-import.md) | Open outfit imports |
+| POST | `v1/tenant/outfit-import` | user | [O](outfit-import.md) | Start an outfit import (session + presigned uploads; plan photo limit) |
+| GET | `v1/tenant/outfit-import/{id}` | user | [O](outfit-import.md) | Get an outfit import (progress, one look draft per photo) |
+| DELETE | `v1/tenant/outfit-import/{id}` | user | [O](outfit-import.md) | Discard an outfit import |
+| POST | `v1/tenant/outfit-import/{id}/commit` | user | [O](outfit-import.md) | Approve an outfit import (new items + looks) |
+| POST | `v1/tenant/outfit-import/{id}/photos/{index:int}/uploaded` | user | [O](outfit-import.md) | Confirm one uploaded photo |
 
 ## Looks
 
