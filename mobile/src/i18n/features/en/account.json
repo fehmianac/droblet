@@ -244,7 +244,8 @@
     "packMeta": "One-off pack · ready to use right away",
     "note": "Outfit suggestions and style notes don't use credits; you can carry on with suggestions without images. The image of the same outfit never uses a credit twice.",
     "buy": "{{price}} · Get the pack",
-    "notNow": "Not now"
+    "notNow": "Not now",
+    "oneTimeNote": "One-time purchase; not a subscription and it does not renew. Payment is charged to your {{store}} account."
   },
   "verifyEmail": {
     "eyebrow": "ACCOUNT",

@@ -244,7 +244,8 @@
     "packMeta": "Tek seferlik paket · hemen kullanılabilir",
     "note": "Kombin önerileri ve stil notları krediden düşmez; görselsiz önerilere devam edebilirsin. Aynı kombinin görseli ikinci kez kredi harcamaz.",
     "buy": "{{price}} · Paketi al",
-    "notNow": "Şimdilik değil"
+    "notNow": "Şimdilik değil",
+    "oneTimeNote": "Tek seferlik satın alma; abonelik değildir, yenilenmez. Ödeme {{store}} hesabından alınır."
   },
   "verifyEmail": {
     "eyebrow": "HESAP",

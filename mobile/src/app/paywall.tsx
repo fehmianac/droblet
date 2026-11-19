@@ -190,8 +190,9 @@ export default function PaywallScreen() {
   let finePrint: string | null = null;
   if (chosen) {
     const price = chosen.localizedPrice;
-    if (plan === 'year') finePrint = t(trialDays ? 'paywall.finePrintTrialYear' : 'paywall.finePrintYear', { price });
-    else finePrint = t(trialDays ? 'paywall.finePrintTrialMonth' : 'paywall.finePrintMonth', { price });
+    const storeName = Platform.OS === 'ios' ? 'App Store' : 'Google Play';
+    if (plan === 'year') finePrint = t(trialDays ? 'paywall.finePrintTrialYear' : 'paywall.finePrintYear', { price, store: storeName });
+    else finePrint = t(trialDays ? 'paywall.finePrintTrialMonth' : 'paywall.finePrintMonth', { price, store: storeName });
   }
 
   let action: ReactNode;
