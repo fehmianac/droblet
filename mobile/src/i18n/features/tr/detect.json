@@ -42,6 +42,8 @@
     "groupCardA11y": "Foto {{n}}: {{count}} parça bulundu, seçmek için aç",
     "groupHeading": "Foto {{n}}",
     "foundPill_one": "{{count}} parça bulundu",
-    "foundPill_other": "{{count}} parça bulundu"
+    "foundPill_other": "{{count}} parça bulundu",
+    "groupHeadingCount_one": "Foto {{n}} · {{count}} parça",
+    "groupHeadingCount_other": "Foto {{n}} · {{count}} parça"
   }
 }

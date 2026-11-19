@@ -4,7 +4,7 @@ import { AccessibilityInfo } from 'react-native';
 import { AnimatedSplash, SPLASH_TIMELINE } from '@/components/brand/AnimatedSplash';
 import i18n from '@/i18n';
 
-import { AiBackgroundAction, AiBusyButton, AiFailure, AiInlineStatus, AiProgressBar, AiProgressLines, AiSkeletonCards, AiTryOnStage } from './index';
+import { AiBackgroundAction, AiBusyButton, AiFailure, AiInlineStatus, AiProgressBar, AiProgressLines, AiScanLine, AiSkeletonCards, AiTryOnStage } from './index';
 import { revealTiming } from './motion';
 
 function setReduceMotion(value: boolean) {
@@ -156,5 +156,43 @@ describe('AI loading language', () => {
     setReduceMotion(false);
     await render(<AiTryOnStage className="h-[470px] w-full" active={false} tag={null} />);
     expect(screen.queryByText('SENİN ÜZERİNDE · HAZIRLANIYOR')).toBeNull();
+  });
+});
+
+describe('AiScanLine (12 photo being recognised)', () => {
+  // The Jest reanimated mock is a plain module object: spying shows whether the UI-thread loop starts / stops.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const reanimated = require('react-native-reanimated') as typeof import('react-native-reanimated');
+  const layout = { nativeEvent: { layout: { x: 0, y: 0, width: 290, height: 370 } } };
+  // The line is hidden from assistive tech on purpose: queries must include hidden elements.
+  const HIDDEN = { includeHiddenElements: true };
+
+  it('sweeps (a repeating ease-in-out loop) while recognising, then stops and fades out', async () => {
+    setReduceMotion(false);
+    const repeat = jest.spyOn(reanimated, 'withRepeat');
+    const cancel = jest.spyOn(reanimated, 'cancelAnimation');
+    const view = await render(<AiScanLine active />);
+    await act(async () => {
+      fireEvent(screen.getByTestId('scan-line-sweeping', HIDDEN), 'layout', layout);
+    });
+    // Infinite (-1), back and forth (reverse = true): top → bottom → top.
+    expect(repeat).toHaveBeenCalledWith(expect.anything(), -1, true);
+    const line = screen.getByTestId('scan-line-sweeping', HIDDEN);
+    expect(line.props.accessible).toBe(false);
+    expect(line.props.importantForAccessibility).toBe('no-hide-descendants');
+
+    repeat.mockClear();
+    await view.rerender(<AiScanLine active={false} />);
+    expect(screen.getByTestId('scan-line-idle', HIDDEN)).toBeTruthy();
+    expect(cancel).toHaveBeenCalled();
+    expect(repeat).not.toHaveBeenCalled();
+  });
+
+  it('draws nothing with reduce-motion (the status pill alone says it is recognising)', async () => {
+    setReduceMotion(true);
+    await render(<AiScanLine active />);
+    await act(async () => {});
+    expect(screen.queryByTestId('scan-line-sweeping', HIDDEN)).toBeNull();
+    expect(screen.queryByTestId('scan-line-idle', HIDDEN)).toBeNull();
   });
 });
