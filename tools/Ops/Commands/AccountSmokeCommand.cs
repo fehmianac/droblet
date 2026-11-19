@@ -107,8 +107,16 @@ internal sealed class AccountSmokeCommand(IServiceProvider services, OpsArgument
 
             // ── data export ────────────────────────────────────────────────────────────────────────────────────
             watch.Restart();
-            await CallAsync(HttpMethod.Put, "v1/tenant/style-profile",
-                new JsonObject { ["segment"] = "women", ["styleTags"] = new JsonArray("minimal", "classic"), ["budget"] = "mixed", ["baseVersion"] = 0 }, ct);
+            // Some records to export: a style profile and a consent (with its history row).
+            var (styleStatus, _) = await CallAsync(HttpMethod.Put, "v1/tenant/style-profile",
+                new JsonObject { ["segment"] = "women", ["styleTags"] = new JsonArray("minimal", "classic", "quietLuxury"), ["budget"] = "mixed", ["baseVersion"] = 0 }, ct);
+            var (consentStatus, _) = await CallAsync(HttpMethod.Put, "v1/tenant/consents", new JsonObject
+            {
+                ["consents"] = new JsonArray(new JsonObject { ["type"] = "contacts", ["granted"] = true, ["version"] = Domain.Options.ConsentOptions.DefaultVersion }),
+                ["source"] = "account-smoke",
+                ["locale"] = "tr",
+            }, ct);
+            Check("seed records (style profile, consent)", styleStatus == 200 && consentStatus == 200, watch.Elapsed, $"{styleStatus} / {consentStatus}");
             await s3.PutObjectAsync(new Amazon.S3.Model.PutObjectRequest
             {
                 BucketName = bucket, Key = $"tenant/{tenantId}/avatar/smoke.jpg", InputStream = new MemoryStream(Encoding.ASCII.GetBytes("smoke-file")), ContentType = "image/jpeg",
@@ -139,7 +147,7 @@ internal sealed class AccountSmokeCommand(IServiceProvider services, OpsArgument
                 using var zip = new ZipArchive(new MemoryStream(zipBytes), ZipArchiveMode.Read);
                 var names = zip.Entries.Select(e => e.FullName).ToList();
                 var profileJson = new StreamReader(zip.GetEntry("profile.json")!.Open()).ReadToEnd();
-                var ok = names.Contains("README.txt") && names.Contains("profile.json") && names.Contains("data/consent.json") && names.Contains("data/style-profile.json")
+                var ok = names.Contains("README.txt") && names.Contains("profile.json") && names.Contains("data/consent.json") && names.Contains("data/consent-history.json") && names.Contains("data/style-profile.json")
                          && names.Contains("files/avatar/smoke.jpg") && profileJson.Contains(email, StringComparison.Ordinal) && !profileJson.Contains("passwordHash", StringComparison.Ordinal);
                 Check("download the ZIP (presigned URL) and read it", ok, watch.Elapsed, $"{zipBytes.Length} bytes: {string.Join(", ", names)}");
                 exportKey = $"exports/{tenantId}/{export["id"]!.GetValue<string>()}.zip";
