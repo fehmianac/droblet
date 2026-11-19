@@ -24,6 +24,19 @@ public class UserEntity : IEntity
     // "I am 18 or older" (Terms §3, privacy §17): ticked at e-mail sign-up, or confirmed once after the first Apple / Google
     // sign-in (POST v1/tenant/profile/age-confirmation). Null = not confirmed yet: the app routes to the confirmation first.
     [JsonPropertyName("ageConfirmedAt")] public DateTime? AgeConfirmedAt { get; set; }
+    // The address was proven: the 6-digit code / link of the verification e-mail, a password reset link, or Apple /
+    // Google saying the address is verified. Null on an e-mail sign-up until then (the app asks, never blocks).
+    [JsonPropertyName("emailVerifiedAt")] public DateTime? EmailVerifiedAt { get; set; }
+
+    /// <summary>
+    /// True when there is nothing to verify: verified, no address, or an account without an e-mail sign-in (Apple /
+    /// Google only — the provider owns that address; contact matching lists it only when the provider verified it).
+    /// </summary>
+    [JsonIgnore]
+    public bool IsEmailVerified =>
+        EmailVerifiedAt is not null
+        || string.IsNullOrEmpty(Email)
+        || !Identities.Any(sk => sk.StartsWith("email#", StringComparison.Ordinal));
 
     public static string GetPk() => "users";
     public static string GetSk(string id) => id;

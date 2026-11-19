@@ -94,6 +94,8 @@ public sealed class AppLinksOptions
 {
     public const string Section = "App";
     public string PasswordResetUrl { get; set; } = "";
+    /// <summary>Verification e-mail link (web fallback page that opens the app). Default: the site's /verify-email.</summary>
+    public string EmailVerificationUrl { get; set; } = "https://droblet.alatech.co/verify-email";
     public string Scheme { get; set; } = "";
     public string BundleId { get; set; } = "";
 }
@@ -215,12 +217,14 @@ public sealed class QueueOptions
     public string? StylistRequest { get; set; }
     public string? TryOnRequest { get; set; }
     public string? PaletteRequest { get; set; }
+    public string? DataExportRequest { get; set; }
 
     public string? UrlFor(JobKind kind) => kind switch
     {
         JobKind.ItemProcess or JobKind.ItemSplit or JobKind.ItemClean => ItemProcessRequest,
         JobKind.TryOn => TryOnRequest,
         JobKind.Palette => PaletteRequest,
+        JobKind.DataExport => DataExportRequest,
         _ => StylistRequest,
     };
 }
@@ -257,6 +261,10 @@ public sealed class AuthRateLimitOptions
     public int LoginPerIpPer15Minutes { get; set; } = 50;
     public int RegisterPerIpPerHour { get; set; } = 20;
     public int ForgotPerEmailPerHour { get; set; } = 3;
+    /// <summary>Verification e-mails a user may ask for per day (plus one per minute, the app's countdown).</summary>
+    public int VerifyResendPerUserPerDay { get; set; } = 5;
+    /// <summary>Code entries per user per hour, across codes (each code also allows only 5 wrong tries).</summary>
+    public int VerifyCodePerUserPerHour { get; set; } = 20;
 }
 
 public sealed class AffiliateOptions

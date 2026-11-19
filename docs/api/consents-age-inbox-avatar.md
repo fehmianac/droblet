@@ -23,7 +23,7 @@ camelCase JSON and enum strings, ProblemDetails with a stable snake_case `code`,
 - A consent is **valid** when it is granted **and** its `version` equals the current version.
 - Records are per user (personal tenant): a current row per type plus an **append-only audit log** (`ConsentHistoryEntity`,
   one row per grant / withdrawal with time, version, locale and source). Both are removed with the account
-  (`DELETE v1/auth/me`); there is no data-export endpoint yet (see REVIEW §5).
+  (`DELETE v1/auth/me`) and included in the data export ([verification-export.md §2](verification-export.md)).
 
 ## 2. Endpoints
 
@@ -104,7 +104,8 @@ The app routes an unconfirmed account to the confirmation screen before anything
 ```
 
 - `type` / `data` are the push codes of [S §9](store-social-settings.md): `morning_outfit` (`day`), `weekly_edit`
-  (`editId`), `friend_ratings` (`day`), `price_drop` (`productId`), `follow_request` (`handle`). Ids only — the app writes
+  (`editId`), `friend_ratings` (`day`), `price_drop` (`productId`), `follow_request` (`handle`), `data_export_ready`
+  (`exportId`; written by the data export worker, never pushed — [V §2](verification-export.md)). Ids only — the app writes
   the sentence.
 - Filled by the Notifier from the same events it pushes, once per event, with or without a device. `weekly_edit` and
   `price_drop` only with a valid marketing consent (and the switch on); `follow_request` and `friend_ratings` even when

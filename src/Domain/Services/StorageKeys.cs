@@ -29,6 +29,10 @@ public static class StorageKeys
     /// <summary>EXIF-stripped original garment photo ("Orijinale dön").</summary>
     public static string ItemOriginal(string tenantId, string draftId, string extension) => $"{ItemsPrefix(tenantId)}{Guard(draftId)}-original.{extension}";
 
+    /// <summary>"Verilerimi indir" ZIPs. Outside tenant/ so the export never includes an older export; bucket lifecycle: 7 days.</summary>
+    public static string ExportsRoot(string tenantId) => $"exports/{Guard(tenantId)}/";
+    public static string Export(string tenantId, string exportId) => $"{ExportsRoot(tenantId)}{Guard(exportId)}.zip";
+
     public static bool BelongsToTenant(string key, string tenantId) =>
         key.StartsWith(TenantRoot(tenantId), StringComparison.Ordinal)
         || key.StartsWith(UploadsRoot(tenantId), StringComparison.Ordinal);

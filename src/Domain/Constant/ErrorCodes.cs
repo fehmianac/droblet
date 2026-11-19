@@ -18,6 +18,12 @@ public static partial class ErrorCodes
     public const string SmsUnavailable = "sms_unavailable";
     /// <summary>403: the account was suspended by an admin (sign-in, refresh, social sign-in).</summary>
     public const string AccountSuspended = "account_suspended";
+    /// <summary>400 (e-mail verification): wrong or old code / link.</summary>
+    public const string InvalidVerificationCode = "invalid_verification_code";
+    /// <summary>400 (e-mail verification): the code or link is past its 24 hours — ask for a new one.</summary>
+    public const string VerificationExpired = "verification_expired";
+    /// <summary>409 (e-mail verification): the address is already verified.</summary>
+    public const string EmailAlreadyVerified = "email_already_verified";
 
     // Admin panel (docs/api/admin.md)
     public const string InvalidCode = "invalid_code";

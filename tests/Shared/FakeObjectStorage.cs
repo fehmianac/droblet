@@ -32,6 +32,18 @@ public sealed class FakeObjectStorage : IObjectStorage
         return Task.CompletedTask;
     }
 
+    public Task<IReadOnlyList<string>> ListKeysAsync(string prefix, CancellationToken ct) =>
+        Task.FromResult<IReadOnlyList<string>>(Objects.Keys.Where(k => k.StartsWith(prefix, StringComparison.Ordinal)).Order(StringComparer.Ordinal).ToList());
+
+    public Task<Stream?> OpenReadAsync(string key, CancellationToken ct) =>
+        Task.FromResult<Stream?>(Objects.TryGetValue(key, out var o) ? new MemoryStream(o.Data, writable: false) : null);
+
+    public async Task PutFileAsync(string key, string filePath, string contentType, CancellationToken ct) =>
+        Objects[key] = (await File.ReadAllBytesAsync(filePath, ct), contentType);
+
+    public Task<string> CreateDownloadUrlAsync(string key, string fileName, TimeSpan ttl, CancellationToken ct) =>
+        Task.FromResult($"https://s3.test/bucket/{key}?X-Amz-Expires={(int)ttl.TotalSeconds}&response-content-disposition=attachment");
+
     public Task DeletePrefixAsync(string prefix, CancellationToken ct)
     {
         DeletedPrefixes.Add(prefix);

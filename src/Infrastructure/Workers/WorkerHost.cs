@@ -12,7 +12,10 @@ public static class WorkerHost
     /// <summary>SQS maxReceiveCount (template.yaml). The last attempt must leave the job Failed, never stuck.</summary>
     public const int MaxReceiveCount = 3;
 
-    public static IServiceProvider BuildServices(Action<IServiceCollection> configure)
+    public static IServiceProvider BuildServices(Action<IServiceCollection> configure) =>
+        BuildServices((services, _) => configure(services));
+
+    public static IServiceProvider BuildServices(Action<IServiceCollection, IConfiguration> configure)
     {
         var configuration = new ConfigurationBuilder()
             .SetBasePath(AppContext.BaseDirectory)
@@ -26,7 +29,7 @@ public static class WorkerHost
         services.AddLogging(logging => logging.AddJsonConsole().SetMinimumLevel(LogLevel.Information));
         services.AddDrobletCore(configuration);
         services.AddDrobletAi();
-        configure(services);
+        configure(services, configuration);
         return services.BuildServiceProvider();
     }
 

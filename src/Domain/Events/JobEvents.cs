@@ -38,6 +38,12 @@ public sealed record TryOnRequestedEvent(
     public JobKind Kind => JobKind.TryOn;
 }
 
+/// <summary>"Verilerimi indir": JobId is the export id (DataExportEntity), not a JobEntity.</summary>
+public sealed record DataExportRequestedEvent(string TenantId, string JobId) : IJobRequestedEvent
+{
+    public JobKind Kind => JobKind.DataExport;
+}
+
 public sealed record PaletteRequestedEvent(string TenantId, string JobId, string FacePhotoId) : IJobRequestedEvent
 {
     public JobKind Kind => JobKind.Palette;

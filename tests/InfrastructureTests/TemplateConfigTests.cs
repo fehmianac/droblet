@@ -173,7 +173,7 @@ public partial class TemplateConfigTests
         var functions = Regex.Matches(template, "Type: AWS::Serverless::Function").Count;
         var wired = FunctionLoggingPattern().Matches(template).ToList();
 
-        Assert.Equal(9, functions);
+        Assert.Equal(10, functions);
         Assert.Equal(functions, wired.Count);   // every function has LoggingConfig.LogGroup
         Assert.Equal(functions, wired.Select(m => m.Groups["group"].Value).Distinct().Count());
         foreach (var match in wired)

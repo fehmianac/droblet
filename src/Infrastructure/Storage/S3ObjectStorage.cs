@@ -86,6 +86,58 @@ public sealed class S3ObjectStorage(IAmazonS3 s3, IOptionsMonitor<PhotoOptions> 
 
     public Task DeleteAsync(string key, CancellationToken ct) => s3.DeleteObjectAsync(Bucket, key, ct);
 
+    public async Task<IReadOnlyList<string>> ListKeysAsync(string prefix, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(prefix) || !prefix.EndsWith('/'))
+            throw new ArgumentException("Prefix must be a non-empty folder prefix.", nameof(prefix));
+        var keys = new List<string>();
+        var request = new ListObjectsV2Request { BucketName = Bucket, Prefix = prefix };
+        ListObjectsV2Response response;
+        do
+        {
+            response = await s3.ListObjectsV2Async(request, ct);
+            keys.AddRange((response.S3Objects ?? []).Select(o => o.Key));
+            request.ContinuationToken = response.NextContinuationToken;
+        } while (response.IsTruncated == true);
+        return keys;
+    }
+
+    public async Task<Stream?> OpenReadAsync(string key, CancellationToken ct)
+    {
+        try
+        {
+            var response = await s3.GetObjectAsync(Bucket, key, ct);
+            return response.ResponseStream;
+        }
+        catch (AmazonS3Exception ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+    }
+
+    public async Task PutFileAsync(string key, string filePath, string contentType, CancellationToken ct)
+    {
+        using var transfer = new Amazon.S3.Transfer.TransferUtility(s3);
+        await transfer.UploadAsync(new Amazon.S3.Transfer.TransferUtilityUploadRequest
+        {
+            BucketName = Bucket,
+            Key = key,
+            FilePath = filePath,
+            ContentType = contentType,
+            ServerSideEncryptionMethod = ServerSideEncryptionMethod.AES256,
+        }, ct);
+    }
+
+    public Task<string> CreateDownloadUrlAsync(string key, string fileName, TimeSpan ttl, CancellationToken ct) =>
+        s3.GetPreSignedURLAsync(new GetPreSignedUrlRequest
+        {
+            BucketName = Bucket,
+            Key = key,
+            Verb = HttpVerb.GET,
+            Expires = timeProvider.GetUtcNow().UtcDateTime.Add(ttl),
+            ResponseHeaderOverrides = new ResponseHeaderOverrides { ContentDisposition = $"attachment; filename=\"{fileName}\"" },
+        });
+
     public async Task DeletePrefixAsync(string prefix, CancellationToken ct)
     {
         if (string.IsNullOrEmpty(prefix) || !prefix.EndsWith('/'))

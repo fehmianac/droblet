@@ -12,7 +12,8 @@ public enum ClosetVisibility { Public, FollowersOnly, Private }
 
 public enum PhotoKind { Body, Face }
 
-public enum JobKind { ItemProcess, StylistOutfit, StylistWeek, StylistPack, StylistComplete, TryOn, Palette, ItemSplit, ItemClean }
+/// <summary>DataExport: "Verilerimi indir" (not an AI job; only its queue routing uses the kind).</summary>
+public enum JobKind { ItemProcess, StylistOutfit, StylistWeek, StylistPack, StylistComplete, TryOn, Palette, ItemSplit, ItemClean, DataExport }
 
 public enum JobStatus { Queued, Processing, Completed, Failed }
 
@@ -59,7 +60,8 @@ public enum StoreProductKind { Subscription, Consumable }
 /// <summary>What a device registered as its push token: an FCM registration token (Android) or a raw APNs token (iOS).</summary>
 public enum PushTokenType { Fcm, Apns }
 
-public enum NotificationType { MorningOutfit, WeeklyEdit, FriendRatings, PriceDrop, FollowRequest }
+/// <summary>DataExportReady: inbox only (with the e-mail), never pushed.</summary>
+public enum NotificationType { MorningOutfit, WeeklyEdit, FriendRatings, PriceDrop, FollowRequest, DataExportReady }
 
 public enum AuthProvider { Email, Apple, Google }
 

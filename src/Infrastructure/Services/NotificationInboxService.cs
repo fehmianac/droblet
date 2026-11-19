@@ -128,6 +128,7 @@ public static class NotificationCodes
         NotificationType.WeeklyEdit => "weekly_edit",
         NotificationType.PriceDrop => "price_drop",
         NotificationType.FollowRequest => "follow_request",
+        NotificationType.DataExportReady => "data_export_ready",
         _ => "friend_ratings",
     };
 }

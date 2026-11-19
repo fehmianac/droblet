@@ -68,10 +68,10 @@ jobs:
           - name: palette
             project: src/Palette
             functions: palette
-          # Dort Notifier fonksiyonu ayni zip'i paylasir.
+          # Bes Notifier fonksiyonu (data-export dahil) ayni zip'i paylasir.
           - name: notifier
             project: src/Notifier
-            functions: notifier-reminder notifier-weekly-edit notifier-friend-ratings notifier-lifecycle
+            functions: notifier-reminder notifier-weekly-edit notifier-friend-ratings notifier-lifecycle notifier-data-export
     steps:
       - uses: actions/checkout@v5
 

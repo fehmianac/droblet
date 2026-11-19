@@ -84,6 +84,25 @@ public interface IEmailService
     Task SendAsync(EmailMessage message, CancellationToken ct);
 }
 
+public enum EmailVerificationOutcome { Verified, Sent, AlreadyVerified, InvalidCode, Expired, TooManyAttempts, NoEmail, UserNotFound }
+
+/// <summary>
+/// E-mail sign-up verification: a 6-digit code and a link (24 h, one open verification per user; a resend replaces
+/// it). Never blocks the app; a verified address may be found by contact matching (decision 13).
+/// </summary>
+public interface IEmailVerificationService
+{
+    /// <summary>Sends a fresh code + link. Failures to send are logged, never thrown (sign-up must not fail on e-mail).</summary>
+    Task<EmailVerificationOutcome> SendAsync(UserEntity user, string language, CancellationToken ct);
+    /// <summary>Rate limited (1 per minute, AuthRateLimits:VerifyResendPerUserPerDay per day).</summary>
+    Task<EmailVerificationOutcome> ResendAsync(string userId, string language, CancellationToken ct);
+    Task<EmailVerificationOutcome> VerifyCodeAsync(string userId, string code, CancellationToken ct);
+    /// <summary>The link token (signed out is fine: the web page and the app's deep link use it).</summary>
+    Task<EmailVerificationOutcome> VerifyTokenAsync(string token, CancellationToken ct);
+    /// <summary>Stores the address as verified (provider said so, or a password reset link proved it). Idempotent.</summary>
+    Task MarkVerifiedAsync(UserEntity user, CancellationToken ct);
+}
+
 public interface IUserLookup
 {
     Task<UserEntity?> FindByEmailAsync(string email, CancellationToken ct);

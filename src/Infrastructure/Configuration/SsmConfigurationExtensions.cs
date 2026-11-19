@@ -45,6 +45,8 @@ public static class SsmConfigurationExtensions
         Map("STYLIST_REQUEST_QUEUE_URL", "Queues:StylistRequest");
         Map("TRYON_REQUEST_QUEUE_URL", "Queues:TryOnRequest");
         Map("PALETTE_REQUEST_QUEUE_URL", "Queues:PaletteRequest");
+        Map("DATA_EXPORT_REQUEST_QUEUE_URL", "Queues:DataExportRequest");
+        Map("PUBLIC_API_BASE_URL", "DataExport:PublicApiBaseUrl");
         Map("CATALOG_IMAGE_BUCKET", "CatalogImages:Bucket");
         Map("CATALOG_IMAGE_BASE_URL", "CatalogImages:PublicBaseUrl");
         return map;
