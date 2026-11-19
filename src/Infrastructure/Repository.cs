@@ -177,6 +177,43 @@ public class Repository(IAmazonDynamoDB client) : IRepository
         return long.Parse(response.Attributes[attributeName].N, System.Globalization.CultureInfo.InvariantCulture);
     }
 
+    public async Task<IReadOnlyDictionary<string, long>?> AddCountersAsync(string pk, string sk, IReadOnlyDictionary<string, long> increments, CancellationToken ct = default)
+    {
+        if (increments.Count == 0)
+            throw new ArgumentException("At least one counter.", nameof(increments));
+        var names = new Dictionary<string, string> { ["#pk"] = PkName };
+        var values = new Dictionary<string, AttributeValue>();
+        var adds = new List<string>();
+        var i = 0;
+        foreach (var (name, increment) in increments)
+        {
+            names[$"#c{i}"] = name;
+            values[$":c{i}"] = Number(increment);
+            adds.Add($"#c{i} :c{i}");
+            i++;
+        }
+        try
+        {
+            var response = await client.UpdateItemAsync(new UpdateItemRequest
+            {
+                TableName = Table,
+                Key = Key(pk, sk),
+                UpdateExpression = "ADD " + string.Join(", ", adds),
+                ConditionExpression = "attribute_exists(#pk)",
+                ExpressionAttributeNames = names,
+                ExpressionAttributeValues = values,
+                ReturnValues = ReturnValue.ALL_NEW,
+            }, ct);
+            return response.Attributes
+                .Where(a => a.Value.N is not null)
+                .ToDictionary(a => a.Key, a => long.Parse(a.Value.N, System.Globalization.CultureInfo.InvariantCulture), StringComparer.Ordinal);
+        }
+        catch (ConditionalCheckFailedException)
+        {
+            return null;
+        }
+    }
+
     public async Task<bool> SaveIfVersionAsync(IVersionedEntity entity, long expectedVersion, CancellationToken ct = default)
     {
         var item = ToItem(entity);

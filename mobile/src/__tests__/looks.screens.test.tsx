@@ -46,7 +46,7 @@ describe('14 Looklar', () => {
     await renderRouter('./src/app', { initialUrl: '/wardrobe/looks' });
     await waitFor(() => expect(screen.getByText('Lacivert Blazer')).toBeTruthy(), { timeout: 3000 });
     expect(screen.getByTestId('looks.create')).toBeTruthy();
-    expect(screen.getByLabelText('Create a look')).toBeTruthy();
+    expect(screen.getByLabelText('Add')).toBeTruthy();
     expect(screen.getAllByText('OFFICE').length).toBe(2);
     expect(screen.getByText('EVENING')).toBeTruthy();
     expect(screen.getByText('WEEKEND')).toBeTruthy();

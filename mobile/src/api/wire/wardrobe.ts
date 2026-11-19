@@ -194,7 +194,7 @@ export async function fetchItemMap(): Promise<Map<string, Item>> {
 // ---------- looks ----------
 
 export type OutfitSlotWire = 'top' | 'bottom' | 'outerwear' | 'shoes' | 'bagAccessory';
-export type LookSourceWire = 'user' | 'stylist' | 'edit' | 'builder';
+export type LookSourceWire = 'user' | 'stylist' | 'edit' | 'builder' | 'import';
 /** Wire occasions; the app's `Occasion` has one more key (`evening`) that is sent as `dinner`. */
 export type OccasionWire = 'office' | 'dinner' | 'weekend' | 'wedding' | 'travel' | 'sport';
 
@@ -224,6 +224,8 @@ export type LookWire = {
   rating: { average: number | null; count: number } | null;
   /** Owner-only: `{ hidden: true, reason }` while a moderator hides the look from everybody else. */
   moderation?: ModerationWire | null;
+  /** Imported look: presigned GET of the outfit photo (GET look / look/{id} only). */
+  coverImageUrl?: string | null;
 };
 
 export type LookSlotInputWire = { slot: OutfitSlotWire; itemId?: string; productId?: string };
@@ -295,6 +297,7 @@ export function toLook(wire: LookWire, ctx: LookContext): Look {
     ratingCount: wire.rating?.count ?? 0,
     // The cover falls back to the piece collage; an existing try-on is read on demand (`GET v1/tenant/tryon`).
     tryOnImageUrl: null,
+    coverImageUrl: wire.coverImageUrl ?? null,
     createdAt: wire.createdAt,
     baseVersion: wire.version,
     moderation: toModeration(wire.moderation),

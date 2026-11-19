@@ -49,6 +49,8 @@ export type Look = {
   ratingCount: number;
   /** Cover: the owner's try-on image when one exists (private, signed URL). */
   tryOnImageUrl: string | null;
+  /** Imported look ("Kombinlerini içe aktar"): the outfit photo it came from (private, signed URL). */
+  coverImageUrl?: string | null;
   createdAt: string;
   baseVersion: number;
   /** Owner-only: set while a moderator hides the look from everybody else (`LookDto.moderation`). */

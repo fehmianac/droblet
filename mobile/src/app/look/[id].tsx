@@ -132,7 +132,7 @@ function LookBody({ look, itemsById, note }: { look: Look; itemsById: ItemsById;
         <LookCover
           seed={look.id}
           figureHeight={170}
-          tryOnImageUrl={look.tryOnImageUrl}
+          tryOnImageUrl={look.tryOnImageUrl ?? look.coverImageUrl ?? null}
           slots={look.slots}
           itemsById={itemsById}
           className="h-[264px] w-[200px] rounded-image-lg"

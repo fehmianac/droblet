@@ -36,6 +36,8 @@ public class LookEntity : IVersionedEntity, IModeratedEntity
     [JsonPropertyName("slots")] public List<LookSlotValue> Slots { get; set; } = [];
     [JsonPropertyName("favorite")] public bool Favorite { get; set; }
     [JsonPropertyName("source")] public LookSource Source { get; set; }
+    // Imported look ("Kombinlerini içe aktar"): the EXIF-stripped outfit photo under the tenant prefix. Never client supplied.
+    [JsonPropertyName("coverImageKey")] public string? CoverImageKey { get; set; }
 
     // Moderation (report resolved as contentRemoved): hidden from everyone but the owner. Written only by the moderation
     // service; owner edits load and save the whole row, so they keep these fields.

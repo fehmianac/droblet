@@ -45,6 +45,8 @@ public sealed class TimedRepository(IRepository inner) : IRepository
         Time(() => inner.AtomicIncrementInMapAsync(pk, sk, mapAttributeName, mapKey, increment, ct));
     public Task<long> IncrementCounterAsync(string pk, string sk, string attributeName, long ttl, CancellationToken ct = default) =>
         Time(() => inner.IncrementCounterAsync(pk, sk, attributeName, ttl, ct));
+    public Task<IReadOnlyDictionary<string, long>?> AddCountersAsync(string pk, string sk, IReadOnlyDictionary<string, long> increments, CancellationToken ct = default) =>
+        Time(() => inner.AddCountersAsync(pk, sk, increments, ct));
     public Task<bool> SaveIfVersionAsync(IVersionedEntity entity, long expectedVersion, CancellationToken ct = default) => Time(() => inner.SaveIfVersionAsync(entity, expectedVersion, ct));
     public Task<TransactOutcome> SaveWithReceiptAsync(IEntity receipt, IReadOnlyList<IEntity> items, CancellationToken ct = default) => Time(() => inner.SaveWithReceiptAsync(receipt, items, ct));
     public Task<TransactResult> TransactWriteAsync(IReadOnlyList<TransactWriteOperation> operations, CancellationToken ct = default) => Time(() => inner.TransactWriteAsync(operations, ct));

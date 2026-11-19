@@ -19,6 +19,7 @@ public static class AiSchemas
     public const string ItemDetection = "item_detection";
     public const string PaletteSeason = "palette_season";
     public const string PhotoCheck = "photo_check";
+    public const string ItemMatch = "item_match";
 
     public static string NameFor(JobKind kind) => kind switch
     {
@@ -77,6 +78,11 @@ public static class AiSchemas
             ("itemConfidence", Number()),
             ("box", Object(("left", Number()), ("top", Number()), ("right", Number()), ("bottom", Number()))),
             ("confidence", FieldConfidence())))));
+
+    /// <summary>Outfit import match: the 1-based number of the candidate that is the same piece, or null.</summary>
+    public static JsonObject ItemMatchSchema() => Object(
+        ("match", NullableInteger()),
+        ("confidence", Number()));
 
     public static JsonObject PaletteSchema() => Object(
         ("facesDetected", Integer()),
@@ -149,6 +155,8 @@ public static class AiSchemas
     private static JsonObject Integer() => new() { ["type"] = "integer" };
     private static JsonObject Number() => new() { ["type"] = "number" };
     private static JsonObject NullableString() => new() { ["type"] = new JsonArray("string", "null") };
+
+    private static JsonObject NullableInteger() => new() { ["type"] = new JsonArray("integer", "null") };
 
     private static JsonObject Enum(IEnumerable<string> values) =>
         new() { ["type"] = "string", ["enum"] = new JsonArray(values.Select(v => (JsonNode)v).ToArray()) };

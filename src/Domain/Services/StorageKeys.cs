@@ -33,9 +33,20 @@ public static class StorageKeys
     public static string ExportsRoot(string tenantId) => $"exports/{Guard(tenantId)}/";
     public static string Export(string tenantId, string exportId) => $"{ExportsRoot(tenantId)}{Guard(exportId)}.zip";
 
+    /// <summary>"Kombinlerini içe aktar" originals as uploaded (presigned POST). Bucket lifecycle: 7 days.</summary>
+    public static string ImportUploadsRoot(string tenantId) => $"uploads/import/{Guard(tenantId)}/";
+    public static string ImportUploadPrefix(string tenantId, string sessionId) => $"{ImportUploadsRoot(tenantId)}{Guard(sessionId)}/";
+    public static string ImportUpload(string tenantId, string sessionId, int index) => $"{ImportUploadPrefix(tenantId, sessionId)}{index}";
+
+    /// <summary>Worker output of an import session: the EXIF-stripped photo (a committed look's cover) and the piece crops.</summary>
+    public static string ImportPrefix(string tenantId, string sessionId) => $"{TenantRoot(tenantId)}import/{Guard(sessionId)}/";
+    public static string ImportPhoto(string tenantId, string sessionId, int index, string extension) => $"{ImportPrefix(tenantId, sessionId)}{index}.{extension}";
+    public static string ImportCrop(string tenantId, string sessionId, int index, int piece) => $"{ImportPrefix(tenantId, sessionId)}{index}-{piece}.jpg";
+
     public static bool BelongsToTenant(string key, string tenantId) =>
         key.StartsWith(TenantRoot(tenantId), StringComparison.Ordinal)
-        || key.StartsWith(UploadsRoot(tenantId), StringComparison.Ordinal);
+        || key.StartsWith(UploadsRoot(tenantId), StringComparison.Ordinal)
+        || key.StartsWith(ImportUploadsRoot(tenantId), StringComparison.Ordinal);
 
     private static string Guard(string segment)
     {

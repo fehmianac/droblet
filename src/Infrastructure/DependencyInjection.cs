@@ -29,6 +29,7 @@ public static class DependencyInjection
         services.Configure<QueueOptions>(configuration.GetSection(QueueOptions.Section));
         services.Configure<StoreOptions>(configuration.GetSection(StoreOptions.Section));
         services.Configure<AiOptions>(configuration.GetSection(AiOptions.Section));
+        services.Configure<OutfitImportOptions>(configuration.GetSection(OutfitImportOptions.Section));
         services.Configure<AffiliateOptions>(configuration.GetSection(AffiliateOptions.Section));
         services.Configure<CatalogImageOptions>(configuration.GetSection(CatalogImageOptions.Section));
         services.Configure<ConsentOptions>(configuration.GetSection(ConsentOptions.Section));
@@ -92,6 +93,8 @@ public static class DependencyInjection
         services.AddSingleton<IPhotoInspector>(sp => sp.GetRequiredService<OpenAiProvider>());
         services.AddSingleton<IItemDetector>(sp => sp.GetRequiredService<OpenAiProvider>());
         services.AddSingleton<IItemImageCleanup>(sp => sp.GetRequiredService<OpenAiProvider>());
+        services.AddSingleton<IItemMatcher>(sp => sp.GetRequiredService<OpenAiProvider>());
+        services.AddSingleton<IFastItemDetector>(sp => sp.GetRequiredService<OpenAiProvider>());
         return services;
     }
 

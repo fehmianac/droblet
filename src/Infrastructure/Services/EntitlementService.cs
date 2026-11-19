@@ -16,7 +16,8 @@ public sealed class EntitlementService(IRepository repository, IOptionsMonitor<E
         var usage = await repository.GetAsync<ItemRecognitionUsageEntity>(ItemRecognitionUsageEntity.GetPk(tenantId), ItemRecognitionUsageEntity.GetSk(), ct);
         var now = timeProvider.GetUtcNow().UtcDateTime;
         return new EntitlementSnapshot(active, CreditLedger.Balance(CreditContextLoader.StateOf(account), context),
-            EntitlementPolicy.ItemRecognition(active.Tier, options.CurrentValue.Free.ItemRecognitionLimit, ItemRecognitionQuotaService.UsedOf(usage, now)));
+            EntitlementPolicy.ItemRecognition(active.Tier, options.CurrentValue.Free.ItemRecognitionLimit, ItemRecognitionQuotaService.UsedOf(usage, now)),
+            EntitlementPolicy.OutfitImportMaxPhotos(active.Tier, options.CurrentValue));
     }
 
     public async Task<EntitlementDecision> CheckAsync(string tenantId, Capability capability, CancellationToken ct)

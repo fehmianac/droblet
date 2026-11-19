@@ -114,6 +114,22 @@ public sealed class InMemoryRepository : IRepository
     public Task<long> IncrementCounterAsync(string pk, string sk, string attributeName, long ttl, CancellationToken ct = default) =>
         Task.FromResult(Counters.AddOrUpdate(($"{pk}|{sk}", attributeName), 1, (_, v) => v + 1));
 
+    public Task<IReadOnlyDictionary<string, long>?> AddCountersAsync(string pk, string sk, IReadOnlyDictionary<string, long> increments, CancellationToken ct = default)
+    {
+        lock (_gate)
+        {
+            if (!_items.TryGetValue((pk, sk), out var json))
+                return Task.FromResult<IReadOnlyDictionary<string, long>?>(null);
+            var node = JsonNode.Parse(json)!.AsObject();
+            foreach (var (name, increment) in increments)
+                node[name] = (node[name]?.GetValue<long>() ?? 0) + increment;
+            _items[(pk, sk)] = node.ToJsonString();
+            var numbers = JsonNode.Parse(_items[(pk, sk)])!.AsObject().Where(p => p.Value is JsonValue v && v.GetValueKind() == JsonValueKind.Number)
+                .ToDictionary(p => p.Key, p => (long)p.Value!.GetValue<double>(), StringComparer.Ordinal);
+            return Task.FromResult<IReadOnlyDictionary<string, long>?>(numbers);
+        }
+    }
+
     public Task<bool> SaveIfVersionAsync(IVersionedEntity entity, long expectedVersion, CancellationToken ct = default)
     {
         lock (_gate)

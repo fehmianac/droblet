@@ -68,6 +68,7 @@ public partial class TemplateConfigTests
         var packing = Bind<PackingOptions>(scope, PackingOptions.Section);
 
         Assert.Equal((30, 10), (entitlements.Premium.TryOnCreditsPerMonth, entitlements.Free.ItemRecognitionLimit));
+        Assert.Equal((30, 30), (entitlements.Free.OutfitImportMaxPhotos, entitlements.Premium.OutfitImportMaxPhotos));
         Assert.False(entitlements.SelfServePremium.Enabled);   // the prod literal: self-serve premium is off in prod
         Assert.Equal((12, 21), (packing.CabinMaxItems, packing.MaxTripDays));
     }
@@ -173,7 +174,7 @@ public partial class TemplateConfigTests
         var functions = Regex.Matches(template, "Type: AWS::Serverless::Function").Count;
         var wired = FunctionLoggingPattern().Matches(template).ToList();
 
-        Assert.Equal(10, functions);
+        Assert.Equal(11, functions);
         Assert.Equal(functions, wired.Count);   // every function has LoggingConfig.LogGroup
         Assert.Equal(functions, wired.Select(m => m.Groups["group"].Value).Distinct().Count());
         foreach (var match in wired)
@@ -191,6 +192,33 @@ public partial class TemplateConfigTests
         // Writing to the new groups is covered by the basic execution policy of every Lambda role.
         Assert.Equal(Regex.Matches(template, "Type: AWS::IAM::Role").Count - AdminOnlyRoles(template),
             Regex.Matches(template, "service-role/AWSLambdaBasicExecutionRole").Count);
+    }
+
+    [Fact]
+    public void OutfitImport_HasItsQueue_Dlq_Alarm_Lifecycle_AndLeastPrivilege()
+    {
+        var template = Template();
+
+        // Queue + DLQ (maxReceiveCount 3) + alarm, consumed by its own function with SQS MaximumConcurrency.
+        Assert.Matches(@"OutfitImportRequestQueue:\n    Type: AWS::SQS::Queue\n    Properties:\n      QueueName: !Sub droblet-\$\{Stage\}-outfit-import-request\n      VisibilityTimeout: 150\n(?:.*\n){2}\s*deadLetterTargetArn: !GetAtt OutfitImportRequestDlq.Arn\n\s*maxReceiveCount: 3", template);
+        Assert.Contains("Dimensions: [{ Name: QueueName, Value: !GetAtt OutfitImportRequestDlq.QueueName }]", template);
+        Assert.Matches(@"Queue: !GetAtt OutfitImportRequestQueue.Arn\n\s*BatchSize: 1\n\s*FunctionResponseTypes: \[ReportBatchItemFailures\]\n\s*ScalingConfig:\n\s*MaximumConcurrency: !Ref OutfitImportMaxConcurrency", template);
+        Assert.Contains("Handler: ItemProcessor::ItemProcessor.OutfitImportEntrypoint::FunctionHandler", template);
+
+        // Originals under uploads/import/ expire after 7 days.
+        Assert.Matches(@"- Id: expire-outfit-import-uploads\n\s*Status: Enabled\n\s*Prefix: uploads/import/\n\s*ExpirationInDays: 7", template);
+        Assert.StartsWith("uploads/import/", StorageKeys.ImportUploadsRoot("t"));
+
+        // The worker reads the originals and item images, writes only under tenant/*/import/, and re-sends to its own queue only.
+        var role = Regex.Match(template, @"OutfitImportLambdaRole:\n(?<body>(?:    .*\n|\n)+?)\n  [A-Za-z]+:\n").Groups["body"].Value;
+        Assert.Contains("Resource: !GetAtt OutfitImportRequestQueue.Arn", role);
+        Assert.DoesNotContain("s3:DeleteObject", role);
+        Assert.Matches(@"Action: \[s3:GetObject, s3:PutObject\]\n\s*Resource: !Sub '\$\{PhotoBucket.Arn\}/tenant/\*/import/\*'", role);
+        Assert.DoesNotContain("parameter/droblet/${Stage}/api", role);
+
+        // The Api signs the uploads and queues the photos.
+        Assert.Contains("OUTFIT_IMPORT_REQUEST_QUEUE_URL: !Ref OutfitImportRequestQueue", template);
+        Assert.Contains("- !Sub '${PhotoBucket.Arn}/uploads/import/*'", template);
     }
 
     /// <summary>Roles that are not assumed by Lambda (none today).</summary>

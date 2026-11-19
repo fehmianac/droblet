@@ -9,6 +9,7 @@
  *   price_drop {productId}     → 22 Ürün; without an id the watch list
  *   data_export_ready          → Verilerimi indir (inbox only today)
  *   content_removed {targetKind, targetId} → the removed look / piece; the profile → Profili düzenle (inbox only)
+ *   outfit_import_ready {sessionId} → the import's review (31c); without an id the import entry (inbox only)
  * Unknown types or unusable ids open Bugün.
  */
 export type PushData = Record<string, unknown>;
@@ -20,6 +21,8 @@ export type PushRoute =
   | '/wardrobe/looks'
   | '/data-export'
   | '/edit-profile'
+  | '/import'
+  | { pathname: '/import/[id]'; params: { id: string } }
   | { pathname: '/item/[id]'; params: { id: string } }
   | { pathname: '/edit/[id]'; params: { id: string } }
   | { pathname: '/look/[id]'; params: { id: string } }
@@ -53,6 +56,10 @@ export function routeForPush(data: PushData | null | undefined): PushRoute {
     }
     case 'data_export_ready':
       return '/data-export';
+    case 'outfit_import_ready': {
+      const sessionId = id(data, 'sessionId');
+      return sessionId ? { pathname: '/import/[id]', params: { id: sessionId } } : '/import';
+    }
     case 'content_removed': {
       const targetId = id(data, 'targetId');
       if (data.targetKind === 'look') return targetId ? { pathname: '/look/[id]', params: { id: targetId } } : '/wardrobe/looks';

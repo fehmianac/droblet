@@ -34,6 +34,7 @@ export function toNotification(wire: NotificationWire): AppNotification | null {
       ...((MODERATED_TARGET_KINDS as readonly string[]).includes(data.targetKind ?? '') ? { targetKind: data.targetKind as ModeratedTargetKind } : {}),
       ...(data.targetId ? { targetId: data.targetId } : {}),
       ...(data.reason ? { reason: data.reason } : {}),
+      ...(data.sessionId ? { sessionId: data.sessionId } : {}),
     },
   };
 }

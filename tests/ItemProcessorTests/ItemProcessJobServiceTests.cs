@@ -554,4 +554,47 @@ public class ItemProcessJobServiceTests
         Assert.Single(cropper.Plans);
         Assert.Equal(JobStatus.Completed, (await host.JobAsync(job))!.Status);
     }
+
+    // ── Outfit import: background removal of a piece the commit made an item ──────────────────────────────────────
+
+    [Fact]
+    public async Task CleanImportedItem_SetsTheCleanedImageOnTheItem_TheCropStaysTheOriginal()
+    {
+        var ai = new FakeAi();
+        var host = Host(ai);
+        var job = await host.QueueJobAsync(Tenant, JobKind.ItemClean);
+        const string itemId = "01JITEM000000000000000000A";
+        var cropKey = StorageKeys.ImportCrop(Tenant, "01JSESSION000000000000000A", 1, 2);
+        var item = new ItemEntity
+        {
+            Id = itemId, TenantId = Tenant, Category = ItemCategory.Top, Subcategory = "shirt", ColorIds = ["white"], Seasons = [Season.Spring],
+            Source = ItemSource.Photo, OriginalImageKey = cropKey, UseOriginalImage = true, CreatedAt = WorkerTestHost.Now, UpdatedAt = WorkerTestHost.Now,
+        };
+        await host.Repository.SaveIfVersionAsync(item, 0);
+        await host.Storage.PutAsync(StorageKeys.Upload(Tenant, itemId), [0xFF, 0xD8, 0x09], "image/jpeg", default);
+
+        await host.Get<IItemProcessJobService>().ProcessAsync(new ItemProcessRequestedEvent(Tenant, job.Id, itemId, Clean: true, ItemId: itemId), false, default);
+
+        var stored = (await host.Repository.GetAsync<ItemEntity>(ItemEntity.GetPk(Tenant), ItemEntity.GetSk(itemId)))!;
+        Assert.Equal(StorageKeys.ItemImage(Tenant, itemId), stored.ImageKey);
+        Assert.Equal(cropKey, stored.OriginalImageKey);
+        Assert.False(stored.UseOriginalImage);
+        Assert.Equal(2, stored.Version);
+        Assert.Equal((ItemCategoryHint.Top, "shirt"), (ai.Cleanups.Single().Category, ai.Cleanups.Single().Subcategory));
+        Assert.Equal(JobStatus.Completed, (await host.JobAsync(job))!.Status);
+    }
+
+    [Fact]
+    public async Task CleanImportedItem_DeletedMeanwhile_FailsWithoutAnImageCall()
+    {
+        var ai = new FakeAi();
+        var host = Host(ai);
+        var job = await host.QueueJobAsync(Tenant, JobKind.ItemClean);
+        await host.Storage.PutAsync(StorageKeys.Upload(Tenant, "01JITEM000000000000000000B"), [0xFF, 0xD8], "image/jpeg", default);
+
+        await host.Get<IItemProcessJobService>().ProcessAsync(new ItemProcessRequestedEvent(Tenant, job.Id, "01JITEM000000000000000000B", Clean: true, ItemId: "01JITEM000000000000000000B"), false, default);
+
+        Assert.Empty(ai.Cleanups);
+        Assert.Equal((JobStatus.Failed, JobFailure.SourceDeleted), ((await host.JobAsync(job))!.Status, (await host.JobAsync(job))!.Failure));
+    }
 }

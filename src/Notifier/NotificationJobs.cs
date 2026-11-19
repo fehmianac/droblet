@@ -286,6 +286,12 @@ public static class NotificationTexts
             ["tr"] = ("Paylaşımın kaldırıldı", "Paylaşımın topluluk kurallarına aykırı bulunduğu için kaldırıldı."),
             ["en"] = ("Your post was removed", "Your post was removed because it was found to go against our community guidelines."),
         },
+        // Inbox only (written by the outfit import worker when every photo is processed); kept here so every type has its text.
+        [NotificationType.OutfitImportReady] = new()
+        {
+            ["tr"] = ("Kombinlerin hazır", "İçe aktardığın fotoğraflardan look'lar oluşturuldu. Kontrol edip onayla."),
+            ["en"] = ("Your outfits are ready", "Looks were drafted from the photos you imported. Review and approve them."),
+        },
     };
 
     public static (string Title, string Body) For(NotificationType type, string? language, string defaultLanguage)

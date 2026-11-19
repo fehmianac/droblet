@@ -2,12 +2,15 @@ using Domain.Domain;
 using Domain.Entity;
 using Domain.Enum;
 using Domain.Manager;
+using Domain.Options;
 using Domain.Services;
+using Microsoft.Extensions.Options;
 
 namespace Infrastructure.Services;
 
 /// <summary>E3 looks. Every write passes OutfitSlotRules; slot references are resolved only inside the caller's tenant (+ catalog).</summary>
-public sealed class LookService(IRepository repository, ICatalogProductLookup products, TimeProvider timeProvider) : ILookService
+public sealed class LookService(IRepository repository, ICatalogProductLookup products, IObjectStorage storage, IOptionsMonitor<PhotoOptions> photoOptions,
+    TimeProvider timeProvider) : ILookService
 {
     private DateTime Now => timeProvider.GetUtcNow().UtcDateTime;
 
@@ -18,8 +21,10 @@ public sealed class LookService(IRepository repository, ICatalogProductLookup pr
         // One partition read for every look's rating summary (the owner always sees the ratings of their own looks).
         var ratings = (await repository.GetAllAsync<LookRatingSummaryEntity>(LookRatingSummaryEntity.GetPk(tenantId), ct))
             .ToDictionary(r => r.LookId, StringComparer.Ordinal);
-        return looks.OrderByDescending(l => l.CreatedAt).ThenByDescending(l => l.Id, StringComparer.Ordinal)
-            .Select(l => l.ToDto(itemIds) with { Rating = ToRating(ratings.GetValueOrDefault(l.Id)) }).ToList();
+        var result = new List<LookDto>(looks.Count);
+        foreach (var look in looks.OrderByDescending(l => l.CreatedAt).ThenByDescending(l => l.Id, StringComparer.Ordinal))
+            result.Add(await WithCoverAsync(look, look.ToDto(itemIds) with { Rating = ToRating(ratings.GetValueOrDefault(look.Id)) }, ct));
+        return result;
     }
 
     public async Task<LookDto?> GetAsync(string tenantId, string id, CancellationToken ct)
@@ -28,7 +33,16 @@ public sealed class LookService(IRepository repository, ICatalogProductLookup pr
         if (look is null)
             return null;
         var rating = await repository.GetAsync<LookRatingSummaryEntity>(LookRatingSummaryEntity.GetPk(tenantId), LookRatingSummaryEntity.GetSk(id), ct);
-        return look.ToDto(await ItemIdsAsync(repository, tenantId, ct)) with { Rating = ToRating(rating) };
+        return await WithCoverAsync(look, look.ToDto(await ItemIdsAsync(repository, tenantId, ct)) with { Rating = ToRating(rating) }, ct);
+    }
+
+    /// <summary>An imported look's cover photo as a presigned GET (only a key under the owner's prefix is ever signed).</summary>
+    private async Task<LookDto> WithCoverAsync(LookEntity look, LookDto dto, CancellationToken ct)
+    {
+        if (look.CoverImageKey is not { } key || !StorageKeys.BelongsToTenant(key, look.TenantId))
+            return dto;
+        var ttl = TimeSpan.FromSeconds(photoOptions.CurrentValue.ReadUrlTtlSeconds);
+        return dto with { CoverImageUrl = await storage.CreateReadUrlAsync(key, ttl, ct), CoverImageUrlExpiresAt = Now.Add(ttl) };
     }
 
     private static LookRatingSummaryDto? ToRating(LookRatingSummaryEntity? summary) =>
@@ -99,6 +113,9 @@ public sealed class LookService(IRepository repository, ICatalogProductLookup pr
         if (look is null)
             return false;
         await repository.DeleteAsync(look.Pk, look.Sk, ct);
+        // An imported look's cover photo is its own (nothing else points to it).
+        if (look.CoverImageKey is { } cover && StorageKeys.BelongsToTenant(cover, tenantId))
+            await storage.DeleteAsync(cover, ct);
         // The look's rating summary goes with it (the raters' own rows are removed by their own account deletion / unsave).
         await repository.DeleteAsync(LookRatingSummaryEntity.GetPk(tenantId), LookRatingSummaryEntity.GetSk(id), ct);
         return true;

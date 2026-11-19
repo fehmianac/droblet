@@ -27,7 +27,8 @@ namespace Infrastructure.Ai;
 /// Nothing but ids, status codes and token counts is ever logged — no prompt, no answer, no image, no key.
 /// </summary>
 public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> options, ILogger<OpenAiProvider> logger)
-    : IAiProvider, IImageCleanup, IGarmentVision, ITryOnRenderer, IStylistModel, IPaletteAnalyzer, IItemDetector, IItemImageCleanup, IPhotoInspector
+    : IAiProvider, IImageCleanup, IGarmentVision, ITryOnRenderer, IStylistModel, IPaletteAnalyzer, IItemDetector, IItemImageCleanup, IPhotoInspector,
+      IItemMatcher, IFastItemDetector
 {
     public const string ProviderName = "OpenAI";
     public const string ChatPath = "/v1/chat/completions";
@@ -85,7 +86,7 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
     // ── Capabilities ──────────────────────────────────────────────────────────────────────────────────────────────
 
     public Task<string> GenerateAsync(StylistPrompt prompt, CancellationToken ct) =>
-        ChatAsync(OpenAiPrompts.Stylist(prompt.Kind, prompt.Language), prompt.InputJson, null, AiSchemas.NameFor(prompt.Kind), AiSchemas.For(prompt.Kind), ct);
+        ChatAsync(OpenAiPrompts.Stylist(prompt.Kind, prompt.Language), prompt.InputJson, (ImageInput?)null, AiSchemas.NameFor(prompt.Kind), AiSchemas.For(prompt.Kind), ct);
 
     public async Task<GarmentSuggestion> DescribeAsync(ImageInput garmentImage, string language, CancellationToken ct)
     {
@@ -93,10 +94,25 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
         return OpenAiPayloads.ParseGarment(content);
     }
 
-    public async Task<IReadOnlyList<DetectedItem>> DetectItemsAsync(ImageInput photo, string language, CancellationToken ct)
+    public Task<IReadOnlyList<DetectedItem>> DetectItemsAsync(ImageInput photo, string language, CancellationToken ct) =>
+        DetectItemsAsync(photo, language, false, ct);
+
+    /// <summary>The same detection; <paramref name="fast"/> = Ai:FastTextModel when it is set (outfit import).</summary>
+    public async Task<IReadOnlyList<DetectedItem>> DetectItemsAsync(ImageInput photo, string language, bool fast, CancellationToken ct)
     {
-        var content = await ChatAsync(OpenAiPrompts.ItemDetection(language), OpenAiPrompts.ItemDetectionRequest, photo, AiSchemas.ItemDetection, AiSchemas.ItemDetectionSchema(), ct, highDetail: true);
+        var content = await ChatAsync(OpenAiPrompts.ItemDetection(language), OpenAiPrompts.ItemDetectionRequest, [photo], AiSchemas.ItemDetection,
+            AiSchemas.ItemDetectionSchema(), ct, highDetail: true, fast: fast);
         return OpenAiPayloads.ParseDetection(content);
+    }
+
+    /// <summary>Outfit import: is the cropped piece (first image) the same physical piece as one of the candidates?</summary>
+    public async Task<ItemMatchResult> MatchAsync(ImageInput crop, IReadOnlyList<ImageInput> candidates, string? pieceHint, bool fast, CancellationToken ct)
+    {
+        if (candidates.Count == 0)
+            return new ItemMatchResult(null, 1);
+        var content = await ChatAsync(OpenAiPrompts.ItemMatch, OpenAiPrompts.ItemMatchRequest(candidates.Count, pieceHint), [crop, .. candidates], AiSchemas.ItemMatch,
+            AiSchemas.ItemMatchSchema(), ct, fast: fast);
+        return OpenAiPayloads.ParseMatch(content, candidates.Count);
     }
 
     public async Task<PaletteAnalysis> AnalyzeAsync(ImageInput facePhoto, CancellationToken ct)
@@ -144,12 +160,18 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
     /// <summary>What a call log line and its stage timing carry besides the outcome (never content).</summary>
     private sealed record CallInfo(string? Model, string? Effort, string? ImageSize, string? ImageQuality, long? RequestBytes = null);
 
-    private async Task<string> ChatAsync(string system, string userText, ImageInput? image, string schemaName, JsonObject schema, CancellationToken ct, bool highDetail = false)
+    private Task<string> ChatAsync(string system, string userText, ImageInput? image, string schemaName, JsonObject schema, CancellationToken ct, bool highDetail = false) =>
+        ChatAsync(system, userText, image is null ? [] : [image], schemaName, schema, ct, highDetail);
+
+    /// <param name="fast">Ai:FastTextModel when it is set, whatever Ai:FastTextOperations lists (outfit import).</param>
+    private async Task<string> ChatAsync(string system, string userText, IReadOnlyList<ImageInput> images, string schemaName, JsonObject schema, CancellationToken ct,
+        bool highDetail = false, bool fast = false)
     {
-        var settings = Require(o => o.ModelFor(schemaName));
-        var model = settings.ModelFor(schemaName);
+        string ModelOf(AiOptions o) => fast && !string.IsNullOrWhiteSpace(o.FastTextModel) ? o.FastTextModel! : o.ModelFor(schemaName);
+        var settings = Require(ModelOf);
+        var model = ModelOf(settings);
         var tuning = new ChatTuning(settings.EffortFor(schemaName), settings.ServiceTier, settings.PromptCacheKey ? schemaName : null);
-        var body = OpenAiPayloads.ChatRequest(model, system, userText, image, schemaName, schema, highDetail, tuning).ToJsonString();
+        var body = OpenAiPayloads.ChatRequest(model, system, userText, images, schemaName, schema, highDetail, tuning).ToJsonString();
         using var request = new HttpRequestMessage(HttpMethod.Post, Url(settings, ChatPath))
         {
             Content = new StringContent(body, Encoding.UTF8, "application/json"),
@@ -255,9 +277,14 @@ public static class OpenAiPayloads
 {
     /// <param name="highDetail">Vision at full resolution ("detail": "high") — small pieces such as rings need it.</param>
     public static JsonObject ChatRequest(string model, string system, string userText, ImageInput? image, string schemaName, JsonObject schema, bool highDetail = false,
-        ChatTuning? tuning = null)
+        ChatTuning? tuning = null) =>
+        ChatRequest(model, system, userText, image is null ? [] : [image], schemaName, schema, highDetail, tuning);
+
+    /// <summary>Several images in one user message (outfit import match: the crop, then the candidates in order).</summary>
+    public static JsonObject ChatRequest(string model, string system, string userText, IReadOnlyList<ImageInput> images, string schemaName, JsonObject schema,
+        bool highDetail = false, ChatTuning? tuning = null)
     {
-        var request = ChatRequestCore(model, system, userText, image, schemaName, schema, highDetail);
+        var request = ChatRequestCore(model, system, userText, images, schemaName, schema, highDetail);
         if (tuning?.ReasoningEffort is { Length: > 0 } effort)
             request["reasoning_effort"] = effort;
         if (tuning?.ServiceTier is { Length: > 0 } tier)
@@ -289,10 +316,10 @@ public static class OpenAiPayloads
 
     private static long? Long(JsonNode? node) => node is not null && node.GetValueKind() == JsonValueKind.Number ? (long)node.GetValue<double>() : null;
 
-    private static JsonObject ChatRequestCore(string model, string system, string userText, ImageInput? image, string schemaName, JsonObject schema, bool highDetail)
+    private static JsonObject ChatRequestCore(string model, string system, string userText, IReadOnlyList<ImageInput> images, string schemaName, JsonObject schema, bool highDetail)
     {
         var userContent = new JsonArray { new JsonObject { ["type"] = "text", ["text"] = userText } };
-        if (image is not null)
+        foreach (var image in images)
         {
             var imageUrl = new JsonObject { ["url"] = $"data:{image.ContentType};base64,{Convert.ToBase64String(image.Data)}" };
             if (highDetail)
@@ -414,6 +441,15 @@ public static class OpenAiPayloads
                 Number(item["itemConfidence"]),
                 Bool(item["isWearable"]));
         }).ToList();
+
+    /// <summary>The match answer: a 1-based candidate number in range, else none.</summary>
+    public static ItemMatchResult ParseMatch(string content, int candidateCount)
+    {
+        var node = ParseObject(content);
+        var number = node["match"] is JsonValue value && value.GetValueKind() == JsonValueKind.Number ? (int)value.GetValue<double>() : 0;
+        var confidence = Math.Clamp(Number(node["confidence"]), 0, 1);
+        return number >= 1 && number <= candidateCount ? new ItemMatchResult(number - 1, confidence) : new ItemMatchResult(null, confidence);
+    }
 
     public static PaletteAnalysis ParsePalette(string content)
     {
@@ -596,6 +632,17 @@ public static class OpenAiPrompts
     public static string ItemDetection(string? language) => ItemDetectionBase + WriteIn(language);
 
     public const string ItemDetectionRequest = "List every wearable piece in this photo, jewellery and small accessories included, each with its box.";
+
+    /// <summary>Outfit import (stage B / C): the same physical piece, not a similar one.</summary>
+    public const string ItemMatch =
+        "You compare clothing photos for a wardrobe app. The first image is one piece cropped from a photo of someone's outfit (a mirror selfie or an " +
+        "old photo; light, angle and folds differ). The other images are numbered candidates, 1 to N, from the same person's wardrobe. " +
+        "Decide whether one candidate is the very same physical piece — same garment type, colour, pattern, material, cut and details such as buttons, " +
+        "collar, print or logo placement. A merely similar piece (another black t-shirt) is NOT a match. match: the candidate number, or null when none " +
+        "is clearly the same piece. confidence: 0..1, how sure you are of that answer. Never describe the person.";
+
+    public static string ItemMatchRequest(int candidates, string? pieceHint) =>
+        $"First image: the piece{(string.IsNullOrWhiteSpace(pieceHint) ? "" : $" ({pieceHint})")}. Then {candidates} candidate(s), numbered 1 to {candidates} in order. Which candidate is the same piece?";
 
     private const string GarmentVisionBase =
         "You label one clothing photo for a wardrobe app. Use only the values allowed by the response schema. " +

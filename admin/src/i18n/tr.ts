@@ -566,6 +566,8 @@ export const tr: Dict = {
     fields: {
       'Premium.TryOnCreditsPerMonth': 'Üye başına aylık AI görseli',
       'Free.ItemRecognitionLimit': 'Ücretsiz AI parça tanıma (toplam)',
+      'Free.OutfitImportMaxPhotos': 'Kombin içe aktarma: aktarım başına fotoğraf (ücretsiz)',
+      'Premium.OutfitImportMaxPhotos': 'Kombin içe aktarma: aktarım başına fotoğraf (üye)',
       'SelfServePremium.Enabled': 'Geçici üyelik: kullanıcı kendi hesabını Premium yapabilir (ödeme entegrasyonu açılana kadar)',
       CabinMaxItems: 'Kabin bavulu parça sınırı (0 = kapalı)',
       MaxTripDays: 'En uzun seyahat (gün)',

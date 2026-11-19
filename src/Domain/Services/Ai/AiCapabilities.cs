@@ -98,6 +98,25 @@ public interface IItemDetector
     Task<IReadOnlyList<DetectedItem>> DetectItemsAsync(ImageInput photo, string language, CancellationToken ct);
 }
 
+/// <param name="Index">0-based index of the candidate that is the very same physical piece; null = none of them.</param>
+public sealed record ItemMatchResult(int? Index, double Confidence);
+
+/// <summary>
+/// Outfit import (stage B / C): one vision call that compares a piece cropped from an outfit photo with up to K candidate
+/// pieces (wardrobe thumbnails, new pieces found earlier in the session) and says which one — if any — is the same piece.
+/// </summary>
+public interface IItemMatcher
+{
+    /// <param name="fast">Use Ai:FastTextModel when it is configured.</param>
+    Task<ItemMatchResult> MatchAsync(ImageInput crop, IReadOnlyList<ImageInput> candidates, string? pieceHint, bool fast, CancellationToken ct);
+}
+
+/// <summary>Multi-item detection with an explicit model choice (outfit import uses the fast text model when configured).</summary>
+public interface IFastItemDetector
+{
+    Task<IReadOnlyList<DetectedItem>> DetectItemsAsync(ImageInput photo, string language, bool fast, CancellationToken ct);
+}
+
 /// <summary>Background removal of one piece (already cropped to its box), as a product photo on the house background.</summary>
 public interface IItemImageCleanup
 {

@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  Droblet backend: Api (HTTP API), AI workers (ItemProcessor, Stylist, TryOn, Palette; SQS + DLQ), Notifier
+  Droblet backend: Api (HTTP API), AI workers (ItemProcessor, OutfitImport, Stylist, TryOn, Palette; SQS + DLQ), Notifier
   (EventBridge Scheduler), one DynamoDB table, private photo bucket. Region eu-central-1.
   Secrets are never template values. Fixed non-secret config is created here as SSM String parameters
   (name = config section, value = JSON). deploy-infra creates the rest once and never overwrites it:
@@ -49,6 +49,13 @@ Parameters:
     Type: Number
     Default: 2
     MinValue: 2
+  OutfitImportMaxConcurrency:
+    Type: Number
+    Default: 3
+    MinValue: 2
+    Description: >-
+      SQS MaximumConcurrency of the outfit import worker (all tenants). Each tenant is also capped inside the job
+      (OutfitImport:MaxInFlightPerTenant, default 3), so one 30-photo import never takes every slot.
   LogRetentionDays:
     Type: Number
     Default: 0
@@ -132,6 +139,11 @@ Resources:
             Status: Enabled
             Prefix: uploads/tmp/
             ExpirationInDays: 1
+          # "Kombinlerini içe aktar" originals: the worker keeps a stripped copy; unfinished sessions expire after 7 days too.
+          - Id: expire-outfit-import-uploads
+            Status: Enabled
+            Prefix: uploads/import/
+            ExpirationInDays: 7
           # "Verilerimi indir" ZIPs: the e-mailed link promises 7 days.
           - Id: expire-data-exports
             Status: Enabled
@@ -300,6 +312,24 @@ Resources:
         deadLetterTargetArn: !GetAtt PaletteRequestDlq.Arn
         maxReceiveCount: 3
 
+  # "Kombinlerini içe aktar": one message per photo. The worker itself re-sends a photo with a delay (tenant at its cap,
+  # session busy, OpenAI rate limit), so maxReceiveCount only counts real failures.
+  OutfitImportRequestDlq:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub droblet-${Stage}-outfit-import-request-dlq
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+  OutfitImportRequestQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub droblet-${Stage}-outfit-import-request
+      VisibilityTimeout: 150
+      SqsManagedSseEnabled: true
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt OutfitImportRequestDlq.Arn
+        maxReceiveCount: 3
+
   # "Verilerimi indir": not an AI call, so a retry is cheap; the visibility outlasts the 10-minute function.
   DataExportRequestDlq:
     Type: AWS::SQS::Queue
@@ -335,11 +365,11 @@ Resources:
     Properties:
       Name: !Sub /droblet/${Stage}/api/Entitlements
       Type: String
-      Description: Premium try-on credits per month; Free.ItemRecognitionLimit = lifetime AI garment recognitions of a non-member (0 = members only); SelfServePremium.Enabled = temporary self-serve premium (on in dev, off in prod).
+      Description: Premium try-on credits per month; Free.ItemRecognitionLimit = lifetime AI garment recognitions of a non-member (0 = members only); OutfitImportMaxPhotos = photos per outfit import, per plan; SelfServePremium.Enabled = temporary self-serve premium (on in dev, off in prod).
       Value: !If
         - IsProd
-        - '{"Premium":{"TryOnCreditsPerMonth":30},"Free":{"ItemRecognitionLimit":10},"SelfServePremium":{"Enabled":false}}'
-        - '{"Premium":{"TryOnCreditsPerMonth":30},"Free":{"ItemRecognitionLimit":10},"SelfServePremium":{"Enabled":true}}'
+        - '{"Premium":{"TryOnCreditsPerMonth":30,"OutfitImportMaxPhotos":30},"Free":{"ItemRecognitionLimit":10,"OutfitImportMaxPhotos":30},"SelfServePremium":{"Enabled":false}}'
+        - '{"Premium":{"TryOnCreditsPerMonth":30,"OutfitImportMaxPhotos":30},"Free":{"ItemRecognitionLimit":10,"OutfitImportMaxPhotos":30},"SelfServePremium":{"Enabled":true}}'
   SsmApiPhotos:
     Type: AWS::SSM::Parameter
     Properties:
@@ -377,8 +407,8 @@ Resources:
       Description: Same values as api/Entitlements (workers commit / release credits and the recognition allowance).
       Value: !If
         - IsProd
-        - '{"Premium":{"TryOnCreditsPerMonth":30},"Free":{"ItemRecognitionLimit":10},"SelfServePremium":{"Enabled":false}}'
-        - '{"Premium":{"TryOnCreditsPerMonth":30},"Free":{"ItemRecognitionLimit":10},"SelfServePremium":{"Enabled":true}}'
+        - '{"Premium":{"TryOnCreditsPerMonth":30,"OutfitImportMaxPhotos":30},"Free":{"ItemRecognitionLimit":10,"OutfitImportMaxPhotos":30},"SelfServePremium":{"Enabled":false}}'
+        - '{"Premium":{"TryOnCreditsPerMonth":30,"OutfitImportMaxPhotos":30},"Free":{"ItemRecognitionLimit":10,"OutfitImportMaxPhotos":30},"SelfServePremium":{"Enabled":true}}'
   SsmNotifierNotifications:
     Type: AWS::SSM::Parameter
     Properties:
@@ -555,6 +585,7 @@ Resources:
                   - !GetAtt TryOnRequestQueue.Arn
                   - !GetAtt PaletteRequestQueue.Arn
                   - !GetAtt DataExportRequestQueue.Arn
+                  - !GetAtt OutfitImportRequestQueue.Arn
               - Effect: Allow
                 Action: [ssm:GetParameter, ssm:GetParameters, ssm:GetParametersByPath]
                 Resource:
@@ -564,6 +595,7 @@ Resources:
                 Action: [s3:PutObject, s3:GetObject, s3:DeleteObject]
                 Resource:
                   - !Sub '${PhotoBucket.Arn}/uploads/tmp/*'
+                  - !Sub '${PhotoBucket.Arn}/uploads/import/*'
                   - !Sub '${PhotoBucket.Arn}/tenant/*'
               # Data export ZIPs: presigned download (GetObject) and account deletion (DeleteObject); written by the worker.
               - Effect: Allow
@@ -574,7 +606,7 @@ Resources:
                 Resource: !GetAtt PhotoBucket.Arn
                 Condition:
                   StringLike:
-                    's3:prefix': ['uploads/tmp/*', 'tenant/*', 'exports/*']
+                    's3:prefix': ['uploads/tmp/*', 'uploads/import/*', 'tenant/*', 'exports/*']
               # Admin panel image uploads (presigned POST signed with this role).
               - Effect: Allow
                 Action: s3:PutObject
@@ -631,6 +663,46 @@ Resources:
                 # DeleteObject: images written for a draft the user deleted while it was being processed are removed again.
                 Action: [s3:PutObject, s3:DeleteObject]
                 Resource: !Sub '${PhotoBucket.Arn}/tenant/*/items/*'
+              - Effect: Allow
+                Action: [ssm:GetParameter, ssm:GetParameters, ssm:GetParametersByPath]
+                Resource:
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/worker
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/worker/*
+
+  OutfitImportLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub droblet-${Stage}-outfit-import-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+      Policies:
+        - PolicyName: outfit-import
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # SendMessage: a photo goes back on its own queue with a delay (tenant cap, session busy, rate-limit back-off).
+              - Effect: Allow
+                Action: [sqs:ReceiveMessage, sqs:DeleteMessage, sqs:GetQueueAttributes, sqs:ChangeMessageVisibility, sqs:SendMessage]
+                Resource: !GetAtt OutfitImportRequestQueue.Arn
+              - Effect: Allow
+                Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:DeleteItem, dynamodb:Query]
+                Resource: !GetAtt DrobletTable.Arn
+              # Originals and wardrobe item images (match thumbnails) are read only; the session's own output is written.
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource:
+                  - !Sub '${PhotoBucket.Arn}/uploads/import/*'
+                  - !Sub '${PhotoBucket.Arn}/tenant/*/items/*'
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject]
+                Resource: !Sub '${PhotoBucket.Arn}/tenant/*/import/*'
               - Effect: Allow
                 Action: [ssm:GetParameter, ssm:GetParameters, ssm:GetParametersByPath]
                 Resource:
@@ -861,6 +933,12 @@ Resources:
       LogGroupName: !Sub /droblet/${Stage}/lambda/item-processor
       RetentionInDays: !If [HasLogRetentionOverride, !Ref LogRetentionDays, !If [IsProd, 400, 90]]
 
+  OutfitImportLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /droblet/${Stage}/lambda/outfit-import
+      RetentionInDays: !If [HasLogRetentionOverride, !Ref LogRetentionDays, !If [IsProd, 400, 90]]
+
   StylistLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -928,6 +1006,7 @@ Resources:
           TRYON_REQUEST_QUEUE_URL: !Ref TryOnRequestQueue
           PALETTE_REQUEST_QUEUE_URL: !Ref PaletteRequestQueue
           DATA_EXPORT_REQUEST_QUEUE_URL: !Ref DataExportRequestQueue
+          OUTFIT_IMPORT_REQUEST_QUEUE_URL: !Ref OutfitImportRequestQueue
           PHOTO_BUCKET: !Ref PhotoBucket
           CATALOG_IMAGE_BUCKET: !Ref CatalogImageBucket
           CATALOG_IMAGE_BASE_URL: !Sub https://${CatalogImageBucket}.s3.${AWS::Region}.amazonaws.com
@@ -968,6 +1047,32 @@ Resources:
             FunctionResponseTypes: [ReportBatchItemFailures]
             ScalingConfig:
               MaximumConcurrency: !Ref ItemProcessorMaxConcurrency
+
+  # "Kombinlerini içe aktar": the ItemProcessor package (detection, crops), its own handler, role, queue and log group.
+  OutfitImportFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub droblet-${Stage}-outfit-import
+      LoggingConfig:
+        LogGroup: !Ref OutfitImportLogGroup
+      Handler: ItemProcessor::ItemProcessor.OutfitImportEntrypoint::FunctionHandler
+      Role: !GetAtt OutfitImportLambdaRole.Arn
+      Timeout: 120
+      MemorySize: 1024
+      Environment:
+        Variables:
+          SYSTEMS_MANAGER_PATH: !Sub /droblet/${Stage}/worker
+          PHOTO_BUCKET: !Ref PhotoBucket
+          OUTFIT_IMPORT_REQUEST_QUEUE_URL: !Ref OutfitImportRequestQueue
+      Events:
+        Queue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt OutfitImportRequestQueue.Arn
+            BatchSize: 1
+            FunctionResponseTypes: [ReportBatchItemFailures]
+            ScalingConfig:
+              MaximumConcurrency: !Ref OutfitImportMaxConcurrency
 
   StylistFunction:
     Type: AWS::Serverless::Function
@@ -1162,6 +1267,21 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
       AlarmActions: [!Ref AlarmTopic]
+  OutfitImportDlqAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub droblet-${Stage}-outfit-import-dlq
+      AlarmDescription: An outfit import photo died; its session waits for a photo that will not finish (the recognition is released after 24 h).
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions: [{ Name: QueueName, Value: !GetAtt OutfitImportRequestDlq.QueueName }]
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
   StylistDlqAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
@@ -1270,5 +1390,7 @@ Outputs:
     Value: !Ref TryOnRequestQueue
   PaletteRequestQueueUrl:
     Value: !Ref PaletteRequestQueue
+  OutfitImportRequestQueueUrl:
+    Value: !Ref OutfitImportRequestQueue
   AlarmTopicArn:
     Value: !Ref AlarmTopic

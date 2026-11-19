@@ -60,6 +60,14 @@ public static partial class ErrorCodes
     public const string UploadNotFound = "upload_not_found";
     public const string UploadKindMismatch = "upload_kind_mismatch";
     public const string UploadMissing = "upload_missing";
+
+    // Outfit import ("Kombinlerini içe aktar")
+    public const string OutfitImportNotFound = "outfit_import_not_found";
+    public const string OutfitImportTooManyPhotos = "outfit_import_too_many_photos";
+    public const string OutfitImportPhotoNotFound = "outfit_import_photo_not_found";
+    public const string OutfitImportNotReady = "outfit_import_not_ready";
+    public const string OutfitImportCommitted = "outfit_import_committed";
+    public const string OutfitImportUnknownRef = "outfit_import_unknown_ref";
     public const string UnsupportedImage = "unsupported_image";
     public const string PhotoTooLarge = "photo_too_large";
 

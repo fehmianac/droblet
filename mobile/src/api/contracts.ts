@@ -139,6 +139,11 @@ export type Entitlement = {
    * account turned it on. Absent = off.
    */
   selfServePremium?: { enabled: boolean; active: boolean };
+  /**
+   * "Kombinlerini içe aktar": photos per import for this plan (server configuration, per plan; owner change
+   * 2026-11-19). Absent on an older server — the session answer (`maxPhotos`) brings it then.
+   */
+  outfitImportMaxPhotos?: number | null;
 };
 
 export type ItemRecognitionQuota = { limit: number | null; used: number; remaining: number | null };

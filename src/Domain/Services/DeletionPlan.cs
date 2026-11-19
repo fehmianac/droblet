@@ -78,13 +78,18 @@ public static class DeletionPlan
         // Usage events, per-actor copies (partition = hash of the tenant id). The day-partition rows they point to are
         // removed first by AccountDeletionService (this partition is their only index).
         typeof(AnalyticsActorEventEntity),
+        // "Kombinlerini içe aktar" sessions (originals under uploads/import/{tenantId}/, worker output under tenant/{id}/import/).
+        typeof(OutfitImportSessionEntity),
+        typeof(OutfitImportPhotoEntity),
+        typeof(OutfitImportPieceEntity),
+        typeof(OutfitImportLeaseEntity),
     ];
 
     public static IReadOnlyList<string> TenantPartitionKeys(string tenantId) =>
         TenantScopedEntityTypes.Select(t => InvokeGetPk(t, tenantId)).ToList();
 
     public static IReadOnlyList<string> AccountS3Prefixes(string tenantId) =>
-        [StorageKeys.TenantRoot(tenantId), StorageKeys.UploadsRoot(tenantId), StorageKeys.ExportsRoot(tenantId)];
+        [StorageKeys.TenantRoot(tenantId), StorageKeys.UploadsRoot(tenantId), StorageKeys.ImportUploadsRoot(tenantId), StorageKeys.ExportsRoot(tenantId)];
 
     /// <summary>Photo deletion (screen 29): body + face + all try-on outputs. Item images stay.</summary>
     public static IReadOnlyList<string> PhotoS3Prefixes(string tenantId) =>

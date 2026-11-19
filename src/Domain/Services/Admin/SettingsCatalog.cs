@@ -34,6 +34,8 @@ public static partial class SettingsCatalog
         new("entitlements",
             [new("api", "Entitlements"), new("worker", "Entitlements")],
             [new("Premium.TryOnCreditsPerMonth", SettingFieldType.Int, 0, 1000), new("Free.ItemRecognitionLimit", SettingFieldType.Int, 0, 1000),
+             // Photos per "Kombinlerini içe aktar" session, per plan (owner decision 2026-11-19, default 30 for both).
+             new("Free.OutfitImportMaxPhotos", SettingFieldType.Int, 1, 100), new("Premium.OutfitImportMaxPhotos", SettingFieldType.Int, 1, 100),
              // Temporary self-serve premium in Ayarlar until store purchases are live (owner decision 2026-11-19).
              new("SelfServePremium.Enabled", SettingFieldType.Bool)]),
         new("packing",

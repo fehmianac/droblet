@@ -58,7 +58,7 @@ jobs:
             functions: api
           - name: item-processor
             project: src/ItemProcessor
-            functions: item-processor
+            functions: item-processor outfit-import
           - name: stylist
             project: src/Stylist
             functions: stylist
