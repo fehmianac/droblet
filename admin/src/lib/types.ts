@@ -252,6 +252,11 @@ export interface ModerationReport {
   resolutionNote: string | null;
   resolvedByUserId: string | null;
   resolvedAt: string | null;
+  /** `contentRemoved`: when the target was hidden from everyone but its owner. */
+  contentRemovedAt: string | null;
+  /** Set by `POST …/{id}/restore` (undo of `contentRemoved`). */
+  contentRestoredAt: string | null;
+  contentRestoredByUserId: string | null;
 }
 
 export interface RevenueBucket {

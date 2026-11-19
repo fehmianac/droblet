@@ -103,6 +103,8 @@ export const en = {
       image_storage_not_configured: 'Image storage is not set up on the server.',
       network: 'The server could not be reached.',
       generic: 'Something went wrong.',
+      report_not_resolved: 'The report is not resolved yet, so there is no removal to undo.',
+      report_not_content_removed: 'This report was not resolved as "content removed", so there is no removal to undo.',
     },
     fields: {
       password_too_short: 'At least 10 characters.',
@@ -486,6 +488,13 @@ export const en = {
     resolvedAt: 'Resolved {date}',
     anonymous: 'Unknown',
     empty: 'The queue is empty.',
+    contentRemovedHint: 'The content is hidden from everyone but its owner, and the owner is notified. The removal can be undone later.',
+    removedAt: 'Content removed · {date}',
+    restoredAt: 'Restored · {date} · {admin}',
+    restore: 'Undo removal',
+    restoreTitle: 'Undo the removal?',
+    restoreHint: 'The content becomes visible to everyone again. The report stays resolved; this is written to the audit log.',
+    restored: 'Removal undone. The content is visible again.',
   },
   revenue: {
     title: 'Revenue',

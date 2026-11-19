@@ -194,7 +194,8 @@ A resolved report cannot be reopened, so the undo is `POST v1/admin/moderation/r
 (`moderation.manage`, no body): the content is visible again, the report keeps `status: resolved` and gains
 `contentRestoredAt` / `contentRestoredByUserId`; audited as `report.contentRestore` (before / after). Idempotent; a later
 resolve call never hides it again. `404 not_found`; `409 report_not_resolved` (still open), `409 report_not_content_removed`.
-The panel lists resolved reports without actions, so it has no restore button yet — call the route directly.
+The panel's Resolved tab shows "Content removed · {date}" (or "Restored · {date} · {admin}") on such a report and an
+"Undo removal" button with a confirm dialog; the 409 codes have their own messages.
 
 ## 7. First super admin (bootstrap)
 

@@ -10,7 +10,7 @@ server, the panel only hides what the signed-in role cannot use.
 | Overview | Dashboard (KPI tiles, daily clicks / conversions, top brands, funnel) |
 | Catalog | Brands, products (search, brand filter, paging, bulk retire, product page with TR/EN tabs and image upload), CSV import (server dry-run preview → import → error report) |
 | Content | Weekly edits (7 days, 1–2 price-band variants, sponsor), collections + their looks, ready-made library |
-| Users & moderation | User search, user detail (counts, membership, credits, devices — never photos), suspend / delete, **TEST grants** (premium, credits), reports queue (dismiss / resolve / block) |
+| Users & moderation | User search, user detail (counts, membership, credits, devices — never photos), suspend / delete, **TEST grants** (premium, credits), reports queue (dismiss / resolve / block; undo a content removal) |
 | Reports | Revenue (clicks, conversions, commission by brand / network / source / look / day, CSV export), funnel |
 | System | App settings (owner-editable Parameter Store values; secrets are never shown), admin users, audit log, my account |
 
