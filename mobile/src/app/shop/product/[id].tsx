@@ -236,6 +236,7 @@ function ProductBody({ product }: { product: ProductDetail }) {
                 active={favorite}
                 onPress={() => setFavorite(product.id, !favorite)}
                 accessibilityLabel={t(favorite ? 'shop.favoriteRemove' : 'shop.favoriteAdd')}
+                testID="product-favorite"
               />
             </View>
           </View>
