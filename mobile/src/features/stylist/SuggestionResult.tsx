@@ -33,6 +33,8 @@ import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { CreditConfirmSheet } from '@/features/credits/CreditConfirmSheet';
 import { aiCreditsKey, openCreditTopUp, useAiCredits } from '@/features/credits/useAiCredits';
+import { RequirementHint } from '@/features/requirements/RequirementHint';
+import { useGate } from '@/features/requirements/useRequirements';
 import { ensureTryOnConsent, TRY_ON_CREDIT_COST, useStartTryOn, useTryOnJob } from '@/features/tryon/api';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { formatDate, parseLocalDate } from '@/lib/format';
@@ -40,6 +42,7 @@ import { useIsOnline } from '@/sync/network';
 
 import { useAcceptSuggestion, useSuggestionFeedback, useSuggestionTryOns } from './api';
 import { NoCreditsCard, SuggestionMedia, type MediaMode } from './SuggestionMedia';
+import { GapFillBanner, useAddSuggestedPieces } from './gapFill';
 import { SuggestionPieces } from './SuggestionPieces';
 import { CalendarSheet, FeedbackSheet } from './SuggestionSheets';
 
@@ -100,12 +103,15 @@ export function SuggestionResult({ jobId, title, result, focused, onAskAgain, as
   const startTryOn = useStartTryOn();
   const accept = useAcceptSuggestion(jobId);
   const feedback = useSuggestionFeedback(jobId);
+  const suggestedPieces = useAddSuggestedPieces();
 
   const [current, setCurrent] = useState(0);
   const [dismissed, setDismissed] = useState<number[]>([]);
   const [skippedWait, setSkippedWait] = useState<number[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const [sheet, setSheet] = useState<Sheet>('none');
+  // Missing photo / consent / membership: the requirements flow, which then opens the credit confirmation (canvas 11).
+  const tryOnGate = useGate('tryOn', () => void ensureTryOnConsent().then((ok) => ok && setSheet('credit')), { origin: title });
   const [titleTops, setTitleTops] = useState<Record<number, number>>({});
 
   const suggestions = result.suggestions;
@@ -238,8 +244,22 @@ export function SuggestionResult({ jobId, title, result, focused, onAskAgain, as
     if (next) setCurrent(next.index);
   };
 
+  /** Library picks join the wardrobe first: the accepted look then holds the user's own pieces. */
+  const libraryOf = (target: StylistSuggestion) => target.pieces.filter((p) => p.source === 'library').map((p) => p.refId);
+  const acceptWithPieces = (date: string | null, savedLookId: string | null) => {
+    const ids = libraryOf(suggestion);
+    if (ids.length === 0) {
+      accept.accept(index, date, savedLookId);
+      return;
+    }
+    void suggestedPieces
+      .add(ids)
+      .then(() => accept.accept(index, date, savedLookId))
+      .catch(() => setNotice(t('req.gapFill.addFailed')));
+  };
+
   const addToCalendar = (date: string) => {
-    accept.accept(index, date, suggestion.savedLookId);
+    acceptWithPieces(date, suggestion.savedLookId);
     setSheet('none');
   };
 
@@ -297,12 +317,12 @@ export function SuggestionResult({ jobId, title, result, focused, onAskAgain, as
                     mode={media.mode}
                     imageUrl={media.imageUrl}
                     creditLine={creditLine}
-                    onTryOn={() => void ensureTryOnConsent().then((ok) => ok && setSheet('credit'))}
+                    onTryOn={tryOnGate.run}
                     tryOnDisabled={!online}
                     creditRefunded={media.creditRefunded}
                     onRetry={() => {
                       tryOns.set(s.index, null);
-                      void ensureTryOnConsent().then((ok) => ok && setSheet('credit'));
+                      tryOnGate.run();
                     }}
                     retrying={startTryOn.isStarting}
                   />
@@ -323,6 +343,12 @@ export function SuggestionResult({ jobId, title, result, focused, onAskAgain, as
                   <Text variant="body" tone="muted" className="text-[13.5px]">
                     {s.note}
                   </Text>
+
+                  {live && tryOnGate.hint && media.mode === 'idle' ? <RequirementHint hint={tryOnGate.hint} onPress={tryOnGate.run} className="self-start" testID="suggestion-try-on-hint" /> : null}
+
+                  {result.gapFilled && s.pieces.some((p) => p.suggested) ? (
+                    <GapFillBanner libraryItemIds={s.pieces.filter((p) => p.source === 'library').map((p) => p.refId)} testID={`gapfill.banner.${s.index}`} />
+                  ) : null}
 
                   {pageWaiting ? <AiSkeletonRows /> : <SuggestionPieces pieces={s.pieces} />}
 
@@ -394,7 +420,7 @@ export function SuggestionResult({ jobId, title, result, focused, onAskAgain, as
               icon={Heart}
               active={saved}
               onPress={() => {
-                if (!saved) accept.accept(index, null, null);
+                if (!saved) acceptWithPieces(null, null);
               }}
               accessibilityLabel={t(saved ? 'stylistResult.saved' : 'stylistResult.save')}
             />

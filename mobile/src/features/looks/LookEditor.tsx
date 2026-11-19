@@ -19,6 +19,8 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Text } from '@/components/ui/Text';
 import { TextField } from '@/components/ui/TextField';
 import { CreditConfirmSheet } from '@/features/credits/CreditConfirmSheet';
+import { RequirementHint, StepCountBadge } from '@/features/requirements/RequirementHint';
+import { useGate } from '@/features/requirements/useRequirements';
 import { ensureTryOnConsent, useStartTryOn } from '@/features/tryon/api';
 import { formatMoney } from '@/lib/format';
 import { useIsOnline } from '@/sync/network';
@@ -60,6 +62,8 @@ export function LookEditor({ look, initialSlots, skippedCount = 0, items }: Prop
   const [menu, setMenu] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [tryOnNote, setTryOnNote] = useState<'offline' | 'failed' | null>(null);
+  // Canvas 11a: what "Üzerimde gör" still needs is said under it; tapping opens the flow, which resumes here.
+  const gate = useGate('tryOn', () => void ensureTryOnConsent().then((ok) => ok && setConfirm(true)), { origin: t(look ? 'lookEditor.titleEdit' : 'lookEditor.titleNew') });
 
   const itemsById = indexItems(items);
   const count = filledCount(slots);
@@ -86,8 +90,7 @@ export function LookEditor({ look, initialSlots, skippedCount = 0, items }: Prop
       return;
     }
     setTryOnNote(null);
-    // Consent first (its own sheet), then the credit confirmation.
-    void ensureTryOnConsent().then((ok) => ok && setConfirm(true));
+    gate.run();
   };
 
   const onTryOnConfirm = () => {
@@ -158,7 +161,17 @@ export function LookEditor({ look, initialSlots, skippedCount = 0, items }: Prop
                 ))}
               </View>
             </View>
-            <Button variant="secondary" icon={MirrorRound} label={t('lookEditor.tryOn')} onPress={onTryOnPress} disabled={!savable} testID="look-try-on" />
+            <View className="gap-1.5">
+              <View>
+                <Button variant="secondary" icon={MirrorRound} label={t('lookEditor.tryOn')} onPress={onTryOnPress} disabled={!savable} testID="look-try-on" />
+                {gate.count > 0 ? (
+                  <View className="absolute -right-1 -top-1" pointerEvents="none">
+                    <StepCountBadge count={gate.count} />
+                  </View>
+                ) : null}
+              </View>
+              <RequirementHint hint={savable ? gate.hint : null} onPress={onTryOnPress} testID="look-try-on-hint" />
+            </View>
           </View>
         </View>
 
@@ -196,6 +209,7 @@ export function LookEditor({ look, initialSlots, skippedCount = 0, items }: Prop
                   accessibilityRole="button"
                   accessibilityLabel={t('lookEditor.addSlot', { slot: slotLabel })}
                   accessibilityHint={t('lookEditor.slotEmpty')}
+                  testID={`look-slot-${kind}`}
                   className="flex-row items-center gap-3 rounded-menu border-[1.5px] border-dashed border-muted/60 px-2.5 py-2 active:opacity-70"
                 >
                   <View className="h-[52px] w-11 items-center justify-center rounded-thumb bg-sand">

@@ -65,7 +65,16 @@ export type PlanWeekResponse = JobAccepted;
  * Result of a `stylist-week` job: one proposed look per day that had none. `lookId` is empty for a
  * server draft (the look is created at accept); `jobId` is what the accept call needs.
  */
-export type PlanWeekResult = { jobId?: string; days: { date: string; occasion: Occasion; lookId: string; lookName: string }[] };
+/**
+ * The week draft. `gapFilled`: some days use pieces Droblet picked for a thin wardrobe (`suggested` per day);
+ * `libraryItemIds` = the ready-library picks, added to the wardrobe before the week is accepted.
+ */
+export type PlanWeekResult = {
+  jobId?: string;
+  days: { date: string; occasion: Occasion; lookId: string; lookName: string; suggested?: number }[];
+  gapFilled?: boolean;
+  libraryItemIds?: string[];
+};
 
 // ---------- 09 Takvim ----------
 

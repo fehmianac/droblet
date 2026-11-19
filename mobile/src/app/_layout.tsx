@@ -92,6 +92,7 @@ export default function RootLayout() {
 
         <Stack.Protected guard={allowed && !onboarded} redirectTo={home}>
           <Stack.Screen name="(onboarding)/style" />
+          <Stack.Screen name="(onboarding)/consents" />
           <Stack.Screen name="(onboarding)/body" />
           <Stack.Screen name="(onboarding)/first-items" />
         </Stack.Protected>
@@ -133,6 +134,8 @@ export default function RootLayout() {
           <Stack.Screen name="notifications" />
           <Stack.Screen name="delete-account" />
           <Stack.Screen name="tryon/[jobId]" options={{ presentation: 'modal' }} />
+          {/* Consents never answered (a new purpose): the all-in-one screen, once, on the next app open. */}
+          <Stack.Screen name="consent-review" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
           <Stack.Screen name="dev/components" />
         </Stack.Protected>
 

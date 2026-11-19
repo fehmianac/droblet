@@ -5,6 +5,7 @@ import { newClientMutation } from '@/sync/clientMutation';
 
 import { apiRequest } from './client';
 import type { BodyProfile, PutBodyProfileRequest, PutStyleProfileRequest, StyleProfile } from './contracts';
+import { fromSource } from './dataSource';
 import { isGone } from './errors';
 import { toBodyProfile, toStyleProfile, type BodyProfileWire, type StyleProfileWire } from './wire/core';
 
@@ -25,11 +26,22 @@ export function useStyleProfile() {
   });
 }
 
+/** Fixture builds / tests: the stored body profile (null = none yet, like a 404). */
+let bodyProfileFixture: BodyProfile | null = null;
+export function setBodyProfileFixture(profile: BodyProfile | null): void {
+  bodyProfileFixture = profile;
+}
+
 /** GET v1/tenant/body-profile → null when not set yet (404). */
 export function useBodyProfile() {
   return useQuery({
     queryKey: queryKeys.bodyProfile,
-    queryFn: () => getOrNull<BodyProfileWire, BodyProfile>('v1/tenant/body-profile', toBodyProfile),
+    queryFn: () =>
+      fromSource<BodyProfile | null>(
+        'account',
+        () => (bodyProfileFixture ? { ...bodyProfileFixture } : null),
+        () => getOrNull<BodyProfileWire, BodyProfile>('v1/tenant/body-profile', toBodyProfile),
+      ),
   });
 }
 

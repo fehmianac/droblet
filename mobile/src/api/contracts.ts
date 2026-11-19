@@ -89,11 +89,17 @@ export type PutStyleProfileRequest = StyleProfile & { clientMutationId: string }
 export const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'] as const;
 export type Size = (typeof SIZES)[number];
 
+/** Body types of the face-path try-on (canvas 11 "Vücut tipi"); `unsure` = a balanced figure from height and size. */
+export const BODY_TYPES = ['hourglass', 'pear', 'apple', 'rectangle', 'inverted_triangle', 'unsure'] as const;
+export type BodyType = (typeof BODY_TYPES)[number];
+
 /** GET/PUT v1/tenant/body-profile. GET → 404 when not set yet. */
 export type BodyProfile = {
   heightCm: number;
   weightKg?: number | null;
   size: Size;
+  /** Wire `bodyType` (camelCase enum); null = not chosen yet. On PUT, null/absent keeps the stored value. */
+  bodyType?: BodyType | null;
   baseVersion: number;
 };
 export type PutBodyProfileRequest = BodyProfile & { clientMutationId: string };

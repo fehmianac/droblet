@@ -12,7 +12,8 @@ export type TryOnTargetKindWire = 'item' | 'look' | 'product' | 'editLook' | 'su
 /** `id`: item / look / product / edit look id; for `suggestion` the stylist job id with `index`; for `tripDay` `{tripId}/{yyyy-MM-dd}`. */
 export type TryOnTargetWire = { kind: TryOnTargetKindWire; id: string; index: number | null };
 
-export type TryOnImageWire = { id: string; url: string; urlExpiresAt: string; createdAt: string };
+/** `source`: `body` = rendered on the full-length photo, `face` = built from the face photo + chosen body type (absent on older servers = body). */
+export type TryOnImageWire = { id: string; url: string; urlExpiresAt: string; createdAt: string; source?: 'body' | 'face' };
 
 /** POST v1/tenant/tryon → 200 (`cached`, no credit) | 202 (`queued`, job result `{ tryOnImageId }`). */
 export type TryOnStartWire = { status: 'cached' | 'queued'; image: TryOnImageWire | null; job: JobWire | null };
@@ -80,6 +81,7 @@ export function toTryOnResult(image: TryOnImageWire, target: TryOnTarget | null)
     target: target ?? { kind: 'look', id: '' },
     imageUrl: image.url,
     creditsRemaining: null,
+    source: image.source === 'face' ? 'face' : 'body',
   };
 }
 

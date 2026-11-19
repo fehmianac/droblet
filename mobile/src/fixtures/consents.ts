@@ -11,12 +11,16 @@ const GIVEN_AT = '2026-11-19T09:00:00.000Z';
 
 type State = Record<ConsentType, ConsentRecord>;
 
-function record(type: ConsentType, granted: boolean): ConsentRecord {
+/**
+ * `undecided` = never answered (version null: the all-in-one consent screen asks); otherwise a consent that is
+ * not granted was declined on that screen earlier (version set, not valid) — so other tests never see it.
+ */
+function record(type: ConsentType, granted: boolean, undecided = false): ConsentRecord {
   const version = CONSENT_TEXT_VERSION[type];
   return {
     type,
     granted,
-    version: granted ? version : null,
+    version: undecided ? null : version,
     currentVersion: version,
     valid: granted,
     grantedAt: granted ? GIVEN_AT : null,
@@ -26,17 +30,22 @@ function record(type: ConsentType, granted: boolean): ConsentRecord {
   };
 }
 
-function initialState(granted: readonly ConsentType[] = CONSENT_TYPES): State {
-  return Object.fromEntries(CONSENT_TYPES.map((type) => [type, record(type, granted.includes(type))])) as State;
+function initialState(granted: readonly ConsentType[] = CONSENT_TYPES, undecided: readonly ConsentType[] = []): State {
+  return Object.fromEntries(
+    CONSENT_TYPES.map((type) => [type, record(type, granted.includes(type) && !undecided.includes(type), undecided.includes(type))]),
+  ) as State;
 }
 
 let state: State = initialState();
 let failNext = false;
 const log: PutConsentsRequest[] = [];
 
-/** Test helper: which consents are valid (default: all). `failNext`: the next PUT fails like a network error. */
-export function resetConsentFixtures(options: { granted?: readonly ConsentType[] } = {}): void {
-  state = initialState(options.granted ?? CONSENT_TYPES);
+/**
+ * Test helper: which consents are valid (default: all); `undecided`: never answered (the all-in-one screen shows).
+ * `failNext`: the next PUT fails like a network error.
+ */
+export function resetConsentFixtures(options: { granted?: readonly ConsentType[]; undecided?: readonly ConsentType[] } = {}): void {
+  state = initialState(options.granted ?? CONSENT_TYPES, options.undecided ?? []);
   failNext = false;
   log.length = 0;
 }

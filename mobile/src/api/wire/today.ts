@@ -160,13 +160,16 @@ export type SuggestedOutfitWire = {
   explanation: string | null;
   source: 'model' | 'rule';
   slots: { slot: OutfitSlotWire; itemId: string | null; productId: string | null }[];
-  missing: unknown[];
+  /** System-picked pieces of a thin wardrobe: `libraryItemId` (ready library) or `productId` (catalogue). */
+  missing: { slot: OutfitSlotWire; libraryItemId?: string | null; productId: string | null }[];
 };
 
 export type WeekResultWire = {
   weekStart: string;
   refusal: string | null;
   language: string;
+  /** Some days use pieces Droblet picked (library / catalogue) because the wardrobe is thin. */
+  gapFilled?: boolean;
   days: { date: string; occasion: OccasionWire | null; outfit: SuggestedOutfitWire | null }[];
 };
 
@@ -187,16 +190,19 @@ export function toPlanWeekResult(
   wire: WeekResultWire,
   options: { jobId: string; only?: readonly string[] | null; untitled: string },
 ): PlanWeekResult {
+  const days = wire.days.filter((d) => d.outfit !== null && (!options.only || options.only.includes(d.date)));
+  const libraryItemIds = [...new Set(days.flatMap((d) => (d.outfit?.missing ?? []).map((m) => m.libraryItemId).filter((id): id is string => Boolean(id))))];
   return {
     jobId: options.jobId,
-    days: wire.days
-      .filter((d) => d.outfit !== null && (!options.only || options.only.includes(d.date)))
-      .map((d) => ({
-        date: d.date,
-        occasion: toOccasion(d.occasion) ?? ('weekend' as Occasion),
-        lookId: '',
-        lookName: d.outfit?.title ?? options.untitled,
-      })),
+    days: days.map((d) => ({
+      date: d.date,
+      occasion: toOccasion(d.occasion) ?? ('weekend' as Occasion),
+      lookId: '',
+      lookName: d.outfit?.title ?? options.untitled,
+      suggested: (d.outfit?.missing ?? []).filter((m) => m.libraryItemId || m.productId).length,
+    })),
+    gapFilled: wire.gapFilled === true || days.some((d) => (d.outfit?.missing ?? []).some((m) => m.libraryItemId || m.productId)),
+    libraryItemIds,
   };
 }
 

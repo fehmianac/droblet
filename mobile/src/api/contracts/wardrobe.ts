@@ -45,6 +45,8 @@ export type Item = {
   lastWornAt: string | null;
   createdAt: string;
   baseVersion: number;
+  /** The ready-made library piece it was added from (`ItemDto.libraryItemId`); null for own photos. */
+  libraryItemId?: string | null;
 };
 
 /** GET v1/tenant/item → `Item[]` (filter / sort / search happen on the device). */

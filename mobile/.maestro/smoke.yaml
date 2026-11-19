@@ -94,6 +94,17 @@ env:
 - tapOn:
     id: "style.continue"
 
+# 03b Açık rızalar — every consent on one screen, each box unticked; "Tümünü kabul et" ticks and records all
+- extendedWaitUntil:
+    visible:
+      id: "consents.acceptAll"
+    timeout: 20000
+- assertVisible:
+    id: "consent.check.facePhotoTryOn"
+- takeScreenshot: 03b-acik-rizalar
+- tapOn:
+    id: "consents.acceptAll"
+
 # 04 Beden + fotoğraf — skipped (no camera on the simulator)
 - extendedWaitUntil:
     visible:
@@ -117,8 +128,13 @@ env:
     id: "firstItems.item.lib-white-shirt"
 - tapOn:
     id: "firstItems.item.lib-striped-shirt"
+# A bottom too, so a look can be built (requirements-face.yaml builds one right after this flow).
+- scrollUntilVisible:
+    element:
+      id: "firstItems.item.lib-blue-jeans"
+    direction: DOWN
 - tapOn:
-    id: "firstItems.item.lib-cream-knit"
+    id: "firstItems.item.lib-blue-jeans"
 - tapOn:
     id: "firstItems.continue"
 

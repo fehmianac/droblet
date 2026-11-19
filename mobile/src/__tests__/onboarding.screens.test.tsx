@@ -35,7 +35,7 @@ describe('03 Stil profili', () => {
   it('shows the step, "Soon" on Men / Teen, and locks the other tags once three are chosen', async () => {
     await open('/style');
     await waitFor(() => expect(screen.getByText("Let's get to know you")).toBeTruthy(), WAIT);
-    expect(screen.getByText('1 / 3')).toBeTruthy();
+    expect(screen.getByText('1 / 4')).toBeTruthy();
     expect(screen.getByText('WHO ARE YOU SHOPPING FOR?')).toBeTruthy();
     expect(screen.getByLabelText('Men, Soon').props.accessibilityState).toMatchObject({ disabled: true });
     expect(screen.getByLabelText('Teen (13–18), Soon').props.accessibilityState).toMatchObject({ disabled: true });
@@ -44,7 +44,7 @@ describe('03 Stil profili', () => {
     expect(screen.getByTestId('style.continue').props.accessibilityState).toMatchObject({ disabled: true });
 
     for (const tag of ['minimal', 'quiet_luxury', 'office_chic']) await fireEvent.press(screen.getByTestId(`style.tag.${tag}`));
-    await waitFor(() => expect(screen.getByText('3 / 3')).toBeTruthy(), WAIT);
+    await waitFor(() => expect(screen.getAllByText('3 / 3').length).toBeGreaterThan(0), WAIT);
     expect(screen.getByText('3 tags selected; remove one to change.')).toBeTruthy();
     expect(screen.getByTestId('style.tag.vintage').props.accessibilityState).toMatchObject({ disabled: true });
     expect(screen.getByTestId('style.tag.minimal').props.accessibilityState).toMatchObject({ selected: true, disabled: false });
@@ -58,7 +58,7 @@ describe('04 Beden ve fotoğraf', () => {
   it('has the three fields in a row, four photo slots, the privacy note and "Skip"', async () => {
     await open('/body');
     await waitFor(() => expect(screen.getByText("Let's see outfits on you")).toBeTruthy(), WAIT);
-    expect(screen.getByText('2 / 3')).toBeTruthy();
+    expect(screen.getByText('3 / 4')).toBeTruthy();
     expect(screen.getByTestId('body.height')).toBeTruthy();
     expect(screen.getByTestId('body.weight')).toBeTruthy();
     expect(screen.getAllByLabelText('Add full-length photo')).toHaveLength(3);
@@ -85,7 +85,7 @@ describe('04b İlk 5 parça', () => {
   it('counts the selection in the bottom bar and continues to the paywall without a minimum', async () => {
     await open('/first-items');
     await waitFor(() => expect(screen.getByText('Which of these are in your wardrobe?')).toBeTruthy(), WAIT);
-    expect(screen.getByText('3 / 3')).toBeTruthy();
+    expect(screen.getByText('4 / 4')).toBeTruthy();
     await waitFor(() => expect(screen.getByText('Shoot your own piece')).toBeTruthy(), WAIT);
     expect(screen.getByText('See the full ready-made library')).toBeTruthy();
     // The library sends no pictures (imageUrl: null): every tile draws its category glyph on the piece's colour.

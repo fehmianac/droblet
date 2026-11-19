@@ -36,6 +36,7 @@ import {
   useProductTryOnJobId,
   useWatchlist,
 } from '@/features/store/queries';
+import { useGate } from '@/features/requirements/useRequirements';
 import { ensureTryOnConsent, isConsentDeclined, TRY_ON_CREDIT_COST, useStartTryOn, useTryOnJob } from '@/features/tryon/api';
 import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { formatMoney } from '@/lib/format';
@@ -109,7 +110,9 @@ function ProductBody({ product }: { product: ProductDetail }) {
 
   const favorite = favorites.data?.productIds.includes(product.id) ?? false;
   const watching = watchlist.data?.items.some((i) => i.productId === product.id) ?? false;
-  const needsPhoto = photos.data !== undefined && photos.data.body.length === 0;
+  // Canvas 11: no usable picture (no body photo and the face path is not complete) → the requirements flow.
+  const tryOnGate = useGate('tryOn', () => void ensureTryOnConsent().then((ok) => ok && setConfirmOpen(true)), { origin: product.name });
+  const needsPhoto = photos.data !== undefined && photos.data.body.length === 0 && tryOnGate.req.choosePath;
 
   const startTryOn = async () => {
     try {
@@ -137,8 +140,8 @@ function ProductBody({ product }: { product: ProductDetail }) {
       return;
     }
     setTryOnNote(null);
-    // Consent first (its own sheet), then the credit confirmation.
-    void ensureTryOnConsent().then((ok) => ok && setConfirmOpen(true));
+    // What is missing first (requirements flow), then consent and the credit confirmation.
+    tryOnGate.run();
   };
 
   const requireSize = (action: (chosen: ProductSize) => void) => {
@@ -156,9 +159,9 @@ function ProductBody({ product }: { product: ProductDetail }) {
       onMe = (
         <View className="flex-1 items-center justify-center gap-3 bg-sand px-4">
           <Text variant="caption" className="text-center">
-            {t('productDetail.tryOnNeedsPhoto')}
+            {tryOnGate.hint ?? t('productDetail.tryOnNeedsPhoto')}
           </Text>
-          <Button variant="secondary" label={t('productDetail.tryOnAddPhoto')} onPress={() => router.push('/settings')} className="px-4" />
+          <Button variant="secondary" label={t('productDetail.tryOnAddPhoto')} onPress={tryOnGate.run} className="px-4" testID="product-try-on-photo" />
         </View>
       );
     } else if (job.isFailed) {

@@ -158,6 +158,7 @@ export function toItem(wire: ItemWire): Item {
     lastWornAt: wire.lastWornAt,
     createdAt: wire.createdAt,
     baseVersion: wire.version,
+    libraryItemId: wire.libraryItemId ?? null,
   };
 }
 

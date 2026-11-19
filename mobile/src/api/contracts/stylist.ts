@@ -35,8 +35,13 @@ export type StylistOutfitResponse = JobAccepted;
 
 export type StylistPiece = {
   slot: LookSlotKind;
-  /** 'wardrobe' → `refId` is an Item id; 'store' → a catalogue product id (a missing piece). */
-  source: 'wardrobe' | 'store';
+  /**
+   * 'wardrobe' → `refId` is an Item id; 'store' → a catalogue product id (a missing piece);
+   * 'library' → a ready-made library piece id the stylist picked for a thin wardrobe ("Önerilen · Kütüphane").
+   */
+  source: 'wardrobe' | 'store' | 'library';
+  /** Picked by Droblet to fill a gap of a thin wardrobe (wire result `gapFilled`): shown as "Önerilen · …". */
+  suggested?: boolean;
   refId: string;
   name: string;
   brand: string | null;
@@ -75,6 +80,8 @@ export type StylistOutfitResult = {
   weather: StylistWeather | null;
   /** Why there are no suggestions: the wardrobe cannot dress the day, or the request is not about outfits. */
   refusal?: StylistRefusal | null;
+  /** Some pieces were picked by Droblet (library / store) because the wardrobe is thin: the soft banner shows. */
+  gapFilled?: boolean;
 };
 
 /**

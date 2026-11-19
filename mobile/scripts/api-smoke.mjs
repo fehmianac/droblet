@@ -202,12 +202,13 @@ async function main() {
       need(j.ageConfirmedAt === profile.json?.ageConfirmedAt, 'keeps the first timestamp'),
     );
 
-    // ----- explicit consents (Açık rıza 1–6) -----
+    // ----- explicit consents (Açık rıza 1–7) -----
     const CONSENT_VERSION = '2026-11-19';
-    const consentTypes = ['bodyPhotoAi', 'facePhotoPalette', 'weight', 'contacts', 'marketingNotifications', 'crossBorderTransfer'];
+    const consentTypes = ['bodyPhotoAi', 'facePhotoPalette', 'weight', 'contacts', 'marketingNotifications', 'crossBorderTransfer', 'facePhotoTryOn'];
     await step('consents', 'v1/tenant/consents (new user)', 'GET', 'v1/tenant/consents', A, [200], (j) => {
-      need(consentTypes.every((t) => j.consents.some((c) => c.type === t)), 'all six types');
+      need(consentTypes.every((t) => j.consents.some((c) => c.type === t)), 'all seven types');
       need(j.consents.every((c) => c.valid === false), 'nothing given yet');
+      need(j.consents.every((c) => c.version === null), 'never answered → the all-in-one screen shows');
       return `currentVersion ${j.consents[0]?.currentVersion}`;
     });
     await step('consents', 'v1/tenant/photo/upload-url (no consent)', 'POST', 'v1/tenant/photo/upload-url', { ...A, body: { kind: 'body', contentType: 'image/jpeg' } }, [403], (j) =>
@@ -219,10 +220,13 @@ async function main() {
     await step('consents', 'v1/tenant/consents (outdated text version)', 'PUT', 'v1/tenant/consents', { ...A, body: { consents: [{ type: 'weight', granted: true, version: '2000-01-01' }], source: 'weight', locale: 'tr' } }, [409], (j) =>
       need(j.code === 'consent_version_outdated', 'code'),
     );
-    const given = ['bodyPhotoAi', 'facePhotoPalette', 'contacts', 'crossBorderTransfer', 'weight'];
-    await step('consents', 'v1/tenant/consents (grant)', 'PUT', 'v1/tenant/consents', { ...A, body: { consents: given.map((type) => ({ type, granted: true, version: CONSENT_VERSION })), source: 'onboarding', locale: 'tr' } }, [200], (j) =>
-      need(given.every((t) => j.consents.find((c) => c.type === t)?.valid === true), 'granted'),
-    );
+    const given = ['bodyPhotoAi', 'facePhotoPalette', 'contacts', 'crossBorderTransfer', 'weight', 'facePhotoTryOn'];
+    // The onboarding screen sends every type: ticked = granted, unticked = declined (recorded, version set).
+    await step('consents', 'v1/tenant/consents (onboarding: grant + decline)', 'PUT', 'v1/tenant/consents', { ...A, body: { consents: consentTypes.map((type) => ({ type, granted: given.includes(type), version: CONSENT_VERSION })), source: 'onboarding', locale: 'tr' } }, [200], (j) => {
+      need(given.every((t) => j.consents.find((c) => c.type === t)?.valid === true), 'granted');
+      const marketing = j.consents.find((c) => c.type === 'marketingNotifications');
+      need(marketing?.valid === false && marketing?.version !== null, 'decline recorded (not asked again)');
+    });
     await step('consents', 'v1/tenant/consents (withdraw weight)', 'PUT', 'v1/tenant/consents', { ...A, body: { consents: [{ type: 'weight', granted: false, version: CONSENT_VERSION }], source: 'settings', locale: 'tr' } }, [200], (j) => {
       const weight = j.consents.find((c) => c.type === 'weight');
       need(weight.valid === false && weight.withdrawnAt !== null, 'withdrawn');
@@ -236,8 +240,15 @@ async function main() {
       has(j, 'version', 'styleTags');
       return '409 body = current record';
     });
-    await step('profile', 'v1/tenant/body-profile', 'PUT', 'v1/tenant/body-profile', { ...A, body: { heightCm: 170, weightKg: null, size: 'M', baseVersion: 0 } }, [200], (j) => has(j, 'heightCm', 'size', 'version'));
-    await step('profile', 'v1/tenant/body-profile', 'GET', 'v1/tenant/body-profile', A, [200]);
+    const body = await step('profile', 'v1/tenant/body-profile', 'PUT', 'v1/tenant/body-profile', { ...A, body: { heightCm: 170, weightKg: null, size: 'M', baseVersion: 0 } }, [200], (j) => has(j, 'heightCm', 'size', 'version'));
+    await step('profile', 'v1/tenant/body-profile (bodyType invalid)', 'PUT', 'v1/tenant/body-profile', { ...A, body: { heightCm: 170, weightKg: null, size: 'M', bodyType: 'triangle', baseVersion: body.json?.version ?? 1 } }, [400]);
+    const typed = await step('profile', 'v1/tenant/body-profile (bodyType)', 'PUT', 'v1/tenant/body-profile', { ...A, body: { heightCm: 170, weightKg: null, size: 'M', bodyType: 'pear', baseVersion: body.json?.version ?? 1 } }, [200], (j) =>
+      need(j.bodyType === 'pear', 'bodyType stored'),
+    );
+    await step('profile', 'v1/tenant/body-profile (bodyType omitted = kept)', 'PUT', 'v1/tenant/body-profile', { ...A, body: { heightCm: 171, weightKg: null, size: 'M', baseVersion: typed.json?.version ?? 2 } }, [200], (j) =>
+      need(j.bodyType === 'pear', 'bodyType kept'),
+    );
+    await step('profile', 'v1/tenant/body-profile', 'GET', 'v1/tenant/body-profile', A, [200], (j) => has(j, 'bodyType'));
     await step('profile', 'v1/tenant/profile/stats', 'GET', 'v1/tenant/profile/stats', A, [200], (j) => has(j, 'itemCount', 'lookCount', 'tripCount', 'followerCount', 'followingCount'));
 
     // ----- photos -----
@@ -426,10 +437,12 @@ async function main() {
       }
       const terminal = job.status === 'completed' || job.status === 'failed';
       record('stylist', 'GET v1/tenant/job/{id} (stylist outfit)', { status: 200, json: null }, terminal ? (job.status === 'completed') : 'skip',
-        job.status === 'completed' ? `completed · ${job.result?.suggestions?.length ?? 0} suggestion(s), refusal ${job.result?.refusal ?? 'none'}` : `status ${job.status} · failure ${job.failure ?? 'none'}`);
+        job.status === 'completed'
+          ? `completed · ${job.result?.suggestions?.length ?? 0} suggestion(s), refusal ${job.result?.refusal ?? 'none'}, gapFilled ${job.result?.gapFilled ?? false}`
+          : `status ${job.status} · failure ${job.failure ?? 'none'}`);
     }
     await step('stylist', 'v1/tenant/stylist/week', 'POST', 'v1/tenant/stylist/week', { ...A, body: { requestId: ulid(), weekStart: isoDate(mondayOf()), onlyMyWardrobe: true } }, [202, 403], (j, r) => (r.status === 403 ? `403 ${j.code} → paywall` : `job ${j.status}`));
-    await step('try-on', 'v1/tenant/tryon', 'POST', 'v1/tenant/tryon', { ...A, body: { requestId: ulid(), target: { kind: 'look', id: lookId, index: null } } }, [200, 202, 402, 403, 422], (j, r) => (r.status >= 400 ? `${r.status} ${j.code}` : j.status));
+    await step('try-on', 'v1/tenant/tryon', 'POST', 'v1/tenant/tryon', { ...A, body: { requestId: ulid(), target: { kind: 'look', id: lookId, index: null } } }, [200, 202, 402, 403, 422], (j, r) => (r.status >= 400 ? `${r.status} ${j.code}` : `${j.status}${j.image ? ` · source ${j.image.source}` : ''}`));
     await step('try-on', 'v1/tenant/tryon?kind=&id=', 'GET', `v1/tenant/tryon?kind=look&id=${lookId}`, A, [200, 404], (j, r) => (r.status === 404 ? 'no image yet' : 'image'));
     await step('try-on', 'v1/tenant/tryon/plan-week/quote', 'POST', 'v1/tenant/tryon/plan-week/quote', { ...A, body: { weekStart: isoDate(mondayOf()) } }, [200, 403, 422], (j, r) => (r.status === 200 ? `${j.requiredCredits} credit(s) required` : `${r.status} ${j.code}`));
 

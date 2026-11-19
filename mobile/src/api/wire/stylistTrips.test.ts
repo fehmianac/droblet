@@ -325,7 +325,9 @@ describe('try-on wire mapping', () => {
       target: { kind: 'look', id: 'L1' },
       imageUrl: 'https://s3/x',
       creditsRemaining: null,
+      source: 'body',
     });
+    expect(toTryOnResult({ id: 'IMG2', url: 'u', urlExpiresAt: 'x', createdAt: 'y', source: 'face' }, null).source).toBe('face');
   });
 });
 

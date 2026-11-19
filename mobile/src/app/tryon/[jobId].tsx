@@ -1,9 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { router, useIsFocused, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, Sparkles } from 'lucide-react-native';
+import { Camera, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react-native';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Rect } from 'react-native-svg';
 
@@ -18,6 +18,8 @@ import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Text } from '@/components/ui/Text';
 import { aiCreditsKey, useAiCredits } from '@/features/credits/useAiCredits';
+import { PhotoRejected } from '@/features/requirements/PhotoRejected';
+import { requirementsFlow } from '@/features/requirements/store';
 import { isTryOnTargetKind, TRY_ON_CREDIT_COST, useStartTryOn, useTryOnJob } from '@/features/tryon/api';
 import { useThemeColors } from '@/theme/useThemeColors';
 
@@ -79,6 +81,16 @@ export default function TryOnScreen() {
         .then(({ jobId }) => router.replace({ pathname: '/tryon/[jobId]', params: { jobId, title: title ?? '', kind: target.kind, id: target.id } }))
         .catch(() => undefined);
     };
+    // The server refused the photo (canvas 11 "Fotoğraf uygun değil"): tips, then back to the photo step.
+    const photo = job.job?.error?.photo;
+    if (job.job?.error?.code === 'photo_unsuitable' && photo) {
+      return (
+        <Screen bottom={false}>
+          <ScreenHeader title={t('screens.tryon')} leading="close" onLeadingPress={close} />
+          <PhotoRejected photo={photo} onRetry={retry} />
+        </Screen>
+      );
+    }
     // The wait stops where it was: the stage stands still and its text area says what happened (canvas note, 60 s).
     return (
       <Screen top={false} bottom>
@@ -114,6 +126,11 @@ export default function TryOnScreen() {
                 <Badge tone="ink" icon={Sparkles} label={t('ai.previewBadge')} />
               </View>
             ) : null}
+            {job.result?.source === 'face' ? (
+              <View className="absolute bottom-2.5 left-2.5 rounded-[4px] bg-paper/90 px-2 py-1" pointerEvents="none">
+                <Text variant="tag">{t('req.tryOnFace.tag')}</Text>
+              </View>
+            ) : null}
           </View>
           <View className="gap-1.5" accessibilityLiveRegion="polite">
             <Text variant="eyebrow">{t('tryOn.readyEyebrow')}</Text>
@@ -121,6 +138,28 @@ export default function TryOnScreen() {
             <Text variant="body" tone="muted">
               {t('tryOn.readyBody')}
             </Text>
+            {job.result?.source === 'face' ? (
+              <View className="gap-1.5" testID="tryon.faceNote">
+                <View className="flex-row items-center gap-1.5">
+                  <Icon icon={Sparkles} size={14} tone="accent" />
+                  <Text variant="caption" className="flex-1">
+                    {t('req.tryOnFace.note')}
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={() => requirementsFlow.open({ action: 'tryOn', start: 'steps', path: 'body' })}
+                  accessibilityRole="button"
+                  testID="tryon.addBodyPhoto"
+                  className="min-h-11 flex-row items-center gap-2 rounded-field border border-line bg-paper px-3 active:opacity-70"
+                >
+                  <Icon icon={Camera} size={16} />
+                  <Text variant="bodyMedium" className="flex-1">
+                    {t('req.tryOnFace.addBodyPhoto')}
+                  </Text>
+                  <Icon icon={ChevronRight} size={16} tone="muted" />
+                </Pressable>
+              </View>
+            ) : null}
             {remaining !== null && remaining !== undefined ? (
               <Text variant="caption" tone="muted">
                 {t('tryOn.remaining', { count: remaining })}

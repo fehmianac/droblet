@@ -1,0 +1,149 @@
+# Canvas 11 "Eksik adım tamamlama", face path: a look → "Üzerimde gör" without a full-length photo → the hint
+# and the requirements sheet → "Yüz fotoğrafım ve vücut tipimle devam et" → (consent fallback) → face photo from
+# the photo library → body type + height → "Hazır" → the try-on resumes on the same look (credit confirmation,
+# then the job). Elements by testID.
+#
+# Preconditions: run right after smoke.yaml (signed in, onboarding done with every consent accepted, no photos,
+# a top and a bottom in the wardrobe) on a booted simulator whose photo library holds a synthetic face photo:
+#   xcrun simctl addmedia <udid> face.jpg
+# Run: maestro test .maestro/requirements-face.yaml
+appId: com.alatech.droplet
+---
+- launchApp:
+    clearState: false
+    arguments:
+      AppleLanguages: "(tr)"
+      AppleLocale: "tr_TR"
+- extendedWaitUntil:
+    visible:
+      id: "tab.wardrobe"
+    timeout: 20000
+- extendedWaitUntil:
+    notVisible:
+      id: "animated-splash"
+    timeout: 10000
+- tapOn:
+    id: "tab.wardrobe"
+- tapOn:
+    id: "wardrobe.view.looks"
+- tapOn:
+    id: "looks.create"
+
+# 15 Look oluştur — a top and a bottom
+- extendedWaitUntil:
+    visible:
+      id: "look-slot-top"
+    timeout: 10000
+- tapOn:
+    id: "look-slot-top"
+- tapOn:
+    id: "look-slot-item-.*"
+    index: 0
+- tapOn:
+    id: "look-slot-bottom"
+- tapOn:
+    id: "look-slot-item-.*"
+    index: 0
+
+# 11a — the button still works; the hint under it says what is missing
+- extendedWaitUntil:
+    visible:
+      id: "look-try-on-hint"
+    timeout: 10000
+- assertVisible:
+    id: "requirements.badge"
+- takeScreenshot: 11a-ipucu
+- tapOn:
+    id: "look-try-on"
+
+# 11b — the sheet with the two photo paths; choose the face path
+- extendedWaitUntil:
+    visible:
+      id: "requirements.sheet"
+    timeout: 10000
+- takeScreenshot: 11b-sheet
+- tapOn:
+    id: "requirements.path.face"
+- takeScreenshot: 11b-sheet-yuz-yolu
+- tapOn:
+    id: "requirements.sheet.start"
+
+# Consent fallback (only when facePhotoTryOn was declined on the onboarding screen)
+- runFlow:
+    when:
+      visible:
+        id: "requirements.step.consent"
+    commands:
+      - takeScreenshot: 11c-riza
+      - tapOn:
+          id: "consent.check.facePhotoTryOn"
+      - runFlow:
+          when:
+            visible:
+              id: "consent.check.crossBorderTransfer"
+          commands:
+            - tapOn:
+                id: "consent.check.crossBorderTransfer"
+      - tapOn:
+          id: "requirements.consent.confirm"
+
+# 11e — face photo from the photo library (the system picker: the first photo)
+- extendedWaitUntil:
+    visible:
+      id: "requirements.step.facePhoto"
+    timeout: 10000
+- takeScreenshot: 11e-yuz-fotografi
+- tapOn:
+    id: "requirements.photo.library"
+- waitForAnimationToEnd
+- tapOn:
+    point: "17%,22%"
+- runFlow:
+    when:
+      visible: "Add|Ekle|Done|Bitti"
+    commands:
+      - tapOn: "Add|Ekle|Done|Bitti"
+- extendedWaitUntil:
+    visible:
+      id: "requirements.photo.ready"
+    timeout: 60000
+- takeScreenshot: 11e-fotograf-hazir
+- tapOn:
+    id: "requirements.photo.continue"
+
+# 11e — body type, height and size (saved to the body profile once)
+- extendedWaitUntil:
+    visible:
+      id: "requirements.step.bodyType"
+    timeout: 10000
+- tapOn:
+    id: "requirements.bodyType.pear"
+- tapOn:
+    id: "requirements.bodyType.height"
+- eraseText: 4
+- inputText: "168"
+- tapOn:
+    id: "requirements.bodyType.size.M"
+- takeScreenshot: 11e-vucut-tipi
+- tapOn:
+    id: "requirements.bodyType.save"
+
+# 11f — "Hazır", then back on the look: the try-on resumes (credit confirmation)
+- extendedWaitUntil:
+    visible:
+      id: "requirements.ready"
+    timeout: 10000
+- takeScreenshot: 11f-hazir
+- extendedWaitUntil:
+    visible:
+      id: "credit-confirm"
+    timeout: 15000
+- takeScreenshot: 11f-devam-kredi
+- tapOn:
+    id: "credit-confirm"
+- extendedWaitUntil:
+    visible:
+      id: "tryon.faceNote"
+    timeout: 180000
+    optional: true
+- takeScreenshot: 11g-sonuc-yuz-yolu

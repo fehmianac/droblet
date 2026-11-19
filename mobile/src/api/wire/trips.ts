@@ -94,6 +94,8 @@ export type PackResultWire = {
   cabinLimit: number | null;
   cabinTrimmed: boolean;
   droppedItemIds: string[];
+  /** Some pieces were picked by Droblet (library / catalogue) to make the capsule possible. */
+  gapFilled?: boolean;
 };
 
 /** What only the device knows about a trip (city region from the form, the running pack job). */
@@ -162,6 +164,7 @@ export function toMissingPiece(wire: MissingPieceWire, index: number): TripMissi
     reason: i18n.t(`tripDetail.missingReason.${wire.reason}`),
     category,
     productId: wire.productId,
+    libraryItemId: wire.libraryItemId ?? null,
   };
 }
 
@@ -211,6 +214,7 @@ export function mergeTrip(wire: TripWire, base: TripDetail): TripDetail {
     lookCount: base.days.filter((d) => d.look).length,
     missing: (wire.missing ?? []).map(toMissingPiece),
     minWearsPerItem: wire.everyPieceWornTwice ? 2 : null,
+    gapFilled: (wire.missing ?? []).some((m) => Boolean(m.libraryItemId)),
   };
 }
 
@@ -229,6 +233,7 @@ export function toTripPlan(wire: PackResultWire, items: Map<string, Item>): Trip
     days: wire.days.map((d) => toTripDay(wire.tripId, d, items)),
     missing: (wire.missing ?? []).map(toMissingPiece),
     minWearsPerItem: wire.everyPieceWornTwice ? 2 : null,
+    gapFilled: wire.gapFilled === true || (wire.missing ?? []).some((m) => Boolean(m.libraryItemId)),
   };
 }
 

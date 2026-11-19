@@ -7,7 +7,7 @@
  * request / response is converted here, at the boundary. Wire JSON is camelCase with camelCase enum
  * strings (`quietLuxury`, `highStreet`); the app keeps its snake_case keys (they are i18n keys).
  */
-import type { BodyProfile, Budget, Entitlement, Segment, Size, StyleProfile, StyleTag } from '../contracts';
+import type { BodyProfile, BodyType, Budget, Entitlement, Segment, Size, StyleProfile, StyleTag } from '../contracts';
 import type { Job, JobKind, JobStatus } from '../contracts/jobs';
 
 // ---------- enum spelling ----------
@@ -93,15 +93,29 @@ export function fromStyleProfile(profile: StyleProfile): PutStyleProfileWire {
 }
 
 /** `size` is the ClothingSize enum in lower case on the wire (`xs`, `xxl`); input is case-insensitive. */
-export type BodyProfileWire = { heightCm: number; weightKg: number | null; size: string; version: number; updatedAt: string };
-export type PutBodyProfileWire = { heightCm: number; weightKg: number | null; size: string; baseVersion: number };
+export type BodyTypeWire = 'hourglass' | 'pear' | 'apple' | 'rectangle' | 'invertedTriangle' | 'unsure';
+export type BodyProfileWire = { heightCm: number; weightKg: number | null; size: string; bodyType?: BodyTypeWire | null; version: number; updatedAt: string };
+export type PutBodyProfileWire = { heightCm: number; weightKg: number | null; size: string; bodyType?: BodyTypeWire; baseVersion: number };
 
 export function toBodyProfile(wire: BodyProfileWire): BodyProfile {
-  return { heightCm: wire.heightCm, weightKg: wire.weightKg, size: wire.size.toUpperCase() as Size, baseVersion: wire.version };
+  return {
+    heightCm: wire.heightCm,
+    weightKg: wire.weightKg,
+    size: wire.size.toUpperCase() as Size,
+    bodyType: wire.bodyType ? toSnake<BodyType>(wire.bodyType) : null,
+    baseVersion: wire.version,
+  };
 }
 
+/** `bodyType` is only sent when chosen: an absent value keeps the stored one (a PUT from 04 never clears it). */
 export function fromBodyProfile(profile: BodyProfile): PutBodyProfileWire {
-  return { heightCm: profile.heightCm, weightKg: profile.weightKg ?? null, size: profile.size, baseVersion: profile.baseVersion };
+  return {
+    heightCm: profile.heightCm,
+    weightKg: profile.weightKg ?? null,
+    size: profile.size,
+    ...(profile.bodyType ? { bodyType: toCamel<BodyTypeWire>(profile.bodyType) } : {}),
+    baseVersion: profile.baseVersion,
+  };
 }
 
 // ---------- photos ----------
@@ -218,7 +232,11 @@ export type JobKindWire =
   | 'tryOn'
   | 'palette';
 export type JobStatusWire = 'queued' | 'processing' | 'completed' | 'failed';
-export type JobFailureWire = 'providerError' | 'timeout' | 'guardRejected' | 'sourceDeleted' | 'noFaceDetected';
+export type JobFailureWire = 'providerError' | 'timeout' | 'guardRejected' | 'sourceDeleted' | 'noFaceDetected' | 'photoUnsuitable';
+
+/** `result` of a try-on job that failed with `photoUnsuitable` (the server deleted that photo; no credit was used). */
+export type PhotoIssueResultWire = { photoIssue: PhotoIssue; photoKind: 'body' | 'face' };
+export type PhotoIssue = 'notFullBody' | 'tooDark' | 'multiplePeople' | 'blurry' | 'noFace';
 
 /** GET v1/tenant/job/{id}, and the body (or `job` field) of every 202. */
 export type JobWire<TResult = unknown> = {
@@ -256,7 +274,19 @@ const JOB_FAILURE_CODES: Record<JobFailureWire, string> = {
   guardRejected: 'guard_rejected',
   sourceDeleted: 'source_deleted',
   noFaceDetected: 'no_face_detected',
+  photoUnsuitable: 'photo_unsuitable',
 };
+
+const PHOTO_ISSUES: readonly PhotoIssue[] = ['notFullBody', 'tooDark', 'multiplePeople', 'blurry', 'noFace'];
+
+/** The photo problem a `photoUnsuitable` failure names (unknown values read as `notFullBody` for body, `noFace` for face). */
+export function toPhotoIssue(result: unknown): { issue: PhotoIssue; kind: 'body' | 'face' } | null {
+  if (!result || typeof result !== 'object') return null;
+  const wire = result as Partial<PhotoIssueResultWire>;
+  const kind = wire.photoKind === 'face' ? 'face' : 'body';
+  const issue = PHOTO_ISSUES.find((i) => i === wire.photoIssue) ?? (kind === 'face' ? 'noFace' : 'notFullBody');
+  return { issue, kind };
+}
 
 /**
  * Wire job → app job. `mapResult` converts the kind-specific result (ids only on the wire) into the
@@ -280,7 +310,11 @@ export async function toJob<T>(
     result,
     error:
       status === 'failed'
-        ? { code: wire.failure ? JOB_FAILURE_CODES[wire.failure] : 'generation_failed', creditRefunded: true }
+        ? {
+            code: wire.failure ? (JOB_FAILURE_CODES[wire.failure] ?? 'generation_failed') : 'generation_failed',
+            creditRefunded: true,
+            ...(wire.failure === 'photoUnsuitable' ? { photo: toPhotoIssue(wire.result) } : {}),
+          }
         : null,
   };
 }

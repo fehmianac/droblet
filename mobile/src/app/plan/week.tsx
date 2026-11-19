@@ -1,10 +1,14 @@
 import { router, useIsFocused, useLocalSearchParams } from 'expo-router';
 import { CalendarDays, MirrorRound, RefreshCw, Sparkles, Trash2 } from 'lucide-react-native';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { RefreshControl, ScrollView, View } from 'react-native';
 
 import type { Occasion } from '@/api/contracts';
+import { GapFillBanner, useAddSuggestedPieces } from '@/features/stylist/gapFill';
+import { RequirementHint } from '@/features/requirements/RequirementHint';
+import { requirementsFlow } from '@/features/requirements/store';
+import { useGate } from '@/features/requirements/useRequirements';
 import { ApiError, extractApiError, isCreditsExhausted, isPaywallError } from '@/api/errors';
 import type { TryOnWeekQuote } from '@/api/wire/tryon';
 import { AiDropPulse, AiFailure, AiProgressLines } from '@/components/ui/ai';
@@ -80,6 +84,11 @@ export default function PlanWeekScreen() {
   const [hint, setHint] = useState<'nothingToTryOn' | 'nothingToPlan' | null>(null);
   const [planJobId, setPlanJobId] = useState<string | null>(null);
   const planJob = usePlanWeekJob(planJobId, focused);
+  const suggestedPieces = useAddSuggestedPieces();
+  // "Üzerimde gör" / "Haftamı planla" with something missing: the requirements flow first (canvas 11).
+  const pendingTryOn = useRef<string[]>([]);
+  const pendingPlan = useRef<(() => void) | null>(null);
+  const planGate = useGate('week', () => pendingPlan.current?.());
 
   const suggestFor = (row: WeekRow) => {
     const occasion: Occasion | null = row.plan?.occasion ?? row.look?.occasion ?? null;
@@ -143,6 +152,7 @@ export default function PlanWeekScreen() {
       weekFailed(error);
     }
   };
+  const tryOnGate = useGate('tryOn', () => void askWeek(pendingTryOn.current));
 
   return (
     <Screen>
@@ -228,7 +238,8 @@ export default function PlanWeekScreen() {
                           onPress={() => {
                             if (toPlan.length === 0) return setHint('nothingToPlan');
                             setHint(null);
-                            startPlanWeek.mutate({ weekStart: from, days: toPlan }, { onSuccess: (r) => setPlanJobId(r.jobId) });
+                            pendingPlan.current = () => startPlanWeek.mutate({ weekStart: from, days: toPlan }, { onSuccess: (r) => setPlanJobId(r.jobId) });
+                            planGate.run();
                           }}
                         />
                       </View>
@@ -244,7 +255,8 @@ export default function PlanWeekScreen() {
                             if (targets.length === 0) return setHint('nothingToTryOn');
                             setHint(null);
                             tryOn.reset();
-                            void askWeek(targets.map((target) => target.id));
+                            pendingTryOn.current = targets.map((target) => target.id);
+                            tryOnGate.run();
                           }}
                         />
                       </View>
@@ -255,12 +267,14 @@ export default function PlanWeekScreen() {
                       {t(`weekPlan.${hint}`)}
                     </Text>
                   ) : null}
+                  <RequirementHint hint={planGate.hint} onPress={planGate.run} className="self-start" testID="week-plan-hint" />
+                  <RequirementHint hint={tryOnGate.hint} onPress={tryOnGate.run} className="self-start" testID="week-tryon-hint" />
                   {weekNote === 'bodyPhoto' ? (
                     <View className="gap-1" accessibilityLiveRegion="polite">
                       <Text variant="caption" tone="danger">
                         {t('weekPlan.bodyPhotoRequired')}
                       </Text>
-                      <Button variant="text" label={t('weekPlan.bodyPhotoAction')} onPress={() => router.push('/settings')} testID="week-body-photo" />
+                      <Button variant="text" label={t('weekPlan.bodyPhotoAction')} onPress={() => requirementsFlow.open({ action: 'tryOn' })} testID="week-body-photo" />
                     </View>
                   ) : weekNote === 'failed' ? (
                     <Text variant="caption" tone="danger" accessibilityLiveRegion="polite">
@@ -332,12 +346,20 @@ export default function PlanWeekScreen() {
                       </Text>
                     ) : null}
                   </View>
+                  {planJob.result?.gapFilled ? <GapFillBanner libraryItemIds={planJob.result.libraryItemIds ?? []} testID="week-gapfill" /> : null}
                   {proposal.length > 0 ? (
                     <View className="gap-2 rounded-card border border-line bg-paper p-4">
                       {proposal.map((p) => (
-                        <Text key={p.date} variant="body" numberOfLines={2}>
-                          {t('weekPlan.proposalRow', { day: formatDate(parseLocalDate(p.date), { weekday: 'long' }), look: p.lookName })}
-                        </Text>
+                        <View key={p.date}>
+                          <Text variant="body" numberOfLines={2}>
+                            {t('weekPlan.proposalRow', { day: formatDate(parseLocalDate(p.date), { weekday: 'long' }), look: p.lookName })}
+                          </Text>
+                          {p.suggested ? (
+                            <Text variant="caption" tone="accent">
+                              {t('req.gapFill.dayNote', { count: p.suggested })}
+                            </Text>
+                          ) : null}
+                        </View>
                       ))}
                     </View>
                   ) : null}
@@ -347,7 +369,14 @@ export default function PlanWeekScreen() {
                         label={t('weekPlan.proposalAccept')}
                         onPress={() => {
                           // The draft becomes looks + plan days on the server in one call (nothing existed before).
-                          if (planJob.result) acceptPlanWeek.mutate(planJob.result);
+                          // Library picks join the wardrobe first, so the looks hold the user's own pieces.
+                          const result = planJob.result;
+                          if (result) {
+                            void suggestedPieces
+                              .add(result.libraryItemIds ?? [])
+                              .catch(() => undefined)
+                              .then(() => acceptPlanWeek.mutate(result));
+                          }
                           closeProposal();
                         }}
                       />

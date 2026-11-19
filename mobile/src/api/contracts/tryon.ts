@@ -33,6 +33,8 @@ export type TryOnResult = {
   imageUrl: string | null;
   /** Not on the wire (the balance is `GET v1/tenant/entitlement`); null from the API. */
   creditsRemaining: number | null;
+  /** `face` = made from the face photo and the chosen body type (no full-length photo): the result says so. */
+  source?: 'body' | 'face';
 };
 
 /** GET v1/tenant/tryon?kind=&id=&index= → existing image for the target with the current body photo, or 404. */
