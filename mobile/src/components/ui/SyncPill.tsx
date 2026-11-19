@@ -1,4 +1,5 @@
 import { useMutationState, useQueryClient, type Mutation } from '@tanstack/react-query';
+import { Check, CircleAlert, WifiOff } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, View } from 'react-native';
@@ -11,6 +12,7 @@ import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { useIsOnline, usePendingWrites } from '@/sync/network';
 import { TENANT_WRITE_SCOPE } from '@/sync/queryKeys';
 
+import { Icon } from './Icon';
 import { Text } from './Text';
 
 /** The queue must stay non-empty this long before "Senkronize ediliyor…" shows (quick writes stay silent). */
@@ -117,16 +119,33 @@ export function SyncPill() {
           accessibilityLabel={shown === 'error' ? undefined : label}
           className="h-9 flex-row items-center gap-2 rounded-pill border border-line bg-paper pl-3 pr-4 shadow-sm"
         >
-          <DropLoader size="inline" still={shown !== 'syncing'} accessibilityLabel={label} />
-          <Text variant="caption" className="text-[12.5px]" numberOfLines={1}>
+          {/* Canvas SenkronPill / SenkronDurumlar: the drop mark only while syncing; a check (accent) once synced,
+              wifi-off (muted) offline, an alert (danger) when a write failed. */}
+          {shown === 'syncing' ? <DropLoader size="inline" accessibilityLabel={label} /> : null}
+          {shown === 'synced' ? <Icon icon={Check} size={16} tone="accent" /> : null}
+          {shown === 'offline' ? <Icon icon={WifiOff} size={16} tone="muted" /> : null}
+          {shown === 'error' ? <Icon icon={CircleAlert} size={16} tone="danger" /> : null}
+          <Text variant="caption" tone={shown === 'error' ? 'danger' : 'ink'} className="text-[12.5px]" numberOfLines={1} testID="sync-pill-label">
             {label}
           </Text>
           {shown === 'error' ? (
-            <Pressable onPress={retry} accessibilityRole="button" accessibilityLabel={t('common.retry')} hitSlop={10} className="ml-1 active:opacity-70" testID="sync-pill-retry">
-              <Text variant="caption" className="text-[12.5px] underline">
-                {t('common.retry')}
+            <>
+              <Text variant="caption" tone="muted" className="text-[12.5px]" accessible={false}>
+                ·
               </Text>
-            </Pressable>
+              {/* 44-pt target inside the 36-pt pill (canvas `.rt`: negative margins, padding). */}
+              <Pressable
+                onPress={retry}
+                accessibilityRole="button"
+                accessibilityLabel={t('common.retry')}
+                className="-my-1 -ml-1 -mr-2 h-11 justify-center pl-1 pr-2 active:opacity-70"
+                testID="sync-pill-retry"
+              >
+                <Text variant="caption" className="font-sans-medium text-[12.5px] underline">
+                  {t('common.retry')}
+                </Text>
+              </Pressable>
+            </>
           ) : null}
         </View>
       </Animated.View>
