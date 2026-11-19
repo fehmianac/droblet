@@ -254,6 +254,10 @@
     "becomeMember": "Become a member",
     "recognitionLimit": "You have used your free AI recognitions. Become a member to continue, or enter the pieces manually.",
     "quotaSkipped_one": "{{count}} photo was not processed because your free AI recognitions ran out. Become a member or enter that piece manually.",
-    "quotaSkipped_other": "{{count}} photos were not processed because your free AI recognitions ran out. Become a member or enter those pieces manually."
+    "quotaSkipped_other": "{{count}} photos were not processed because your free AI recognitions ran out. Become a member or enter those pieces manually.",
+    "recognising": "Recognising…",
+    "unrecognised": "Not recognised",
+    "piece": "Piece",
+    "cleanedA11y": "Background removed"
   }
 }

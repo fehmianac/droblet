@@ -1,8 +1,11 @@
+import { Image } from 'expo-image';
+import type { TFunction } from 'i18next';
 import { router, useIsFocused } from 'expo-router';
 import { Check, ChevronRight, CircleAlert, Images, RefreshCw, X } from 'lucide-react-native';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FlatList, Pressable, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { BULK_ADD_MAX, type ItemDraft } from '@/api/contracts/wardrobe';
 import { AiBackgroundAction, AiProgressBar, AiShimmerImage } from '@/components/ui/ai';
@@ -25,7 +28,23 @@ import { StatePanel } from '@/features/wardrobe/parts';
 import { fitToRecognitionQuota, isRecognitionLimitReached, openRecognitionPaywall, useItemRecognition } from '@/features/wardrobe/recognition';
 import { useItemDrafts } from '@/features/wardrobe/queries';
 import { useManualEntry } from '@/features/wardrobe/useManualEntry';
+import {
+  markCleanRevealed,
+  markProcessing,
+  overallProgress,
+  processingPreview,
+  rememberLocalPreviews,
+  rowProgress,
+  shouldRevealClean,
+} from '@/features/wardrobe/bulkRows';
+import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { useIsOnline } from '@/sync/network';
+import { motion, scanTones } from '@/theme/tokens';
+
+/** How often the simulated row progress moves while something is processing. */
+const TICK_MS = 1000;
+/** Blur of the picked photo while it is processed (canvas: radius ~14–16 under a cream veil), at the tile size. */
+const PREVIEW_BLUR = 16;
 
 type Notice =
   | { kind: 'none' }
@@ -35,7 +54,8 @@ type Notice =
 
 type RowProps = {
   draft: ItemDraft;
-  index: number;
+  /** 0–1: simulated while processing (eases toward 90 %), 1 once the result is in. */
+  progress: number;
   checked: boolean;
   onToggle: () => void;
   onEdit: () => void;
@@ -44,21 +64,118 @@ type RowProps = {
   retrying: boolean;
 };
 
-function DraftRow({ draft, index, checked, onToggle, onEdit, onRemove, onRetry, retrying }: RowProps) {
+const TILE = 'h-[62px] w-[52px] rounded-thumb';
+
+/** The picked photo, blurred under a cream veil: "this one is being worked on". */
+function BlurredPhoto({ uri }: { uri: string }) {
+  return (
+    <>
+      {/* Decoded at the tile size first (iOS), so the blur reads the same whatever the photo resolution. */}
+      <Image source={{ uri }} blurRadius={PREVIEW_BLUR} enforceEarlyResizing contentFit="cover" style={StyleSheet.absoluteFill} accessible={false} />
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: scanTones.veil }]} />
+    </>
+  );
+}
+
+/**
+ * The row's picture. Processing: the photo the user picked, blurred (a sand shimmer when there is none yet).
+ * Ready: the cleaned (background-removed) image, sharp, with a small check; when this session watched it
+ * being processed, it cross-fades in over the blurred photo (400 ms; instant with reduce-motion).
+ */
+function DraftTile({ draft }: { draft: ItemDraft }) {
   const { t } = useTranslation();
+  const reduceMotion = useReduceMotion();
+  const processing = draft.status === 'processing';
+  const preview = processingPreview(draft);
+  const [reveal] = useState(() => draft.status === 'ready' && shouldRevealClean(draft.id));
+  const opacity = useSharedValue(reveal ? 0 : 1);
+
+  useEffect(() => {
+    if (processing) markProcessing(draft.id);
+  }, [draft.id, processing]);
+
+  useEffect(() => {
+    if (!reveal) return;
+    markCleanRevealed(draft.id);
+    opacity.set(reduceMotion ? 1 : withTiming(1, { duration: motion.cleanFadeMs }));
+  }, [draft.id, opacity, reduceMotion, reveal]);
+
+  const sharpStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+
+  if (processing) {
+    if (!preview) return <AiShimmerImage className={TILE} />;
+    return (
+      <View className={`overflow-hidden bg-sand ${TILE}`} testID={`bulk-tile-blurred-${draft.id}`}>
+        <BlurredPhoto uri={preview} />
+      </View>
+    );
+  }
+
   const s = draft.suggestion;
-  const name = s?.name?.trim() || t('bulkAdd.photoN', { n: index + 1 });
+  return (
+    <View className={`overflow-hidden bg-sand ${TILE}`} testID={`bulk-tile-${draft.status === 'ready' ? 'clean' : 'failed'}-${draft.id}`}>
+      {reveal && preview ? <BlurredPhoto uri={preview} /> : null}
+      <Animated.View style={[StyleSheet.absoluteFill, sharpStyle]}>
+        <ItemThumb category={s?.category ?? 'top'} color={s?.color ?? 'other'} uri={draft.imageUrl} className="h-full w-full" glyphSize={30} />
+      </Animated.View>
+      {draft.status === 'ready' ? (
+        <View
+          className="absolute bottom-[3px] right-[3px] h-4 w-4 items-center justify-center rounded-pill bg-ink"
+          accessible
+          accessibilityLabel={t('bulkAdd.cleanedA11y')}
+        >
+          <Icon icon={Check} size={11} tone="cream" />
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+/** The recognised name ("Beyaz crop top"), else what the row is doing: "Tanınıyor…" / "Tanınamadı". */
+function rowName(draft: ItemDraft, t: TFunction): string {
+  const s = draft.suggestion;
+  const name = s?.name?.trim() || s?.subcategory?.trim();
+  if (name) return name;
+  if (draft.status === 'processing') return t('bulkAdd.recognising');
+  if (draft.status === 'failed') return t('bulkAdd.unrecognised');
+  return s?.category ? t(`itemCategory.${s.category}`) : t('bulkAdd.piece');
+}
+
+/** "Üst · Beyaz" under the name, when known. */
+function rowMeta(draft: ItemDraft, t: TFunction): string {
+  const s = draft.suggestion;
+  return [s?.category ? t(`itemCategory.${s.category}`) : null, s?.color ? t(`itemColor.${s.color}`) : null].filter(Boolean).join(' · ');
+}
+
+function DraftRow({ draft, progress, checked, onToggle, onEdit, onRemove, onRetry, retrying }: RowProps) {
+  const { t } = useTranslation();
+  const name = rowName(draft, t);
+  const meta = rowMeta(draft, t);
   const complete = isDraftComplete(draft);
+  const known = Boolean(draft.suggestion?.name?.trim() || draft.suggestion?.subcategory?.trim());
 
   if (draft.status === 'processing') {
     return (
-      <View className="flex-row items-center gap-3 rounded-menu border border-line bg-paper p-2.5" accessible accessibilityLabel={t('bulkAdd.rowProcessing', { name })} accessibilityState={{ busy: true }}>
-        <AiShimmerImage className="h-[62px] w-[52px] rounded-thumb" />
+      <View
+        className="flex-row items-center gap-3 rounded-menu border border-line bg-paper p-2.5"
+        accessible
+        accessibilityLabel={t('bulkAdd.rowProcessing', { name })}
+        accessibilityState={{ busy: true }}
+        testID={`bulk-row-processing-${draft.id}`}
+      >
+        <DraftTile draft={draft} />
         <View className="flex-1 gap-1.5">
-          <Text variant="bodyMedium" numberOfLines={1}>
-            {name}
-          </Text>
-          <AiProgressBar index={index % 3} />
+          <View className="gap-0.5">
+            <Text variant="bodyMedium" tone={known ? 'ink' : 'muted'} numberOfLines={1}>
+              {name}
+            </Text>
+            {known && meta ? (
+              <Text variant="caption" tone="muted" numberOfLines={1}>
+                {meta}
+              </Text>
+            ) : null}
+          </View>
+          <AiProgressBar progress={progress} />
         </View>
       </View>
     );
@@ -66,8 +183,8 @@ function DraftRow({ draft, index, checked, onToggle, onEdit, onRemove, onRetry, 
 
   if (draft.status === 'failed') {
     return (
-      <View className="flex-row items-center gap-3 rounded-menu border border-line bg-paper p-2.5">
-        <ItemThumb category="top" uri={draft.imageUrl} className="h-[62px] w-[52px] rounded-thumb" glyphSize={30} />
+      <View className="flex-row items-center gap-3 rounded-menu border border-line bg-paper p-2.5" testID={`bulk-row-failed-${draft.id}`}>
+        <DraftTile draft={draft} />
         <View className="flex-1 gap-0.5">
           <Text variant="bodyMedium" numberOfLines={1}>
             {name}
@@ -85,16 +202,15 @@ function DraftRow({ draft, index, checked, onToggle, onEdit, onRemove, onRetry, 
     );
   }
 
-  const meta = [s?.category ? t(`itemCategory.${s.category}`) : null, s?.color ? t(`itemColor.${s.color}`) : null].filter(Boolean).join(' · ');
   return (
-    <View className="flex-row items-center gap-3 rounded-menu border border-line bg-paper p-2.5">
+    <View className="flex-row items-center gap-3 rounded-menu border border-line bg-paper p-2.5" testID={`bulk-row-ready-${draft.id}`}>
       <Pressable
         onPress={onEdit}
         accessibilityRole="button"
         accessibilityLabel={t('bulkAdd.editA11y', { name })}
         className="min-h-icon-btn flex-1 flex-row items-center gap-3 active:opacity-80"
       >
-        <ItemThumb category={s?.category ?? 'top'} color={s?.color ?? 'other'} uri={draft.imageUrl} className="h-[62px] w-[52px] rounded-thumb" glyphSize={30} />
+        <DraftTile draft={draft} />
         <View className="flex-1 gap-0.5">
           <Text variant="bodyMedium" numberOfLines={1}>
             {name}
@@ -199,6 +315,15 @@ export default function ItemBulkScreen() {
 
   const queued = drafts.data?.filter((d) => d.kind !== 'piece').length ?? 0;
 
+  // The simulated row progress moves once a second while anything is processing.
+  const anyProcessing = drafts.data?.some((d) => isReviewable(d) && d.status === 'processing') ?? false;
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!anyProcessing || !focused) return;
+    const timer = setInterval(() => setNow(Date.now()), TICK_MS);
+    return () => clearInterval(timer);
+  }, [anyProcessing, focused]);
+
   const recognition = useItemRecognition();
 
   // Free AI recognition used up: the paywall opens; this screen stays underneath with "Elle gir".
@@ -231,9 +356,11 @@ export default function ItemBulkScreen() {
     }
     setNotice(skipped > 0 ? { kind: 'quotaSkipped', skipped } : rejected > 0 ? { kind: 'overLimit', rejected } : { kind: 'none' });
     if (accepted.length === 0) return;
+    const localUris = accepted.map((p) => p.localUri);
     startDrafts
-      .start(accepted.map((p) => p.localUri))
+      .start(localUris)
       .then((res) => {
+        rememberLocalPreviews(res.draftIds, localUris);
         const serverSkipped = res.skippedCount ?? 0;
         if (skipped + serverSkipped > 0) setNotice({ kind: 'quotaSkipped', skipped: skipped + serverSkipped });
       })
@@ -355,7 +482,7 @@ export default function ItemBulkScreen() {
                         </Text>
                       </View>
                       <AiProgressBar
-                        progress={progress.total === 0 ? 0 : progress.done / progress.total}
+                        progress={overallProgress(list, now)}
                         accessibilityLabel={t('bulkAdd.progressA11y', { done: progress.done, total: progress.total })}
                       />
                       <Text variant="caption" tone="muted">
@@ -390,14 +517,15 @@ export default function ItemBulkScreen() {
                 }
                 renderItem={({ item, index }) => (
                   <View className="gap-2">
+                    {/* The only "Foto N" of a multi-piece photo: its pieces carry their own names. */}
                     {item.groupId && list[index - 1]?.groupId !== item.groupId ? (
                       <Text variant="eyebrow" className="pt-1" accessibilityRole="header">
-                        {t('itemDetect.groupHeading', { n: numbers.get(item.id) ?? 1 })}
+                        {t('itemDetect.groupHeadingCount', { n: numbers.get(item.id) ?? 1, count: list.filter((d) => d.groupId === item.groupId).length })}
                       </Text>
                     ) : null}
                   <DraftRow
                     draft={item}
-                    index={index}
+                    progress={rowProgress(item, now)}
                     checked={isChecked(item)}
                     onToggle={() => setOverrides((prev) => ({ ...prev, [item.id]: !isChecked(item) }))}
                     onEdit={() => router.push({ pathname: '/item/form', params: { draftId: item.id, from: 'bulk' } })}

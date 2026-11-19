@@ -254,6 +254,10 @@
     "becomeMember": "Üye ol",
     "recognitionLimit": "Ücretsiz AI tanıma hakkın doldu. Üye olarak devam edebilir ya da parçaları elle girebilirsin.",
     "quotaSkipped_one": "Ücretsiz AI tanıma hakkın yetmediği için {{count}} fotoğraf işlenmedi. Üye olabilir ya da o parçayı elle girebilirsin.",
-    "quotaSkipped_other": "Ücretsiz AI tanıma hakkın yetmediği için {{count}} fotoğraf işlenmedi. Üye olabilir ya da o parçaları elle girebilirsin."
+    "quotaSkipped_other": "Ücretsiz AI tanıma hakkın yetmediği için {{count}} fotoğraf işlenmedi. Üye olabilir ya da o parçaları elle girebilirsin.",
+    "recognising": "Tanınıyor…",
+    "unrecognised": "Tanınamadı",
+    "piece": "Parça",
+    "cleanedA11y": "Arka planı temizlendi"
   }
 }

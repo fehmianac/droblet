@@ -42,6 +42,8 @@
     "groupCardA11y": "Photo {{n}}: {{count}} pieces found, open to choose",
     "groupHeading": "Photo {{n}}",
     "foundPill_one": "{{count}} piece found",
-    "foundPill_other": "{{count}} pieces found"
+    "foundPill_other": "{{count}} pieces found",
+    "groupHeadingCount_one": "Photo {{n}} · {{count}} piece",
+    "groupHeadingCount_other": "Photo {{n}} · {{count}} pieces"
   }
 }
