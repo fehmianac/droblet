@@ -174,6 +174,55 @@ public class OpenAiProviderTests
     }
 
     [Fact]
+    public async Task Match_SendsTheCropThenEveryCandidate_InOneCall_AndParsesTheNumber()
+    {
+        var (provider, handler) = Create(Chat("""{"match":2,"confidence":0.88}"""));
+        ImageInput[] candidates = [new([0xFF, 0xD8, 0x02], "image/jpeg"), new([0xFF, 0xD8, 0x03], "image/webp"), new([0xFF, 0xD8, 0x04], "image/jpeg")];
+
+        var result = await provider.MatchAsync(Photo, candidates, "shirt", fast: false, default);
+
+        Assert.Equal(new ItemMatchResult(1, 0.88), result);   // 1-based on the wire, 0-based for the caller
+        var body = JsonNode.Parse(Assert.Single(handler.Calls).Body)!;
+        Assert.Equal("item_match", body["response_format"]!["json_schema"]!["name"]!.GetValue<string>());
+        var content = body["messages"]![1]!["content"]!.AsArray();
+        Assert.Equal(5, content.Count);   // the question, the crop, three candidates
+        Assert.Contains("3 candidate(s)", content[0]!["text"]!.GetValue<string>());
+        Assert.StartsWith("data:image/webp;base64,", content[3]!["image_url"]!["url"]!.GetValue<string>());
+        Assert.Contains("NOT a match", body["messages"]![0]!["content"]!.GetValue<string>());
+        Assert.Equal(TextModel, body["model"]!.GetValue<string>());
+    }
+
+    [Theory]
+    [InlineData("""{"match":null,"confidence":0.9}""", null)]
+    [InlineData("""{"match":0,"confidence":0.9}""", null)]
+    [InlineData("""{"match":4,"confidence":0.9}""", null)]
+    [InlineData("""{"match":3,"confidence":0.9}""", 2)]
+    public void ParseMatch_OnlyAcceptsANumberInRange(string content, int? expected) =>
+        Assert.Equal(expected, OpenAiPayloads.ParseMatch(content, 3).Index);
+
+    [Fact]
+    public async Task Match_WithoutCandidates_IsNoCall()
+    {
+        var (provider, handler) = Create(Chat("{}"));
+        Assert.Null((await provider.MatchAsync(Photo, [], null, false, default)).Index);
+        Assert.Empty(handler.Calls);
+    }
+
+    [Fact]
+    public async Task OutfitImport_UsesTheFastTextModel_WhenConfigured()
+    {
+        var options = Options();
+        options.FastTextModel = "fast-model";
+        var (provider, handler) = Create(Chat("""{"items":[]}"""), options: options);
+
+        await provider.DetectItemsAsync(Photo, "tr", fast: true, default);
+        await provider.DetectItemsAsync(Photo, "tr", default);
+
+        Assert.Equal("fast-model", JsonNode.Parse(handler.Calls[0].Body)!["model"]!.GetValue<string>());
+        Assert.Equal(TextModel, JsonNode.Parse(handler.Calls[1].Body)!["model"]!.GetValue<string>());   // the single / bulk add path is unchanged
+    }
+
+    [Fact]
     public async Task DetectItems_SendsTheImageInHighDetail_AndParsesEveryPieceWithItsBox()
     {
         var (provider, handler) = Create(Chat("""

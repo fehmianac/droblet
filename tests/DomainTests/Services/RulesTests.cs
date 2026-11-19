@@ -119,7 +119,7 @@ public class DeletionPlanTests
     [Fact]
     public void AccountDeletion_CoversWholeTenantPrefixAndUploads()
     {
-        Assert.Equal(["tenant/t1/", "uploads/tmp/t1/", "exports/t1/"], DeletionPlan.AccountS3Prefixes("t1"));
+        Assert.Equal(["tenant/t1/", "uploads/tmp/t1/", "uploads/import/t1/", "exports/t1/"], DeletionPlan.AccountS3Prefixes("t1"));
     }
 }
 
