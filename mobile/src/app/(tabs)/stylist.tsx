@@ -15,10 +15,12 @@ import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
-import { openCreditTopUp, useAiCredits } from '@/features/credits/useAiCredits';
+import { useAiCredits } from '@/features/credits/useAiCredits';
 import { dateParamOrToday, useStartStylistOutfit, useStylistWeather, validateStylistDraft, type StylistDraft } from '@/features/stylist/api';
 import { useItems } from '@/features/wardrobe/queries';
 import { formatDate, formatTemperature, parseLocalDate, seasonOf, toIsoDate, weekdayShort } from '@/lib/format';
+import { RequirementHint } from '@/features/requirements/RequirementHint';
+import { useGate } from '@/features/requirements/useRequirements';
 import { useIsOnline } from '@/sync/network';
 import { useThemeColors } from '@/theme/useThemeColors';
 
@@ -100,20 +102,22 @@ export default function StylistTab() {
   const blockedByWardrobe = wardrobeEmpty && wardrobeOnly;
   const canSubmit = online && !problem && !blockedByWardrobe;
 
-  const submit = () => {
-    if (notMember) {
-      openCreditTopUp(false);
-      return;
-    }
-    if (!canSubmit) {
-      setShowProblem(true);
-      return;
-    }
+  const send = () => {
     const title = occasion ? t(`occasion.${occasion}`) : text.trim();
     void start
       .start(draft)
       .then(({ jobId }) => router.push({ pathname: '/stylist/[jobId]', params: { jobId, title } }))
       .catch(() => undefined);
+  };
+  // Membership / city missing: the requirements flow first (canvas 11), then the request is sent.
+  const gate = useGate('stylist', send);
+
+  const submit = () => {
+    if (!canSubmit) {
+      setShowProblem(true);
+      return;
+    }
+    gate.run();
   };
 
   const day = parseLocalDate(date);
@@ -178,6 +182,7 @@ export default function StylistTab() {
             testID="stylist.send"
           />
         </View>
+        <RequirementHint hint={gate.hint} onPress={gate.run} className="self-start" testID="stylist.hint" />
 
         <View className="gap-2.5">
           <Text variant="eyebrow">{t('stylistHome.occasionEyebrow')}</Text>

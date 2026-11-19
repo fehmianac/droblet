@@ -25,6 +25,7 @@ import { isLightTone, paletteCatalogColors, toneName } from '@/features/account/
 import { accountKeys, useMyPhotos, usePalette, usePaletteMismatch } from '@/features/account/queries';
 import { CanvasGlyph } from '@/features/account/rows';
 import { useAiGate } from '@/features/credits/useAiGate';
+import { useGate } from '@/features/requirements/useRequirements';
 import type { PreparedPhoto } from '@/features/photos/preparePhoto';
 import { usePhotoPicker } from '@/features/photos/usePhotoPicker';
 import { useAppLanguage } from '@/i18n/useAppLanguage';
@@ -239,7 +240,11 @@ export default function PaletteScreen() {
   });
 
   // Face photo + palette analysis go to OpenAI (US): explicit consents 2 + 6 first (their own sheet).
-  const startAnalysis = () => void ensureConsents(CONSENTS_FOR.palette, 'palette').then((ok) => ok && gate('palette', analyze, { costsCredit: false }));
+  // Canvas 11 (30): consent / face photo / membership missing → the requirements flow, which then starts the analysis.
+  const paletteGate = useGate('palette', () => void ensureConsents(CONSENTS_FOR.palette, 'palette').then((ok) => ok && gate('palette', analyze, { costsCredit: false })), {
+    origin: t('screens.palette'),
+  });
+  const startAnalysis = paletteGate.run;
   const choosePhoto = () => void ensureConsents(CONSENTS_FOR.facePhoto, 'face_photo').then((ok) => ok && setSourceOpen(true));
 
   return (

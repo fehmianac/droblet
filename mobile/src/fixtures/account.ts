@@ -33,6 +33,8 @@ function initialState(): State {
       styleTags: ['minimal', 'quiet_luxury', 'office_chic'],
       closetVisibility: 'followers',
       language: null,
+      // İstanbul: the stylist / Bugün read the weather of the profile city.
+      cityId: '745044',
       baseVersion: 1,
     },
     photos: {

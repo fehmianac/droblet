@@ -155,6 +155,36 @@ export function computeRequirements(action: RequirementAction, input: Requiremen
   return { action, steps, path, choosePath, hint, count: steps.length, ready: steps.length === 0 };
 }
 
+/**
+ * One item of "Profilini tamamla" as its own short flow (its consent first when needed). Empty when it is done.
+ * `action` is only the frame's name ("Üzerimde gör" for photos and body type).
+ */
+export function singleStepRequirements(kind: 'bodyPhoto' | 'facePhoto' | 'bodyType' | 'city' | 'handle', input: RequirementInput): Requirements {
+  let steps: RequirementStep[] = [];
+  let action: RequirementAction = 'tryOn';
+  switch (kind) {
+    case 'bodyPhoto':
+      steps = [...consentStep(input, CONSENTS_FOR.bodyPhoto), ...(input.hasBodyPhoto === true ? [] : [{ kind: 'bodyPhoto' as const }])];
+      break;
+    case 'facePhoto':
+      steps = [...consentStep(input, CONSENTS_FOR.facePhoto), ...(input.hasFacePhoto === true ? [] : [{ kind: 'facePhoto' as const }])];
+      break;
+    case 'bodyType':
+      steps = input.bodyType ? [] : [{ kind: 'bodyType' }];
+      break;
+    case 'city':
+      action = 'stylist';
+      steps = input.cityId ? [] : [{ kind: 'city', optional: true }];
+      break;
+    case 'handle':
+      action = 'social';
+      steps = input.handle ? [] : [{ kind: 'handle' }];
+      break;
+  }
+  // A consent alone does not complete a photo item: keep the photo step even when the consent is the first.
+  return { action, steps, path: null, choosePath: false, hint: steps[0]?.kind ?? null, count: steps.length, ready: steps.length === 0 };
+}
+
 // ── "Profilini tamamla" (Profil, Bugün) ──────────────────────────────────────────────────────────────────────────
 
 export type ProfileItemKey = 'bodyPhoto' | 'facePhoto' | 'bodyType' | 'city' | 'handle' | 'firstItems';

@@ -21,6 +21,8 @@ export type FlowRequest = {
   path?: PhotoPath;
   /** Shown under the sheet title / on "Hazır" ("Look oluştur'a dönülüyor"). */
   origin?: string | null;
+  /** A single "Profilini tamamla" item as its own flow (its consent first when needed). */
+  only?: 'bodyPhoto' | 'facePhoto' | 'bodyType' | 'city' | 'handle';
 };
 
 type State = {

@@ -16,6 +16,7 @@ import { ScreenState } from '@/components/ui/ScreenState';
 import { Text } from '@/components/ui/Text';
 import { useMyProfile } from '@/features/account/queries';
 import { MarketingOptInCard } from '@/features/consent/MarketingOptIn';
+import { ProfileCompleteCard } from '@/features/requirements/ProfileCompleteCard';
 import { useUnreadNotificationCount } from '@/features/notifications/queries';
 import { useRefreshTodayLook, useSetLookFavorite } from '@/features/today/api';
 import { dayPart, todayGreeting } from '@/features/today/logic';
@@ -104,6 +105,11 @@ export default function TodayScreen() {
 
               <View className="px-gutter">
                 <WeekStrip week={data.week} today={data.date} />
+              </View>
+
+              {/* "Profilini tamamla": ready before it is needed (canvas 11), dismissible to one row. */}
+              <View className="px-gutter">
+                <ProfileCompleteCard testID="today.profileComplete" />
               </View>
 
               {/* Marketing notifications are opt-in (explicit consent 5): one card, once. */}

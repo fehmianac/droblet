@@ -7,8 +7,8 @@ import { useConsents } from '@/features/consent/api';
 import { useAiCredits } from '@/features/credits/useAiCredits';
 import { useItems } from '@/features/wardrobe/queries';
 
-import { computeRequirements, type PhotoPath, type RequirementAction, type RequirementInput, type Requirements } from './logic';
-import { requirementsFlow, useRequirementsFlow } from './store';
+import { computeRequirements, singleStepRequirements, type PhotoPath, type RequirementAction, type RequirementInput, type Requirements } from './logic';
+import { requirementsFlow, useRequirementsFlow, type FlowRequest } from './store';
 
 /** Everything the requirement rules read, from the queries the app already has (nothing new is fetched). */
 export function useRequirementInput(): RequirementInput {
@@ -45,9 +45,10 @@ export function useRequirementInput(): RequirementInput {
  *   const req = useRequirements('tryOn');
  *   req.ready ? start() : open the flow
  */
-export function useRequirements(action: RequirementAction, path?: PhotoPath | null): Requirements {
+export function useRequirements(action: RequirementAction, path?: PhotoPath | null, only?: FlowRequest['only']): Requirements {
   const input = useRequirementInput();
   const flow = useRequirementsFlow();
+  if (only) return singleStepRequirements(only, input);
   return computeRequirements(action, input, path ?? flow.paths[action] ?? null);
 }
 

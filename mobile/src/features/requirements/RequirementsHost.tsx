@@ -185,7 +185,7 @@ function Flow({ request }: { request: FlowRequest }) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const credits = useAiCredits();
-  const req = useRequirements(request.action);
+  const req = useRequirements(request.action, null, request.only);
   const [chosenPhase, setPhase] = useState<Phase>(request.start === 'steps' ? 'steps' : 'sheet');
   const [completed, setCompleted] = useState<StepKind[]>([]);
   const [labels, setLabels] = useState<StepKind[] | null>(request.start === 'steps' ? req.steps.map((s) => s.kind) : null);
