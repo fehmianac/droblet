@@ -31,6 +31,18 @@ jest.mock('@/entitlement/useEntitlement', () => ({
   useEntitlement: () => ({ data: mockEntitlement, isError: false, isPending: false, refetch: jest.fn() }),
 }));
 
+const mockPicker = {
+  launchCameraAsync: jest.fn(async () => ({ canceled: true, assets: null })),
+  launchImageLibraryAsync: jest.fn(async () => ({ canceled: true, assets: null })),
+};
+jest.mock('expo-image-picker', () => ({
+  launchCameraAsync: () => mockPicker.launchCameraAsync(),
+  launchImageLibraryAsync: () => mockPicker.launchImageLibraryAsync(),
+  getCameraPermissionsAsync: async () => ({ granted: true, canAskAgain: true }),
+  requestCameraPermissionsAsync: async () => ({ granted: true, canAskAgain: true }),
+  getMediaLibraryPermissionsAsync: async () => ({ granted: true }),
+}));
+
 const WAIT = { timeout: 4000 };
 
 async function open(url: string) {
@@ -163,6 +175,27 @@ describe('29 Gizlilik ve ayarlar', () => {
     await fireEvent.press(screen.getByRole('checkbox', { name: 'Friend ratings' }));
     await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Friend ratings' })).toBeChecked(), WAIT);
     await waitFor(() => expect(accountFixtures.notifications().friendRatings).toBe(true), WAIT);
+  });
+
+  it('29h FOTOĞRAFLARIM "+" offers the camera and the library for the body photo and for the face photo', async () => {
+    await open('/settings');
+    await waitFor(() => expect(screen.getByLabelText('Add photo')).toBeTruthy(), WAIT);
+    await fireEvent.press(screen.getByLabelText('Add photo'));
+    await waitFor(() => expect(screen.getByTestId('photoSource.sheet')).toBeTruthy(), WAIT);
+    expect(screen.getByText('Which photo shall we add?')).toBeTruthy();
+    expect(screen.getByText('Full-length photo')).toBeTruthy();
+    for (const id of ['photoSource.body.camera', 'photoSource.body.library', 'photoSource.face.camera', 'photoSource.face.library']) {
+      expect(screen.getByTestId(id)).toBeTruthy();
+    }
+    expect(screen.getByText('Take a selfie')).toBeTruthy();
+
+    // Consents are on record (fixture account): the body library opens the system picker, the face camera the camera.
+    await fireEvent.press(screen.getByTestId('photoSource.body.library'));
+    await waitFor(() => expect(mockPicker.launchImageLibraryAsync).toHaveBeenCalledTimes(1), WAIT);
+    await fireEvent.press(screen.getByLabelText('Add photo'));
+    await waitFor(() => expect(screen.getByTestId('photoSource.face.camera')).toBeTruthy(), WAIT);
+    await fireEvent.press(screen.getByTestId('photoSource.face.camera'));
+    await waitFor(() => expect(mockPicker.launchCameraAsync).toHaveBeenCalledTimes(1), WAIT);
   });
 
   it('offers the reminder time only while the morning reminder is on and stores the picked time', async () => {

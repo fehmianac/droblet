@@ -414,5 +414,23 @@
   "profile": {
     "logout": "Çıkış yap",
     "components": "Bileşen vitrini"
+  },
+  "photoSource": {
+    "library": "Galeriden seç",
+    "camera": "Fotoğraf çek",
+    "selfie": "Selfie çek",
+    "eyebrow": "FOTOĞRAFLARIM",
+    "bodyTitle": "Boy fotoğrafı",
+    "bodyCaption": "Düz arka plan, tam boy. Üzerimde gör için en gerçekçi sonuç.",
+    "bodyMeta": "{{used}} / {{max}}",
+    "bodyFull": "Üç boy fotoğrafın var; yenisi için birini kaldır.",
+    "faceTitle": "Yüz fotoğrafı",
+    "faceCaption": "Renk paleti ve hızlı Üzerimde gör için. Varsa yenisiyle değişir.",
+    "footnote": "İlk boy ve yüz fotoğrafından önce açık rıza sorulur. Fotoğrafların yalnızca sana açıktır.",
+    "onbBodyEyebrow": "BOY FOTOĞRAFI · {{used}} / {{max}}",
+    "onbBodyCaption_one": "Düz arka plan, tam boy. Galeriden {{count}} fotoğraf seçebilirsin.",
+    "onbBodyCaption_other": "Düz arka plan, tam boy. Galeriden en fazla {{count}} fotoğraf seçebilirsin.",
+    "onbFaceEyebrow": "YÜZ FOTOĞRAFI",
+    "onbFaceCaption": "Gün ışığında, yüzün tam karşıdan. Renk paletini ve hızlı Üzerimde gör'ü açar."
   }
 }
