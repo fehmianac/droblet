@@ -168,6 +168,8 @@ appId: com.alatech.droplet
     visible:
       id: "credit-confirm"
     timeout: 15000
+# The sheet fades in: capture it once the animation has ended (a mid-fade frame shows the screen behind).
+- waitForAnimationToEnd
 - takeScreenshot: 11f-devam-kredi
 - tapOn:
     id: "credit-confirm"
@@ -175,5 +177,11 @@ appId: com.alatech.droplet
     visible:
       id: "tryon.faceNote"
     timeout: 180000
+    optional: true
+# The generated image is a presigned download: give it a moment to fade in before the screenshot.
+- extendedWaitUntil:
+    visible:
+      id: "ai-image-tag"
+    timeout: 30000
     optional: true
 - takeScreenshot: 11g-sonuc-yuz-yolu

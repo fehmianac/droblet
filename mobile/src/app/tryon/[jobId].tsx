@@ -120,15 +120,11 @@ export default function TryOnScreen() {
               url={job.result?.imageUrl ?? null}
               className="aspect-[4/5] w-full"
               accessibilityLabel={title ? t('tryOn.imageA11yNamed', { name: title }) : t('tryOn.imageA11y')}
+              tagLabel={job.result?.source === 'face' ? t('req.tryOnFace.tag') : undefined}
             />
             {job.result?.imageUrl ? (
               <View className="absolute left-2.5 top-2.5" pointerEvents="none">
                 <Badge tone="ink" icon={Sparkles} label={t('ai.previewBadge')} />
-              </View>
-            ) : null}
-            {job.result?.source === 'face' ? (
-              <View className="absolute bottom-2.5 left-2.5 rounded-[4px] bg-paper/90 px-2 py-1" pointerEvents="none">
-                <Text variant="tag">{t('req.tryOnFace.tag')}</Text>
               </View>
             ) : null}
           </View>

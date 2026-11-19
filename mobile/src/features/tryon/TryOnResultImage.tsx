@@ -15,6 +15,8 @@ type Props = {
   url: string | null;
   className?: string;
   accessibilityLabel: string;
+  /** The image tag's text when it is not the default "SENİN ÜZERİNDE" (face path). */
+  tagLabel?: string;
 };
 
 /**
@@ -22,7 +24,7 @@ type Props = {
  * failed load first asks the server for a fresh URL once (an expired link after a while on the screen, a restored
  * cache); only when that fails too does it show the error with "Tekrar dene".
  */
-export function TryOnResultImage({ tryOnId, url, className, accessibilityLabel }: Props) {
+export function TryOnResultImage({ tryOnId, url, className, accessibilityLabel, tagLabel }: Props) {
   const { t } = useTranslation();
   const [current, setCurrent] = useState<string | null>(url);
   const [seenUrl, setSeenUrl] = useState<string | null>(url);
@@ -86,5 +88,5 @@ export function TryOnResultImage({ tryOnId, url, className, accessibilityLabel }
     );
   }
 
-  return <AiImage kind="onYou" uri={current} className={className} accessibilityLabel={accessibilityLabel} onError={onError} testID="tryon.image" />;
+  return <AiImage kind="onYou" uri={current} className={className} accessibilityLabel={accessibilityLabel} onError={onError} testID="tryon.image" tagLabel={tagLabel} />;
 }
