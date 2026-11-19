@@ -405,24 +405,48 @@ jobs:
           </dict></plist>
           PLIST
 
-          # Signing is settled at export, not here: a command line build setting reaches every target, and the Pods
-          # and SwiftPM frameworks answer "ExpoCrypto does not support provisioning profiles" by the dozen.
-          # So the archive keeps the automatic signing it already completes with, and
-          # ExportOptions.plist re-signs the app manually against the profile installed above — which is the half
-          # cloud signing could not produce for us.
+          # Signing is not passed as a command-line build setting: that reaches every target, and the Pods and
+          # SwiftPM frameworks answer "ExpoCrypto does not support provisioning profiles" by the dozen. It is set
+          # on the app target in the project instead (below), and ExportOptions.plist signs the export with the
+          # same profile.
           # Xcode will not run a SwiftPM build-tool plugin or macro it has not been told to trust, and in a
           # non-interactive build there is nobody to tell it. The plugins come from our own locked dependency tree,
           # which is what makes skipping them the right call here and not a shortcut.
           # The log goes to a file, not to the console: teeing xcodebuild's full output truncates the step in the
           # GitHub UI, which hides the very lines it was added to show. On failure the step prints the
           # parts that matter; the whole thing is uploaded as an artifact either way.
+          # Manual signing on the app target only, with the distribution identity from the keychain and the App
+          # Store profile installed above. Automatic signing (-allowProvisioningUpdates) made Xcode create a new
+          # Apple Development certificate on every fresh runner until the account hit Apple's certificate limit
+          # ("Choose a certificate to revoke", build 5 on 2026-11-19). Setting it per target keeps the Pods and
+          # SwiftPM frameworks unsigned-by-profile, which a command-line build setting would not.
+          # xcodeproj ships with CocoaPods; install it for this user only if the runner's Ruby cannot load it.
+          ruby -e 'require "xcodeproj"' 2>/dev/null || gem install xcodeproj --no-document --user-install
+          GEM_PATH="$(ruby -e 'print Gem.user_dir'):$(gem env gempath)" \
+          SCHEME="$scheme" TEAM="$team" PROFILE="$PROFILE_NAME" ruby -e '
+            require "xcodeproj"
+            project = Xcodeproj::Project.open(Dir["ios/*.xcodeproj"].first)
+            target = project.targets.find { |t| t.name == ENV["SCHEME"] } or abort("no target #{ENV["SCHEME"]}")
+            target.build_configurations.each do |c|
+              next unless c.name == "Release"
+              b = c.build_settings
+              b["CODE_SIGN_STYLE"] = "Manual"
+              b["DEVELOPMENT_TEAM"] = ENV["TEAM"]
+              b["CODE_SIGN_IDENTITY"] = "Apple Distribution"
+              b["CODE_SIGN_IDENTITY[sdk=iphoneos*]"] = "Apple Distribution"
+              b["PROVISIONING_PROFILE_SPECIFIER"] = ENV["PROFILE"]
+            end
+            attrs = (project.root_object.attributes["TargetAttributes"] ||= {})
+            (attrs[target.uuid] ||= {})["ProvisioningStyle"] = "Manual"
+            (attrs[target.uuid])["DevelopmentTeam"] = ENV["TEAM"]
+            project.save
+            puts "manual signing: #{target.name} · #{ENV["PROFILE"]}"
+          '
           set +e
           xcodebuild -workspace "$ws" -scheme "$scheme" -configuration Release \
             -destination 'generic/platform=iOS' -archivePath ios/build/app.xcarchive \
-            -allowProvisioningUpdates -skipPackagePluginValidation -skipMacroValidation \
-            -authenticationKeyPath "$key" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            -skipPackagePluginValidation -skipMacroValidation \
             -resultBundlePath ios/build/archive.xcresult \
-            DEVELOPMENT_TEAM="$team" CODE_SIGN_STYLE=Automatic \
             archive > ios/build/archive.log 2>&1
           status=$?
           set -e
