@@ -14,6 +14,7 @@ public sealed class EventManager(IAmazonSQS sqs, IOptionsMonitor<QueueOptions> q
     {
         var url = queues.CurrentValue.UrlFor(jobEvent.Kind)
                   ?? throw new InvalidOperationException($"No queue configured for {jobEvent.Kind}.");
+        using var _ = Infrastructure.Telemetry.AiTelemetry.Measure("sqs_send");
         await sqs.SendMessageAsync(new SendMessageRequest { QueueUrl = url, MessageBody = MessageSerializer.Serialize(jobEvent) }, ct);
     }
 }

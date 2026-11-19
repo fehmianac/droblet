@@ -38,13 +38,14 @@ public interface IGarmentVision
 
 public interface ITryOnRenderer
 {
-    Task<ImageInput> RenderAsync(ImageInput bodyPhoto, IReadOnlyList<ImageInput> garments, CancellationToken ct);
+    /// <param name="quality">Image quality for this render (the try-on preview); null = the configured try-on quality.</param>
+    Task<ImageInput> RenderAsync(ImageInput bodyPhoto, IReadOnlyList<ImageInput> garments, CancellationToken ct, string? quality = null);
 
     /// <summary>
     /// Face path (no body photo): the same adult person, identity unchanged, as a full-body figure of the given body type,
     /// height and size, fully clothed in the garments.
     /// </summary>
-    Task<ImageInput> RenderFromFaceAsync(ImageInput facePhoto, IReadOnlyList<ImageInput> garments, TryOnFigure figure, CancellationToken ct);
+    Task<ImageInput> RenderFromFaceAsync(ImageInput facePhoto, IReadOnlyList<ImageInput> garments, TryOnFigure figure, CancellationToken ct, string? quality = null);
 }
 
 /// <summary>Server-side check of a body / face photo before its first try-on (people, framing, light, sharpness). No identification.</summary>

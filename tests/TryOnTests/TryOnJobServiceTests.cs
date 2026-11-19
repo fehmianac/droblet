@@ -268,14 +268,14 @@ public class TryOnJobServiceTests
         public int BodyRenders { get; private set; }
         public List<TryOnFigure> Figures { get; } = [];
 
-        public async Task<ImageInput> RenderAsync(ImageInput bodyPhoto, IReadOnlyList<ImageInput> garments, CancellationToken ct)
+        public async Task<ImageInput> RenderAsync(ImageInput bodyPhoto, IReadOnlyList<ImageInput> garments, CancellationToken ct, string? quality = null)
         {
             BodyRenders++;
             if (during is not null) await during();
             return new ImageInput([9, 9, 9], "image/webp");
         }
 
-        public async Task<ImageInput> RenderFromFaceAsync(ImageInput facePhoto, IReadOnlyList<ImageInput> garments, TryOnFigure figure, CancellationToken ct)
+        public async Task<ImageInput> RenderFromFaceAsync(ImageInput facePhoto, IReadOnlyList<ImageInput> garments, TryOnFigure figure, CancellationToken ct, string? quality = null)
         {
             Figures.Add(figure);
             if (during is not null) await during();

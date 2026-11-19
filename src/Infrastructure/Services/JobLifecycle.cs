@@ -1,7 +1,9 @@
 using Domain.Entity;
 using Domain.Enum;
 using Domain.Manager;
+using Domain.Domain;
 using Domain.Services;
+using Infrastructure.Telemetry;
 using Microsoft.Extensions.Logging;
 
 namespace Infrastructure.Services;
@@ -19,6 +21,13 @@ public sealed class JobLifecycle(IRepository repository, ICreditService credits,
 
         job.Status = JobStatus.Processing;
         job.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
+        if (AiTelemetry.Current is { } timings)
+        {
+            timings.JobId = job.Id;
+            timings.JobKind = job.Kind.ToString();
+            // Api saved the job → this worker picked it up (Api enqueue + SQS + Lambda scaling / init).
+            timings.Set("since_created", (job.UpdatedAt - job.CreatedAt).TotalMilliseconds);
+        }
         await repository.SaveAsync(job, ct);
         return job;
     }
@@ -29,7 +38,9 @@ public sealed class JobLifecycle(IRepository repository, ICreditService credits,
         job.Failure = null;
         job.Result = resultJson;
         job.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
+        job.Timings = AiTelemetry.Current?.Snapshot();
         await repository.SaveAsync(job, ct);
+        await RecordDurationAsync(job, ct);
 
         if (job.CreditIdempotencyKey is { } key)
             await credits.CommitAsync(job.TenantId, key, ct);
@@ -43,6 +54,7 @@ public sealed class JobLifecycle(IRepository repository, ICreditService credits,
         job.Status = JobStatus.Failed;
         job.Failure = failure;
         job.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
+        job.Timings = AiTelemetry.Current?.Snapshot();
         await repository.SaveAsync(job, ct);
 
         // A failed AI call never costs the user a credit.
@@ -53,5 +65,25 @@ public sealed class JobLifecycle(IRepository repository, ICreditService credits,
             await itemRecognition.ReleaseAsync(job.TenantId, job.Id, ct);
 
         logger.LogWarning("Job {JobId} ({Kind}) for tenant {TenantId} failed: {Failure}", job.Id, job.Kind, job.TenantId, failure);
+    }
+
+    /// <summary>Feeds the kind's typical duration (JobStatsEntity, poll hint of GET job). Best effort: never fails the job.</summary>
+    private async Task RecordDurationAsync(JobEntity job, CancellationToken ct)
+    {
+        try
+        {
+            var sample = (long)(job.UpdatedAt - job.CreatedAt).TotalMilliseconds;
+            if (sample <= 0)
+                return;
+            var stats = await repository.GetAsync<JobStatsEntity>(JobStatsEntity.GetPk(), JobStatsEntity.GetSk(job.Kind), ct) ?? new JobStatsEntity { Kind = job.Kind };
+            stats.TypicalMs = JobEta.Update(stats.TypicalMs, stats.Samples, sample);
+            stats.Samples++;
+            stats.UpdatedAt = job.UpdatedAt;
+            await repository.SaveAsync(stats, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex, "Job {JobId}: typical duration not recorded", job.Id);
+        }
     }
 }

@@ -10,3 +10,9 @@ public interface IJobLifecycle
     Task CompleteAsync(JobEntity job, string resultJson, CancellationToken ct);
     Task FailAsync(JobEntity job, JobFailure failure, CancellationToken ct);
 }
+
+/// <summary>Typical end-to-end duration of a job kind (JobStatsEntity), cached briefly by the Api for the poll hint.</summary>
+public interface IJobEtaProvider
+{
+    Task<long?> TypicalMsAsync(JobKind kind, CancellationToken ct);
+}

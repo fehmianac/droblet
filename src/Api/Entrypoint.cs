@@ -26,6 +26,7 @@ public class Entrypoint
         builder.Services.AddDrobletCore(builder.Configuration);
         builder.Services.AddDrobletApiServices(builder.Configuration);
         builder.Services.AddDrobletAdmin(builder.Configuration);
+        global::Infrastructure.Workers.WorkerHost.DecorateWithTimings(builder.Services);
 
         var app = builder.Build();
 
@@ -44,6 +45,7 @@ public class Entrypoint
         // CORS lives in the Api, not in API Gateway: admin routes answer only the panel origin (docs/api/admin.md).
         // The ANY /{proxy+} route forwards OPTIONS here; preflights end in UseDrobletCors with 204.
         app.UseDrobletCors();
+        app.UseAiStartTimings();
 
         app.UseAuthentication();
         app.UseAuthorization();

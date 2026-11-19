@@ -59,6 +59,7 @@ public static class DependencyInjection
         services.AddSingleton<ICreditService, CreditService>();
         services.AddSingleton<IItemRecognitionQuotaService, ItemRecognitionQuotaService>();
         services.AddSingleton<IJobLifecycle, JobLifecycle>();
+        services.AddSingleton<IJobEtaProvider, JobEtaProvider>();
         services.AddSingleton<IConsentService, ConsentService>();
         services.AddSingleton<IAvatarService, AvatarService>();
         services.AddDrobletWardrobe(configuration);

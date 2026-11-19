@@ -20,13 +20,13 @@ public class TryOnGarmentTests
     {
         public List<IReadOnlyList<ImageInput>> Garments { get; } = [];
 
-        public Task<ImageInput> RenderAsync(ImageInput bodyPhoto, IReadOnlyList<ImageInput> garments, CancellationToken ct)
+        public Task<ImageInput> RenderAsync(ImageInput bodyPhoto, IReadOnlyList<ImageInput> garments, CancellationToken ct, string? quality = null)
         {
             Garments.Add(garments);
             return Task.FromResult(new ImageInput([7, 7, 7], "image/webp"));
         }
 
-        public Task<ImageInput> RenderFromFaceAsync(ImageInput facePhoto, IReadOnlyList<ImageInput> garments, TryOnFigure figure, CancellationToken ct) =>
+        public Task<ImageInput> RenderFromFaceAsync(ImageInput facePhoto, IReadOnlyList<ImageInput> garments, TryOnFigure figure, CancellationToken ct, string? quality = null) =>
             RenderAsync(facePhoto, garments, ct);
     }
 

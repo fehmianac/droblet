@@ -248,6 +248,79 @@ public sealed class AiOptions
     /// <summary>Below this per-field confidence a draft field is flagged ("Kategoriyi kontrol et").</summary>
     public double VisionConfidenceThreshold { get; set; } = 0.7;
     public double PaletteConfidenceThreshold { get; set; } = 0.6;
+
+    // ── Latency tuning (all optional; unset = the request is sent exactly as before) ─────────────────────────────
+
+    /// <summary>
+    /// Optional faster text model (Ai:FastTextModel) for the light operations named in <see cref="FastTextOperations"/>.
+    /// Unset = every call uses <see cref="TextModel"/>.
+    /// </summary>
+    public string? FastTextModel { get; set; }
+
+    /// <summary>Comma-separated operations (schema names, see AiSchemas) that use <see cref="FastTextModel"/> when it is set.</summary>
+    public string FastTextOperations { get; set; } = "photo_check";
+
+    /// <summary>
+    /// reasoning_effort per operation (Ai:ReasoningEffort:{operation}, e.g. outfit, week_plan, packing, item_detection,
+    /// garment_draft, palette_season, photo_check) with Ai:ReasoningEffort:Default as the fallback. Not sent when unset.
+    /// </summary>
+    public Dictionary<string, string> ReasoningEffort { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>OpenAI service_tier (e.g. "priority" for faster, more expensive processing). Not sent when unset.</summary>
+    public string? ServiceTier { get; set; }
+
+    /// <summary>Send prompt_cache_key = the operation, so requests sharing the static prefix land on the same cache.</summary>
+    public bool PromptCacheKey { get; set; }
+
+    /// <summary>Image output per use (Ai:Image:*).</summary>
+    public AiImageOptions Image { get; set; } = new();
+
+    public string ModelFor(string operation) =>
+        !string.IsNullOrWhiteSpace(FastTextModel)
+        && FastTextOperations.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Contains(operation, StringComparer.OrdinalIgnoreCase)
+            ? FastTextModel!
+            : TextModel ?? "";
+
+    public string? EffortFor(string operation) =>
+        ReasoningEffort.TryGetValue(operation, out var effort) && !string.IsNullOrWhiteSpace(effort) ? effort
+        : ReasoningEffort.TryGetValue("Default", out var fallback) && !string.IsNullOrWhiteSpace(fallback) ? fallback
+        : null;
+
+    /// <summary>Size and quality of one image edit. Quality null = not sent (the provider's default, "auto").</summary>
+    public (string Size, string? Quality) ImageFor(ImageUse use, string? qualityOverride = null)
+    {
+        var (size, quality) = use switch
+        {
+            ImageUse.TryOn => (Image.TryOnSize, Image.TryOnQuality),
+            ImageUse.Cleanup => (Image.CleanupSize, Image.CleanupQuality),
+            _ => (null, null),
+        };
+        return (Blank(size) ?? Blank(Image.Size) ?? ImageSize, Blank(qualityOverride) ?? Blank(quality) ?? Blank(Image.Quality));
+    }
+
+    private static string? Blank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+}
+
+public enum ImageUse { TryOn, Cleanup }
+
+public sealed class AiImageOptions
+{
+    /// <summary>Default quality of every image edit (low | medium | high | auto). Unset = not sent.</summary>
+    public string? Quality { get; set; }
+    /// <summary>Default size of every image edit. Unset = Ai:ImageSize.</summary>
+    public string? Size { get; set; }
+    public string? TryOnQuality { get; set; }
+    public string? TryOnSize { get; set; }
+    public string? CleanupQuality { get; set; }
+    public string? CleanupSize { get; set; }
+    /// <summary>input_fidelity of the try-on edit (high keeps the face closer, low is faster). Unset = not sent.</summary>
+    public string? TryOnInputFidelity { get; set; }
+    /// <summary>
+    /// Try-on preview: the job completes with a fast image at <see cref="PreviewQuality"/>, then the same worker renders
+    /// the full-quality image and replaces it (one more image call per try-on). Off by default.
+    /// </summary>
+    public bool TryOnPreview { get; set; }
+    public string PreviewQuality { get; set; } = "low";
 }
 
 public sealed class AuthRateLimitOptions
