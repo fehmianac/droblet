@@ -3,6 +3,8 @@ import type { Look, LookSlot, LookSlotKind } from '@/api/contracts/looks';
 import type { PlanDay, WearLog } from '@/api/contracts/today';
 import type { Item, ItemCategory, ItemColor, ItemSeason } from '@/api/contracts/wardrobe';
 
+import { L, SHOWCASE } from './showcase';
+
 /**
  * In-memory stand-in for the tenant's server data while the E2–E6 backend is written. Shared by the
  * wardrobe, looks, today, trips and stylist fixtures so the screens stay consistent with each other
@@ -23,7 +25,7 @@ function item(
 ): Item {
   return {
     id,
-    name,
+    name: L(name),
     category,
     subcategory: null,
     brand: null,
@@ -39,6 +41,8 @@ function item(
     createdAt: CREATED,
     baseVersion: 1,
     ...extra,
+    ...(extra.subcategory ? { subcategory: L(extra.subcategory) } : {}),
+    ...(extra.fabric ? { fabric: L(extra.fabric) } : {}),
   };
 }
 
@@ -82,7 +86,7 @@ function seedLooks(items: Item[]): Look[] {
   };
   const look = (id: string, name: string, occasion: Look['occasion'], slots: [LookSlotKind, string][], extra: Partial<Look> = {}): Look => ({
     id,
-    name,
+    name: L(name),
     occasion,
     slots: slots.map(([slot, itemId]) => slotFromItem(slot, byId(itemId))),
     isFavorite: false,
@@ -167,7 +171,8 @@ function seed(): FixtureDb {
     wearLogs: [],
     entitlement: {
       tier: 'member',
-      credits: { monthlyAllowance: 30, remaining: 11, resetsAt: '2026-12-01T00:00:00.000Z' },
+      // The showcase build matches the mock entitlement of the screenshot capture (Profil: 24 of 30 left).
+      credits: { monthlyAllowance: 30, remaining: SHOWCASE ? 24 : 11, resetsAt: '2026-12-01T00:00:00.000Z' },
       // Member: unlimited AI recognition. `setFixtureItemRecognition` (fixtures/wardrobe) switches to a free quota.
       itemRecognition: { limit: null, used: 0, remaining: null },
     },

@@ -15,6 +15,7 @@ import type {
 } from '@/api/contracts/today';
 import type { ItemCategory } from '@/api/contracts/wardrobe';
 import { clone, fixtureDb, FixtureNotFound, onFixtureSeed } from '@/fixtures/db';
+import { L } from '@/fixtures/showcase';
 
 /**
  * Fixtures for the Bugün slice (06–09) and the ready-made library (04b / 12b). They read looks and
@@ -85,7 +86,7 @@ onFixtureSeed((db, { empty }) => {
 
 /** The catalogue piece the stylist suggests to finish the blazer look (board 06 "Eksik parça"). */
 const MISSING_PIECE: Record<string, LookPiece> = {
-  look_lacivert_blazer: { id: 'prod_earrings', name: 'Küçük taşlı küpe', source: 'store', imageUrl: null, category: 'accessory', color: 'other' },
+  look_lacivert_blazer: { id: 'prod_earrings', name: L('Küçük taşlı küpe'), source: 'store', imageUrl: null, category: 'accessory', color: 'other' },
 };
 
 function todayLook(look: Look, date: string): TodayLook {
@@ -113,7 +114,7 @@ export function buildTodayFixture(today: Date = new Date()): TodayResponse {
   const look = plan?.lookId ? fixtureDb.looks.find((l) => l.id === plan.lookId) : undefined;
   return clone({
     date,
-    weather: { temperatureC: 14, city: 'İstanbul' },
+    weather: { temperatureC: 14, city: L('İstanbul') },
     firstName: 'Damla',
     occasion: look ? (plan?.occasion ?? look.occasion) : null,
     look: look ? todayLook(look, date) : null,
@@ -301,7 +302,7 @@ function product([id, brand, name, price, category, ownedItemId]: ProductSeed): 
   return {
     id,
     brand,
-    name,
+    name: L(name),
     price: moneyFromMajor(price, 'TRY'),
     imageUrl: null,
     category,
@@ -318,8 +319,8 @@ function buildEditLooks(weekStart: string): EditLook[] {
       id,
       date: shift(weekStart, i),
       occasion: seed.occasion,
-      name: seed.name,
-      styleNote: seed.note,
+      name: L(seed.name),
+      styleNote: L(seed.note),
       tryOnImageUrl: null,
       isSaved: savedEditLooks.has(id),
       products: { high_street: seed.high.map(product), luxury_touch: seed.luxury.map(product) },
@@ -395,15 +396,15 @@ export function fixtureSaveEditLook(request: SaveEditLookRequest): void {
 // ---------- 04b / 12b ready-made library ----------
 
 export const libraryFixture: LibraryItem[] = [
-  { id: 'lib_white_shirt', name: 'Beyaz poplin gömlek', category: 'top', imageUrl: null, color: 'white' },
-  { id: 'lib_navy_blazer', name: 'Lacivert yün blazer', category: 'outerwear', imageUrl: null, color: 'navy' },
-  { id: 'lib_black_midi', name: 'Siyah midi elbise', category: 'dress', imageUrl: null, color: 'black' },
-  { id: 'lib_straight_jeans', name: 'Düz jean', category: 'bottom', imageUrl: null, color: 'blue' },
-  { id: 'lib_cream_knit', name: 'Krem triko', category: 'top', imageUrl: null, color: 'cream' },
-  { id: 'lib_croc_flats', name: 'Kroko babet', category: 'shoes', imageUrl: null, color: 'brown' },
-  { id: 'lib_black_bag', name: 'Siyah deri çanta', category: 'bag', imageUrl: null, color: 'black' },
-  { id: 'lib_tweed_jacket', name: 'Tüvit ceket', category: 'outerwear', imageUrl: null, color: 'grey' },
-  { id: 'lib_beige_trench', name: 'Bej trençkot', category: 'outerwear', imageUrl: null, color: 'beige' },
+  { id: 'lib_white_shirt', name: L('Beyaz poplin gömlek'), category: 'top', imageUrl: null, color: 'white' },
+  { id: 'lib_navy_blazer', name: L('Lacivert yün blazer'), category: 'outerwear', imageUrl: null, color: 'navy' },
+  { id: 'lib_black_midi', name: L('Siyah midi elbise'), category: 'dress', imageUrl: null, color: 'black' },
+  { id: 'lib_straight_jeans', name: L('Düz jean'), category: 'bottom', imageUrl: null, color: 'blue' },
+  { id: 'lib_cream_knit', name: L('Krem triko'), category: 'top', imageUrl: null, color: 'cream' },
+  { id: 'lib_croc_flats', name: L('Kroko babet'), category: 'shoes', imageUrl: null, color: 'brown' },
+  { id: 'lib_black_bag', name: L('Siyah deri çanta'), category: 'bag', imageUrl: null, color: 'black' },
+  { id: 'lib_tweed_jacket', name: L('Tüvit ceket'), category: 'outerwear', imageUrl: null, color: 'grey' },
+  { id: 'lib_beige_trench', name: L('Bej trençkot'), category: 'outerwear', imageUrl: null, color: 'beige' },
 ];
 
 /** Simulated latency so loading skeletons are exercised in development. */

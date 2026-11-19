@@ -78,13 +78,9 @@ export function formatPercent(value: number): string {
 
 /** Temperature in whole degrees Celsius, "14°" (weather badges, forecasts). */
 export function formatTemperature(celsius: number): string {
-  const rounded = Math.round(celsius);
-  try {
-    return new Intl.NumberFormat(currentLocaleTag(), { style: 'unit', unit: 'degree', unitDisplay: 'narrow' }).format(rounded);
-  } catch {
-    // Engines without unit formatting: the degree sign is locale-neutral.
-    return `${formatNumber(rounded)}°`;
-  }
+  // Not `Intl` unit formatting: Hermes renders the narrow "degree" unit as "14 deg" in English. The
+  // degree sign is locale-neutral.
+  return `${formatNumber(Math.round(celsius))}°`;
 }
 
 /** Parses a wire date `YYYY-MM-DD` as a local calendar date (no UTC shift). */

@@ -135,7 +135,7 @@ describe('@handle gate on social actions', () => {
   });
 
   it('the invite link asks for the handle first; with a handle it shares at once', async () => {
-    const share = jest.spyOn(Share, 'share').mockResolvedValue({ action: 'sharedAction' });
+    const share = jest.spyOn(Share, 'share').mockResolvedValue({ action: 'sharedAction', activityType: undefined });
     resetAccountFixtures({ handle: null });
     await open('/friends/find');
     await waitFor(() => expect(screen.getByTestId('find.claimHandle')).toBeTruthy(), WAIT);
@@ -146,7 +146,7 @@ describe('@handle gate on social actions', () => {
   });
 
   it('with a handle, sharing the invite link opens the share sheet directly', async () => {
-    const share = jest.spyOn(Share, 'share').mockResolvedValue({ action: 'sharedAction' });
+    const share = jest.spyOn(Share, 'share').mockResolvedValue({ action: 'sharedAction', activityType: undefined });
     await open('/friends/find');
     await waitFor(() => expect(screen.getByTestId('find.invite')).toBeTruthy(), WAIT);
     expect(screen.queryByTestId('find.claimHandle')).toBeNull();

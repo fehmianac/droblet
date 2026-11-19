@@ -17,30 +17,31 @@ import { toIsoDate } from '@/lib/format';
 
 import { clone, fixtureDb, onFixtureSeed } from './db';
 import { startFixtureJob } from './jobs';
+import { L, tx } from './showcase';
 
 /**
  * Fixture "server" for trips (E5): city directory, forecast, trip CRUD, the packing job and check
  * marks. Sample data from the `Bavul` / `BavulDetay` boards. Nothing survives a restart.
  */
 export const fixtureCities: SearchableCity[] = [
-  { id: 'city_istanbul', name: 'İstanbul', region: 'Türkiye' },
-  { id: 'city_izmir', name: 'İzmir', region: 'Türkiye' },
-  { id: 'city_ankara', name: 'Ankara', region: 'Türkiye' },
-  { id: 'city_antalya', name: 'Antalya', region: 'Türkiye' },
-  { id: 'city_bodrum', name: 'Bodrum', region: 'Muğla, Türkiye' },
-  { id: 'city_london', name: 'Londra', region: 'Birleşik Krallık', aliases: ['London'] },
-  { id: 'city_london_on', name: 'London', region: 'Ontario, Kanada' },
-  { id: 'city_paris', name: 'Paris', region: 'Fransa' },
-  { id: 'city_rome', name: 'Roma', region: 'İtalya', aliases: ['Rome'] },
-  { id: 'city_milan', name: 'Milano', region: 'İtalya', aliases: ['Milan'] },
-  { id: 'city_berlin', name: 'Berlin', region: 'Almanya' },
-  { id: 'city_amsterdam', name: 'Amsterdam', region: 'Hollanda' },
-  { id: 'city_barcelona', name: 'Barselona', region: 'İspanya', aliases: ['Barcelona'] },
-  { id: 'city_vienna', name: 'Viyana', region: 'Avusturya', aliases: ['Vienna', 'Wien'] },
-  { id: 'city_athens', name: 'Atina', region: 'Yunanistan', aliases: ['Athens'] },
-  { id: 'city_new_york', name: 'New York', region: 'ABD' },
-  { id: 'city_dubai', name: 'Dubai', region: 'Birleşik Arap Emirlikleri' },
-  { id: 'city_tokyo', name: 'Tokyo', region: 'Japonya' },
+  { id: 'city_istanbul', name: L('İstanbul'), region: L('Türkiye') },
+  { id: 'city_izmir', name: L('İzmir'), region: L('Türkiye') },
+  { id: 'city_ankara', name: L('Ankara'), region: L('Türkiye') },
+  { id: 'city_antalya', name: L('Antalya'), region: L('Türkiye') },
+  { id: 'city_bodrum', name: L('Bodrum'), region: L('Muğla, Türkiye') },
+  { id: 'city_london', name: L('Londra'), region: L('Birleşik Krallık'), aliases: ['London'] },
+  { id: 'city_london_on', name: L('London'), region: L('Ontario, Kanada') },
+  { id: 'city_paris', name: L('Paris'), region: L('Fransa') },
+  { id: 'city_rome', name: L('Roma'), region: L('İtalya'), aliases: ['Rome'] },
+  { id: 'city_milan', name: L('Milano'), region: L('İtalya'), aliases: ['Milan'] },
+  { id: 'city_berlin', name: L('Berlin'), region: L('Almanya') },
+  { id: 'city_amsterdam', name: L('Amsterdam'), region: L('Hollanda') },
+  { id: 'city_barcelona', name: L('Barselona'), region: L('İspanya'), aliases: ['Barcelona'] },
+  { id: 'city_vienna', name: L('Viyana'), region: L('Avusturya'), aliases: ['Vienna', 'Wien'] },
+  { id: 'city_athens', name: L('Atina'), region: L('Yunanistan'), aliases: ['Athens'] },
+  { id: 'city_new_york', name: L('New York'), region: L('ABD') },
+  { id: 'city_dubai', name: L('Dubai'), region: L('Birleşik Arap Emirlikleri') },
+  { id: 'city_tokyo', name: L('Tokyo'), region: L('Japonya') },
 ];
 
 export function fixtureSearchCities(query: string) {
@@ -102,7 +103,7 @@ function buildPlan(trip: Pick<Trip, 'startDate' | 'endDate' | 'cabinOnly'>, pack
     days,
     missing:
       rainy > 0 && items.length > 0
-        ? [{ id: 'missing_rain_boots', name: 'Yağmur botu', reason: `${rainy} gün yağmur var`, category: 'shoes', productId: 'prod_rain_boots' }]
+        ? [{ id: 'missing_rain_boots', name: L('Yağmur botu'), reason: tx(`${rainy} gün yağmur var`, `Rain on ${rainy} days`), category: 'shoes', productId: 'prod_rain_boots' }]
         : [],
     minWearsPerItem: items.length > 0 && dates.length >= 3 ? 2 : null,
   };
@@ -130,8 +131,8 @@ function seedTrips(): StoredTrip[] {
     withCounts({
       id: 'trip_londra',
       cityId: 'city_london',
-      cityName: 'Londra',
-      region: 'Birleşik Krallık',
+      cityName: L('Londra'),
+      region: L('Birleşik Krallık'),
       ...upcoming,
       ...base,
       status: 'packed',
@@ -145,7 +146,7 @@ function seedTrips(): StoredTrip[] {
       id: 'trip_paris',
       cityId: 'city_paris',
       cityName: 'Paris',
-      region: 'Fransa',
+      region: L('Fransa'),
       ...past,
       ...base,
       tripTypes: ['sightseeing'],

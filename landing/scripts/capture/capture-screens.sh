@@ -7,6 +7,9 @@
 # simulator-udid    defaults to $CAPTURE_UDID; use a simulator nobody else is driving
 # --build           also builds and installs the Release showcase build first (slow: native compile)
 #
+# CAPTURE_RAW_DIR   optional: also keep the full-size PNGs there as <dir>/<lang>/<name>.png (the store
+#                   listing screenshots in docs/store-listing/ are made from them)
+#
 # Needs: Xcode + simulator, Maestro (`maestro`), `cwebp` (brew install webp), Node 20+.
 set -euo pipefail
 
@@ -35,8 +38,8 @@ if [[ "$build" == "--build" ]]; then
     npx expo run:ios --configuration Release --device "$udid" --no-bundler)
 fi
 
-# Clean status bar: 9:41, full battery, full signal.
-xcrun simctl status_bar "$udid" override --time 9:41 --batteryState charged --batteryLevel 100 \
+# Clean status bar: 9:41, full battery (not charging: no green bolt), full signal.
+xcrun simctl status_bar "$udid" override --time 9:41 --batteryState discharging --batteryLevel 100 \
   --cellularMode active --cellularBars 4 --wifiBars 3 --dataNetwork wifi
 
 PORT="$port" node "$here/mock-auth.mjs" >"$work/mock.log" 2>&1 &
@@ -52,6 +55,10 @@ for pair in "tr:tr_TR" "en:en_GB"; do
   # Maestro writes into <dir>/<timestamp>/screens/takeScreenshot/.
   for png in "$raw"/*/screens/takeScreenshot/*.png; do
     name="$(basename "$png" .png)"
+    if [[ -n "${CAPTURE_RAW_DIR:-}" ]]; then
+      mkdir -p "$CAPTURE_RAW_DIR/$lang"
+      cp "$png" "$CAPTURE_RAW_DIR/$lang/$name.png"
+    fi
     sips --resampleHeight "$max_height" "$png" --out "$work/resized.png" >/dev/null
     cwebp -quiet -q "$quality" -m 6 -metadata none "$work/resized.png" -o "$landing/public/screens/$lang/$name.webp"
   done

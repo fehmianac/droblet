@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { Platform, View } from 'react-native';
+import { Platform, View, type ViewInstance } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Props = {
@@ -19,7 +19,7 @@ type Props = {
  */
 export function Screen({ children, top = true, bottom = false, className }: Props) {
   const insets = useSafeAreaInsets();
-  const ref = useRef<View>(null);
+  const ref = useRef<ViewInstance>(null);
   const [inSheet, setInSheet] = useState(false);
   const measure = () => {
     if (Platform.OS !== 'ios' || !top) return;
