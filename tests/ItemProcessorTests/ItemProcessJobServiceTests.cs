@@ -102,6 +102,15 @@ public class ItemProcessJobServiceTests
     private static async Task<List<ItemDraftEntity>> PiecesAsync(WorkerTestHost host) =>
         (await host.Repository.GetAllAsync<ItemDraftEntity>(ItemDraftEntity.GetPk(Tenant))).Where(d => d.Kind == ItemDraftKind.Piece).OrderBy(d => d.Index).ToList();
 
+    /// <summary>What POST item-draft/{id}/select does for one piece: selected, processing, its crop handed over in the upload slot.</summary>
+    private static async Task SelectAsync(WorkerTestHost host, ItemDraftEntity piece)
+    {
+        piece.Selected = true;
+        piece.Status = ItemDraftStatus.Processing;
+        await host.Repository.SaveAsync(piece);
+        await host.Storage.PutAsync(StorageKeys.Upload(Tenant, piece.Id), host.Storage.Objects[piece.OriginalKey!].Data, "image/jpeg", default);
+    }
+
     private static Task ProcessAsync(WorkerTestHost host, JobEntity job, string draftId = DraftId, bool clean = false, bool lastAttempt = false) =>
         host.Get<IItemProcessJobService>().ProcessAsync(new ItemProcessRequestedEvent(Tenant, job.Id, draftId, Clean: clean), lastAttempt, default);
 
@@ -287,9 +296,7 @@ public class ItemProcessJobServiceTests
         foreach (var piece in (await PiecesAsync(host)).Take(2))
         {
             var clean = await host.QueueJobAsync(Tenant, JobKind.ItemClean);
-            piece.Selected = true;
-            piece.Status = ItemDraftStatus.Processing;
-            await host.Repository.SaveAsync(piece);
+            await SelectAsync(host, piece);
             await ProcessAsync(host, clean, piece.Id, clean: true);
             Assert.Equal(JobStatus.Completed, (await host.JobAsync(clean))!.Status);
         }
@@ -327,9 +334,7 @@ public class ItemProcessJobServiceTests
         var (job, _) = await ArrangeAsync(host);
         await ProcessAsync(host, job);
         var necklace = (await PiecesAsync(host)).Single(p => p.Subcategory == "necklace");
-        necklace.Selected = true;
-        necklace.Status = ItemDraftStatus.Processing;
-        await host.Repository.SaveAsync(necklace);
+        await SelectAsync(host, necklace);
         var clean = await host.QueueJobAsync(Tenant, JobKind.ItemClean);
 
         await ProcessAsync(host, clean, necklace.Id, clean: true);
@@ -351,9 +356,7 @@ public class ItemProcessJobServiceTests
         var (job, _) = await ArrangeAsync(host);
         await ProcessAsync(host, job);
         var piece = (await PiecesAsync(host))[0];
-        piece.Selected = true;
-        piece.Status = ItemDraftStatus.Processing;
-        await host.Repository.SaveAsync(piece);
+        await SelectAsync(host, piece);
         ai.DuringCleanup = () => throw new AiProviderException("provider down");
         var clean = await host.QueueJobAsync(Tenant, JobKind.ItemClean);
 
@@ -363,6 +366,25 @@ public class ItemProcessJobServiceTests
         Assert.Equal((ItemDraftStatus.Failed, JobFailure.ProviderError), (failed!.Status, failed.Failure));
         Assert.True(host.Storage.Objects.ContainsKey(failed.OriginalKey!));
         Assert.Equal(JobFailure.ProviderError, (await host.JobAsync(clean))!.Failure);
+    }
+
+    [Fact]
+    public async Task Clean_WithoutTheHandedOverCrop_SourceDeleted_NoImageCall()
+    {
+        var ai = new FakeAi(FlatLay);
+        var host = Host(ai);
+        var (job, _) = await ArrangeAsync(host);
+        await ProcessAsync(host, job);
+        var piece = (await PiecesAsync(host))[0];
+        piece.Selected = true;
+        piece.Status = ItemDraftStatus.Processing;
+        await host.Repository.SaveAsync(piece);
+        var clean = await host.QueueJobAsync(Tenant, JobKind.ItemClean);
+
+        await ProcessAsync(host, clean, piece.Id, clean: true);
+
+        Assert.Equal(JobFailure.SourceDeleted, (await host.JobAsync(clean))!.Failure);
+        Assert.Empty(ai.Cleanups);
     }
 
     [Fact]

@@ -229,8 +229,8 @@ public sealed class ItemProcessJobService(
 
     private async Task<Outcome> CleanAsync(JobEntity job, ItemDraftEntity piece, List<string> written, CancellationToken ct)
     {
-        var cropKey = piece.OriginalKey is { } key && StorageKeys.BelongsToTenant(key, job.TenantId) ? key : null;
-        var crop = cropKey is null ? null : await storage.ReadAsync(cropKey, MaxImageBytes, ct);
+        // The Api hands the crop over in the temporary upload slot of the piece (this worker may read nothing else).
+        var crop = await storage.ReadAsync(StorageKeys.Upload(job.TenantId, piece.Id), MaxImageBytes, ct);
         if (crop is null)
             return Outcome.Failed(JobFailure.SourceDeleted);
 

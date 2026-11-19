@@ -270,6 +270,9 @@ public class WardrobeEndpointTests(ApiFactory factory) : IClassFixture<ApiFactor
         var cleanEvents = factory.Events.Of<ItemProcessRequestedEvent>(auth.TenantId).Where(e => e.Clean).ToList();
         Assert.Equal(new[] { pieces[0].Id, pieces[2].Id }.Order(StringComparer.Ordinal), cleanEvents.Select(e => e.DraftId).Order(StringComparer.Ordinal));
         Assert.All(cleanEvents, e => Assert.Equal(JobKind.ItemClean, e.Kind));
+        // The worker may only read the temporary upload prefix: each kept crop is handed over there.
+        Assert.True(factory.Storage.Objects.ContainsKey(StorageKeys.Upload(auth.TenantId, pieces[0].Id)));
+        Assert.False(factory.Storage.Objects.ContainsKey(StorageKeys.Upload(auth.TenantId, pieces[1].Id)));
         // The dropped piece is gone with its crop: it never costs an image-model call.
         Assert.Null(await factory.Repository.GetAsync<ItemDraftEntity>(ItemDraftEntity.GetPk(auth.TenantId), ItemDraftEntity.GetSk(pieces[1].Id)));
         Assert.False(factory.Storage.Objects.ContainsKey(pieces[1].OriginalKey!));

@@ -434,6 +434,11 @@ public sealed class WardrobeService(
     /// <summary>Background removal of one selected piece: an ItemClean job (never counted against the recognition allowance).</summary>
     private async Task<JobEntity> QueueCleanAsync(string tenantId, ItemDraftEntity piece, CancellationToken ct)
     {
+        // The worker reads photos only from the temporary upload prefix (least privilege): the crop is handed over there,
+        // exactly like a retry restores a photo. A missing crop makes the job fail with sourceDeleted.
+        if (Owned(piece.OriginalKey, tenantId) is { } cropKey && await storage.ReadAsync(cropKey, photoOptions.CurrentValue.MaxUploadBytes, ct) is { } crop)
+            await storage.PutAsync(StorageKeys.Upload(tenantId, piece.Id), crop, "image/jpeg", ct);
+
         var now = Now;
         var job = new JobEntity { Id = Ulid.New(now), TenantId = tenantId, Kind = JobKind.ItemClean, Status = JobStatus.Queued, CreatedAt = now, UpdatedAt = now };
         piece.Selected = true;
