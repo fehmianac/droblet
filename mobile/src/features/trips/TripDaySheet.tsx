@@ -55,7 +55,7 @@ export function TripDaySheet({ day, itemsById, onClose, onTryOn, onSaveAsLook }:
         ) : null}
         {tryOnUrl ? (
           <Zoomable images={images} index={0} accessibilityLabel={t('tryOn.imageA11yNamed', { name: dayName })} className="self-start" testID="trip-day-image">
-            <ImageSlot uri={tryOnUrl} className="h-[200px] w-[152px] rounded-image-lg">
+            <ImageSlot fit="contain" uri={tryOnUrl} className="h-[200px] w-[152px] rounded-image-lg">
               <ImageTag label={t('aiBadge.onYou')} className="absolute bottom-2 left-2" />
             </ImageSlot>
           </Zoomable>

@@ -90,6 +90,7 @@ export function WeekDayRow({ row, onOpenMenu, onSuggest, tryOnJobId, focused, on
           testID={`week-day-image-${row.date}`}
         >
           <ImageSlot
+            fit="contain"
             uri={image}
             className="h-full w-full"
             placeholder={{ kind: 'look', pieces: coverPieces(row.look.slots, undefined, 45), seed: row.look.id, figureHeight: 45 }}

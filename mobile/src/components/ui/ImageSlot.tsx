@@ -254,9 +254,14 @@ type Props = {
   /** The picture arrived / could not be loaded (e.g. an expired presigned URL: the caller fetches a fresh one). */
   onLoad?: () => void;
   onError?: () => void;
+  /**
+   * `cover` (default) fills the slot; `contain` shows the whole picture. A generated "Üzerimde gör" image is
+   * always `contain`: the person is shown whole, head to feet, whatever the slot's shape.
+   */
+  fit?: 'cover' | 'contain';
 };
 
-export function ImageSlot({ uri, placeholder = { kind: 'figure' }, className, accessibilityLabel, children, testID, onLoad, onError }: Props) {
+export function ImageSlot({ uri, placeholder = { kind: 'figure' }, className, accessibilityLabel, children, testID, onLoad, onError, fit = 'cover' }: Props) {
   const [failedUri, setFailedUri] = useState<string | null>(null);
   const [loadedUri, setLoadedUri] = useState<string | null>(null);
   const showImage = Boolean(uri) && failedUri !== uri;
@@ -279,7 +284,7 @@ export function ImageSlot({ uri, placeholder = { kind: 'figure' }, className, ac
           <Image
             testID="image-slot-image"
             source={{ uri }}
-            contentFit="cover"
+            contentFit={fit}
             className="h-full w-full"
             transition={200}
             cachePolicy="memory-disk"
