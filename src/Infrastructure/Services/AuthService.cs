@@ -135,7 +135,7 @@ public sealed class AuthService(
             ExpiresAt = Now.Add(PasswordResetLifetime),
         }, ct);
 
-        var link = $"{appLinks.Value.PasswordResetUrl}?token={Uri.EscapeDataString(token)}";
+        var link = WebLinks.WithQuery(appLinks.Value.PasswordResetUrl, "token", token);
         try
         {
             await emailService.SendAsync(EmailTemplates.PasswordReset(normalizedEmail, link, language, (int)PasswordResetLifetime.TotalMinutes), ct);

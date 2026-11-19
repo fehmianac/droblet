@@ -351,7 +351,7 @@ Resources:
     Properties:
       Name: !Sub /droblet/${Stage}/api/App
       Type: String
-      Value: '{"PasswordResetUrl":"https://droblet.alatech.co/reset-password","EmailVerificationUrl":"https://droblet.alatech.co/verify-email","Scheme":"droplet","BundleId":"com.alatech.droplet"}'
+      Value: '{"PasswordResetUrl":"https://droblet.alatech.co/reset-password/","EmailVerificationUrl":"https://droblet.alatech.co/verify-email/","Scheme":"droplet","BundleId":"com.alatech.droplet"}'
   SsmApiStore:
     Type: AWS::SSM::Parameter
     Properties:
@@ -450,7 +450,7 @@ Resources:
       Name: !Sub /droblet/${Stage}/api/Social
       Type: String
       Description: Social limits and the invite link base URL.
-      Value: '{"MaxFollowing":500,"FeedPageSize":20,"SuggestedPageSize":20,"SuggestedCandidateLimit":100,"SearchPageSize":20,"InviteUrl":"https://droblet.alatech.co/i","InviteAttributionWindowDays":30,"ReportsPerDay":20,"InviteResolvePerIpPerHour":60,"ContactMatchesPerDay":10,"ContactMatchMaxHashes":1000}'
+      Value: '{"MaxFollowing":500,"FeedPageSize":20,"SuggestedPageSize":20,"SuggestedCandidateLimit":100,"SearchPageSize":20,"InviteUrl":"https://droblet.alatech.co/invite","InviteAttributionWindowDays":30,"ReportsPerDay":20,"InviteResolvePerIpPerHour":60,"ContactMatchesPerDay":10,"ContactMatchMaxHashes":1000}'
   SsmApiAffiliate:
     Type: AWS::SSM::Parameter
     Properties:

@@ -95,7 +95,7 @@ public sealed class AppLinksOptions
     public const string Section = "App";
     public string PasswordResetUrl { get; set; } = "";
     /// <summary>Verification e-mail link (web fallback page that opens the app). Default: the site's /verify-email.</summary>
-    public string EmailVerificationUrl { get; set; } = "https://droblet.alatech.co/verify-email";
+    public string EmailVerificationUrl { get; set; } = "https://droblet.alatech.co/verify-email/";
     public string Scheme { get; set; } = "";
     public string BundleId { get; set; } = "";
 }

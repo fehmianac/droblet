@@ -231,7 +231,7 @@ public sealed class AdminAuthService(
             ExpiresAt = Now.Add(lifetime),
         }, ct);
 
-        var link = $"{options.PanelUrl.TrimEnd('/')}/reset-password?token={Uri.EscapeDataString(token)}";
+        var link = WebLinks.WithQuery($"{options.PanelUrl.TrimEnd('/')}/reset-password", "token", token);
         await emailService.SendAsync(AdminEmailTemplates.PasswordLink(admin.Email, link, purpose, language, lifetime), ct);
         logger.LogInformation("Admin {Purpose} link sent for admin {AdminId}", purpose, admin.Id);
     }

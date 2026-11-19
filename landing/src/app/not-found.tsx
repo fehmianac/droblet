@@ -13,9 +13,17 @@ export const metadata: Metadata = {
  * Exported as `out/404.html`, the bucket's error document. One file answers every unknown path in every
  * language, so the message is shown in each registered language (default first).
  */
+/**
+ * The bucket has no rewrites: a shared link in its path form (`/invite/CODE`, `/l/ID`, and the old `/i/CODE`)
+ * lands here. Send it to the page's query form, which S3 serves, before anything renders; the rest of the
+ * query (`t`, `id`, `u`, `invite`) is kept.
+ */
+const SHARED_LINK_REDIRECT = `(function(){try{var m=location.pathname.match(/^\\/(en\\/)?(i|invite|l)\\/([A-Za-z0-9_-]{1,64})\\/?$/);if(!m)return;var page=m[2]==='l'?'l':'invite';var q=new URLSearchParams(location.search);q.set(page==='l'?'id':'c',m[3]);location.replace('/'+(m[1]||'')+page+'/?'+q.toString());}catch(e){}})();`;
+
 export default function NotFound() {
   return (
     <LocaleDocument locale={defaultLocale}>
+      <script dangerouslySetInnerHTML={{ __html: SHARED_LINK_REDIRECT }} />
       <Header locale={defaultLocale} />
       <main id="main" className="mx-auto flex max-w-prose flex-col gap-12 px-4 py-16 sm:px-6 sm:py-24">
         {locales.map((locale, index) => {

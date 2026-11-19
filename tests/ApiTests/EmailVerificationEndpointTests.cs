@@ -20,7 +20,7 @@ public partial class EmailVerificationEndpointTests(ApiFactory factory) : IClass
     private static string CodeOf(EmailMessage mail) => CodePattern().Match(mail.TextBody).Groups[1].Value;
 
     private static string TokenOf(EmailMessage mail) =>
-        Uri.UnescapeDataString(mail.TextBody.Split("verify-email?token=")[1].Split('\n')[0].Trim());
+        Uri.UnescapeDataString(mail.TextBody.Split("verify-email/?token=")[1].Split('\n')[0].Trim());
 
     private async Task<(HttpClient Client, string Email)> RegisterAsync(string language = "tr")
     {
@@ -44,7 +44,7 @@ public partial class EmailVerificationEndpointTests(ApiFactory factory) : IClass
 
         var mail = LastMail(email);
         Assert.StartsWith("Droblet doğrulama kodun: ", mail.Subject);
-        Assert.Contains("https://droblet.alatech.co/verify-email?token=", mail.TextBody);
+        Assert.Contains("https://droblet.alatech.co/verify-email/?token=", mail.TextBody);
         var code = CodeOf(mail);
         Assert.Matches("^[0-9]{6}$", code);
         Assert.False(await VerifiedAsync(client));
