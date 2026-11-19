@@ -93,7 +93,12 @@ public class DeletionPlanTests
         var keys = DeletionPlan.TenantPartitionKeys("T123");
 
         Assert.Equal(DeletionPlan.TenantScopedEntityTypes.Count, keys.Count);
-        Assert.All(keys, k => Assert.StartsWith("tenant#T123#", k));
+        // Usage events are the one partition keyed by the actor hash instead (pseudonymous: never the tenant id in clear).
+        var actor = AnalyticsActorEventEntity.GetPk("T123");
+        Assert.Equal($"analytics-actor#{AnalyticsRules.Actor("T123")}", actor);
+        Assert.DoesNotContain("T123", actor);
+        Assert.All(keys.Where(k => k != actor), k => Assert.StartsWith("tenant#T123#", k));
+        Assert.Single(keys, actor);
     }
 
     [Fact]

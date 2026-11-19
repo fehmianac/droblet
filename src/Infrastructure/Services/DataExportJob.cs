@@ -46,6 +46,8 @@ public sealed class DataExportJob(
         typeof(MutationReceiptEntity), typeof(ContactSaltEntity), typeof(ContactDirectoryPointerEntity),
         typeof(PhotoUploadEntity), typeof(ItemUploadEntity), typeof(AvatarUploadEntity), typeof(NotificationSentEntity),
         typeof(DataExportEntity), typeof(DataExportLockEntity),
+        // Exported on its own as data/analytics-events.json.
+        typeof(AnalyticsActorEventEntity),
     ];
 
     /// <summary>Fields never exported: keys, secrets, hashes, storage internals.</summary>
@@ -191,7 +193,7 @@ public sealed class DataExportJob(
             files.Add(name);
         }
 
-        var analytics = await AnalyticsEventsAsync(tenantId, tenant?.CreatedAt ?? user?.CreatedAt ?? Now.AddDays(-AnalyticsEventEntity.TtlDays), ct);
+        var analytics = await AnalyticsEventsAsync(tenantId, ct);
         if (analytics.Count > 0)
         {
             await AddJsonAsync("data/analytics-events.json", analytics);
@@ -232,28 +234,17 @@ public sealed class DataExportJob(
         return rows;
     }
 
-    /// <summary>The user's analytics events (pseudonymous actor) from the day partitions since the account was created.</summary>
-    private async Task<List<JsonNode>> AnalyticsEventsAsync(string tenantId, DateTime since, CancellationToken ct)
+    /// <summary>
+    /// The user's usage events (pseudonymous actor): one Query of the per-actor partition, oldest first. Events written
+    /// before the per-actor copies existed are not found here (they age out of the day partitions by TTL).
+    /// </summary>
+    private async Task<List<JsonNode>> AnalyticsEventsAsync(string tenantId, CancellationToken ct)
     {
-        var actor = AnalyticsRules.Actor(tenantId);
-        var today = DateOnly.FromDateTime(Now);
-        var first = DateOnly.FromDateTime(since);
-        var oldest = today.AddDays(-AnalyticsEventEntity.TtlDays);
-        if (first < oldest)
-            first = oldest;
-        var days = new List<DateOnly>();
-        for (var day = first; day <= today; day = day.AddDays(1))
-            days.Add(day);
-
         var found = new List<JsonNode>();
-        foreach (var chunk in days.Chunk(8))
+        foreach (var e in await repository.GetAllAsync<AnalyticsActorEventEntity>(AnalyticsActorEventEntity.GetPk(tenantId), ct))
         {
-            var batches = await Task.WhenAll(chunk.Select(d => repository.GetAllAsync<AnalyticsEventEntity>(AnalyticsEventEntity.GetPk(WeeklyEditRules.Format(d)), ct)));
-            foreach (var e in batches.SelectMany(b => b).Where(e => e.Actor == actor))
-            {
-                if (Clean(JsonSerializer.SerializeToNode(e, Json)) is { } node)
-                    found.Add(node);
-            }
+            if (Clean(JsonSerializer.SerializeToNode(e, Json)) is { } node)
+                found.Add(node);
         }
         return found;
     }

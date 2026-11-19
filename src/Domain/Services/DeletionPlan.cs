@@ -75,6 +75,9 @@ public static class DeletionPlan
         // "Verilerimi indir" (the ZIP itself lives under exports/{tenantId}/, see AccountS3Prefixes).
         typeof(DataExportEntity),
         typeof(DataExportLockEntity),
+        // Usage events, per-actor copies (partition = hash of the tenant id). The day-partition rows they point to are
+        // removed first by AccountDeletionService (this partition is their only index).
+        typeof(AnalyticsActorEventEntity),
     ];
 
     public static IReadOnlyList<string> TenantPartitionKeys(string tenantId) =>

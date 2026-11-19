@@ -106,6 +106,20 @@ public static partial class AnalyticsRules
         };
     }
 
+    /// <summary>The per-actor copy written next to every event (export, account deletion).</summary>
+    public static AnalyticsActorEventEntity ToActorEntity(AnalyticsEventEntity e) => new()
+    {
+        Id = e.Id,
+        Actor = e.Actor,
+        Day = e.Day,
+        Name = e.Name,
+        OccurredAt = e.OccurredAt,
+        ReceivedAt = e.ReceivedAt,
+        Platform = e.Platform,
+        AppVersion = e.AppVersion,
+        Props = new Dictionary<string, string>(e.Props, StringComparer.Ordinal),
+    };
+
     public static FunnelReport BuildFunnel(IEnumerable<AnalyticsEventEntity> events, DateOnly from, DateOnly to)
     {
         var byName = new Dictionary<string, (long Events, HashSet<string> Actors)>(StringComparer.Ordinal);

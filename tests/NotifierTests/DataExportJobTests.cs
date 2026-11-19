@@ -59,8 +59,14 @@ public class DataExportJobTests
         await _host.Repository.SaveAsync(new ConsentEntity { TenantId = TenantId, Type = ConsentType.Contacts, Granted = true, Version = "2026-11-19", GrantedAt = now });
         await _host.Repository.SaveAsync(new DeviceEntity { TenantId = TenantId, DeviceId = "d1", Platform = "ios", PushToken = "SECRET-PUSH", UpdatedAt = now });
         await _host.Repository.SaveAsync(new ContactSaltEntity { TenantId = TenantId, SaltId = "s1", Salt = "SECRET-SALT", ExpiresAt = now.AddDays(1) });
-        await _host.Repository.SaveAsync(AnalyticsRules.ToEntity("signup_step", TenantId, now.AddDays(-1), now.AddDays(-1), new Dictionary<string, string?> { ["step"] = "body" }, "01ANALYTICS000000000000000"));
-        await _host.Repository.SaveAsync(AnalyticsRules.ToEntity("signup_step", "someone-else", now.AddDays(-1), now.AddDays(-1), null, "01ANALYTICS000000000000001"));
+        // Usage events as AnalyticsService writes them: the day row and the per-actor copy.
+        foreach (var e in new[]
+                 {
+                     AnalyticsRules.ToEntity("signup_step", TenantId, now.AddDays(-1), now.AddDays(-1), new Dictionary<string, string?> { ["step"] = "body" }, "01ANALYTICS000000000000000"),
+                     AnalyticsRules.ToEntity("paywall_viewed", TenantId, now.AddDays(-300), now.AddDays(-300), null, "01ANALYTICS000000000000002"),
+                     AnalyticsRules.ToEntity("signup_step", "someone-else", now.AddDays(-1), now.AddDays(-1), null, "01ANALYTICS000000000000001"),
+                 })
+            await _host.Repository.BatchWriteAsync([e, AnalyticsRules.ToActorEntity(e)]);
         await _host.Storage.PutAsync($"tenant/{TenantId}/face/f1.jpg", [1, 2, 3], "image/jpeg", default);
         await _host.Storage.PutAsync($"tenant/{TenantId}/tryon/t1.png", [4, 5], "image/png", default);
         await _host.Storage.PutAsync($"tenant/other/face/x.jpg", [9], "image/jpeg", default);
@@ -113,8 +119,12 @@ public class DataExportJobTests
         Assert.Equal("ayse@example.com", profile.GetProperty("account").GetProperty("email").GetString());
         Assert.Equal("ayse", profile.GetProperty("profile").GetProperty("handle").GetString());
         Assert.Equal("email", profile.GetProperty("signInMethods")[0].GetString());
+        // One Query of the user's own per-actor partition, oldest first; nobody else's events.
         var analytics = JsonDocument.Parse(files["data/analytics-events.json"]).RootElement;
-        Assert.Equal(1, analytics.GetArrayLength());
+        Assert.Equal(["paywall_viewed", "signup_step"], analytics.EnumerateArray().Select(e => e.GetProperty("name").GetString()!).ToArray());
+        Assert.Equal("body", analytics[1].GetProperty("props").GetProperty("step").GetString());
+        Assert.Equal(AnalyticsRules.Actor(TenantId), analytics[0].GetProperty("actor").GetString());
+        Assert.DoesNotContain(files.Keys, k => k.Contains("analytics-actor"));
         Assert.Contains("veri kopyan", System.Text.Encoding.UTF8.GetString(files["README.txt"]));
 
         var inbox = await _host.Repository.GetAllAsync<NotificationInboxEntity>(NotificationInboxEntity.GetPk(TenantId));

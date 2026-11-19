@@ -41,7 +41,7 @@ ZIP layout (`README.txt` explains it in the request language):
 |---|---|
 | `profile.json` | account (name, e-mail, created, verified, 18+ confirmation), sign-in methods, profile (handle, language, city, visibility) |
 | `data/{kind}.json` | one array per stored record kind of the tenant (every partition of `DeletionPlan`): style / body profile, consents + history, items, drafts, looks, plan days, wear log, trips (+ items, days), stylist feedback, jobs, follows / followers / requests, ratings given / received, saved looks, shares, invites, blocks, reports, cart, watch list, favourites, notifications (prefs + inbox), devices (without push token), entitlement, store purchases, credit account / reservations / ledger, affiliate clicks / conversions, photos / try-on / palette / avatar records |
-| `data/analytics-events.json` | the user's analytics events (pseudonymous actor) since sign-up, at most 400 days |
+| `data/analytics-events.json` | the user's usage events (pseudonymous actor), at most 400 days, oldest first — one Query of the per-actor partition `analytics-actor#{hash}` (see [S §8](store-social-settings.md)). Events recorded before the per-actor copies existed are not included (they age out by TTL) |
 | `files/…` | the user's own files under `tenant/{id}/`: `body/`, `face/`, `tryon/`, `items/`, `avatar/` |
 
 Left out: keys and storage internals (`pk`, `sk`, `ttl`, GSI keys), secrets and hashes (push token, contact salt,

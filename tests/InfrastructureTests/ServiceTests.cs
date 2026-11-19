@@ -28,6 +28,14 @@ public class AccountDeletionServiceTests
         await repository.SaveAsync(new BodyProfileEntity { TenantId = tenant });
         await repository.SaveAsync(new CreditAccountEntity { TenantId = tenant });
         await repository.SaveAsync(new HandleEntity { Handle = "someone", TenantId = "t2" });
+        var analytics = new AnalyticsService(repository, Fixtures.Clock(), NullLogger<AnalyticsService>.Instance);
+        await analytics.RecordBatchAsync(tenant, [new AnalyticsEventInput("paywall_viewed", null, null), new AnalyticsEventInput("signup_completed", Fixtures.Now.AddDays(-2), null)], "ios", "1.0", default);
+        await analytics.RecordServerEventAsync(AnalyticsRules.Share, tenant, null, default);
+        await analytics.RecordServerEventAsync(AnalyticsRules.Share, "t2", null, default);
+        var othersEvents = repository.Keys.Where(k => k.Pk == AnalyticsActorEventEntity.GetPk("t2")
+            || (k.Pk.StartsWith("analytics#", StringComparison.Ordinal) && repository.Raw(k.Pk, k.Sk).Contains(AnalyticsRules.Actor("t2")))).ToList();
+        Assert.Equal(2, othersEvents.Count);
+        Assert.Equal(8, repository.Keys.Count(k => k.Pk.StartsWith("analytics", StringComparison.Ordinal)));
         await storage.PutAsync("tenant/t1/body/p.jpg", [1], "image/jpeg", default);
         await storage.PutAsync("uploads/tmp/t1/u", [1], "image/jpeg", default);
         await storage.PutAsync("tenant/t2/body/p.jpg", [1], "image/jpeg", default);
@@ -36,7 +44,7 @@ public class AccountDeletionServiceTests
             new Infrastructure.Services.Social.CrossTenantCleanup(repository, TimeProvider.System, NullLogger<Infrastructure.Services.Social.CrossTenantCleanup>.Instance),
             NullLogger<AccountDeletionService>.Instance).DeleteAccountAsync(user, tenant, default);
 
-        Assert.Equal([(HandleEntity.GetPk(), "someone")], repository.Keys.ToArray());
+        Assert.Equal([(HandleEntity.GetPk(), "someone"), .. othersEvents], repository.Keys.OrderBy(k => k.Pk == HandleEntity.GetPk() ? 0 : 1).ThenBy(k => k.Pk, StringComparer.Ordinal).ToArray());
         Assert.Equal(["tenant/t2/body/p.jpg"], storage.Objects.Keys.ToArray());
     }
 }
