@@ -1,0 +1,115 @@
+# Design-QA tour without AI: for an account that is already signed in (e.g. right after smoke.yaml), relaunches the
+# app in LANG and opens every non-AI screen by app link, one screenshot each. Nothing here starts an AI job
+# (stylist, week plan, trip pack, recognition, palette analysis, try-on): only entry, empty and locked states.
+# Run: maestro test -e LANG=en -e LOCALE=en_US .maestro/tour.yaml
+appId: com.alatech.droplet
+env:
+  LANG: ${LANG}
+  LOCALE: ${LOCALE}
+---
+- launchApp:
+    stopApp: true
+    arguments:
+      AppleLanguages: "(${LANG})"
+      AppleLocale: ${LOCALE}
+- extendedWaitUntil:
+    visible:
+      id: "tab.today"
+    timeout: 30000
+- extendedWaitUntil:
+    notVisible:
+      id: "animated-splash"
+    timeout: 10000
+- waitForAnimationToEnd
+- takeScreenshot: t06-bugun
+- scroll
+- takeScreenshot: t06-bugun-alt
+- tapOn:
+    id: "tab.wardrobe"
+- waitForAnimationToEnd
+- takeScreenshot: t10-gardirop
+- tapOn:
+    id: "tab.stylist"
+- waitForAnimationToEnd
+- takeScreenshot: t16-stilist
+- tapOn:
+    id: "tab.discover"
+- waitForAnimationToEnd
+- takeScreenshot: t20-kesfet
+- tapOn:
+    id: "tab.profile"
+- waitForAnimationToEnd
+- takeScreenshot: t28-profil
+- scroll
+- takeScreenshot: t28-profil-alt
+
+- runFlow: { file: open.yaml, env: { URL: "droplet://wardrobe/looks" } }
+- takeScreenshot: t14-looklar
+- runFlow: { file: open.yaml, env: { URL: "droplet://wardrobe/trips" } }
+- takeScreenshot: t18-bavullar
+- runFlow: { file: open.yaml, env: { URL: "droplet://trip/new" } }
+- takeScreenshot: t18n-yeni-bavul
+- runFlow: { file: open.yaml, env: { URL: "droplet://look/new" } }
+- takeScreenshot: t15-look-olustur
+- runFlow: { file: open.yaml, env: { URL: "droplet://item/add" } }
+- takeScreenshot: t12-parca-ekle
+- runFlow: { file: open.yaml, env: { URL: "droplet://item/library" } }
+- takeScreenshot: t12b-kutuphane
+- runFlow: { file: open.yaml, env: { URL: "droplet://item/form" } }
+- takeScreenshot: t12c-parca-bilgi
+- runFlow: { file: open.yaml, env: { URL: "droplet://item/bulk" } }
+- takeScreenshot: t13-toplu-ekle
+- runFlow: { file: open.yaml, env: { URL: "droplet://plan/week" } }
+- takeScreenshot: t07-hafta
+- runFlow: { file: open.yaml, env: { URL: "droplet://calendar" } }
+- takeScreenshot: t09-takvim
+- runFlow: { file: open.yaml, env: { URL: "droplet://plan/report" } }
+- takeScreenshot: t09r-rapor
+- runFlow: { file: open.yaml, env: { URL: "droplet://shop" } }
+- takeScreenshot: t21-magaza
+- runFlow: { file: open.yaml, env: { URL: "droplet://shop/builder" } }
+- takeScreenshot: t23-kombin-olusturucu
+- runFlow: { file: open.yaml, env: { URL: "droplet://cart" } }
+- takeScreenshot: t24-sepet
+- runFlow: { file: open.yaml, env: { URL: "droplet://watchlist" } }
+- takeScreenshot: t24b-izleme
+- runFlow: { file: open.yaml, env: { URL: "droplet://friends/feed" } }
+- takeScreenshot: t25-akis
+- runFlow: { file: open.yaml, env: { URL: "droplet://friends/find" } }
+- takeScreenshot: t27-dolaplari-kesfet
+- runFlow: { file: open.yaml, env: { URL: "droplet://friends/followers" } }
+- takeScreenshot: tf-takipciler
+- runFlow: { file: open.yaml, env: { URL: "droplet://friends/following" } }
+- takeScreenshot: tf-takip-edilen
+- runFlow: { file: open.yaml, env: { URL: "droplet://friends/requests" } }
+- takeScreenshot: tf-istekler
+- runFlow: { file: open.yaml, env: { URL: "droplet://friends/blocked" } }
+- takeScreenshot: tf-engellenenler
+- runFlow: { file: open.yaml, env: { URL: "droplet://friends/saved" } }
+- takeScreenshot: tf-kaydedilenler
+- runFlow: { file: open.yaml, env: { URL: "droplet://friends/contacts" } }
+- takeScreenshot: tf-rehber
+- runFlow: { file: open.yaml, env: { URL: "droplet://edit-profile" } }
+- takeScreenshot: tp-profili-duzenle
+- runFlow: { file: open.yaml, env: { URL: "droplet://palette" } }
+- takeScreenshot: t30-palet
+- runFlow: { file: open.yaml, env: { URL: "droplet://subscription" } }
+- takeScreenshot: tp-uyelik
+- runFlow: { file: open.yaml, env: { URL: "droplet://paywall" } }
+- takeScreenshot: t05-paywall
+- runFlow: { file: open.yaml, env: { URL: "droplet://notifications" } }
+- takeScreenshot: tn-bildirimler
+- runFlow: { file: open.yaml, env: { URL: "droplet://verify-email" } }
+- takeScreenshot: tv-eposta-dogrula
+- runFlow: { file: open.yaml, env: { URL: "droplet://settings" } }
+- takeScreenshot: t29-ayarlar
+- scroll
+- takeScreenshot: t29-ayarlar-alt
+- scroll
+- takeScreenshot: t29-ayarlar-alt2
+- runFlow: { file: open.yaml, env: { URL: "droplet://data-export" } }
+- takeScreenshot: tx-verilerimi-indir
+- runFlow: { file: open.yaml, env: { URL: "droplet://consent-review" } }
+- takeScreenshot: tc-riza-gozden-gecir
+- runFlow: { file: open.yaml, env: { URL: "droplet://delete-account" } }
+- takeScreenshot: t29c-hesap-sil
