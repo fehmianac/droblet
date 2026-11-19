@@ -1,6 +1,6 @@
 /**
  * Turkish case suffixes for dynamic words (brand names, people's names, numbers), written after an
- * apostrophe: "Vakko'da öde", "Selin'i şikayet et", "30 görselden 12'si kaldı", "1 Aralık'ta".
+ * apostrophe: "Vakko'da öde", "Selin'i şikayet et", "30 görselden 12'si kaldı", "1 Aralık'ta", "24 Kasım'a".
  * Vowel harmony and consonant voicing are applied to the word as it is read; numbers are read in
  * Turkish first (12 → "on iki"). English strings never use these helpers (see `suffixed`).
  *
@@ -8,7 +8,7 @@
  * the names we know carry their spoken form in `SPOKEN_AS`; any other foreign name gets a best
  * effort from its spelling.
  */
-export type TrCase = 'possessive' | 'accusative' | 'locative' | 'genitive';
+export type TrCase = 'possessive' | 'accusative' | 'locative' | 'genitive' | 'dative';
 
 const VOWELS = 'aeıioöuü';
 const BACK = 'aıou';
@@ -86,6 +86,9 @@ export function trSuffix(word: string | number, grammaticalCase: TrCase): string
       return endsWithVowel ? `n${high}n` : `${high}n`;
     case 'locative':
       return `${VOICELESS.includes(last) ? 't' : 'd'}${BACK.includes(vowel) ? 'a' : 'e'}`;
+    case 'dative':
+      // "24 Kasım'a", "Salı'ya", "1 Aralık'a" (no voicing is written after the apostrophe).
+      return `${endsWithVowel ? 'y' : ''}${BACK.includes(vowel) ? 'a' : 'e'}`;
   }
 }
 

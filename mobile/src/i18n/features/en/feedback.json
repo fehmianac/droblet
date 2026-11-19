@@ -1,0 +1,28 @@
+{
+  "viewer": {
+    "enlargeHint": "Enlarge",
+    "imageA11y": "Image",
+    "position": "{{current}} of {{total}}",
+    "pagerHint": "Swipe up or down for the other images.",
+    "next": "Next image",
+    "previous": "Previous image"
+  },
+  "feedback": {
+    "see": "View",
+    "undo": "Undo",
+    "save": {
+      "saved": "Saved to your looks",
+      "removed": "Removed from saved",
+      "keptPlanned": "It stays in your looks because it's on your calendar",
+      "failed": "Couldn't save"
+    },
+    "calendar": {
+      "added": "Added to {{date}}",
+      "updated": "{{date}} plan updated",
+      "alsoSaved": "Also saved to your looks",
+      "see": "See calendar",
+      "removed": "{{date}} removed from calendar",
+      "failed": "Couldn't add to calendar"
+    }
+  }
+}

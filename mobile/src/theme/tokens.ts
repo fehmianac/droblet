@@ -49,6 +49,15 @@ export const palettes: { light: ColorPalette } = {
 };
 
 /**
+ * Colours that only live on the ink ground of the toast (canvas 13b): the action label and the error glyph.
+ * The palette's accent / danger are too dark to read on ink.
+ */
+export const onInkTones = {
+  action: '#E3D3BF',
+  danger: '#F0B4A8',
+} as const;
+
+/**
  * The one colour of the logo outside the palette: the small drop inside the "D" on the ink tile
  * (canvas v2 `Logo.dc.html`, direction B). On the cream tile the drop is `accent`.
  */

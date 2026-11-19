@@ -16,19 +16,23 @@ type ChipProps = {
   trailingIcon?: LucideIcon;
   accessibilityHint?: string;
   testID?: string;
+  /** A 5-pt dot after the label (13c: "this day already has a plan"). */
+  dot?: boolean;
+  /** Replaces the label read by screen readers (e.g. "Sal 24 Kas, planı var"). */
+  accessibilityLabel?: string;
   /** Stretch to the cell and centre the label (chips laid out in a grid, e.g. the 3-column ORTAM grid on 16). */
   fill?: boolean;
 };
 
 /** 36 high pill, line border on the screen colour, Jost 13 (canvas `.chip`). Selected = filled ink, cream text. */
-export function Chip({ label, selected = false, onPress, disabled = false, badge, trailingIcon, accessibilityHint, fill = false, testID }: ChipProps) {
+export function Chip({ label, selected = false, onPress, disabled = false, badge, trailingIcon, accessibilityHint, fill = false, dot = false, accessibilityLabel, testID }: ChipProps) {
   return (
     <Pressable
       testID={testID}
       onPress={disabled ? undefined : onPress}
       disabled={disabled}
       accessibilityRole="button"
-      accessibilityLabel={badge ? `${label}, ${badge}` : label}
+      accessibilityLabel={accessibilityLabel ?? (badge ? `${label}, ${badge}` : label)}
       accessibilityHint={accessibilityHint}
       accessibilityState={{ selected, disabled }}
       hitSlop={{ top: 4, bottom: 4 }}
@@ -39,6 +43,7 @@ export function Chip({ label, selected = false, onPress, disabled = false, badge
       <Text variant="chip" tone={selected ? 'cream' : 'ink'} numberOfLines={1}>
         {label}
       </Text>
+      {dot ? <View className={`h-[5px] w-[5px] rounded-full ${selected ? 'bg-cream' : 'bg-accent'}`} testID={testID ? `${testID}.dot` : undefined} /> : null}
       {trailingIcon ? <Icon icon={trailingIcon} size={14} tone={selected ? 'cream' : 'ink'} /> : null}
       {badge ? (
         <View className="h-[18px] justify-center rounded-pill bg-sand px-2">

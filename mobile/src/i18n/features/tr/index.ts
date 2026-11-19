@@ -8,6 +8,7 @@ import ai from './ai.json';
 import commerce from './commerce.json';
 import consent from './consent.json';
 import detect from './detect.json';
+import feedback from './feedback.json';
 import friends from './friends.json';
 import looks from './looks.json';
 import purchase from './purchase.json';
@@ -17,6 +18,6 @@ import stylist from './stylist.json';
 import today from './today.json';
 import wardrobe from './wardrobe.json';
 
-const features = { ai, today, wardrobe, looks, stylist, commerce, social, account, friends, purchase, consent, detect, requirements };
+const features = { ai, today, wardrobe, looks, stylist, commerce, social, account, friends, purchase, consent, detect, requirements, feedback };
 
 export default features;

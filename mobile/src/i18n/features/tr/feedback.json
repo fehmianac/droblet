@@ -1,0 +1,28 @@
+{
+  "viewer": {
+    "enlargeHint": "Büyüt",
+    "imageA11y": "Görsel",
+    "position": "{{current}} / {{total}}",
+    "pagerHint": "Diğer görseller için yukarı ya da aşağı kaydır.",
+    "next": "Sonraki görsel",
+    "previous": "Önceki görsel"
+  },
+  "feedback": {
+    "see": "Gör",
+    "undo": "Geri al",
+    "save": {
+      "saved": "Looklarına kaydedildi",
+      "removed": "Kaydedilenlerden çıkarıldı",
+      "keptPlanned": "Takvimde olduğu için Looklarında kalıyor",
+      "failed": "Kaydedilemedi"
+    },
+    "calendar": {
+      "added": "{{date}} eklendi",
+      "updated": "{{date}} planı güncellendi",
+      "alsoSaved": "Looklarına da kaydedildi",
+      "see": "Takvimi gör",
+      "removed": "{{date}} takvimden çıkarıldı",
+      "failed": "Takvime eklenemedi"
+    }
+  }
+}
