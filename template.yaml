@@ -461,8 +461,11 @@ Resources:
     Properties:
       Name: !Sub /droblet/${Stage}/api/Stylist
       Type: String
-      Description: Stylist limits and temperature thresholds.
-      Value: '{"SuggestionCount":3,"MaxCandidates":60,"MaxTitleLength":40,"MaxExplanationLength":280,"FreeTextMaxLength":200,"HotFromC":26,"ColdBelowC":12,"DislikeMemory":10}'
+      Description: Stylist limits and temperature thresholds. dev - WeekBatchDays 0 (the week in one call - about 35% cheaper, no repeated looks; docs/ai-cost.md); prod keeps the default 3.
+      Value: !If
+        - IsProd
+        - '{"SuggestionCount":3,"MaxCandidates":60,"MaxTitleLength":40,"MaxExplanationLength":280,"FreeTextMaxLength":200,"HotFromC":26,"ColdBelowC":12,"DislikeMemory":10}'
+        - '{"SuggestionCount":3,"MaxCandidates":60,"MaxTitleLength":40,"MaxExplanationLength":280,"FreeTextMaxLength":200,"HotFromC":26,"ColdBelowC":12,"DislikeMemory":10,"WeekBatchDays":0}'
   SsmApiPacking:
     Type: AWS::SSM::Parameter
     Properties:
@@ -532,7 +535,10 @@ Resources:
       Name: !Sub /droblet/${Stage}/worker/Stylist
       Type: String
       Description: Same values as api/Stylist.
-      Value: '{"SuggestionCount":3,"MaxCandidates":60,"MaxTitleLength":40,"MaxExplanationLength":280,"FreeTextMaxLength":200,"HotFromC":26,"ColdBelowC":12,"DislikeMemory":10}'
+      Value: !If
+        - IsProd
+        - '{"SuggestionCount":3,"MaxCandidates":60,"MaxTitleLength":40,"MaxExplanationLength":280,"FreeTextMaxLength":200,"HotFromC":26,"ColdBelowC":12,"DislikeMemory":10}'
+        - '{"SuggestionCount":3,"MaxCandidates":60,"MaxTitleLength":40,"MaxExplanationLength":280,"FreeTextMaxLength":200,"HotFromC":26,"ColdBelowC":12,"DislikeMemory":10,"WeekBatchDays":0}'
   SsmWorkerPacking:
     Type: AWS::SSM::Parameter
     Properties:
