@@ -1,12 +1,45 @@
 import { CircleAlert, Eye, EyeOff } from 'lucide-react-native';
-import { useState, type Ref } from 'react';
+import { useId, useState, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, TextInput, View, type TextInputInstance, type TextInputProps } from 'react-native';
+import { InputAccessoryView, Keyboard, Platform, Pressable, TextInput, View, type TextInputInstance, type TextInputProps } from 'react-native';
 
 import { useThemeColors } from '@/theme/useThemeColors';
 
 import { Icon } from './Icon';
 import { Text } from './Text';
+
+/** iOS keyboards without a Return key: the number pads cannot be closed without an accessory bar. */
+const KEYS_WITHOUT_RETURN = new Set<TextInputProps['keyboardType']>(['number-pad', 'decimal-pad', 'numeric', 'phone-pad']);
+
+export function needsDoneBar(keyboardType: TextInputProps['keyboardType'], os: string = Platform.OS): boolean {
+  return os === 'ios' && KEYS_WITHOUT_RETURN.has(keyboardType);
+}
+
+/**
+ * The "Bitti" bar above an iOS number pad (it has no Return key, so nothing else closes it and it covers the
+ * screen's primary button). One bar per field, attached by `inputAccessoryViewID`.
+ */
+export function KeyboardDoneBar({ nativeID }: { nativeID: string }) {
+  const { t } = useTranslation();
+  return (
+    <InputAccessoryView nativeID={nativeID}>
+      <View className="flex-row justify-end border-t border-line bg-paper px-4 py-1.5">
+        <Pressable
+          onPress={() => Keyboard.dismiss()}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.keyboardDone')}
+          hitSlop={8}
+          testID="keyboard.done"
+          className="min-h-[36px] justify-center px-2 active:opacity-70"
+        >
+          <Text variant="bodyMedium" tone="accent">
+            {t('common.keyboardDone')}
+          </Text>
+        </Pressable>
+      </View>
+    </InputAccessoryView>
+  );
+}
 
 type Props = Omit<TextInputProps, 'className' | 'ref'> & {
   ref?: Ref<TextInputInstance>;
@@ -22,6 +55,8 @@ export function TextField({ label, error, hint, password = false, ref, value, ..
   const { t } = useTranslation();
   const colors = useThemeColors();
   const [hidden, setHidden] = useState(true);
+  const accessoryId = `keyboard-done-${useId().replace(/[^A-Za-z0-9_-]/g, '')}`;
+  const doneBar = needsDoneBar(input.keyboardType);
   /**
    * A password field is NOT controlled from JS. On iOS a secure field whose text is written back by React
    * treats the next key as "replace everything", so only the last typed character survived (seen on the
@@ -51,6 +86,7 @@ export function TextField({ label, error, hint, password = false, ref, value, ..
           className="h-full flex-1 px-3.5 font-sans text-[15px] text-ink"
           {...textProps}
           {...input}
+          inputAccessoryViewID={doneBar ? accessoryId : input.inputAccessoryViewID}
         />
         {password ? (
           <Pressable
@@ -76,6 +112,7 @@ export function TextField({ label, error, hint, password = false, ref, value, ..
           {hint}
         </Text>
       ) : null}
+      {doneBar ? <KeyboardDoneBar nativeID={accessoryId} /> : null}
     </View>
   );
 }

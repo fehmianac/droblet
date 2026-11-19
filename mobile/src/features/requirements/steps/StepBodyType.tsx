@@ -1,7 +1,7 @@
 import { Check, CircleHelp } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, ScrollView, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { BODY_TYPES, SIZES, type BodyType, type Size } from '@/api/contracts';
@@ -50,7 +50,8 @@ export function StepBodyType({ onDone }: StepProps) {
   const profile = useBodyProfile();
   const save = useSaveBodyProfile();
   const existing = profile.data ?? null;
-  const [type, setType] = useState<BodyType>(existing?.bodyType ?? 'hourglass');
+  // Never pre-selected: a neutral choice the user makes ("Emin değilim" included). Only a saved body type is shown ticked.
+  const [type, setType] = useState<BodyType | null>(existing?.bodyType ?? null);
   const [height, setHeight] = useState(existing ? String(existing.heightCm) : '');
   const [size, setSize] = useState<Size>(existing?.size ?? 'M');
   const [touched, setTouched] = useState(false);
@@ -66,20 +67,21 @@ export function StepBodyType({ onDone }: StepProps) {
     }
   }
 
-  const descLine = ` · ${t(`req.bodyType.desc.${type}`)}`;
+  const descLine = type ? ` · ${t(`req.bodyType.desc.${type}`)}` : '';
   const heightCm = Number.parseInt(height, 10);
   const heightOk = Number.isFinite(heightCm) && heightCm >= 100 && heightCm <= 230;
 
   const submit = () => {
     setTouched(true);
-    if (!heightOk) return;
+    if (!heightOk || type === null) return;
     save.save({ heightCm, weightKg: existing?.weightKg ?? null, size, bodyType: type, baseVersion: existing?.baseVersion ?? 0 });
     onDone();
   };
 
   return (
-    <View className="flex-1" testID="requirements.step.bodyType">
-      <ScrollView contentContainerClassName="gap-4 px-6 pb-6 pt-5" keyboardShouldPersistTaps="handled">
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1" testID="requirements.step.bodyType">
+      {/* Taps outside a field close the keyboard ("handled"); dragging the list closes it too. */}
+      <ScrollView contentContainerClassName="gap-4 px-6 pb-6 pt-5" keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
         <View className="gap-2">
           <Text variant="display" className="text-[30px] leading-[34px]" accessibilityRole="header">
             {t('req.bodyType.title')}
@@ -119,10 +121,14 @@ export function StepBodyType({ onDone }: StepProps) {
             );
           })}
         </View>
-        <Text variant="caption" className="min-h-9 leading-[18px]" accessibilityLiveRegion="polite">
-          <Text variant="caption" className="font-sans-medium">
-            {t(`req.bodyType.types.${type}`)}
-          </Text>
+        <Text variant="caption" tone={type ? 'ink' : 'muted'} className="min-h-9 leading-[18px]" accessibilityLiveRegion="polite" testID="requirements.bodyType.desc">
+          {type ? (
+            <Text variant="caption" className="font-sans-medium">
+              {t(`req.bodyType.types.${type}`)}
+            </Text>
+          ) : (
+            t('req.bodyType.choose')
+          )}
           {descLine}
         </Text>
         <TextField
@@ -158,8 +164,8 @@ export function StepBodyType({ onDone }: StepProps) {
         </Text>
       </ScrollView>
       <StepBar>
-        <Button label={t('req.bodyType.save')} onPress={submit} testID="requirements.bodyType.save" />
+        <Button label={t('req.bodyType.save')} onPress={submit} disabled={type === null} testID="requirements.bodyType.save" />
       </StepBar>
-    </View>
+    </KeyboardAvoidingView>
   );
 }

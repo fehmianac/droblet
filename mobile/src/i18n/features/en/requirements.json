@@ -145,6 +145,7 @@
       "title": "Choose the body type closest to yours",
       "lead": "We build your figure from your face photo, height and size. There is no right or wrong.",
       "groupLabel": "Body type",
+      "choose": "Choose a body type; \"Not sure\" is a choice too.",
       "height": "Height (cm)",
       "size": "Size",
       "fromProfile": "from your profile",

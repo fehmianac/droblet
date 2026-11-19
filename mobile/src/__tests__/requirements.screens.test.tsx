@@ -127,7 +127,15 @@ describe('Canvas 11 — requirements flow on "See it on me"', () => {
     // Step 2 / 2: body type with height and size (no body profile yet).
     await waitFor(() => expect(screen.getByTestId('requirements.step.bodyType')).toBeTruthy(), WAIT);
     expect(screen.getByTestId('requirements.stepper.count')).toHaveTextContent('2 / 2');
+    // Nothing pre-selected: the user chooses, and "Save and continue" waits for that choice.
+    for (const id of ['hourglass', 'pear', 'apple', 'rectangle', 'inverted_triangle', 'unsure']) {
+      expect(screen.getByTestId(`requirements.bodyType.${id}`).props.accessibilityState).toMatchObject({ checked: false });
+    }
+    expect(screen.getByTestId('requirements.bodyType.save')).toBeDisabled();
+    // The number pad gets a "Done" bar (iOS has no Return key on it).
+    expect(screen.getByTestId('keyboard.done')).toBeTruthy();
     await fireEvent.press(screen.getByTestId('requirements.bodyType.pear'));
+    expect(screen.getByTestId('requirements.bodyType.save')).not.toBeDisabled();
     expect(screen.getByText(/Hips wider than the shoulders/)).toBeTruthy();
     await fireEvent.press(screen.getByTestId('requirements.bodyType.save'));
     await waitFor(() => expect(screen.getByText('Enter a height between 100 and 230 cm.')).toBeTruthy(), WAIT);

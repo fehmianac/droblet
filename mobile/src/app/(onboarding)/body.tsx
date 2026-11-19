@@ -185,7 +185,7 @@ export default function BodyScreen() {
     <Screen>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
         <StepHeader step={3} total={4} onSkip={skip} skipTestID="body.skip" />
-        <ScrollView className="flex-1" contentContainerClassName="gap-4 px-6 pb-6 pt-[18px]" keyboardShouldPersistTaps="handled">
+        <ScrollView className="flex-1" contentContainerClassName="gap-4 px-6 pb-6 pt-[18px]" keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
           <View className="gap-2">
             <Text variant="display" className="text-[32px] leading-[34px]">
               {t('body.title')}

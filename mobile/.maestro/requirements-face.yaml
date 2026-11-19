@@ -122,6 +122,9 @@ appId: com.alatech.droplet
     id: "requirements.bodyType.height"
 - eraseText: 4
 - inputText: "168"
+# The number pad has no Return key: the accessory bar's "Bitti" closes it (it would cover the save button).
+- tapOn:
+    id: "keyboard.done"
 - tapOn:
     id: "requirements.bodyType.size.M"
 - takeScreenshot: 11e-vucut-tipi
