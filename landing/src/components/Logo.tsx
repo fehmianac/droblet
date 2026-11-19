@@ -1,47 +1,47 @@
 /**
- * Droblet symbol, direction A: a drop whose inner space is a hanger hook.
- * Paths copied from the brand sources (mobile/assets/brand/icon.svg, canvas `Logo` / `LogoKullanim`).
- * Usage rules: ink on cream or cream on ink only; never stretched, rotated or recoloured.
+ * Droblet symbol, direction B ("askı monogramı"): a "D" drawn from a hanger curve, a small drop in its
+ * counter, in a rounded square. Geometry copied 1:1 from the canvas board `Logo.dc.html` (column B) —
+ * the same paths as mobile/src/components/brand/logoPaths.ts.
+ * Usage rules: ink tile on light surfaces, cream tile on ink; never stretched, rotated or recoloured.
  */
 type SymbolProps = {
-  /** Rendered width in px; the height follows the 36:42 ratio of the artwork. */
+  /** Rendered width (= height) in px. */
   width: number;
-  /** Surface the symbol sits on — the hook is drawn in that colour. */
-  surface?: 'cream' | 'sand';
-  /** Canvas uses a slightly heavier hook at small sizes. */
-  strokeWidth?: number;
+  /** 'ink' = ink tile, cream D, light espresso drop (light surfaces, default); 'cream' = reversed, for ink surfaces. */
+  tone?: 'ink' | 'cream';
   className?: string;
 };
 
-export function LogoSymbol({ width, surface = 'cream', strokeWidth = 2.4, className }: SymbolProps) {
-  const height = Math.round((width * 42) / 36);
+export function LogoSymbol({ width, tone = 'ink', className }: SymbolProps) {
+  const ink = tone === 'ink';
   return (
-    <svg aria-hidden="true" width={width} height={height} viewBox="8 4 36 42" className={className}>
-      <path d="M26 6C26 6 10 24 10 36a16 16 0 0 0 32 0C42 24 26 6 26 6z" className="fill-ink" />
+    <svg aria-hidden="true" width={width} height={width} viewBox="6 10 44 44" className={className}>
+      <rect x="6" y="10" width="44" height="44" rx="12" className={ink ? 'fill-ink' : 'fill-cream'} />
       <path
-        d="M23.4 27a2.7 2.7 0 1 1 3.8 2.5c-.8.3-1.2.9-1.2 1.7v1.5M26 32.7 15.8 40.6h20.4z"
+        d="M20 22v20h6.5a10 10 0 0 0 0-20H20M20 22c0-3 1.6-5 4-5.4"
         fill="none"
-        strokeWidth={strokeWidth}
+        strokeWidth={2.6}
         strokeLinecap="round"
         strokeLinejoin="round"
-        className={surface === 'sand' ? 'stroke-sand' : 'stroke-cream'}
+        className={ink ? 'stroke-cream' : 'stroke-ink'}
       />
+      <path d="M27 27c0 0-3.2 3.6-3.2 6a3.2 3.2 0 0 0 6.4 0c0-2.4-3.2-6-3.2-6z" fill={ink ? '#B49A80' : '#6E5640'} />
     </svg>
   );
 }
 
 type WordmarkProps = { size?: 'header' | 'footer' };
 
-/** Horizontal lockup: symbol + "Droblet" in Cormorant Garamond 500. */
+/** Horizontal lockup: symbol + "Droblet" in Cormorant Garamond 500 (canvas proportions: mark 1.1 × the type size). */
 export function Wordmark({ size = 'header' }: WordmarkProps) {
   return size === 'header' ? (
     <>
-      <LogoSymbol width={24} />
+      <LogoSymbol width={31} />
       <span className="font-serif text-[28px] leading-none font-medium">Droblet</span>
     </>
   ) : (
     <>
-      <LogoSymbol width={20} strokeWidth={2.6} />
+      <LogoSymbol width={26} />
       <span className="font-serif text-[24px] leading-none font-medium">Droblet</span>
     </>
   );
