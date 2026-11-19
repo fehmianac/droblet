@@ -158,6 +158,12 @@ internal sealed class AiPerfCommand(IServiceProvider services, OpsArguments args
         var watch = Stopwatch.StartNew();
         var (status, body, _) = await CallAsync(HttpMethod.Post, path, request, ct);
         var jobId = body?["id"]?.GetValue<string>() ?? body?["job"]?["id"]?.GetValue<string>();
+        if (status == 200)
+        {
+            // A cached answer (e.g. the palette of a face photo that was already analysed): no job, nothing to time.
+            output.Line($"{flow} #{run}: cached (200, no job) · {watch.Elapsed.TotalMilliseconds:0} ms");
+            return null;
+        }
         if (status != 202 || jobId is null)
         {
             output.Error($"{flow}: POST {path} → {status} {AiSmokeCommand.Code(body)}");
