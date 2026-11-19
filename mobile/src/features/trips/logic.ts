@@ -1,5 +1,6 @@
 import { TRIP_MAX_DAYS, type City, type Trip, type TripDetail, type TripItem } from '@/api/contracts/trips';
 import type { ItemCategory } from '@/api/contracts/wardrobe';
+import { isConsentRequired, isPaywallError } from '@/api/errors';
 import { parseLocalDate, toIsoDate } from '@/lib/format';
 
 /**
@@ -24,6 +25,16 @@ export function foldForSearch(value: string): string {
 export type SearchableCity = City & { aliases?: readonly string[] };
 
 export const CITY_QUERY_MIN = 2;
+
+/**
+ * The search result a typed city name stands for when the user did not tap one: the first result whose name is the
+ * query (Turkish-insensitive, e.g. "londra" → Londra). Null when nothing matches exactly — the form then asks to pick.
+ */
+export function matchTypedCity<T extends City>(cities: readonly T[], query: string): T | null {
+  const q = foldForSearch(query);
+  if (q.length < CITY_QUERY_MIN) return null;
+  return cities.find((c) => foldForSearch(c.name) === q) ?? null;
+}
 
 /** Prefix match on the city name or an alias ("lond" → Londra, London), Turkish-insensitive. */
 export function searchCities<T extends SearchableCity>(cities: readonly T[], query: string, limit = 6): T[] {
@@ -148,4 +159,55 @@ export function tripShareText(trip: Pick<TripDetail, 'items' | 'days' | 'missing
   if (trip.missing.length > 0) sections.push([labels.missingHeader, ...trip.missing.map((m) => labels.missing(m.name, m.reason))]);
   sections.push([labels.footer]);
   return sections.map((lines) => lines.join('\n')).join('\n\n');
+}
+
+/**
+ * What the forecast row of 19 shows besides (or instead of) the daily strip:
+ * - `null` — nothing (the strip alone; or a trip not confirmed yet / already over),
+ * - `partial` — the strip plus a quiet "the rest isn't available yet",
+ * - `notYet` — the trip is beyond the provider's 16-day horizon: a quiet "not available yet" (and only then),
+ * - `noLocation` — the city could not be resolved: edit the trip and pick it from the list,
+ * - `unavailable` — the provider failed (or an older server sent nothing): "couldn't be loaded right now".
+ */
+export type ForecastNotice = 'partial' | 'notYet' | 'noLocation' | 'unavailable' | null;
+
+export function forecastNotice(trip: Pick<TripDetail, 'forecast' | 'forecastStatus' | 'baseVersion'>): ForecastNotice {
+  const hasDays = Boolean(trip.forecast && trip.forecast.length > 0);
+  switch (trip.forecastStatus) {
+    case 'available':
+    case 'past':
+      return null;
+    case 'partial':
+      return hasDays ? 'partial' : 'notYet';
+    case 'beyondRange':
+      return 'notYet';
+    case 'noLocation':
+      return 'noLocation';
+    case 'unavailable':
+      return hasDays ? null : 'unavailable';
+    default:
+      // Optimistic trip (create still queued) or an older server without the forecast block.
+      if (trip.baseVersion === 0) return null;
+      return hasDays ? null : 'unavailable';
+  }
+}
+
+/**
+ * The state of the packing area of 19 after a failed start or a failed job:
+ * - `paywall` — 403 `premium_required` (the paywall opens; the area offers it again),
+ * - `consent` — 403 `consent_required` (the consent sheet opens; "Try again" afterwards),
+ * - `wardrobe` — the job refused: the wardrobe cannot dress a single day (`insufficient_wardrobe`),
+ * - `failed` — anything else: credits, provider error, timeout, network, validation → the AI failure state with retry.
+ */
+export type PackErrorState = 'paywall' | 'consent' | 'wardrobe' | 'failed';
+
+export function packErrorState(error: unknown, jobErrorCode: string | null = null): PackErrorState {
+  if (isPaywallError(error) || jobErrorCode === 'premium_required') return 'paywall';
+  if (isConsentRequired(error) || jobErrorCode === 'consent_required') return 'consent';
+  // `PackRefusedError` (wire/trips) — matched by name so this module stays free of the wire mappers.
+  if (error instanceof Error && error.name === 'PackRefusedError' && (error as Error & { refusal?: string }).refusal === 'insufficient_wardrobe') {
+    return 'wardrobe';
+  }
+  // 402 `credits_exhausted` (the credit sheet opens too), provider errors, timeouts, network, validation.
+  return 'failed';
 }

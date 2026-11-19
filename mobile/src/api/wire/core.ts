@@ -152,6 +152,8 @@ export type EntitlementWire = {
   state?: 'active' | 'gracePeriod' | 'billingRetry' | 'expired' | 'revoked' | 'pending' | null;
   /** UUID passed to StoreKit (appAccountToken) / Play Billing (obfuscatedAccountId) so purchases map to this account. */
   storeAccountToken?: string | null;
+  /** Temporary self-serve premium (until store purchases are live): the switch and whether this account holds it. Older servers omit it. */
+  selfServePremium?: { enabled: boolean; active: boolean } | null;
 };
 
 /** `POST v1/tenant/entitlement/purchase`. Apple: signedTransaction = StoreKit 2 JWS; Google: transactionId = purchaseToken. */
@@ -200,6 +202,7 @@ export function toEntitlement(wire: EntitlementWire): Entitlement {
     itemRecognition: wire.itemRecognition,
     storeAccountToken: wire.storeAccountToken ?? null,
     inGracePeriod: wire.state === 'gracePeriod',
+    selfServePremium: { enabled: wire.selfServePremium?.enabled ?? false, active: wire.selfServePremium?.active ?? false },
   };
 }
 

@@ -8,7 +8,7 @@ import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 import { IconButton } from '@/components/ui/IconButton';
 import { Text } from '@/components/ui/Text';
-import { currentLanguage } from '@/i18n';
+import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { suffixed } from '@/lib/trSuffix';
 
 import { useBlockPerson, useReportPerson } from './mutations';
@@ -53,6 +53,7 @@ function ReasonRow({ label, selected, last, onPress }: { label: string; selected
  * and blocking leaves the profile.
  */
 export function ReportSheet({ visible, onClose, handle, displayName, onReported, onBlocked }: Props) {
+  const language = useAppLanguage();
   const { t } = useTranslation();
   const report = useReportPerson();
   const block = useBlockPerson();
@@ -63,7 +64,7 @@ export function ReportSheet({ visible, onClose, handle, displayName, onReported,
       <View className="gap-3 pb-3.5" accessibilityLabel={t('report.dialogA11y')}>
         <View className="flex-row items-center justify-between gap-3">
           <Text variant="h3" className="flex-1" accessibilityRole="header">
-            {t('report.title', { name: suffixed(displayName, 'accusative', currentLanguage()) })}
+            {t('report.title', { name: suffixed(displayName, 'accusative', language) })}
           </Text>
           <IconButton icon={X} variant="plain" onPress={onClose} accessibilityLabel={t('a11y.close')} className="-mr-2.5" />
         </View>
@@ -108,7 +109,7 @@ export function ReportSheet({ visible, onClose, handle, displayName, onReported,
               onBlocked();
             }}
             accessibilityRole="button"
-            accessibilityLabel={t('report.blockA11y', { name: suffixed(displayName, 'accusative', currentLanguage()) })}
+            accessibilityLabel={t('report.blockA11y', { name: suffixed(displayName, 'accusative', language) })}
             className="h-btn-secondary items-center justify-center rounded-pill border border-danger px-[18px] active:opacity-70"
           >
             <Text variant="bodyMedium" tone="danger" numberOfLines={1}>

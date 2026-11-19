@@ -3,6 +3,8 @@ import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-li
 import { Share } from 'react-native';
 
 import { resetFixtureDb } from '@/fixtures/db';
+import { ApiError } from '@/api/errors';
+import * as tripFixtures from '@/fixtures/trips';
 import { fixtureGetTrip, fixtureListTrips } from '@/fixtures/trips';
 
 const mockSession = {
@@ -185,6 +187,24 @@ describe('19 Bavul detayı', () => {
     expect(fixtureListTrips()).toHaveLength(2);
     await fireEvent.press(screen.getByTestId('trip-delete-confirm'));
     await waitFor(() => expect(fixtureListTrips()).toHaveLength(1), { timeout: 3000 });
+  });
+
+  it('starts packing a new trip with a ULID request id; premium_required shows the Premium state, not the generic failure', async () => {
+    const id = '01M7RXG2H88YETZ4EKG5C4WRVJ';
+    tripFixtures.fixtureCreateTrip({ id, cityId: 'city_londra', startDate: '2026-11-25', endDate: '2026-11-29', tripTypes: ['sightseeing'], cabinOnly: false, clientMutationId: id });
+    const start = jest.spyOn(tripFixtures, 'fixtureStartPack').mockImplementation(() => {
+      throw new ApiError('http', 403, { type: 'premium_required', title: 'premium_required', status: 403, code: 'premium_required' } as never);
+    });
+    await renderRouter('./src/app', { initialUrl: `/trip/${id}` });
+    // The paywall opens over the trip; under it the packing area offers Premium again instead of "We couldn't create it".
+    await waitFor(() => expect(screen).toHavePathname('/paywall'), { timeout: 3000 });
+    const hidden = { includeHiddenElements: true };
+    expect(start).toHaveBeenCalledWith(id, { requestId: id });
+    expect(screen.getByTestId('pack-blocked-paywall', hidden)).toBeTruthy();
+    expect(screen.getByText('Smart packing is a Premium feature.', hidden)).toBeTruthy();
+    expect(screen.queryByText("We couldn't create it right now.", hidden)).toBeNull();
+    expect(screen.getByLabelText('Daily weather forecast', hidden)).toBeTruthy();
+    start.mockRestore();
   });
 
   it('shows the not-found state (no retry) for an unknown trip, with the way back to the trips', async () => {

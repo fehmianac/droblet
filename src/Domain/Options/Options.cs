@@ -103,6 +103,17 @@ public sealed class EntitlementOptions
     public const string Section = "Entitlements";
     public PremiumLimits Premium { get; set; } = new();
     public FreeLimits Free { get; set; } = new();
+    public SelfServePremiumOptions SelfServePremium { get; set; } = new();
+
+    /// <summary>
+    /// Owner decision 2026-11-19: until store purchases are live, a user may make their own account premium from Ayarlar
+    /// (POST / DELETE v1/tenant/entitlement/self-premium). Central off switch: template true on dev, false on prod; the
+    /// super admin can flip it in the panel (Settings → Üyelik sınırları). Off = 403 self_premium_disabled.
+    /// </summary>
+    public sealed class SelfServePremiumOptions
+    {
+        public bool Enabled { get; set; }
+    }
 
     public sealed class FreeLimits
     {

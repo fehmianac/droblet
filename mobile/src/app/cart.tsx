@@ -22,7 +22,7 @@ import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { useBrandCheckout, useRemoveCartLine } from '@/features/store/mutations';
 import { useCart } from '@/features/store/queries';
-import { currentLanguage } from '@/i18n';
+import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { formatMoney } from '@/lib/format';
 import { suffixed } from '@/lib/trSuffix';
 import { useIsOnline } from '@/sync/network';
@@ -58,7 +58,7 @@ function BrandGroup({
   error: string | null;
 }) {
   const { t } = useTranslation();
-  const language = currentLanguage();
+  const language = useAppLanguage();
   const remove = useRemoveCartLine();
   return (
     <Card className="px-3.5 pb-3.5 pt-1">

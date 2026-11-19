@@ -22,7 +22,7 @@ import { ItemThumb } from '@/features/wardrobe/ItemThumb';
 import { useDeleteItems, useUpdateItem } from '@/features/wardrobe/mutations';
 import { DeleteConfirmSheet, itemImage, SeasonSheet } from '@/features/wardrobe/parts';
 import { useItemDetail } from '@/features/wardrobe/queries';
-import { currentLanguage } from '@/i18n';
+import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { toDisplayUpper } from '@/lib/upper';
 import type { PlaceholderTone } from '@/theme/tokens';
 
@@ -48,6 +48,7 @@ function InfoCard({ label, value }: { label: string; value: string }) {
  * piece, the phase-2 "Sat · Kiraya ver" slot, and "Bununla kombin yap" / completing products.
  */
 export default function ItemDetailScreen() {
+  const language = useAppLanguage();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -97,7 +98,7 @@ export default function ItemDetailScreen() {
                 <View className="gap-3 px-gutter pt-1">
                   <View className="gap-1">
                     <Text variant="brand" tone="muted">
-                      {toDisplayUpper(meta, currentLanguage())}
+                      {toDisplayUpper(meta, language)}
                     </Text>
                     <Text variant="h2">{item.name}</Text>
                     {item.brand ? (
@@ -142,7 +143,7 @@ export default function ItemDetailScreen() {
                             className="h-[132px] w-[104px] rounded-image-lg"
                             placeholder={{ kind: 'figure', tone, figureHeight: 100 }}
                           >
-                            <ImageTag label={toDisplayUpper(occasionLabels[look.occasion] ?? look.occasion, currentLanguage())} className="absolute bottom-2 left-2" />
+                            <ImageTag label={toDisplayUpper(occasionLabels[look.occasion] ?? look.occasion, language)} className="absolute bottom-2 left-2" />
                           </ImageSlot>
                         </Pressable>
                       );

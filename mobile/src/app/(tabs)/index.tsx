@@ -21,7 +21,7 @@ import { useRefreshTodayLook, useSetLookFavorite } from '@/features/today/api';
 import { dayPart, todayGreeting } from '@/features/today/logic';
 import { TodayLookCard } from '@/features/today/TodayLookCard';
 import { WeekStrip } from '@/features/today/WeekStrip';
-import { currentLanguage } from '@/i18n';
+import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { formatLongDate, formatTemperature, parseLocalDate, seasonOf, weekdayShort } from '@/lib/format';
 import { toDisplayUpper } from '@/lib/upper';
 import { useThemeColors } from '@/theme/useThemeColors';
@@ -32,6 +32,7 @@ import { useThemeColors } from '@/theme/useThemeColors';
  * another suggestion, heart) or the no-plan card (06 · plan yok), and this week's edit strip.
  */
 export default function TodayScreen() {
+  const language = useAppLanguage();
   const { t } = useTranslation();
   const colors = useThemeColors();
   const today = useToday();
@@ -70,7 +71,6 @@ export default function TodayScreen() {
       <ScreenState query={today}>
         {(data) => {
           const date = parseLocalDate(data.date);
-          const lang = currentLanguage();
           const meta = [formatLongDate(date, t), t(`season.${seasonOf(date)}`)].join(' · ');
           const look = data.look;
           // Without a plan the greeting stands alone — the no-plan card says the rest.
@@ -89,7 +89,7 @@ export default function TodayScreen() {
             >
               <View className="gap-2 px-gutter">
                 <View className="flex-row flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                  <Text variant="eyebrow">{toDisplayUpper(meta, lang)}</Text>
+                  <Text variant="eyebrow">{toDisplayUpper(meta, language)}</Text>
                   {data.weather ? (
                     <View className="flex-row items-center gap-1">
                       <Icon icon={Cloud} size={16} />
@@ -163,7 +163,7 @@ export default function TodayScreen() {
                   </View>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2.5 px-gutter">
                     {data.weeklyEdit.map((card) => {
-                      const tag = toDisplayUpper(t('todayHome.editTag', { weekday: weekdayShort(parseLocalDate(card.date)), name: card.name }), lang);
+                      const tag = toDisplayUpper(t('todayHome.editTag', { weekday: weekdayShort(parseLocalDate(card.date)), name: card.name }), language);
                       return (
                         <Pressable
                           key={card.id}

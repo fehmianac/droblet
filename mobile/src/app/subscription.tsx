@@ -14,7 +14,7 @@ import { useEntitlement } from '@/entitlement/useEntitlement';
 import { ProfileMenuRow, RowCard } from '@/features/account/rows';
 import { usedShare } from '@/features/credits/CreditPackSheet';
 import { openCreditTopUp } from '@/features/credits/useAiCredits';
-import { currentLanguage } from '@/i18n';
+import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { formatDate, formatDayMonth } from '@/lib/format';
 import { suffixed } from '@/lib/trSuffix';
 import { PurchaseStatus } from '@/purchases/PurchaseStatus';
@@ -47,7 +47,7 @@ function DetailLine({ label, value }: { label: string; value: string }) {
 function CreditsCard({ credits }: { credits: Entitlement['credits'] }) {
   const { t } = useTranslation();
   const colors = useThemeColors();
-  const language = currentLanguage();
+  const language = useAppLanguage();
   const { monthlyAllowance, remaining, resetsAt } = credits;
   const used = Math.max(0, monthlyAllowance - remaining);
   const left = t('subscription.creditsLeft', { total: monthlyAllowance, remaining: suffixed(remaining, 'possessive', language) });

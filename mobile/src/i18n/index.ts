@@ -35,9 +35,19 @@ void i18n.use(initReactI18next).init({
   returnNull: false,
 });
 
+/** The registered language for an i18next language code (`en-GB` → `en`); Turkish when not registered. */
+export function toAppLanguage(code: string | null | undefined): AppLanguage {
+  const base = code?.split('-')[0];
+  return isSupportedLanguage(code) ? code : isSupportedLanguage(base) ? base : DEFAULT_LANGUAGE;
+}
+
+/**
+ * The app language right now — for code outside React (request headers, fixtures, effects).
+ * Components use `useAppLanguage()` instead: the React Compiler memoizes a plain call like this one
+ * for the component's lifetime, so a component reading it would keep the language it first saw.
+ */
 export function currentLanguage(): AppLanguage {
-  const base = i18n.language?.split('-')[0];
-  return isSupportedLanguage(i18n.language) ? i18n.language : isSupportedLanguage(base) ? base : DEFAULT_LANGUAGE;
+  return toAppLanguage(i18n.language);
 }
 
 /** BCP-47 tag used for Intl formatting and the `Accept-Language` request header. */

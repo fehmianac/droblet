@@ -5,7 +5,7 @@ import '@/i18n';
 import { DROP_LOADER_LOOP_MS, DROP_LOADER_PHASES, DropLoader } from './DropLoader';
 
 describe('DropLoader', () => {
-  it('loops the splash mark in 1.6 s: draw, fill, hold, fade', () => {
+  it('loops the logo mark in 1.6 s: outline draws, square fills, the D draws, hold, fade', () => {
     expect(DROP_LOADER_LOOP_MS).toBe(1600);
     const P = DROP_LOADER_PHASES;
     expect(P.outlineEnd).toBeLessThan(P.fadeStart);

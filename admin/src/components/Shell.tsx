@@ -96,7 +96,7 @@ function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () => void }
       )}
     >
       <div className="flex h-16 items-center gap-3 border-b border-side-700 px-5">
-        <Logo className="h-8 w-8" />
+        <Logo className="h-8 w-8" tone="cream" />
         <div className="leading-tight">
           <p className="text-[15px] font-semibold text-white">Droblet</p>
           <p className="text-[11px] text-side-400">{t.topbar.environment}</p>

@@ -1,48 +1,47 @@
 import { useTranslation } from 'react-i18next';
 import { Text as RNText, View } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Path, Rect } from 'react-native-svg';
 
+import { brandTones } from '@/theme/tokens';
 import { useThemeColors } from '@/theme/useThemeColors';
 
-import { DROP_PATH, HANGER_BASE_PATH, HOOK_PATH, MARK_ASPECT, MARK_VIEWBOX, MIN_MARK_WIDTH } from './logoPaths';
+import { D_PATH, D_STROKE_WIDTH, DROP_PATH, MARK_VIEWBOX, MIN_MARK_WIDTH, TILE } from './logoPaths';
 
 type MarkProps = {
-  /** Width in points (the canvas sizes the mark by its box width: 20 in headers, 44 on 01, 92 on the splash). */
+  /** Width (= height) in points. */
   width?: number;
-  /** Alternative to `width`: the box height (36:42 box). Kept for the AI loading components. */
+  /** Same as `width` (the mark is square). Kept for the AI loading components. */
   height?: number;
-  /** 'ink' = ink drop for cream/paper surfaces (default); 'cream' = cream drop for ink surfaces. */
+  /** 'ink' = ink tile for cream/paper surfaces (default); 'cream' = cream tile for ink surfaces. */
   tone?: 'ink' | 'cream';
-  /** Colour of the hook; defaults to the opposite of `tone`. Pass the surface colour when it is not cream/ink. */
-  hookTone?: 'ink' | 'cream' | 'sand' | 'paper';
   /** Announced by screen readers when set; decorative otherwise. */
   accessibilityLabel?: string;
 };
 
-/** Hook stroke per size, as drawn on `LogoIkon`: 2.2 from 44 wide, 2.6 below, base only (3.4) at 18 and below (29 px icon, inline AI status). */
-export function markStroke(width: number): { path: string; strokeWidth: number } {
-  if (width <= 18) return { path: HANGER_BASE_PATH, strokeWidth: 3.4 };
-  return { path: HOOK_PATH, strokeWidth: width <= 35 ? 2.6 : 2.2 };
+/** Colours of the mark per tile tone, as on `Logo.dc.html` (B): cream D + light espresso drop on ink, ink D + espresso drop on cream. */
+export function markColors(tone: 'ink' | 'cream', colors: { ink: string; cream: string; accent: string }) {
+  return tone === 'ink'
+    ? { tile: colors.ink, stroke: colors.cream, drop: brandTones.dropOnInk }
+    : { tile: colors.cream, stroke: colors.ink, drop: colors.accent };
 }
 
-/** The symbol alone (drop + hanger hook). Never stretched, rotated or recoloured outside ink/cream. */
-export function LogoMark({ width, height, tone = 'ink', hookTone, accessibilityLabel }: MarkProps) {
+/** The symbol alone (rounded square, hanger "D", drop). Never stretched, rotated or recoloured outside ink/cream. */
+export function LogoMark({ width, height, tone = 'ink', accessibilityLabel }: MarkProps) {
   const colors = useThemeColors();
-  const fill = tone === 'ink' ? colors.ink : colors.cream;
-  const stroke = colors[hookTone ?? (tone === 'ink' ? 'cream' : 'ink')];
-  const w = Math.max(MIN_MARK_WIDTH, width ?? (height !== undefined ? height * MARK_ASPECT : 20));
-  const { path, strokeWidth } = markStroke(w);
+  const c = markColors(tone, colors);
+  const w = Math.max(MIN_MARK_WIDTH, width ?? height ?? 20);
   return (
     <Svg
       width={w}
-      height={w / MARK_ASPECT}
+      height={w}
       viewBox={MARK_VIEWBOX}
       accessible={Boolean(accessibilityLabel)}
       accessibilityRole={accessibilityLabel ? 'image' : undefined}
       accessibilityLabel={accessibilityLabel}
     >
-      <Path d={DROP_PATH} fill={fill} />
-      <Path d={path} fill="none" stroke={stroke} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+      <Rect x={TILE.x} y={TILE.y} width={TILE.size} height={TILE.size} rx={TILE.radius} fill={c.tile} />
+      <Path d={D_PATH} fill="none" stroke={c.stroke} strokeWidth={D_STROKE_WIDTH} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d={DROP_PATH} fill={c.drop} />
     </Svg>
   );
 }
@@ -51,23 +50,24 @@ export type LogoSize = 'header' | 'hero' | 'stacked';
 
 type LockupProps = {
   /**
-   * 'header'  — horizontal, 20 mark + 26 wordmark, gap 7 (every tab-root header and the state boards).
-   * 'hero'    — horizontal, 44 mark + 60 wordmark, gap 12 (01 Hoş geldin).
-   * 'stacked' — vertical, 40 mark above a 28 wordmark, gap 4 (LogoKullanim "dikey").
+   * Proportions of the canvas lock-up (B): mark 1.1 × the wordmark size, gap 0.3 × the wordmark size.
+   * 'header'  — horizontal, 28 mark + 26 wordmark, gap 8 (every tab-root header and the state boards).
+   * 'hero'    — horizontal, 66 mark + 60 wordmark, gap 18 (01 Hoş geldin).
+   * 'stacked' — vertical, 44 mark above a 28 wordmark, gap 6.
    */
   size?: LogoSize;
   tone?: 'ink' | 'cream';
 };
 
 const LOCKUP: Record<LogoSize, { mark: number; container: string; text: string }> = {
-  header: { mark: 20, container: 'flex-row items-center gap-[7px]', text: 'text-[26px] leading-[30px] tracking-[0.26px]' },
-  hero: { mark: 44, container: 'flex-row items-center gap-3', text: 'text-[60px] leading-[60px] tracking-[-1.2px]' },
-  stacked: { mark: 40, container: 'items-center gap-1', text: 'text-[28px] leading-[32px]' },
+  header: { mark: 28, container: 'flex-row items-center gap-2', text: 'text-[26px] leading-[30px] tracking-[0.26px]' },
+  hero: { mark: 66, container: 'flex-row items-center gap-[18px]', text: 'text-[60px] leading-[60px] tracking-[-1.2px]' },
+  stacked: { mark: 44, container: 'items-center gap-1.5', text: 'text-[28px] leading-[32px]' },
 };
 
 /**
- * Symbol + "Droblet" wordmark (Cormorant Garamond 500): ink on cream/paper, cream on ink — espresso is
- * never used for the logo. Keep at least `logoClearSpace(mark width)` free on every side.
+ * Symbol + "Droblet" wordmark (Cormorant Garamond 500): ink on cream/paper, cream on ink — espresso only
+ * for the small drop. Keep at least `logoClearSpace(mark width)` free on every side.
  * Announced once as the brand name.
  */
 export function Logo({ size = 'header', tone = 'ink' }: LockupProps) {

@@ -70,4 +70,8 @@ public static partial class ErrorCodes
     public const string PurchaseOwnedByAnotherAccount = "purchase_owned_by_another_account";
     /// <summary>202: Android pending purchase / Ask to Buy — granted when the store completes it (notification).</summary>
     public const string PurchasePending = "purchase_pending";
+    /// <summary>403: self-serve premium is switched off (Entitlements:SelfServePremium:Enabled = false).</summary>
+    public const string SelfPremiumDisabled = "self_premium_disabled";
+    /// <summary>409: the account already has premium from a store subscription; self-serve premium is not needed and never replaces it.</summary>
+    public const string StoreSubscriptionActive = "store_subscription_active";
 }

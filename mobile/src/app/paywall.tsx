@@ -17,6 +17,7 @@ import { IconButton } from '@/components/ui/IconButton';
 import { Silhouette } from '@/components/ui/Silhouette';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
+import { useSelfPremium } from '@/entitlement/selfPremium';
 import { useEntitlement } from '@/entitlement/useEntitlement';
 import { useStoreProducts } from '@/entitlement/useStoreProducts';
 import { CanvasGlyph } from '@/features/account/rows';
@@ -155,6 +156,9 @@ export default function PaywallScreen() {
   const monthly = products.find((p) => p.kind === 'subscription' && p.period === 'month');
   const chosen = plan === 'year' ? yearly : monthly;
   const isMember = entitlement.data?.tier === 'member';
+  // Until store purchases are live (server switch): the account can turn premium on itself, for free.
+  const selfPremium = useSelfPremium();
+  const offerSelfPremium = !isMember && entitlement.data?.selfServePremium?.enabled === true;
 
   const close = async () => {
     if (from === 'onboarding' && session.status === 'signedIn') {
@@ -207,6 +211,22 @@ export default function PaywallScreen() {
           testID="paywall.buy"
         />
         <PurchaseStatus state={flow} />
+        {offerSelfPremium ? (
+          <View className="items-center">
+            <FooterLink
+              label={t('selfPremium.paywallLink')}
+              onPress={() => {
+                if (!selfPremium.isPending) selfPremium.mutate(true);
+              }}
+              testID="paywall.selfPremium"
+            />
+            {selfPremium.isError ? (
+              <Text variant="caption" tone="danger" className="text-center">
+                {t('selfPremium.error')}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
         {finePrint ? (
           <Text variant="caption" tone="muted" className="text-center text-[11px] leading-[15px]">
             {finePrint}

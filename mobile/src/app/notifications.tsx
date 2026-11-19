@@ -36,7 +36,8 @@ import {
 import { useMarkNotificationsRead } from "@/features/notifications/mutations";
 import { useNotifications } from "@/features/notifications/queries";
 import { useIncomingRequestCount } from "@/features/social/queries";
-import { currentLanguage, type AppLanguage } from "@/i18n";
+import type { AppLanguage } from "@/i18n";
+import { useAppLanguage } from "@/i18n/useAppLanguage";
 import { formatDate, relativeTime } from "@/lib/format";
 import { toDisplayUpper } from "@/lib/upper";
 import { useThemeColors } from "@/theme/useThemeColors";
@@ -182,7 +183,7 @@ function NotificationRow({ notification, group, first, onOpen }: RowProps) {
 export default function NotificationsScreen() {
   const { t } = useTranslation();
   const colors = useThemeColors();
-  const language = currentLanguage();
+  const language = useAppLanguage();
   const notifications = useNotifications();
   const markRead = useMarkNotificationsRead();
   // What is waiting for the user: follow requests (followers-only accounts approve each one).

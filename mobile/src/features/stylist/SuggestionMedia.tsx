@@ -111,7 +111,7 @@ export function SuggestionMedia({ suggestion, mode, imageUrl, creditLine, onTryO
           </View>
         ) : mode === 'working' ? (
           <AiShimmerImage className="h-full w-full gap-3 rounded-image-lg p-4">
-            <AiDropPulse height={31} hookTone="sand" />
+            <AiDropPulse height={31} />
             <View className="w-full">
               <AiProgressLines lines={lines} size="compact" align="center" />
             </View>

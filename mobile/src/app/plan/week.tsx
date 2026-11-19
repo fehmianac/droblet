@@ -26,7 +26,7 @@ import { weekDates } from '@/features/today/dates';
 import { buildWeekRows, daysToPlan, occasionCounts, weekTryOnTargets, type WeekRow } from '@/features/today/logic';
 import { WeekDayRow } from '@/features/today/WeekDayRow';
 import { isQuoteChanged, useStartTryOn, useWeekTryOn } from '@/features/tryon/api';
-import { currentLanguage } from '@/i18n';
+import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { formatDate, formatIsoDateRange, parseLocalDate, toIsoDate } from '@/lib/format';
 import { toDisplayUpper } from '@/lib/upper';
 import { useThemeColors } from '@/theme/useThemeColors';
@@ -49,6 +49,7 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
  * instead of the board's "ÖNÜMÜZDEKİ 7 GÜN", which would promise seven days starting today.
  */
 export default function PlanWeekScreen() {
+  const language = useAppLanguage();
   const { t } = useTranslation();
   const colors = useThemeColors();
   const focused = useIsFocused();
@@ -59,7 +60,7 @@ export default function PlanWeekScreen() {
   const from = dates[0] ?? today;
   const to = dates[6] ?? today;
   const range = formatIsoDateRange(from, to);
-  const eyebrow = toDisplayUpper(dates.includes(today) ? t('weekPlan.eyebrowThisWeek', { range }) : range, currentLanguage());
+  const eyebrow = toDisplayUpper(dates.includes(today) ? t('weekPlan.eyebrowThisWeek', { range }) : range, language);
 
   const plan = usePlanDays(from, to);
   const looks = useLooks();
@@ -195,7 +196,7 @@ export default function PlanWeekScreen() {
 
                   {planJobId && planJob.isWorking ? (
                     <View className="flex-row items-center gap-3 rounded-image-lg bg-sand p-3" accessibilityState={{ busy: true }}>
-                      <AiDropPulse height={28} hookTone="sand" />
+                      <AiDropPulse height={28} />
                       <View className="flex-1 gap-0.5">
                         <AiProgressLines
                           size="compact"

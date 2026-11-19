@@ -127,6 +127,12 @@ export type Entitlement = {
   storeAccountToken?: string | null;
   /** Member whose renewal payment failed: access continues for the store's grace period. */
   inGracePeriod?: boolean;
+  /**
+   * Temporary self-serve premium (owner decision 2026-11-19, until store purchases are live): `enabled` = the
+   * server switch is on (Ayarlar shows the section, the paywall the "for now, free" link); `active` = this
+   * account turned it on. Absent = off.
+   */
+  selfServePremium?: { enabled: boolean; active: boolean };
 };
 
 export type ItemRecognitionQuota = { limit: number | null; used: number; remaining: number | null };

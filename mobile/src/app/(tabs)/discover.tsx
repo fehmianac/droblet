@@ -18,7 +18,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { CreatorCardView } from '@/features/store/CreatorCardView';
 import { useCreators, useCurrentEdit, useSeriesOutfits } from '@/features/store/queries';
-import { currentLanguage } from '@/i18n';
+import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { formatIsoDateRange } from '@/lib/format';
 import { toDisplayUpper } from '@/lib/upper';
 import { inkFade, placeholderTones } from '@/theme/tokens';
@@ -61,9 +61,10 @@ function CreatorGrid({ creators }: { creators: CreatorCard[] }) {
  * the meta line set on an ink fade at its foot. Opens the edit (20b).
  */
 function EditCover({ edit }: { edit: WeeklyEditSummary }) {
+  const language = useAppLanguage();
   const { t } = useTranslation();
   const eyebrow = t('explore.editEyebrow', {
-    range: toDisplayUpper(formatIsoDateRange(edit.startDate, edit.endDate), currentLanguage()),
+    range: toDisplayUpper(formatIsoDateRange(edit.startDate, edit.endDate), language),
   });
   const meta = t('explore.editMeta', { count: edit.lookCount });
   return (

@@ -12,14 +12,14 @@ import Animated, {
   withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Path, Rect } from 'react-native-svg';
 
 import { Text } from '@/components/ui/Text';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
-import { motion } from '@/theme/tokens';
+import { brandTones, motion } from '@/theme/tokens';
 import { useThemeColors } from '@/theme/useThemeColors';
 
-import { DROP_LENGTH, DROP_PATH, HOOK_LENGTH, HOOK_PATH, MARK_ASPECT, MARK_VIEWBOX } from './logoPaths';
+import { D_LENGTH, D_PATH, D_STROKE_WIDTH, DROP_PATH, MARK_VIEWBOX, TILE } from './logoPaths';
 
 const AnimatedPath = createAnimatedComponent(Path);
 
@@ -27,14 +27,15 @@ const EASE = Easing.bezier(...motion.bezier);
 const LETTERS = ['D', 'r', 'o', 'b', 'l', 'e', 't'] as const;
 
 /**
- * Timeline from `Splash.dc.html` / `SplashKareler.dc.html` (ms). Total 2600.
- * 0–900 outline draws · 700–1200 fill fades in · 1000–1500 hook draws · letters rise from 1200,
- * 60 apart, 500 each · 1800–2600 mark settles 104% → 100% · 2000–2400 espresso rule · 2100–2600 tagline.
+ * Timeline of `Splash.dc.html` / `SplashKareler.dc.html` (ms, total 2600), carried over to logo B:
+ * 0–900 the rounded square fades in and scales 86% → 100% · 700–1500 the "D" draws · 1200–1600 the
+ * drop fades in · letters rise from 1200, 60 apart, 500 each · 1800–2600 mark settles 104% → 100% ·
+ * 2000–2400 espresso rule · 2100–2600 tagline.
  */
 export const SPLASH_TIMELINE = {
-  outline: { delay: 0, duration: 900 },
-  fill: { delay: 700, duration: 500 },
-  hook: { delay: 1000, duration: 500 },
+  tile: { delay: 0, duration: 900, from: 0.86 },
+  stroke: { delay: 700, duration: 800 },
+  drop: { delay: 1200, duration: 400 },
   letters: { delay: 1200, stagger: 60, duration: 500, rise: 10 },
   settle: { delay: 1800, duration: 800, from: 1.04 },
   rule: { delay: 2000, duration: 400 },
@@ -44,7 +45,7 @@ export const SPLASH_TIMELINE = {
   exit: 220,
 } as const;
 
-/** 92 wide, as on `Splash.dc.html` (92 × 108 box). */
+/** 92 wide, as on `Splash.dc.html`; = `imageWidth` of the native splash in app.config.ts. */
 const MARK_WIDTH = 92;
 
 function Letter({ char, progress }: { char: string; progress: SharedValue<number> }) {
@@ -89,9 +90,9 @@ export function AnimatedSplash({ onDone }: Props) {
   const reduceMotion = useReduceMotion();
   const T = SPLASH_TIMELINE;
 
-  const outline = useProgress(T.outline.delay, T.outline.duration, reduceMotion);
-  const fill = useProgress(T.fill.delay, T.fill.duration, reduceMotion);
-  const hook = useProgress(T.hook.delay, T.hook.duration, reduceMotion);
+  const tile = useProgress(T.tile.delay, T.tile.duration, reduceMotion);
+  const stroke = useProgress(T.stroke.delay, T.stroke.duration, reduceMotion);
+  const drop = useProgress(T.drop.delay, T.drop.duration, reduceMotion);
   const settle = useProgress(T.settle.delay, T.settle.duration, reduceMotion);
   const rule = useProgress(T.rule.delay, T.rule.duration, reduceMotion);
   const tagline = useProgress(T.tagline.delay, T.tagline.duration, reduceMotion);
@@ -126,13 +127,16 @@ export function AnimatedSplash({ onDone }: Props) {
   const markStyle = useAnimatedStyle(() => ({
     transform: [{ scale: T.settle.from - (T.settle.from - 1) * settle.value }],
   }));
-  const outlineProps = useAnimatedProps(() => ({ strokeDashoffset: DROP_LENGTH * (1 - outline.value) }));
-  const fillProps = useAnimatedProps(() => ({ fillOpacity: fill.value }));
-  const hookProps = useAnimatedProps(() => ({
-    strokeDashoffset: HOOK_LENGTH * (1 - hook.value),
-    // A round cap would show as a dot before the stroke starts.
-    strokeOpacity: hook.value > 0 ? 1 : 0,
+  const tileStyle = useAnimatedStyle(() => ({
+    opacity: tile.value,
+    transform: [{ scale: T.tile.from + (1 - T.tile.from) * tile.value }],
   }));
+  const strokeProps = useAnimatedProps(() => ({
+    strokeDashoffset: D_LENGTH * (1 - stroke.value),
+    // A round cap would show as a dot before the stroke starts.
+    strokeOpacity: stroke.value > 0 ? 1 : 0,
+  }));
+  const dropProps = useAnimatedProps(() => ({ fillOpacity: drop.value }));
   const ruleStyle = useAnimatedStyle(() => ({ transform: [{ scaleX: rule.value }] }));
   const taglineStyle = useAnimatedStyle(() => ({ opacity: tagline.value }));
 
@@ -147,27 +151,22 @@ export function AnimatedSplash({ onDone }: Props) {
       {/* The mark sits exactly at the screen centre — where the native splash drew it. */}
       <View className="flex-1" />
       <Animated.View style={markStyle} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-          <Svg width={MARK_WIDTH} height={MARK_WIDTH / MARK_ASPECT} viewBox={MARK_VIEWBOX}>
-            <AnimatedPath d={DROP_PATH} fill={colors.ink} animatedProps={fillProps} />
+        <Animated.View style={tileStyle}>
+          <Svg width={MARK_WIDTH} height={MARK_WIDTH} viewBox={MARK_VIEWBOX}>
+            <Rect x={TILE.x} y={TILE.y} width={TILE.size} height={TILE.size} rx={TILE.radius} fill={colors.ink} />
             <AnimatedPath
-              d={DROP_PATH}
-              fill="none"
-              stroke={colors.ink}
-              strokeWidth={1.4}
-              strokeDasharray={DROP_LENGTH}
-              animatedProps={outlineProps}
-            />
-            <AnimatedPath
-              d={HOOK_PATH}
+              d={D_PATH}
               fill="none"
               stroke={colors.cream}
-              strokeWidth={2.2}
+              strokeWidth={D_STROKE_WIDTH}
               strokeLinecap="round"
               strokeLinejoin="round"
-              strokeDasharray={HOOK_LENGTH}
-              animatedProps={hookProps}
+              strokeDasharray={D_LENGTH}
+              animatedProps={strokeProps}
             />
+            <AnimatedPath d={DROP_PATH} fill={brandTones.dropOnInk} animatedProps={dropProps} />
           </Svg>
+        </Animated.View>
       </Animated.View>
       <View className="flex-1 items-center gap-[18px] pt-[18px]" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
         <View className="flex-row">

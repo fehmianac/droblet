@@ -556,6 +556,7 @@ export const en = {
     fields: {
       'Premium.TryOnCreditsPerMonth': 'AI images per member per month',
       'Free.ItemRecognitionLimit': 'Free AI garment recognitions (lifetime)',
+      'SelfServePremium.Enabled': 'Temporary membership: users can make their own account Premium (until payments are live)',
       CabinMaxItems: 'Cabin bag piece limit (0 = off)',
       MaxTripDays: 'Longest trip (days)',
       Enabled: 'AI features enabled',

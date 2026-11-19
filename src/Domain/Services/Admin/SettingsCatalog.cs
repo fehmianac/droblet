@@ -33,7 +33,9 @@ public static partial class SettingsCatalog
     [
         new("entitlements",
             [new("api", "Entitlements"), new("worker", "Entitlements")],
-            [new("Premium.TryOnCreditsPerMonth", SettingFieldType.Int, 0, 1000), new("Free.ItemRecognitionLimit", SettingFieldType.Int, 0, 1000)]),
+            [new("Premium.TryOnCreditsPerMonth", SettingFieldType.Int, 0, 1000), new("Free.ItemRecognitionLimit", SettingFieldType.Int, 0, 1000),
+             // Temporary self-serve premium in Ayarlar until store purchases are live (owner decision 2026-11-19).
+             new("SelfServePremium.Enabled", SettingFieldType.Bool)]),
         new("packing",
             [new("api", "Packing"), new("worker", "Packing")],
             [new("CabinMaxItems", SettingFieldType.Int, 0, 100), new("MaxTripDays", SettingFieldType.Int, 1, 60)]),

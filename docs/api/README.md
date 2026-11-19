@@ -70,6 +70,8 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | GET | `v1/tenant/entitlement` | user | [W](wardrobe-looks-plan-stylist.md) | Get tier and AI credits |
 | POST | `v1/tenant/entitlement/purchase` | user | [P](purchases-push.md) | Verify a store purchase |
 | POST | `v1/tenant/entitlement/restore` | user | [P](purchases-push.md) | Restore purchases |
+| POST | `v1/tenant/entitlement/self-premium` | user | [P](purchases-push.md) | Turn on temporary self-serve premium |
+| DELETE | `v1/tenant/entitlement/self-premium` | user | [P](purchases-push.md) | Turn off temporary self-serve premium |
 | GET | `v1/tenant/job/{id}` | user | [W](wardrobe-looks-plan-stylist.md) | Get job status |
 
 ## Wardrobe: reference, library, items, drafts

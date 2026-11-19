@@ -68,6 +68,7 @@ public partial class TemplateConfigTests
         var packing = Bind<PackingOptions>(scope, PackingOptions.Section);
 
         Assert.Equal((30, 10), (entitlements.Premium.TryOnCreditsPerMonth, entitlements.Free.ItemRecognitionLimit));
+        Assert.False(entitlements.SelfServePremium.Enabled);   // the prod literal: self-serve premium is off in prod
         Assert.Equal((12, 21), (packing.CabinMaxItems, packing.MaxTripDays));
     }
 
@@ -119,6 +120,21 @@ public partial class TemplateConfigTests
         Assert.Equal((500, "https://droblet.alatech.co/i"), (social.MaxFollowing, social.InviteUrl));
         Assert.Equal(("07:30", "Europe/Istanbul"), (notifications.DefaultMorningLocal, notifications.DefaultTimeZone));
         Assert.Equal((26, 12), (stylist.HotFromC, stylist.ColdBelowC));
+    }
+
+    [Fact]
+    public void SelfServePremium_IsOnInDev_OffInProd()
+    {
+        var template = Template();
+        foreach (var scope in new[] { "api", "worker" })
+        {
+            var block = Regex.Match(template, @"Name: !Sub /droblet/\$\{Stage\}/" + scope + @"/Entitlements\s*\n(?:[^\n]*\n){2}\s*Value: !If\s*\n\s*- IsProd\s*\n\s*- '(?<prod>[^']*)'\s*\n\s*- '(?<dev>[^']*)'");
+            Assert.True(block.Success, scope);
+            Assert.Contains("\"SelfServePremium\":{\"Enabled\":false}", block.Groups["prod"].Value);
+            Assert.Contains("\"SelfServePremium\":{\"Enabled\":true}", block.Groups["dev"].Value);
+            // Everything else is the same on both stages.
+            Assert.Equal(block.Groups["prod"].Value.Replace("false", "true"), block.Groups["dev"].Value);
+        }
     }
 
     [Fact]

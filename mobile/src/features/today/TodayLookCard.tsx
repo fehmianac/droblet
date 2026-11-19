@@ -12,7 +12,7 @@ import { IconButton } from '@/components/ui/IconButton';
 import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Text } from '@/components/ui/Text';
 import { OnYouCta } from '@/features/tryon/OnYouCta';
-import { currentLanguage } from '@/i18n';
+import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { toDisplayUpper } from '@/lib/upper';
 
 import { todayThumbs } from './logic';
@@ -37,6 +37,7 @@ type Props = {
  * (add a photo / add credits / "Üzerimde gör") — the "SENİN ÜZERİNDE" tag only ever sits on a real image.
  */
 export function TodayLookCard({ look, onWear, onRefresh, onToggleFavorite, refreshing }: Props) {
+  const language = useAppLanguage();
   const { t } = useTranslation();
   const hasMissing = look.pieces.some((p) => p.source === 'store');
   const showThumbs = refreshing || Boolean(look.tryOnImageUrl);
@@ -44,13 +45,13 @@ export function TodayLookCard({ look, onWear, onRefresh, onToggleFavorite, refre
   const owned = look.pieces.filter((p) => p.source !== 'store');
   const missingPieces = look.pieces.filter((p) => p.source === 'store');
   const collagePieces = [...owned.slice(0, Math.max(0, 4 - Math.min(missingPieces.length, 4))), ...missingPieces].slice(0, 4);
-  const eyebrow = toDisplayUpper(t('todayHome.lookEyebrow', { occasion: t(`occasion.${look.occasion}`) }), currentLanguage());
+  const eyebrow = toDisplayUpper(t('todayHome.lookEyebrow', { occasion: t(`occasion.${look.occasion}`) }), language);
   return (
     <View className="overflow-hidden rounded-card border border-line bg-paper">
       <View className="h-[264px] flex-row">
         {refreshing ? (
           <AiShimmerImage className="flex-[23]" accessibilityLabel={t('todayHome.refreshing')}>
-            <AiDropPulse height={30} hookTone="sand" />
+            <AiDropPulse height={30} />
           </AiShimmerImage>
         ) : (
           <OnYouImage

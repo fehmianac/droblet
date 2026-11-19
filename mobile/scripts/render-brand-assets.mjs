@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Renders the app icon / splash PNGs from the logo mark (direction A, canvas v2 `LogoIkon.dc.html`).
+ * Renders the app icon / splash PNGs from the logo mark (direction B "askı monogramı", canvas v2
+ * `Logo.dc.html`): a "D" drawn from a hanger curve with a drop in its counter, in a rounded square.
  *
  *   node scripts/render-brand-assets.mjs
  *
@@ -16,43 +17,31 @@ import { fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const INK = '#1C1A17';
 const CREAM = '#F4F1EC';
+const DROP_ON_INK = '#B49A80';
 const WHITE = '#FFFFFF';
 
-const DROP = 'M26 6C26 6 10 24 10 36a16 16 0 0 0 32 0C42 24 26 6 26 6z';
-const HOOK = 'M23.4 27a2.7 2.7 0 1 1 3.8 2.5c-.8.3-1.2.9-1.2 1.7v1.5M26 32.7 15.8 40.6h20.4z';
-const BASE = 'M26 32.7 15.8 40.6h20.4z';
-
-/**
- * The mark's box, exactly as every canvas board draws it: `viewBox="8 4 36 42"`. The drop path runs to
- * y = 52, the box ends at y = 46, and an SVG clips at its viewport — the canvas mark has a flat base.
- * Keep in sync with MARK_BOX_HEIGHT in src/components/brand/logoPaths.ts (50 = the whole round drop).
- */
-const BOX_W = 36;
-const BOX_H = 42;
-
-let clipSeq = 0;
+/** Same geometry as src/components/brand/logoPaths.ts: the 44 × 44 tile at (6, 10), rx 12. */
+const BOX = 44;
+const D = 'M20 22v20h6.5a10 10 0 0 0 0-20H20M20 22c0-3 1.6-5 4-5.4';
+const DROP = 'M27 27c0 0-3.2 3.6-3.2 6a3.2 3.2 0 0 0 6.4 0c0-2.4-3.2-6-3.2-6z';
+const STROKE = 2.6;
 
 function round(n) {
   return Math.round(n * 1000) / 1000;
 }
 
-/** The mark with a box `height` px tall, centred in a `size`×`canvasHeight` canvas, clipped to its box. */
-function mark({ size, height, drop, hook, hookPath = HOOK, strokeWidth = 2.2, cutOut = false, canvasHeight = size }) {
-  const scale = height / BOX_H;
-  const width = BOX_W * scale;
-  const x = (size - width) / 2;
-  const y = (canvasHeight - height) / 2;
-  const id = `c${clipSeq++}`;
-  const stroke = `fill="none" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"`;
-  const open = `<defs><clipPath id="${id}"><rect x="8" y="4" width="${BOX_W}" height="${BOX_H}"/></clipPath>`;
-  const group = `<g transform="translate(${round(x)} ${round(y)}) scale(${round(scale)}) translate(-8 -4)" clip-path="url(#${id})">`;
-  if (cutOut) {
-    // Monochrome layer: the hook is transparent (alpha is the only channel Android uses).
-    return `${open}<mask id="m${id}" maskUnits="userSpaceOnUse" x="8" y="4" width="${BOX_W}" height="${BOX_H}"><rect x="8" y="4" width="${BOX_W}" height="${BOX_H}" fill="#fff"/><path d="${hookPath}" ${stroke} stroke="#000"/></mask></defs>
-  ${group}<path d="${DROP}" fill="${drop}" mask="url(#m${id})"/></g>`;
-  }
-  return `${open}</defs>
-  ${group}<path d="${DROP}" fill="${drop}"/><path d="${hookPath}" ${stroke} stroke="${hook}"/></g>`;
+/**
+ * The mark scaled so its 44-unit tile is `tile` px, centred in a `size`×`size` canvas.
+ * `withTile: false` leaves the square out (icon layers whose background is the ink tile itself).
+ */
+function mark({ size, tile, withTile = true, tileFill = INK, stroke = CREAM, drop = DROP_ON_INK }) {
+  const scale = tile / BOX;
+  const offset = (size - tile) / 2;
+  const body =
+    (withTile ? `<rect x="6" y="10" width="44" height="44" rx="12" fill="${tileFill}"/>` : '') +
+    `<path d="${D}" fill="none" stroke="${stroke}" stroke-width="${STROKE}" stroke-linecap="round" stroke-linejoin="round"/>` +
+    `<path d="${DROP}" fill="${drop}"/>`;
+  return `<g transform="translate(${round(offset)} ${round(offset)}) scale(${round(scale)}) translate(-6 -10)">${body}</g>`;
 }
 
 function svg(width, height, body, background) {
@@ -61,56 +50,39 @@ function svg(width, height, body, background) {
 }
 
 /**
- * Proportions from `LogoIkon.dc.html`:
- * - iOS tile 180 → mark box 116 high (64.4 % of the tile), stroke 2.2.
- * - Android adaptive: the 120 circle on the board is the visible 72 dp of the 108 dp layer and holds a
- *   66-high box → 39.6 dp → 36.7 % of the layer.
- * - 29 px: box 19 of 29 high, hook dropped, hanger base only at stroke 3.4, tile radius 7 of 29.
+ * - iOS / store icon: the tile IS the icon — ink full bleed (the OS rounds the corners), the cream "D"
+ *   and the drop at the tile's own proportions.
+ * - Android adaptive (108 dp layer, 72 dp visible): the tile is mapped onto the visible 72 dp, so the
+ *   "D" sits where it sits in the square; background = ink.
  */
-const IOS_MARK = 116 / 180;
-const ANDROID_MARK = ((66 / 120) * 72) / 108;
+const ANDROID_TILE = 72 / 108;
 
 /** name → { png (relative to assets/), width, height, svg } */
 const assets = {
-  // iOS / store icon: cream drop on ink. Full bleed; the OS masks it.
-  icon: { png: 'images/icon.png', w: 1024, h: 1024, svg: svg(1024, 1024, mark({ size: 1024, height: 1024 * IOS_MARK, drop: CREAM, hook: INK }), INK) },
+  icon: { png: 'images/icon.png', w: 1024, h: 1024, svg: svg(1024, 1024, mark({ size: 1024, tile: 1024, withTile: false }), INK) },
   'android-foreground': {
     png: 'images/android-icon-foreground.png',
     w: 512,
     h: 512,
-    svg: svg(512, 512, mark({ size: 512, height: 512 * ANDROID_MARK, drop: CREAM, hook: INK })),
+    svg: svg(512, 512, mark({ size: 512, tile: 512 * ANDROID_TILE, withTile: false })),
   },
   'android-background': { png: 'images/android-icon-background.png', w: 512, h: 512, svg: svg(512, 512, '', INK) },
+  // Monochrome (themed icons): only alpha counts — the "D" and the drop in white.
   'android-monochrome': {
     png: 'images/android-icon-monochrome.png',
     w: 432,
     h: 432,
-    svg: svg(432, 432, mark({ size: 432, height: 432 * ANDROID_MARK, drop: WHITE, hook: WHITE, cutOut: true })),
+    svg: svg(432, 432, mark({ size: 432, tile: 432 * ANDROID_TILE, withTile: false, stroke: WHITE, drop: WHITE })),
   },
-  // Native splash: the static mark on the cream window background (the animated splash takes over in-app).
-  // The image is exactly the mark's 36:42 box; app.config.ts shows it 92 wide like `Splash.dc.html`.
-  splash: {
-    png: 'images/splash-icon.png',
-    w: 432,
-    h: 504,
-    svg: svg(432, 504, mark({ size: 432, canvasHeight: 504, height: 504, drop: INK, hook: CREAM })),
-  },
-  // Web favicon = the 29 px icon: the hook is dropped, only the hanger base stays.
-  favicon: {
-    png: 'images/favicon.png',
-    w: 48,
-    h: 48,
-    svg: svg(
-      48,
-      48,
-      `<rect width="48" height="48" rx="${round((48 * 7) / 29)}" fill="${INK}"/>` +
-        mark({ size: 48, height: (48 * 19) / 29, drop: CREAM, hook: INK, hookPath: BASE, strokeWidth: 3.4 }),
-    ),
-  },
+  // Native splash: the whole mark (ink tile) on the cream window background; the animated splash takes
+  // over in-app at the same size and place (app.config.ts shows it 92 wide = MARK_WIDTH in AnimatedSplash).
+  splash: { png: 'images/splash-icon.png', w: 432, h: 432, svg: svg(432, 432, mark({ size: 432, tile: 432 })) },
+  // Web favicon: the mark itself, rounded square included.
+  favicon: { png: 'images/favicon.png', w: 48, h: 48, svg: svg(48, 48, mark({ size: 48, tile: 48 })) },
 };
 
-// Layer for the iOS Icon Composer bundle (assets/expo.icon): the mark only, on a transparent canvas.
-const iosLayer = svg(1024, 1024, mark({ size: 1024, height: 1024 * IOS_MARK, drop: CREAM, hook: INK }));
+// Layer for the iOS Icon Composer bundle (assets/expo.icon, whose fill is ink): the "D" and the drop only.
+const iosLayer = svg(1024, 1024, mark({ size: 1024, tile: 1024, withTile: false }));
 
 function findChrome() {
   const candidates = [
