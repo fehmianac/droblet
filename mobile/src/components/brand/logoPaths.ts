@@ -1,44 +1,40 @@
 /**
- * Logo direction A — "askılı damla": a drop whose counter-space draws a hanger hook
- * (canvas v2 `Logo.dc.html`, `LogoKullanim.dc.html`). Geometry only; colours come from tokens.
+ * Logo direction B — "askı monogramı" (owner decision 2026-11-19): a "D" drawn from a hanger curve, a
+ * small drop in its counter, sitting in a rounded square (canvas v2 `Logo.dc.html`, column B).
+ * Geometry only; colours come from tokens (`ink`, `cream`, `accent`, `brandTones.dropOnInk`).
+ *
+ * The canvas draws the mark in a 44 × 44 square at (6, 10) of its lock-up (`viewBox="0 0 210 64"`),
+ * the wordmark starting at x = 62 (gap 12) in Cormorant Garamond 500 at 40. The aspect ratio never
+ * changes (no stretching, no rotation).
  */
-
-/**
- * The mark is drawn in the box every canvas screen uses: `viewBox="8 4 36 42"` (headers 20 × 24,
- * welcome 44 × 52, splash 92 × 108, app icon 104 × 116 in a 180 tile — `LogoIkon`, `LogoKullanim`,
- * `Main`, `Splash`). That box ends at y = 46 while the drop path runs to y = 52, and an SVG clips at
- * its viewport — so on the canvas the drop has a flat base, on every screen and on every icon size.
- * The app reproduces exactly that. (The presentation boards `Logo` and the horizontal lock-up on
- * `LogoKullanim` use a taller box and show the round base; to switch the whole app and the generated
- * icons to that shape, set MARK_BOX_HEIGHT to 50 here and in scripts/render-brand-assets.mjs.)
- * The aspect ratio must never change (LogoKullanim: no stretching, no rotation).
- */
-export const MARK_BOX_WIDTH = 36;
-export const MARK_BOX_HEIGHT = 42;
-export const MARK_VIEWBOX = `8 4 ${MARK_BOX_WIDTH} ${MARK_BOX_HEIGHT}`;
-export const MARK_ASPECT = MARK_BOX_WIDTH / MARK_BOX_HEIGHT;
-/** Width of the drop itself in viewBox units (x 10–42); clear space is half of it on every side (LogoKullanim). */
-export const DROP_WIDTH = 32;
-/** Smallest sizes allowed by `LogoKullanim`: symbol alone 16 wide, horizontal lock-up 96 wide. */
+export const MARK_BOX = 44;
+export const MARK_VIEWBOX = `6 10 ${MARK_BOX} ${MARK_BOX}`;
+export const MARK_ASPECT = 1;
+/** Smallest sizes: symbol alone 16 wide, horizontal lock-up 96 wide. */
 export const MIN_MARK_WIDTH = 16;
 export const MIN_LOCKUP_WIDTH = 96;
 
-/** Minimum empty space around a mark `markWidth` wide: half the drop's width. */
+/** Minimum empty space around a mark `markWidth` wide: a quarter of the tile (≈ its corner radius). */
 export function logoClearSpace(markWidth: number): number {
-  return ((DROP_WIDTH / MARK_BOX_WIDTH) * markWidth) / 2;
+  return markWidth / 4;
 }
 
-export const DROP_PATH = 'M26 6C26 6 10 24 10 36a16 16 0 0 0 32 0C42 24 26 6 26 6z';
-export const HOOK_PATH = 'M23.4 27a2.7 2.7 0 1 1 3.8 2.5c-.8.3-1.2.9-1.2 1.7v1.5M26 32.7 15.8 40.6h20.4z';
-/** At ≤ 29 px the hook is dropped; only the hanger base stays (LogoIkon). */
-export const HANGER_BASE_PATH = 'M26 32.7 15.8 40.6h20.4z';
+/** The rounded square: `<rect x="6" y="10" width="44" height="44" rx="12">`. */
+export const TILE = { x: 6, y: 10, size: MARK_BOX, radius: 12 } as const;
+/** The same square as a path (inset by half the outline stroke), for stroke-dash drawing. */
+export const TILE_OUTLINE_PATH = 'M18 10.7h20A11.3 11.3 0 0 1 49.3 22v20A11.3 11.3 0 0 1 38 53.3H18A11.3 11.3 0 0 1 6.7 42V22A11.3 11.3 0 0 1 18 10.7z';
+/** The "D": stem, bowl and the hanger hook leaving the top of the stem. Stroke 2.6, round caps and joins. */
+export const D_PATH = 'M20 22v20h6.5a10 10 0 0 0 0-20H20M20 22c0-3 1.6-5 4-5.4';
+export const D_STROKE_WIDTH = 2.6;
+/** The drop in the D's counter. */
+export const DROP_PATH = 'M27 27c0 0-3.2 3.6-3.2 6a3.2 3.2 0 0 0 6.4 0c0-2.4-3.2-6-3.2-6z';
 
 /**
  * Path lengths in viewBox units, used for stroke-dash drawing (react-native-svg has no `pathLength`).
  * Slightly over-estimated on purpose: a dash longer than the path still draws it completely.
  */
-export const DROP_LENGTH = 120;
-export const HOOK_LENGTH = 64;
+export const TILE_LENGTH = 160;
+export const D_LENGTH = 76;
 
 /** Standing figure used by the "Üzerimde gör" waiting stage (`AiYukleniyor.dc.html`), viewBox 0 0 60 100. */
 export const SILHOUETTE_VIEWBOX = '0 0 60 100';

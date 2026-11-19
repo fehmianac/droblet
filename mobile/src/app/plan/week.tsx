@@ -196,7 +196,7 @@ export default function PlanWeekScreen() {
 
                   {planJobId && planJob.isWorking ? (
                     <View className="flex-row items-center gap-3 rounded-image-lg bg-sand p-3" accessibilityState={{ busy: true }}>
-                      <AiDropPulse height={28} hookTone="sand" />
+                      <AiDropPulse height={28} />
                       <View className="flex-1 gap-0.5">
                         <AiProgressLines
                           size="compact"

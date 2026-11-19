@@ -14,11 +14,10 @@ import { brandEasing, usePulse } from './motion';
 type PulseProps = {
   height?: number;
   tone?: 'ink' | 'cream';
-  hookTone?: 'ink' | 'cream' | 'sand' | 'paper';
 };
 
-/** The breathing drop: scale 1 → 1.06, opacity .7 → 1, 1.6 s, back and forth. Droblet's replacement for a spinner. */
-export function AiDropPulse({ height = 20, tone = 'ink', hookTone }: PulseProps) {
+/** The breathing logo mark: scale 1 → 1.06, opacity .7 → 1, 1.6 s, back and forth. Droblet's replacement for a spinner. */
+export function AiDropPulse({ height = 20, tone = 'ink' }: PulseProps) {
   const reduceMotion = useReduceMotion();
   const pulse = usePulse(reduceMotion);
   const style = useAnimatedStyle(() => ({
@@ -27,7 +26,7 @@ export function AiDropPulse({ height = 20, tone = 'ink', hookTone }: PulseProps)
   }));
   return (
     <Animated.View style={style} accessible={false} importantForAccessibility="no-hide-descendants">
-      <LogoMark height={height} tone={tone} hookTone={hookTone} />
+      <LogoMark height={height} tone={tone} />
     </Animated.View>
   );
 }
@@ -77,8 +76,8 @@ export function AiBusyButton({ label }: { label?: string }) {
       className="h-btn-primary flex-row items-center justify-center gap-2 overflow-hidden rounded-pill bg-ink px-6"
     >
       <AiShimmer />
-      {/* 16×19 cream drop without the hook (`AiYukleniyorVaryantlar`, "Satır içi"). */}
-      <AiDropPulse height={19} tone="cream" hookTone="cream" />
+      {/* 19 pt cream mark on the ink button (`AiYukleniyorVaryantlar`, "Satır içi"). */}
+      <AiDropPulse height={19} tone="cream" />
       <Text variant="button" tone="paper" numberOfLines={1}>
         {text}
       </Text>

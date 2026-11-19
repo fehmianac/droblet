@@ -45,9 +45,9 @@ describe('splash timeline', () => {
   it('ends exactly at 2.6 s', () => {
     const T = SPLASH_TIMELINE;
     const ends = [
-      T.outline.delay + T.outline.duration,
-      T.fill.delay + T.fill.duration,
-      T.hook.delay + T.hook.duration,
+      T.tile.delay + T.tile.duration,
+      T.stroke.delay + T.stroke.duration,
+      T.drop.delay + T.drop.duration,
       T.letters.delay + T.letters.stagger * 6 + T.letters.duration,
       T.settle.delay + T.settle.duration,
       T.rule.delay + T.rule.duration,
@@ -55,6 +55,9 @@ describe('splash timeline', () => {
     ];
     expect(Math.max(...ends)).toBe(2600);
     expect(T.total).toBe(2600);
+    // Logo B order: the square, then the "D", then the wordmark.
+    expect(T.tile.delay).toBeLessThan(T.stroke.delay);
+    expect(T.stroke.delay).toBeLessThan(T.letters.delay);
   });
 
   it('calls onDone after the last frame', async () => {

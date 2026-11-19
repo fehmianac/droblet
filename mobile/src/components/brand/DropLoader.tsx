@@ -11,24 +11,25 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Path, Rect } from 'react-native-svg';
 
 import { Text } from '@/components/ui/Text';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
-import { motion } from '@/theme/tokens';
+import { brandTones, motion } from '@/theme/tokens';
 import { useThemeColors } from '@/theme/useThemeColors';
 
-import { DROP_LENGTH, DROP_PATH, HOOK_LENGTH, HOOK_PATH, MARK_ASPECT, MARK_VIEWBOX } from './logoPaths';
+import { D_LENGTH, D_PATH, D_STROKE_WIDTH, DROP_PATH, MARK_VIEWBOX, TILE, TILE_LENGTH, TILE_OUTLINE_PATH } from './logoPaths';
 
 const AnimatedPath = createAnimatedComponent(Path);
+const AnimatedRect = createAnimatedComponent(Rect);
 
-/** One loop of the splash's drop mark (ms): the outline draws in, the drop fills, holds, fades and repeats. */
+/** One loop of the logo mark (ms): the square's outline draws in, the square fills, the "D" draws, holds, fades and repeats. */
 export const DROP_LOADER_LOOP_MS = 1600;
 /** Phases of one loop, as fractions of `DROP_LOADER_LOOP_MS`. */
 export const DROP_LOADER_PHASES = {
-  /** 0 → 0.45 outline draws in. */
+  /** 0 → 0.45 the rounded square's outline draws in. */
   outlineEnd: 0.45,
-  /** 0.3 → 0.55 the drop fills; the hook draws 0.4 → 0.6. */
+  /** 0.3 → 0.55 the square fills; the "D" (and its drop) draws 0.4 → 0.6. */
   fillStart: 0.3,
   fillEnd: 0.55,
   hookStart: 0.4,
@@ -55,8 +56,8 @@ type Props = {
 };
 
 /**
- * The one loader of the app: the splash's drop mark in a 1.6 s loop (cubic-bezier(0.2, 0.8, 0.2, 1)).
- * Reduce motion: the filled mark, still. The `screen` size takes `flex-1` so the final layout height is
+ * The one loader of the app: the logo mark (B) in a 1.6 s loop (cubic-bezier(0.2, 0.8, 0.2, 1)).
+ * Reduce motion: the finished mark, still. The `screen` size takes `flex-1` so the final layout height is
  * already reserved — nothing jumps when the content arrives.
  */
 export function DropLoader({ size = 'screen', caption, accessibilityLabel, tone = 'ink', still = false, testID }: Props) {
@@ -78,7 +79,7 @@ export function DropLoader({ size = 'screen', caption, accessibilityLabel, tone 
 
   const P = DROP_LOADER_PHASES;
   const outlineProps = useAnimatedProps(() => ({
-    strokeDashoffset: DROP_LENGTH * (1 - interpolate(progress.value, [0, P.outlineEnd], [0, 1], 'clamp')),
+    strokeDashoffset: TILE_LENGTH * (1 - interpolate(progress.value, [0, P.outlineEnd], [0, 1], 'clamp')),
     strokeOpacity: interpolate(progress.value, [P.fadeStart, 1], [1, 0], 'clamp'),
   }));
   const fillProps = useAnimatedProps(() => ({
@@ -87,31 +88,47 @@ export function DropLoader({ size = 'screen', caption, accessibilityLabel, tone 
       interpolate(progress.value, [P.fadeStart, 1], [1, 0], 'clamp'),
     ),
   }));
-  const hookProps = useAnimatedProps(() => {
+  const strokeProps = useAnimatedProps(() => {
     const drawn = interpolate(progress.value, [P.hookStart, P.hookEnd], [0, 1], 'clamp');
     return {
-      strokeDashoffset: HOOK_LENGTH * (1 - drawn),
+      strokeDashoffset: D_LENGTH * (1 - drawn),
+      // A round cap would show as a dot before the stroke starts.
       strokeOpacity: drawn > 0 ? interpolate(progress.value, [P.fadeStart, 1], [1, 0], 'clamp') : 0,
     };
   });
+  const dropProps = useAnimatedProps(() => ({
+    fillOpacity: Math.min(
+      interpolate(progress.value, [P.hookStart, P.hookEnd], [0, 1], 'clamp'),
+      interpolate(progress.value, [P.fadeStart, 1], [1, 0], 'clamp'),
+    ),
+  }));
 
   const width = SIZES[size];
-  const ink = tone === 'cream' ? colors.cream : colors.ink;
+  const tile = tone === 'cream' ? colors.cream : colors.ink;
   const ground = tone === 'cream' ? colors.ink : colors.cream;
+  const drop = tone === 'cream' ? colors.accent : brandTones.dropOnInk;
   const mark = (
-    <Svg width={width} height={width / MARK_ASPECT} viewBox={MARK_VIEWBOX}>
-      <AnimatedPath d={DROP_PATH} fill={ink} animatedProps={fillProps} />
-      <AnimatedPath d={DROP_PATH} fill="none" stroke={ink} strokeWidth={size === 'inline' ? 2.4 : 1.4} strokeDasharray={DROP_LENGTH} animatedProps={outlineProps} />
+    <Svg width={width} height={width} viewBox={MARK_VIEWBOX}>
+      <AnimatedRect x={TILE.x} y={TILE.y} width={TILE.size} height={TILE.size} rx={TILE.radius} fill={tile} animatedProps={fillProps} />
       <AnimatedPath
-        d={HOOK_PATH}
+        d={TILE_OUTLINE_PATH}
+        fill="none"
+        stroke={tile}
+        strokeWidth={size === 'inline' ? 2.4 : 1.4}
+        strokeDasharray={TILE_LENGTH}
+        animatedProps={outlineProps}
+      />
+      <AnimatedPath
+        d={D_PATH}
         fill="none"
         stroke={ground}
-        strokeWidth={2.2}
+        strokeWidth={D_STROKE_WIDTH}
         strokeLinecap="round"
         strokeLinejoin="round"
-        strokeDasharray={HOOK_LENGTH}
-        animatedProps={hookProps}
+        strokeDasharray={D_LENGTH}
+        animatedProps={strokeProps}
       />
+      <AnimatedPath d={DROP_PATH} fill={drop} animatedProps={dropProps} />
     </Svg>
   );
 

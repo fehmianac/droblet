@@ -51,7 +51,7 @@ export function TodayLookCard({ look, onWear, onRefresh, onToggleFavorite, refre
       <View className="h-[264px] flex-row">
         {refreshing ? (
           <AiShimmerImage className="flex-[23]" accessibilityLabel={t('todayHome.refreshing')}>
-            <AiDropPulse height={30} hookTone="sand" />
+            <AiDropPulse height={30} />
           </AiShimmerImage>
         ) : (
           <OnYouImage
