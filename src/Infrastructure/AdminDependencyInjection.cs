@@ -28,6 +28,8 @@ public static class AdminDependencyInjection
         services.AddSingleton<IAdminAppUserService, AdminAppUserService>();
         services.AddSingleton<IAdminLibraryService, AdminLibraryService>();
         services.AddSingleton<IAdminDashboardService, AdminDashboardService>();
+        // Tenant-facing, but audited like an admin grant, so it lives with the audit log (Api only).
+        services.AddSingleton<Services.SelfServePremiumService>();
         services.AddSingleton<ICatalogImageStorage, S3CatalogImageStorage>();
 
         services.AddSingleton(_ => new Lazy<IAmazonSimpleSystemsManagement>(() => new AmazonSimpleSystemsManagementClient()));

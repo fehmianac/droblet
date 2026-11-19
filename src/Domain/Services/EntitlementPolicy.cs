@@ -96,17 +96,24 @@ public sealed record ActiveEntitlement(Tier Tier, EntitlementEntity? Source)
 
 public static class EntitlementResolver
 {
-    /// <summary>Active tier = highest tier among entitlements active at `now` (startsAt ≤ now &lt; expiresAt).</summary>
+    /// <summary>
+    /// Active tier = highest tier among entitlements active at `now` (startsAt ≤ now &lt; expiresAt). At the same tier a
+    /// store purchase wins over an admin / self-serve grant, so a real subscription is always the one reported and the one
+    /// whose month the credits follow.
+    /// </summary>
     public static ActiveEntitlement Resolve(IEnumerable<EntitlementEntity> entitlements, DateTime now)
     {
         var best = entitlements
-            .Where(e => e.StartsAt <= now && (e.ExpiresAt is null || e.ExpiresAt > now))
+            .Where(e => IsActive(e, now))
             .OrderByDescending(e => e.Tier)
+            .ThenBy(e => e.Source == EntitlementSource.Store ? 0 : 1)
             .ThenByDescending(e => e.ExpiresAt ?? DateTime.MaxValue)
             .FirstOrDefault();
 
         return best is null ? ActiveEntitlement.Free : new ActiveEntitlement(best.Tier, best);
     }
+
+    public static bool IsActive(EntitlementEntity e, DateTime now) => e.StartsAt <= now && (e.ExpiresAt is null || e.ExpiresAt > now);
 
     public static CreditContext CreditContextFor(ActiveEntitlement active, DateTime now, int monthlyAllowance)
     {

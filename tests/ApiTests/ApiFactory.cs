@@ -16,7 +16,7 @@ using Tests.Shared;
 
 namespace ApiTests;
 
-public sealed class ApiFactory : WebApplicationFactory<Entrypoint>
+public class ApiFactory : WebApplicationFactory<Entrypoint>
 {
     public InMemoryRepository Repository { get; } = new();
     public FakeObjectStorage Storage { get; } = new();
