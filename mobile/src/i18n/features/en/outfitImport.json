@@ -79,7 +79,8 @@
       "discardBody": "The photos and the pieces found are deleted. Unused recognitions come back.",
       "discardConfirm": "Cancel and delete",
       "discardKeep": "Keep going",
-      "commitFailed": "Could not approve. Your list is still here; you can try again."
+      "commitFailed": "Could not approve. Your list is still here; you can try again.",
+      "discarded": "Import cancelled"
     },
     "done": {
       "eyebrow": "IMPORT COMPLETE",

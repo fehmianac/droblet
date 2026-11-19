@@ -15,6 +15,7 @@ import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
 import { Text } from '@/components/ui/Text';
+import { showToast } from '@/components/ui/toast/store';
 import { useCommitImport, useDiscardImport, useImportSession } from '@/features/outfitImport/api';
 import { importProgress, isLookOn, isPieceOn, NO_CHOICES, reviewPhotos, reviewSummary, toggleLook, togglePiece } from '@/features/outfitImport/logic';
 import { ImportNotice, NoPiecesFound, PieceTag, UploadsPaused } from '@/features/outfitImport/parts';
@@ -149,7 +150,7 @@ function ProgressView({ session, notices }: { session: ImportSession; notices: s
                 </Text>
               </View>
             )}
-            <AiBackgroundAction onPress={() => router.dismissTo('/wardrobe/looks')} />
+            {paused ? null : <AiBackgroundAction onPress={() => router.dismissTo('/wardrobe/looks')} />}
           </View>
         }
         renderItem={({ item: row }) => (
@@ -166,13 +167,18 @@ function ProgressView({ session, notices }: { session: ImportSession; notices: s
       <BottomActionBar actionFill>
         <View className="flex-1 gap-1">
           {paused ? (
-            <Button label={t('outfitImport.states.retry')} onPress={() => retryUploads(session.id)} />
+            <>
+              <Button label={t('outfitImport.states.retry')} onPress={() => retryUploads(session.id)} />
+              <Button variant="secondary" size="lg" label={t('outfitImport.states.background')} onPress={() => router.dismissTo('/wardrobe/looks')} />
+            </>
           ) : (
-            <Button label={t('outfitImport.progress.review')} onPress={() => undefined} disabled />
+            <>
+              <Button label={t('outfitImport.progress.review')} onPress={() => undefined} disabled />
+              <Text variant="caption" tone="muted" className="text-center">
+                {t('outfitImport.progress.reviewHint')}
+              </Text>
+            </>
           )}
-          <Text variant="caption" tone="muted" className="text-center">
-            {t('outfitImport.progress.reviewHint')}
-          </Text>
         </View>
       </BottomActionBar>
     </>
@@ -291,7 +297,7 @@ function ReviewView({ session, onDiscard, discarding }: { session: ImportSession
         ListHeaderComponent={
           <View className="gap-3">
             <View className="gap-1">
-              <Text variant="display" accessibilityRole="header">
+              <Text variant="display" className="text-[28px] leading-[31px]" accessibilityRole="header">
                 {t('outfitImport.review.heading', { count: summary.looks })}
               </Text>
               <Text variant="caption" tone="muted">
@@ -346,7 +352,7 @@ function DoneView({ session }: { session: ImportSession }) {
         </View>
         <View className="items-center gap-2">
           <Text variant="eyebrow">{toDisplayUpper(t('outfitImport.done.eyebrow'), language)}</Text>
-          <Text variant="display" className="text-center" accessibilityRole="header">
+          <Text variant="display" className="text-center text-[32px] leading-[35px]" accessibilityRole="header">
             {t('outfitImport.done.title', { count: looks })}
           </Text>
           <Text variant="body" tone="muted" className="text-center">
@@ -395,7 +401,7 @@ export default function ImportSessionScreen() {
   const confirmDiscard = () =>
     Alert.alert(t('outfitImport.review.discardTitle'), t('outfitImport.review.discardBody'), [
       { text: t('outfitImport.review.discardKeep'), style: 'cancel' },
-      { text: t('outfitImport.review.discardConfirm'), style: 'destructive', onPress: () => discard.mutate(params.id, { onSuccess: () => router.back() }) },
+      { text: t('outfitImport.review.discardConfirm'), style: 'destructive', onPress: () => discard.mutate(params.id, { onSuccess: () => { showToast({ message: t('outfitImport.review.discarded'), tone: 'success' }); router.back(); } }) },
     ]);
 
   return (

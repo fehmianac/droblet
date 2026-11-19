@@ -79,7 +79,7 @@ export function QuotaExhausted({ max }: { max: number | null }) {
   return (
     <View className="flex-1">
       <View className="flex-1 gap-3.5 px-gutter pt-2">
-        <Text variant="display" className="mt-2" accessibilityRole="header">
+        <Text variant="display" className="mt-2 text-[28px] leading-[31px]" accessibilityRole="header">
           {t('outfitImport.intro.heading')}
         </Text>
         <View className="gap-2 rounded-card p-3.5" style={{ backgroundColor: surfaceTones.caution }} accessibilityRole="alert" testID="import.quotaExhausted">

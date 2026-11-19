@@ -103,7 +103,7 @@ export default function ImportIntroScreen() {
         <ImportPhotoCollage />
         <View className="gap-1.5">
           <Text variant="eyebrow">{t('outfitImport.intro.eyebrow')}</Text>
-          <Text variant="display" accessibilityRole="header">
+          <Text variant="display" className="text-[30px] leading-[33px]" accessibilityRole="header">
             {t('outfitImport.intro.heading')}
           </Text>
         </View>

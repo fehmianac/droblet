@@ -79,7 +79,8 @@
       "discardBody": "Fotoğraflar ve bulunan parçalar silinir. Kullanılmayan tanıma hakların geri gelir.",
       "discardConfirm": "Vazgeç ve sil",
       "discardKeep": "Devam et",
-      "commitFailed": "Onaylanamadı. Liste duruyor; tekrar deneyebilirsin."
+      "commitFailed": "Onaylanamadı. Liste duruyor; tekrar deneyebilirsin.",
+      "discarded": "İçe aktarma silindi"
     },
     "done": {
       "eyebrow": "İÇE AKTARMA TAMAMLANDI",
