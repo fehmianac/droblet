@@ -95,17 +95,21 @@ function PlanOption({
   );
 }
 
-/** Underlined 11.5 footer link with a 44 pt target. */
-function FooterLink({ label, onPress, testID }: { label: string; onPress: () => void; testID?: string }) {
+/**
+ * Underlined 11.5 footer link with a 44 pt target. `compact` (a 4.7" screen) trims the side padding and the size
+ * by half a point so restore · terms · privacy stay on one line — two lines of 44 pt targets pushed the plans
+ * under the footer on an iPhone SE.
+ */
+function FooterLink({ label, onPress, testID, compact = false }: { label: string; onPress: () => void; testID?: string; compact?: boolean }) {
   return (
     <Pressable
       testID={testID}
       onPress={onPress}
       accessibilityRole="link"
       accessibilityLabel={label}
-      className="min-h-icon-btn justify-center px-1.5 active:opacity-70"
+      className={`min-h-icon-btn justify-center active:opacity-70 ${compact ? 'px-1' : 'px-1.5'}`}
     >
-      <Text variant="caption" className="text-[11.5px] underline">
+      <Text variant="caption" className={`underline ${compact ? 'text-[11px]' : 'text-[11.5px]'}`}>
         {label}
       </Text>
     </Pressable>
@@ -274,10 +278,12 @@ export default function PaywallScreen() {
             {t('paywall.tagline')}
           </Text>
 
-          <View className={compact ? 'gap-1' : 'gap-2'}>
+          <View className={compact ? 'gap-0.5' : 'gap-2'}>
             {BENEFITS.map(({ title, body, icon }) => (
               <View key={title} className="flex-row items-center gap-3">
-                <View className="h-8 w-8 items-center justify-center rounded-pill border border-line bg-paper">
+                <View
+                  className={`items-center justify-center rounded-pill border border-line bg-paper ${compact ? 'h-7 w-7' : 'h-8 w-8'}`}
+                >
                   {icon === 'mirror' ? <CanvasGlyph name="mirror" size={16} /> : <Icon icon={icon} size={16} />}
                 </View>
                 <View className="flex-1">
@@ -317,12 +323,17 @@ export default function PaywallScreen() {
 
       <View className="gap-1 px-6 pt-3" style={{ paddingBottom: Math.max(insets.bottom, 12) }} testID="paywall.footer">
         {action}
-        <View className="flex-row flex-wrap items-center justify-center gap-x-1">
-          <FooterLink label={t('paywall.restore')} onPress={restore} testID="paywall.restore" />
-          <Dot />
-          <FooterLink label={t('paywall.termsShort')} onPress={openTerms} />
-          <Dot />
-          <FooterLink label={t('paywall.privacyShort')} onPress={openPrivacy} />
+        {/* Each separator travels with the link after it, so a wrapped line never ends on a lone "·". */}
+        <View className={`flex-row flex-wrap items-center justify-center ${compact ? 'gap-x-0.5' : 'gap-x-1'}`} testID="paywall.legal">
+          <FooterLink label={t('paywall.restore')} onPress={restore} testID="paywall.restore" compact={compact} />
+          <View className={`flex-row items-center ${compact ? 'gap-x-0.5' : 'gap-x-1'}`}>
+            <Dot />
+            <FooterLink label={t('paywall.termsShort')} onPress={openTerms} compact={compact} />
+          </View>
+          <View className={`flex-row items-center ${compact ? 'gap-x-0.5' : 'gap-x-1'}`}>
+            <Dot />
+            <FooterLink label={t('paywall.privacyShort')} onPress={openPrivacy} compact={compact} />
+          </View>
         </View>
       </View>
     </View>
