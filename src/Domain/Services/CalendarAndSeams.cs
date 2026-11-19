@@ -147,9 +147,9 @@ public static class WeatherServiceExtensions
         {
             WeatherForecast? forecast = null;
             if (query.Latitude is { } lat && query.Longitude is { } lon && WeatherRules.IsValidCoordinate(lat, lon))
-                forecast = await weather.GetForecastByLocationAsync(lat, lon, IWeatherService.MaxDays, ct);
+                forecast = await weather.GetForecastByLocationAsync(lat, lon, IWeatherService.HorizonDays, ct);
             else if (!string.IsNullOrWhiteSpace(query.CityId))
-                forecast = await weather.GetForecastByCityAsync(query.CityId, IWeatherService.MaxDays, ct);
+                forecast = await weather.GetForecastByCityAsync(query.CityId, IWeatherService.HorizonDays, ct);
             if (forecast is null)
                 return [];
             return forecast.Days

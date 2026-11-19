@@ -257,7 +257,7 @@ Slot rules (server-enforced, also in `reference.slots`): one piece per slot; eac
   "week": [{ "date": "2026-11-18", "hasPlan": true, "worn": false }]
 }
 ```
-`weather` comes from the weather provider (Open-Meteo, shared 60-minute cache): the coordinates when both are sent, otherwise the profile city (`cityId` from `GET v1/weather/city`). Temperatures are whole °C. It is **null** when neither is known, when the provider is unavailable and nothing is cached, or when `date` is outside the 7-day forecast. Trip days (`TripDetailDto.days[].weather`) follow the same rule with the trip's `cityId`. `plan`/`look` null = "Bugün için plan yok". `week` = 7 days starting at `date`. 400 `validation_failed` for a bad date.
+`weather` comes from the weather provider (Open-Meteo, shared 60-minute cache): the coordinates when both are sent, otherwise the profile city (`cityId` from `GET v1/weather/city`). Temperatures are whole °C. It is **null** when neither is known, when the provider is unavailable and nothing is cached, or when `date` is outside the provider's 16-day forecast horizon. Trip days (`TripDetailDto.days[].weather`) follow the same rule with the trip's `cityId`. `plan`/`look` null = "Bugün için plan yok". `week` = 7 days starting at `date`. 400 `validation_failed` for a bad date.
 
 ### Plan days
 | Method | Path | Request | Response |
@@ -336,15 +336,17 @@ Plans the 7 days from `weekStart`. `days` is optional; a day without an occasion
 ```json
 { "trip": TripDto,
   "items": [{ "itemId": "…", "plannedWears": 3, "packed": true, "packedAt": "…", "unavailable": false }],
-  "days": [{ "date": "2027-03-01", "label": "Uçuş + akşam yemeği", "occasion": "dinner", "slots": [LookSlotDto], "weather": WeatherDto | null }] }
+  "days": [{ "date": "2027-03-01", "label": "Uçuş + akşam yemeği", "occasion": "dinner", "slots": [LookSlotDto], "weather": WeatherDto | null }],
+  "forecast": { "status": "available", "days": [WeatherDto], "horizonEnd": "2027-03-04" } }
 ```
+`days` = the accepted plan (empty until a packing draft is accepted). `forecast` = the daily forecast of **every** trip day, packed or not, from the provider's 16-day horizon (today included). `status`: `available` (all days known) · `partial` (some days; the rest is past the horizon or over) · `beyondRange` (the trip starts after `horizonEnd` → show a quiet "forecast not available yet") · `past` · `unavailable` (provider down, nothing cached → retry later) · `noLocation` (the city could not be resolved).
 
 | Method | Path | Request | Response |
 |---|---|---|---|
 | GET | `v1/tenant/trip` | — | `TripDto[]` (by start date, newest first) |
 | GET | `v1/tenant/trip/{id}` | — | `TripDetailDto` · 404 |
-| POST | `v1/tenant/trip` | `{ "id", "cityId", "cityName", "startDate", "endDate", "tripTypes", "cabinOnly" }` | 201 `TripDto` · 200 (same id again) · 400 |
-| PUT | `v1/tenant/trip/{id}` | same fields + `baseVersion` (no `id`) | `TripDto` · 404 · 409 (current) |
+| POST | `v1/tenant/trip` | `{ "id", "cityId", "cityName", "startDate", "endDate", "tripTypes", "cabinOnly" }` | 201 `TripDto` · 200 (same id again) · 400 · 422 `trip_city_not_found` · 503 `weather_unavailable` |
+| PUT | `v1/tenant/trip/{id}` | same fields + `baseVersion` (no `id`) | `TripDto` · 404 · 409 (current) · 422 · 503 |
 | DELETE | `v1/tenant/trip/{id}` | — | 204 · 404 |
 | POST | `v1/tenant/trip/{id}/archive` | — | `TripDto` · 404 |
 | DELETE | `v1/tenant/trip/{id}/archive` | — | `TripDto` (unarchived) · 404 |
@@ -352,7 +354,8 @@ Plans the 7 days from `weekStart`. `days` is optional; a day without an occasion
 | POST | `v1/tenant/trip/{id}/pack/{jobId}/accept` | `{ "clientMutationId": "01J…" }` | `TripDetailDto` · 404 · 409 `job_not_completed` / `suggestion_stale` |
 | PUT | `v1/tenant/trip/{id}/item/{itemId}` | `{ "packed": true, "clientMutationId": "01J…", "occurredAt": "…" }` | `TripItemDto` · 404 |
 
-Trip 400 codes: `id_invalid`, `city_id_invalid`, `city_name_too_long`, `start_date_invalid`, `end_date_invalid`, `date_range_invalid` (end before start, or longer than 21 days), `trip_types_invalid`.
+`cityId` is the id of a `GET v1/weather/city` result (stored as sent). A trip sent with only `cityName` (typed city, older client) is geocoded on the server and stored with the first match's id and name; no match → 422 `trip_city_not_found`, geocoder down → 503 `weather_unavailable` (a trip is never stored without a location).
+Trip 400 codes: `id_invalid`, `city_required` (neither `cityId` nor `cityName`), `city_id_invalid`, `city_name_too_long`, `start_date_invalid`, `end_date_invalid`, `date_range_invalid` (end before start, or longer than 21 days), `trip_types_invalid`.
 Packing rules (enforced in the job and again at accept): only pieces of the wardrobe; one look per trip day built only from packed pieces; every packed piece is worn; on a multi-day trip pieces are **re-worn** — slot uses ≥ 1.5 × packed pieces (`everyPieceWornTwice` is true only when every piece really is worn at least twice).
 
 **Trip capsule** (`CapsuleRules`, checked in the job; the model is given the same numbers): trip days take the trip types' occasions in turn (business → `office`, dinner → `dinner`, sightseeing → `travel`; e.g. 3 days business + dinner = office, dinner, office) and every day's look is for its occasion. Size: dressy occasions (office, dinner, wedding) get a fresh top each day up to 3 days, then one per 1.5 days; casual ones a top per 2 days; one bottom per 3 days of each dress level (dressy / casual); one pair of shoes per dress level (+1 from 6 days, max 2); one outer layer when a day is cold or wet — worn on those days — and one bag. A stylist list must stay within [what the wardrobe can supply − 2, target + 1] pieces, give days of different occasions different looks (when it packs more than one top) and wear the packed outer layer on every cold / wet day; otherwise the rule-built capsule is used. Example: 3 days business + dinner with one rainy day → 2 office tops + 1 dinner top + 1 bottom + 1 pair of shoes + 1 coat + 1 bag = **7 pieces**, bottom, shoes and bag worn all 3 days. A thin wardrobe falls back to the minimal list (every piece worn twice).

@@ -531,7 +531,8 @@ public class WeatherAndLocalizationRulesTests
         Assert.False(WeatherRules.IsValidCoordinate(91, 29));
         Assert.False(WeatherRules.IsValidCoordinate(41, 181));
         Assert.Equal(7, WeatherRules.ClampDays(null));
-        Assert.Equal(7, WeatherRules.ClampDays(30));
+        Assert.Equal(IWeatherService.HorizonDays, WeatherRules.ClampDays(30)); // up to the provider horizon (16)
+        Assert.Equal(16, WeatherRules.ClampDays(16));
         Assert.Equal(1, WeatherRules.ClampDays(0));
     }
 

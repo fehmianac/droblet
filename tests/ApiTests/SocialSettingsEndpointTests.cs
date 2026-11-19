@@ -504,7 +504,7 @@ public class SettingsAnalyticsWeatherEndpointTests(StoreSocialApiFactory factory
         Assert.Equal("city_not_found", await (await client.GetAsync("v1/weather?cityId=999")).CodeAsync());
         Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("v1/weather")).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("v1/weather?lat=95&lon=10")).StatusCode);
-        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync($"v1/weather?cityId={cityId}&days=8")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync($"v1/weather?cityId={cityId}&days=17")).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("v1/weather/city?q=i")).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await factory.CreateClient().GetAsync("v1/weather/city?q=ist")).StatusCode);
 

@@ -28,7 +28,7 @@ public class Get : IEndpoint
         CancellationToken cancellationToken)
     {
 
-        if (days is < 1 or > IWeatherService.MaxDays)
+        if (days is < 1 or > IWeatherService.HorizonDays)
             return StoreResults.BadQuery();
 
         try
@@ -61,7 +61,7 @@ public class Get : IEndpoint
             .ProducesProblem(StatusCodes.Status500InternalServerError)
             .RequireAuthorization(ClaimNames.TenantUserPolicy)
             .WithSummary("Weather forecast")
-            .WithDescription("cityId (from the city search) or lat + lon (rounded to 0.1° server side; never stored with the user). days = 1–7 (default 7). Daily min / max °C, condition code and rain probability from a shared cache.")
+            .WithDescription("cityId (from the city search) or lat + lon (rounded to 0.1° server side; never stored with the user). days = 1–16 (default 7; the provider forecasts 16 days ahead). Daily min / max °C, condition code and rain probability from a shared cache.")
             .WithTags("Weather");
     }
 }

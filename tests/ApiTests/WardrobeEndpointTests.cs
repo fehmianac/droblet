@@ -777,6 +777,13 @@ public class StylistAndTripEndpointTests(ApiFactory factory) : IClassFixture<Api
         var staleUpdate = await client.PutJsonAsync($"v1/tenant/trip/{tripId}", new { cityId = "nice", startDate = "2027-03-01", endDate = "2027-03-02", cabinOnly = true, baseVersion = 1 });
         Assert.Equal(("lyon", true), ((await update.ReadAsync<TripDto>()).CityId, (await update.ReadAsync<TripDto>()).CabinOnly));
         Assert.Equal(HttpStatusCode.Conflict, staleUpdate.StatusCode);
+
+        // A trip needs a location: a city id from the search, or at least a name the server can geocode.
+        var noCity = await client.PostJsonAsync("v1/tenant/trip", new { id = Ulid.New(), cityId = "", cityName = " ", startDate = "2027-03-01", endDate = "2027-03-02" });
+        Assert.Equal(HttpStatusCode.BadRequest, noCity.StatusCode);
+        Assert.Contains("city_required", await noCity.Content.ReadAsStringAsync());
+        // The detail always carries a forecast block; an id the city cache does not know and no name → noLocation.
+        Assert.Equal(TripForecastStatus.NoLocation, (await client.GetAsync<TripDetailDto>($"v1/tenant/trip/{tripId}"))!.Forecast!.Status);
     }
 }
 

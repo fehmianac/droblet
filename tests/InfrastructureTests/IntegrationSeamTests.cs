@@ -294,12 +294,23 @@ public class IntegrationSeamTests
     private sealed class Provider : IWeatherProvider
     {
         public bool Down { get; set; }
-        public Task<IReadOnlyList<DailyForecast>> GetDailyAsync(double latitude, double longitude, int days, CancellationToken ct) => Down
-            ? throw new WeatherUnavailableException("down")
-            : Task.FromResult<IReadOnlyList<DailyForecast>>(Enumerable.Range(0, days)
-                .Select(i => new DailyForecast($"2026-11-{18 + i:00}", 7.4 + i, 14.5 + i, WeatherCondition.Showers, 80, 60)).ToList());
-        public Task<IReadOnlyList<CityDto>> SearchCitiesAsync(string query, string language, int count, CancellationToken ct) =>
-            Task.FromResult<IReadOnlyList<CityDto>>([]);
+        public List<int> RequestedDays { get; } = [];
+        public List<string> Searches { get; } = [];
+        public Task<IReadOnlyList<DailyForecast>> GetDailyAsync(double latitude, double longitude, int days, CancellationToken ct)
+        {
+            if (Down) throw new WeatherUnavailableException("down");
+            RequestedDays.Add(days);
+            return Task.FromResult<IReadOnlyList<DailyForecast>>(Enumerable.Range(0, days)
+                .Select(i => new DailyForecast(new DateOnly(2026, 11, 18).AddDays(i).ToString("yyyy-MM-dd"), 7.4 + i, 14.5 + i, WeatherCondition.Showers, 80, 60)).ToList());
+        }
+        public Task<IReadOnlyList<CityDto>> SearchCitiesAsync(string query, string language, int count, CancellationToken ct)
+        {
+            if (Down) throw new WeatherUnavailableException("down");
+            Searches.Add(query);
+            return Task.FromResult<IReadOnlyList<CityDto>>(query.Trim().Equals("London", StringComparison.OrdinalIgnoreCase)
+                ? [new CityDto("2643743", "London", "England", "United Kingdom", "GB", 51.50853, -0.12574, "Europe/London")]
+                : []);
+        }
     }
 
     private sealed class NoEvents : Domain.Manager.IEventManager
@@ -354,6 +365,102 @@ public class IntegrationSeamTests
 
         Assert.Equal([(8, WeatherCondition.Showers), (9, WeatherCondition.Showers)],
             detail!.Days.Select(d => (d.Weather!.MinTempC, d.Weather.Condition)).ToArray());
+    }
+
+    private static TripEntity Trip(string id, string start, string end, string cityId = "2643743", string? cityName = "London") => new()
+    {
+        Id = id, TenantId = Tenant, CityId = cityId, CityName = cityName, StartDate = start, EndDate = end, CreatedAt = Now, UpdatedAt = Now, Version = 1,
+    };
+
+    private static CityEntity London() => new() { Id = "2643743", Name = new() { ["en"] = "London" }, Latitude = 51.51, Longitude = -0.13 };
+
+    [Fact]
+    public async Task TripDetail_CarriesTheWholeTripForecast_BeforeAnythingIsPacked_UpToTheSixteenDayHorizon()
+    {
+        // The reported case: today 18 Nov, trip 25–29 Nov (7–11 days ahead), nothing packed yet (no TripDay rows).
+        var provider = new Provider();
+        var host = WeatherHost(provider);
+        await host.Repository.SaveAsync(London());
+        await host.Repository.SaveAsync(Trip("trip-1", "2026-11-25", "2026-11-29"));
+
+        var detail = await host.Get<ITripService>().GetAsync(Tenant, "trip-1", default);
+
+        Assert.Empty(detail!.Days);
+        Assert.Equal(Domain.Domain.TripForecastStatus.Available, detail.Forecast!.Status);
+        Assert.Equal(["2026-11-25", "2026-11-26", "2026-11-27", "2026-11-28", "2026-11-29"], detail.Forecast.Days.Select(d => d.Date).ToArray());
+        Assert.Equal("2026-12-03", detail.Forecast.HorizonEnd);                     // 16 days, today included
+        Assert.Equal([IWeatherService.HorizonDays], provider.RequestedDays);
+    }
+
+    [Fact]
+    public async Task TripForecast_Status_PartialBeyondRangePastUnavailableNoLocation()
+    {
+        var provider = new Provider();
+        var host = WeatherHost(provider);
+        await host.Repository.SaveAsync(London());
+        await host.Repository.SaveAsync(Trip("partial", "2026-12-01", "2026-12-06"));
+        await host.Repository.SaveAsync(Trip("beyond", "2026-12-20", "2026-12-24"));
+        await host.Repository.SaveAsync(Trip("past", "2026-11-01", "2026-11-05"));
+        await host.Repository.SaveAsync(Trip("nowhere", "2026-11-20", "2026-11-21", cityId: "unknown-id", cityName: "Qwxzzyq"));
+        await host.Repository.SaveAsync(Trip("by-name", "2026-11-20", "2026-11-21", cityId: "stale-id", cityName: "London"));
+        await host.Repository.SaveAsync(Trip("down", "2026-11-20", "2026-11-21", cityId: "745044", cityName: null));
+        await host.Repository.SaveAsync(new CityEntity { Id = "745044", Name = new() { ["tr"] = "İstanbul" }, Latitude = 41.01, Longitude = 28.95 });
+        var trips = host.Get<ITripService>();
+
+        async Task<Domain.Domain.TripForecastDto> Of(string id) => (await trips.GetAsync(Tenant, id, default))!.Forecast!;
+        var partial = await Of("partial");
+        var beyond = await Of("beyond");
+        var past = await Of("past");
+        var nowhere = await Of("nowhere");
+        var byName = await Of("by-name");
+        provider.Down = true;
+        var down = await Of("down");                                                  // nothing cached for İstanbul
+
+        Assert.Equal((Domain.Domain.TripForecastStatus.Partial, 3), (partial.Status, partial.Days.Count)); // 1–3 Dec known
+        Assert.Equal((Domain.Domain.TripForecastStatus.BeyondRange, 0, "2026-12-03"), (beyond.Status, beyond.Days.Count, beyond.HorizonEnd));
+        Assert.Equal(Domain.Domain.TripForecastStatus.Past, past.Status);
+        Assert.Equal(Domain.Domain.TripForecastStatus.NoLocation, nowhere.Status);
+        Assert.Equal((Domain.Domain.TripForecastStatus.Available, 2), (byName.Status, byName.Days.Count)); // unknown id → geocoded by name
+        Assert.Equal(Domain.Domain.TripForecastStatus.Unavailable, down.Status);
+    }
+
+    [Fact]
+    public async Task CreateTrip_WithoutCityId_GeocodesTheName_UnresolvableIs422_ProviderDownThrows()
+    {
+        var provider = new Provider();
+        var host = WeatherHost(provider);
+        var trips = host.Get<ITripService>();
+
+        var typed = await trips.CreateAsync(Tenant, new CreateTripCommand("01M7RXG2H88YETZ4EKG5C4WRV1", "", " London ", "2026-11-25", "2026-11-29"), default);
+        var picked = await trips.CreateAsync(Tenant, new CreateTripCommand("01M7RXG2H88YETZ4EKG5C4WRV2", "2643743", "Londra", "2026-11-25", "2026-11-29"), default);
+        var nowhere = await trips.CreateAsync(Tenant, new CreateTripCommand("01M7RXG2H88YETZ4EKG5C4WRV3", "", "Qwxzzyq", "2026-11-25", "2026-11-29"), default);
+        provider.Down = true;
+
+        Assert.Equal((ResultKind.Created, "2643743", "London"), (typed.Kind, typed.Value!.CityId, typed.Value.CityName));
+        Assert.Equal(("2643743", "Londra"), (picked.Value!.CityId, picked.Value.CityName)); // a picked city is stored as sent, no lookup
+        Assert.Equal((ResultKind.Invalid, Domain.Constant.ErrorCodes.TripCityNotFound), (nowhere.Kind, nowhere.Code));
+        Assert.Equal(["London", "Qwxzzyq"], provider.Searches);
+        await Assert.ThrowsAsync<WeatherUnavailableException>(() =>
+            trips.CreateAsync(Tenant, new CreateTripCommand("01M7RXG2H88YETZ4EKG5C4WRV4", "", "London", "2026-11-25", "2026-11-29"), default));
+        Assert.Null(await trips.GetAsync(Tenant, "01M7RXG2H88YETZ4EKG5C4WRV3", default));
+    }
+
+    [Fact]
+    public void TripForecast_TakesOnlyTripDays_InOrder_AndReadsBeyondRangeOnlyAfterTheHorizon()
+    {
+        var horizon = Enumerable.Range(0, 16)
+            .Select(i => new DailyForecast(new DateOnly(2026, 11, 19).AddDays(i).ToString("yyyy-MM-dd"), 5, 10 + i, WeatherCondition.Cloudy)).Reverse().ToList();
+
+        var inside = Infrastructure.Services.TripService.TripForecast(["2026-11-25", "2026-11-26"], horizon);
+        var lastDay = Infrastructure.Services.TripService.TripForecast(["2026-12-04", "2026-12-05"], horizon);
+        var after = Infrastructure.Services.TripService.TripForecast(["2026-12-05"], horizon);
+        var none = Infrastructure.Services.TripService.TripForecast(["2026-11-25"], []);
+
+        Assert.Equal(Domain.Domain.TripForecastStatus.Available, inside.Status);
+        Assert.Equal(["2026-11-25", "2026-11-26"], inside.Days.Select(d => d.Date).ToArray());
+        Assert.Equal((Domain.Domain.TripForecastStatus.Partial, 1), (lastDay.Status, lastDay.Days.Count)); // the horizon end is inclusive
+        Assert.Equal(Domain.Domain.TripForecastStatus.BeyondRange, after.Status);
+        Assert.Equal(Domain.Domain.TripForecastStatus.Unavailable, none.Status);
     }
 
     [Theory]
