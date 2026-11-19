@@ -46,7 +46,7 @@ internal static class OpsHost
         // The price list of template.yaml as the base: a branch can measure costs before its template is deployed;
         // the stage's own worker/Ai/Pricing (SSM, below) wins once it exists.
         if (TemplatePricing.Json() is { } pricing)
-            builder.AddJsonStream(new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{\"Ai\":{\"Pricing\":" + pricing + "}}")));
+            builder.AddInMemoryCollection(TemplatePricing.Flatten(pricing, "Ai:Pricing"));
         var configuration = builder
             .AddInMemoryCollection(new Dictionary<string, string?>
             {

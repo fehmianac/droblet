@@ -1,5 +1,6 @@
 using Domain.Options;
 using Domain.Services.Styling;
+using Microsoft.Extensions.Configuration;
 using Ops;
 using Ops.Commands;
 
@@ -129,6 +130,10 @@ public class AiCostCommandTests
         Assert.NotNull(json);
         Assert.Contains("\"gpt-6-astra\"", json);
         Assert.Contains("\"gpt-image-2.5-sunburst\"", json);
+        var keys = TemplatePricing.Flatten(json!, "Ai:Pricing");
+        Assert.Equal("10", keys["Ai:Pricing:Models:gpt-6-astra:Input"]);
+        var bound = new ConfigurationBuilder().AddInMemoryCollection(keys).Build().GetSection("Ai").Get<AiOptions>()!;
+        Assert.Equal(50m, bound.Pricing.For("gpt-6-astra")!.Output);
         _ = StylingJson.Options; // the styling contracts are reachable from ops (same prompt builder as the worker)
     }
 }
