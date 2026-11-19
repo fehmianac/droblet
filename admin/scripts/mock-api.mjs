@@ -81,7 +81,8 @@ const detail = (u) => ({
 const reports = Array.from({ length: 6 }, (_, i) => ({
   id: `01JREP${i}`, status: i < 4 ? 'open' : 'resolved', reporterTenantId: users[i + 1].tenantId, reporterHandle: users[i + 1].handle, targetTenantId: users[i + 5].tenantId, targetHandle: users[i + 5].handle,
   targetKind: ['look', 'profile', 'item'][i % 3], targetId: `look-${i}`, reason: ['spam', 'inappropriate', 'harassment', 'impersonation', 'minorSafety', 'other'][i], note: i % 2 ? 'Tekrarlayan reklam içeriği.' : null,
-  createdAt: daysAgo(i), resolution: i >= 4 ? 'dismissed' : null, resolutionNote: null, resolvedByUserId: i >= 4 ? me.id : null, resolvedAt: i >= 4 ? daysAgo(0) : null,
+  createdAt: daysAgo(i), resolution: i >= 4 ? (i === 4 ? 'contentRemoved' : 'dismissed') : null, resolutionNote: null, resolvedByUserId: i >= 4 ? me.id : null, resolvedAt: i >= 4 ? daysAgo(0) : null,
+  contentRemovedAt: i === 4 ? daysAgo(0) : null, contentRestoredAt: null, contentRestoredByUserId: null,
 }));
 const settings = [
   { group: 'entitlements', parameters: ['/droblet/dev/api/Entitlements', '/droblet/dev/worker/Entitlements'], fields: [{ key: 'Premium.TryOnCreditsPerMonth', type: 'int', min: 0, max: 1000, value: 30 }, { key: 'Free.ItemRecognitionLimit', type: 'int', min: 0, max: 1000, value: 10 }, { key: 'SelfServePremium.Enabled', type: 'bool', value: true }] },
@@ -259,7 +260,15 @@ createServer(async (req, res) => {
   if (p === '/v1/admin/moderation/report') return send(200, page(reports.filter((r) => r.status === (url.searchParams.get('status') ?? 'open')), url));
   if (m(/^\/v1\/admin\/moderation\/report\/([^/]+)\/resolve$/)) {
     const r = reports.find((x) => x.id === m(/^\/v1\/admin\/moderation\/report\/([^/]+)\/resolve$/)[1]);
-    Object.assign(r, { status: 'resolved', resolution: b.resolution, resolutionNote: b.note, resolvedAt: now(), resolvedByUserId: me.id });
+    if (r.status === 'open') Object.assign(r, { status: 'resolved', resolution: b.resolution, resolutionNote: b.note, resolvedAt: now(), resolvedByUserId: me.id, contentRemovedAt: b.resolution === 'contentRemoved' ? now() : null });
+    return send(200, r);
+  }
+  if (m(/^\/v1\/admin\/moderation\/report\/([^/]+)\/restore$/)) {
+    const r = reports.find((x) => x.id === m(/^\/v1\/admin\/moderation\/report\/([^/]+)\/restore$/)[1]);
+    if (!r) return problem(404, 'not_found');
+    if (r.status !== 'resolved') return problem(409, 'report_not_resolved');
+    if (r.resolution !== 'contentRemoved') return problem(409, 'report_not_content_removed');
+    if (!r.contentRestoredAt) Object.assign(r, { contentRestoredAt: now(), contentRestoredByUserId: me.id });
     return send(200, r);
   }
 
