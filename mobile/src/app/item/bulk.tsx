@@ -43,8 +43,8 @@ import { motion, scanTones } from '@/theme/tokens';
 
 /** How often the simulated row progress moves while something is processing. */
 const TICK_MS = 1000;
-/** Blur of the picked photo while it is processed (canvas: radius ~14 under a cream veil). */
-const PREVIEW_BLUR = 14;
+/** Blur of the picked photo while it is processed (canvas: radius ~14–16 under a cream veil), at the tile size. */
+const PREVIEW_BLUR = 16;
 
 type Notice =
   | { kind: 'none' }
@@ -70,7 +70,8 @@ const TILE = 'h-[62px] w-[52px] rounded-thumb';
 function BlurredPhoto({ uri }: { uri: string }) {
   return (
     <>
-      <Image source={{ uri }} blurRadius={PREVIEW_BLUR} contentFit="cover" style={StyleSheet.absoluteFill} accessible={false} />
+      {/* Decoded at the tile size first (iOS), so the blur reads the same whatever the photo resolution. */}
+      <Image source={{ uri }} blurRadius={PREVIEW_BLUR} enforceEarlyResizing contentFit="cover" style={StyleSheet.absoluteFill} accessible={false} />
       <View style={[StyleSheet.absoluteFill, { backgroundColor: scanTones.veil }]} />
     </>
   );
