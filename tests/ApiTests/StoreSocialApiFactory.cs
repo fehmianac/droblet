@@ -179,7 +179,7 @@ public sealed class StoreSocialApiFactory : WebApplicationFactory<Entrypoint>
     {
         lock (Email.Sent)
         {
-            var message = Email.Sent.Last(m => string.Equals(m.To, email, StringComparison.OrdinalIgnoreCase) && m.TextBody.Contains("reset-password?token=", StringComparison.Ordinal));
+            var message = Email.Sent.Last(m => string.Equals(m.To, email, StringComparison.OrdinalIgnoreCase) && m.TextBody.Contains("reset-password/?token=", StringComparison.Ordinal));
             return Uri.UnescapeDataString(System.Text.RegularExpressions.Regex.Match(message.TextBody, @"token=(\S+)").Groups[1].Value);
         }
     }

@@ -225,7 +225,7 @@ public class AdminEndpointTests(StoreSocialApiFactory factory) : IClassFixture<S
         var created = await super.PostJsonAsync("v1/admin/admin-user", new { email = email.ToUpperInvariant(), name = "Editör", role = "contentEditor" });
         Assert.Equal(HttpStatusCode.Created, created.StatusCode);
         var id = (await created.JsonAsync()).GetProperty("id").GetString()!;
-        Assert.Contains("reset-password?token=", factory.Email.Sent.Last(m => m.To == email).TextBody);
+        Assert.Contains("reset-password/?token=", factory.Email.Sent.Last(m => m.To == email).TextBody);
         var duplicate = await super.PostJsonAsync("v1/admin/admin-user", new { email, name = "Again", role = "moderator" });
         Assert.Equal((HttpStatusCode.Conflict, "email_taken"), (duplicate.StatusCode, await duplicate.CodeAsync()));
 
