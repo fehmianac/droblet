@@ -1,15 +1,12 @@
 import { router, useIsFocused, useLocalSearchParams } from 'expo-router';
-import { ImageOff, ScanSearch } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
-import { AiDropPulse, AiProgressLines, AiShimmerImage } from '@/components/ui/ai';
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
-import { Text } from '@/components/ui/Text';
 import {
   chooserState,
   detectedEdits,
@@ -17,8 +14,9 @@ import {
   selectedIds,
   resolveSelection,
   useDetectedEditsVersion,
+  type ChooserState,
 } from '@/features/wardrobe/detect';
-import { DetectChooser } from '@/features/wardrobe/DetectChooser';
+import { DetectChooser, type DetectPhase } from '@/features/wardrobe/DetectChooser';
 import { useDiscardDraft, useRetryDraft, useSelectDetected } from '@/features/wardrobe/mutations';
 import { StatePanel } from '@/features/wardrobe/parts';
 import { useItemDrafts } from '@/features/wardrobe/queries';
@@ -30,16 +28,35 @@ function toReview(from: string | undefined) {
   else router.replace('/item/bulk');
 }
 
+/** The part of the screen under the photo for each state; `null` = no photo to show (gone / already chosen). */
+function phaseOf(state: ChooserState): DetectPhase | null {
+  switch (state) {
+    case 'processing':
+    case 'single':
+      return 'loading';
+    case 'choose':
+    case 'empty':
+    case 'failed':
+      return state;
+    default:
+      return null;
+  }
+}
+
 /**
- * Parçaları seç — after one photo (12) or for one photo of a bulk batch (13). States: the photo is still
- * analysed ("Parçalar ayırt ediliyor…", the AI loading language), nothing found ("Bu fotoğrafta parça
- * bulamadık": retry / manual entry), failed, one piece (→ review form 12c, no chooser), several pieces
- * (the chooser), already chosen / gone. "N parçayı ekle" sends the choice: kept pieces get their
+ * Parçaları seç — after one photo (12) or for one photo of a bulk batch (13). The photo stays on screen
+ * the whole time (canvas 15): while it is analysed the scan line of 12 sweeps over it with calm stage
+ * sentences; several pieces → their boxes appear one by one and the choice slides up; nothing found /
+ * failed → the reason with retry / manual entry; one piece → the review form (12c), no chooser; already
+ * chosen / gone → back to the review list. "N parçayı ekle" sends the choice: kept pieces get their
  * background removed and appear in the review list (13), the others are discarded and cost nothing.
+ *
+ * From 12 the route carries the local photo (`photo`, `w`, `h`) and when it was sent (`since`), so the
+ * same picture and the same wait continue here instead of starting over.
  */
 export default function ItemDetectScreen() {
   const { t } = useTranslation();
-  const params = useLocalSearchParams<{ draftId: string; from?: string }>();
+  const params = useLocalSearchParams<{ draftId: string; from?: string; photo?: string; w?: string; h?: string; since?: string }>();
   const draftId = params.draftId ?? '';
   const focused = useIsFocused();
   const online = useIsOnline();
@@ -61,6 +78,8 @@ export default function ItemDetectScreen() {
   const selection = resolveSelection(pieces, overrides, edited);
 
   const [notice, setNotice] = useState<'offline' | 'selectFailed' | null>(null);
+  // The wait follows the time since 12 sent the photo; "Tekrar dene" starts it again from now.
+  const [since, setSince] = useState(() => Number(params.since) || Date.now());
 
   // One piece only: no chooser — the review form, as before.
   useEffect(() => {
@@ -80,6 +99,11 @@ export default function ItemDetectScreen() {
         ...(params.from ? { from: params.from } : {}),
       },
     });
+
+  const retryNow = () => {
+    setSince(Date.now());
+    retry.mutate(draftId);
+  };
 
   const add = () => {
     if (!online) {
@@ -103,12 +127,20 @@ export default function ItemDetectScreen() {
     else router.replace('/item/add');
   };
 
+  const phase = phaseOf(state);
+  // The local file from 12 first (already on screen there, no reload), else the draft's copy.
+  const photoUrl = params.photo || source?.imageUrl || null;
+  const carriedSize = Number(params.w) > 0 && Number(params.h) > 0 ? { width: Number(params.w), height: Number(params.h) } : null;
+
   let content;
-  if (state === 'choose' && source) {
+  if (phase && source) {
     content = (
       <DetectChooser
-        photoUrl={source.imageUrl}
-        photoSize={source.photoSize ?? null}
+        phase={phase}
+        photoUrl={photoUrl}
+        photoSize={source.photoSize ?? carriedSize}
+        since={since}
+        continued={Boolean(params.since)}
         pieces={pieces}
         selection={selection}
         edited={edited}
@@ -124,42 +156,11 @@ export default function ItemDetectScreen() {
         onDiscard={leave}
         adding={select.isPending}
         notice={notice ? t(`itemDetect.${notice}`) : null}
+        onRetry={retryNow}
+        onManual={manual}
+        retrying={retry.isPending}
+        retryDisabled={!online}
       />
-    );
-  } else if (state === 'processing' || state === 'single') {
-    content = (
-      <View className="flex-1 gap-5 px-gutter pt-1" accessibilityLiveRegion="polite" testID="detect-processing">
-        <View className="items-center">
-          <AiShimmerImage className="aspect-[3/4] w-full max-w-[260px] rounded-image-lg" />
-        </View>
-        <View className="flex-row items-center gap-3">
-          <AiDropPulse height={22} />
-          <View className="flex-1">
-            <AiProgressLines size="compact" lines={[t('itemDetect.analysing'), t('itemDetect.analysingSmall'), t('itemDetect.analysingFields')]} />
-          </View>
-        </View>
-        <Text variant="body" tone="muted">
-          {t('itemDetect.analysingBody')}
-        </Text>
-      </View>
-    );
-  } else if (state === 'empty') {
-    content = (
-      <View className="flex-1" testID="detect-empty">
-        <StatePanel icon={ScanSearch} title={t('itemDetect.emptyTitle')} body={t('itemDetect.emptyBody')}>
-          <Button label={t('itemDetect.retry')} onPress={() => retry.mutate(draftId)} loading={retry.isPending} disabled={!online} testID="detect-retry" />
-          <Button variant="secondary" label={t('itemDetect.manual')} onPress={manual} testID="detect-manual" />
-        </StatePanel>
-      </View>
-    );
-  } else if (state === 'failed') {
-    content = (
-      <View className="flex-1" testID="detect-failed">
-        <StatePanel icon={ImageOff} title={t('itemDetect.failedTitle')} body={t('itemDetect.failedBody')}>
-          <Button label={t('itemDetect.retry')} onPress={() => retry.mutate(draftId)} loading={retry.isPending} disabled={!online} testID="detect-retry" />
-          <Button variant="secondary" label={t('itemDetect.manual')} onPress={manual} testID="detect-manual" />
-        </StatePanel>
-      </View>
     );
   } else {
     content = (
