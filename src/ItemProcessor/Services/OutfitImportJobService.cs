@@ -43,6 +43,7 @@ public sealed class OutfitImportJobService(
     IImageCropper cropper,
     IItemRecognitionQuotaService itemRecognition,
     INotificationInbox inbox,
+    IAiUsageRecorder usage,
     IOptionsMonitor<AiOptions> aiOptions,
     IOptionsMonitor<WardrobeOptions> wardrobeOptions,
     IOptionsMonitor<OutfitImportOptions> importOptions,
@@ -206,6 +207,8 @@ public sealed class OutfitImportJobService(
             return await PhotoAsync(tenantId, session.Id, photo.Index, ct); // another delivery got there first
         // The detection is the photo's AI recognition (a non-member's allowance: one per photo, like bulk add).
         await itemRecognition.CommitAsync(tenantId, OutfitImportPhotoEntity.RecognitionKey(session.Id, photo.Index), ct);
+        // The detect call may run in an earlier run than the match calls (busy session, requeued): counted now.
+        await RecordUsageAsync(session, photo, "detect", null, ct);
         await CountAsync(session, new Dictionary<string, long> { [OutfitImportSessionEntity.CounterDetected] = 1 }, ct);
         return photo;
     }
@@ -312,6 +315,7 @@ public sealed class OutfitImportJobService(
         AiTelemetry.Add("match_calls", matchCalls);
         if (!await repository.SaveIfVersionAsync(photo, photo.Version, ct))
             return;
+        await RecordUsageAsync(session, photo, "done", AiUsageOutcome.Completed, ct);
         await CountAsync(session, new Dictionary<string, long>
         {
             [OutfitImportSessionEntity.CounterMatched] = 1,
@@ -363,10 +367,23 @@ public sealed class OutfitImportJobService(
         photo.UpdatedAt = Now;
         if (!await repository.SaveIfVersionAsync(photo, photo.Version, ct))
             return;
+        await RecordUsageAsync(session, photo, "done", AiUsageOutcome.Failed, ct);
         // A photo that gave nothing never costs a recognition (released whatever the stage; a no-op once committed).
         await itemRecognition.ReleaseAsync(session.TenantId, OutfitImportPhotoEntity.RecognitionKey(session.Id, photo.Index), ct);
         await CountAsync(session, new Dictionary<string, long> { [OutfitImportSessionEntity.CounterFailed] = 1 }, ct);
         logger.LogWarning("Outfit import photo {SessionId}#{Index} of tenant {TenantId} failed: {Failure}", session.Id, photo.Index, session.TenantId, failure);
+    }
+
+    /// <summary>
+    /// The run's calls not counted yet into the durable AI usage counters, once per photo and stage (marker
+    /// "oi#{session}#{index}#{stage}"). Outcome null = the detect stage (calls only; the photo is counted as one job
+    /// when it ends, ready or failed).
+    /// </summary>
+    private Task RecordUsageAsync(OutfitImportSessionEntity session, OutfitImportPhotoEntity photo, string stage, AiUsageOutcome? outcome, CancellationToken ct)
+    {
+        var calls = AiTelemetry.Current?.TakeUncountedCalls().Select(c => c.ToUsage()).ToList() ?? [];
+        return usage.RecordAsync(new AiUsageRecord(session.TenantId, $"oi#{session.Id}#{photo.Index}#{stage}", JobKind.OutfitImport,
+            outcome ?? AiUsageOutcome.Completed, calls, Now, CountsJob: outcome is not null), ct);
     }
 
     /// <summary>Atomic counter update; the photo that finishes the session writes the "ready for review" inbox row (once).</summary>

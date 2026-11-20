@@ -214,6 +214,69 @@ public class Repository(IAmazonDynamoDB client) : IRepository
         }
     }
 
+    public async Task<bool> AddCountersOnceAsync(IEntity marker, IReadOnlyList<CounterUpdate> updates, CancellationToken ct = default)
+    {
+        if (updates.Count is 0 or > 99)
+            throw new ArgumentException("1–99 counter updates.", nameof(updates));
+        var writes = new List<TransactWriteItem>
+        {
+            new()
+            {
+                Put = new Put
+                {
+                    TableName = Table,
+                    Item = ToItem(marker),
+                    ConditionExpression = "attribute_not_exists(#pk)",
+                    ExpressionAttributeNames = new Dictionary<string, string> { ["#pk"] = PkName },
+                },
+            },
+        };
+        foreach (var update in updates)
+        {
+            var names = new Dictionary<string, string> { ["#ttl"] = "ttl" };
+            var values = new Dictionary<string, AttributeValue> { [":ttl"] = Number(update.Ttl) };
+            var adds = new List<string>();
+            var sets = new List<string> { "#ttl = if_not_exists(#ttl, :ttl)" };
+            var i = 0;
+            foreach (var (name, increment) in update.Increments)
+            {
+                names[$"#c{i}"] = name;
+                values[$":c{i}"] = Number(increment);
+                adds.Add($"#c{i} :c{i}");
+                i++;
+            }
+            var j = 0;
+            foreach (var (name, value) in update.Values ?? new Dictionary<string, string>())
+            {
+                names[$"#s{j}"] = name;
+                values[$":s{j}"] = new AttributeValue { S = value };
+                sets.Add($"#s{j} = :s{j}");
+                j++;
+            }
+            writes.Add(new TransactWriteItem
+            {
+                Update = new Update
+                {
+                    TableName = Table,
+                    Key = Key(update.Pk, update.Sk),
+                    UpdateExpression = (adds.Count > 0 ? "ADD " + string.Join(", ", adds) + " " : "") + "SET " + string.Join(", ", sets),
+                    ExpressionAttributeNames = names,
+                    ExpressionAttributeValues = values,
+                },
+            });
+        }
+
+        try
+        {
+            await client.TransactWriteItemsAsync(new TransactWriteItemsRequest { TransactItems = writes }, ct);
+            return true;
+        }
+        catch (TransactionCanceledException ex) when (ex.CancellationReasons is { Count: > 0 } reasons && reasons[0].Code == "ConditionalCheckFailed")
+        {
+            return false;
+        }
+    }
+
     public async Task<bool> SaveIfVersionAsync(IVersionedEntity entity, long expectedVersion, CancellationToken ct = default)
     {
         var item = ToItem(entity);

@@ -9,6 +9,7 @@ name: Ops (dev)
 #   gh workflow run ops-dev.yml --ref <branch> -f command=generate-library-images -f args="--only lib-white-tshirt,lib-navy-blazer"
 #   gh workflow run ops-dev.yml --ref <branch> -f command=migrate-library-item-images -f args="--dry-run"
 #   gh workflow run ops-dev.yml --ref <branch> -f command=account-smoke   (e-mail verification + data export end to end)
+#   gh workflow run ops-dev.yml --ref <branch> -f command=ai-usage-backfill -f args="--days 7"   (no AI call: replays finished jobs into the AI usage counters; idempotent)
 #   gh workflow run ops-dev.yml --ref <branch> -f command=outfit-import-smoke   (Kombinlerini içe aktar: 3 outfit photos → commit, re-import matches; needs the outfit-import infra)
 
 on:
@@ -17,7 +18,7 @@ on:
       command:
         description: Komut
         type: choice
-        options: [ai-smoke, account-smoke, outfit-import-smoke, ai-perf, ai-bench, ai-cost, generate-library-images, migrate-library-item-images, grant-test-premium, revoke-test-premium, ai-probe, logs, ai-settings, ai-admin-smoke]
+        options: [ai-smoke, account-smoke, outfit-import-smoke, ai-perf, ai-bench, ai-cost, generate-library-images, migrate-library-item-images, grant-test-premium, revoke-test-premium, ai-probe, logs, ai-settings, ai-admin-smoke, ai-usage-backfill]
         default: ai-smoke
       args:
         description: 'Ek argumanlar (or. --email a@b.c --credits 10 · --only lib-a,lib-b --dry-run · --function stylist --minutes 30)'

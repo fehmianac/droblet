@@ -1,6 +1,8 @@
 using Domain.Entity;
 using Domain.Manager;
+using Domain.Services;
 using Domain.Services.Ai;
+using Infrastructure.Telemetry;
 using Microsoft.Extensions.Logging;
 
 namespace Infrastructure.Ai;
@@ -13,8 +15,9 @@ namespace Infrastructure.Ai;
 ///  - models: GET /v1/models → the model allow-list (AiModelListEntity).
 /// A trial runs at most once (Queued → Running is the claim; an SQS redelivery finds it Running and stops), so a
 /// retry never costs a second call. Every failure is stored on the trial; nothing is thrown back to SQS.
+/// Its calls go to the AI usage counters under the "admin" tenant (never a user), once per trial.
 /// </summary>
-public sealed class AiTrialRunner(IRepository repository, OpenAiProvider provider, TimeProvider time, ILogger<AiTrialRunner> logger)
+public sealed class AiTrialRunner(IRepository repository, OpenAiProvider provider, IAiUsageRecorder usage, TimeProvider time, ILogger<AiTrialRunner> logger)
 {
     public const long MaxImageBytes = 10 * 1024 * 1024;
 
@@ -28,6 +31,9 @@ public sealed class AiTrialRunner(IRepository repository, OpenAiProvider provide
         trial.Status = AiTrialStatus.Running;
         await repository.SaveAsync(trial, ct);
 
+        // Trials run outside a job run: their own telemetry, so the provider's calls (model, tokens, cost) are seen.
+        var ownRun = AiTelemetry.Current is null;
+        var timings = ownRun ? AiTelemetry.Begin() : AiTelemetry.Current!;
         try
         {
             switch (trial.Type)
@@ -68,6 +74,11 @@ public sealed class AiTrialRunner(IRepository repository, OpenAiProvider provide
             trial.Output = Cut(trial.Output);
             trial.FinishedAt = time.GetUtcNow().UtcDateTime;
             await repository.SaveAsync(trial, CancellationToken.None);
+            await usage.RecordAsync(new AiUsageRecord(AiUsageEntity.AdminTenant, $"trial#{trial.Id}", Domain.Enum.JobKind.AiTrial,
+                trial.Status == AiTrialStatus.Succeeded ? AiUsageOutcome.Completed : AiUsageOutcome.Failed,
+                timings.TakeUncountedCalls().Select(c => c.ToUsage()).ToList(), trial.FinishedAt.Value), CancellationToken.None);
+            if (ownRun)
+                AiTelemetry.End();
         }
     }
 

@@ -504,6 +504,32 @@ public sealed class AiLimitsOptions
     public int AiStartsPerMinute { get; set; }
 }
 
+/// <summary>
+/// Admin AI cost board (SSM api/AiUsage; docs/ai-cost.md §7). Money figures are configuration, not code: the USD/TRY rate
+/// for ₺ columns, the net monthly revenue per plan (incl. VAT and store fee taken off), and the anomaly thresholds.
+/// </summary>
+public sealed class AiUsageOptions
+{
+    public const string Section = "AiUsage";
+    /// <summary>₺ per $ for the panel's ₺ columns (an assumption, docs/ai-cost.md).</summary>
+    public decimal UsdTryRate { get; set; } = 43m;
+    /// <summary>Net ₺ per month of the monthly plan (₺199.99 − 20% VAT − 15% store fee).</summary>
+    public decimal NetMonthlyPlanTry { get; set; } = 141.66m;
+    /// <summary>Net ₺ per month of the yearly plan (₺1,499.99 / 12, same deductions).</summary>
+    public decimal NetYearlyPlanPerMonthTry { get; set; } = 88.54m;
+    /// <summary>A user's day is an anomaly above this multiple of the median of their previous 30 days with usage…</summary>
+    public decimal AnomalyMedianMultiplier { get; set; } = 5m;
+    /// <summary>…(only with at least this many such days, and only when the day costs at least AnomalyMinDayUsd)…</summary>
+    public int AnomalyMinHistoryDays { get; set; } = 3;
+    public decimal AnomalyMinDayUsd { get; set; } = 0.10m;
+    /// <summary>…or above this absolute daily cost in USD, whatever the history.</summary>
+    public decimal AnomalyAbsoluteDayUsd { get; set; } = 2m;
+    /// <summary>Rows of the top-users table.</summary>
+    public int TopUsers { get; set; } = 20;
+    /// <summary>Longest range one summary or user view may ask for (each day is one Query).</summary>
+    public int MaxRangeDays { get; set; } = 92;
+}
+
 public sealed class AuthRateLimitOptions
 {
     public const string Section = "AuthRateLimits";

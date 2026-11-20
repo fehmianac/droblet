@@ -8,7 +8,17 @@ using Microsoft.Extensions.Logging;
 
 namespace Infrastructure.Services;
 
-public sealed class JobLifecycle(IRepository repository, ICreditService credits, IItemRecognitionQuotaService itemRecognition, TimeProvider timeProvider, ILogger<JobLifecycle> logger) : IJobLifecycle
+/// <summary>
+/// Worker-side job transitions. The single place where a finished job's AI cost is written: the job record (timings,
+/// aiCost, aiModels) and the durable usage counters (IAiUsageRecorder, once per job id — an SQS retry adds nothing).
+/// </summary>
+public sealed class JobLifecycle(
+    IRepository repository,
+    ICreditService credits,
+    IItemRecognitionQuotaService itemRecognition,
+    IAiUsageRecorder usage,
+    TimeProvider timeProvider,
+    ILogger<JobLifecycle> logger) : IJobLifecycle
 {
     public async Task<JobEntity?> StartAsync(string tenantId, string jobId, CancellationToken ct)
     {
@@ -40,8 +50,10 @@ public sealed class JobLifecycle(IRepository repository, ICreditService credits,
         job.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
         job.Timings = AiTelemetry.Current?.Snapshot();
         job.AiCost = AiTelemetry.Current?.CostSnapshot();
+        job.AiModels = AiTelemetry.Current?.Models();
         await repository.SaveAsync(job, ct);
         await RecordDurationAsync(job, ct);
+        await RecordUsageAsync(job, AiUsageOutcome.Completed, ct);
 
         if (job.CreditIdempotencyKey is { } key)
             await credits.CommitAsync(job.TenantId, key, ct);
@@ -57,7 +69,10 @@ public sealed class JobLifecycle(IRepository repository, ICreditService credits,
         job.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
         job.Timings = AiTelemetry.Current?.Snapshot();
         job.AiCost = AiTelemetry.Current?.CostSnapshot();
+        job.AiModels = AiTelemetry.Current?.Models();
         await repository.SaveAsync(job, ct);
+        // Counted before the refund, so a crash between the two can only be retried into "already counted".
+        await RecordUsageAsync(job, job.CreditIdempotencyKey is null ? AiUsageOutcome.Failed : AiUsageOutcome.Refunded, ct);
 
         // A failed AI call never costs the user a credit.
         if (job.CreditIdempotencyKey is { } key)
@@ -67,6 +82,14 @@ public sealed class JobLifecycle(IRepository repository, ICreditService credits,
             await itemRecognition.ReleaseAsync(job.TenantId, job.Id, ct);
 
         logger.LogWarning("Job {JobId} ({Kind}) for tenant {TenantId} failed: {Failure}", job.Id, job.Kind, job.TenantId, failure);
+    }
+
+    /// <summary>The run's provider calls into the durable usage counters (marker = job id). Best effort.</summary>
+    private Task RecordUsageAsync(JobEntity job, AiUsageOutcome outcome, CancellationToken ct)
+    {
+        var calls = AiTelemetry.Current?.TakeUncountedCalls().Select(c => c.ToUsage()).ToList() ?? [];
+        return usage.RecordAsync(new AiUsageRecord(job.TenantId, job.Id, job.Kind, outcome, calls, job.UpdatedAt,
+            Source: AiUsageOperations.SourceOf(job.Input)), ct);
     }
 
     /// <summary>Feeds the kind's typical duration (JobStatsEntity, poll hint of GET job). Best effort: never fails the job.</summary>

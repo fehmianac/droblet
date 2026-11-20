@@ -28,6 +28,8 @@ public static class AdminDependencyInjection
         services.AddSingleton<IAdminAppUserService, AdminAppUserService>();
         services.AddSingleton<IAdminLibraryService, AdminLibraryService>();
         services.AddSingleton<IAdminDashboardService, AdminDashboardService>();
+        services.Configure<AiUsageOptions>(configuration.GetSection(AiUsageOptions.Section));
+        services.AddSingleton<IAdminAiUsageService, AdminAiUsageService>();
         // Tenant-facing, but audited like an admin grant, so it lives with the audit log (Api only).
         services.AddSingleton<Services.SelfServePremiumService>();
         services.AddSingleton<ICatalogImageStorage, S3CatalogImageStorage>();

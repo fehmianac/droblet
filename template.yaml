@@ -380,6 +380,13 @@ Resources:
         - IsProd
         - '{"StylistJobsPerDay":0,"ItemRecognitionsPerDay":0,"PaletteAnalysesPerDay":0,"AiStartsPerMinute":0}'
         - '{"StylistJobsPerDay":40,"ItemRecognitionsPerDay":150,"PaletteAnalysesPerDay":5,"AiStartsPerMinute":20}'
+  SsmApiAiUsage:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/api/AiUsage
+      Type: String
+      Description: Admin AI cost board (AI › Maliyet) - USD/TRY rate for TRY columns, net TRY per month of the monthly and yearly plan (docs/ai-cost.md §7), anomaly thresholds (X times the user's 30-day median, absolute USD per day), top users, max range in days.
+      Value: '{"UsdTryRate":43,"NetMonthlyPlanTry":141.66,"NetYearlyPlanPerMonthTry":88.54,"AnomalyMedianMultiplier":5,"AnomalyMinHistoryDays":3,"AnomalyMinDayUsd":0.10,"AnomalyAbsoluteDayUsd":2,"TopUsers":20,"MaxRangeDays":92}'
   SsmApiPhotos:
     Type: AWS::SSM::Parameter
     Properties:

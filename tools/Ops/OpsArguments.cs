@@ -28,11 +28,13 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
     public const string AccountSmoke = "account-smoke";
     public const string OutfitImportSmoke = "outfit-import-smoke";
     public const string AiAdminSmoke = "ai-admin-smoke";
+    /// <summary>Replays the job table (≤ 7 days) into the AI usage counters. No AI call; idempotent; allowed on prod.</summary>
+    public const string AiUsageBackfill = "ai-usage-backfill";
 
     /// <summary>Hard ceiling of image-model calls in one run (library images and synthetic fixtures together).</summary>
     public const int MaxImageCallsPerRun = 30;
 
-    public static readonly IReadOnlyList<string> Commands = [GrantTestPremium, RevokeTestPremium, GenerateLibraryImages, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, Logs, MigrateLibraryItemImages, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke];
+    public static readonly IReadOnlyList<string> Commands = [GrantTestPremium, RevokeTestPremium, GenerateLibraryImages, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, Logs, MigrateLibraryItemImages, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, AiUsageBackfill];
 
     /// <summary>Commands that create or change test accounts or spend AI credit on a throw-away user: never on prod.</summary>
     public static readonly IReadOnlySet<string> DevOnly = new HashSet<string>(StringComparer.Ordinal) { GrantTestPremium, RevokeTestPremium, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke };
@@ -53,6 +55,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [AccountSmoke] = ["api-url"],
         [OutfitImportSmoke] = ["api-url"],
         [AiAdminSmoke] = ["api-url"],
+        [AiUsageBackfill] = ["days"],
     };
 
     private static readonly IReadOnlyDictionary<string, string[]> AllowedFlags = new Dictionary<string, string[]>(StringComparer.Ordinal)
@@ -71,6 +74,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [AccountSmoke] = ["keep-user"],
         [OutfitImportSmoke] = ["keep-user"],
         [AiAdminSmoke] = [],
+        [AiUsageBackfill] = ["dry-run"],
     };
 
     [GeneratedRegex("^lib-[a-z0-9]+(-[a-z0-9]+)*$")]
@@ -204,6 +208,10 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
                 if (Option("image-variants") is { } iv && Ops.Commands.CostVariant.ParseError(iv) is { } ivError)
                     return "--image-variants: " + ivError;
                 break;
+            case AiUsageBackfill:
+                if (Option("days") is { } backfillDays && (!int.TryParse(backfillDays, out var bd) || bd is < 1 or > 7))
+                    return "--days must be 1–7 (the job table keeps 7 days)";
+                break;
             case AiSettings:
                 if (Option("apply") is { } preset && !AiSettingsPresetPattern().IsMatch(preset))
                     return "--apply takes a preset from ops-presets/ (e.g. ops-presets/dev-worker-ai.json)";
@@ -231,6 +239,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         "  ai-bench                [--reps N<=5] [--efforts default,low,minimal] [--qualities default,low,medium] [--text-only | --image-only]  (dev only; direct provider calls)\n" +
         "  ai-cost                 [--days 7] [--usage-only | --synthetic-only] [--reps N<=3] [--ops outfit,week,…] [--text-variants base;low:effort=low] [--image-variants low:quality=low,size=1024x1024]  (dev only; real usage from logs + synthetic cost per call)\n" +
         "  ai-probe                                                        (dev only; one direct text-model call)\n" +
+        "  ai-usage-backfill       [--days 7] [--dry-run]                 (no AI call; replays finished jobs into the AI usage counters, idempotent)\n" +
         "  logs                    --function stylist [--minutes 30] [--filter OpenAI] [--limit 200]\n" +
         "  migrate-library-item-images [--dry-run]                         (one-off, idempotent: library pieces → current library image)";
 }

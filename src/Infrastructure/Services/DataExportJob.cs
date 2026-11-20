@@ -50,6 +50,8 @@ public sealed class DataExportJob(
         typeof(AnalyticsActorEventEntity),
         // Outfit import sessions are working state (7-day TTL); what they produced (items, looks) is exported as such.
         typeof(OutfitImportSessionEntity), typeof(OutfitImportPhotoEntity), typeof(OutfitImportPieceEntity), typeof(OutfitImportLeaseEntity),
+        // Once-per-job markers of the AI usage counters (the counters themselves, AiUsageEntity, are exported).
+        typeof(AiUsageMarkerEntity),
     ];
 
     /// <summary>Fields never exported: keys, secrets, hashes, storage internals.</summary>

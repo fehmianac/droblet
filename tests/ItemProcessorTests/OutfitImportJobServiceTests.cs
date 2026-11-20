@@ -44,6 +44,8 @@ public class OutfitImportJobServiceTests
         {
             Detections++;
             FastFlags.Add(fast);
+            // What OpenAiProvider records for a real call (a no-op outside a worker run).
+            Infrastructure.Telemetry.AiTelemetry.Current?.AddCall(new("item_detection", "gpt-6.1-terra", 500, 200, 1000, 100, CostUsd: 0.003m));
             Flows.Add(Infrastructure.Ai.AiCallContext.Current);
             if (DetectError is { } error)
                 throw error;
@@ -53,6 +55,7 @@ public class OutfitImportJobServiceTests
         public Task<ItemMatchResult> MatchAsync(ImageInput crop, IReadOnlyList<ImageInput> candidates, string? pieceHint, bool fast, CancellationToken ct)
         {
             MatchCandidateCounts.Add(candidates.Count);
+            Infrastructure.Telemetry.AiTelemetry.Current?.AddCall(new("item_match", "gpt-6.1-terra", 300, 200, 600, 20, CostUsd: 0.0014m));
             return Task.FromResult(Answer(candidates));
         }
     }
@@ -210,6 +213,33 @@ public class OutfitImportJobServiceTests
         Assert.Equal([1], s.Ai.MatchCandidateCounts);   // the black shirt has no colour in common: ruled out too
         Assert.Empty(await PiecesAsync(s.Host));
         Assert.NotEqual(blackShirt.Id, piece.MatchItemId);
+    }
+
+    [Fact]
+    public async Task AiUsage_DetectAndMatchCalls_CountedOnce_ThePhotoAsOneJob()
+    {
+        var s = Create();
+        await WardrobeItemAsync(s.Host, ItemCategory.Top, "white", "shirt");
+        await SessionAsync(s.Host, 1);
+        s.Ai.ByPhoto[1] = [Shirt];
+        s.Ai.Answer = _ => new ItemMatchResult(0, 0.93);
+
+        Infrastructure.Telemetry.AiTelemetry.Begin();
+        try
+        {
+            await RunAsync(s, 1);
+            await RunAsync(s, 1);   // a duplicate delivery finds the photo ready: no call, no count
+        }
+        finally
+        {
+            Infrastructure.Telemetry.AiTelemetry.End();
+        }
+
+        var day = await AiUsageProbe.DayAsync(s.Host.Repository, Tenant, WorkerTestHost.Now);
+        Assert.Equal((1L, 1L), (day[AiUsageCounters.Jobs], day[AiUsageCounters.Completed]));
+        Assert.Equal((1L, 3_000L), (AiUsageProbe.Op(day, AiUsageOperations.ImportDetect, AiUsageCounters.Calls), AiUsageProbe.Op(day, AiUsageOperations.ImportDetect, AiUsageCounters.Cost)));
+        Assert.Equal((1L, 1_400L), (AiUsageProbe.Op(day, AiUsageOperations.ImportMatch, AiUsageCounters.Calls), AiUsageProbe.Op(day, AiUsageOperations.ImportMatch, AiUsageCounters.Cost)));
+        Assert.Equal(2, (await s.Host.Repository.GetAllAsync<AiUsageMarkerEntity>(AiUsageMarkerEntity.GetPk(Tenant))).Count);   // detect + done
     }
 
     [Fact]

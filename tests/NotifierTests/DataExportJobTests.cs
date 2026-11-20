@@ -141,6 +141,22 @@ public class DataExportJobTests
     }
 
     [Fact]
+    public async Task Process_AiUsageCounters_AreTheUsersData_Exported_WithoutTheInternalMarkers()
+    {
+        var export = await SeedAsync();
+        await _host.Get<IAiUsageRecorder>().RecordAsync(new AiUsageRecord(TenantId, "job1", JobKind.TryOn, AiUsageOutcome.Completed,
+            [new AiUsageCall("image_tryon", "gpt-image-2.5-sunburst", 200, 5000, 760, 0, 0, 31_000)], WorkerTestHost.Now), default);
+
+        await _host.Get<IDataExportJob>().ProcessAsync(TenantId, export.Id, isLastAttempt: false, default);
+
+        var files = ReadZip((await _host.Repository.GetAsync<DataExportEntity>(export.Pk, export.Sk))!.S3Key!);
+        var usage = JsonDocument.Parse(files["data/ai-usage.json"]).RootElement;
+        Assert.Equal(["2026-11", "2026-11-18"], usage.EnumerateArray().Select(r => r.GetProperty("period").GetString()!).Order(StringComparer.Ordinal).ToArray());
+        Assert.All(usage.EnumerateArray(), r => Assert.Equal(31_000, r.GetProperty("cost").GetInt64()));
+        Assert.DoesNotContain(files.Keys, k => k.Contains("ai-usage-marker", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task Process_EmailDown_StillReady_InboxHasIt()
     {
         var export = await SeedAsync();
