@@ -460,6 +460,7 @@ export default function ItemBulkScreen() {
                 const fields = toItemFields(formFromDraft(d));
                 return { fields, draftId: d.id, preview: d.imageUrl, reviewed: overrides[d.id] !== undefined || d.selected === true || d.lowConfidence.length === 0 };
               }),
+              'bulk',
             );
             if (checked.length === list.length && groups.length === 0) router.dismissTo('/wardrobe');
           };

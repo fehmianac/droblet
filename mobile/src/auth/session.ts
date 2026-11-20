@@ -48,6 +48,8 @@ export const sessionStore = {
     };
     const ageConfirmed = user?.ageConfirmed ?? previous?.ageConfirmed;
     if (ageConfirmed !== undefined) nextUser.ageConfirmed = ageConfirmed;
+    const tenantId = res.tenantId || previous?.tenantId;
+    if (tenantId) nextUser.tenantId = tenantId;
     current = {
       accessToken: res.accessToken,
       refreshToken: res.refreshToken,

@@ -8,11 +8,20 @@ import {
 } from '@/api/contracts/analytics';
 import { ulid } from '@/lib/ids';
 
+import { sendFirebaseEvent, sendFirebaseScreenView } from './firebase';
+import { screenNameOf, toFirebaseEvent } from './firebaseEvents';
+
 /**
- * Our own analytics (README §9.2: no third-party SDK): events are buffered in memory and handed to
- * a sink in batches of at most 50. The sink (bound by `AnalyticsHost` while a user is signed in)
+ * The ONE analytics entry point. `track()` feeds two sinks:
+ *
+ * 1. Our own first-party analytics (unchanged; covered by the privacy notice): events are buffered in
+ *    memory and handed to a sink in batches of at most 50. The sink (bound by `AnalyticsHost` while a user is signed in)
  * puts each batch on the persisted mutation queue → `POST v1/tenant/event`, so batches survive
  * offline periods and restarts. Events tracked before sign-in (onboarding funnel) wait in the buffer.
+ *
+ * 2. Firebase Analytics (GA4), only while "Ürün analitiği" is on (`preference.ts`, `firebase.ts`): the
+ *    event is translated to its GA4 name and allow-listed params (`firebaseEvents.ts`,
+ *    docs/analytics-events.md); unsafe values (free text, e-mails, URLs) are dropped there.
  *
  * Only allow-listed event names (BRIEF §6) are accepted; params must be flat primitives and must
  * never carry personal data (no names, e-mails, photos or free text).
@@ -52,6 +61,8 @@ export function flushAnalytics(): void {
 
 export function track(name: AnalyticsEventName, params: AnalyticsParams = {}): void {
   if (!isAllowed(name)) return;
+  const firebaseEvent = toFirebaseEvent(name, params);
+  if (firebaseEvent) sendFirebaseEvent(firebaseEvent);
   buffer.push({ id: ulid(), name, occurredAt: new Date().toISOString(), params });
   if (buffer.length > MAX_BUFFERED) buffer = buffer.slice(buffer.length - MAX_BUFFERED);
   if (!sink) return;
@@ -61,6 +72,11 @@ export function track(name: AnalyticsEventName, params: AnalyticsParams = {}): v
   }
   clearTimer();
   timer = setTimeout(flushAnalytics, FLUSH_DELAY_MS);
+}
+
+/** A route change (expo-router segments → the route pattern). Firebase only: our own analytics has no screen views. */
+export function trackScreen(segments: readonly string[]): void {
+  sendFirebaseScreenView(screenNameOf(segments));
 }
 
 /** Binds (or unbinds, with `null`) the batch sink. Binding flushes whatever was buffered meanwhile. */

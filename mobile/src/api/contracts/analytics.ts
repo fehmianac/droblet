@@ -25,6 +25,42 @@ export const ANALYTICS_EVENTS = [
   'look_shared',
   /** Server-recorded by the invite attribution — not sent. */
   'invite_install',
+  // ---- App-only events (docs/analytics-events.md). The server's allow-list does not take them, so the
+  // first-party wire drops them (`toEventWire`); they reach Firebase Analytics only, when it is switched on.
+  /** Returning sign-in; `method`: email | apple | google. (A new account is `signup_step` account_created.) */
+  'login',
+  /** "Üzerimde gör" accepted by the server; `path` body | face, `cached`, `creditCost`, `target`. */
+  'tryon_start',
+  'tryon_complete',
+  'tryon_failed',
+  /** A stylist job delivered suggestions; `source` stylist | complete. */
+  'outfit_suggested',
+  /** "Haftamı planla" delivered a week proposal. */
+  'week_planned',
+  /** The trip packing job delivered a list. */
+  'trip_packed',
+  /** Pieces saved to the wardrobe; `source` photo | manual | library | bulk | import, `count`. */
+  'item_added',
+  /** Outfit-photo import confirmed; `looks`, `items` counts. */
+  'outfit_import_commit',
+  /** A look saved; `source` editor | stylist. */
+  'look_saved',
+  /** A suggestion put on the calendar; `source` stylist. */
+  'calendar_added',
+  /** The 05b extra-credit sheet opened; `reason`. */
+  'credit_pack_view',
+  /** A privacy choice changed; `type` (consent type or product_analytics), `granted`. */
+  'consent_updated',
+  /** Store purchase confirmed by the server; `productId`, `kind` subscription | credit_pack. */
+  'purchase',
+  /** Store purchase sheet opened; `productId`, `kind`. */
+  'begin_checkout',
+  /** Catalogue product detail opened; `productId`, `brandId`. */
+  'view_item',
+  /** A search ran; `surface` (never the typed text). */
+  'search',
+  /** A piece of content was picked; `contentType`, `source`. */
+  'select_content',
 ] as const;
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];
 

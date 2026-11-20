@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { TFunction } from 'i18next';
 
+import { track } from '@/analytics/track';
 import { apiRequest } from '@/api/client';
 import type { Occasion } from '@/api/contracts';
 import {
@@ -152,6 +153,7 @@ export function useAcceptSuggestion(jobId: string) {
     accept: (index: number, date: string | null, existingLookId: string | null, callbacks: { onError?: (error: unknown) => void } = {}): string => {
       const lookId = existingLookId ?? ulid();
       m.mutate({ jobId, index, lookId, date, ...newClientMutation() }, { onError: callbacks.onError });
+      track(date ? 'calendar_added' : 'look_saved', { source: 'stylist' });
       return lookId;
     },
   };

@@ -1,3 +1,4 @@
+import { track } from '@/analytics/track';
 import type { Item } from '@/api/contracts/wardrobe';
 import { ItemThumb } from '@/features/wardrobe/ItemThumb';
 import { useItems } from '@/features/wardrobe/queries';
@@ -153,7 +154,11 @@ export default function ShopScreen() {
 
   // Search as you type, but only ask the catalogue once typing pauses.
   useEffect(() => {
-    const handle = setTimeout(() => setQuery((q) => (q.q === search ? q : { ...q, q: search })), 300);
+    const handle = setTimeout(() => {
+      setQuery((q) => (q.q === search ? q : { ...q, q: search }));
+      // Never the typed text: only that a search ran.
+      if (search.trim()) track('search', { surface: 'shop' });
+    }, 300);
     return () => clearTimeout(handle);
   }, [search]);
 

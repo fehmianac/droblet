@@ -27,6 +27,12 @@ export type AuthUser = {
    * anything else; absent on sessions stored before the check (`AgeCheckHost` asks the profile once).
    */
   ageConfirmed?: boolean;
+  /**
+   * The account's tenant id (auth responses carry it). Only used for the pseudonymous analytics actor
+   * (`analytics/actor.ts`, = the server's `AnalyticsRules.Actor`); absent on sessions stored before it
+   * was kept, until the next token refresh fills it in.
+   */
+  tenantId?: string;
 };
 
 /** Wire body of register / login / apple / google / refresh — see `./wire/core`. */

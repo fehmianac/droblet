@@ -78,6 +78,7 @@ async function signIn(
   else await onboardingStore.load(res.userId);
 
   if (res.isNewUser) track('signup_step', { step: 'account_created', method });
+  else track('login', { method });
 
   await sessionStore.setFromAuthResponse(res, {
     name: known.name ?? profile?.displayName ?? undefined,

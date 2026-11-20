@@ -1,6 +1,7 @@
 import { isRecognitionLimitReached, itemRecognitionKey } from './recognition';
 import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 
+import { track } from '@/analytics/track';
 import { apiRequest } from '@/api/client';
 import type {
   ConfirmItemDraftsRequest,
@@ -319,10 +320,19 @@ export async function withManualPhotos(vars: ConfirmDraftsVariables): Promise<Co
   return { items: vars.request.items.map((item) => (keyById.get(item.id) ? { ...item, photoKey: keyById.get(item.id) } : item)) };
 }
 
+/** Where saved pieces came from (analytics `item_added`). */
+export type ItemAddSource = 'photo' | 'manual' | 'library' | 'bulk' | 'import';
+
 /** "Gardıroba kaydet" / "N parçayı gardıroba ekle" / library add. Nothing is saved without this user action. */
 export function useAddItems() {
   const m = useMutation<ConfirmItemDraftsResponse, unknown, ConfirmDraftsVariables>({ mutationKey: wardrobeMutationKeys.confirmDrafts });
-  return { ...m, add: (inputs: NewItemInput[]) => m.mutate(buildConfirmVariables(inputs)) };
+  return {
+    ...m,
+    add: (inputs: NewItemInput[], source: ItemAddSource) => {
+      m.mutate(buildConfirmVariables(inputs));
+      if (inputs.length > 0) track('item_added', { source, count: inputs.length });
+    },
+  };
 }
 
 export function useDiscardDraft() {
