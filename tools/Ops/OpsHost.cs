@@ -67,6 +67,13 @@ internal static class OpsHost
                 source.Optional = true;
                 source.ParameterProcessor = new JsonOrStringParameterProcessor();
             })
+            // Push secrets (push-test): the notifier's own section.
+            .AddSystemsManager(source =>
+            {
+                source.Path = $"/droblet/{stage}/notifier";
+                source.Optional = true;
+                source.ParameterProcessor = new JsonOrStringParameterProcessor();
+            })
             // Operator calls (image generation at high quality) take longer than a worker's interactive budget.
             .AddInMemoryCollection(new Dictionary<string, string?> { ["Ai:TimeoutSeconds"] = "240" })
             .Build();
