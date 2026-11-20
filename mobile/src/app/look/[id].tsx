@@ -29,6 +29,7 @@ import { ensureTryOnConsent, isConsentDeclined, TRY_ON_CREDIT_COST, useStartTryO
 import { RequirementHint, StepCountBadge } from '@/features/requirements/RequirementHint';
 import { useHandleGate } from '@/features/requirements/useHandleGate';
 import { useGate } from '@/features/requirements/useRequirements';
+import { useTryOnInviteFooter } from '@/features/tryon/TryOnInvite';
 import { useItems } from '@/features/wardrobe/queries';
 import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { formatMoney, formatNumber } from '@/lib/format';
@@ -206,6 +207,9 @@ export default function LookScreen() {
   // 14b hero: the image on the CURRENT photo, the run of this session, or none. 13d: an existing image opens
   // without the credit sheet.
   const lookTryOn = useLookTryOn(id, { enabled: Boolean(look) });
+  // The invitation names what a tap leads to: a missing photo or membership first, otherwise the cost (a consent or
+  // credit step is said by the hint under the button; the tap opens the requirements flow either way).
+  const inviteFooter = useTryOnInviteFooter(gate.req);
 
   if (deleted) {
     return (
@@ -266,16 +270,7 @@ export default function LookScreen() {
           ? t('lookDetail.wornNotice')
           : null;
 
-  // The invitation names what a tap leads to: a missing photo or membership first, otherwise the cost (a consent or
-  // credit step is said by the hint under the button; the tap opens the requirements flow either way).
-  const missingStep = gate.req.ready ? null : gate.req.hint;
-  const photoMissing = missingStep === 'bodyPhoto' || missingStep === 'facePhoto' || missingStep === 'bodyType';
-  const inviteFooter = photoMissing
-    ? t('lookDetail.heroAddPhoto')
-    : missingStep === 'premium'
-      ? t('lookDetail.heroMember')
-      : `${t('lookEditor.tryOn')} · ${t('ai.creditCost', { count: TRY_ON_CREDIT_COST })}`;
-  const invite = { footer: inviteFooter, ready: !photoMissing && missingStep !== 'premium', onPress: onTryOnPress };
+  const invite ={ ...inviteFooter, onPress: onTryOnPress };
   const hasImage = lookTryOn.state === 'image';
   const generating = lookTryOn.state === 'generating';
 
