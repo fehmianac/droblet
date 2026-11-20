@@ -1,5 +1,5 @@
 import { router, useIsFocused, useLocalSearchParams } from 'expo-router';
-import { Check, RefreshCw, X } from 'lucide-react-native';
+import { Check, RefreshCw, Sparkles, X } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, FlatList, Pressable, Switch, View } from 'react-native';
@@ -20,6 +20,7 @@ import { useCommitImport, useDiscardImport, useImportSession } from '@/features/
 import { importProgress, isLookOn, isPieceOn, NO_CHOICES, reviewPhotos, reviewSummary, toggleLook, togglePiece } from '@/features/outfitImport/logic';
 import { ImportNotice, NoPiecesFound, PieceTag, UploadsPaused } from '@/features/outfitImport/parts';
 import { retryUploads, useImportUploads, type PhotoUpload } from '@/features/outfitImport/uploader';
+import { usePhotoTryOn } from '@/features/tryon/usePhotoTryOn';
 import { ItemThumb } from '@/features/wardrobe/ItemThumb';
 import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { suffixed } from '@/lib/trSuffix';
@@ -197,7 +198,37 @@ function Checkbox({ checked, onPress, label }: { checked: boolean; onPress: () =
   );
 }
 
-function LookCard({ photo, choices, onChange }: { photo: ImportPhoto; choices: ImportChoices; onChange: (next: ImportChoices) => void }) {
+/** 31c+ "Üzerimde dene": this photo's whole outfit on the user, without splitting it (a 32-high pill, 44 touch area). */
+function TryOnPill({ index, onPress }: { index: number; onPress: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={t('tryOnPhoto.importActionA11y', { n: index })}
+      hitSlop={6}
+      className="mt-1 h-8 flex-row items-center gap-[5px] self-start rounded-pill border border-line bg-cream px-3 active:opacity-70"
+      testID={`import.look.${index}.tryon`}
+    >
+      <Icon icon={Sparkles} size={13} />
+      <Text variant="badge" className="text-[12.5px]">
+        {t('tryOnPhoto.importAction')}
+      </Text>
+    </Pressable>
+  );
+}
+
+function LookCard({
+  photo,
+  choices,
+  onChange,
+  onTryOn,
+}: {
+  photo: ImportPhoto;
+  choices: ImportChoices;
+  onChange: (next: ImportChoices) => void;
+  onTryOn?: (photo: ImportPhoto) => void;
+}) {
   const { t } = useTranslation();
   const language = useAppLanguage();
   const colors = useThemeColors();
@@ -233,6 +264,7 @@ function LookCard({ photo, choices, onChange }: { photo: ImportPhoto; choices: I
           <Text variant="caption" tone="muted">
             {t('outfitImport.review.lookMix', { newCount, matchedCount })}
           </Text>
+          {onTryOn ? <TryOnPill index={photo.index} onPress={() => onTryOn(photo)} /> : null}
         </View>
         <Switch
           value={on}
@@ -282,6 +314,8 @@ function ReviewView({ session, onDiscard, discarding }: { session: ImportSession
   const photos = reviewPhotos(session);
   const failed = session.photos.filter((p) => p.status === 'failed').length;
   const everything = choices.looksOff.length === 0 && choices.piecesOff.length === 0;
+  // "Üzerimde dene" per photo: the whole outfit of that photo on the user (the session keeps the photo server-side).
+  const tryOn = usePhotoTryOn({ feature: 'tryon_photo_import' });
 
   return (
     <>
@@ -311,7 +345,14 @@ function ReviewView({ session, onDiscard, discarding }: { session: ImportSession
             </View>
           </View>
         }
-        renderItem={({ item }) => <LookCard photo={item} choices={choices} onChange={setChoices} />}
+        renderItem={({ item }) => (
+          <LookCard
+            photo={item}
+            choices={choices}
+            onChange={setChoices}
+            onTryOn={(photo) => tryOn.tryOn({ kind: 'import', sessionId: session.id, index: photo.index, uri: photo.imageUrl })}
+          />
+        )}
       />
       <BottomActionBar actionFill>
         <View className="flex-1 gap-1">
@@ -323,10 +364,11 @@ function ReviewView({ session, onDiscard, discarding }: { session: ImportSession
             testID="import.approve"
           />
           <Text variant="caption" tone="muted" className="text-center">
-            {t('outfitImport.review.approveHint')}
+            {tryOn.note ?? t('outfitImport.review.approveHint')}
           </Text>
         </View>
       </BottomActionBar>
+      {tryOn.sheet}
     </>
   );
 }

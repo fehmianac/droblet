@@ -334,7 +334,7 @@ export function useDiscardDraft() {
  * `POST v1/tenant/item/upload-url { count, contentType }` → one presigned S3 POST per photo, then each
  * photo is sent as a multipart form (fields first, file last). Returns the `uploadId`s in photo order.
  */
-async function uploadItemPhotos(localUris: string[]): Promise<string[]> {
+export async function uploadItemPhotos(localUris: string[]): Promise<string[]> {
   const request: ItemUploadUrlRequest = { count: localUris.length, contentType: 'image/jpeg' };
   // Presigned forms are requested at send time — they expire.
   const { uploads } = await apiRequest<ItemUploadsWire>('v1/tenant/item/upload-url', { method: 'POST', body: request });

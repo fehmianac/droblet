@@ -287,6 +287,9 @@ describe('try-on wire mapping', () => {
     await expect(toWireTarget({ kind: 'edit-look', id: 'edit-1-d1@luxuryTouch' })).resolves.toEqual({ kind: 'editLook', id: 'edit-1-d1@luxuryTouch', index: null });
     await expect(toWireTarget({ kind: 'suggestion', id: '01JOB:2' })).resolves.toEqual({ kind: 'suggestion', id: '01JOB', index: 2 });
     await expect(toWireTarget({ kind: 'suggestion', id: 'nojob' })).rejects.toMatchObject({ code: 'target_index_invalid' });
+    await expect(toWireTarget({ kind: 'photo', id: '01UPLOAD' })).resolves.toEqual({ kind: 'photo', id: '01UPLOAD', index: null });
+    await expect(toWireTarget({ kind: 'import-photo', id: '01SESSION:3' })).resolves.toEqual({ kind: 'importPhoto', id: '01SESSION', index: 3 });
+    await expect(toWireTarget({ kind: 'import-photo', id: '01SESSION' })).rejects.toMatchObject({ code: 'target_index_invalid' });
     await expect(toWireTarget({ kind: 'trip-day', id: 'T1:2027-03-01' })).resolves.toEqual({ kind: 'tripDay', id: 'T1/2027-03-01', index: null });
     await expect(toWireTarget({ kind: 'trip-day', id: 'T1' })).rejects.toMatchObject({ code: 'target_id_invalid' });
   });
@@ -326,8 +329,11 @@ describe('try-on wire mapping', () => {
       imageUrl: 'https://s3/x',
       creditsRemaining: null,
       source: 'body',
+      referenceUrl: null,
     });
     expect(toTryOnResult({ id: 'IMG2', url: 'u', urlExpiresAt: 'x', createdAt: 'y', source: 'face' }, null).source).toBe('face');
+    // An outfit-photo try-on carries its source photo ("Kaynak fotoğraf").
+    expect(toTryOnResult({ id: 'IMG3', url: 'u', urlExpiresAt: 'x', createdAt: 'y', referenceUrl: 'https://s3/ref' }, null).referenceUrl).toBe('https://s3/ref');
   });
 });
 

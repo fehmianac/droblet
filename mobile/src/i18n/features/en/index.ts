@@ -17,8 +17,9 @@ import requirements from './requirements.json';
 import social from './social.json';
 import stylist from './stylist.json';
 import today from './today.json';
+import tryonPhoto from './tryonPhoto.json';
 import wardrobe from './wardrobe.json';
 
-const features = { ai, today, wardrobe, looks, outfitImport, stylist, commerce, social, account, friends, purchase, consent, detect, requirements, feedback };
+const features = { ai, today, wardrobe, looks, outfitImport, stylist, commerce, social, account, friends, purchase, consent, detect, requirements, feedback, tryonPhoto };
 
 export default features;

@@ -169,6 +169,7 @@ function Harness({
   since,
   onRetry,
   onManual,
+  onTryOnWhole,
 }: {
   pieces: ItemDraft[];
   onAdd: (ids: string[]) => void;
@@ -176,6 +177,7 @@ function Harness({
   since?: number;
   onRetry?: () => void;
   onManual?: () => void;
+  onTryOnWhole?: () => void;
 }) {
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
   const selection = resolveSelection(pieces, overrides, new Set());
@@ -198,6 +200,7 @@ function Harness({
         onDiscard={() => undefined}
         adding={false}
         notice={null}
+        onTryOnWhole={onTryOnWhole}
       />
     </SafeAreaProvider>
   );
@@ -205,6 +208,22 @@ function Harness({
 
 describe('DetectChooser', () => {
   const pieces = detectedPieces(toItemDrafts({ drafts: [groupWire, ...pieceWires], total: 1, processed: 1 }), GROUP);
+
+  it('12d+ / 12f+: "Ayırmadan üzerimde dene" while the photo is scanned and next to the choice, only when offered', async () => {
+    const tryOn = jest.fn();
+    await render(<Harness pieces={[]} phase="loading" onAdd={() => undefined} onTryOnWhole={tryOn} />);
+    expect(screen.getByText('Taramayı beklemeden, kombinin tamamı · 1 kredi')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('detect-tryon-whole'));
+    expect(tryOn).toHaveBeenCalledTimes(1);
+
+    await render(<Harness pieces={pieces} onAdd={() => undefined} onTryOnWhole={tryOn} />);
+    expect(screen.getByText('Ayırmadan üzerimde dene · 1 kredi')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('detect-tryon-whole'));
+    expect(tryOn).toHaveBeenCalledTimes(2);
+
+    await render(<Harness pieces={pieces} onAdd={() => undefined} />);
+    expect(screen.queryByTestId('detect-tryon-whole')).toBeNull();
+  });
 
   it('shows "Fotoğrafta N parça bulduk", numbered boxes and the low-confidence badge unticked', async () => {
     await render(<Harness pieces={pieces} onAdd={() => undefined} />);
