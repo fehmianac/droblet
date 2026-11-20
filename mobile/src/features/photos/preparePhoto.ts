@@ -11,17 +11,34 @@ export type PreparedPhoto = { uploadId: string; localUri: string; width: number;
  * Downscales and re-encodes the picked image as JPEG (re-encoding drops EXIF, including location —
  * it never leaves the device), then copies it into the app's own `documents/uploads/` folder so the
  * queued upload survives even if the user deletes the original from their library.
+ *
+ * `folder: 'cache'` keeps it in `cache/shared/` instead — an image shared to Droblet from another app stays there until
+ * the user chooses what to do with it (canvas 16g); nothing is uploaded before that. When the size is not known (0) the
+ * image is rendered once to read it, so the long edge is still capped.
  */
-export async function preparePhoto(sourceUri: string, width: number, height: number, maxEdge: number = MAX_EDGE): Promise<PreparedPhoto> {
+export async function preparePhoto(
+  sourceUri: string,
+  width: number,
+  height: number,
+  maxEdge: number = MAX_EDGE,
+  folder: 'documents' | 'cache' = 'documents',
+): Promise<PreparedPhoto> {
+  let w = width;
+  let h = height;
+  if (!(w > 0) || !(h > 0)) {
+    const probe = await ImageManipulator.manipulate(sourceUri).renderAsync();
+    w = probe.width;
+    h = probe.height;
+  }
   const context = ImageManipulator.manipulate(sourceUri);
-  const longest = Math.max(width, height);
+  const longest = Math.max(w, h);
   if (longest > maxEdge) {
-    context.resize(width >= height ? { width: maxEdge } : { height: maxEdge });
+    context.resize(w >= h ? { width: maxEdge } : { height: maxEdge });
   }
   const image = await context.renderAsync();
   const result = await image.saveAsync({ format: SaveFormat.JPEG, compress: 0.85 });
 
-  const dir = new Directory(Paths.document, 'uploads');
+  const dir = folder === 'cache' ? new Directory(Paths.cache, 'shared') : new Directory(Paths.document, 'uploads');
   dir.create({ intermediates: true, idempotent: true });
   const uploadId = ulid();
   const target = new File(dir, `${uploadId}.jpg`);
