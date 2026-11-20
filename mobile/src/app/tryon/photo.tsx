@@ -86,7 +86,7 @@ export default function OutfitPhotoScreen() {
         ) : null}
       </ScrollView>
       <BottomActionBar actionFill>
-        <View className="flex-1 gap-1">
+        <View className="gap-1">
           <RequirementHint hint={hint} onPress={() => uri && action.tryOn({ kind: 'local', uri })} className="self-center" testID="tryonPhoto.hint" />
           <Button
             icon={Sparkles}

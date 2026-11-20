@@ -355,7 +355,7 @@ function ReviewView({ session, onDiscard, discarding }: { session: ImportSession
         )}
       />
       <BottomActionBar actionFill>
-        <View className="flex-1 gap-1">
+        <View className="gap-1">
           <Button
             label={t('outfitImport.review.approve', { looks: summary.looks, newCount: summary.newPieces })}
             onPress={() => commit.mutate(choices)}

@@ -7,6 +7,9 @@ import { PhotoSourceSheet } from '@/features/photos/PhotoSourceSheet';
 import type { PreparedPhoto } from '@/features/photos/preparePhoto';
 import { usePhotoPicker } from '@/features/photos/usePhotoPicker';
 
+/** The bottom sheet's dismiss animation (the picker opens after it). */
+const SHEET_DISMISS_MS = 450;
+
 /** Route params of 16d for a picked photo: the local file and its size (the frame keeps the photo's aspect). */
 export function outfitPhotoParams(photo: PreparedPhoto) {
   return { uri: photo.localUri, w: String(photo.width), h: String(photo.height) };
@@ -34,6 +37,11 @@ export function useOutfitPhotoPicker(options: { onPicked?: (photo: PreparedPhoto
     onError: () => showToast({ message: t('tryOnPhoto.pickFailed'), tone: 'error' }),
   });
   const close = () => setVisible(false);
+  // iOS cannot present the system picker while the sheet's modal is still dismissing: open it once the sheet is gone.
+  const afterClose = (open: () => void) => {
+    close();
+    setTimeout(open, SHEET_DISMISS_MS);
+  };
   return {
     open: () => setVisible(true),
     sheet: (
@@ -49,14 +57,8 @@ export function useOutfitPhotoPicker(options: { onPicked?: (photo: PreparedPhoto
               caption: t('tryOnPhoto.sourceCaption'),
               cameraLabel: t('tryOnPhoto.sourceCamera'),
               primary: true,
-              onCamera: () => {
-                close();
-                picker.takePhoto();
-              },
-              onLibrary: () => {
-                close();
-                picker.chooseFromLibrary(1);
-              },
+              onCamera: () => afterClose(picker.takePhoto),
+              onLibrary: () => afterClose(() => picker.chooseFromLibrary(1)),
             },
           ]}
         />

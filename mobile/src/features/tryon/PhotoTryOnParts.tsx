@@ -82,7 +82,7 @@ export function PhotoResultActions({
   const { t } = useTranslation();
   return (
     <BottomActionBar actionFill>
-      <View className="flex-1 gap-2">
+      <View className="gap-2">
         {onSplit ? (
           <Button variant="secondary" icon={ScanSearch} label={t('tryOnPhoto.split')} onPress={onSplit} loading={splitting} testID="tryon.split" />
         ) : null}
@@ -154,7 +154,7 @@ export function ReferenceRejected({
         </View>
       </ScrollView>
       <BottomActionBar actionFill>
-        <View className="flex-1 gap-1">
+        <View className="gap-1">
           <Button label={t('tryOnPhoto.otherPhoto')} onPress={onOtherPhoto} testID="tryon.referenceRejected.other" />
           <Button variant="text" label={t('common.close')} onPress={onClose} testID="tryon.referenceRejected.close" />
         </View>
