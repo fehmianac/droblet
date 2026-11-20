@@ -30,3 +30,14 @@ describe('e-mail links (reset password, verify e-mail)', () => {
     expect(redirectSystemPath({ path: 'https://droblet.alatech.co/reset-password/?token=t2', initial: false })).toBe('/reset-password?token=t2');
   });
 });
+
+describe('sign-in redirects never become a route', () => {
+  it('maps the Google OAuth redirect to the root instead of an unknown screen', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { redirectSystemPath, isAuthRedirect } = require('@/app/+native-intent');
+    const google = 'com.googleusercontent.apps.246101741985-hka3auqnqlnlu891bt4g1jcbdr6q212t:/oauthredirect?state=abc&code=xyz';
+    expect(isAuthRedirect(google)).toBe(true);
+    expect(redirectSystemPath({ path: google, initial: false })).toBe('/');
+    expect(isAuthRedirect('droplet://invite/DAMLA24')).toBe(false);
+  });
+});
