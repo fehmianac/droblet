@@ -45,3 +45,16 @@ public class GoogleAuthCommandTests
         Assert.NotNull(Ops.OpsArguments.Parse(["google-auth", "--stage", "dev", "--add-client-id", "not-an-id"]).Error);
     }
 }
+
+public class GoogleAuthRepairTests
+{
+    [Fact]
+    public void AddClientId_RepairsALineBreakTypedIntoTheValue()
+    {
+        const string ios = "246101741985-hka3auqnqlnlu891bt4g1jcbdr6q212t.apps.googleusercontent.com";
+        const string android = "246101741985-1lsr1d53gkivi11q791t6a75ikjsogdr.apps.googleusercontent.com";
+        var broken = "{\"AndroidPackage\":\"com.alatech.droplet\",\"ClientIds\":[\"" + ios + "\n\"]}";
+        Assert.Equal("{\"AndroidPackage\":\"com.alatech.droplet\",\"ClientIds\":[\"" + ios + "\",\"" + android + "\"]}",
+            Ops.Commands.GoogleAuthCommand.AddClientId(broken, android));
+    }
+}

@@ -37,12 +37,15 @@ internal static partial class GoogleAuthCommand
 
     public static string AddClientId(string json, string clientId)
     {
-        var root = JsonNode.Parse(json)?.AsObject() ?? new JsonObject();
-        var ids = root["ClientIds"] as JsonArray ?? [];
-        if (ids.Any(n => n?.GetValue<string>() == clientId))
-            return json;
-        ids.Add(clientId);
-        root["ClientIds"] = ids;
-        return root.ToJsonString();
+        // A value typed by hand in the console can hold a raw line break inside a string (invalid JSON): drop control
+        // characters first, and trim every id, so the parameter is repaired as well as extended.
+        var cleaned = Regex.Replace(json, @"[\r\n\t]", "");
+        var root = JsonNode.Parse(cleaned)?.AsObject() ?? new JsonObject();
+        var ids = (root["ClientIds"] as JsonArray ?? []).Select(n => n?.GetValue<string>()?.Trim()).Where(s => !string.IsNullOrEmpty(s)).ToList();
+        if (!ids.Contains(clientId))
+            ids.Add(clientId);
+        root["ClientIds"] = new JsonArray(ids.Select(s => (JsonNode?)JsonValue.Create(s)).ToArray());
+        var result = root.ToJsonString();
+        return result == json ? json : result;
     }
 }
