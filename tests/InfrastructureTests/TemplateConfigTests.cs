@@ -293,6 +293,10 @@ public partial class TemplateConfigTests
         Assert.DoesNotContain("s3:*", grant);
         var resources = Regex.Matches(grant, @"Resource: (?<r>.+)").Select(m => m.Groups["r"].Value.Trim()).ToList();
         Assert.Equal(["!Sub '${PhotoBucket.Arn}/public/${Stage}/items/*'"], resources);
+        // The Cloudflare IP limit is on unless the stage serves directly (PublicImagesOrigin: auto = dev direct, prod Cloudflare).
+        Assert.Contains("Condition: !If\n              - PublicImagesViaCloudflare", grant);
+        Assert.Contains("PublicImagesViaCloudflare: !Or", template);
+        Assert.Contains("- !And [!Equals [!Ref PublicImagesOrigin, auto], !Condition IsProd]", template);
         Assert.Contains("IpAddress:", grant);
         Assert.Contains("aws:SourceIp:", grant);
         Assert.Contains("- 173.245.48.0/20", grant);

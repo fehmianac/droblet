@@ -209,3 +209,15 @@ rules pick the bucket by path — no URL rewrite needed.
 Privacy policy (TR + EN, "What other users can see" + "Security"): cleaned piece images are stored at unguessable public
 addresses even for a private closet; originals, look covers, body / face photos and try-ons stay private. Marked for
 the lawyer: `docs/legal/REVIEW.md` Q1c.
+
+
+## 12. Serving mode per stage (config)
+
+`template.yaml` parameter `PublicImagesOrigin` (`auto` | `direct` | `cloudflare`, default `auto`) decides who may read
+`public/{Stage}/items/*`: `auto` serves **dev directly** from the bucket's S3 address (no IP limit) and **prod through
+Cloudflare** (grant limited to Cloudflare's IPs). `api/Photos` `PublicBaseUrl` follows the stage: dev
+`https://droblet-dev-photos.s3.eu-central-1.amazonaws.com`, prod `https://cdn.alatech.co`. To move dev behind Cloudflare
+later: set `PublicImagesOrigin=cloudflare` for dev and change dev's `PublicBaseUrl` to the CDN host.
+
+Ops (dev only): `public-urls [--enable|--disable]` switches `api/Photos/PublicUrlsEnabled`; `cdn-check [--base URL]`
+fetches a few published images through the configured host.
