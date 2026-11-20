@@ -138,7 +138,7 @@ public class AiUsageTests
 
         await new AccountDeletionService(repository, new FakeObjectStorage(),
             new Infrastructure.Services.Social.CrossTenantCleanup(repository, TimeProvider.System, NullLogger<Infrastructure.Services.Social.CrossTenantCleanup>.Instance),
-            NullLogger<AccountDeletionService>.Instance).DeleteAccountAsync(User, Tenant, default);
+            new FakeCdnCache(), NullLogger<AccountDeletionService>.Instance).DeleteAccountAsync(User, Tenant, default);
 
         Assert.DoesNotContain(repository.Keys, k => k.Pk.Contains(Tenant, StringComparison.Ordinal) || k.Sk.Contains(Tenant, StringComparison.Ordinal));
         Assert.Single(await repository.GetAllAsync<AiUsageDayIndexEntity>(AiUsageDayIndexEntity.GetPk(Today)));   // the other user's

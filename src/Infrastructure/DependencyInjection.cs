@@ -36,6 +36,8 @@ public static class DependencyInjection
         services.Configure<ConsentOptions>(configuration.GetSection(ConsentOptions.Section));
         // Secrets created by deploy-infra hold the literal CHANGE_ME until the owner fills them in: bind that as "not set".
         services.PostConfigure<AiOptions>(o => o.ApiKey = ConfigSecret.OrNull(o.ApiKey));
+        services.Configure<CloudflareOptions>(configuration.GetSection(CloudflareOptions.Section));
+        services.PostConfigure<PhotoOptions>(o => o.PublicBaseUrl = ConfigSecret.OrNull(o.PublicBaseUrl));
         services.PostConfigure<StoreOptions>(o =>
         {
             o.NotificationKey = ConfigSecret.OrNull(o.NotificationKey);
@@ -56,6 +58,13 @@ public static class DependencyInjection
 
         services.AddSingleton<IRepository, Repository>();
         services.AddSingleton<IObjectStorage, S3ObjectStorage>();
+        // Public cleaned item images (docs/images.md): copies to public/items/, URLs, optional Cloudflare purge.
+        services.AddSingleton<ICdnCache>(sp => new CloudflareCdnCache(
+            new HttpClient { Timeout = TimeSpan.FromSeconds(10) },
+            sp.GetRequiredService<IOptionsMonitor<CloudflareOptions>>(), sp.GetRequiredService<IOptionsMonitor<PhotoOptions>>(),
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<CloudflareCdnCache>>()));
+        services.AddSingleton<IItemImagePublisher, ItemImagePublisher>();
+        services.AddSingleton<IItemImageUrls, ItemImageUrls>();
         services.AddSingleton<IEventManager, EventManager>();
         services.AddSingleton<IEntitlementService, EntitlementService>();
         services.AddSingleton<ICreditService, CreditService>();

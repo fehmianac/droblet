@@ -16,12 +16,16 @@ public class ContentModerationServiceTests
     private const string ReportId = "01JREPORT00000000000000001";
 
     private readonly InMemoryRepository _repository = new();
+    private readonly FakeObjectStorage _storage = new();
+    private readonly FakeCdnCache _cdn = new();
     private readonly ContentModerationService _service;
 
     public ContentModerationServiceTests()
     {
         var clock = Fixtures.Clock();
-        _service = new ContentModerationService(_repository, new NotificationInboxService(_repository, clock), clock, NullLogger<ContentModerationService>.Instance);
+        _service = new ContentModerationService(_repository, new NotificationInboxService(_repository, clock),
+            new Infrastructure.Storage.ItemImagePublisher(_storage, _cdn, NullLogger<Infrastructure.Storage.ItemImagePublisher>.Instance),
+            clock, NullLogger<ContentModerationService>.Instance);
     }
 
     private async Task SeedTargetsAsync()
@@ -104,6 +108,38 @@ public class ContentModerationServiceTests
         Assert.Null((await TargetAsync(kind)).ModerationHiddenAt);
         Assert.Equal(("admin-2", Fixtures.Now), (report!.ContentRestoredByUserId, report.ContentRestoredAt!.Value));
         Assert.Equal(ReportStatus.Resolved, report.Status);
+    }
+
+    [Fact]
+    public async Task Remove_DeletesThePublicItemImage_AndPurgesIt_RestorePublishesAFreshCopy()
+    {
+        var cleaned = StorageKeys.ItemImage(Owner, "item-1");
+        await _storage.PutAsync(cleaned, [1, 2], "image/webp", default);
+        await _storage.PutAsync(StorageKeys.ItemImageRendition(cleaned, 256), [3], "image/webp", default);
+        var publisher = new Infrastructure.Storage.ItemImagePublisher(_storage, _cdn, NullLogger<Infrastructure.Storage.ItemImagePublisher>.Instance);
+        var item = new ItemEntity { Id = "item-1", TenantId = Owner, Name = "Gömlek", ImageKey = cleaned, Version = 4 };
+        var first = (await publisher.PublishAsync(item, default))!;
+        item.SetPublicImage(first);
+        await _repository.SaveAsync(item);
+        await SeedReportAsync(ReportTargetKind.Item, "item-1");
+
+        await _service.RemoveAsync(ReportId, default);
+        var hidden = (ItemEntity)await TargetAsync(ReportTargetKind.Item);
+
+        Assert.Null(hidden.PublicImageKey);
+        Assert.Null(hidden.PublicThumbKey);
+        Assert.All(first.Keys, k => Assert.False(_storage.Objects.ContainsKey(k)));   // gone for everyone
+        Assert.Equal(first.Keys.Order(), _cdn.Purged.Order());
+        Assert.True(_storage.Objects.ContainsKey(cleaned));                            // the owner keeps the private image
+
+        await _service.RestoreAsync(ReportId, "admin-2", default);
+        var visible = (ItemEntity)await TargetAsync(ReportTargetKind.Item);
+
+        Assert.NotNull(visible.PublicImageKey);
+        Assert.DoesNotContain(visible.PublicImageKey, first.Keys);                     // new random key: no cache serves the old URL
+        Assert.True(_storage.Objects.ContainsKey(visible.PublicImageKey!));
+        Assert.NotNull(visible.PublicThumbKey);
+        Assert.Null(visible.PublicMediumKey);                                          // no 768 rendition existed
     }
 
     [Theory]

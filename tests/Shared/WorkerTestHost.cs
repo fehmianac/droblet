@@ -19,6 +19,8 @@ public sealed class WorkerTestHost
     public InMemoryRepository Repository { get; } = new();
     public FakeObjectStorage Storage { get; } = new();
     public FakeTimeProvider Clock { get; } = new(new DateTimeOffset(Now));
+    public FakeThumbnailer Thumbnailer { get; } = new();
+    public FakeCdnCache Cdn { get; } = new();
     public IServiceProvider Services { get; }
 
     public WorkerTestHost(Action<IServiceCollection>? configure = null)
@@ -36,6 +38,9 @@ public sealed class WorkerTestHost
         services.AddSingleton<IObjectStorage>(Storage);
         services.RemoveAll<TimeProvider>();
         services.AddSingleton<TimeProvider>(Clock);
+        services.AddSingleton<IImageThumbnailer>(Thumbnailer);
+        services.RemoveAll<ICdnCache>();
+        services.AddSingleton<ICdnCache>(Cdn);
         configure?.Invoke(services);
         Services = services.BuildServiceProvider();
     }

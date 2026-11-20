@@ -19,6 +19,7 @@ public class Entrypoint
 
     public Entrypoint() : this(WorkerHost.BuildServices(services => services
         .AddSingleton<IImageCropper, SkiaImageCropper>()
+        .AddSingleton<Domain.Services.IImageThumbnailer, SkiaImageThumbnailer>()
         .AddSingleton<IItemProcessJobService, ItemProcessJobService>())) { }
 
     public Entrypoint(IServiceProvider services) => _services = services;

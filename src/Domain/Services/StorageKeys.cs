@@ -26,6 +26,16 @@ public static class StorageKeys
     public static string ItemsPrefix(string tenantId) => $"{TenantRoot(tenantId)}items/";
     /// <summary>Cleaned (background removed) garment image of a draft / item.</summary>
     public static string ItemImage(string tenantId, string draftId) => $"{ItemsPrefix(tenantId)}{Guard(draftId)}.webp";
+    /// <summary>
+    /// Private downscaled copies of a cleaned image (<see cref="ItemImageRenditions"/>): <c>{draftId}-256.webp</c>,
+    /// <c>{draftId}-768.webp</c> next to <c>{draftId}.webp</c>. They are the source of the public thumbnails.
+    /// </summary>
+    public static string ItemImageRendition(string cleanedImageKey, int width)
+    {
+        if (!cleanedImageKey.EndsWith(".webp", StringComparison.Ordinal) || cleanedImageKey.Contains("..", StringComparison.Ordinal))
+            throw new ArgumentException("Not a cleaned item image key.", nameof(cleanedImageKey));
+        return $"{cleanedImageKey[..^".webp".Length]}-{width}.webp";
+    }
     /// <summary>EXIF-stripped original garment photo ("Orijinale dön").</summary>
     public static string ItemOriginal(string tenantId, string draftId, string extension) => $"{ItemsPrefix(tenantId)}{Guard(draftId)}-original.{extension}";
 
@@ -42,6 +52,36 @@ public static class StorageKeys
     public static string ImportPrefix(string tenantId, string sessionId) => $"{TenantRoot(tenantId)}import/{Guard(sessionId)}/";
     public static string ImportPhoto(string tenantId, string sessionId, int index, string extension) => $"{ImportPrefix(tenantId, sessionId)}{index}.{extension}";
     public static string ImportCrop(string tenantId, string sessionId, int index, int piece) => $"{ImportPrefix(tenantId, sessionId)}{index}-{piece}.jpg";
+
+    // ── Public (Cloudflare → S3, docs/images.md) ──────────────────────────────────────────────────────────────────
+    // Only cleaned wardrobe piece images (no person in them) and their thumbnails live here. The bucket policy allows an
+    // anonymous GetObject on exactly public/items/* (from Cloudflare's ranges); every other prefix stays private.
+
+    /// <summary>The only publicly readable prefix of the photo bucket.</summary>
+    public const string PublicItemsPrefix = "public/items/";
+
+    /// <summary>
+    /// One tenant's public folder. The segment is a one-way hash of the tenant id (128 bits of SHA-256), so a URL never
+    /// shows the tenant id; account deletion removes the whole folder by recomputing it.
+    /// </summary>
+    public static string PublicItemsRoot(string tenantId) => $"{PublicItemsPrefix}{TenantToken(Guard(tenantId))}/";
+
+    /// <summary>
+    /// A published rendition: <c>public/items/{tenantHash}/{itemId}-{version}-{size}.webp</c>. <paramref name="version"/>
+    /// is 128 random bits chosen per publication (unguessable, and a replaced image gets a new key, so caches never
+    /// serve the old one). <paramref name="size"/>: "full", "768", "256".
+    /// </summary>
+    public static string PublicItemImage(string tenantId, string itemId, string version, string size) =>
+        $"{PublicItemsRoot(tenantId)}{Guard(itemId)}-{Guard(version)}-{Guard(size)}.webp";
+
+    /// <summary>True for a key under this tenant's public folder (keys are never accepted from a client).</summary>
+    public static bool IsPublicItemKeyOf(string key, string tenantId) => key.StartsWith(PublicItemsRoot(tenantId), StringComparison.Ordinal);
+
+    private static string TenantToken(string tenantId)
+    {
+        var hash = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes("droblet/public-items/" + tenantId));
+        return Convert.ToHexStringLower(hash.AsSpan(0, 16));
+    }
 
     public static bool BelongsToTenant(string key, string tenantId) =>
         key.StartsWith(TenantRoot(tenantId), StringComparison.Ordinal)

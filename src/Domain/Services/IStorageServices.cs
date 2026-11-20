@@ -15,6 +15,8 @@ public interface IObjectStorage
     Task<StoredObjectInfo?> HeadAsync(string key, CancellationToken ct);
     Task<byte[]?> ReadAsync(string key, long maxBytes, CancellationToken ct);
     Task PutAsync(string key, byte[] data, string contentType, CancellationToken ct);
+    /// <summary>Server-side copy inside the bucket (SSE-S3) with the given Content-Type / Cache-Control. False when the source is missing.</summary>
+    Task<bool> CopyAsync(string sourceKey, string destinationKey, string contentType, string? cacheControl, CancellationToken ct);
     Task DeleteAsync(string key, CancellationToken ct);
     Task DeletePrefixAsync(string prefix, CancellationToken ct);
     /// <summary>Every key under a folder prefix (data export).</summary>

@@ -7,7 +7,10 @@ using Microsoft.Extensions.Options;
 
 namespace Infrastructure.Storage;
 
-/// <summary>Private photo bucket access: presigned POST/GET only, no public URLs, no CDN.</summary>
+/// <summary>
+/// Photo bucket access: presigned POST/GET. Everything is private except public/items/ (cleaned piece images, read
+/// through Cloudflare — docs/images.md); this class never builds a public URL itself.
+/// </summary>
 public sealed class S3ObjectStorage(IAmazonS3 s3, IOptionsMonitor<PhotoOptions> options, TimeProvider timeProvider) : IObjectStorage
 {
     private string Bucket => options.CurrentValue.Bucket is { Length: > 0 } bucket
@@ -82,6 +85,31 @@ public sealed class S3ObjectStorage(IAmazonS3 s3, IOptionsMonitor<PhotoOptions> 
             ContentType = contentType,
             ServerSideEncryptionMethod = ServerSideEncryptionMethod.AES256,
         }, ct);
+    }
+
+    public async Task<bool> CopyAsync(string sourceKey, string destinationKey, string contentType, string? cacheControl, CancellationToken ct)
+    {
+        try
+        {
+            var request = new CopyObjectRequest
+            {
+                SourceBucket = Bucket,
+                SourceKey = sourceKey,
+                DestinationBucket = Bucket,
+                DestinationKey = destinationKey,
+                ContentType = contentType,
+                MetadataDirective = S3MetadataDirective.REPLACE,
+                ServerSideEncryptionMethod = ServerSideEncryptionMethod.AES256,
+            };
+            if (cacheControl is not null)
+                request.Headers.CacheControl = cacheControl;
+            await s3.CopyObjectAsync(request, ct);
+            return true;
+        }
+        catch (AmazonS3Exception ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            return false;
+        }
     }
 
     public Task DeleteAsync(string key, CancellationToken ct) => s3.DeleteObjectAsync(Bucket, key, ct);

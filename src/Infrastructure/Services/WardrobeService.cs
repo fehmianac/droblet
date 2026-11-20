@@ -29,7 +29,9 @@ public sealed class WardrobeService(
     IOptionsMonitor<WardrobeOptions> wardrobeOptions,
     TimeProvider timeProvider,
     ILogger<WardrobeService> logger,
-    IAiUsageGuard aiLimits) : IWardrobeService
+    IAiUsageGuard aiLimits,
+    IItemImagePublisher publisher,
+    IItemImageUrls imageUrls) : IWardrobeService
 {
     private static readonly IReadOnlyList<Season> AllSeasons = Enum.GetValues<Season>();
 
@@ -100,11 +102,13 @@ public sealed class WardrobeService(
         if (item is null)
             return false;
 
-        foreach (var key in new[] { item.ImageKey, item.OriginalImageKey })
+        foreach (var key in PrivateImageKeys(item.ImageKey).Append(item.OriginalImageKey))
         {
             if (key is not null && StorageKeys.BelongsToTenant(key, tenantId))
                 await storage.DeleteAsync(key, ct);
         }
+        // The public copies (and their CDN cache) go too: the URL stops working for everyone.
+        await publisher.UnpublishAsync(tenantId, item.PublicImageKeys(), ct);
         // Looks keep the slot: it is returned as "unavailable" (silinmiş parça) until the user edits the look.
         await repository.DeleteAsync(item.Pk, item.Sk, ct);
         return true;
@@ -374,7 +378,7 @@ public sealed class WardrobeService(
 
     private async Task DiscardDraftAsync(string tenantId, ItemDraftEntity draft, CancellationToken ct)
     {
-        foreach (var key in new[] { draft.OriginalKey, draft.ProcessedKey, StorageKeys.Upload(tenantId, draft.Id) })
+        foreach (var key in PrivateImageKeys(draft.ProcessedKey).Append(draft.OriginalKey).Append(StorageKeys.Upload(tenantId, draft.Id)))
         {
             if (key is not null && StorageKeys.BelongsToTenant(key, tenantId))
                 await storage.DeleteAsync(key, ct);
@@ -509,9 +513,16 @@ public sealed class WardrobeService(
             UpdatedAt = now,
         };
         item.UseOriginalImage = item.OriginalImageKey is not null && (command.UseOriginalImage || item.ImageKey is null);
+        // The cleaned image (no person in it) becomes public under fresh random keys (docs/images.md). Best effort: without
+        // it the piece keeps its presigned private image.
+        var published = await publisher.PublishAsync(item, ct);
+        item.SetPublicImage(published);
 
-        return await CreateAsync(tenantId, command.ClientMutationId, command.DraftId, item,
+        var result = await CreateAsync(tenantId, command.ClientMutationId, command.DraftId, item,
             [TransactWriteOperation.Delete(draft.Pk, draft.Sk)], ct);
+        if (published is not null && result.Outcome != ItemCreateOutcome.Created)
+            await publisher.UnpublishAsync(tenantId, published.Keys, ct); // a replay or a taken id: these copies belong to nothing
+        return result;
     }
 
     // ── Manual piece (no photo) ──────────────────────────────────────────────────────────────────────────────────
@@ -726,14 +737,12 @@ public sealed class WardrobeService(
 
     public async Task<ItemDto> ToDtoAsync(ItemEntity item, CancellationToken ct)
     {
-        var key = item is { UseOriginalImage: true, OriginalImageKey: not null } ? item.OriginalImageKey : item.ImageKey ?? item.OriginalImageKey;
-        var (url, expires) = await ReadUrlAsync(key, item.TenantId, ct);
-        url ??= PublicUrl(item.GlobalImageKey);
+        var image = await imageUrls.GetAsync(item, ct);
 
         return new ItemDto(item.Id, item.Name, item.Category, item.ColorIds, item.Fabric, item.Seasons, item.Size, item.Brand, item.Source,
-            item.ProductId, item.LibraryItemId, url, expires, item.OriginalImageKey is not null, item.UseOriginalImage, item.WearCount,
+            item.ProductId, item.LibraryItemId, image.ImageUrl, image.ExpiresAt, item.OriginalImageKey is not null, item.UseOriginalImage, item.WearCount,
             item.LastWornAt, item.ListingStatus, item.CreatedAt, item.UpdatedAt, item.Version, item.Subcategory, item.FabricText, item.ColorHex,
-            item.ToModerationDto());
+            item.ToModerationDto(), image.ThumbUrl, image.MediumUrl, image.CacheKey);
     }
 
     private async Task<ItemDraftDto> ToDtoAsync(ItemDraftEntity draft, CancellationToken ct)
@@ -769,6 +778,12 @@ public sealed class WardrobeService(
 
     private static string? Owned(string? key, string tenantId) =>
         key is not null && key.StartsWith(StorageKeys.TenantRoot(tenantId), StringComparison.Ordinal) ? key : null;
+
+    /// <summary>A cleaned image and its private renditions (256 / 768 px); other keys as they are.</summary>
+    private static IEnumerable<string?> PrivateImageKeys(string? cleanedKey) =>
+        cleanedKey is not null && cleanedKey.EndsWith(".webp", StringComparison.Ordinal)
+            ? [cleanedKey, .. ItemImageRenditions.KeysOf(cleanedKey)]
+            : [cleanedKey];
 
     private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

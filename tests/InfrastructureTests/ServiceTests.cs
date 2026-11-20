@@ -39,13 +39,20 @@ public class AccountDeletionServiceTests
         await storage.PutAsync("tenant/t1/body/p.jpg", [1], "image/jpeg", default);
         await storage.PutAsync("uploads/tmp/t1/u", [1], "image/jpeg", default);
         await storage.PutAsync("tenant/t2/body/p.jpg", [1], "image/jpeg", default);
+        var mine = StorageKeys.PublicItemImage(tenant, "i1", "0123456789abcdef0123456789abcdef", "full");
+        var theirs = StorageKeys.PublicItemImage("t2", "i2", "0123456789abcdef0123456789abcdef", "full");
+        await storage.PutAsync(mine, [1], "image/webp", default);
+        await storage.PutAsync(theirs, [1], "image/webp", default);
+        var cdn = new FakeCdnCache();
 
         await new AccountDeletionService(repository, storage,
             new Infrastructure.Services.Social.CrossTenantCleanup(repository, TimeProvider.System, NullLogger<Infrastructure.Services.Social.CrossTenantCleanup>.Instance),
-            NullLogger<AccountDeletionService>.Instance).DeleteAccountAsync(user, tenant, default);
+            cdn, NullLogger<AccountDeletionService>.Instance).DeleteAccountAsync(user, tenant, default);
 
         Assert.Equal([(HandleEntity.GetPk(), "someone"), .. othersEvents], repository.Keys.OrderBy(k => k.Pk == HandleEntity.GetPk() ? 0 : 1).ThenBy(k => k.Pk, StringComparer.Ordinal).ToArray());
-        Assert.Equal(["tenant/t2/body/p.jpg"], storage.Objects.Keys.ToArray());
+        Assert.Equal(new[] { theirs, "tenant/t2/body/p.jpg" }.Order(StringComparer.Ordinal), storage.Objects.Keys.Order(StringComparer.Ordinal));
+        Assert.Contains(StorageKeys.PublicItemsRoot(tenant), storage.DeletedPrefixes);
+        Assert.Equal([mine], cdn.Purged);
     }
 }
 

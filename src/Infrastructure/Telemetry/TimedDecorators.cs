@@ -80,6 +80,12 @@ public sealed class TimedObjectStorage(IObjectStorage inner) : IObjectStorage
         await inner.PutAsync(key, data, contentType, ct);
     }
 
+    public async Task<bool> CopyAsync(string sourceKey, string destinationKey, string contentType, string? cacheControl, CancellationToken ct)
+    {
+        using var _ = AiTelemetry.Measure("s3_put");
+        return await inner.CopyAsync(sourceKey, destinationKey, contentType, cacheControl, ct);
+    }
+
     public async Task DeleteAsync(string key, CancellationToken ct)
     {
         using var _ = AiTelemetry.Measure("s3_put");

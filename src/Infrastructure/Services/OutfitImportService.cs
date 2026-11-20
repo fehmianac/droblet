@@ -31,10 +31,10 @@ public sealed class OutfitImportService(
     IWardrobeService wardrobe,
     IOptionsMonitor<PhotoOptions> photoOptions,
     IOptionsMonitor<OutfitImportOptions> importOptions,
-    IOptionsMonitor<WardrobeOptions> wardrobeOptions,
     TimeProvider timeProvider,
     ILogger<OutfitImportService> logger,
-    IAiUsageGuard aiLimits) : IOutfitImportService
+    IAiUsageGuard aiLimits,
+    IItemImageUrls imageUrls) : IOutfitImportService
 {
     private static readonly JsonSerializerOptions ResultJson = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) } };
 
@@ -414,8 +414,7 @@ public sealed class OutfitImportService(
                 string? imageUrl;
                 if (o.MatchItemId is { } itemId && items.TryGetValue(itemId, out var item))
                 {
-                    var key = item is { UseOriginalImage: true, OriginalImageKey: not null } ? item.OriginalImageKey : item.ImageKey ?? item.OriginalImageKey;
-                    imageUrl = await Url(key) ?? Integration.GlobalAssets.PublicUrl(item.GlobalImageKey, wardrobeOptions.CurrentValue.PublicAssetBaseUrl);
+                    imageUrl = (await imageUrls.GetAsync(item, ct)).ThumbUrl;
                 }
                 else
                 {

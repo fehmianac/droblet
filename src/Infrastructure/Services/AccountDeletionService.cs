@@ -17,8 +17,27 @@ public sealed class AccountDeletionService(
     IRepository repository,
     IObjectStorage storage,
     ICrossTenantCleanup crossTenantCleanup,
+    ICdnCache cdn,
     ILogger<AccountDeletionService> logger) : IAccountDeletionService
 {
+    /// <summary>
+    /// The public copies of the cleaned piece images: listed first (for the CDN purge), then deleted. Before the template
+    /// grants the Api role public/items/*, nothing can have been published there, so an AccessDenied is skipped.
+    /// </summary>
+    private async Task DeletePublicItemsAsync(string prefix, CancellationToken ct)
+    {
+        try
+        {
+            var keys = await storage.ListKeysAsync(prefix, ct);
+            await storage.DeletePrefixAsync(prefix, ct);
+            await cdn.PurgeAsync(keys, ct);
+        }
+        catch (Amazon.S3.AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
+        {
+            logger.LogWarning("public/items/ is not accessible yet (template not deployed); nothing can be published there, skipped");
+        }
+    }
+
     public async Task DeleteAccountAsync(string userId, string tenantId, CancellationToken ct)
     {
         await crossTenantCleanup.CleanAsync(tenantId, ct);
@@ -27,6 +46,8 @@ public sealed class AccountDeletionService(
         {
             if (prefix == StorageKeys.ImportUploadsRoot(tenantId))
                 await Storage.ImportUploadsCleanup.DeletePrefixAsync(storage, prefix, logger, ct);
+            else if (prefix == StorageKeys.PublicItemsRoot(tenantId))
+                await DeletePublicItemsAsync(prefix, ct);
             else
                 await storage.DeletePrefixAsync(prefix, ct);
         }

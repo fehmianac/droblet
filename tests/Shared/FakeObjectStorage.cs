@@ -26,6 +26,23 @@ public sealed class FakeObjectStorage : IObjectStorage
         return Task.CompletedTask;
     }
 
+    /// <summary>Cache-Control of copied objects (public item images).</summary>
+    public ConcurrentDictionary<string, string?> CacheControls { get; } = new();
+
+    /// <summary>When set, a copy to a matching destination throws (e.g. AccessDenied before the infra deploy).</summary>
+    public Func<string, bool>? FailCopyTo { get; set; }
+
+    public Task<bool> CopyAsync(string sourceKey, string destinationKey, string contentType, string? cacheControl, CancellationToken ct)
+    {
+        if (FailCopyTo?.Invoke(destinationKey) == true)
+            throw new InvalidOperationException("copy denied");
+        if (!Objects.TryGetValue(sourceKey, out var source))
+            return Task.FromResult(false);
+        Objects[destinationKey] = (source.Data, contentType);
+        CacheControls[destinationKey] = cacheControl;
+        return Task.FromResult(true);
+    }
+
     public Task DeleteAsync(string key, CancellationToken ct)
     {
         Objects.TryRemove(key, out _);

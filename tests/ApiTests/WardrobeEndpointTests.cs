@@ -167,8 +167,44 @@ public class WardrobeEndpointTests(ApiFactory factory) : IClassFixture<ApiFactor
         Assert.Equal(ItemListingStatus.None, item.ListingStatus);
         Assert.Equal(0, item.WearCount);
         Assert.True(item.HasOriginalImage);
-        Assert.Contains($"tenant/{auth.TenantId}/items/", item.ImageUrl);
+        // The cleaned image was published once (the replay copies nothing); without Photos:PublicBaseUrl the app gets the
+        // published copy presigned (fallback), with a cache key that does not change between fetches.
+        var published = Assert.Single(factory.Storage.Objects.Keys, k => k.StartsWith(StorageKeys.PublicItemsRoot(auth.TenantId), StringComparison.Ordinal));
+        Assert.DoesNotContain(auth.TenantId, published);
+        Assert.Contains(published, item.ImageUrl);
+        Assert.Contains("X-Amz-Expires", item.ImageUrl);
+        Assert.NotNull(item.ImageUrlExpiresAt);
+        Assert.Equal(item.ImageUrl, item.ThumbUrl);   // no renditions were written for this draft: the full image everywhere
+        Assert.Equal(item.ImageUrl, item.MediumUrl);
+        Assert.Equal(item.ImageCacheKey, Assert.Single((await client.GetAsync<List<ItemDto>>("v1/tenant/item"))!).ImageCacheKey);
         Assert.Empty((await client.GetAsync<ItemDraftsDto>("v1/tenant/item-draft"))!.Drafts);
+    }
+
+    [Fact]
+    public async Task Confirm_PublishesCleanedImageAndThumbnails_DeleteRemovesPublicAndPrivateCopies()
+    {
+        var (client, auth) = await factory.RegisterAsync();
+        var draftId = await UploadedDraftAsync(client);
+        await MarkReadyAsync(auth.TenantId, draftId);
+        var cleaned = StorageKeys.ItemImage(auth.TenantId, draftId);
+        foreach (var key in ItemImageRenditions.KeysOf(cleaned))
+            await factory.Storage.PutAsync(key, [5], "image/webp", default);
+
+        var created = await (await client.PostJsonAsync("v1/tenant/item-draft/confirm", Confirm(draftId, Ulid.New()))).ReadAsync<ItemCreateResultsDto>();
+        var item = created.Results[0].Item!;
+        var root = StorageKeys.PublicItemsRoot(auth.TenantId);
+        var published = factory.Storage.Objects.Keys.Where(k => k.StartsWith(root, StringComparison.Ordinal)).ToList();
+
+        Assert.Equal(3, published.Count);                                       // full + 768 + 256
+        Assert.Contains(published.Single(k => k.EndsWith("-256.webp", StringComparison.Ordinal)), item.ThumbUrl);
+        Assert.Contains(published.Single(k => k.EndsWith("-768.webp", StringComparison.Ordinal)), item.MediumUrl);
+        Assert.Contains(published.Single(k => k.EndsWith("-full.webp", StringComparison.Ordinal)), item.ImageUrl);
+        Assert.DoesNotContain(published, k => k.Contains("original", StringComparison.Ordinal));  // the original never goes public
+
+        Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync($"v1/tenant/item/{item.Id}")).StatusCode);
+
+        Assert.DoesNotContain(factory.Storage.Objects.Keys, k => k.StartsWith(root, StringComparison.Ordinal));
+        Assert.DoesNotContain(factory.Storage.Objects.Keys, k => k.StartsWith(StorageKeys.ItemsPrefix(auth.TenantId), StringComparison.Ordinal));
     }
 
     [Fact]

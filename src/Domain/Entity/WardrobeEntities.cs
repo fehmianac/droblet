@@ -35,6 +35,12 @@ public class ItemEntity : IVersionedEntity, IModeratedEntity
     [JsonPropertyName("imageKey")] public string? ImageKey { get; set; }
     [JsonPropertyName("originalImageKey")] public string? OriginalImageKey { get; set; }
     [JsonPropertyName("useOriginalImage")] public bool UseOriginalImage { get; set; }
+    // Public copies of the cleaned image (StorageKeys.PublicItemImage, docs/images.md): full size, 768 px and 256 px. Set
+    // only while the item has a cleaned image and is not moderation-hidden; a new publication gets new (random) keys.
+    // The thumbnails are null when no private rendition existed to copy (the full image is then used everywhere).
+    [JsonPropertyName("publicImageKey")] public string? PublicImageKey { get; set; }
+    [JsonPropertyName("publicMediumKey")] public string? PublicMediumKey { get; set; }
+    [JsonPropertyName("publicThumbKey")] public string? PublicThumbKey { get; set; }
     // Global asset key for library / catalog sourced pieces (not user data).
     [JsonPropertyName("globalImageKey")] public string? GlobalImageKey { get; set; }
 

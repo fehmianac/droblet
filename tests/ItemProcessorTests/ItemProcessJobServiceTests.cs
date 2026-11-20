@@ -190,6 +190,10 @@ public class ItemProcessJobServiceTests
         Assert.Empty(cropper.Plans);                        // the piece fills the photo: no crop
         Assert.StartsWith($"tenant/{Tenant}/items/", draft.ProcessedKey);
         Assert.True(host.Storage.Objects.ContainsKey(draft.ProcessedKey!));
+        // 256 / 768 px renditions are made at write time, privately, next to the cleaned image (no AI call).
+        Assert.All(ItemImageRenditions.KeysOf(draft.ProcessedKey!), k => Assert.Equal("image/webp", host.Storage.Objects[k].ContentType));
+        Assert.Equal([256, 768], host.Thumbnailer.Sizes);
+        Assert.DoesNotContain(host.Storage.Objects.Keys, k => k.StartsWith("public/", StringComparison.Ordinal)); // a draft is never public
         Assert.Empty(await PiecesAsync(host));
         Assert.Empty(await host.Repository.GetKeysAsync(ItemEntity.GetPk(Tenant))); // drafts become items only on confirm
     }
@@ -581,6 +585,37 @@ public class ItemProcessJobServiceTests
         Assert.False(stored.UseOriginalImage);
         Assert.Equal(2, stored.Version);
         Assert.Equal((ItemCategoryHint.Top, "shirt"), (ai.Cleanups.Single().Category, ai.Cleanups.Single().Subcategory));
+        Assert.Equal(JobStatus.Completed, (await host.JobAsync(job))!.Status);
+        // The cleaned image and its renditions are published; the crop (original) is not.
+        Assert.All([stored.PublicImageKey, stored.PublicMediumKey, stored.PublicThumbKey], k =>
+        {
+            Assert.StartsWith(StorageKeys.PublicItemsRoot(Tenant) + itemId + "-", k);
+            Assert.True(host.Storage.Objects.ContainsKey(k!));
+        });
+        Assert.Equal(host.Storage.Objects[stored.ImageKey!].Data, host.Storage.Objects[stored.PublicImageKey!].Data);
+        Assert.Equal(3, host.Storage.Objects.Keys.Count(k => k.StartsWith("public/", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public async Task CleanImportedItem_PublicCopyFails_ItemStillGetsItsCleanedImage_Unpublished()
+    {
+        var ai = new FakeAi();
+        var host = Host(ai);
+        var job = await host.QueueJobAsync(Tenant, JobKind.ItemClean);
+        const string itemId = "01JITEM000000000000000000C";
+        await host.Repository.SaveIfVersionAsync(new ItemEntity
+        {
+            Id = itemId, TenantId = Tenant, Category = ItemCategory.Top, Seasons = [Season.Spring], Source = ItemSource.Photo,
+            OriginalImageKey = StorageKeys.ImportCrop(Tenant, "01JSESSION000000000000000A", 1, 1), UseOriginalImage = true,
+        }, 0);
+        await host.Storage.PutAsync(StorageKeys.Upload(Tenant, itemId), [0xFF, 0xD8, 0x09], "image/jpeg", default);
+        host.Storage.FailCopyTo = k => k.StartsWith("public/", StringComparison.Ordinal); // AccessDenied before the infra deploy
+
+        await host.Get<IItemProcessJobService>().ProcessAsync(new ItemProcessRequestedEvent(Tenant, job.Id, itemId, Clean: true, ItemId: itemId), false, default);
+
+        var stored = (await host.Repository.GetAsync<ItemEntity>(ItemEntity.GetPk(Tenant), ItemEntity.GetSk(itemId)))!;
+        Assert.Equal(StorageKeys.ItemImage(Tenant, itemId), stored.ImageKey);
+        Assert.Null(stored.PublicImageKey);
         Assert.Equal(JobStatus.Completed, (await host.JobAsync(job))!.Status);
     }
 
