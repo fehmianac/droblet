@@ -256,7 +256,10 @@ public sealed class PublishItemImagesJob(
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            logger.LogWarning("publish-item-images: item {ItemId} of tenant {TenantId} failed ({Error})", item.Id, item.TenantId, ex.GetType().Name);
+            // The S3 error code and status (never a URL or key with a signature) say what to fix: AccessDenied, NoSuchKey…
+            var (code, status) = ex is Amazon.S3.AmazonS3Exception s3 ? (s3.ErrorCode, (int)s3.StatusCode) : (null, 0);
+            logger.LogWarning("publish-item-images: item {ItemId} of tenant {TenantId} failed ({Error} {ErrorCode} {Status}: {Detail})",
+                item.Id, item.TenantId, ex.GetType().Name, code, status, ex.Message.Length > 300 ? ex.Message[..300] : ex.Message);
             return new(ItemMigrationResult.Failed, "error");
         }
     }
