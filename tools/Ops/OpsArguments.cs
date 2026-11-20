@@ -30,11 +30,13 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
     public const string AiAdminSmoke = "ai-admin-smoke";
     /// <summary>Replays the job table (≤ 7 days) into the AI usage counters. No AI call; idempotent; allowed on prod.</summary>
     public const string AiUsageBackfill = "ai-usage-backfill";
+    /// <summary>Copies existing cleaned item images to public/items/ with their thumbnails (docs/images.md). No AI call; idempotent; allowed on prod.</summary>
+    public const string PublishItemImages = "publish-item-images";
 
     /// <summary>Hard ceiling of image-model calls in one run (library images and synthetic fixtures together).</summary>
     public const int MaxImageCallsPerRun = 30;
 
-    public static readonly IReadOnlyList<string> Commands = [GrantTestPremium, RevokeTestPremium, GenerateLibraryImages, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, Logs, MigrateLibraryItemImages, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, AiUsageBackfill];
+    public static readonly IReadOnlyList<string> Commands = [GrantTestPremium, RevokeTestPremium, GenerateLibraryImages, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, Logs, MigrateLibraryItemImages, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, AiUsageBackfill, PublishItemImages];
 
     /// <summary>Commands that create or change test accounts or spend AI credit on a throw-away user: never on prod.</summary>
     public static readonly IReadOnlySet<string> DevOnly = new HashSet<string>(StringComparer.Ordinal) { GrantTestPremium, RevokeTestPremium, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke };
@@ -56,6 +58,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [OutfitImportSmoke] = ["api-url"],
         [AiAdminSmoke] = ["api-url"],
         [AiUsageBackfill] = ["days"],
+        [PublishItemImages] = ["after-tenant"],
     };
 
     private static readonly IReadOnlyDictionary<string, string[]> AllowedFlags = new Dictionary<string, string[]>(StringComparer.Ordinal)
@@ -75,6 +78,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [OutfitImportSmoke] = ["keep-user"],
         [AiAdminSmoke] = [],
         [AiUsageBackfill] = ["dry-run"],
+        [PublishItemImages] = ["dry-run"],
     };
 
     [GeneratedRegex("^lib-[a-z0-9]+(-[a-z0-9]+)*$")]
@@ -82,6 +86,9 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
 
     [GeneratedRegex("^[a-z0-9-]{1,64}$")]
     private static partial Regex FunctionPattern();
+
+    [GeneratedRegex("^[A-Za-z0-9_-]{1,64}$")]
+    private static partial Regex TenantIdPattern();
 
     [GeneratedRegex(@"^ops-presets/[a-z0-9-]+\.json$")]
     private static partial Regex AiSettingsPresetPattern();
@@ -212,6 +219,10 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
                 if (Option("days") is { } backfillDays && (!int.TryParse(backfillDays, out var bd) || bd is < 1 or > 7))
                     return "--days must be 1–7 (the job table keeps 7 days)";
                 break;
+            case PublishItemImages:
+                if (Option("after-tenant") is { } after && !TenantIdPattern().IsMatch(after))
+                    return "--after-tenant takes the tenant id printed as the last checkpoint";
+                break;
             case AiSettings:
                 if (Option("apply") is { } preset && !AiSettingsPresetPattern().IsMatch(preset))
                     return "--apply takes a preset from ops-presets/ (e.g. ops-presets/dev-worker-ai.json)";
@@ -241,7 +252,8 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         "  ai-probe                                                        (dev only; one direct text-model call)\n" +
         "  ai-usage-backfill       [--days 7] [--dry-run]                 (no AI call; replays finished jobs into the AI usage counters, idempotent)\n" +
         "  logs                    --function stylist [--minutes 30] [--filter OpenAI] [--limit 200]\n" +
-        "  migrate-library-item-images [--dry-run]                         (one-off, idempotent: library pieces → current library image)";
+        "  migrate-library-item-images [--dry-run]                         (one-off, idempotent: library pieces → current library image)\n" +
+        "  publish-item-images     [--dry-run] [--after-tenant <id>]      (no AI call; idempotent, resumable: cleaned piece images → public/items/ + 256/768 px thumbnails)";
 }
 
 /// <summary>Counts image-model calls of one run and refuses the call that would cross the cap.</summary>
