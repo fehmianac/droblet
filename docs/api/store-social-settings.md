@@ -269,7 +269,7 @@ wear log, cart, watch list, notification settings, e-mail.
 
 // SocialLookDto
 { "id": "01J…", "ownerHandle": "ayse", "ownerDisplayName": "Ayşe", "name": "Ofis", "occasion": "office", "createdAt": "…",
-  "pieces": [ { "slot": "top", "itemId": "…", "productId": null, "name": "Beyaz gömlek", "imageUrl": "https://… (short-lived)", "product": null },
+  "pieces": [ { "slot": "top", "itemId": "…", "productId": null, "name": "Beyaz gömlek", "imageUrl": "https://cdn.alatech.co/public/prod/items/…-768.webp (presigned until the CDN is set up)", "product": null },
               { "slot": "bagAccessory", "itemId": null, "productId": "lx-bag", "name": "Deri El Çantası", "imageUrl": "https://…", "product": ProductDto } ],
   "rating": { "average": 4.6, "count": 12, "myScore": 5 },   // average null when count = 0; one decimal
   "saved": false }
@@ -279,7 +279,7 @@ wear log, cart, watch list, notification settings, e-mail.
 - **Style match %**: Jaccard of the two users' style tags: 3 shared = 100, 2 = 50, 1 = 20, 0 = 0.
 - **Look images** are item images, never try-on images. `pieces[].product` is set for catalog pieces → "Parçaları gör" can add to cart with `look: { "kind": "user", "id": lookId }`.
 - **After a block** both users get `404` for each other everywhere (search, profile, tabs, follow, rating, report, feed, suggestions). Only the blocker sees the entry in `GET v1/tenant/block`.
-- Looks, items and trips are the owner's real wardrobe data (the looks of `GET v1/tenant/look`, the items of `GET v1/tenant/item`), always behind the visibility table above. What a viewer gets is narrower than what the owner sees: a look lists only its existing pieces (a deleted item's slot is dropped); `imageUrl` is the cleaned (background-removed) item image or the public library / catalog image — **never the original photo** and never a try-on image, `null` when the piece only has an original; `pieces[].slot` is the wardrobe slot (`bagAccessory`, not `bag`).
+- Looks, items and trips are the owner's real wardrobe data (the looks of `GET v1/tenant/look`, the items of `GET v1/tenant/item`), always behind the visibility table above. What a viewer gets is narrower than what the owner sees: a look lists only its existing pieces (a deleted item's slot is dropped); `imageUrl` is the cleaned (background-removed) item image at 768 px — a public CDN URL once published ([docs/images.md](../images.md)), presigned before — or the public library / catalog image — **never the original photo** (even when the owner chose "Orijinale dön") and never a try-on image, `null` when the piece only has an original; `pieces[].slot` is the wardrobe slot (`bagAccessory`, not `bag`).
 - The trips tab lists finished trips only (end date before today) as city + month. It stays owner-only.
 - The owner sees the same rating on her own looks: `GET v1/tenant/look` / `look/{id}` → `rating { average, count }` (other document).
 

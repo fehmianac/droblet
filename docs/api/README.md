@@ -368,6 +368,11 @@ Admin panel at `https://droblet-admin.alatech.co` ([admin.md](admin.md)). Admin 
 | PUT | `v1/admin/ai/limits` | admin:ai.manage | [A](admin.md) | Change the per-tenant daily AI caps (api/AiLimits) |
 | GET | `v1/admin/ai-usage/summary` | admin:ai.usage.view | [A](admin.md) | AI cost board: daily cost, operations, models, plans, top users, anomalies |
 | GET | `v1/admin/user/{id}/ai-usage` | admin:ai.usage.view | [A](admin.md) | One user's AI usage, cost and recent AI jobs (audited) |
+| POST | `v1/admin/maintenance/publish-item-images` | admin:maintenance.manage | [A](admin.md) | Start moving cleaned item images to the public location (`{ dryRun }`, one active run) |
+| GET | `v1/admin/maintenance/publish-item-images` | admin:maintenance.manage | [A](admin.md) | Runs of the image move with counters, newest first |
+| GET | `v1/admin/maintenance/publish-item-images/{runId}` | admin:maintenance.manage | [A](admin.md) | One run's live progress |
+| POST | `v1/admin/maintenance/publish-item-images/{runId}/cancel` | admin:maintenance.manage | [A](admin.md) | Cancel a run |
+| POST | `v1/admin/maintenance/publish-item-images/{runId}/retry-failed` | admin:maintenance.manage | [A](admin.md) | New run over a run's failed pieces |
 
 ## Where the two halves meet
 

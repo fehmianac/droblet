@@ -2,6 +2,8 @@ import { Sparkles } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
+import type { ImageRefresh } from '@/lib/images';
+import { itemImageSource, itemViewerSource, tryOnImageSource } from '@/api/imageSources';
 import type { StylistPiece, StylistSuggestion } from '@/api/contracts/stylist';
 import { AiDropPulse, AiFailure, AiProgressLines, AiShimmerImage } from '@/components/ui/ai';
 import { Badge, MissingTag } from '@/components/ui/Bits';
@@ -19,6 +21,8 @@ type Props = {
   suggestion: StylistSuggestion;
   mode: MediaMode;
   imageUrl: string | null;
+  /** Id of that try-on image: stable cache key and a fresh URL once when the presigned one expired. */
+  tryOnId?: string | null;
   /** "1 kredi · kalan 11" (or just the cost while the balance is unknown) — under the AI wait. */
   creditLine: string;
   /** Footer of the invitation tile: "Üzerimde gör · 1 kredi" / "Önce fotoğrafını ekle" / "Üyelikle açılır". */
@@ -47,12 +51,14 @@ export function tilePieces(pieces: StylistPiece[], count: number): StylistPiece[
  */
 export function suggestionViewerImages(
   pieces: StylistPiece[],
-  tryOn: { uri: string | null; label: string; tag: string } | null,
+  tryOn: { uri: string | null; label: string; tag: string; cacheKey?: string | null; onExpired?: ImageRefresh } | null,
 ): ViewerImage[] {
   const images: ViewerImage[] = [];
-  if (tryOn?.uri) images.push({ uri: tryOn.uri, label: tryOn.label, ai: { tag: tryOn.tag } });
+  if (tryOn?.uri) images.push({ uri: tryOn.uri, cacheKey: tryOn.cacheKey, onExpired: tryOn.onExpired, label: tryOn.label, ai: { tag: tryOn.tag } });
   pieces.forEach((p) => {
-    if (p.imageUrl) images.push({ uri: p.imageUrl, label: p.name, caption: p.name });
+    // The full image in the viewer; the tile's cached thumb shows while it loads.
+    const source = itemViewerSource(p);
+    if (source) images.push({ ...source, label: p.name, caption: p.name });
   });
   return images;
 }
@@ -61,13 +67,14 @@ export function suggestionViewerImages(
 function PieceTile({ piece, className, glyphSize = 32, images = [] }: { piece: StylistPiece; className: string; glyphSize?: number; images?: ViewerImage[] }) {
   const { t } = useTranslation();
   const missing = piece.source === 'store';
-  const at = piece.imageUrl ? images.findIndex((img) => img.uri === piece.imageUrl) : -1;
+  const full = itemViewerSource(piece)?.uri;
+  const at = full ? images.findIndex((img) => img.uri === full) : -1;
   return (
     <Zoomable images={images} index={at} disabled={at < 0} className={`overflow-hidden rounded-image ${missing ? 'border-[1.5px] border-dashed border-accent' : ''} ${className}`} testID={`suggestion-piece-${piece.slot}`}>
       <ItemThumb
         category={piece.category}
         color={piece.color ?? undefined}
-        uri={piece.imageUrl}
+        {...itemImageSource(piece, 'thumb')}
         className="h-full w-full"
         glyphSize={glyphSize}
         accessibilityLabel={missing ? t('stylistResult.missingPieceA11y', { name: piece.name, detail: '' }).trim() : piece.name}
@@ -85,7 +92,7 @@ function PieceTile({ piece, className, glyphSize = 32, images = [] }: { piece: S
  * an image came back, otherwise the invitation again), failed (the same slot says the credit came back and offers
  * "Tekrar dene") and 17b no credits (the piece collage; see `NoCreditsCard`).
  */
-export function SuggestionMedia({ suggestion, mode, imageUrl, creditLine, invite, onTryOn, tryOnDisabled, creditRefunded, onRetry, retrying }: Props) {
+export function SuggestionMedia({ suggestion, mode, imageUrl, tryOnId, creditLine, invite, onTryOn, tryOnDisabled, creditRefunded, onRetry, retrying }: Props) {
   const { t } = useTranslation();
 
   if (mode === 'noCredits') {
@@ -109,7 +116,8 @@ export function SuggestionMedia({ suggestion, mode, imageUrl, creditLine, invite
   const lines = [t('ai.tryOnLines.pieces'), t('ai.tryOnLines.colors'), t('ai.tryOnLines.placing'), t('ai.tryOnLines.finishing')];
   const tiles = tilePieces(suggestion.pieces, 3);
   const tryOnLabel = t('tryOn.imageA11yNamed', { name: suggestion.name });
-  const viewerImages = suggestionViewerImages(tiles, mode === 'done' ? { uri: imageUrl, label: tryOnLabel, tag: t('aiBadge.onYou') } : null);
+  const tryOnImage = tryOnImageSource({ tryOnId, imageUrl });
+  const viewerImages = suggestionViewerImages(tiles, mode === 'done' ? { ...tryOnImage, label: tryOnLabel, tag: t('aiBadge.onYou') } : null);
 
   return (
     <View className="flex-row gap-2.5">
@@ -118,7 +126,7 @@ export function SuggestionMedia({ suggestion, mode, imageUrl, creditLine, invite
         {mode === 'done' && imageUrl ? (
           <Zoomable images={viewerImages} index={0} accessibilityLabel={tryOnLabel} className="h-full w-full" testID="suggestion-tryon-image">
             {/* The AI markers only sit on a generated image; a finished job without one shows the invitation again. */}
-            <OnYouImage uri={imageUrl} className="h-full w-full rounded-image-lg" pieces={[]} silhouetteHeight={168} accessibilityLabel={tryOnLabel} />
+            <OnYouImage {...tryOnImage} className="h-full w-full rounded-image-lg" pieces={[]} silhouetteHeight={168} accessibilityLabel={tryOnLabel} />
             <View className="absolute left-2.5 top-2.5" pointerEvents="none">
               <Badge tone="ink" icon={Sparkles} label={t('ai.previewBadge')} />
             </View>

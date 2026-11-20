@@ -8,6 +8,7 @@ import { Modal, Pressable, ScrollView, View } from 'react-native';
 import { logout } from '@/api/auth';
 import { CLOSET_VISIBILITIES, type MyPhotos } from '@/api/contracts/account';
 import { CONSENTS_FOR } from '@/api/contracts/consents';
+import { photoImageSource, viewerSourceOf } from '@/api/imageSources';
 import { ConsentList } from '@/features/consent/ConsentList';
 import { ensureConsents } from '@/features/consent/store';
 import { useEnqueuePhotoUpload } from '@/api/photos';
@@ -35,12 +36,16 @@ import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { LANGUAGES, SUPPORTED_LANGUAGES, type AppLanguage } from '@/i18n';
 import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { setAppLanguage } from '@/i18n/preference';
+import type { ImageRefresh } from '@/lib/images';
 import { mutationKeys } from '@/sync/queryKeys';
 
 const MAX_BODY_PHOTOS = 3;
 
 type ThumbProps = {
   uri: string | null;
+  /** `photo:{id}` for a saved photo (`photoImageSource`); none for a local one still uploading. */
+  cacheKey?: string | null;
+  onExpired?: ImageRefresh;
   kind: 'body' | 'face';
   tag: string;
   removeLabel?: string;
@@ -50,7 +55,7 @@ type ThumbProps = {
 };
 
 /** 52 × 66 thumbnail as on 29: the kind tag bottom-left, a 22 pt paper "remove" button top-right (44 pt target). */
-function PhotoThumb({ uri, kind, tag, removeLabel, onRemove, viewer = [] }: ThumbProps) {
+function PhotoThumb({ uri, cacheKey, onExpired, kind, tag, removeLabel, onRemove, viewer = [] }: ThumbProps) {
   const at = uri ? viewer.findIndex((img) => img.uri === uri) : -1;
   return (
     <View className="h-[66px] w-[52px]">
@@ -58,6 +63,8 @@ function PhotoThumb({ uri, kind, tag, removeLabel, onRemove, viewer = [] }: Thum
         <Zoomable images={viewer} index={at} disabled={at < 0} accessibilityLabel={tag} className="h-full w-full" testID={`settings-photo-${kind}`}>
         <ImageSlot
           uri={uri}
+          cacheKey={cacheKey}
+          onExpired={onExpired}
           className="h-full w-full rounded-thumb"
           accessibilityLabel={tag}
           placeholder={{ kind: 'figure', tone: 'stage', figureHeight: 44 }}
@@ -143,8 +150,14 @@ function PhotosSection({ onDeleteAll }: { onDeleteAll: () => void }) {
       >
         {(data) => {
           const viewer: ViewerImage[] = [
-            ...data.body.filter((p) => p.url).map((p) => ({ uri: p.url ?? '', label: t('settings.bodyTag'), caption: t('settings.bodyTag') })),
-            ...(data.face?.url ? [{ uri: data.face.url, label: t('settings.faceTag'), caption: t('settings.faceTag') }] : []),
+            ...data.body.flatMap((p) => {
+              const source = viewerSourceOf(photoImageSource(p));
+              return source ? [{ ...source, label: t('settings.bodyTag'), caption: t('settings.bodyTag') }] : [];
+            }),
+            ...(() => {
+              const source = viewerSourceOf(photoImageSource(data.face));
+              return source ? [{ ...source, label: t('settings.faceTag'), caption: t('settings.faceTag') }] : [];
+            })(),
           ];
           return (
           <>
@@ -154,7 +167,7 @@ function PhotosSection({ onDeleteAll }: { onDeleteAll: () => void }) {
                   <PhotoThumb
                     key={p.photoId}
                     kind="body"
-                    uri={p.url}
+                    {...photoImageSource(p)}
                     tag={t('settings.bodyTag')}
                     removeLabel={t('settings.removeBody')}
                     onRemove={() => removePhoto('body', p.photoId)}
@@ -164,7 +177,7 @@ function PhotosSection({ onDeleteAll }: { onDeleteAll: () => void }) {
                 {data.face && !queued.some((q) => q.kind === 'face') ? (
                   <PhotoThumb
                     kind="face"
-                    uri={data.face.url}
+                    {...photoImageSource(data.face)}
                     tag={t('settings.faceTag')}
                     removeLabel={t('settings.removeFace')}
                     onRemove={() => data.face && removePhoto('face', data.face.photoId)}

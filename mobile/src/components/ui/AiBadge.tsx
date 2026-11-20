@@ -2,6 +2,8 @@ import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
 import { ImageTag } from './Bits';
+import type { ImageRefresh } from '@/lib/images';
+
 import { ImageSlot, type SlotPlaceholder } from './ImageSlot';
 
 export type AiBadgeKind = 'onYou' | 'preview';
@@ -18,6 +20,9 @@ export function AiBadge({ kind }: { kind: AiBadgeKind }) {
 type AiImageProps = {
   kind: AiBadgeKind;
   uri: string | null;
+  /** Stable cache key (`tryon:{id}`) and refresh of an expired URL — `tryOnImageSource(result)`. */
+  cacheKey?: string | null;
+  onExpired?: ImageRefresh;
   className?: string;
   accessibilityLabel?: string;
   /** What stands in while there is no generated image (e.g. the look's piece collage). Defaults to the figure. */
@@ -34,10 +39,10 @@ type AiImageProps = {
  * AI output is always marked (BRIEF §3 Görseller). It sits bottom-left, 8 in, as on 06 / 08 / 17 / 22.
  * Without an image nothing was generated, so there is no AI marker — only the placeholder.
  */
-export function AiImage({ kind, uri, className, accessibilityLabel, placeholder, onLoad, onError, testID, tagLabel }: AiImageProps) {
+export function AiImage({ kind, uri, cacheKey, onExpired, className, accessibilityLabel, placeholder, onLoad, onError, testID, tagLabel }: AiImageProps) {
   return (
     <View className={className}>
-      <ImageSlot fit="contain" uri={uri} className="h-full w-full rounded-image-lg" accessibilityLabel={accessibilityLabel} placeholder={placeholder} onLoad={onLoad} onError={onError} testID={testID} />
+      <ImageSlot fit="contain" uri={uri} cacheKey={cacheKey} onExpired={onExpired} className="h-full w-full rounded-image-lg" accessibilityLabel={accessibilityLabel} placeholder={placeholder} onLoad={onLoad} onError={onError} testID={testID} />
       {uri ? (
         <View className="absolute bottom-2 left-2" pointerEvents="none" testID="ai-image-tag">
           {tagLabel ? <ImageTag label={tagLabel} /> : <AiBadge kind={kind} />}

@@ -40,8 +40,19 @@ export type Item = {
   fabric: string | null;
   /** At least one. */
   seasons: ItemSeason[];
-  /** Background-removed image (short-lived signed URL). */
+  /**
+   * Full-size image (cleaned, or the original when `useOriginalImage`): only the full-screen viewer uses it.
+   * Pick a size with `itemImageSource(item, 'thumb' | 'medium' | 'full')` (`@/api/imageSources`).
+   */
   imageUrl: string | null;
+  /** 256 px longest side (lists, grids, tiles). Null / absent on older servers → `imageUrl`. */
+  thumbUrl?: string | null;
+  /** 768 px (item detail, medium heroes). Null / absent on older servers → `imageUrl`. */
+  mediumUrl?: string | null;
+  /** Stable across fetches for the same image version: the expo-image cache key (with a size suffix). */
+  imageCacheKey?: string | null;
+  /** Null for public CDN URLs; set when the URLs are presigned (fallback) — a load error then re-fetches. */
+  imageUrlExpiresAt?: string | null;
   /** The photo as taken ("Orijinale dön"). */
   originalImageUrl: string | null;
   /** The photo as taken still exists on the server, so "Orijinale dön" can be offered. */

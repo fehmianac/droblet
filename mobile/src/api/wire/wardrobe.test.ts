@@ -94,6 +94,28 @@ describe('wardrobe wire mappers', () => {
     expect(toItem({ ...itemWire, useOriginalImage: true }).originalImageUrl).toBe('https://img/clean');
   });
 
+  it('image variants: older servers (no thumb / medium / cache key) read as null; new ones are kept', () => {
+    expect(toItem(itemWire)).toMatchObject({ thumbUrl: null, mediumUrl: null, imageCacheKey: null, imageUrlExpiresAt: '2026-11-18T09:05:00Z' });
+    const cdn = toItem({
+      ...itemWire,
+      imageUrl: 'https://cdn/i/full.webp',
+      imageUrlExpiresAt: null,
+      thumbUrl: 'https://cdn/i/256.webp',
+      mediumUrl: 'https://cdn/i/768.webp',
+      imageCacheKey: 'item:01JITEM:v3',
+    });
+    expect(cdn).toMatchObject({
+      imageUrl: 'https://cdn/i/full.webp',
+      thumbUrl: 'https://cdn/i/256.webp',
+      mediumUrl: 'https://cdn/i/768.webp',
+      imageCacheKey: 'item:01JITEM:v3',
+      imageUrlExpiresAt: null,
+    });
+    // A look slot pointing at the piece carries its variants (tiles pick the thumb).
+    const look = toLook(lookWire, { items: new Map([['01JITEM', cdn]]), products: new Map([['lx-bag', product]]) });
+    expect(look.slots[0]).toMatchObject({ thumbUrl: 'https://cdn/i/256.webp', mediumUrl: 'https://cdn/i/768.webp', imageCacheKey: 'item:01JITEM:v3' });
+  });
+
   it('colour ids: keeps the server ids while the colour is unchanged, maps app keys otherwise', () => {
     expect(toItemColor('icy-blue')).toBe('blue');
     expect(toItemColor('mustard')).toBe('other');
@@ -223,7 +245,17 @@ describe('wardrobe wire mappers', () => {
     const look = toLook(lookWire, { items, products: new Map([['lx-bag', product]]) });
     expect(look).toMatchObject({ id: '01JLOOK', isFavorite: true, rating: 4.5, ratingCount: 2, baseVersion: 4, occasion: 'office' });
     expect(look.slots).toEqual([
-      { slot: 'top', source: 'wardrobe', refId: '01JITEM', name: 'Lacivert blazer', imageUrl: 'https://img/clean', brand: 'Mango', price: null, deleted: false },
+      {
+        slot: 'top',
+        source: 'wardrobe',
+        refId: '01JITEM',
+        name: 'Lacivert blazer',
+        imageUrl: 'https://img/clean',
+        imageUrlExpiresAt: '2026-11-18T09:05:00Z',
+        brand: 'Mango',
+        price: null,
+        deleted: false,
+      },
       { slot: 'bottom', source: 'wardrobe', refId: '01JGONE', name: '', imageUrl: null, brand: null, price: null, deleted: true },
       {
         slot: 'accessory',

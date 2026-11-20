@@ -2,8 +2,10 @@ import type { ReactNode } from 'react';
 
 import type { LookSlot } from '@/api/contracts/looks';
 import type { Item } from '@/api/contracts/wardrobe';
+import { itemImageSource, type ItemImageLike } from '@/api/imageSources';
 import { ImageSlot, type Piece } from '@/components/ui/ImageSlot';
 import { ItemThumb } from '@/features/wardrobe/ItemThumb';
+import type { ImageSource } from '@/lib/images';
 
 import { SLOT_FALLBACK_CATEGORY } from './logic';
 
@@ -15,6 +17,15 @@ export function indexItems(items: Item[] | undefined): ItemsById {
 
 const NO_ITEMS: ItemsById = new Map();
 
+/**
+ * Where a slot's picture comes from: the wardrobe item as it is in the (fresher) items cache, else the URLs the look
+ * was joined with (a store product, a piece missing from the cache).
+ */
+export function slotImageOf(slot: LookSlot, itemsById: ItemsById = NO_ITEMS): ItemImageLike {
+  const item = slot.source === 'wardrobe' && !slot.deleted ? itemsById.get(slot.refId) : undefined;
+  return item ?? slot;
+}
+
 type ThumbProps = { slot: LookSlot; itemsById: ItemsById; className?: string; glyphSize?: number; accessibilityLabel?: string };
 
 /** Picture of one look slot: the wardrobe item's thumb, or the garment placeholder for store / deleted pieces. */
@@ -24,7 +35,7 @@ export function SlotThumb({ slot, itemsById, className, glyphSize, accessibility
     <ItemThumb
       category={item?.category ?? SLOT_FALLBACK_CATEGORY[slot.slot]}
       color={item?.color ?? 'other'}
-      uri={slot.imageUrl}
+      {...itemImageSource(slotImageOf(slot, itemsById), 'thumb')}
       className={className}
       glyphSize={glyphSize}
       accessibilityLabel={accessibilityLabel}
@@ -36,10 +47,13 @@ export function SlotThumb({ slot, itemsById, className, glyphSize, accessibility
 export function lookPieces(slots: LookSlot[], itemsById: ItemsById = NO_ITEMS): Piece[] {
   return slots.map((slot) => {
     const item = slot.source === 'wardrobe' ? itemsById.get(slot.refId) : undefined;
+    const image = itemImageSource(slotImageOf(slot, itemsById), 'thumb');
     return {
       category: item?.category ?? SLOT_FALLBACK_CATEGORY[slot.slot],
       color: item?.color ?? 'other',
-      imageUrl: slot.imageUrl,
+      imageUrl: image.uri,
+      ...(image.cacheKey ? { cacheKey: image.cacheKey } : {}),
+      ...(image.onExpired ? { onExpired: image.onExpired } : {}),
       missing: slot.source === 'store',
     };
   });
@@ -65,6 +79,8 @@ type Props = {
   /** Height of the standing figure drawn while the look has no piece at all (130 on the 210-high lookbook card). */
   figureHeight?: number;
   tryOnImageUrl?: string | null;
+  /** The cover with its cache key and refresh (`lookCoverSource(look)`, `tryOnImageSource(…)`); wins over `tryOnImageUrl`. */
+  cover?: ImageSource | null;
   slots: LookSlot[];
   itemsById: ItemsById;
   /** Size / aspect / radius, e.g. `aspect-[4/5] w-full rounded-image-lg`. */
@@ -80,10 +96,10 @@ type Props = {
  * colour); and when the look has no piece at all (or the cover is a thumbnail without any photograph),
  * the standing figure on a ground picked by `seed`.
  */
-export function LookCover({ seed, figureHeight = 130, tryOnImageUrl, slots, itemsById, className, accessibilityLabel, children }: Props) {
+export function LookCover({ seed, figureHeight = 130, tryOnImageUrl, cover, slots, itemsById, className, accessibilityLabel, children }: Props) {
   return (
     <ImageSlot
-      uri={tryOnImageUrl}
+      {...(cover?.uri ? cover : { uri: tryOnImageUrl ?? null })}
       className={className}
       accessibilityLabel={accessibilityLabel}
       placeholder={{ kind: 'look', pieces: coverPieces(slots, itemsById, figureHeight), seed, figureHeight }}

@@ -25,13 +25,16 @@ public static class AdminPermissions
     /// <summary>AI usage and cost: the AI › Maliyet board and a user's "AI kullanımı" (every holder of ai.manage has it too).</summary>
     public const string AiUsageView = "ai.usage.view";
 
+    /// <summary>"Bakım" (maintenance) jobs, e.g. moving item images to the public location. Super admin only.</summary>
+    public const string MaintenanceManage = "maintenance.manage";
+
     /// <summary>Uploading an image: catalog or content editors.</summary>
     public const string ImageUpload = "image.upload";
 
     public static readonly IReadOnlyList<string> All =
     [
         DashboardView, AnalyticsView, CatalogManage, ContentManage, UsersRead, UsersSuspend, UsersDelete, UsersGrant,
-        ModerationManage, SettingsManage, AdminsManage, AuditView, ImageUpload, AiManage, AiUsageView,
+        ModerationManage, SettingsManage, AdminsManage, AuditView, ImageUpload, AiManage, AiUsageView, MaintenanceManage,
     ];
 
     private static readonly IReadOnlyDictionary<AdminRole, HashSet<string>> Matrix = new Dictionary<AdminRole, HashSet<string>>

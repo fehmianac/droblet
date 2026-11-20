@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
+import { itemImageSource } from '@/api/imageSources';
 import type { TripDetail } from '@/api/contracts/trips';
 import { AiBackgroundAction, AiFailure } from '@/components/ui/ai/AiOutcome';
 import { AiProgressLines } from '@/components/ui/ai/AiProgressLines';
@@ -77,7 +78,7 @@ export function TripPacking({ trip }: { trip: TripDetail }) {
         <View className="gap-2">
           {plan.items.map((item) => (
             <View key={item.itemId} className="flex-row items-center gap-3">
-              <ItemThumb category={item.category} color={item.color} uri={item.imageUrl} className="h-12 w-10 rounded-[8px]" glyphSize={20} />
+              <ItemThumb category={item.category} color={item.color} {...itemImageSource(item, 'thumb')} className="h-12 w-10 rounded-[8px]" glyphSize={20} />
               <Text variant="body" numberOfLines={1} className="flex-1">
                 {item.name}
               </Text>

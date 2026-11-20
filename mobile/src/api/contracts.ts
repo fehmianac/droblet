@@ -13,6 +13,8 @@
  * - PUT with `baseVersion` → 409 + `{ current }` when the server version moved on.
  */
 
+import type { ImageVariants } from '@/lib/images';
+
 // ---------- Auth ----------
 
 /** The signed-in user as the app keeps it. `name` / `email` come from the form or `GET v1/tenant/profile`. */
@@ -173,7 +175,8 @@ export type ProblemDetails = {
 
 export type Occasion = 'office' | 'dinner' | 'weekend' | 'wedding' | 'travel' | 'sport' | 'evening';
 
-export type LookPiece = {
+/** Wardrobe pieces also carry the item's image variants (`itemImageSource` picks one). */
+export type LookPiece = ImageVariants & {
   id: string;
   name: string;
   /** 'wardrobe' = the user owns it; 'store' = missing piece suggested from the catalogue. */

@@ -92,8 +92,12 @@ public static class DeletionPlan
     public static IReadOnlyList<string> TenantPartitionKeys(string tenantId) =>
         TenantScopedEntityTypes.Select(t => InvokeGetPk(t, tenantId)).ToList();
 
+    /// <summary>Every S3 folder of the account, the public copies of its cleaned piece images (public/{stage}/items/{hash}/) included.</summary>
     public static IReadOnlyList<string> AccountS3Prefixes(string tenantId) =>
-        [StorageKeys.TenantRoot(tenantId), StorageKeys.UploadsRoot(tenantId), StorageKeys.ImportUploadsRoot(tenantId), StorageKeys.ExportsRoot(tenantId)];
+    [
+        StorageKeys.TenantRoot(tenantId), StorageKeys.UploadsRoot(tenantId), StorageKeys.ImportUploadsRoot(tenantId), StorageKeys.ExportsRoot(tenantId),
+        StorageKeys.PublicItemsRoot(tenantId),
+    ];
 
     /// <summary>Photo deletion (screen 29): body + face + all try-on outputs. Item images stay.</summary>
     public static IReadOnlyList<string> PhotoS3Prefixes(string tenantId) =>

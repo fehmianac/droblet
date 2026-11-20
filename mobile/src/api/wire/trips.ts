@@ -4,6 +4,7 @@
  * The wire lists item ids; names, categories and images come from the user's wardrobe cache.
  */
 import i18n from '@/i18n';
+import { imageVariantsOf } from '@/lib/images';
 
 import {
   FORECAST_STATUSES,
@@ -136,6 +137,7 @@ function toTripItem(wire: { itemId: string; packed?: boolean }, items: Map<strin
     category: item.category,
     color: item.color,
     imageUrl: item.imageUrl,
+    ...imageVariantsOf(item),
     packed: Boolean(wire.packed),
   };
 }
@@ -151,7 +153,8 @@ function toTripDay(tripId: string, wire: Omit<TripDayWire, 'weather'>, items: Ma
       id: `${tripId}:${wire.date}`,
       name: wire.label ?? '',
       occasion: toOccasion(wire.occasion) ?? 'travel',
-      imageUrl: first?.imageUrl ?? null,
+      // A 152 × 200 cover in the day sheet: the medium variant (older servers: the full image).
+      imageUrl: first?.mediumUrl ?? first?.imageUrl ?? null,
     },
   };
 }

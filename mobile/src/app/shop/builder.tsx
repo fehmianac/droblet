@@ -1,6 +1,5 @@
 import { slotOfItemCategory } from '@/features/store/slots';
 import { ItemThumb } from '@/features/wardrobe/ItemThumb';
-import { itemImage } from '@/features/wardrobe/parts';
 import { useItems } from '@/features/wardrobe/queries';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Check, Plus, X } from 'lucide-react-native';
@@ -10,6 +9,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 
 import { track } from '@/analytics/track';
 import { BUILDER_SLOTS, type BuilderSlot } from '@/api/contracts/store';
+import { itemImageSource } from '@/api/imageSources';
 import { useBodyProfile } from '@/api/profile';
 import { BrandMark } from '@/components/blocks/BrandMark';
 import { SectionState } from '@/components/blocks/SectionState';
@@ -81,7 +81,7 @@ function SlotCard({
         className="min-h-[60px] flex-1 flex-row items-center gap-2.5 px-2 py-1.5 active:opacity-70"
       >
         {fill ? (
-          <ImageSlot uri={fillPiece(fill).imageUrl} className="h-12 w-10 rounded-lg" placeholder={{ kind: 'garment', ...fillPiece(fill), glyphSize: 20 }} />
+          <ImageSlot uri={fillPiece(fill).imageUrl} cacheKey={fillPiece(fill).cacheKey} onExpired={fillPiece(fill).onExpired} className="h-12 w-10 rounded-lg" placeholder={{ kind: 'garment', ...fillPiece(fill), glyphSize: 20 }} />
         ) : (
           <View className="h-12 w-10 items-center justify-center rounded-lg bg-sand">
             <Icon icon={Plus} size={16} tone="muted" />
@@ -140,7 +140,10 @@ function StripSkeleton() {
 function fillPiece(fill: SlotFill): Piece {
   return fill.source === 'store'
     ? { category: fill.product.category, color: fill.product.colors[0], imageUrl: fill.product.imageUrl, missing: true }
-    : { category: fill.piece.category, color: fill.piece.color, imageUrl: itemImage(fill.piece) };
+    : (() => {
+        const image = itemImageSource(fill.piece, 'thumb');
+        return { category: fill.piece.category, color: fill.piece.color, imageUrl: image.uri, cacheKey: image.cacheKey, onExpired: image.onExpired };
+      })();
 }
 
 /**
@@ -310,7 +313,7 @@ export default function BuilderScreen() {
                       accessibilityLabel={piece.name}
                       className="w-24 gap-1 active:opacity-80"
                     >
-                      <ItemThumb category={piece.category} color={piece.color} uri={itemImage(piece)} className="h-[104px] w-full rounded-thumb" />
+                      <ItemThumb category={piece.category} color={piece.color} {...itemImageSource(piece, 'thumb')} className="h-[104px] w-full rounded-thumb" />
                       <Text variant="caption" numberOfLines={2}>
                         {piece.name}
                       </Text>

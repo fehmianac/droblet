@@ -17,6 +17,7 @@ namespace Infrastructure.Services.Social;
 public sealed class ContentModerationService(
     IRepository repository,
     INotificationInbox inbox,
+    IItemImagePublisher itemImages,
     TimeProvider timeProvider,
     ILogger<ContentModerationService> logger) : IContentModeration
 {
@@ -100,8 +101,34 @@ public sealed class ContentModerationService(
             target.ModerationHiddenAt = hide ? now : null;
             target.ModerationReportId = hide ? report.Id : null;
             target.ModerationReason = hide ? report.Reason : null;
+
+            // A piece's public image (docs/images.md): hiding removes it for everyone (new keys on restore, so no cache
+            // can serve the old URL again); restoring publishes a fresh copy. The owner keeps the presigned private image.
+            IReadOnlyList<string> unpublish = [];
+            PublishedItemImage? published = null;
+            if (target is ItemEntity item)
+            {
+                if (hide)
+                {
+                    unpublish = item.PublicImageKeys();
+                    item.SetPublicImage(null);
+                }
+                else
+                {
+                    unpublish = item.PublicImageKeys(); // stale keys of an earlier publication, if any
+                    published = await itemImages.PublishAsync(item, ct);
+                    item.SetPublicImage(published);
+                }
+            }
+
             if (await repository.SaveIfVersionAsync(target, target.Version, ct))
+            {
+                if (target is ItemEntity saved)
+                    await itemImages.UnpublishAsync(saved.TenantId, unpublish, ct);
                 return new ContentModerationResult(ContentModerationOutcome.Applied, before, Snapshot(report, target));
+            }
+            if (published is not null && target is ItemEntity lost)
+                await itemImages.UnpublishAsync(lost.TenantId, published.Keys, ct); // the write lost a race: copies of nothing
         }
         throw new InvalidOperationException($"Moderation flag of report {report.Id} could not be written after retries.");
     }

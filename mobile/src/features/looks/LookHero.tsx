@@ -6,6 +6,7 @@ import { View } from 'react-native';
 
 import type { LookSlot } from '@/api/contracts/looks';
 import type { TryOnResult, TryOnTarget } from '@/api/contracts/tryon';
+import { itemViewerSource, tryOnImageSource, viewerSourceOf } from '@/api/imageSources';
 import { cachedTryOnJobId } from '@/api/wire/tryon';
 import { AiShimmerImage, AiSilhouetteTrace } from '@/components/ui/ai';
 import { AiBadge } from '@/components/ui/AiBadge';
@@ -19,7 +20,7 @@ import { tryOnRuns, useTryOnRun } from '@/features/tryon/runs';
 import { TryOnInvite, type TryOnInviteProps } from '@/features/tryon/TryOnInvite';
 
 import { heroTiles, HeroPieceColumn } from './HeroPieces';
-import { SlotThumb, type ItemsById } from './LookCover';
+import { slotImageOf, SlotThumb, type ItemsById } from './LookCover';
 
 export type LookTryOnState = 'image' | 'generating' | 'none';
 
@@ -103,18 +104,30 @@ type Props = {
 export function LookHero({ name, slots, itemsById, tryOn, invite }: Props) {
   const { t } = useTranslation();
   const { shown, more } = heroTiles(slots, (s) => s.source === 'store');
+  const tryOnImage = tryOnImageSource(tryOn.image);
+  const tryOnViewer = viewerSourceOf(tryOnImage);
+  // Pieces in the viewer: the full image (the tile's cached thumb shows while it loads).
+  const slotViewers = slots
+    .filter((s) => !s.deleted)
+    .flatMap((s) => {
+      const source = itemViewerSource(slotImageOf(s, itemsById));
+      return source ? [{ slot: s, image: { ...source, label: s.name, caption: s.name } }] : [];
+    });
   const viewerImages: ViewerImage[] = [
-    ...(tryOn.image?.imageUrl ? [{ uri: tryOn.image.imageUrl, label: t('tryOn.imageA11yNamed', { name }), ai: { tag: t('aiBadge.onYou') } }] : []),
-    ...slots.filter((s) => s.imageUrl && !s.deleted).map((s) => ({ uri: s.imageUrl ?? '', label: s.name, caption: s.name })),
+    ...(tryOnViewer ? [{ ...tryOnViewer, label: t('tryOn.imageA11yNamed', { name }), ai: { tag: t('aiBadge.onYou') } }] : []),
+    ...slotViewers.map((v) => v.image),
   ];
-  const viewerIndex = (uri: string | null | undefined) => (uri ? viewerImages.findIndex((img) => img.uri === uri) : -1);
+  const viewerIndex = (slot: LookSlot) => {
+    const at = slotViewers.findIndex((v) => v.slot.slot === slot.slot && v.slot.refId === slot.refId);
+    return at < 0 ? -1 : at + (tryOnViewer ? 1 : 0);
+  };
 
   return (
     <View className="h-[266px] flex-row overflow-hidden rounded-card border border-line bg-paper" testID="look-hero">
       <View className="flex-[23]">
         {tryOn.state === 'image' && tryOn.image?.imageUrl ? (
           <Zoomable images={viewerImages} index={0} accessibilityLabel={t('tryOn.imageA11yNamed', { name })} className="h-full w-full" testID="look-hero-image">
-            <ImageSlot uri={tryOn.image.imageUrl} fit="contain" className="h-full w-full bg-sand" accessibilityLabel={t('tryOn.imageA11yNamed', { name })} />
+            <ImageSlot {...tryOnImage} fit="contain" className="h-full w-full bg-sand" accessibilityLabel={t('tryOn.imageA11yNamed', { name })} />
             <View className="absolute left-2 top-2" pointerEvents="none">
               <Badge tone="ink" icon={Sparkles} label={t('ai.previewBadge')} />
             </View>
@@ -134,7 +147,7 @@ export function LookHero({ name, slots, itemsById, tryOn, invite }: Props) {
         moreTestID="look-hero-more"
         more={more}
         pieces={shown.map((slot) => {
-          const index = viewerIndex(slot.imageUrl);
+          const index = viewerIndex(slot);
           return {
             key: slot.slot,
             missing: slot.source === 'store',

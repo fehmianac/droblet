@@ -4,6 +4,7 @@
  * images come from the user's own wardrobe cache, missing pieces from the catalogue.
  */
 import i18n from '@/i18n';
+import { imageVariantsOf } from '@/lib/images';
 import { getActiveQueryClient } from '@/sync/activeClient';
 import { queryKeys } from '@/sync/queryKeys';
 
@@ -186,6 +187,7 @@ function wardrobePiece(slot: OutfitSlotWire, item: Item): StylistPiece {
     brand: item.brand,
     price: null,
     imageUrl: item.imageUrl,
+    ...imageVariantsOf(item),
     category: item.category,
     color: item.color,
   };

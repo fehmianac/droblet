@@ -2,6 +2,8 @@
  * Wire shapes of Renk paletim (30) — docs/api/wardrobe-looks-plan-stylist.md §8 — and the mappers
  * to the app's `Palette`.
  */
+import { imageVariantsOf } from '@/lib/images';
+
 import type { Palette, PaletteMismatch, PaletteTone, SeasonType } from '../contracts/account';
 import { SEASON_TYPES } from '../contracts/account';
 import { CATALOG_COLORS, type CatalogColor } from '../contracts/store';
@@ -81,5 +83,5 @@ export function toPalette(wire: PaletteWire): Palette {
 }
 
 export function toPaletteMismatch(wire: PaletteMismatchWire): PaletteMismatch {
-  return { items: wire.items.map((i) => ({ id: i.id, name: i.name ?? '', imageUrl: i.imageUrl })) };
+  return { items: wire.items.map((i) => ({ id: i.id, name: i.name ?? '', imageUrl: i.imageUrl, ...imageVariantsOf(i) })) };
 }

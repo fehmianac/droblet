@@ -7,6 +7,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Rect } from 'react-native-svg';
 
+import { tryOnImageSource, viewerSourceOf } from '@/api/imageSources';
 import type { TryOnTarget } from '@/api/contracts/tryon';
 import { AiBackgroundAction, AiFailure, AiProgressLines, AiTryOnStage } from '@/components/ui/ai';
 import { Badge } from '@/components/ui/Bits';
@@ -115,12 +116,14 @@ export default function TryOnScreen() {
     const imageLabel = title ? t('tryOn.imageA11yNamed', { name: title }) : t('tryOn.imageA11y');
     const imageTag = job.result?.source === 'face' ? t('req.tryOnFace.tag') : t('aiBadge.onYou');
     const imageUrl = job.result?.imageUrl ?? null;
+    // Same cache key (`tryon:{id}`) as the image on the screen; a fresh URL once if the presigned one expired.
+    const viewer = viewerSourceOf(tryOnImageSource(job.result));
     return (
       <Screen bottom>
         <ScreenHeader title={t('screens.tryon')} leading="close" onLeadingPress={close} />
         <ScrollView contentContainerClassName="gap-4 px-gutter pb-4">
           <Zoomable
-            images={imageUrl ? [{ uri: imageUrl, label: imageLabel, ai: { tag: imageTag } }] : []}
+            images={viewer ? [{ ...viewer, label: imageLabel, ai: { tag: imageTag } }] : []}
             disabled={!imageUrl}
             accessibilityLabel={imageLabel}
             testID="tryon.zoom"

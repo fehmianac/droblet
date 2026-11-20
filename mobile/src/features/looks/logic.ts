@@ -9,6 +9,7 @@ import {
   type LookSlotKind,
 } from '@/api/contracts/looks';
 import type { Item, ItemCategory } from '@/api/contracts/wardrobe';
+import { imageVariantsOf } from '@/lib/images';
 import type { PlaceholderTone } from '@/theme/tokens';
 
 /** One piece per slot (15: five slots). */
@@ -48,6 +49,7 @@ export function slotFromWardrobeItem(slot: LookSlotKind, item: Item): LookSlot {
     refId: item.id,
     name: item.name,
     imageUrl: item.useOriginalImage ? item.originalImageUrl : item.imageUrl,
+    ...imageVariantsOf(item),
     brand: item.brand,
     price: null,
     deleted: false,

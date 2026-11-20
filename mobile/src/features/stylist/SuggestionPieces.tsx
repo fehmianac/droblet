@@ -3,6 +3,7 @@ import { Check } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { Pressable, View } from 'react-native';
 
+import { itemImageSource } from '@/api/imageSources';
 import type { StylistPiece } from '@/api/contracts/stylist';
 import { Icon } from '@/components/ui/Icon';
 import { Text } from '@/components/ui/Text';
@@ -30,7 +31,7 @@ export function SuggestionPieces({ pieces }: Props) {
           const added = suggested.isAdded(piece.refId);
           return (
             <View key={`${piece.slot}${piece.refId}`} className="flex-row items-center gap-3 border-b border-line py-[7px]" testID={`suggested-library-${piece.refId}`}>
-              <ItemThumb category={piece.category} color={piece.color ?? undefined} uri={piece.imageUrl} className="h-12 w-10 rounded-[8px]" glyphSize={18} />
+              <ItemThumb category={piece.category} color={piece.color ?? undefined} {...itemImageSource(piece, 'thumb')} className="h-12 w-10 rounded-[8px]" glyphSize={18} />
               <View className="flex-1" accessible accessibilityLabel={`${piece.name}, ${t('req.gapFill.library')}`}>
                 <Text variant="body" numberOfLines={1}>
                   {piece.name}
@@ -71,7 +72,7 @@ export function SuggestionPieces({ pieces }: Props) {
               : t('stylistResult.missingStore');
         return (
           <View key={`${piece.slot}${piece.refId}`} className="flex-row items-center gap-3 border-b border-line py-[7px]">
-            <ItemThumb category={piece.category} color={piece.color ?? undefined} uri={piece.imageUrl} className="h-12 w-10 rounded-[8px]" glyphSize={18} />
+            <ItemThumb category={piece.category} color={piece.color ?? undefined} {...itemImageSource(piece, 'thumb')} className="h-12 w-10 rounded-[8px]" glyphSize={18} />
             <View
               className="flex-1"
               accessible

@@ -14,7 +14,7 @@ Contract for the mobile team. Everything here is implemented in `src/Api/Endpoin
 | Versioned edits | `PUT` carries `baseVersion`. A stale version returns **409 with the current record as the body** (same shape as 200). `baseVersion: 0` creates where stated. |
 | Errors | `application/problem+json` with a stable snake_case `code` (also in `title`). 400 = `validation_failed` with `errors: { "<field>": ["<code>"] }`. The API never returns a sentence — the client translates codes. |
 | Long jobs | `202` + a job. Poll `GET v1/tenant/job/{id}` (`status`: `queued` \| `processing` \| `completed` \| `failed`; `failure`: `providerError` \| `timeout` \| `guardRejected` \| `sourceDeleted` \| `noFaceDetected`; `result`: the draft, shapes in §9). While queued / processing the job also carries `etaMs` (expected remaining ms from recent jobs of this kind, `null` when unknown) and `retryAfterMs` (when to poll next, 500–3000 ms); poll at that interval, else every 750 ms for the first 3 s, then 1.5 s, then 3 s. `timings` (ms per worker stage: `queue_wait`, `init`, `db`, `s3_get`, `ai.*`, `worker`, …) is internal diagnostics. |
-| Images | `imageUrl` values are short-lived presigned GETs (see `…ExpiresAt`); never cache them beyond that, never share them. |
+| Images | Private images (originals, look covers, body / face photos, try-ons, drafts) are presigned GETs valid for 1 hour (see `…ExpiresAt`): cache them by their id, refresh the record on a load error, never share them. Cleaned wardrobe piece images are public CDN URLs once `Photos:PublicUrlsEnabled` is on (`https://cdn.alatech.co`, `imageUrlExpiresAt: null`), see [docs/images.md](../images.md); cache them by `imageCacheKey`. |
 
 ### Language
 
@@ -107,7 +107,10 @@ Ready-made library (screens 04b, 12b). Names in the profile language.
   "colorIds": ["navy"], "colorHex": null, "fabric": "wool", "fabricText": null,
   "seasons": ["autumn", "winter"], "size": "M", "brand": "Mango",
   "source": "photo", "productId": null, "libraryItemId": null,
-  "imageUrl": "https://…", "imageUrlExpiresAt": "2026-11-18T09:05:00Z",
+  "imageUrl": "https://cdn.alatech.co/public/prod/items/<hash>/01J…-<v>-full.webp", "imageUrlExpiresAt": null,
+  "mediumUrl": "https://cdn.alatech.co/public/prod/items/<hash>/01J…-<v>-768.webp",
+  "thumbUrl": "https://cdn.alatech.co/public/prod/items/<hash>/01J…-<v>-256.webp",
+  "imageCacheKey": "item-01J…-3f2a9c0d1e2b4a56",
   "hasOriginalImage": true, "useOriginalImage": false,
   "wearCount": 3, "lastWornAt": "2026-11-17", "listingStatus": "none",
   "createdAt": "…", "updatedAt": "…", "version": 2,
@@ -122,6 +125,15 @@ Form fields that are kept as entered: `subcategory` (free sub-type id from the f
 ≤ 60 chars when it is none of the fabric ids; `fabric` stays the id or `null`), `colorHex` (`#RRGGBB`, upper-cased,
 kept only when `colorIds` contains `other`; otherwise stored as `null`). `imageUrl` is `null` for a piece without a
 photo (`source: "manual"`) — show the category glyph.
+
+Images ([docs/images.md](../images.md)): `thumbUrl` (256 px, lists / grids / tiles), `mediumUrl` (768 px, item detail),
+`imageUrl` (full size, the viewer). For a piece with a published cleaned image and `Photos:PublicUrlsEnabled` on they are
+public CDN URLs and `imageUrlExpiresAt` is `null`. Otherwise (base URL not configured yet, the user chose the original,
+a piece without a cleaned image, a moderation-hidden piece for its owner) they are presigned GETs valid for 1 hour, and
+`thumbUrl` / `mediumUrl` may equal `imageUrl`. Library / catalog pieces carry their public global image in all three.
+`imageCacheKey` stays the same while the shown image does (it changes when the image is replaced or the original is
+chosen): use it — with a size suffix — as the image cache key, so a presigned fallback URL still hits the cache. The
+three fields are new; older clients ignore them.
 
 | Method | Path | Request | Response |
 |---|---|---|---|

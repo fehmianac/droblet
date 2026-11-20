@@ -263,4 +263,76 @@ public partial class TemplateConfigTests
         var devLimits = System.Text.Json.JsonSerializer.Deserialize<AiLimitsOptions>(dev)!;
         Assert.True(devLimits is { StylistJobsPerDay: > 0, ItemRecognitionsPerDay: > 0, PaletteAnalysesPerDay: > 0, AiStartsPerMinute: > 0 });
     }
+
+    /// <summary>
+    /// docs/images.md: the photo bucket has exactly one public grant — GetObject on public/{stage}/items/* from Cloudflare's ranges —
+    /// and no private prefix can ever fall under it.
+    /// </summary>
+    [Fact]
+    public void PhotoBucket_PublicGrant_IsOnlyGetObjectOnPublicItems_FromCloudflare_AndNoPrivatePrefixMatchesIt()
+    {
+        var template = Template();
+        var bucket = Regex.Match(template, @"\n  PhotoBucket:\n(?<body>(?:    .*\n|\n)+?)\n  [A-Za-z]+:\n").Groups["body"].Value;
+        var policy = Regex.Match(template, @"\n  PhotoBucketPolicy:\n(?<body>(?:    .*\n|\n)+?)\n  (?:[A-Za-z]+:|#)").Groups["body"].Value;
+        Assert.NotEmpty(bucket);
+        Assert.NotEmpty(policy);
+
+        // ACLs stay blocked; owner-enforced objects; encryption at rest.
+        Assert.Contains("BlockPublicAcls: true", bucket);
+        Assert.Contains("IgnorePublicAcls: true", bucket);
+        Assert.Contains("ObjectOwnership: BucketOwnerEnforced", bucket);
+        Assert.Contains("SSEAlgorithm: AES256", bucket);
+
+        // Exactly one Allow to Principal '*', and it is the Cloudflare-only GetObject on public/{stage}/items/*.
+        var statements = Regex.Split(policy, @"\n          - ").Skip(1).ToList();
+        var publicAllows = statements.Where(s => s.Contains("Effect: Allow") && s.Contains("Principal: '*'")).ToList();
+        var grant = Assert.Single(publicAllows);
+        Assert.Contains("Sid: PublicItemImagesFromCloudflare", grant);
+        Assert.Matches(@"\n\s*Action: s3:GetObject\n", grant);
+        Assert.DoesNotContain("s3:List", grant);
+        Assert.DoesNotContain("s3:*", grant);
+        var resources = Regex.Matches(grant, @"Resource: (?<r>.+)").Select(m => m.Groups["r"].Value.Trim()).ToList();
+        Assert.Equal(["!Sub '${PhotoBucket.Arn}/public/${Stage}/items/*'"], resources);
+        Assert.Contains("IpAddress:", grant);
+        Assert.Contains("aws:SourceIp:", grant);
+        Assert.Contains("- 173.245.48.0/20", grant);
+        Assert.DoesNotContain("0.0.0.0/0", grant);
+        // The HTTPS-only deny still covers the whole bucket.
+        Assert.Contains("Sid: DenyInsecureTransport", policy);
+
+        // Every private prefix the code builds lies outside public/{stage}/items/; the public keys lie inside it.
+        const string tenant = "01JTENANT0000000000000000A";
+        string[] privateKeys =
+        [
+            StorageKeys.TenantRoot(tenant), StorageKeys.UploadsRoot(tenant), StorageKeys.ImportUploadsRoot(tenant), StorageKeys.ExportsRoot(tenant),
+            StorageKeys.PhotoPrefix(tenant, PhotoKind.Body), StorageKeys.PhotoPrefix(tenant, PhotoKind.Face), StorageKeys.TryOnPrefix(tenant),
+            StorageKeys.AvatarPrefix(tenant), StorageKeys.ItemsPrefix(tenant), StorageKeys.ItemImage(tenant, "d"), StorageKeys.ItemOriginal(tenant, "d", "jpg"),
+            StorageKeys.ItemImageRendition(StorageKeys.ItemImage(tenant, "d"), 256), StorageKeys.ImportPrefix(tenant, "s"), StorageKeys.Export(tenant, "e"),
+        ];
+        Assert.All(privateKeys, k => Assert.False(k.StartsWith("public/", StringComparison.Ordinal), k));
+        var publicKey = StorageKeys.PublicItemImage(tenant, "i", "0123456789abcdef0123456789abcdef", "256");
+        Assert.StartsWith(StorageKeys.PublicItemsPrefix, publicKey);
+        Assert.Equal("public/dev/items/", StorageKeys.PublicItemsPrefix);   // the template's ${Stage} = the Lambda's STAGE
+        Assert.DoesNotContain(tenant, publicKey);
+        // Nothing expires public copies by accident; the bucket's lifecycle rules all name private prefixes.
+        Assert.DoesNotMatch(@"Prefix: public/", bucket);
+    }
+
+    [Fact]
+    public void Photos_PrivateReadUrls_LastAnHour_AndRolesReachPublicItems_OnlyWhereTheyPublish()
+    {
+        Assert.Equal(3600, Bind<PhotoOptions>("api", PhotoOptions.Section).ReadUrlTtlSeconds);
+        var template = Template();
+        string Role(string name) => Regex.Match(template, $@"\n  {name}:\n(?<body>(?:    .*\n|\n)+?)\n  [A-Za-z]+:\n").Groups["body"].Value;
+        Assert.Contains("public/${Stage}/items/*", Role("ApiLambdaRole"));
+        Assert.Contains("public/${Stage}/items/*", Role("ItemProcessorLambdaRole"));
+        // Owner decision: cdn.alatech.co, in config; CDN links only once api/Photos/PublicUrlsEnabled is switched on.
+        var photos = Bind<PhotoOptions>("api", PhotoOptions.Section);
+        Assert.Equal(("https://cdn.alatech.co", false, (string?)null), (photos.PublicBaseUrl, photos.PublicUrlsEnabled, photos.EffectivePublicBaseUrl));
+        // publish-item-images batches re-queue themselves on the item processor queue.
+        Assert.Contains("ITEM_PROCESS_REQUEST_QUEUE_URL: !Ref ItemProcessorRequestQueue", template);
+        Assert.Contains("sqs:ChangeMessageVisibility, sqs:SendMessage]\n                Resource: !GetAtt ItemProcessorRequestQueue.Arn", template.Replace("\r", ""));
+        foreach (var role in new[] { "OutfitImportLambdaRole", "StylistLambdaRole", "TryOnLambdaRole", "PaletteLambdaRole", "NotifierLambdaRole", "DataExportLambdaRole" })
+            Assert.DoesNotContain("public/", Role(role));
+    }
 }

@@ -247,7 +247,7 @@ function AdminsInner() {
 const ROLE_MATRIX: Record<Role, string[]> = {
   superAdmin: [
     'dashboard.view', 'analytics.view', 'catalog.manage', 'content.manage', 'image.upload', 'users.read', 'users.suspend', 'users.delete',
-    'users.grant', 'moderation.manage', 'settings.manage', 'admins.manage', 'audit.view',
+    'users.grant', 'moderation.manage', 'settings.manage', 'admins.manage', 'audit.view', 'maintenance.manage',
   ],
   contentEditor: ['dashboard.view', 'analytics.view', 'catalog.manage', 'content.manage', 'image.upload'],
   moderator: ['dashboard.view', 'users.read', 'users.suspend', 'moderation.manage'],

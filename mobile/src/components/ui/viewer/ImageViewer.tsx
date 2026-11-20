@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { Sparkles, X } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, StatusBar, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -8,6 +8,7 @@ import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTi
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useReduceMotion } from '@/hooks/useReduceMotion';
+import type { ImageRefresh } from '@/lib/images';
 
 import { Badge, ImageTag } from '../Bits';
 import { Icon } from '../Icon';
@@ -15,7 +16,14 @@ import { Text } from '../Text';
 
 /** One picture of the viewer. */
 export type ViewerImage = {
+  /** Full size (`itemImageSource(item, 'full')` for a wardrobe piece). */
   uri: string;
+  /** Stable expo-image cache key (`${imageCacheKey}:full`, `tryon:{id}`, `photo:{id}`). */
+  cacheKey?: string | null;
+  /** Called once when the picture fails to load (expired presigned URL); may answer a fresh URL. */
+  onExpired?: ImageRefresh;
+  /** A smaller variant already in the cache (the tile's thumb), shown while the full one loads. */
+  preview?: { uri: string; cacheKey?: string | null } | null;
   /** What a screen reader says for it ("Lacivert yün blazer"). */
   label?: string;
   /** A short caption bottom-left for a non-AI picture (the piece's name on the 16b pager). */
@@ -344,6 +352,9 @@ function ViewerBody({ images, initialIndex, origin, onClose, onIndexChange, test
                 <View key={`${img.uri}-${i}`} style={{ width: W, height: H, alignItems: 'center', justifyContent: 'center' }}>
                   <Page
                     uri={img.uri}
+                    cacheKey={img.cacheKey ?? null}
+                    onExpired={img.onExpired}
+                    preview={img.preview ?? null}
                     active={i === index}
                     style={pageStyle}
                     size={{ w: Math.min(W, H * aspectOf(i)), h: Math.min(W, H * aspectOf(i)) / aspectOf(i) }}
@@ -406,6 +417,9 @@ function ViewerBody({ images, initialIndex, origin, onClose, onIndexChange, test
 
 function Page({
   uri,
+  cacheKey,
+  onExpired,
+  preview,
   active,
   style,
   size,
@@ -413,16 +427,37 @@ function Page({
   testID,
 }: {
   uri: string;
+  cacheKey: string | null;
+  onExpired?: ImageRefresh;
+  preview: { uri: string; cacheKey?: string | null } | null;
   active: boolean;
   style: ReturnType<typeof useAnimatedStyle>;
   size: { w: number; h: number };
   onAspect: (aspect: number) => void;
   testID: string;
 }) {
+  // A fresh URL answered by `onExpired` (once per page) for the `uri` it replaced.
+  const [fresh, setFresh] = useState<{ from: string; uri: string } | null>(null);
+  const refreshed = useRef(false);
+  const current = fresh?.from === uri ? fresh.uri : uri;
   return (
     <Animated.View style={[{ width: size.w, height: size.h }, active ? style : null]}>
       <Image
-        source={{ uri }}
+        source={cacheKey ? { uri: current, cacheKey } : { uri: current }}
+        recyclingKey={cacheKey ?? current}
+        placeholder={preview ? (preview.cacheKey ? { uri: preview.uri, cacheKey: preview.cacheKey } : { uri: preview.uri }) : undefined}
+        placeholderContentFit="contain"
+        onError={() => {
+          if (!onExpired || refreshed.current) return;
+          refreshed.current = true;
+          const from = uri;
+          Promise.resolve()
+            .then(onExpired)
+            .then((next) => {
+              if (typeof next === 'string' && next) setFresh({ from, uri: next });
+            })
+            .catch(() => undefined);
+        }}
         contentFit="contain"
         style={styles.fill}
         cachePolicy="memory-disk"

@@ -113,18 +113,24 @@ Resources:
         - { Key: project, Value: droblet }
         - { Key: stage, Value: !Ref Stage }
 
-  # ── S3: private photo bucket (no CDN, presigned URLs only) ────────────────
+  # ── S3: photo bucket — private (presigned URLs) except public/{Stage}/items/ (docs/images.md) ──
+  # Owner decision 2026-11-20: one bucket. Only cleaned wardrobe piece images (background removed, no person in them) and
+  # their 256 / 768 px thumbnails are copied to public/{Stage}/items/{tenantHash}/{itemId}-{random128}-{size}.webp and
+  # read through Cloudflare (cdn.alatech.co; the stage in the key lets one hostname route to both stages' buckets). Originals, look covers, body / face photos, try-ons, avatars and
+  # exports stay private. The bucket policy below is the only public grant.
   PhotoBucket:
     Type: AWS::S3::Bucket
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
       BucketName: !Sub droblet-${Stage}-photos
+      # ACLs stay blocked (BucketOwnerEnforced too); the policy-level blocks are off only so that the single
+      # PublicItemImagesFromCloudflare statement can take effect. TemplateConfigTests pins that statement's scope.
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
-        BlockPublicPolicy: true
+        BlockPublicPolicy: false
         IgnorePublicAcls: true
-        RestrictPublicBuckets: true
+        RestrictPublicBuckets: false
       OwnershipControls:
         Rules:
           - ObjectOwnership: BucketOwnerEnforced
@@ -180,6 +186,32 @@ Resources:
             Condition:
               Bool:
                 'aws:SecureTransport': 'false'
+          # Anonymous GetObject on exactly public/{Stage}/items/* (no ListBucket, no other prefix), and only from Cloudflare's
+          # IPv4 ranges: the DNS record cdn.alatech.co is proxied and its origin (for /public/{Stage}/) is this bucket's REST endpoint.
+          - Sid: PublicItemImagesFromCloudflare
+            Effect: Allow
+            Principal: '*'
+            Action: s3:GetObject
+            Resource: !Sub '${PhotoBucket.Arn}/public/${Stage}/items/*'
+            Condition:
+              IpAddress:
+                # https://www.cloudflare.com/ips-v4 — same list as infra/landing.yaml; update both when it changes.
+                aws:SourceIp:
+                    - 173.245.48.0/20
+                    - 103.21.244.0/22
+                    - 103.22.200.0/22
+                    - 103.31.4.0/22
+                    - 141.101.64.0/18
+                    - 108.162.192.0/18
+                    - 190.93.240.0/20
+                    - 188.114.96.0/20
+                    - 197.234.240.0/22
+                    - 198.41.128.0/17
+                    - 162.158.0.0/15
+                    - 104.16.0.0/13
+                    - 104.24.0.0/14
+                    - 172.64.0.0/13
+                    - 131.0.72.0/22
 
   # ── S3: public catalog images (product / brand / edit / collection / library images from the admin panel) ──
   # Not user data. Objects under catalog/ are publicly readable over https (the app and the try-on worker fetch
@@ -392,7 +424,8 @@ Resources:
     Properties:
       Name: !Sub /droblet/${Stage}/api/Photos
       Type: String
-      Value: '{"UploadUrlTtlSeconds":300,"ReadUrlTtlSeconds":300,"MaxUploadBytes":10485760,"AllowedContentTypes":["image/jpeg","image/png"]}'
+      Description: ReadUrlTtlSeconds = presigned GETs of private images (the app caches by a stable key and refreshes on error). PublicBaseUrl = CDN of cleaned item images (owner decision, both stages); used only once api/Photos/PublicUrlsEnabled (deploy-infra, default false) is true.
+      Value: '{"UploadUrlTtlSeconds":300,"ReadUrlTtlSeconds":3600,"PublicBaseUrl":"https://cdn.alatech.co","MaxUploadBytes":10485760,"AllowedContentTypes":["image/jpeg","image/png"]}'
   SsmApiApp:
     Type: AWS::SSM::Parameter
     Properties:
@@ -627,6 +660,8 @@ Resources:
                   - !Sub '${PhotoBucket.Arn}/uploads/tmp/*'
                   - !Sub '${PhotoBucket.Arn}/uploads/import/*'
                   - !Sub '${PhotoBucket.Arn}/tenant/*'
+                  # Public copies of cleaned piece images: publish (copy), presigned fallback, delete, account deletion.
+                  - !Sub '${PhotoBucket.Arn}/public/${Stage}/items/*'
               # Data export ZIPs: presigned download (GetObject) and account deletion (DeleteObject); written by the worker.
               - Effect: Allow
                 Action: [s3:GetObject, s3:DeleteObject]
@@ -636,7 +671,7 @@ Resources:
                 Resource: !GetAtt PhotoBucket.Arn
                 Condition:
                   StringLike:
-                    's3:prefix': ['uploads/tmp/*', 'uploads/import/*', 'tenant/*', 'exports/*']
+                    's3:prefix': ['uploads/tmp/*', 'uploads/import/*', 'tenant/*', 'exports/*', !Sub 'public/${Stage}/items/*']
               # Admin panel image uploads (presigned POST signed with this role).
               - Effect: Allow
                 Action: s3:PutObject
@@ -683,8 +718,9 @@ Resources:
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
+              # SendMessage: an admin "Bakım" publish-item-images run queues its next batch on this same queue.
               - Effect: Allow
-                Action: [sqs:ReceiveMessage, sqs:DeleteMessage, sqs:GetQueueAttributes, sqs:ChangeMessageVisibility]
+                Action: [sqs:ReceiveMessage, sqs:DeleteMessage, sqs:GetQueueAttributes, sqs:ChangeMessageVisibility, sqs:SendMessage]
                 Resource: !GetAtt ItemProcessorRequestQueue.Arn
               - Effect: Allow
                 Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:DeleteItem, dynamodb:Query]
@@ -694,8 +730,13 @@ Resources:
                 Resource: !Sub '${PhotoBucket.Arn}/uploads/tmp/*'
               - Effect: Allow
                 # DeleteObject: images written for a draft the user deleted while it was being processed are removed again.
-                Action: [s3:PutObject, s3:DeleteObject]
+                # GetObject: the source of the public copy (CopyObject) of a cleaned image.
+                Action: [s3:PutObject, s3:DeleteObject, s3:GetObject]
                 Resource: !Sub '${PhotoBucket.Arn}/tenant/*/items/*'
+              # Outfit-import pieces get their cleaned image here: it is published (copied) like the Api does on confirm.
+              - Effect: Allow
+                Action: [s3:PutObject, s3:DeleteObject]
+                Resource: !Sub '${PhotoBucket.Arn}/public/${Stage}/items/*'
               - Effect: Allow
                 Action: [ssm:GetParameter, ssm:GetParameters, ssm:GetParametersByPath]
                 Resource:
@@ -1071,6 +1112,8 @@ Resources:
         Variables:
           SYSTEMS_MANAGER_PATH: !Sub /droblet/${Stage}/worker
           PHOTO_BUCKET: !Ref PhotoBucket
+          # publish-item-images batches re-queue themselves (Maintenance:BatchSize / BatchSeconds keep each one < 120 s).
+          ITEM_PROCESS_REQUEST_QUEUE_URL: !Ref ItemProcessorRequestQueue
       Events:
         Queue:
           Type: SQS
@@ -1410,6 +1453,9 @@ Outputs:
     Value: !Ref DrobletTable
   PhotoBucketName:
     Value: !Ref PhotoBucket
+  PhotoBucketOriginHost:
+    Description: Cloudflare origin of cdn.alatech.co for paths /public/{Stage}/* (origin rule with Host header + SNI override to this host, docs/images.md).
+    Value: !Sub '${PhotoBucket}.s3.${AWS::Region}.amazonaws.com'
   CatalogImageBucketName:
     Value: !Ref CatalogImageBucket
   CatalogImageBaseUrl:

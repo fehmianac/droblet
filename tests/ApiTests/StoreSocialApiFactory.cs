@@ -42,6 +42,7 @@ public sealed class StoreSocialApiFactory : WebApplicationFactory<Entrypoint>
     private ClosetSeeder? _closet;
     public FakeWeatherProvider Weather { get; } = new();
     public CapturingEventManager Events { get; } = new();
+    public RecordingMaintenanceQueue MaintenanceQueue { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -62,6 +63,8 @@ public sealed class StoreSocialApiFactory : WebApplicationFactory<Entrypoint>
         {
             services.RemoveAll<IRepository>();
             services.AddSingleton<IRepository>(Repository);
+            services.RemoveAll<Domain.Services.Admin.IMaintenanceQueue>();
+            services.AddSingleton<Domain.Services.Admin.IMaintenanceQueue>(MaintenanceQueue);
             services.RemoveAll<IObjectStorage>();
             services.AddSingleton<IObjectStorage>(new FakeObjectStorage());
             services.RemoveAll<IEmailService>();

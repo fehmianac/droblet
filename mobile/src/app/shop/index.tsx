@@ -1,6 +1,5 @@
 import type { Item } from '@/api/contracts/wardrobe';
 import { ItemThumb } from '@/features/wardrobe/ItemThumb';
-import { itemImage } from '@/features/wardrobe/parts';
 import { useItems } from '@/features/wardrobe/queries';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ChevronDown, LayoutGrid, Search, X } from 'lucide-react-native';
@@ -15,6 +14,7 @@ import {
   type ProductQuery,
   type ProductSummary,
 } from '@/api/contracts/store';
+import { itemImageSource } from '@/api/imageSources';
 import { useBodyProfile } from '@/api/profile';
 import { CartButton, SectionState } from '@/components/blocks/SectionState';
 import { ListTabBar } from '@/components/navigation/TabBar';
@@ -376,7 +376,7 @@ export default function ShopScreen() {
                       style={{ width: (width - GUTTER * 2 - 20) / 3 }}
                       className="gap-[5px] active:opacity-80"
                     >
-                      <ItemThumb category={piece.category} color={piece.color} uri={itemImage(piece)} className="h-[92px] w-full rounded-image" />
+                      <ItemThumb category={piece.category} color={piece.color} {...itemImageSource(piece, 'thumb')} className="h-[92px] w-full rounded-image" />
                       <Text variant="caption" numberOfLines={2}>
                         {piece.name}
                       </Text>

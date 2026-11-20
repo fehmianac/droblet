@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import type { ReactNode } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 
+import { itemImageSource } from '@/api/imageSources';
 import { SLOT_CATEGORIES, type LookSlot, type LookSlotKind } from '@/api/contracts/looks';
 import type { Item } from '@/api/contracts/wardrobe';
 import { BottomSheet } from '@/components/ui/BottomSheet';
@@ -133,7 +134,7 @@ export function SlotSheet({ slot, current, items, onPick, onRemove, onClose }: P
                       <ItemThumb
                         category={item.category}
                         color={item.color}
-                        uri={item.useOriginalImage ? item.originalImageUrl : item.imageUrl}
+                        {...itemImageSource(item, 'thumb')}
                         className="h-[92px] w-full rounded-field"
                         glyphSize={30}
                       />

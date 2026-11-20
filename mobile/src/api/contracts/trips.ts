@@ -3,6 +3,7 @@
  * `TripDto`, `TripDetailDto`, `PackResult`) and the mapping live in `../wire/trips`.
  * Calendar dates are `YYYY-MM-DD`; wire times are UTC ISO-8601.
  */
+import type { ImageVariants } from '@/lib/images';
 import type { JobAccepted } from './jobs';
 import type { ItemCategory, ItemColor, LookRef } from './wardrobe';
 
@@ -66,7 +67,8 @@ export type Trip = {
   baseVersion: number;
 };
 
-export type TripItem = {
+/** Wardrobe pieces: the image variants of the item (`itemImageSource` picks one); absent elsewhere. */
+export type TripItem = ImageVariants & {
   /** Wardrobe item id. */
   itemId: string;
   name: string;

@@ -1,4 +1,5 @@
 using Domain.Entity;
+using Domain.Entity.Base;
 using Domain.Enum;
 using Domain.Events;
 using Domain.Extensions;
@@ -36,6 +37,8 @@ public sealed class ItemProcessJobService(
     IItemDetector detector,
     IItemImageCleanup cleanup,
     IImageCropper cropper,
+    IImageThumbnailer thumbnailer,
+    IItemImagePublisher publisher,
     IOptionsMonitor<AiOptions> aiOptions,
     IOptionsMonitor<WardrobeOptions> wardrobeOptions,
     TimeProvider timeProvider,
@@ -214,6 +217,7 @@ public sealed class ItemProcessJobService(
         var processedKey = StorageKeys.ItemImage(job.TenantId, draft.Id);
         await storage.PutAsync(processedKey, processed.Data, processed.ContentType, ct);
         written.Add(processedKey);
+        written.AddRange(await ItemImageRenditions.WriteAsync(storage, thumbnailer, processedKey, processed.Data, ct));
 
         Apply(draft, fields, subcategory, item, language);
         draft.Kind = ItemDraftKind.Single;
@@ -320,6 +324,7 @@ public sealed class ItemProcessJobService(
         var processedKey = StorageKeys.ItemImage(job.TenantId, piece.Id);
         await storage.PutAsync(processedKey, processed.Data, processed.ContentType, ct);
         written.Add(processedKey);
+        written.AddRange(await ItemImageRenditions.WriteAsync(storage, thumbnailer, processedKey, processed.Data, ct));
 
         piece.ProcessedKey = processedKey;
         piece.Status = ItemDraftStatus.Ready;
@@ -353,6 +358,14 @@ public sealed class ItemProcessJobService(
         var processed = await cleanup.CleanupItemAsync(new ImageInput(crop, "image/jpeg"), hint, item.Subcategory, ct);
         var processedKey = StorageKeys.ItemImage(job.TenantId, itemId);
         await storage.PutAsync(processedKey, processed.Data, processed.ContentType, ct);
+        var renditions = await ItemImageRenditions.WriteAsync(storage, thumbnailer, processedKey, processed.Data, ct);
+
+        // The cleaned image (no person in it) is published under fresh random keys (docs/images.md); best effort.
+        var showCleanedFirst = item.ImageKey is null;
+        item.ImageKey = processedKey;
+        var published = await publisher.PublishAsync(item, ct);
+        if (showCleanedFirst)
+            item.ImageKey = null; // set again below, on whichever copy of the row is saved
 
         for (var attempt = 0; attempt < 4 && item is not null; attempt++)
         {
@@ -361,9 +374,19 @@ public sealed class ItemProcessJobService(
             item.ImageKey = processedKey;
             if (showCleaned)
                 item.UseOriginalImage = false;
+            if (published is not null && item.IsModerationHidden())
+            {
+                await publisher.UnpublishAsync(job.TenantId, published.Keys, ct); // hidden meanwhile: never public
+                published = null;
+            }
+            var previous = item.PublicImageKeys().Where(k => published?.Keys.Contains(k) != true).ToList();
+            if (published is not null)
+                item.SetPublicImage(published);
             item.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
             if (await repository.SaveIfVersionAsync(item, item.Version, ct))
             {
+                if (published is not null)
+                    await publisher.UnpublishAsync(job.TenantId, previous, ct);
                 await jobs.CompleteAsync(job, StylingJson.Serialize(new { itemId }), ct);
                 return;
             }
@@ -373,9 +396,15 @@ public sealed class ItemProcessJobService(
         if (item is null)
         {
             await storage.DeleteAsync(processedKey, ct);
+            foreach (var key in renditions)
+                await storage.DeleteAsync(key, ct);
+            if (published is not null)
+                await publisher.UnpublishAsync(job.TenantId, published.Keys, ct);
             await jobs.FailAsync(job, JobFailure.SourceDeleted, ct);
             return;
         }
+        if (published is not null)
+            await publisher.UnpublishAsync(job.TenantId, published.Keys, ct); // a retry publishes again
         throw new InvalidOperationException("Item image could not be saved (concurrent edits).");
     }
 

@@ -23,9 +23,7 @@ namespace Infrastructure.Services.Integration;
 /// </summary>
 public sealed class WardrobeClosetReader(
     IRepository repository,
-    IObjectStorage storage,
-    IOptionsMonitor<PhotoOptions> photoOptions,
-    IOptionsMonitor<WardrobeOptions> wardrobeOptions,
+    IItemImageUrls imageUrls,
     TimeProvider timeProvider) : IClosetReader
 {
     public async Task<IReadOnlyList<ClosetItem>> GetItemsAsync(string tenantId, CancellationToken ct)
@@ -95,12 +93,9 @@ public sealed class WardrobeClosetReader(
     private async Task<ClosetItem> ToClosetItemAsync(ItemEntity item, CancellationToken ct) =>
         new(item.Id, item.Name ?? "", item.Category, item.ColorIds, await ImageUrlAsync(item, ct), item.IsModerationHidden());
 
-    private async Task<string?> ImageUrlAsync(ItemEntity item, CancellationToken ct)
-    {
-        if (item.ImageKey is { } key && StorageKeys.BelongsToTenant(key, item.TenantId))
-            return await storage.CreateReadUrlAsync(key, TimeSpan.FromSeconds(photoOptions.CurrentValue.ReadUrlTtlSeconds), ct);
-        return GlobalAssets.PublicUrl(item.GlobalImageKey, wardrobeOptions.CurrentValue.PublicAssetBaseUrl);
-    }
+    /// <summary>The cleaned image at 768 px (public CDN URL once published; presigned otherwise), else the global asset.</summary>
+    private async Task<string?> ImageUrlAsync(ItemEntity item, CancellationToken ct) =>
+        (await imageUrls.GetForOthersAsync(item, ct)).MediumUrl;
 }
 
 /// <summary>Global (non user) assets: a library / catalog image is stored either as a key of the public asset base or as an absolute https URL.</summary>

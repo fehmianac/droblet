@@ -7,6 +7,7 @@ import { Trans, useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { tryOnImageSource, viewerSourceOf } from '@/api/imageSources';
 import { ONE_SIZE, type ProductDetail, type ProductSize } from '@/api/contracts/store';
 import { useBodyProfile } from '@/api/profile';
 import { BrandMark } from '@/components/blocks/BrandMark';
@@ -156,10 +157,11 @@ function ProductBody({ product }: { product: ProductDetail }) {
 
   const garment = { category: product.category, color: product.colors[0], imageUrl: product.imageUrl };
   // 13a: the product photo and, once there is one, the AI image of it on the user page together.
-  const onMeUri = view === 'onMe' && job.isDone ? (job.result?.imageUrl ?? null) : null;
+  const onMeImage = tryOnImageSource(view === 'onMe' && job.isDone ? job.result : null);
+  const onMeViewer = viewerSourceOf(onMeImage);
   const viewerImages: ViewerImage[] = [
     ...(product.imageUrl ? [{ uri: product.imageUrl, label: product.name }] : []),
-    ...(onMeUri ? [{ uri: onMeUri, label: t('productDetail.onMeA11y', { name: product.name }), ai: { tag: t('aiBadge.onYou') } }] : []),
+    ...(onMeViewer ? [{ ...onMeViewer, label: t('productDetail.onMeA11y', { name: product.name }), ai: { tag: t('aiBadge.onYou') } }] : []),
   ];
   let onMe: ReactNode = null;
   if (view === 'onMe') {
@@ -179,14 +181,14 @@ function ProductBody({ product }: { product: ProductDetail }) {
         </View>
       );
     } else if (job.isDone) {
-      const uri = job.result?.imageUrl ?? null;
+      const uri = onMeImage.uri;
       // The marker only sits on a generated image. A finished job without one shows the piece itself
       // ("Parça kolajı"), never a bare figure under "SENİN ÜZERİNDE".
       onMe = (
         <Zoomable images={viewerImages} index={viewerImages.length - 1} disabled={!uri} className="flex-1" testID="product-onme-zoom">
         <ImageSlot
           fit="contain"
-          uri={uri}
+          {...onMeImage}
           className="flex-1"
           accessibilityLabel={uri ? t('productDetail.onMeA11y', { name: product.name }) : t('aiBadge.collageA11y', { name: product.name })}
           placeholder={{ kind: 'look', pieces: [garment], figureHeight: 220 }}

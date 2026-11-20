@@ -69,6 +69,7 @@ export const NAV: NavGroup[] = [
       { key: 'settings', href: '/settings/', icon: 'sliders', permission: 'settings.manage' },
       { key: 'admins', href: '/admins/', icon: 'shield', permission: 'admins.manage' },
       { key: 'audit', href: '/audit/', icon: 'list', permission: 'audit.view' },
+      { key: 'maintenance', href: '/maintenance/', icon: 'wrench', permission: 'maintenance.manage' },
     ],
   },
 ];

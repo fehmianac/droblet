@@ -541,6 +541,7 @@
               "- Depending on your visibility setting (Public: everyone; Followers only: followers you approved; Private: nobody): your processed item images and their names, your looks and your looks' average rating.",
               "- Nobody, in any setting: your full-body and face photos, the images generated on you, your colour palette, your height, weight and size, your calendar and wear log, your trips, cart, watch list, notification settings and e-mail.",
               "Look images that your friends see are made of item images, never your “See it on me” image. Item images are the background-removed images, not the original photo you took.",
+              "To load quickly, background-removed item images (and smaller copies of them) are stored at public web addresses that contain a long random code and cannot be guessed or listed, and are delivered through our content delivery network (Cloudflare). This applies even when your closet is private: anyone who has the exact address of such an image can open it. The original photos you take, look cover photos, your full-body and face photos and the images generated on you are never stored this way; they stay private and are shown only through short-lived private links. When you delete an item or your account, or a moderator removes an item, its public copies are deleted (an address can keep working from a cache for up to one day). [LEGAL REVIEW: public, unguessable addresses for background-removed item images of private closets]",
               "Someone who opens your invite link sees only your first name on the web page."
             ]
           },
@@ -639,7 +640,7 @@
           {
             "heading": "Security",
             "paragraphs": [
-              "We protect your data with: encryption on every connection (TLS); encryption of the database and photo storage; photo storage closed to the public with short-lived private links; passwords stored with a strong hashing algorithm; each user's data kept under its own key and opened to another user only through the visibility rules; rate limits on sign-in and sensitive actions; role-based, logged administrator access; and an admin panel that never shows users' photos.",
+              "We protect your data with: encryption on every connection (TLS); encryption of the database and photo storage; photo storage closed to the public with short-lived private links (the only exception: background-removed item images, at unguessable public addresses — see “What other users can see”); passwords stored with a strong hashing algorithm; each user's data kept under its own key and opened to another user only through the visibility rules; rate limits on sign-in and sensitive actions; role-based, logged administrator access; and an admin panel that never shows users' photos.",
               "No system is completely secure. If a breach affects your data we will tell the competent authority, and you where required, within the legal deadlines."
             ]
           },

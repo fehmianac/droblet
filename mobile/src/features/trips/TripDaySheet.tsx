@@ -2,6 +2,7 @@ import { Bookmark, Sparkles } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
+import { itemImageSource, itemViewerSource } from '@/api/imageSources';
 import type { TripDay } from '@/api/contracts/trips';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
@@ -35,12 +36,19 @@ export function TripDaySheet({ day, itemsById, onClose, onTryOn, onSaveAsLook }:
   });
   const tryOnUrl = day?.look?.imageUrl ?? null;
   const dayName = day?.look?.name ?? '';
-  // 13a: the day's try-on (AI, labelled) and the piece photos page together.
+  // 13a: the day's try-on (AI, labelled) and the piece photos (full size) page together.
+  const pieceViewers = pieces.flatMap((p) => {
+    const source = itemViewerSource(p);
+    return source ? [{ id: p.id, image: { ...source, label: p.name, caption: p.name } }] : [];
+  });
   const images: ViewerImage[] = [
     ...(tryOnUrl ? [{ uri: tryOnUrl, label: t('tryOn.imageA11yNamed', { name: dayName }), ai: { tag: t('aiBadge.onYou') } }] : []),
-    ...pieces.filter((p) => p.imageUrl).map((p) => ({ uri: p.imageUrl ?? '', label: p.name, caption: p.name })),
+    ...pieceViewers.map((v) => v.image),
   ];
-  const at = (uri: string | null | undefined) => (uri ? images.findIndex((img) => img.uri === uri) : -1);
+  const at = (id: string) => {
+    const index = pieceViewers.findIndex((v) => v.id === id);
+    return index < 0 ? -1 : index + (tryOnUrl ? 1 : 0);
+  };
   return (
     <BottomSheet
       visible={day !== null}
@@ -63,8 +71,8 @@ export function TripDaySheet({ day, itemsById, onClose, onTryOn, onSaveAsLook }:
         <View className="flex-row flex-wrap gap-2.5" accessibilityLabel={t('tripDetail.dayPieces', { count: pieces.length })}>
           {pieces.map((item) => (
             <View key={item.id} className="w-[72px] gap-1">
-              <Zoomable images={images} index={at(item.imageUrl)} disabled={at(item.imageUrl) < 0} accessibilityLabel={item.name}>
-                <ItemThumb category={item.category} color={item.color} uri={item.imageUrl} className="h-[88px] w-[72px] rounded-image" glyphSize={28} accessibilityLabel={item.name} />
+              <Zoomable images={images} index={at(item.id)} disabled={at(item.id) < 0} accessibilityLabel={item.name}>
+                <ItemThumb category={item.category} color={item.color} {...itemImageSource(item, 'thumb')} className="h-[88px] w-[72px] rounded-image" glyphSize={28} accessibilityLabel={item.name} />
               </Zoomable>
               <Text variant="caption" numberOfLines={1}>
                 {item.name}

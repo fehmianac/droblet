@@ -37,6 +37,7 @@ keep the shapes of [store-social-settings.md §11](store-social-settings.md#11-a
 | `audit.view` | ✓ | | | `GET v1/admin/audit` |
 | `ai.manage` | ✓ | | | `v1/admin/ai/…` (prompts, trials, model settings — §5b) |
 | `ai.usage.view` | ✓ | | | `GET v1/admin/ai-usage/summary`, `GET v1/admin/user/{id}/ai-usage` (§5c). Every holder of `ai.manage` has it too. |
+| `maintenance.manage` | ✓ | | | `v1/admin/maintenance/…` ("Bakım", §5d) |
 
 `GET v1/admin/auth/me` returns the caller's permissions; the panel hides what it cannot use, the server refuses it anyway.
 
@@ -420,6 +421,37 @@ allowed on prod. Jobs from before the counters have no token counts and a model 
 Configuration — SSM String `api/AiUsage` (same on both stages): `UsdTryRate` 43, `NetMonthlyPlanTry` 141.66,
 `NetYearlyPlanPerMonthTry` 88.54 (docs/ai-cost.md §7), `AnomalyMedianMultiplier` 5, `AnomalyMinHistoryDays` 3,
 `AnomalyMinDayUsd` 0.10, `AnomalyAbsoluteDayUsd` 2, `TopUsers` 20, `MaxRangeDays` 92.
+
+## 5d. Maintenance — "Bakım" (`maintenance.manage`)
+
+"Görselleri herkese açık konuma taşı": copies existing cleaned piece images and their 256 / 768 px thumbnails to the
+public location (docs/images.md §8). No AI; idempotent per piece; processed by the item processor worker in resumable
+batches (≤ `Maintenance:BatchSize` pieces / `Maintenance:BatchSeconds` per SQS message, cursor + sequence on the run
+row). One active run at a time. Every start / cancel / retry is audited (`maintenance.publish_item_images.start`,
+`.cancel`, `.retry_failed`, target `maintenance_run`).
+
+| Method | Path | Body | Response |
+|---|---|---|---|
+| POST | `v1/admin/maintenance/publish-item-images` | `{ "dryRun": true }` | `202 MaintenanceRunDto` · `409 maintenance_run_active` |
+| GET | `v1/admin/maintenance/publish-item-images` | — | `{ "runs": MaintenanceRunDto[] }` (newest first, ≤ 20) |
+| GET | `v1/admin/maintenance/publish-item-images/{runId}` | — | `MaintenanceRunDto` · 404 — poll every ~3 s while active |
+| POST | `v1/admin/maintenance/publish-item-images/{runId}/cancel` | — | `MaintenanceRunDto` (`cancelling`, then `cancelled` after the current batch) · 404 · `409 maintenance_run_finished` |
+| POST | `v1/admin/maintenance/publish-item-images/{runId}/retry-failed` | — | `202 MaintenanceRunDto` (`retryOf`, `onlyItemCount`) · 404 · `409 maintenance_run_active` · `422 nothing_to_retry` |
+
+```json
+MaintenanceRunDto {
+  "id": "01J…", "kind": "publishItemImages", "dryRun": false,
+  "status": "queued | running | cancelling | completed | cancelled | failed",
+  "tenants": 12, "scanned": 840, "published": 610, "alreadyPublic": 0, "skipped": 220, "hidden": 2,
+  "renditionsMade": 610, "failed": 8,
+  "skipReasons": [{ "reason": "originalOnly | libraryOrCatalog | noImage | notOwnCleaned | cleanedMissing | itemDeleted", "count": 120 }],
+  "failedItems": [{ "tenantId": "…", "itemId": "…", "reason": "copyFailed | conflict | error" }],   // ≤ 100
+  "retryOf": null, "onlyItemCount": null,
+  "startedBy": { "id": "…", "email": "…" }, "startedAt": "…", "updatedAt": "…", "finishedAt": null, "cancelRequestedAt": null
+}
+```
+In a dry run `published` / `renditionsMade` mean "would publish" / "would make". Skipped pieces keep the presigned
+fallback. The Ops command `publish-item-images` starts the same run (docs/images.md §8).
 
 ## 6. CSV import and moderation actions
 

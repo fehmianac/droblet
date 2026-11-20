@@ -18,6 +18,7 @@ public class ImportUploadsCleanupTests
         public Task<byte[]?> ReadAsync(string key, long maxBytes, CancellationToken ct) => throw new NotSupportedException();
         public Task PutAsync(string key, byte[] data, string contentType, CancellationToken ct) => throw new NotSupportedException();
         public Task DeleteAsync(string key, CancellationToken ct) => throw new NotSupportedException();
+        public Task<bool> CopyAsync(string sourceKey, string destinationKey, string contentType, string? cacheControl, CancellationToken ct) => throw new NotSupportedException();
         public Task<IReadOnlyList<string>> ListKeysAsync(string prefix, CancellationToken ct) => throw new NotSupportedException();
         public Task<Stream?> OpenReadAsync(string key, CancellationToken ct) => throw new NotSupportedException();
         public Task PutFileAsync(string key, string filePath, string contentType, CancellationToken ct) => throw new NotSupportedException();

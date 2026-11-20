@@ -41,6 +41,7 @@ const paths = {
   gift: 'M3 9h18v4H3zM5 13v8h14v-8M12 9v12M12 9c-1.5-4-6-4-6-1.5S9 9 12 9zM12 9c1.5-4 6-4 6-1.5S15 9 12 9z',
   sparkle: 'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z',
   file: 'M6 3h8l4 4v14H6zM14 3v4h4',
+  wrench: 'M14.5 4a5 5 0 0 0-4.6 6.9L3.5 17.3a1.7 1.7 0 0 0 2.4 2.4l6.4-6.4A5 5 0 0 0 19 9.5l-2.8 2.8-3-.6-.6-3L15.4 5.9A5 5 0 0 0 14.5 4z',
 } as const;
 
 export type IconName = keyof typeof paths;

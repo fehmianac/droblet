@@ -8,7 +8,7 @@ import { createServer } from 'node:http';
 const PORT = Number(process.env.PORT ?? 4010);
 const ROLE = process.env.MOCK_ROLE ?? 'superAdmin';
 const PERMS = {
-  superAdmin: ['dashboard.view', 'analytics.view', 'catalog.manage', 'content.manage', 'image.upload', 'users.read', 'users.suspend', 'users.delete', 'users.grant', 'moderation.manage', 'settings.manage', 'admins.manage', 'audit.view', 'ai.manage', 'ai.usage.view'],
+  superAdmin: ['dashboard.view', 'analytics.view', 'catalog.manage', 'content.manage', 'image.upload', 'users.read', 'users.suspend', 'users.delete', 'users.grant', 'moderation.manage', 'settings.manage', 'admins.manage', 'audit.view', 'ai.manage', 'ai.usage.view', 'maintenance.manage'],
   contentEditor: ['dashboard.view', 'analytics.view', 'catalog.manage', 'content.manage', 'image.upload'],
   moderator: ['dashboard.view', 'users.read', 'users.suspend', 'moderation.manage'],
 };
@@ -465,6 +465,77 @@ const garment = (n) => {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400"><rect width="300" height="400" fill="${palette[0]}"/><path d="M110 70l-50 30 20 60 25-12v190h90V148l25 12 20-60-50-30c-8 18-22 28-40 28s-32-10-40-28z" fill="${palette[1]}"/></svg>`;
 };
 
+// ── Maintenance: publish cleaned item images (v1/admin/maintenance/publish-item-images). ──────────────────────────
+// In-memory runs. An active run advances one step on every GET of that run (the panel polls it every 3 s), so the whole flow can
+// be clicked through: queued → running ×6 → completed (cancel → cancelling → cancelled on the next read). A second
+// start while a run is active answers 409 maintenance_run_active (open two tabs to see it); cancel on a finished run
+// answers 409 maintenance_run_finished; retry-failed on a run without failures answers 422 nothing_to_retry.
+const MAINT_STEPS = 6;
+const maintSkip = (n) => [
+  { reason: 'libraryOrCatalog', count: 3 * n },
+  { reason: 'originalOnly', count: 2 * n },
+  { reason: 'noImage', count: n },
+  { reason: 'cleanedMissing', count: Math.floor(n / 2) },
+].filter((s) => s.count > 0);
+const maintRun = (over) => ({
+  id: `01JMAINT${Date.now()}${Math.floor(Math.random() * 1000)}`, kind: 'publishItemImages', dryRun: false, status: 'queued', tenants: 0, scanned: 0,
+  published: 0, alreadyPublic: 0, skipped: 0, hidden: 0, renditionsMade: 0, failed: 0, skipReasons: [], failedItems: [], retryOf: null,
+  onlyItemCount: null, startedBy: { id: me.id, email: me.email }, startedAt: now(), updatedAt: now(), finishedAt: null, cancelRequestedAt: null,
+  step: 0, ...over,
+});
+const maintRuns = [
+  maintRun({ id: '01JMAINTSEED2', status: 'completed', tenants: 42, scanned: 1260, published: 1012, alreadyPublic: 0, skipped: 220, hidden: 25, renditionsMade: 2024, failed: 3,
+    skipReasons: maintSkip(55), failedItems: [
+      { tenantId: users[2].id, itemId: '01JITEM0000000000000000A1', reason: 'copyFailed' },
+      { tenantId: users[5].id, itemId: '01JITEM0000000000000000B7', reason: 'conflict' },
+      { tenantId: users[9].id, itemId: '01JITEM0000000000000000C3', reason: 'error' },
+    ], startedAt: daysAgo(1), updatedAt: daysAgo(0.98), finishedAt: daysAgo(0.98), step: MAINT_STEPS }),
+  maintRun({ id: '01JMAINTSEED1', dryRun: true, status: 'completed', tenants: 42, scanned: 1260, published: 1015, alreadyPublic: 0, skipped: 220, hidden: 25, renditionsMade: 2030,
+    skipReasons: maintSkip(55), startedAt: daysAgo(2), updatedAt: daysAgo(1.99), finishedAt: daysAgo(1.99), step: MAINT_STEPS }),
+];
+const maintActive = () => maintRuns.find((r) => ['queued', 'running', 'cancelling'].includes(r.status));
+function maintAdvance(r) {
+  if (!['queued', 'running', 'cancelling'].includes(r.status)) return;
+  r.updatedAt = now();
+  if (r.status === 'cancelling') return Object.assign(r, { status: 'cancelled', finishedAt: now() });
+  if (r.status === 'queued') return Object.assign(r, { status: 'running' });
+  r.step += 1;
+  if (r.retryOf) {
+    // Retry: the listed items only; one of them keeps failing so the table and the retry button stay testable.
+    const source = maintRuns.find((x) => x.id === r.retryOf);
+    const items = source?.failedItems ?? [];
+    Object.assign(r, { tenants: new Set(items.map((i) => i.tenantId)).size, scanned: items.length, published: Math.max(0, items.length - 1),
+      renditionsMade: Math.max(0, items.length - 1) * 2, failed: items.length ? 1 : 0, failedItems: items.slice(0, 1).map((i) => ({ ...i, reason: 'conflict' })),
+      status: 'completed', finishedAt: now() });
+    return;
+  }
+  const perTenant = 30;
+  r.tenants += 7;
+  r.scanned += 7 * perTenant;
+  r.published += 7 * 24;
+  r.alreadyPublic += r.step > 3 ? 7 * 2 : 0;
+  r.hidden += 4;
+  r.renditionsMade += 7 * 24 * 2;
+  r.skipped = r.scanned - r.published - r.alreadyPublic - r.hidden - r.failed;
+  if (r.step === 3 && !r.dryRun) {
+    r.failedItems.push(
+      { tenantId: users[1].id, itemId: `01JITEMLIVE${r.step}A`, reason: 'copyFailed' },
+      { tenantId: users[7].id, itemId: `01JITEMLIVE${r.step}B`, reason: 'error' },
+    );
+    r.failed = r.failedItems.length;
+    r.skipped -= r.failed;
+  }
+  const n = Math.max(0, r.skipped);
+  r.skipReasons = [
+    { reason: 'libraryOrCatalog', count: Math.ceil(n * 0.5) },
+    { reason: 'originalOnly', count: Math.floor(n * 0.3) },
+    { reason: 'noImage', count: n - Math.ceil(n * 0.5) - Math.floor(n * 0.3) },
+  ].filter((s) => s.count > 0);
+  if (r.step >= MAINT_STEPS) Object.assign(r, { status: 'completed', finishedAt: now() });
+}
+// The step counter is mock-internal; drop it from responses.
+const maintView = (r) => Object.fromEntries(Object.entries(r).filter(([k]) => k !== 'step'));
+
 const session = () => ({ accessToken: `mock-access-${Date.now()}`, accessTokenExpiresAt: new Date(Date.now() + 900_000).toISOString(), refreshToken: `mock-refresh-${Date.now()}`, refreshTokenExpiresAt: new Date(Date.now() + 43_200_000).toISOString(), admin: me });
 
 function page(items, url, size = 25) {
@@ -688,6 +759,36 @@ createServer(async (req, res) => {
     if (Object.keys(errors).length) return problem(400, 'validation_failed', { errors });
     for (const [k, value] of Object.entries(b.values ?? {})) aiFields.find((x) => x.key === k).value = value;
     return send(200, aiModelSettings().settings);
+  }
+
+  // Maintenance
+  if (p === '/v1/admin/maintenance/publish-item-images') {
+    if (req.method === 'GET') return send(200, { runs: maintRuns.slice(0, 20).map(maintView) });
+    if (maintActive()) return problem(409, 'maintenance_run_active');
+    const run = maintRun({ dryRun: b.dryRun === true });
+    maintRuns.unshift(run);
+    return send(202, maintView(run));
+  }
+  {
+    const mm = m(/^\/v1\/admin\/maintenance\/publish-item-images\/([^/]+)(?:\/(cancel|retry-failed))?$/);
+    if (mm) {
+      const r = maintRuns.find((x) => x.id === decodeURIComponent(mm[1]));
+      if (!r) return problem(404, 'not_found');
+      if (!mm[2]) {
+        maintAdvance(r);
+        return send(200, maintView(r));
+      }
+      if (mm[2] === 'cancel') {
+        if (!['queued', 'running', 'cancelling'].includes(r.status)) return problem(409, 'maintenance_run_finished');
+        if (r.status !== 'cancelling') Object.assign(r, { status: 'cancelling', cancelRequestedAt: now(), updatedAt: now() });
+        return send(200, maintView(r));
+      }
+      if (maintActive()) return problem(409, 'maintenance_run_active');
+      if (!r.failedItems.length) return problem(422, 'nothing_to_retry');
+      const run = maintRun({ dryRun: r.dryRun, retryOf: r.id, onlyItemCount: r.failedItems.length });
+      maintRuns.unshift(run);
+      return send(202, maintView(run));
+    }
   }
 
   // Settings, admins, audit

@@ -3,6 +3,7 @@ import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, View, type ViewInstance } from 'react-native';
 
+import { tryOnImageSource, viewerSourceOf } from '@/api/imageSources';
 import { AiFailure, AiInlineStatus } from '@/components/ui/ai';
 import { Badge } from '@/components/ui/Bits';
 import { Icon } from '@/components/ui/Icon';
@@ -47,7 +48,9 @@ export function WeekDayRow({ row, onOpenMenu, onSuggest, tryOnJobId, focused, on
     language,
   );
   const job = useTryOnJob(tryOnJobId, { enabled: focused });
-  const image = job.result?.imageUrl ?? row.look?.tryOnImageUrl ?? null;
+  const tryOn = job.result?.imageUrl ? tryOnImageSource(job.result) : { uri: row.look?.tryOnImageUrl ?? null, cacheKey: null };
+  const image = tryOn.uri;
+  const viewer = viewerSourceOf(tryOn);
 
   if (!row.look) {
     return (
@@ -83,7 +86,7 @@ export function WeekDayRow({ row, onOpenMenu, onSuggest, tryOnJobId, focused, on
     <View className="gap-3 rounded-card border border-line bg-paper p-2.5">
       <View className="flex-row items-center gap-3">
         <Zoomable
-          images={image ? [{ uri: image, label: t('tryOn.imageA11yNamed', { name: row.look.name }), ai: { tag: t('aiBadge.onYou') } }] : []}
+          images={viewer ? [{ ...viewer, label: t('tryOn.imageA11yNamed', { name: row.look.name }), ai: { tag: t('aiBadge.onYou') } }] : []}
           disabled={!image}
           accessibilityLabel={t('tryOn.imageA11yNamed', { name: row.look.name })}
           className="h-[72px] w-14 items-center justify-center overflow-hidden rounded-thumb"
@@ -91,7 +94,7 @@ export function WeekDayRow({ row, onOpenMenu, onSuggest, tryOnJobId, focused, on
         >
           <ImageSlot
             fit="contain"
-            uri={image}
+            {...tryOn}
             className="h-full w-full"
             placeholder={{ kind: 'look', pieces: coverPieces(row.look.slots, undefined, 45), seed: row.look.id, figureHeight: 45 }}
           />
