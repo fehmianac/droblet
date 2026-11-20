@@ -3,6 +3,7 @@ import type { LookPiece } from '@/api/contracts';
 import type { Look } from '@/api/contracts/looks';
 import type { EditProduct, PlanDay, WearLog } from '@/api/contracts/today';
 import type { Item } from '@/api/contracts/wardrobe';
+import { heroTiles } from '@/features/looks/HeroPieces';
 
 import { addDays, monthBounds, monthGrid, monthOf, shiftMonth, weekDates, weekStartOf } from './dates';
 import {
@@ -13,7 +14,6 @@ import {
   editSummary,
   occasionCounts,
   todayGreeting,
-  todayThumbs,
   weekTryOnTargets,
 } from './logic';
 
@@ -152,18 +152,22 @@ describe('dayStatus', () => {
   });
 });
 
-describe('todayThumbs', () => {
+describe('06 piece column (heroTiles, as 14b)', () => {
   const piece = (id: string, source: LookPiece['source'] = 'wardrobe'): LookPiece => ({ id, name: id, source, imageUrl: null });
+  const tiles = (pieces: LookPiece[]) => heroTiles(pieces, (p) => p.source === 'store');
 
-  it('shows at most three pieces', () => {
-    expect(todayThumbs([piece('a'), piece('b'), piece('c'), piece('d')]).map((p) => p.id)).toEqual(['a', 'b', 'c']);
-    expect(todayThumbs([piece('a')]).map((p) => p.id)).toEqual(['a']);
+  it('every piece up to four; with more, three + "+N"', () => {
+    expect(tiles([piece('a'), piece('b'), piece('c'), piece('d')]).shown.map((p) => p.id)).toEqual(['a', 'b', 'c', 'd']);
+    expect(tiles([piece('a')])).toEqual({ shown: [piece('a')], more: 0 });
+    expect(tiles([piece('a'), piece('b'), piece('c'), piece('d'), piece('e')]).more).toBe(2);
   });
 
   it('always keeps the missing piece, last, when it would be cut off', () => {
-    expect(todayThumbs([piece('a'), piece('b'), piece('c'), piece('d'), piece('m', 'store')]).map((p) => p.id)).toEqual(['a', 'b', 'm']);
+    const cut = tiles([piece('a'), piece('b'), piece('c'), piece('d'), piece('m', 'store')]);
+    expect(cut.shown.map((p) => p.id)).toEqual(['a', 'b', 'm']);
+    expect(cut.more).toBe(2);
     // Already among the first three: order is untouched.
-    expect(todayThumbs([piece('a'), piece('m', 'store'), piece('b')]).map((p) => p.id)).toEqual(['a', 'm', 'b']);
+    expect(tiles([piece('a'), piece('m', 'store'), piece('b'), piece('c'), piece('d')]).shown.map((p) => p.id)).toEqual(['a', 'm', 'b']);
   });
 });
 

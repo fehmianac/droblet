@@ -10,6 +10,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Text } from '@/components/ui/Text';
 import { Zoomable, type ViewerImage } from '@/components/ui/viewer';
 import { OnYouImage } from '@/features/today/OnYouImage';
+import { TryOnInvite } from '@/features/tryon/TryOnInvite';
 import { ItemThumb } from '@/features/wardrobe/ItemThumb';
 
 export type MediaMode = 'idle' | 'working' | 'done' | 'failed' | 'noCredits';
@@ -18,8 +19,10 @@ type Props = {
   suggestion: StylistSuggestion;
   mode: MediaMode;
   imageUrl: string | null;
-  /** "1 kredi · kalan 11" (or just the cost while the balance is unknown). */
+  /** "1 kredi · kalan 11" (or just the cost while the balance is unknown) — under the AI wait. */
   creditLine: string;
+  /** Footer of the invitation tile: "Üzerimde gör · 1 kredi" / "Önce fotoğrafını ekle" / "Üyelikle açılır". */
+  invite: { footer: string; ready: boolean };
   onTryOn: () => void;
   tryOnDisabled: boolean;
   /** Failed try-on. */
@@ -76,12 +79,13 @@ function PieceTile({ piece, className, glyphSize = 32, images = [] }: { piece: S
 
 /**
  * Top of a suggestion (17): the "on you" slot (200 × 264 on the board) + three piece tiles. States:
- * idle (the piece collage with "Üzerimde gör", 1 credit, on top), working (17c — shimmer, breathing drop,
- * rotating lines), done (AI image: "AI önizleme" top-left, "SENİN ÜZERİNDE" bottom-left — only when an
- * image came back, otherwise the collage), failed (the same slot says the credit came back and offers
+ * idle (the invitation tile of 06 / 14b: figure, "Bu look senin üzerinde nasıl durur?", "Üzerimde gör · 1 kredi" or
+ * the missing step — the tile is the button, never a call to action over a collage), working (17c — shimmer,
+ * breathing drop, rotating lines), done (AI image: "AI önizleme" top-left, "SENİN ÜZERİNDE" bottom-left — only when
+ * an image came back, otherwise the invitation again), failed (the same slot says the credit came back and offers
  * "Tekrar dene") and 17b no credits (the piece collage; see `NoCreditsCard`).
  */
-export function SuggestionMedia({ suggestion, mode, imageUrl, creditLine, onTryOn, tryOnDisabled, creditRefunded, onRetry, retrying }: Props) {
+export function SuggestionMedia({ suggestion, mode, imageUrl, creditLine, invite, onTryOn, tryOnDisabled, creditRefunded, onRetry, retrying }: Props) {
   const { t } = useTranslation();
 
   if (mode === 'noCredits') {
@@ -104,7 +108,6 @@ export function SuggestionMedia({ suggestion, mode, imageUrl, creditLine, onTryO
 
   const lines = [t('ai.tryOnLines.pieces'), t('ai.tryOnLines.colors'), t('ai.tryOnLines.placing'), t('ai.tryOnLines.finishing')];
   const tiles = tilePieces(suggestion.pieces, 3);
-  const collage = tilePieces(suggestion.pieces, 4).map((p) => ({ category: p.category, color: p.color, imageUrl: p.imageUrl, missing: p.source === 'store' }));
   const tryOnLabel = t('tryOn.imageA11yNamed', { name: suggestion.name });
   const viewerImages = suggestionViewerImages(tiles, mode === 'done' ? { uri: imageUrl, label: tryOnLabel, tag: t('aiBadge.onYou') } : null);
 
@@ -112,22 +115,13 @@ export function SuggestionMedia({ suggestion, mode, imageUrl, creditLine, onTryO
     <View className="flex-row gap-2.5">
       {/* 200 : 140 of the 350-wide board row. */}
       <View className="aspect-[200/264] flex-[10]">
-        {mode === 'done' ? (
-          <Zoomable images={viewerImages} index={0} disabled={!imageUrl} accessibilityLabel={tryOnLabel} className="h-full w-full" testID="suggestion-tryon-image">
-            {/* The AI markers only sit on a generated image; a finished job without one falls back to the piece collage. */}
-            <OnYouImage
-              uri={imageUrl}
-              className="h-full w-full rounded-image-lg"
-              pieces={collage}
-              silhouetteHeight={168}
-              accessibilityLabel={tryOnLabel}
-              collageLabel={t('aiBadge.collageA11y', { name: suggestion.name })}
-            />
-            {imageUrl ? (
-              <View className="absolute left-2.5 top-2.5" pointerEvents="none">
-                <Badge tone="ink" icon={Sparkles} label={t('ai.previewBadge')} />
-              </View>
-            ) : null}
+        {mode === 'done' && imageUrl ? (
+          <Zoomable images={viewerImages} index={0} accessibilityLabel={tryOnLabel} className="h-full w-full" testID="suggestion-tryon-image">
+            {/* The AI markers only sit on a generated image; a finished job without one shows the invitation again. */}
+            <OnYouImage uri={imageUrl} className="h-full w-full rounded-image-lg" pieces={[]} silhouetteHeight={168} accessibilityLabel={tryOnLabel} />
+            <View className="absolute left-2.5 top-2.5" pointerEvents="none">
+              <Badge tone="ink" icon={Sparkles} label={t('ai.previewBadge')} />
+            </View>
           </Zoomable>
         ) : mode === 'working' ? (
           <AiShimmerImage className="h-full w-full gap-3 rounded-image-lg p-4">
@@ -144,21 +138,15 @@ export function SuggestionMedia({ suggestion, mode, imageUrl, creditLine, onTryO
             <AiFailure layout="inline" creditRefunded={creditRefunded} onRetry={onRetry} retrying={retrying} />
           </View>
         ) : (
-          // Nothing generated yet: the outfit as its piece collage, with "Üzerimde gör" and what it costs on top.
-          <OnYouImage
-            uri={null}
-            className="h-full w-full rounded-image-lg"
-            pieces={collage}
-            silhouetteHeight={168}
-            collageLabel={t('aiBadge.collageA11y', { name: suggestion.name })}
-          >
-            <View className="items-center gap-1.5 rounded-field bg-paper/95 p-2">
-              <Button variant="secondary" size="md" icon={Sparkles} label={t('stylistResult.tryOn')} onPress={onTryOn} disabled={tryOnDisabled} className="px-4" />
-              <Text variant="caption" tone="muted" className="text-center">
-                {creditLine}
-              </Text>
-            </View>
-          </OnYouImage>
+          // Nothing generated yet: the invitation tile (as 06 / 14b), the pieces stay on the right.
+          <TryOnInvite
+            footer={invite.footer}
+            ready={invite.ready}
+            onPress={onTryOn}
+            disabled={tryOnDisabled}
+            className="h-full w-full overflow-hidden rounded-image-lg"
+            testID="suggestion-try-on-invite"
+          />
         )}
       </View>
       <View className="flex-[7] gap-2">

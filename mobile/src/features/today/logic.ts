@@ -2,7 +2,7 @@ import type { TFunction } from 'i18next';
 
 import { firstNameOf } from '@/api/wire/today';
 import { sumMoney } from '@/lib/format';
-import type { LookPiece, Occasion } from '@/api/contracts';
+import type { Occasion } from '@/api/contracts';
 import type { Look } from '@/api/contracts/looks';
 import type { CalendarMonth, EditProduct, PlanDay, WearLog } from '@/api/contracts/today';
 import type { Item } from '@/api/contracts/wardrobe';
@@ -67,16 +67,6 @@ export function dayStatus(date: string, month: Pick<CalendarMonth, 'wearLogs' | 
   return { kind: 'empty' };
 }
 
-/**
- * 06: the piece thumbnails beside the try-on image. At most `max` (the board draws three); when the look
- * has a missing piece it is always among them, last, so the "EKSİK PARÇA" marker is never cut off.
- */
-export function todayThumbs(pieces: LookPiece[], max = 3): LookPiece[] {
-  const head = pieces.slice(0, max);
-  const missing = pieces.find((p) => p.source === 'store');
-  if (!missing || head.includes(missing)) return head;
-  return [...pieces.filter((p) => p.source !== 'store').slice(0, max - 1), missing];
-}
 
 export type MonthReport = {
   /** Distinct days with at least one "Bunu giyiyorum" record. */

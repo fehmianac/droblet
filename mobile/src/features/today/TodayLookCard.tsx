@@ -5,17 +5,18 @@ import { Pressable, View } from 'react-native';
 
 import type { TodayLook } from '@/api/contracts';
 import { AiBusyButton, AiDropPulse, AiShimmerImage } from '@/components/ui/ai';
-import { MissingTag } from '@/components/ui/Bits';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
 import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Text } from '@/components/ui/Text';
-import { OnYouCta } from '@/features/tryon/OnYouCta';
+import { heroTiles, HeroPieceColumn } from '@/features/looks/HeroPieces';
+import { HeroGenerating, useLookTryOn } from '@/features/looks/LookHero';
+import { TryOnInvite } from '@/features/tryon/TryOnInvite';
+import { useTryOnAction } from '@/features/tryon/useTryOnAction';
 import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { toDisplayUpper } from '@/lib/upper';
 
-import { todayThumbs } from './logic';
 import { OnYouImage } from './OnYouImage';
 
 type Props = {
@@ -28,66 +29,79 @@ type Props = {
 };
 
 /**
- * Bugünün kombini (06), as drawn: the "SENİN ÜZERİNDE" image flush with the card's left edge, three piece
- * thumbnails beside it (the missing one dashed, with "EKSİK PARÇA"), then "BUGÜNÜN KOMBİNİ · OFİS" + the name
- * with "Look'u tamamla", and "Bunu giyiyorum" with refresh (another suggestion) and heart (lookbook).
- * While another suggestion is prepared the card uses the AI loading language, never a spinner.
+ * Bugünün kombini (06), as drawn — the same layout as 14b's hero in every state: the "senin üzerinde" area large on
+ * the left and the pieces stacked on the right (up to 4, or 3 + "+N"; the missing one dashed, with "EKSİK PARÇA"),
+ * then "BUGÜNÜN KOMBİNİ · OFİS" + the name with "Look'u tamamla", and "Bunu giyiyorum" with refresh (another
+ * suggestion) and heart (lookbook).
  *
- * Without a generated image the area is the look's piece collage ("Parça kolajı") with the state's action
- * (add a photo / add credits / "Üzerimde gör") — the "SENİN ÜZERİNDE" tag only ever sits on a real image.
+ * Left: the try-on image, whole (contain) with "SENİN ÜZERİNDE"; while this look's image or another suggestion is
+ * prepared, the AI loading language (never a spinner); without an image, the invitation tile — the figure, "Bu look
+ * senin üzerinde nasıl durur?" and what a tap does ("Üzerimde gör · 1 kredi" / "Önce fotoğrafını ekle" / "Üyelikle
+ * açılır"). Never a piece collage with a call to action laid over it.
  */
 export function TodayLookCard({ look, onWear, onRefresh, onToggleFavorite, refreshing }: Props) {
   const language = useAppLanguage();
   const { t } = useTranslation();
   const hasMissing = look.pieces.some((p) => p.source === 'store');
-  const showThumbs = refreshing || Boolean(look.tryOnImageUrl);
-  // The collage holds four tiles: the missing piece is always one of them.
-  const owned = look.pieces.filter((p) => p.source !== 'store');
-  const missingPieces = look.pieces.filter((p) => p.source === 'store');
-  const collagePieces = [...owned.slice(0, Math.max(0, 4 - Math.min(missingPieces.length, 4))), ...missingPieces].slice(0, 4);
+  // An image the plan already carries wins; otherwise the existing-image check and this session's run (14b's rules).
+  const lookTryOn = useLookTryOn(look.id, { enabled: !look.tryOnImageUrl });
+  const imageUrl = look.tryOnImageUrl ?? (lookTryOn.state === 'image' ? (lookTryOn.image?.imageUrl ?? null) : null);
+  const generating = !imageUrl && lookTryOn.state === 'generating';
+  const action = useTryOnAction({ target: { kind: 'look', id: look.id }, title: look.name, feature: 'today_try_on', cachedJobId: lookTryOn.cachedJobId });
+  const { shown, more } = heroTiles(look.pieces, (p) => p.source === 'store');
   const eyebrow = toDisplayUpper(t('todayHome.lookEyebrow', { occasion: t(`occasion.${look.occasion}`) }), language);
   return (
-    <View className="overflow-hidden rounded-card border border-line bg-paper">
+    <View className="overflow-hidden rounded-card border border-line bg-paper" testID="today-look-card">
       <View className="h-[264px] flex-row">
-        {refreshing ? (
-          <AiShimmerImage className="flex-[23]" accessibilityLabel={t('todayHome.refreshing')}>
-            <AiDropPulse height={30} />
-          </AiShimmerImage>
-        ) : (
-          <OnYouImage
-            uri={look.tryOnImageUrl}
-            className={look.tryOnImageUrl ? 'flex-[23]' : 'flex-1'}
-            pieces={collagePieces.map((p) => ({ category: p.category, color: p.color, imageUrl: p.imageUrl, missing: p.source === 'store' }))}
-            seed={look.id}
-            silhouetteHeight={168}
-            accessibilityLabel={t('todayHome.lookImageA11y', { name: look.name })}
-            collageLabel={t('aiBadge.collageA11y', { name: look.name })}
-          >
-            <OnYouCta target={{ kind: 'look', id: look.id }} title={look.name} feature="today_try_on" />
-          </OnYouImage>
-        )}
-        {/* Without a generated image the collage already shows the pieces — the thumbnail column would repeat them. */}
-        {showThumbs ? (
-        <View className="flex-[12] gap-1 p-1">
-          {todayThumbs(look.pieces).map((p) => {
+        <View className="flex-[23]">
+          {refreshing ? (
+            <AiShimmerImage className="h-full w-full" accessibilityLabel={t('todayHome.refreshing')}>
+              <AiDropPulse height={30} />
+            </AiShimmerImage>
+          ) : imageUrl ? (
+            <OnYouImage
+              uri={imageUrl}
+              className="h-full w-full bg-sand"
+              pieces={[]}
+              seed={look.id}
+              silhouetteHeight={168}
+              accessibilityLabel={t('todayHome.lookImageA11y', { name: look.name })}
+            />
+          ) : generating ? (
+            <HeroGenerating name={look.name} className="h-full w-full" testID="today-look-generating" />
+          ) : (
+            <TryOnInvite {...action.invite} className="h-full w-full" testID="today-look-invite" />
+          )}
+        </View>
+        <HeroPieceColumn
+          testID="today-look-pieces"
+          readable
+          more={more}
+          pieces={shown.map((p) => {
             const missing = p.source === 'store';
-            return (
-              <View key={p.id} className="flex-1">
+            return {
+              key: p.id,
+              missing,
+              content: (
                 <ImageSlot
                   uri={p.imageUrl}
                   placeholder={{ kind: 'garment', category: p.category, color: p.color, glyphSize: 28 }}
                   accessibilityLabel={missing ? t('todayHome.pieceMissingA11y', { name: p.name }) : p.name}
-                  className={`h-full w-full rounded-thumb ${missing ? 'border-[1.5px] border-dashed border-accent' : ''}`}
+                  className="h-full w-full"
                 />
-                {missing ? <MissingTag className="absolute right-1.5 top-1.5" /> : null}
-              </View>
-            );
+              ),
+            };
           })}
-        </View>
-        ) : null}
+        />
       </View>
+      {action.sheet}
 
       <View className="gap-2.5 px-4 pb-3.5 pt-3">
+        {action.note ? (
+          <Text variant="caption" tone="danger" accessibilityLiveRegion="polite" testID="today-look-note">
+            {action.note}
+          </Text>
+        ) : null}
         <View className="flex-row items-end justify-between gap-3">
           <View className="flex-1 gap-1">
             <Text variant="eyebrow" numberOfLines={1}>

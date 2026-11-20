@@ -36,6 +36,7 @@ import { RequirementHint } from '@/features/requirements/RequirementHint';
 import { useGate } from '@/features/requirements/useRequirements';
 import { ensureTryOnConsent, TRY_ON_CREDIT_COST, useStartTryOn, useTryOnJob } from '@/features/tryon/api';
 import { CachedTryOnNote, isCachedTryOnJob, useCachedTryOn } from '@/features/tryon/cached';
+import { useTryOnInviteFooter } from '@/features/tryon/TryOnInvite';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { formatDate, parseLocalDate } from '@/lib/format';
 import { useIsOnline } from '@/sync/network';
@@ -112,6 +113,8 @@ export function SuggestionResult({ jobId, title, result, focused, onAskAgain, as
   const [sheet, setSheet] = useState<Sheet>('none');
   // Missing photo / consent / membership: the requirements flow, which then opens the credit confirmation (canvas 11).
   const tryOnGate = useGate('tryOn', () => void ensureTryOnConsent().then((ok) => ok && setSheet('credit')), { origin: title });
+  // The invitation tile says what a tap does: the cost, or the missing photo / membership.
+  const invite = useTryOnInviteFooter(tryOnGate.req);
   const [titleTops, setTitleTops] = useState<Record<number, number>>({});
 
   const suggestions = result.suggestions;
@@ -314,6 +317,7 @@ export function SuggestionResult({ jobId, title, result, focused, onAskAgain, as
                     mode={media.mode}
                     imageUrl={media.imageUrl}
                     creditLine={creditLine}
+                    invite={invite}
                     onTryOn={onTryOn}
                     tryOnDisabled={!online}
                     creditRefunded={media.creditRefunded}

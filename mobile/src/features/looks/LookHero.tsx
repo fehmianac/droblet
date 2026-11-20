@@ -1,26 +1,24 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { ChevronRight, MirrorRound, Sparkles } from 'lucide-react-native';
+import { Sparkles } from 'lucide-react-native';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, View } from 'react-native';
-import Svg, { Circle, Path } from 'react-native-svg';
+import { View } from 'react-native';
 
 import type { LookSlot } from '@/api/contracts/looks';
 import type { TryOnResult, TryOnTarget } from '@/api/contracts/tryon';
 import { cachedTryOnJobId } from '@/api/wire/tryon';
 import { AiShimmerImage, AiSilhouetteTrace } from '@/components/ui/ai';
 import { AiBadge } from '@/components/ui/AiBadge';
-import { Badge, ImageTag, MissingTag } from '@/components/ui/Bits';
-import { SILHOUETTE_BODY_PATH, SILHOUETTE_HEAD, SILHOUETTE_VIEWBOX } from '@/components/brand/logoPaths';
-import { Icon } from '@/components/ui/Icon';
+import { Badge, ImageTag } from '@/components/ui/Bits';
 import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Text } from '@/components/ui/Text';
 import { Zoomable, type ViewerImage } from '@/components/ui/viewer';
 import { existingTryOnQuery, useExistingTryOn, useTryOnJob } from '@/features/tryon/api';
 import { useTryOnPhotoKey } from '@/features/tryon/photoKey';
 import { tryOnRuns, useTryOnRun } from '@/features/tryon/runs';
-import { useThemeColors } from '@/theme/useThemeColors';
+import { TryOnInvite, type TryOnInviteProps } from '@/features/tryon/TryOnInvite';
 
+import { heroTiles, HeroPieceColumn } from './HeroPieces';
 import { SlotThumb, type ItemsById } from './LookCover';
 
 export type LookTryOnState = 'image' | 'generating' | 'none';
@@ -64,32 +62,28 @@ export function useLookTryOn(lookId: string | undefined, options: { enabled?: bo
   return decideLookTryOn({ generating: Boolean(runJobId) && !ended, image: existing.data ?? (job.isDone ? job.result : null) });
 }
 
-/** The right column: every piece up to 4; with more, 3 + a "+N" tile (the piece rows below list them all). */
-export function heroTiles(slots: LookSlot[]): { shown: LookSlot[]; more: number } {
-  if (slots.length <= 4) return { shown: slots, more: 0 };
-  return { shown: slots.slice(0, 3), more: slots.length - 3 };
-}
+export { heroTiles };
 
-/** Dashed standing figure of the invitation (canvas 14b): the brand silhouette, outline in the accent. */
-function InviteFigure() {
-  const colors = useThemeColors();
+/** The "senin üzerinde" area while this look's image is generated (06, 14b): the AI loading language, never a spinner. */
+export function HeroGenerating({ name, className, testID }: { name: string; className?: string; testID?: string }) {
+  const { t } = useTranslation();
   return (
-    <Svg width={78} height={130} viewBox={SILHOUETTE_VIEWBOX} accessible={false}>
-      <Circle {...SILHOUETTE_HEAD} fill={colors.ink} opacity={0.1} />
-      <Path d={SILHOUETTE_BODY_PATH} fill={colors.ink} opacity={0.1} />
-      <Path d={SILHOUETTE_BODY_PATH} fill="none" stroke={colors.accent} strokeWidth={1} strokeDasharray="3 2.4" strokeLinejoin="round" />
-      <Circle {...SILHOUETTE_HEAD} fill="none" stroke={colors.accent} strokeWidth={1} strokeDasharray="3 2.4" />
-    </Svg>
+    <AiShimmerImage className={className} accessibilityLabel={t('lookDetail.heroPreparingA11y', { name })}>
+      <View testID={testID} className="items-center gap-2">
+        <AiSilhouetteTrace height={150} />
+        <Text variant="h3" className="text-center" accessibilityLiveRegion="polite">
+          {t('lookDetail.heroPreparing')}
+        </Text>
+      </View>
+      <View className="absolute left-2 top-2" pointerEvents="none">
+        <Badge tone="ink" icon={Sparkles} label={t('ai.previewBadge')} />
+      </View>
+      <ImageTag label={t('ai.preparingTag')} className="absolute bottom-2 left-2" />
+    </AiShimmerImage>
   );
 }
 
-type InviteProps = {
-  /** "Üzerimde gör · 1 kredi", "Önce fotoğrafını ekle", "Üyelikle açılır", or the requirements hint. */
-  footer: string;
-  /** Ready: the mirror icon before the footer; otherwise a chevron after it. */
-  ready: boolean;
-  onPress: () => void;
-};
+type InviteProps = Pick<TryOnInviteProps, 'footer' | 'ready' | 'onPress'>;
 
 type Props = {
   name: string;
@@ -108,7 +102,7 @@ type Props = {
  */
 export function LookHero({ name, slots, itemsById, tryOn, invite }: Props) {
   const { t } = useTranslation();
-  const { shown, more } = heroTiles(slots);
+  const { shown, more } = heroTiles(slots, (s) => s.source === 'store');
   const viewerImages: ViewerImage[] = [
     ...(tryOn.image?.imageUrl ? [{ uri: tryOn.image.imageUrl, label: t('tryOn.imageA11yNamed', { name }), ai: { tag: t('aiBadge.onYou') } }] : []),
     ...slots.filter((s) => s.imageUrl && !s.deleted).map((s) => ({ uri: s.imageUrl ?? '', label: s.name, caption: s.name })),
@@ -129,60 +123,29 @@ export function LookHero({ name, slots, itemsById, tryOn, invite }: Props) {
             </View>
           </Zoomable>
         ) : tryOn.state === 'generating' ? (
-          <AiShimmerImage className="h-full w-full" accessibilityLabel={t('lookDetail.heroPreparingA11y', { name })}>
-            <View testID="look-hero-generating" className="items-center gap-2">
-              <AiSilhouetteTrace height={150} />
-              <Text variant="h3" className="text-center" accessibilityLiveRegion="polite">
-                {t('lookDetail.heroPreparing')}
-              </Text>
-            </View>
-            <View className="absolute left-2 top-2" pointerEvents="none">
-              <Badge tone="ink" icon={Sparkles} label={t('ai.previewBadge')} />
-            </View>
-            <ImageTag label={t('ai.preparingTag')} className="absolute bottom-2 left-2" />
-          </AiShimmerImage>
+          <HeroGenerating name={name} className="h-full w-full" testID="look-hero-generating" />
         ) : (
-          <Pressable
-            onPress={invite.onPress}
-            accessibilityRole="button"
-            accessibilityLabel={t('lookDetail.heroInviteA11y', { detail: invite.footer })}
-            className="h-full w-full items-center bg-sand px-4 pb-3.5 pt-[18px] active:opacity-80"
-            testID="look-hero-invite"
-          >
-            <InviteFigure />
-            <Text variant="h3" className="mt-2.5 text-center">
-              {t('lookDetail.heroInvite')}
-            </Text>
-            <View className="mt-auto h-8 flex-row items-center gap-[5px] rounded-pill bg-paper px-3">
-              {invite.ready ? <Icon icon={MirrorRound} size={13} tone="accent" /> : null}
-              <Text variant="caption" tone="accent" numberOfLines={1} className="font-sans-medium" testID="look-hero-invite-footer">
-                {invite.footer}
-              </Text>
-              {invite.ready ? null : <Icon icon={ChevronRight} size={13} tone="accent" />}
-            </View>
-          </Pressable>
+          <TryOnInvite {...invite} className="h-full w-full" testID="look-hero-invite" />
         )}
       </View>
 
-      <View className="flex-[12] gap-1 p-1" accessible={false} importantForAccessibility="no-hide-descendants" testID="look-hero-pieces">
-        {shown.map((slot) => {
-          const store = slot.source === 'store';
+      <HeroPieceColumn
+        testID="look-hero-pieces"
+        moreTestID="look-hero-more"
+        more={more}
+        pieces={shown.map((slot) => {
           const index = viewerIndex(slot.imageUrl);
-          return (
-            <View key={slot.slot} className={`flex-1 overflow-hidden rounded-thumb ${store ? 'border-[1.5px] border-dashed border-accent' : ''}`}>
+          return {
+            key: slot.slot,
+            missing: slot.source === 'store',
+            content: (
               <Zoomable images={viewerImages} index={index} disabled={index < 0} className="h-full w-full">
                 <SlotThumb slot={slot} itemsById={itemsById} className="h-full w-full" glyphSize={28} />
               </Zoomable>
-              {store ? <MissingTag short={shown.length > 3} className="absolute right-1.5 top-1.5" /> : null}
-            </View>
-          );
+            ),
+          };
         })}
-        {more > 0 ? (
-          <View className="flex-1 items-center justify-center rounded-thumb bg-sand" testID="look-hero-more">
-            <Text variant="bodyMedium">{t('lookDetail.heroMore', { count: more })}</Text>
-          </View>
-        ) : null}
-      </View>
+      />
     </View>
   );
 }
