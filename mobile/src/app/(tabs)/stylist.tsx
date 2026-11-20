@@ -21,6 +21,7 @@ import { useItems } from '@/features/wardrobe/queries';
 import { formatDate, formatTemperature, parseLocalDate, seasonOf, toIsoDate, weekdayShort } from '@/lib/format';
 import { RequirementHint } from '@/features/requirements/RequirementHint';
 import { useGate } from '@/features/requirements/useRequirements';
+import { ClipboardPhotoCard } from '@/features/tryon/ClipboardPhotoCard';
 import { useOutfitPhotoPicker } from '@/features/tryon/OutfitPhotoPicker';
 import { useIsOnline } from '@/sync/network';
 import { brandTones, garmentColors, palettes, surfaceTones } from '@/theme/tokens';
@@ -324,6 +325,8 @@ export default function StylistTab() {
 
         <View className="h-px bg-line" />
 
+        {/* 16c+: only when the clipboard holds an image; read only on a tap. */}
+        <ClipboardPhotoCard />
         <OutfitPhotoCard onPress={outfitPhoto.open} />
 
         <View className="flex-row flex-wrap gap-2.5">
