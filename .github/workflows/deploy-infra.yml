@@ -262,6 +262,9 @@ jobs:
             "Saklanan Apple refresh token'ini sifreleyen AES-256 anahtari. Otomatik uretildi; degistirmek eski token'lari iptal edilemez yapar."
           ensure "notifier/Push/ApnsKey" SecureString "CHANGE_ME" \
             "APNs .p8 anahtari (iOS push, token auth). CHANGE_ME ise iOS'a push gitmez."
+          # Temizlenmis parca gorselleri Cloudflare onbelleginden silinsin (docs/images.md): Zone -> Cache Purge yetkili token.
+          ensure "api/Cloudflare/ApiToken" SecureString "CHANGE_ME" \
+            "Cloudflare API token (yalniz Zone > Cache Purge). CHANGE_ME ise silinen gorsel en fazla 1 gun onbellekte kalabilir."
 
           # --- Urun sahibinin duzenledigi ayarlar (String, JSON) ---
           ensure "api/Email" String \
@@ -289,6 +292,11 @@ jobs:
             "APNs anahtarinin Key ID'si."
           ensure "notifier/Push/ApnsTeamId" String "4LB4RD97A9" \
             "APNs provider token iss = Apple Developer Team ID."
+          # Public parca gorselleri (docs/images.md): cdn.droblet.alatech.co Cloudflare kaydi hazir olunca https://cdn.droblet.alatech.co yazilir.
+          ensure "api/Photos/PublicBaseUrl" String "CHANGE_ME" \
+            "Temizlenmis parca gorsellerinin public adresi (or. https://cdn.droblet.alatech.co). CHANGE_ME ise presigned URL kullanilir."
+          ensure "api/Cloudflare/ZoneId" String "CHANGE_ME" \
+            "alatech.co Cloudflare Zone ID (onbellek temizligi icin). CHANGE_ME ise temizlik yapilmaz."
           ensure "worker/Ai" String \
             '{"Enabled":false,"Provider":"OpenAI","TextModel":"gpt-6-astra","ImageModel":"gpt-image-2.5-sunburst"}' \
             "AI: acik/kapali, model kimlikleri. Model kimliklerini saglayicinin gercek adlariyla teyit et."
