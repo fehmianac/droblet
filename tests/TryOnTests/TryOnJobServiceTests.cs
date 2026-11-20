@@ -75,6 +75,31 @@ public class TryOnJobServiceTests
         Assert.Equal(CreditReservationStatus.Committed, reservation!.Status);
     }
 
+    [Fact]
+    public async Task Process_AiUsage_CompletedTryOnIsCountedOnceAsPremium_ARefundedOneAsRefunded()
+    {
+        var (host, job, message) = await ArrangeAsync(new FakeRenderer());
+        using (AiUsageProbe.Run("image_tryon", "gpt-image-2.5-sunburst", 0.031m))
+        {
+            await host.Get<ITryOnJobService>().ProcessAsync(message, false, default);
+            await host.Get<ITryOnJobService>().ProcessAsync(message, false, default);   // SQS redelivery
+        }
+
+        var day = await AiUsageProbe.DayAsync(host.Repository, Tenant, WorkerTestHost.Now);
+        Assert.Equal((1L, 1L), (day[AiUsageCounters.Jobs], AiUsageProbe.Op(day, AiUsageOperations.TryOn, AiUsageCounters.Calls)));
+        Assert.Equal(1, AiUsageProbe.Op(day, AiUsageOperations.TryOn, AiUsageCounters.Images));
+        Assert.Equal(31_000, day[AiUsageCounters.Model("gpt-image-2.5-sunburst", AiUsageCounters.Cost)]);
+        var premium = await host.Repository.GetAsync<AiUsageEntity>(AiUsageEntity.PlanPk(AiUsagePlans.Premium), AiUsageEntity.DaySk(DateOnly.FromDateTime(WorkerTestHost.Now)));
+        Assert.Equal(31_000, premium!.Counters[AiUsageCounters.Cost]);
+
+        var (failedHost, failedJob, failedMessage) = await ArrangeAsync();
+        using (AiUsageProbe.Run("image_tryon", "gpt-image-2.5-sunburst", 0m))
+            await failedHost.Get<ITryOnJobService>().ProcessAsync(failedMessage, false, default);
+        var failed = await AiUsageProbe.DayAsync(failedHost.Repository, Tenant, WorkerTestHost.Now);
+        Assert.Equal((1L, 1L, 1L), (failed[AiUsageCounters.Failed], failed[AiUsageCounters.Refunded], AiUsageProbe.Op(failed, AiUsageOperations.TryOn, AiUsageCounters.Refunded)));
+        Assert.Equal(JobStatus.Failed, (await failedHost.JobAsync(failedJob))!.Status);
+    }
+
     private sealed class QualityRenderer : ITryOnRenderer
     {
         public List<string?> Qualities { get; } = [];
@@ -109,6 +134,25 @@ public class TryOnJobServiceTests
         var image = Assert.Single(await host.Repository.GetAllAsync<TryOnImageEntity>(TryOnImageEntity.GetPk(Tenant)));
         Assert.Equal(2, host.Storage.Objects[image.S3Key].Data[0]); // the full render under the same key
         Assert.Equal(29, await host.RemainingCreditsAsync(Tenant));
+    }
+
+    [Fact]
+    public async Task Process_WithPreview_TheFullRenderAfterCompletionIsCountedToo_TheJobOnce()
+    {
+        var renderer = new QualityRenderer();
+        var (host, _, message) = await ArrangeAsync(renderer, configure: s => s.Configure<Domain.Options.AiOptions>(o => o.Image.TryOnPreview = true));
+        using (AiUsageProbe.Run("image_tryon", "gpt-image-2.5-sunburst", 0.031m))   // the preview call
+        {
+            renderer.BeforeSecond = () =>
+            {
+                Infrastructure.Telemetry.AiTelemetry.Current!.AddCall(new("image_tryon", "gpt-image-2.5-sunburst", 9000, 200, 5000, 760, CostUsd: 0.05m));
+                return Task.CompletedTask;
+            };
+            await host.Get<ITryOnJobService>().ProcessAsync(message, false, default);
+        }
+
+        var day = await AiUsageProbe.DayAsync(host.Repository, Tenant, WorkerTestHost.Now);
+        Assert.Equal((1L, 2L, 81_000L), (day[AiUsageCounters.Jobs], AiUsageProbe.Op(day, AiUsageOperations.TryOn, AiUsageCounters.Calls), day[AiUsageCounters.Cost]));
     }
 
     [Fact]

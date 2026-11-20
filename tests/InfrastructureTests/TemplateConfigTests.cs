@@ -243,6 +243,17 @@ public partial class TemplateConfigTests
     }
 
     [Fact]
+    public void AiUsage_CarriesTheNetPricesOfDocsAiCost_AndSaneThresholds()
+    {
+        var usage = Bind<AiUsageOptions>("api", AiUsageOptions.Section);
+        // docs/ai-cost.md §7: ₺199.99 monthly / ₺1,499.99 yearly, incl. 20% VAT, minus the 15% store fee; USD/TRY 43.
+        Assert.Equal((141.66m, 88.54m, 43m), (usage.NetMonthlyPlanTry, usage.NetYearlyPlanPerMonthTry, usage.UsdTryRate));
+        Assert.True(usage is { AnomalyMedianMultiplier: > 1, AnomalyAbsoluteDayUsd: > 0, AnomalyMinHistoryDays: >= 1, TopUsers: > 0, MaxRangeDays: >= 31 and <= 366 });
+        // Same value on both stages: these are accounting facts, not a dev experiment.
+        Assert.DoesNotMatch(@"api/AiUsage\s*\n(?:[^\n]*\n){1,3}?\s*Value: !If", Template());
+    }
+
+    [Fact]
     public void AiLimits_AreOffOnProd_AndOnInDev()
     {
         var prod = Bind<AiLimitsOptions>("api", AiLimitsOptions.Section);   // the checked literal is the prod one

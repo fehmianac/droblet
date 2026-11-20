@@ -51,6 +51,12 @@ public sealed record TransactResult(TransactOutcome Outcome, int? FailedIndex = 
     public static readonly TransactResult Success = new(TransactOutcome.Applied);
 }
 
+/// <summary>
+/// Atomic ADDs to the numeric attributes of one item, created when missing (UpdateItem ADD). Ttl is set only when the
+/// item has none yet; Values are string attributes SET on every write (e.g. the plan of a day-index row).
+/// </summary>
+public sealed record CounterUpdate(string Pk, string Sk, IReadOnlyDictionary<string, long> Increments, long Ttl, IReadOnlyDictionary<string, string>? Values = null);
+
 /// <summary>The only path to DynamoDB. Handlers and services never use the AWS SDK directly.</summary>
 public interface IRepository
 {
@@ -94,6 +100,13 @@ public interface IRepository
     /// every top-level numeric attribute after the update; null when the item does not exist.
     /// </summary>
     Task<IReadOnlyDictionary<string, long>?> AddCountersAsync(string pk, string sk, IReadOnlyDictionary<string, long> increments, CancellationToken ct = default);
+
+    /// <summary>
+    /// One transaction: creates <paramref name="marker"/> (attribute_not_exists) and applies every counter update
+    /// (creating the rows). False when the marker already exists — nothing is added (idempotent per marker).
+    /// At most 99 updates, each on a different item.
+    /// </summary>
+    Task<bool> AddCountersOnceAsync(IEntity marker, IReadOnlyList<CounterUpdate> updates, CancellationToken ct = default);
 
     // Offline sync / multi device
     /// <summary>Writes when stored version == expectedVersion (0 = must not exist); sets entity.Version = expectedVersion + 1.</summary>

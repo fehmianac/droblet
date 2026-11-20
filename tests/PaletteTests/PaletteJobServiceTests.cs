@@ -53,6 +53,23 @@ public class PaletteJobServiceTests
         Assert.Single(host.Storage.Objects); // only the face photo — no copy or crop
     }
 
+    [Fact]
+    public async Task Process_AiUsage_PaletteIsCountedOnce_AsFreePlan()
+    {
+        var (host, _, message) = await ArrangeAsync(new FakeAnalyzer(new PaletteAnalysis("warm-autumn", ["rust", "olive"], ["icy-blue"], 1)));
+
+        using (AiUsageProbe.Run("palette_season", "gpt-6.1-terra", 0.0008m))
+        {
+            await host.Get<IPaletteJobService>().ProcessAsync(message, false, default);
+            await host.Get<IPaletteJobService>().ProcessAsync(message, false, default);
+        }
+
+        var day = await AiUsageProbe.DayAsync(host.Repository, Tenant, WorkerTestHost.Now);
+        Assert.Equal((1L, 800L), (AiUsageProbe.Op(day, Domain.Services.AiUsageOperations.Palette, Domain.Services.AiUsageCounters.Calls), day[Domain.Services.AiUsageCounters.Cost]));
+        var index = Assert.Single(await host.Repository.GetAllAsync<AiUsageDayIndexEntity>(AiUsageDayIndexEntity.GetPk(DateOnly.FromDateTime(WorkerTestHost.Now))));
+        Assert.Equal((Tenant, "free", 800L), (index.TenantId, index.Plan, index.Cost));
+    }
+
     [Theory]
     [InlineData(0, JobFailure.NoFaceDetected)]
     [InlineData(2, JobFailure.NoFaceDetected)]

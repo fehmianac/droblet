@@ -59,7 +59,7 @@ public class JobLifecycleTests
         await repository.SaveAsync(Fixtures.Premium("t1", Fixtures.Now.AddDays(-1)));
         var credits = new CreditService(repository, Fixtures.Entitlements(), clock, NullLogger<CreditService>.Instance);
         var entitlement = new EntitlementService(repository, Fixtures.Entitlements(), clock);
-        var lifecycle = new JobLifecycle(repository, credits, new ItemRecognitionQuotaService(repository, Fixtures.Entitlements(), clock), clock, NullLogger<JobLifecycle>.Instance);
+        var lifecycle = new JobLifecycle(repository, credits, new ItemRecognitionQuotaService(repository, Fixtures.Entitlements(), clock), new AiUsageRecorder(repository, NullLogger<AiUsageRecorder>.Instance), clock, NullLogger<JobLifecycle>.Instance);
 
         foreach (var (jobId, key) in new[] { ("j1", "k1"), ("j2", "k2") })
         {
@@ -165,7 +165,7 @@ public class ItemRecognitionQuotaServiceTests
         var options = Fixtures.Monitor(new EntitlementOptions { Premium = { TryOnCreditsPerMonth = 30 }, Free = { ItemRecognitionLimit = limit } });
         var quota = new ItemRecognitionQuotaService(repository, options, clock);
         var credits = new CreditService(repository, options, clock, NullLogger<CreditService>.Instance);
-        return (quota, new JobLifecycle(repository, credits, quota, clock, NullLogger<JobLifecycle>.Instance), new EntitlementService(repository, options, clock), repository, clock);
+        return (quota, new JobLifecycle(repository, credits, quota, new AiUsageRecorder(repository, NullLogger<AiUsageRecorder>.Instance), clock, NullLogger<JobLifecycle>.Instance), new EntitlementService(repository, options, clock), repository, clock);
     }
 
     private static async Task<JobEntity> JobAsync(InMemoryRepository repository, string id, JobKind kind = JobKind.ItemProcess)

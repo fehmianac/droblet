@@ -25,6 +25,8 @@ public class JobEntity : IEntity
     [JsonPropertyName("timings")] public Dictionary<string, long>? Timings { get; set; }
     // Estimated AI cost of the run in micro-USD per operation + "calls.{op}" + "total" (Ai:Pricing) — internal, never sent to the app.
     [JsonPropertyName("aiCost")] public Dictionary<string, long>? AiCost { get; set; }
+    // Distinct model ids the run's AI calls reported (admin "AI kullanımı" recent jobs) — internal, never sent to the app.
+    [JsonPropertyName("aiModels")] public List<string>? AiModels { get; set; }
     [JsonPropertyName("creditIdempotencyKey")] public string? CreditIdempotencyKey { get; set; }
     [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; }
     [JsonPropertyName("updatedAt")] public DateTime UpdatedAt { get; set; }

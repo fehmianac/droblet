@@ -19,7 +19,8 @@ export type Permission =
   | 'settings.manage'
   | 'admins.manage'
   | 'audit.view'
-  | 'ai.manage';
+  | 'ai.manage'
+  | 'ai.usage.view';
 
 export interface AdminMe {
   id: string;
@@ -469,4 +470,151 @@ export interface AiModelSettings {
   reloadSeconds: number;
   limits: { group: string; parameters: string[]; fields: AiSettingField[] } | null;
   pricing: string | null;
+}
+
+// ── AI usage and cost (docs/api/admin.md §5c). Money is estimated micro-USD (1_000_000 = $1). ─────────────────
+
+export type AiUsageOperation =
+  | 'stylist_outfit'
+  | 'stylist_week'
+  | 'stylist_pack'
+  | 'item_detection'
+  | 'cleanup'
+  | 'multi_item'
+  | 'import_detect'
+  | 'import_match'
+  | 'import_cleanup'
+  | 'palette'
+  | 'photo_check'
+  | 'tryon'
+  | 'admin_trial'
+  | 'other';
+
+export type AiUsagePlan = 'free' | 'premium';
+
+export interface AiUsageTotals {
+  jobs: number;
+  completed: number;
+  failed: number;
+  refunded: number;
+  calls: number;
+  callErrors: number;
+  inputTokens: number;
+  outputTokens: number;
+  cachedTokens: number;
+  images: number;
+  costMicroUsd: number;
+}
+
+export interface AiUsageOperationRow {
+  operation: AiUsageOperation | string;
+  jobs: number;
+  failed: number;
+  calls: number;
+  inputTokens: number;
+  outputTokens: number;
+  cachedTokens: number;
+  images: number;
+  costMicroUsd: number;
+}
+
+export interface AiUsageModelRow {
+  model: string;
+  calls: number;
+  inputTokens: number;
+  outputTokens: number;
+  cachedTokens: number;
+  images: number;
+  costMicroUsd: number;
+}
+
+export interface AiUsagePeriod {
+  period: string;
+  totals: AiUsageTotals;
+  operations: AiUsageOperationRow[];
+}
+
+export interface AiUsageJob {
+  id: string;
+  kind: string;
+  outcome: 'completed' | 'failed' | 'refunded' | 'running';
+  failure: string | null;
+  models: string[];
+  durationMs: number | null;
+  costMicroUsd: number | null;
+  creditsCharged: number;
+  creditsRefunded: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AiUsageRates {
+  usdTry: number;
+  netMonthlyPlanTry: number;
+  netYearlyPlanPerMonthTry: number;
+}
+
+export interface UserAiUsage {
+  userId: string;
+  tenantId: string;
+  from: string;
+  to: string;
+  plan: AiUsagePlan;
+  credits: { allowanceTotal: number; allowanceRemaining: number; packBalance: number };
+  totals: AiUsageTotals;
+  operations: AiUsageOperationRow[];
+  models: AiUsageModelRow[];
+  days: AiUsagePeriod[];
+  months: AiUsagePeriod[];
+  recentJobs: AiUsageJob[];
+  rates: AiUsageRates;
+}
+
+export interface AiUsagePlanRow {
+  plan: AiUsagePlan;
+  activeUsers: number;
+  totals: AiUsageTotals;
+  costPerActiveUserMicroUsd: number;
+  costPerActiveUserPer30DaysMicroUsd: number;
+  shareOfMonthlyNet: number | null;
+  shareOfYearlyNet: number | null;
+}
+
+export interface AiUsageTopUser {
+  tenantId: string;
+  userId: string | null;
+  email: string | null;
+  handle: string | null;
+  plan: AiUsagePlan;
+  costMicroUsd: number;
+  calls: number;
+  activeDays: number;
+}
+
+export interface AiUsageAnomaly {
+  day: string;
+  tenantId: string;
+  userId: string | null;
+  email: string | null;
+  handle: string | null;
+  plan: AiUsagePlan;
+  costMicroUsd: number;
+  medianMicroUsd: number | null;
+  multiple: number | null;
+  reasons: ('median' | 'absolute')[];
+}
+
+export interface AiUsageSummary {
+  from: string;
+  to: string;
+  totals: AiUsageTotals;
+  admin: AiUsageTotals;
+  days: { day: string; costMicroUsd: number; calls: number; jobs: number; failed: number }[];
+  operations: AiUsageOperationRow[];
+  models: AiUsageModelRow[];
+  plans: AiUsagePlanRow[];
+  topUsers: AiUsageTopUser[];
+  anomalies: AiUsageAnomaly[];
+  rates: AiUsageRates;
+  thresholds: { medianMultiplier: number; minHistoryDays: number; minDayUsd: number; absoluteDayUsd: number };
 }

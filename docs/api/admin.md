@@ -36,6 +36,7 @@ keep the shapes of [store-social-settings.md §11](store-social-settings.md#11-a
 | `admins.manage` | ✓ | | | `v1/admin/admin-user…` |
 | `audit.view` | ✓ | | | `GET v1/admin/audit` |
 | `ai.manage` | ✓ | | | `v1/admin/ai/…` (prompts, trials, model settings — §5b) |
+| `ai.usage.view` | ✓ | | | `GET v1/admin/ai-usage/summary`, `GET v1/admin/user/{id}/ai-usage` (§5c). Every holder of `ai.manage` has it too. |
 
 `GET v1/admin/auth/me` returns the caller's permissions; the panel hides what it cannot use, the server refuses it anyway.
 
@@ -329,6 +330,96 @@ reload runs when a warm instance is invoked after the interval, so a model chang
 instance that sat idle may finish one more job with the old value; a cold start reads the new value at once. More
 per-operation knobs (e.g. `ServiceTiers.{op}`, `VisionDetail.{op}`, `MaxOutputTokens.{op}`) are added as one
 `SettingsCatalog.PerOperation(…)` line each.
+
+## 5c. AI usage and cost (`ai.usage.view`)
+
+Where each user spends AI money, and the overall AI cost board (**AI › Maliyet**, user detail tab **AI kullanımı**).
+All money is the **estimated** cost from `worker/Ai/Pricing` (docs/ai-cost.md), in integer micro-USD (`1_000_000` = $1);
+the provider's invoice stays the truth. Nothing here holds a prompt, an answer or an image — numbers only.
+
+### Counters (written by the workers)
+
+When an AI job finishes — completed, failed or failed with its credit refunded — `JobLifecycle` adds its provider calls
+(from the run's telemetry) to the counters **once per job id**: a marker row is created in the same DynamoDB transaction
+(`attribute_not_exists`), so an SQS redelivery or a backfill replay adds nothing. The outfit import counts per photo (the
+detect stage and the end of the photo, markers `oi#{session}#{index}#detect|done`); admin trials (`AiTrialRunner`) count
+under the separate `admin` tenant (`trial#{id}`), never per user, never in a plan or the day index.
+
+| Partition / sort key | What | Retention |
+|---|---|---|
+| `tenant#{id}#aiusage` / `d#yyyy-MM-dd`, `m#yyyy-MM` | one user's day and month | day 400 days, month 3 years |
+| `ai#usage#all` / `d#…`, `m#…` | everything (users + admin trials) | same |
+| `ai#usage#plan#{free\|premium}` / `d#…`, `m#…` | per plan (the user's tier when the job finished) | same |
+| `ai#usage#admin` / `d#…`, `m#…` | admin trials | same |
+| `ai#usage#day#{yyyy-MM-dd}` / `{tenantId}` | day index: `cost`, `calls`, `plan` (top users, active users, anomalies) | 400 days |
+| `tenant#{id}#aiusagemark` / `{marker}` | once-per-job marker | 8 days |
+
+Counter attributes (atomic `ADD`): `jobs`, `completed`, `failed` (every failed job, refunds included), `refunded`,
+`calls`, `callErrors`, `in` / `out` / `cached` / `reasoning` (tokens), `images` (image outputs), `cost` (micro-USD); per
+operation `op|{operation}|{metric}` and per model `model|{model}|{metric}`. Operations: `stylist_outfit`, `stylist_week`,
+`stylist_pack`, `item_detection`, `cleanup`, `multi_item` (a piece picked from a multi-item photo), `import_detect`,
+`import_match`, `import_cleanup`, `palette`, `photo_check`, `tryon`, `admin_trial`, `other`.
+
+**Privacy.** The per-user rows are personal data about the account (like the usage events): they are **deleted with the
+account** (DeletionPlan; the day-index rows are found through the user's day rows) and **included in “Download my data”**
+as `data/ai-usage.json` (period, calls, tokens, images, estimated cost per operation and model). The markers are internal
+bookkeeping and are not exported. The global, plan and admin rows hold no user id and stay after a deletion.
+
+**Backfill.** `gh workflow run ops-dev.yml -f command=ai-usage-backfill -f args="--days 7"` replays the finished jobs and
+outfit import photos still in the table (7 days) from their stored `aiCost` — no AI call, idempotent (the live markers),
+allowed on prod. Jobs from before the counters have no token counts and a model only when they used exactly one.
+
+### Routes
+
+| Method | Path | Permission | Query | Result |
+|---|---|---|---|---|
+| GET | `v1/admin/user/{id}/ai-usage` | `ai.usage.view` | `from`, `to` (yyyy-MM-dd, UTC, inclusive; default the last 30 days; at most `AiUsage:MaxRangeDays` = 92) | `AdminUserAiUsageDto`. `404 not_found`, `400 validation_failed`. **Audited** as `user.ai_usage_view` (target the user, after = the range). |
+| GET | `v1/admin/ai-usage/summary` | `ai.usage.view` | `from`, `to` (same rules) | `AdminAiUsageSummaryDto` |
+
+```jsonc
+// AiUsageTotalsDto
+{ "jobs": 12, "completed": 11, "failed": 1, "refunded": 1, "calls": 19, "callErrors": 0,
+  "inputTokens": 40210, "outputTokens": 9120, "cachedTokens": 1200, "images": 6, "costMicroUsd": 412000 }
+
+// AdminUserAiUsageDto
+{ "userId", "tenantId", "from": "2026-10-22", "to": "2026-11-20", "plan": "free"|"premium",
+  "credits": { "allowanceTotal": 30, "allowanceRemaining": 28, "packBalance": 0 },
+  "totals": AiUsageTotalsDto,
+  "operations": [ { "operation": "tryon", "jobs", "failed", "calls", "inputTokens", "outputTokens", "cachedTokens", "images", "costMicroUsd" } ],
+  "models": [ { "model": "gpt-image-2.5-sunburst", "calls", "inputTokens", "outputTokens", "cachedTokens", "images", "costMicroUsd" } ],
+  "days":   [ { "period": "2026-11-20", "totals": AiUsageTotalsDto, "operations": […] } ],   // days with usage only
+  "months": [ { "period": "2026-11", "totals": …, "operations": […] } ],                      // every month the range touches
+  "recentJobs": [ { "id", "kind": "tryOn", "outcome": "completed"|"failed"|"refunded"|"running", "failure": null,
+                    "models": ["gpt-image-2.5-sunburst"], "durationMs": 14200, "costMicroUsd": 31000,
+                    "creditsCharged": 1, "creditsRefunded": 0, "createdAt", "updatedAt" } ],          // job table, last 7 days, ≤ 50
+  "rates": { "usdTry": 43, "netMonthlyPlanTry": 141.66, "netYearlyPlanPerMonthTry": 88.54 } }
+
+// AdminAiUsageSummaryDto
+{ "from", "to", "totals": AiUsageTotalsDto, "admin": AiUsageTotalsDto,          // admin = the admin trials (inside totals)
+  "days": [ { "day": "2026-11-20", "costMicroUsd", "calls", "jobs", "failed" } ],   // every day of the range
+  "operations": […], "models": […],
+  "plans": [ { "plan": "premium", "activeUsers": 14, "totals": …, "costPerActiveUserMicroUsd": 2090000,
+               "costPerActiveUserPer30DaysMicroUsd": 2090000, "shareOfMonthlyNet": 0.6344, "shareOfYearlyNet": 1.015 } ],
+  "topUsers": [ { "tenantId", "userId", "email": "a***@g***.com", "handle": "ay***", "plan", "costMicroUsd", "calls", "activeDays" } ],
+  "anomalies": [ { "day", "tenantId", "userId", "email", "handle", "plan", "costMicroUsd", "medianMicroUsd": 100000,
+                   "multiple": 12.0, "reasons": ["median", "absolute"] } ],
+  "rates": { … }, "thresholds": { "medianMultiplier": 5, "minHistoryDays": 3, "minDayUsd": 0.10, "absoluteDayUsd": 2 } }
+```
+
+- **Active users** of a plan: users with at least one AI call in the range while on that plan (day index).
+- **Margin per plan:** cost per active user, scaled to 30 days (`× 30 / range days`), × `UsdTryRate`, divided by the net
+  monthly price of the monthly plan (`NetMonthlyPlanTry`) and of the yearly plan per month (`NetYearlyPlanPerMonthTry`).
+  Premium only; free earns nothing (`null`).
+- **Top users:** by cost in the range (`AiUsage:TopUsers`, default 20). E-mail and handle are **masked** (first letter of
+  the e-mail and its domain, the TLD; first two letters of the handle); the full identity is on the user detail
+  (`users.read`), which the row links to by `userId`.
+- **Anomalies:** a user's day is flagged `median` when it is above `AnomalyMedianMultiplier` × the median of that user's
+  previous 30 days with usage (needs `AnomalyMinHistoryDays` such days and a day of at least `AnomalyMinDayUsd`), and
+  `absolute` when it is above `AnomalyAbsoluteDayUsd`. At most 100, most expensive first.
+
+Configuration — SSM String `api/AiUsage` (same on both stages): `UsdTryRate` 43, `NetMonthlyPlanTry` 141.66,
+`NetYearlyPlanPerMonthTry` 88.54 (docs/ai-cost.md §7), `AnomalyMedianMultiplier` 5, `AnomalyMinHistoryDays` 3,
+`AnomalyMinDayUsd` 0.10, `AnomalyAbsoluteDayUsd` 2, `TopUsers` 20, `MaxRangeDays` 92.
 
 ## 6. CSV import and moderation actions
 

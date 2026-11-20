@@ -37,6 +37,16 @@ public sealed class AccountDeletionService(
         if (analytics.Count > 0)
             await repository.BatchDeleteKeysAsync(analytics.Select(e => e.EventKey).ToList(), ct);
 
+        // AI usage day index: one row per day with usage, found through the tenant's own day rows (removed below).
+        var usageDays = await repository.GetAllAsync<AiUsageEntity>(AiUsageEntity.GetPk(tenantId), "d#", SkOperator.BeginsWith, ct);
+        var indexKeys = usageDays
+            .Select(d => DateOnly.TryParseExact(d.Sk[2..], "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var day) ? (DateOnly?)day : null)
+            .OfType<DateOnly>()
+            .Select(day => (AiUsageDayIndexEntity.GetPk(day), tenantId))
+            .ToList();
+        if (indexKeys.Count > 0)
+            await repository.BatchDeleteKeysAsync(indexKeys, ct);
+
         foreach (var pk in DeletionPlan.TenantPartitionKeys(tenantId))
         {
             var keys = await repository.GetKeysAsync(pk, ct);

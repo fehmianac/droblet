@@ -35,6 +35,7 @@ The price list is configuration, not code. It never changes a request: it only t
   - The job's `aiCost` (and outfit-import photo `aiCost`): micro-USD per operation, `calls.{op}` and `total`.
   - The `Job timings … | ai calls …` log line: `imgin … tier … usd …`.
   - The EMF metrics `CostMicroUsd` and `ReasoningTokens` (namespace `Droblet/Ai`, dimensions Env × Job × Stage).
+  - The durable per-user, per-plan and global AI usage counters (calls, tokens, images, micro-USD per operation and model; day rows 400 days, month rows 3 years), shown in the admin panel on **AI › Maliyet** and the user detail tab **AI kullanımı** — [admin.md §5c](api/admin.md).
 - **`ai-cost` Ops command** (`gh workflow run ops-dev.yml --ref <branch> -f command=ai-cost -f args="…"`):
   - `--usage-only --days N` prices every worker call of the last N days from the logs. It gives p50/p95 per job kind and per operation, plus the speculative-cleanup hit rate.
   - `--synthetic-only --text-variants … --image-variants …` runs the workers' prompts, schemas and guards on synthetic fixtures. The fixtures are a 40-piece wardrobe with real-length ids, plus the garment, flat-lay, face and body photos. It runs once per settings variant and rep, and records cost, tokens, latency and a quality check. Images are saved for review.

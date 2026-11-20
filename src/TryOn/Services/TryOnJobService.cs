@@ -139,6 +139,11 @@ public sealed class TryOnJobService(
             // to the job's failure handling, which would mark it failed on the last attempt.
             logger.LogWarning(ex, "Try-on job {JobId}: the full-quality image did not replace the preview", job.Id);
         }
+        finally
+        {
+            // The full render is a second paid call after the job completed: counted too (never the job twice).
+            await jobs.RecordLateUsageAsync(job, "full", CancellationToken.None);
+        }
     }
 
     private static async Task Observe(Task task)

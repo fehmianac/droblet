@@ -597,4 +597,51 @@ public class ItemProcessJobServiceTests
         Assert.Empty(ai.Cleanups);
         Assert.Equal((JobStatus.Failed, JobFailure.SourceDeleted), ((await host.JobAsync(job))!.Status, (await host.JobAsync(job))!.Failure));
     }
+
+    // ── AI usage counters ────────────────────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task AiUsage_ItemPhoto_DetectionAndCleanupCountedPerOperation_Once()
+    {
+        var ai = new FakeAi([Item(ItemCategoryHint.Outerwear, "navy", new BoundingBox(0.05, 0.05, 0.9, 0.9), "blazer")]);
+        var host = Host(ai);
+        var (job, _) = await ArrangeAsync(host);
+
+        using (var run = AiUsageProbe.Run("item_detection", "gpt-6.1-terra", 0.0029m))
+        {
+            Infrastructure.Telemetry.AiTelemetry.Current!.AddCall(new Infrastructure.Telemetry.AiCallRecord("image_cleanup", "gpt-image-2.5-sunburst", 9000, 200, 991, 200, CostUsd: 0.0125m));
+            await ProcessAsync(host, job);
+            await ProcessAsync(host, job);
+        }
+
+        var day = await AiUsageProbe.DayAsync(host.Repository, Tenant, WorkerTestHost.Now);
+        Assert.Equal(1, day[AiUsageCounters.Jobs]);
+        Assert.Equal((1L, 2_900L), (AiUsageProbe.Op(day, AiUsageOperations.ItemDetection, AiUsageCounters.Calls), AiUsageProbe.Op(day, AiUsageOperations.ItemDetection, AiUsageCounters.Cost)));
+        Assert.Equal((1L, 12_500L, 1L), (AiUsageProbe.Op(day, AiUsageOperations.Cleanup, AiUsageCounters.Calls), AiUsageProbe.Op(day, AiUsageOperations.Cleanup, AiUsageCounters.Cost), day[AiUsageCounters.Images]));
+        Assert.Equal(15_400, day[AiUsageCounters.Cost]);
+    }
+
+    [Fact]
+    public async Task AiUsage_CleanupQueuedByAnOutfitImportCommit_IsCountedAsImportCleanup()
+    {
+        var host = Host(new FakeAi());
+        var job = await host.QueueJobAsync(Tenant, JobKind.ItemClean);
+        job.Input = """{"usageSource":"outfit_import"}""";
+        await host.Repository.SaveAsync(job);
+        const string itemId = "01JITEM000000000000000000C";
+        await host.Repository.SaveIfVersionAsync(new ItemEntity
+        {
+            Id = itemId, TenantId = Tenant, Category = ItemCategory.Top, ColorIds = ["white"], Seasons = [Season.Spring], Source = ItemSource.Photo,
+            OriginalImageKey = StorageKeys.ImportCrop(Tenant, "01JSESSION000000000000000A", 1, 1), UseOriginalImage = true, CreatedAt = WorkerTestHost.Now, UpdatedAt = WorkerTestHost.Now,
+        }, 0);
+        await host.Storage.PutAsync(StorageKeys.Upload(Tenant, itemId), [0xFF, 0xD8, 0x09], "image/jpeg", default);
+
+        using (AiUsageProbe.Run("image_cleanup", "gpt-image-2.5-sunburst", 0.012m))
+            await host.Get<IItemProcessJobService>().ProcessAsync(new ItemProcessRequestedEvent(Tenant, job.Id, itemId, Clean: true, ItemId: itemId), false, default);
+
+        var day = await AiUsageProbe.DayAsync(host.Repository, Tenant, WorkerTestHost.Now);
+        Assert.Equal(12_000, AiUsageProbe.Op(day, AiUsageOperations.ImportCleanup, AiUsageCounters.Cost));
+        Assert.Equal(1, AiUsageProbe.Op(day, AiUsageOperations.ImportCleanup, AiUsageCounters.Jobs));
+        Assert.Equal(0, AiUsageProbe.Op(day, AiUsageOperations.MultiItem, AiUsageCounters.Calls));
+    }
 }

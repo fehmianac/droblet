@@ -83,6 +83,10 @@ public static class DeletionPlan
         typeof(OutfitImportPhotoEntity),
         typeof(OutfitImportPieceEntity),
         typeof(OutfitImportLeaseEntity),
+        // AI usage counters (numbers only; day rows 400 days, month rows 3 years) and their once-per-job markers. The
+        // day-index rows (partition per day) are removed first by AccountDeletionService, found through the day rows.
+        typeof(AiUsageEntity),
+        typeof(AiUsageMarkerEntity),
     ];
 
     public static IReadOnlyList<string> TenantPartitionKeys(string tenantId) =>

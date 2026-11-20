@@ -130,6 +130,29 @@ public sealed class InMemoryRepository : IRepository
         }
     }
 
+    public Task<bool> AddCountersOnceAsync(IEntity marker, IReadOnlyList<CounterUpdate> updates, CancellationToken ct = default)
+    {
+        lock (_gate)
+        {
+            if (_items.ContainsKey((marker.Pk, marker.Sk)))
+                return Task.FromResult(false);
+            foreach (var update in updates)
+            {
+                var node = _items.TryGetValue((update.Pk, update.Sk), out var json)
+                    ? JsonNode.Parse(json)!.AsObject()
+                    : new JsonObject { ["pk"] = update.Pk, ["sk"] = update.Sk };
+                foreach (var (name, increment) in update.Increments)
+                    node[name] = (node[name]?.GetValue<long>() ?? 0) + increment;
+                node["ttl"] ??= update.Ttl;
+                foreach (var (name, value) in update.Values ?? new Dictionary<string, string>())
+                    node[name] = value;
+                _items[(update.Pk, update.Sk)] = node.ToJsonString();
+            }
+            _items[(marker.Pk, marker.Sk)] = EntitySerializer.Serialize(marker);
+            return Task.FromResult(true);
+        }
+    }
+
     public Task<bool> SaveIfVersionAsync(IVersionedEntity entity, long expectedVersion, CancellationToken ct = default)
     {
         lock (_gate)

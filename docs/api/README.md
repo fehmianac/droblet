@@ -366,6 +366,8 @@ Admin panel at `https://droblet-admin.alatech.co` ([admin.md](admin.md)). Admin 
 | GET | `v1/admin/ai/model` | admin:ai.manage | [A](admin.md) | AI model settings and the model allow-list |
 | PUT | `v1/admin/ai/model` | admin:ai.manage | [A](admin.md) | Change AI models / effort / tier / image settings |
 | PUT | `v1/admin/ai/limits` | admin:ai.manage | [A](admin.md) | Change the per-tenant daily AI caps (api/AiLimits) |
+| GET | `v1/admin/ai-usage/summary` | admin:ai.usage.view | [A](admin.md) | AI cost board: daily cost, operations, models, plans, top users, anomalies |
+| GET | `v1/admin/user/{id}/ai-usage` | admin:ai.usage.view | [A](admin.md) | One user's AI usage, cost and recent AI jobs (audited) |
 
 ## Where the two halves meet
 

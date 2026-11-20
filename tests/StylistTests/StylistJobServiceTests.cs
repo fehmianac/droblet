@@ -257,6 +257,44 @@ public class StylistJobServiceTests
     }
 
     [Fact]
+    public async Task Outfit_Completed_AddsItsAiUsageToTheCounters_OnceEvenWhenSqsRedelivers()
+    {
+        var model = new FixedModel(Outfits(Suggestion("top1", "bot1", "shoe1"), Suggestion("top2", "bot2", "shoe2"), Suggestion("dress1", null, "shoe1")));
+        var host = Host(model);
+        await SeedWardrobeAsync(host);
+        var job = await QueueAsync(host, JobKind.StylistOutfit, OutfitInput());
+
+        using (AiUsageProbe.Run("outfit", costUsd: 0.027m))
+            await RunAsync(host, job);
+        using (AiUsageProbe.Run("outfit", costUsd: 0.027m))
+            await RunAsync(host, job);   // redelivery: the job is finished, nothing runs or counts again
+
+        var day = await AiUsageProbe.DayAsync(host.Repository, Tenant, WorkerTestHost.Now);
+        Assert.Equal(1, day[AiUsageCounters.Jobs]);
+        Assert.Equal(1, day[AiUsageCounters.Completed]);
+        Assert.Equal(1, AiUsageProbe.Op(day, AiUsageOperations.StylistOutfit, AiUsageCounters.Calls));
+        Assert.Equal(27_000, AiUsageProbe.Op(day, AiUsageOperations.StylistOutfit, AiUsageCounters.Cost));
+        Assert.Equal(1200, day[AiUsageCounters.Input]);
+        Assert.Equal(["gpt-6-astra"], (await host.JobAsync(job))!.AiModels);
+        Assert.Equal(27_000, (await AiUsageProbe.AllDayAsync(host.Repository, WorkerTestHost.Now))[AiUsageCounters.Cost]);
+    }
+
+    [Fact]
+    public async Task Outfit_ProviderFailure_IsCountedAsAFailedJob()
+    {
+        var host = Host();
+        await SeedWardrobeAsync(host);
+        var job = await QueueAsync(host, JobKind.StylistOutfit, OutfitInput());
+
+        using (AiUsageProbe.Run("outfit", costUsd: 0m))
+            await RunAsync(host, job);
+
+        var day = await AiUsageProbe.DayAsync(host.Repository, Tenant, WorkerTestHost.Now);
+        Assert.Equal((1, 1, 0L), (day[AiUsageCounters.Jobs], day[AiUsageCounters.Failed], day.GetValueOrDefault(AiUsageCounters.Completed)));
+        Assert.Equal(1, AiUsageProbe.Op(day, AiUsageOperations.StylistOutfit, AiUsageCounters.Failed));
+    }
+
+    [Fact]
     public async Task Outfit_PromptCarriesOnlyIdsAndAttributes_OfTheCallersOwnWardrobe()
     {
         var model = new FixedModel(Outfits());

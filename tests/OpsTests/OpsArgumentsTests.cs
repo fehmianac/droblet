@@ -24,6 +24,16 @@ public class OpsArgumentsTests
     }
 
     [Fact]
+    public void AiUsageBackfill_RunsOnProdToo_DaysAreCappedAtTheJobRetention()
+    {
+        var (args, error) = Parse("ai-usage-backfill", "--stage", "prod", "--days", "7", "--dry-run");
+        Assert.Null(error);
+        Assert.True(args!.DryRun);
+        Assert.Equal(7, args.IntOption("days", 0));
+        Assert.Contains("1–7", Parse("ai-usage-backfill", "--stage", "dev", "--days", "8").Error);
+    }
+
+    [Fact]
     public void GrantTestPremium_OnDev_ParsesEmailAndCredits()
     {
         var (args, error) = Parse("grant-test-premium", "--stage", "dev", "--email", "qa@example.com", "--credits", "20");

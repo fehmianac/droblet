@@ -319,6 +319,8 @@ public sealed class OutfitImportService(
             Id = Ulid.Deterministic(session.CreatedAt, $"{session.Id}:clean:{itemId}"),
             TenantId = tenantId,
             Kind = JobKind.ItemClean,
+            // AI usage counters: this cleanup belongs to the outfit import (import_cleanup), not a multi-item photo.
+            Input = $$"""{"usageSource":"{{AiUsageOperations.OutfitImportSource}}"}""",
             Status = JobStatus.Queued,
             CreatedAt = now,
             UpdatedAt = now,

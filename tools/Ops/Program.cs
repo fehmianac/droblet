@@ -52,6 +52,7 @@ try
             OpsArguments.MigrateLibraryItemImages => await MigrateLibraryItemImagesCommand.RunAsync(services, arguments, output, cts.Token),
             OpsArguments.AccountSmoke => await new AccountSmokeCommand(services, arguments, output).RunAsync(cts.Token),
             OpsArguments.AiAdminSmoke => await new AiAdminSmokeCommand(services, arguments, output).RunAsync(cts.Token),
+            OpsArguments.AiUsageBackfill => await AiUsageBackfillCommand.RunAsync(services, arguments, output, cts.Token),
             OpsArguments.OutfitImportSmoke => await new OutfitImportSmokeCommand(services, arguments, output).RunAsync(cts.Token),
             _ => 2,
         };

@@ -477,7 +477,7 @@ public class AiTrialRunnerTests
         var handler = new Handler(answer);
         var options = new AiOptions { Enabled = true, ApiKey = "sk-test", TextModel = "t", ImageModel = "i", BaseUrl = "https://ai.test", TimeoutSeconds = 5 };
         var provider = new OpenAiProvider(new HttpClient(handler), Fixtures.Monitor(options), NullLogger<OpenAiProvider>.Instance, CodeDefaultPrompts.Instance);
-        return (new AiTrialRunner(repository, provider, Fixtures.Clock(), NullLogger<AiTrialRunner>.Instance), repository, handler);
+        return (new AiTrialRunner(repository, provider, new Infrastructure.Services.AiUsageRecorder(repository, NullLogger<Infrastructure.Services.AiUsageRecorder>.Instance), Fixtures.Clock(), NullLogger<AiTrialRunner>.Instance), repository, handler);
     }
 
     private static async Task<AiTrialEntity> RunAsync(AiTrialRunner runner, InMemoryRepository repository, AiTrialEntity trial)
@@ -515,6 +515,23 @@ public class AiTrialRunnerTests
         // A redelivery of the same message never calls the model again.
         await runner.RunAsync(trial.Id, default);
         Assert.Equal(1, handler.Calls);
+    }
+
+    [Fact]
+    public async Task PromptTrial_ItsCallIsCountedUnderTheAdminTenant_Once_NeverAUser()
+    {
+        var (runner, repository, _) = Create(_ => (HttpStatusCode.OK, Chat("""{"suggestions":[],"refusal":null}""")));
+        var trial = await RunAsync(runner, repository, new AiTrialEntity
+        {
+            Type = AiTrialType.Prompt, Key = "stylist.outfit.instructions", Text = "DRAFT.", Input = PromptCatalog.SampleInput(PromptTrialTarget.StylistOutfit),
+        });
+        await runner.RunAsync(trial.Id, default);   // redelivery
+
+        var day = (await repository.GetAsync<AiUsageEntity>(AiUsageEntity.GetPk(AiUsageEntity.AdminTenant), AiUsageEntity.DaySk(DateOnly.FromDateTime(Fixtures.Now))))!.Counters;
+        Assert.Equal((1L, 1L, 900L), (day["jobs"], day[Domain.Services.AiUsageCounters.Op(Domain.Services.AiUsageOperations.AdminTrial, "calls")], day["in"]));
+        Assert.Equal(1, day[Domain.Services.AiUsageCounters.Model("gpt-test-2026", "calls")]);
+        Assert.DoesNotContain(repository.Keys, k => k.Pk.StartsWith("tenant#", StringComparison.Ordinal) || k.Pk.StartsWith("ai#usage#day#", StringComparison.Ordinal));
+        Assert.Null(Infrastructure.Telemetry.AiTelemetry.Current);   // the trial's own run ended
     }
 
     [Fact]
@@ -597,6 +614,8 @@ public class DelegatingRepository(IRepository inner) : IRepository
         inner.IncrementCounterAsync(pk, sk, attributeName, ttl, ct, amount);
     public virtual Task<IReadOnlyDictionary<string, long>?> AddCountersAsync(string pk, string sk, IReadOnlyDictionary<string, long> increments, CancellationToken ct = default) =>
         inner.AddCountersAsync(pk, sk, increments, ct);
+    public virtual Task<bool> AddCountersOnceAsync(Domain.Entity.Base.IEntity marker, IReadOnlyList<CounterUpdate> updates, CancellationToken ct = default) =>
+        inner.AddCountersOnceAsync(marker, updates, ct);
     public virtual Task<bool> SaveIfVersionAsync(Domain.Entity.Base.IVersionedEntity entity, long expectedVersion, CancellationToken ct = default) =>
         inner.SaveIfVersionAsync(entity, expectedVersion, ct);
     public virtual Task<TransactOutcome> SaveWithReceiptAsync(Domain.Entity.Base.IEntity receipt, IReadOnlyList<Domain.Entity.Base.IEntity> items, CancellationToken ct = default) =>

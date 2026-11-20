@@ -22,6 +22,8 @@ public static class AdminPermissions
     public const string AuditView = "audit.view";
     /// <summary>AI prompts (draft, dry-run, publish, rollback) and the AI model settings.</summary>
     public const string AiManage = "ai.manage";
+    /// <summary>AI usage and cost: the AI › Maliyet board and a user's "AI kullanımı" (every holder of ai.manage has it too).</summary>
+    public const string AiUsageView = "ai.usage.view";
 
     /// <summary>Uploading an image: catalog or content editors.</summary>
     public const string ImageUpload = "image.upload";
@@ -29,7 +31,7 @@ public static class AdminPermissions
     public static readonly IReadOnlyList<string> All =
     [
         DashboardView, AnalyticsView, CatalogManage, ContentManage, UsersRead, UsersSuspend, UsersDelete, UsersGrant,
-        ModerationManage, SettingsManage, AdminsManage, AuditView, ImageUpload, AiManage,
+        ModerationManage, SettingsManage, AdminsManage, AuditView, ImageUpload, AiManage, AiUsageView,
     ];
 
     private static readonly IReadOnlyDictionary<AdminRole, HashSet<string>> Matrix = new Dictionary<AdminRole, HashSet<string>>
@@ -40,8 +42,8 @@ public static class AdminPermissions
     };
 
     public static bool Has(AdminRole role, string permission) =>
-        Matrix.TryGetValue(role, out var permissions) && permissions.Contains(permission);
+        Matrix.TryGetValue(role, out var permissions)
+        && (permissions.Contains(permission) || (permission == AiUsageView && permissions.Contains(AiManage)));
 
-    public static IReadOnlyList<string> Of(AdminRole role) =>
-        Matrix.TryGetValue(role, out var permissions) ? All.Where(permissions.Contains).ToList() : [];
+    public static IReadOnlyList<string> Of(AdminRole role) => All.Where(p => Has(role, p)).ToList();
 }

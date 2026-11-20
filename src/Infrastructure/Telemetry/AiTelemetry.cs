@@ -17,6 +17,7 @@ public sealed class StageTimings
     private readonly Dictionary<string, double> _ms = new(StringComparer.Ordinal);
     private readonly Dictionary<string, int> _counts = new(StringComparer.Ordinal);
     private readonly List<AiCallRecord> _calls = [];
+    private int _counted;
     private readonly Stopwatch _watch = Stopwatch.StartNew();
 
     public string? JobId { get; set; }
@@ -54,6 +55,30 @@ public sealed class StageTimings
     }
 
     public StageScope Measure(string stage) => new(this, stage);
+
+    /// <summary>
+    /// The calls not yet handed to the usage counters, and marks them handed over: a run that records twice (the outfit
+    /// import's detect stage, then its match stage) never counts a call in both.
+    /// </summary>
+    public IReadOnlyList<AiCallRecord> TakeUncountedCalls()
+    {
+        lock (_gate)
+        {
+            var calls = _calls.Skip(_counted).ToList();
+            _counted = _calls.Count;
+            return calls;
+        }
+    }
+
+    /// <summary>The distinct model ids the run's calls reported (job `aiModels`, the admin's recent-jobs list).</summary>
+    public List<string>? Models()
+    {
+        lock (_gate)
+        {
+            var models = _calls.Select(c => c.Model).OfType<string>().Where(m => m.Length > 0).Distinct(StringComparer.Ordinal).ToList();
+            return models.Count == 0 ? null : models;
+        }
+    }
 
     public IReadOnlyList<AiCallRecord> Calls
     {
@@ -124,6 +149,14 @@ public sealed record AiCallRecord(
     long? InputImageTokens = null,
     string? ServiceTier = null,
     decimal? CostUsd = null);
+
+public static class AiCallUsage
+{
+    /// <summary>A provider call as the usage counters see it (numbers and the model id only).</summary>
+    public static Domain.Services.AiUsageCall ToUsage(this AiCallRecord call) => new(
+        call.Operation, call.Model, call.Status, call.InputTokens ?? 0, call.OutputTokens ?? 0, call.CachedTokens ?? 0, call.ReasoningTokens ?? 0,
+        call.CostUsd is { } usd ? Domain.Services.AiCost.Micro(usd) : 0);
+}
 
 public readonly struct StageScope(StageTimings? timings, string stage) : IDisposable
 {
