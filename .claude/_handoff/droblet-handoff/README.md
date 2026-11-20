@@ -296,6 +296,7 @@ Uygulama **çok dilli**; ilk diller **Türkçe ve İngilizce**, sonrası veriyle
 | 17 | Prod AI ayarları | Dev'deki ekonomik ayarlar (`ops-presets/dev-worker-ai.json`: terra, düşük kalite try-on, flare, kısa stilist talimatı) prod'a ne zaman? Günlük AI sınırları prod'da 0 (kapalı) |
 | 18 | Yasal metinlere AI kullanım sayaçları | Kullanıcı başına AI kullanım sayıları (yalnız sayılar) tutuluyor, dışa aktarmada `data/ai-usage.json`; gizlilik/KVKK metnine bir satır (hukukçu onayı) |
 | 19 | Firebase/GA4 konsol ayarları | Olay saklama 14 ay, Google signals ve veri paylaşımı kapalı, Google Ads veri işleme şartları kabul, Ads/AdMob bağlama yok; hukukçu Q16 (meşru menfaat mi ön rıza mı) |
+| 20 | iOS paylaş menüsü (Share Extension) | Apple: App Group `group.com.alatech.droplet`, App ID'lerde App Groups, `com.alatech.droplet.share` App ID, ana profili yenile (secret `IOS_PROVISIONING_PROFILE`), uzantı profili (secret `IOS_SHARE_PROVISIONING_PROFILE`), repo değişkeni `PROFILE_NAME_SHARE` |
 | 14 | Prod kurulumu | Altyapı + SSM + mağaza başvurusu; ürün sahibini bekler |
 
 Benim tarafımda (bekleme listesi dışı, sıradaki işler): paywall'a abonelik koşulları linki; moderasyonda "içerik kaldırıldı"nın gerçekten kaldırması; palette ai-perf zaman aşımı incelemesi.
