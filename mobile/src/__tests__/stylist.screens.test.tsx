@@ -44,7 +44,7 @@ describe('16 Stilist → 17 Kombin önerisi', () => {
 
     await waitFor(() => expect(screen.getByText('SUGGESTION 1 / 3')).toBeTruthy(), WAIT);
     expect(screen.getByText('Gece Laciverti')).toBeTruthy();
-    expect(screen.getByText('Try it on me')).toBeTruthy();
+    expect(screen.getByText('Try it on me · 1 credit')).toBeTruthy();
 
     // ✕ → feedback sheet → next suggestion
     await fireEvent.press(screen.getByLabelText('Not for me, next suggestion'));
@@ -99,16 +99,16 @@ describe('16 Stilist → 17 Kombin önerisi', () => {
     await waitFor(() => expect(screen.getByText("This month's AI images are used up")).toBeTruthy(), WAIT);
     expect(screen.getByText('Piece collage')).toBeTruthy();
     expect(screen.getByText('Add credits')).toBeTruthy();
-    expect(screen.queryByText('Try it on me')).toBeNull();
+    expect(screen.queryByText('Try it on me · 1 credit')).toBeNull();
     expect(screen.getByTestId('add-to-calendar')).toBeTruthy();
   }, 30_000);
 
   it('17c: "Try it on me" confirms the credit, then shows the generating state on the image only — pieces and actions stay', async () => {
     const { jobId } = startFixtureStylistOutfit({ requestId: 'tryon', date: '2026-11-18', occasion: 'dinner', text: null, cityId: null, wardrobeOnly: true });
     await renderRouter('./src/app', { initialUrl: `/stylist/${jobId}` });
-    await waitFor(() => expect(screen.getByText('Try it on me')).toBeTruthy(), WAIT);
+    await waitFor(() => expect(screen.getByText('Try it on me · 1 credit')).toBeTruthy(), WAIT);
     fixtureJobOptions.durationMs = 60_000;
-    await fireEvent.press(screen.getByText('Try it on me'));
+    await fireEvent.press(screen.getByText('Try it on me · 1 credit'));
     await waitFor(() => expect(screen.getByTestId('credit-confirm')).toBeTruthy());
     await fireEvent.press(screen.getByTestId('credit-confirm'));
     await waitFor(() => expect(screen.getByText('Getting the pieces ready…')).toBeTruthy(), WAIT);

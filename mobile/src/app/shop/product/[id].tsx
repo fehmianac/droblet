@@ -243,7 +243,7 @@ function ProductBody({ product }: { product: ProductDetail }) {
           </View>
           <View className="absolute bottom-3.5 left-0 right-0 items-center" pointerEvents="box-none">
             <View
-              className="flex-row gap-0.5 rounded-[22px] bg-paper/95 p-1"
+              className="flex-row gap-0.5 rounded-[22px] bg-paper p-1 shadow-md"
               accessibilityRole="tablist"
               accessibilityLabel={t('productDetail.viewToggle')}
             >

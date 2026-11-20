@@ -27,10 +27,10 @@ import { ScreenState } from '@/components/ui/ScreenState';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { Text } from '@/components/ui/Text';
 import { useAddToWatchlist, useSaveEditLook, useWeeklyEdit } from '@/features/today/api';
+import { EditHeroInvite } from '@/features/today/EditHeroInvite';
 import { EditProductRow } from '@/features/today/EditProductRow';
 import { editSummary } from '@/features/today/logic';
 import { OnYouImage } from '@/features/today/OnYouImage';
-import { OnYouCta } from '@/features/tryon/OnYouCta';
 import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { formatDate, formatIsoDateRange, formatMoney, parseLocalDate, toIsoDate } from '@/lib/format';
 import { toDisplayUpper } from '@/lib/upper';
@@ -180,19 +180,19 @@ export default function WeeklyEditScreen() {
                     >
                       {data.looks.map((l) => (
                         <View key={l.id} style={{ width, height: HERO_HEIGHT }}>
-                          <OnYouImage
-                            uri={l.tryOnImageUrl}
-                            className="h-full w-full"
-                            pieces={l.products[band].map((p) => ({ category: p.category, color: p.color, imageUrl: p.imageUrl, missing: !p.ownedItemId }))}
-                            seed={l.id}
-                            silhouetteHeight={217}
-                            accessibilityLabel={t('weekEdit.imageA11y', { name: l.name })}
-                            collageLabel={t('aiBadge.collageA11y', { name: l.name })}
-                            badgeClassName="bottom-11 left-3.5"
-                            ctaClassName="bottom-11 left-[140px] right-3.5"
-                          >
-                            <OnYouCta target={{ kind: 'edit-look', id: l.id }} title={l.name} feature="edit_try_on" hasBodyPhoto />
-                          </OnYouImage>
+                          {l.tryOnImageUrl ? (
+                            <OnYouImage
+                              uri={l.tryOnImageUrl}
+                              className="h-full w-full"
+                              pieces={[]}
+                              seed={l.id}
+                              silhouetteHeight={217}
+                              accessibilityLabel={t('weekEdit.imageA11y', { name: l.name })}
+                            />
+                          ) : (
+                            // No image yet: the 06 / 14b card (invitation left, pieces right) — never a CTA over a collage.
+                            <EditHeroInvite lookId={l.id} name={l.name} products={l.products[band]} topInset={overlay ? insets.top + 52 : 8} />
+                          )}
                         </View>
                       ))}
                     </ScrollView>

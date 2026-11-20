@@ -70,12 +70,12 @@ describe('Keşfet and the style store (20–24b, fixtures, EN)', () => {
     // (`WeeklyEditSummary`) once shared the query key ['content','edit','current']: whichever loaded
     // first was read by the other as its own shape and the render threw (Release: the app closed).
     await open('/edit/current');
-    await waitFor(() => expect(screen.getAllByText('Piece collage').length).toBeGreaterThan(0), WAIT);
+    await waitFor(() => expect(screen.getAllByTestId('edit-hero-invite').length).toBeGreaterThan(0), WAIT);
     await act(() => router.push('/discover'));
     await waitFor(() => expect(screen.getByText('Net Ofis Klasikleri')).toBeTruthy(), WAIT);
     expect(screen.getByText(/looks · on you · picked by the style editor/)).toBeTruthy();
     await act(() => router.push('/edit/current'));
-    await waitFor(() => expect(screen.getAllByText('Piece collage').length).toBeGreaterThan(0), WAIT);
+    await waitFor(() => expect(screen.getAllByTestId('edit-hero-invite').length).toBeGreaterThan(0), WAIT);
   });
 
   it('20 Keşfet: the Mağaza chip opens the store and the Arkadaşlar chip the friends feed', async () => {

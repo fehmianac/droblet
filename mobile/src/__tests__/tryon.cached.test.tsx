@@ -55,7 +55,7 @@ beforeEach(async () => {
 async function openSuggestion(requestId: string) {
   const { jobId } = startFixtureStylistOutfit({ requestId, date: toIsoDate(new Date()), occasion: 'dinner', text: null, cityId: null, wardrobeOnly: true });
   await renderRouter('./src/app', { initialUrl: `/stylist/${jobId}` });
-  await waitFor(() => expect(screen.getByText('Try it on me')).toBeTruthy(), WAIT);
+  await waitFor(() => expect(screen.getByText('Try it on me · 1 credit')).toBeTruthy(), WAIT);
 }
 
 describe('13d — an existing try-on image opens without the credit sheet', () => {
@@ -63,7 +63,7 @@ describe('13d — an existing try-on image opens without the credit sheet', () =
     mockExisting = 'cached';
     await openSuggestion('cached');
     const credits = fixtureDb.entitlement.credits.remaining;
-    await fireEvent.press(screen.getByText('Try it on me'));
+    await fireEvent.press(screen.getByText('Try it on me · 1 credit'));
     await waitFor(() => expect(screen.getByTestId('tryon.cachedNote')).toBeTruthy(), WAIT);
     expect(screen.getByText('Made earlier · no credit used')).toBeTruthy();
     expect(screen.queryByTestId('credit-confirm')).toBeNull();
@@ -73,7 +73,7 @@ describe('13d — an existing try-on image opens without the credit sheet', () =
   it('uncached: the credit confirmation opens as before', async () => {
     mockExisting = 'none';
     await openSuggestion('uncached');
-    await fireEvent.press(screen.getByText('Try it on me'));
+    await fireEvent.press(screen.getByText('Try it on me · 1 credit'));
     await waitFor(() => expect(screen.getByTestId('credit-confirm')).toBeTruthy(), WAIT);
     expect(screen.queryByTestId('tryon.cachedNote')).toBeNull();
   }, 30_000);
@@ -81,7 +81,7 @@ describe('13d — an existing try-on image opens without the credit sheet', () =
   it('check failed / offline: falls back to the credit confirmation', async () => {
     mockExisting = 'failed';
     await openSuggestion('failed');
-    await fireEvent.press(screen.getByText('Try it on me'));
+    await fireEvent.press(screen.getByText('Try it on me · 1 credit'));
     await waitFor(() => expect(screen.getByTestId('credit-confirm')).toBeTruthy(), WAIT);
   }, 30_000);
 });
