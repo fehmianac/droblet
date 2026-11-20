@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { toLibraryItem } from '@/api/today';
 import { AiImage } from '@/components/ui/AiBadge';
@@ -11,7 +11,7 @@ import { coverPieces } from '@/features/looks/LookCover';
 import { OnYouImage } from '@/features/today/OnYouImage';
 import i18n from '@/i18n';
 
-import { decideOnYouState } from './OnYouCta';
+import { TryOnInvite, tryOnInviteKind } from './TryOnInvite';
 
 beforeAll(async () => {
   await i18n.changeLanguage('en');
@@ -26,29 +26,45 @@ describe('"on you" areas without a generated image', () => {
     expect(screen.getByText('ON YOU')).toBeTruthy();
   });
 
-  it('OnYouImage shows the piece collage with its badge and the action instead of the tag', async () => {
-    await render(
-      <OnYouImage uri={null} pieces={[{ category: 'top', color: 'white' }, { category: 'bag', color: 'black', missing: true }]} silhouetteHeight={168} collageLabel="Look, piece collage">
-        <AiImage kind="preview" uri={null} className="h-2 w-2" />
-      </OnYouImage>,
-    );
+  it('OnYouImage: the AI tag only on a real image, the collage badge otherwise — and nothing laid over it', async () => {
+    await render(<OnYouImage uri={null} pieces={[{ category: 'top', color: 'white' }, { category: 'bag', color: 'black', missing: true }]} silhouetteHeight={168} collageLabel="Look, piece collage" />);
     expect(screen.queryByTestId('on-you-tag')).toBeNull();
     expect(screen.getByText('Piece collage')).toBeTruthy();
     expect(screen.getByLabelText('Look, piece collage')).toBeTruthy();
     expect(screen.getAllByTestId('image-slot-garment')).toHaveLength(2);
+    expect(screen.queryByRole('button')).toBeNull();
 
     await render(<OnYouImage uri="https://example.com/a.jpg" pieces={[]} silhouetteHeight={168} accessibilityLabel="Look on you" />);
     expect(screen.getByTestId('on-you-tag')).toBeTruthy();
     expect(screen.getByLabelText('Look on you')).toBeTruthy();
   });
 
-  it('picks the call to action: photo first, then membership, then credits, else try-on', () => {
-    expect(decideOnYouState({ hasBodyPhoto: false, isMember: true, remaining: 5 })).toBe('photo');
-    expect(decideOnYouState({ hasBodyPhoto: true, isMember: false, remaining: 0 })).toBe('member');
-    expect(decideOnYouState({ hasBodyPhoto: true, isMember: true, remaining: 0 })).toBe('credits');
-    expect(decideOnYouState({ hasBodyPhoto: true, isMember: true, remaining: 3 })).toBe('tryOn');
-    // Unknown values never block: the server answers.
-    expect(decideOnYouState({ hasBodyPhoto: null, isMember: null, remaining: null })).toBe('tryOn');
+  it('the invitation names what a tap does: a missing photo first, then membership, else the try-on (consent / credits open the flow)', () => {
+    expect(tryOnInviteKind({ ready: false, hint: 'bodyPhoto' })).toBe('photo');
+    expect(tryOnInviteKind({ ready: false, hint: 'facePhoto' })).toBe('photo');
+    expect(tryOnInviteKind({ ready: false, hint: 'bodyType' })).toBe('photo');
+    expect(tryOnInviteKind({ ready: false, hint: 'premium' })).toBe('member');
+    expect(tryOnInviteKind({ ready: false, hint: 'consent' })).toBe('ready');
+    expect(tryOnInviteKind({ ready: false, hint: 'credits' })).toBe('ready');
+    expect(tryOnInviteKind({ ready: true, hint: null })).toBe('ready');
+  });
+
+  it('the invitation tile is one opaque, labelled button with a 44 pt target — never an outlined pill over a picture', async () => {
+    const onPress = jest.fn();
+    await render(<TryOnInvite footer="Try it on me · 1 credit" ready onPress={onPress} className="h-60 w-40" />);
+    const tile = screen.getByRole('button');
+    expect(tile).toHaveProp('accessibilityLabel', 'Try it on me. How would this look sit on you? Try it on me · 1 credit');
+    // Opaque ground, no outline, no transparency: the classes that decide legibility.
+    const classes = String(tile.props.className ?? '');
+    expect(classes).toMatch(/\bbg-sand\b/);
+    expect(classes).toMatch(/\bmin-h-icon-btn\b/);
+    expect(classes).not.toMatch(/bg-transparent|border-ink|bg-paper\/|opacity-(?!80|60)/);
+    expect(screen.getByTestId('try-on-invite-footer')).toHaveTextContent('Try it on me · 1 credit');
+    await fireEvent.press(tile);
+    expect(onPress).toHaveBeenCalledTimes(1);
+
+    await render(<TryOnInvite footer="Unlocks with membership" ready={false} onPress={onPress} disabled />);
+    expect(screen.getByRole('button')).toBeDisabled();
   });
 });
 

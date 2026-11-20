@@ -40,15 +40,15 @@ describe('06 Bugün', () => {
     expect(screen.getByLabelText(/^Notifications/)).toBeTruthy();
     // One line above the name: "BUGÜNÜN KOMBİNİ · OFİS" (no separate badge).
     expect(screen.getByText("TODAY'S OUTFIT · OFFICE")).toBeTruthy();
-    // No generated image yet: the piece collage with its badge and the action — never the "ON YOU" tag on a placeholder.
+    // No generated image yet: the invitation tile on the left (as 14b), the pieces on the right — never the "ON YOU"
+    // tag on a placeholder, never a piece collage with a call to action over it.
     expect(screen.queryByText('ON YOU')).toBeNull();
-    expect(screen.getByText('Piece collage')).toBeTruthy();
-    expect(screen.getByLabelText('Lacivert Blazer, piece collage')).toBeTruthy();
-    expect(screen.getByTestId('image-slot-collage')).toBeTruthy();
-    await waitFor(() => expect(screen.getByTestId('on-you-cta-try-on')).toBeTruthy(), WAIT);
-    expect(screen.getByText('Try it on me')).toBeTruthy();
-    // No generated image yet: the piece collage fills the card and marks the missing piece.
-    expect(screen.getByText('MISSING')).toBeTruthy();
+    expect(screen.queryByText('Piece collage')).toBeNull();
+    expect(screen.queryByTestId('image-slot-collage')).toBeNull();
+    await waitFor(() => expect(screen.getByTestId('today-look-invite-footer')).toHaveTextContent('Try it on me · 1 credit'), WAIT);
+    expect(screen.getByText('How would this look sit on you?')).toBeTruthy();
+    // The piece column marks the missing piece.
+    expect(screen.getByTestId('today-look-pieces')).toBeTruthy();
     expect(screen.getAllByLabelText('Missing piece').length).toBeGreaterThan(0);
     expect(screen.getByLabelText('Complete the look')).toBeTruthy();
     // The edit strip: the day and the look name are a tag on the image.
@@ -124,11 +124,10 @@ describe('06 Bugün — the "on you" area without a generated image', () => {
     accountFixtures.removePhoto('body', 'photo_body_1');
     await renderRouter('./src/app', { initialUrl: '/' });
     await waitFor(() => expect(screen.getByText('Lacivert Blazer')).toBeTruthy(), WAIT);
-    await waitFor(() => expect(screen.getByTestId('on-you-cta-photo')).toBeTruthy(), WAIT);
-    expect(screen.getByText('Add photo')).toBeTruthy();
+    await waitFor(() => expect(screen.getByTestId('today-look-invite-footer')).toHaveTextContent('Add your photo first'), WAIT);
     expect(screen.queryByText('ON YOU')).toBeNull();
     // No dead end (canvas 11): the requirements sheet with the two photo paths.
-    await fireEvent.press(screen.getByText('Add photo'));
+    await fireEvent.press(screen.getByTestId('today-look-invite'));
     await waitFor(() => expect(screen.getByTestId('requirements.sheet')).toBeTruthy(), WAIT);
     expect(screen.getByTestId('requirements.path.body')).toBeTruthy();
     expect(screen.getByTestId('requirements.path.face')).toBeTruthy();
@@ -136,16 +135,16 @@ describe('06 Bugün — the "on you" area without a generated image', () => {
     resetAccountFixtures();
   });
 
-  it('offers "Add credits" when the month\'s credits are used up', async () => {
+  it('says "Unlocks with membership" without a membership, and the tap opens the steps', async () => {
     resetAccountFixtures();
-    fixtureDb.entitlement.credits.remaining = 0;
+    fixtureDb.entitlement.tier = 'free';
     await renderRouter('./src/app', { initialUrl: '/' });
     await waitFor(() => expect(screen.getByText('Lacivert Blazer')).toBeTruthy(), WAIT);
-    await waitFor(() => expect(screen.getByTestId('on-you-cta-credits')).toBeTruthy(), WAIT);
-    expect(screen.getByText('Add credits')).toBeTruthy();
-    expect(screen.getByText('Piece collage')).toBeTruthy();
+    await waitFor(() => expect(screen.getByTestId('today-look-invite-footer')).toHaveTextContent('Unlocks with membership'), WAIT);
     expect(screen.queryByText('ON YOU')).toBeNull();
-    expect(screen.queryByText('Try it on me')).toBeNull();
+    await fireEvent.press(screen.getByTestId('today-look-invite'));
+    await waitFor(() => expect(screen.getByTestId('requirements.sheet')).toBeTruthy(), WAIT);
+    requirementsFlow.reset();
   });
 });
 
@@ -160,11 +159,13 @@ describe("08 Haftanın edit'i", () => {
     expect(screen.getByLabelText('Go back')).toBeTruthy();
     expect(screen.getByLabelText('Share')).toBeTruthy();
     expect(screen.getByLabelText('Save to lookbook')).toBeTruthy();
-    // No look has a generated image: each page is the piece collage with "Try it on me", without the AI marker.
+    // No look has a generated image: each page is the 06 / 14b card (invitation left, pieces right), without the AI
+    // marker and without a collage under a call to action.
     expect(screen.queryByText('ON YOU')).toBeNull();
-    expect(screen.getAllByText('Piece collage').length).toBe(7);
-    expect(screen.getAllByTestId('image-slot-collage').length).toBe(7);
-    expect(screen.getAllByText('Try it on me').length).toBe(7);
+    expect(screen.queryByText('Piece collage')).toBeNull();
+    expect(screen.getAllByTestId('edit-hero-invite').length).toBe(7);
+    expect(screen.getAllByTestId('edit-hero-pieces', { includeHiddenElements: true }).length).toBe(7);
+    await waitFor(() => expect(screen.getAllByText('Try it on me · 1 credit').length).toBe(7), WAIT);
     expect(screen.queryByText('SPONSORED')).toBeNull();
     expect(screen.queryByText('Beyaz Poplin Gömlek')).toBeNull();
     expect(screen.getByText('2 missing pieces')).toBeTruthy();

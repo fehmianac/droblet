@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
@@ -11,7 +10,7 @@ type Props = {
   uri: string | null;
   /** Size, flex and radius (the 06 card and the 08 hero draw it square-cornered, edge to edge). */
   className?: string;
-  /** The look's pieces — drawn as the piece collage ("Parça kolajı", 17b) while there is no generated image. */
+  /** The look's pieces — drawn as the piece collage ("Parça kolajı", 17b) when there is no uri. */
   pieces: Piece[];
   /** Look id: ground of the standing figure when the look has no pieces at all. */
   seed?: string;
@@ -21,32 +20,17 @@ type Props = {
   accessibilityLabel?: string;
   /** Label of the collage that stands in for it. */
   collageLabel?: string;
-  /** Where the "Parça kolajı" badge sits (default top-left; 08 keeps the top free for the header buttons). */
+  /** Where the "Parça kolajı" badge sits (default top-left). */
   badgeClassName?: string;
-  /** Where the action sits (default: along the foot). */
-  ctaClassName?: string;
-  /** The call to action of the state without an image (add a photo / add credits / "Üzerimde gör"), laid over the collage's foot. */
-  children?: ReactNode;
 };
 
 /**
- * The "SENİN ÜZERİNDE" area of 06, 08 and 17. With a generated image: the image and the AI marker
- * bottom-left (always on — AI output is marked). Without one nothing was generated, so there is no
- * marker and never an empty box: the look's piece collage with the "Parça kolajı" badge, and the
- * state's action on top of it.
+ * The "SENİN ÜZERİNDE" image of 06, 08 and 17: the generated image, whole, and the AI marker bottom-left (always on —
+ * AI output is marked). A screen that may have no image yet shows the invitation tile (`TryOnInvite`) beside the
+ * pieces instead. Without a uri this draws the piece collage with its "Parça kolajı" badge (never an empty box), and
+ * it never carries a call to action over the picture (canvas pattern "görsel üstündeki düğme").
  */
-export function OnYouImage({
-  uri,
-  className,
-  pieces,
-  seed,
-  silhouetteHeight,
-  accessibilityLabel,
-  collageLabel,
-  badgeClassName = 'left-3.5 top-3.5',
-  ctaClassName = 'bottom-2 left-2 right-2',
-  children,
-}: Props) {
+export function OnYouImage({ uri, className, pieces, seed, silhouetteHeight, accessibilityLabel, collageLabel, badgeClassName = 'left-3.5 top-3.5' }: Props) {
   const { t } = useTranslation();
   return (
     <View className={`overflow-hidden ${className ?? ''}`}>
@@ -61,26 +45,17 @@ export function OnYouImage({
         <View className="absolute bottom-2 left-2" pointerEvents="none" testID="on-you-tag">
           <AiBadge kind="onYou" />
         </View>
-      ) : (
-        <>
-          {pieces.length > 0 ? (
-            <View
-              className={`absolute h-badge justify-center rounded-pill border border-line bg-paper px-2 ${badgeClassName}`}
-              pointerEvents="none"
-              testID="on-you-collage-badge"
-            >
-              <Text variant="badge" numberOfLines={1}>
-                {t('stylistResult.collageBadge')}
-              </Text>
-            </View>
-          ) : null}
-          {children ? (
-            <View className={`absolute ${ctaClassName}`} pointerEvents="box-none">
-              {children}
-            </View>
-          ) : null}
-        </>
-      )}
+      ) : pieces.length > 0 ? (
+        <View
+          className={`absolute h-badge justify-center rounded-pill border border-line bg-paper px-2 ${badgeClassName}`}
+          pointerEvents="none"
+          testID="on-you-collage-badge"
+        >
+          <Text variant="badge" numberOfLines={1}>
+            {t('stylistResult.collageBadge')}
+          </Text>
+        </View>
+      ) : null}
     </View>
   );
 }
