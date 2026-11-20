@@ -46,6 +46,13 @@ public interface ITryOnRenderer
     /// height and size, fully clothed in the garments.
     /// </summary>
     Task<ImageInput> RenderFromFaceAsync(ImageInput facePhoto, IReadOnlyList<ImageInput> garments, TryOnFigure figure, CancellationToken ct, string? quality = null);
+
+    /// <summary>
+    /// Photo try-on: the user (body photo, or on the face path the face photo + <paramref name="figure"/>) dressed in exactly
+    /// the outfit worn in <paramref name="outfitPhoto"/> — never the reference person's face, body, hair or skin.
+    /// </summary>
+    /// <param name="figure">Face path only (null = body path: <paramref name="subject"/> is the body photo).</param>
+    Task<ImageInput> RenderOutfitPhotoAsync(ImageInput subject, ImageInput outfitPhoto, TryOnFigure? figure, CancellationToken ct, string? quality = null);
 }
 
 /// <summary>Server-side check of a body / face photo before its first try-on (people, framing, light, sharpness). No identification.</summary>
@@ -55,6 +62,9 @@ public interface IPhotoInspector
     bool IsConfigured { get; }
 
     Task<PhotoInspection> InspectAsync(ImageInput photo, PhotoKind kind, CancellationToken ct);
+
+    /// <summary>Photo try-on: does the outfit photo show one person wearing visible clothing (and no minor)? Fast model, low detail.</summary>
+    Task<ReferenceInspection> InspectReferenceAsync(ImageInput outfitPhoto, CancellationToken ct);
 }
 
 /// <param name="Language">Language of every generated text (tr | en …) — always passed explicitly, never guessed by the model.</param>

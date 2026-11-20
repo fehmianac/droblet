@@ -48,7 +48,29 @@ public static class TryOnRules
         if (inspection.Blurry) return PhotoIssue.Blurry;
         return null;
     }
+
+    /// <summary>
+    /// Photo try-on: the outfit photo's check → why it cannot be tried on (null = it can). One person wearing visible
+    /// clothing is required: with nobody there is no outfit, with several the outfit is ambiguous. A minor is refused
+    /// separately (AppearsMinor), before this.
+    /// </summary>
+    public static ReferenceIssue? ReferenceIssueOf(ReferenceInspection inspection)
+    {
+        if (inspection.People == 0) return ReferenceIssue.NoPerson;
+        if (inspection.People > 1) return ReferenceIssue.MultiplePeople;
+        return inspection.ClothingVisible ? null : ReferenceIssue.NoClothing;
+    }
+
+    /// <summary>
+    /// Cache / credit identity of an outfit photo: the SHA-256 of its EXIF-stripped bytes (first 128 bits, lower-case
+    /// hex). The same photo from any screen (12, outfit import, the stylist hub) is the same image — rendered and charged once.
+    /// </summary>
+    public static string ReferenceHash(byte[] strippedImage) =>
+        Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(strippedImage).AsSpan(0, 16));
 }
+
+/// <summary>What the outfit-photo check saw (fast vision model, no identification). AppearsMinor rejects the job outright.</summary>
+public sealed record ReferenceInspection(int People, bool ClothingVisible, bool AppearsMinor);
 
 /// <summary>What the server-side photo check saw (vision model, no identification). AppearsMinor rejects the job outright.</summary>
 public sealed record PhotoInspection(int People, bool FullBody, bool FaceVisible, bool TooDark, bool Blurry, bool AppearsMinor);

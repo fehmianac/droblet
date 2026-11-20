@@ -220,7 +220,8 @@ public record TripDetailDto(TripDto Trip, IReadOnlyList<TripItemDto> Items, IRea
 public enum StartStatus { Cached, Queued }
 
 /// <param name="Source">body = rendered on the body photo; face = built from the face photo + chosen body type (the app says so on the image).</param>
-public record TryOnImageDto(string Id, string Url, DateTime UrlExpiresAt, DateTime CreatedAt, TryOnSource Source = TryOnSource.Body);
+/// <param name="ReferenceUrl">Photo try-on: the outfit photo it was made from ("Kaynak fotoğraf"), presigned like Url; null otherwise.</param>
+public record TryOnImageDto(string Id, string Url, DateTime UrlExpiresAt, DateTime CreatedAt, TryOnSource Source = TryOnSource.Body, string? ReferenceUrl = null);
 
 /// <param name="Status">cached = image already exists (no credit charged); queued = a job is running (1 credit reserved).</param>
 public record TryOnStartDto(StartStatus Status, TryOnImageDto? Image, JobDto? Job);

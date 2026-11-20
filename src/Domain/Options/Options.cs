@@ -305,7 +305,7 @@ public sealed class AiOptions
     public string? FastTextModel { get; set; }
 
     /// <summary>Comma-separated operations (schema names, see AiSchemas) that use <see cref="FastTextModel"/> when it is set.</summary>
-    public string FastTextOperations { get; set; } = "photo_check";
+    public string FastTextOperations { get; set; } = "photo_check,reference_check";
 
     /// <summary>
     /// reasoning_effort per operation (Ai:ReasoningEffort:{operation}, e.g. outfit, week_plan, packing, item_detection,

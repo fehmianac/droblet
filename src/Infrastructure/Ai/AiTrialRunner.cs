@@ -118,6 +118,10 @@ public sealed class AiTrialRunner(IRepository repository, OpenAiProvider provide
                     await provider.AnalyzeAsync(images[0], ct);
                     trial.Parsed = true;
                     break;
+                case PromptTrialTarget.PhotoCheckReference:
+                    await provider.InspectReferenceAsync(images[0], ct);
+                    trial.Parsed = true;
+                    break;
                 case PromptTrialTarget.PhotoCheckBody or PromptTrialTarget.PhotoCheckFace:
                     await provider.InspectAsync(images[0], definition.Trial == PromptTrialTarget.PhotoCheckBody ? Domain.Enum.PhotoKind.Body : Domain.Enum.PhotoKind.Face, ct);
                     trial.Parsed = true;

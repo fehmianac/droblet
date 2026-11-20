@@ -57,6 +57,8 @@ public static partial class ErrorCodes
     public const string FacePhotoRequired = "face_photo_required";
     public const string TargetNotFound = "target_not_found";
     public const string TryOnTargetEmpty = "tryon_target_empty";
+    /// <summary>Photo try-on: the outfit photo is not a supported image (JPEG / PNG / WebP / HEIC) or is too large.</summary>
+    public const string TryOnReferenceInvalid = "tryon_reference_invalid";
     public const string CreditQuoteChanged = "credit_quote_changed";
     public const string PaletteNotFound = "palette_not_found";
 }

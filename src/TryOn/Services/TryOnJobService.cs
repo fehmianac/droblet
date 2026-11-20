@@ -20,6 +20,9 @@ public interface ITryOnJobService
 /// "Üzerimde gör". Output goes only to tenant/{tenantId}/tryon/, only if the source photo (body photo, or the face photo
 /// on the face path) is still active at write time (TryOnOutputPolicy), and never to a global cache. Before a photo's
 /// first render it passes the server-side photo check. Any failure refunds the reserved credit.
+/// Photo try-on (input.ReferenceKey): the outfit photo replaces the garment images. It passes its own check (one person,
+/// clothing visible, no minor) on every job — a rejected one fails the job with GuardRejected and its referenceIssue — and
+/// is kept next to the image ("Kaynak fotoğraf", TryOnImageEntity.ReferenceKey).
 /// </summary>
 public sealed class TryOnJobService(
     IJobLifecycle jobs,
@@ -48,27 +51,40 @@ public sealed class TryOnJobService(
             var (kind, photoId) = face ? (PhotoKind.Face, message.FacePhotoId ?? "") : (PhotoKind.Body, message.BodyPhotoId);
             // Garment images (the tenant's own item images or global catalog images — never another tenant's) load in
             // parallel with the source photo and its photo check; the image edit starts only once the check passed.
-            var garmentsRead = GarmentsAsync(job, ct);
+            // A photo try-on reads its outfit photo instead (tenant uploads only) and checks it in parallel too.
+            var input = StylingJson.TryDeserialize<TryOnJobInput>(job.Input);
+            var referenceKey = input?.ReferenceKey is { } refKey && StorageKeys.BelongsToTenant(refKey, job.TenantId) ? refKey : null;
+            var garmentsRead = referenceKey is null ? GarmentsAsync(job, ct) : Task.FromResult<IReadOnlyList<ImageInput>?>([]);
+            var referenceRead = referenceKey is null ? Task.FromResult<ImageInput?>(null) : ReferenceAsync(referenceKey, input!.ReferenceContentType, ct);
+            var referenceCheck = referenceKey is null ? Task.FromResult<ReferenceIssue?>(null) : InspectReferenceAsync(job, referenceRead, ct);
             var source = await ActivePhotoAsync(message.TenantId, kind, photoId, ct);
             var bytes = source is null ? null : await storage.ReadAsync(source.S3Key, MaxImageBytes, ct);
             if (source is null || bytes is null)
             {
                 await Observe(garmentsRead);
+                await Observe(referenceCheck);
                 await jobs.FailAsync(job, JobFailure.SourceDeleted, ct);
                 return;
             }
 
             var photo = new ImageInput(bytes, source.ContentType);
             var inspection = InspectAsync(job, source, photo, ct);
-            await Task.WhenAll(inspection, garmentsRead);
+            await Task.WhenAll(inspection, garmentsRead, referenceCheck);
             if (inspection.Result is { } rejected)
             {
                 await jobs.FailAsync(job, rejected, ct);
                 return;
             }
+            if (referenceCheck.Result is { } referenceIssue)
+            {
+                job.Result = StylingJson.Serialize(new { referenceIssue });
+                await jobs.FailAsync(job, JobFailure.GuardRejected, ct);
+                return;
+            }
 
             var garments = garmentsRead.Result;
-            if (garments is null)
+            var reference = referenceRead.Result;
+            if (garments is null || (referenceKey is not null && reference is null))
             {
                 await jobs.FailAsync(job, JobFailure.SourceDeleted, ct);
                 return;
@@ -77,9 +93,11 @@ public sealed class TryOnJobService(
             // Ai:Image:TryOnPreview: a fast low-quality image first (the job completes with it), the full one replaces it after.
             var preview = aiOptions.CurrentValue.Image is { TryOnPreview: true } imageOptions ? imageOptions.PreviewQuality : null;
             var figure = new TryOnFigure(message.BodyType ?? BodyType.Unsure, message.HeightCm, message.Size);
-            Task<ImageInput> Render(string? quality) => face
-                ? renderer.RenderFromFaceAsync(photo, garments, figure, ct, quality)
-                : renderer.RenderAsync(photo, garments, ct, quality);
+            Task<ImageInput> Render(string? quality) => reference is not null
+                ? renderer.RenderOutfitPhotoAsync(photo, reference, face ? figure : null, ct, quality)
+                : face
+                    ? renderer.RenderFromFaceAsync(photo, garments, figure, ct, quality)
+                    : renderer.RenderAsync(photo, garments, ct, quality);
             var output = await Render(preview);
 
             // The user may have deleted/replaced the source photo while the provider was working.
@@ -105,7 +123,15 @@ public sealed class TryOnJobService(
             };
             image.S3Key = $"{StorageKeys.TryOnPrefix(message.TenantId)}{image.Id}.webp";
             await storage.PutAsync(image.S3Key, output.Data, output.ContentType, ct);
+            if (reference is not null)
+            {
+                // "Kaynak fotoğraf": the outfit photo stays with the image (private, deleted with it).
+                image.ReferenceKey = StorageKeys.TryOnReference(message.TenantId, image.Id, ImageMetadataStripper.Strip(reference.Data)?.Extension ?? "jpg");
+                await storage.PutAsync(image.ReferenceKey, reference.Data, reference.ContentType, ct);
+            }
             await repository.SaveAsync(image, ct);
+            if (referenceKey is not null)
+                await storage.DeleteAsync(referenceKey, ct);
             await jobs.CompleteAsync(job, $$"""{"tryOnImageId":"{{image.Id}}"}""", ct);
 
             if (preview is not null)
@@ -156,6 +182,29 @@ public sealed class TryOnJobService(
         {
             // The job fails for another reason; this read's own error does not matter.
         }
+    }
+
+    /// <summary>The outfit photo of a photo try-on (already EXIF-stripped by the Api); null when it is gone.</summary>
+    private async Task<ImageInput?> ReferenceAsync(string key, string? contentType, CancellationToken ct) =>
+        await storage.ReadAsync(key, MaxImageBytes, ct) is { } data ? new ImageInput(data, contentType ?? "image/jpeg") : null;
+
+    /// <summary>
+    /// The outfit photo's check (fast model; skipped when the provider is off — rendering then fails the same way). Someone
+    /// who appears to be under 18 → GuardRejected (referenceIssue minor); nobody, several people or no clothing visible →
+    /// GuardRejected with that referenceIssue, so the app asks for another photo. The credit is refunded either way.
+    /// Returns null when the photo may be used (or is gone: the caller fails with SourceDeleted).
+    /// </summary>
+    private async Task<ReferenceIssue?> InspectReferenceAsync(JobEntity job, Task<ImageInput?> read, CancellationToken ct)
+    {
+        var reference = await read;
+        if (reference is null || !inspector.IsConfigured)
+            return null;
+
+        var inspection = await inspector.InspectReferenceAsync(reference, ct);
+        var issue = inspection.AppearsMinor ? ReferenceIssue.Minor : TryOnRules.ReferenceIssueOf(inspection);
+        if (issue is not null)
+            logger.LogInformation("Try-on job {JobId}: outfit photo rejected by the check ({Issue})", job.Id, issue);
+        return issue;
     }
 
     /// <summary>null = a piece of the outfit (or its image) no longer exists. A job without input renders the body photo alone.</summary>

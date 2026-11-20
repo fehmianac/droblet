@@ -75,7 +75,7 @@ public static class AiUsageOperations
     /// <summary>The usage operation of one provider call (operation = the provider's call name, e.g. "image_cleanup").</summary>
     public static string Classify(JobKind? kind, string callOperation, string? source = null)
     {
-        if (callOperation == "photo_check")
+        if (callOperation is "photo_check" or "reference_check")
             return PhotoCheck;
         var image = AiCost.IsImageOperation(callOperation);
         return kind switch

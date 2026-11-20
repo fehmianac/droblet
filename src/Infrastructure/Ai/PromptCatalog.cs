@@ -22,7 +22,7 @@ public enum PromptKind
 }
 
 /// <summary>How a draft is tried ("Dene"): the chat capability it runs through, or none (image prompts: preview only).</summary>
-public enum PromptTrialTarget { None, StylistOutfit, StylistWeek, StylistPack, ItemDescribe, ItemDetect, ItemMatch, Palette, PhotoCheckBody, PhotoCheckFace }
+public enum PromptTrialTarget { None, StylistOutfit, StylistWeek, StylistPack, ItemDescribe, ItemDetect, ItemMatch, Palette, PhotoCheckBody, PhotoCheckFace, PhotoCheckReference }
 
 public sealed record PromptVariable(string Name, bool Required, string Description, string Sample);
 
@@ -88,6 +88,9 @@ public static class PromptCatalog
     public const string PhotoCheckRequest = "photo_check.request";
     public const string TryOnBody = "tryon.image.body";
     public const string TryOnFace = "tryon.image.face";
+    public const string TryOnPhotoBody = "tryon.image.photo.body";
+    public const string TryOnPhotoFace = "tryon.image.photo.face";
+    public const string ReferenceCheckInstructions = "photo_check.reference.instructions";
     public const string CleanupGarment = "cleanup.garment.image";
     public static string CleanupItem(bool jewellery) => jewellery ? "cleanup.item.jewellery.image" : "cleanup.item.image";
 
@@ -173,6 +176,10 @@ public static class PromptCatalog
             "User message text sent with the photo to check.",
             None, () => OpenAiPrompts.PhotoCheckRequest, RequestMaxLength, PromptTrialTarget.PhotoCheckBody, 1),
         Schema("photo_check.schema", "tryon", AiSchemas.PhotoCheck, AiSchemas.PhotoCheckSchema),
+        new(ReferenceCheckInstructions, "tryon", AiSchemas.ReferenceCheck, PromptKind.Instructions,
+            "Kombin fotoğrafı kontrolü: one person wearing visible clothing, no minor — before a photo try-on (the request text is photo_check.request).",
+            None, () => OpenAiPrompts.ReferenceCheck, InstructionsMaxLength, PromptTrialTarget.PhotoCheckReference, 1),
+        Schema("photo_check.reference.schema", "tryon", AiSchemas.ReferenceCheck, AiSchemas.ReferenceCheckSchema),
 
         new(TryOnBody, "tryon", "image_tryon", PromptKind.Image,
             "Prova (boy fotoğrafı): image edit prompt — the person of the body photo wearing the garment images.",
@@ -187,6 +194,17 @@ public static class PromptCatalog
                 new("size", false, "\" wearing clothing size M,\" or empty.", " wearing clothing size M,"),
             ],
             () => OpenAiPrompts.TryOnFromFaceTemplate, ImageMaxLength, PromptTrialTarget.None),
+        new(TryOnPhotoBody, "tryon", "image_tryon", PromptKind.Image,
+            "Kombin fotoğrafını üzerimde dene (boy fotoğrafı): image edit prompt — the user of the body photo wearing exactly the outfit of the reference photo (second image), never the reference person's face or body.",
+            None, () => OpenAiPrompts.TryOnOutfitPhotoTemplate, ImageMaxLength, PromptTrialTarget.None),
+        new(TryOnPhotoFace, "tryon", "image_tryon", PromptKind.Image,
+            "Kombin fotoğrafını üzerimde dene (yüz fotoğrafı): a full-length figure from the face photo, body type, height and size, wearing the outfit of the reference photo.",
+            [
+                new("bodyShape", true, "Body type description chosen by the user.", "a pear body shape (hips wider than the shoulders)"),
+                new("height", false, "\" about 170 cm tall,\" or empty.", " about 170 cm tall,"),
+                new("size", false, "\" wearing clothing size M,\" or empty.", " wearing clothing size M,"),
+            ],
+            () => OpenAiPrompts.TryOnOutfitPhotoFromFaceTemplate, ImageMaxLength, PromptTrialTarget.None),
 
         new(CleanupItem(false), "cleanup", "image_cleanup", PromptKind.Image,
             "Arka plan temizleme: product photo of one detected piece on the sand house background.",

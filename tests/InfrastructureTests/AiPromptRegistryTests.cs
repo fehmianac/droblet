@@ -365,6 +365,9 @@ public class ProviderReadsThroughRegistryTests
         await provider.CleanupItemAsync(Photo, ItemCategoryHint.Shoes, "ankle-boots", default);
         await provider.RenderAsync(Photo, [Photo, Photo], default);
         await provider.RenderFromFaceAsync(Photo, [Photo], new TryOnFigure(BodyType.Pear, 170, ClothingSize.M), default);
+        await provider.InspectReferenceAsync(Photo, default);
+        await provider.RenderOutfitPhotoAsync(Photo, Photo, null, default);
+        await provider.RenderOutfitPhotoAsync(Photo, Photo, new TryOnFigure(BodyType.Pear, 170, ClothingSize.M), default);
     }
 
     [Fact]

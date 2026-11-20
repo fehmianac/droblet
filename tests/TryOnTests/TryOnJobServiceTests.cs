@@ -115,6 +115,9 @@ public class TryOnJobServiceTests
 
         public Task<ImageInput> RenderFromFaceAsync(ImageInput facePhoto, IReadOnlyList<ImageInput> garments, TryOnFigure figure, CancellationToken ct, string? quality = null) =>
             RenderAsync(facePhoto, garments, ct, quality);
+
+        public Task<ImageInput> RenderOutfitPhotoAsync(ImageInput subject, ImageInput outfitPhoto, TryOnFigure? figure, CancellationToken ct, string? quality = null) =>
+            RenderAsync(subject, [outfitPhoto], ct, quality);
     }
 
     [Fact]
@@ -386,6 +389,9 @@ public class TryOnJobServiceTests
             Calls++;
             return Task.FromResult(verdict);
         }
+
+        public Task<ReferenceInspection> InspectReferenceAsync(ImageInput outfitPhoto, CancellationToken ct) =>
+            Task.FromResult(new ReferenceInspection(1, true, false));
     }
 
     private sealed class FakeRenderer(Func<Task>? during = null) : ITryOnRenderer
@@ -408,5 +414,8 @@ public class TryOnJobServiceTests
             if (during is not null) await during();
             return new ImageInput([8, 8, 8], "image/webp");
         }
+
+        public Task<ImageInput> RenderOutfitPhotoAsync(ImageInput subject, ImageInput outfitPhoto, TryOnFigure? figure, CancellationToken ct, string? quality = null) =>
+            figure is null ? RenderAsync(subject, [outfitPhoto], ct, quality) : RenderFromFaceAsync(subject, [outfitPhoto], figure, ct, quality);
     }
 }

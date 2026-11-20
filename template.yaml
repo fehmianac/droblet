@@ -868,12 +868,16 @@ Resources:
                   - !Sub '${PhotoBucket.Arn}/tenant/*/body/*'
                   - !Sub '${PhotoBucket.Arn}/tenant/*/face/*'
                   - !Sub '${PhotoBucket.Arn}/tenant/*/items/*'
+                  # Photo try-on ("kombini ayırmadan üzerimde gör"): the outfit photo the Api copied for the job.
+                  - !Sub '${PhotoBucket.Arn}/uploads/tmp/*/tryonref-*'
               - Effect: Allow
-                # A photo rejected by the server-side photo check (not full body, too dark, …) is removed, not kept.
+                # A photo rejected by the server-side photo check (not full body, too dark, …) is removed, not kept;
+                # the job copy of an outfit photo is removed once it is kept next to the image (tenant/*/tryon/).
                 Action: s3:DeleteObject
                 Resource:
                   - !Sub '${PhotoBucket.Arn}/tenant/*/body/*'
                   - !Sub '${PhotoBucket.Arn}/tenant/*/face/*'
+                  - !Sub '${PhotoBucket.Arn}/uploads/tmp/*/tryonref-*'
               - Effect: Allow
                 Action: s3:PutObject
                 Resource: !Sub '${PhotoBucket.Arn}/tenant/*/tryon/*'

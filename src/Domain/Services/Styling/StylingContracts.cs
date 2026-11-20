@@ -60,7 +60,8 @@ public sealed record WeekJobInput(
 
 public sealed record PackJobInput(string TripId, string Language);
 
-public sealed record TryOnJobInput(IReadOnlyList<OutfitPiece> Pieces);
+/// <param name="ReferenceKey">Photo try-on: the outfit photo (StorageKeys.TryOnReferenceUpload) worn by someone; no pieces then.</param>
+public sealed record TryOnJobInput(IReadOnlyList<OutfitPiece> Pieces, string? ReferenceKey = null, string? ReferenceContentType = null);
 
 // ── Candidates ────────────────────────────────────────────────────────────────────────────────────────────────────
 

@@ -19,6 +19,9 @@ namespace Infrastructure.Services;
 /// ("yüz yolu", TryOnRules). The cache identity is the subject (body photo, or the face subject key) + target (an outfit is identified by the sorted set of its pieces), so the same
 /// combination is never rendered — or charged — twice, whichever screen asks for it. Images are strictly tenant-private:
 /// owner prefix only, short-lived presigned GET only, never a global cache.
+/// Photo try-on ("Kombini ayırmadan üzerimde gör"): the target is a photo of someone wearing a whole outfit (an item upload
+/// / draft of 12, or an outfit import photo). Its EXIF-stripped bytes are hashed (TryOnRules.ReferenceHash) — the hash is
+/// the target id, so the same photo from any screen is one image — and copied to uploads/tmp/ for the job.
 /// </summary>
 public sealed class TryOnService(
     IRepository repository,
@@ -33,7 +36,8 @@ public sealed class TryOnService(
     TimeProvider timeProvider,
     ILogger<TryOnService> logger) : ITryOnService
 {
-    private sealed record Resolved(TryOnTarget Target, IReadOnlyList<OutfitPiece> Pieces);
+    /// <param name="Reference">Photo try-on: the outfit photo (EXIF-stripped); no pieces then.</param>
+    private sealed record Resolved(TryOnTarget Target, IReadOnlyList<OutfitPiece> Pieces, StrippedImage? Reference = null);
 
     /// <summary>What a try-on renders on: Key = cache / credit subject (body photo id or the face subject key).</summary>
     private sealed record Subject(TryOnSource Source, string Key, PhotoEntity Photo, BodyType? BodyType, int? HeightCm, ClothingSize? Size);
@@ -48,7 +52,9 @@ public sealed class TryOnService(
 
         var (resolved, error) = await ResolveAsync(tenantId, command.Target, ct);
         if (resolved is null)
-            return error == ErrorCodes.TryOnTargetEmpty ? ServiceResult.Invalid<TryOnStartDto>(error) : ServiceResult.NotFound<TryOnStartDto>(error);
+            return error is ErrorCodes.TryOnTargetEmpty or ErrorCodes.TryOnReferenceInvalid
+                ? ServiceResult.Invalid<TryOnStartDto>(error)
+                : ServiceResult.NotFound<TryOnStartDto>(error);
 
         return await StartResolvedAsync(tenantId, body, resolved, command.RequestId, ct);
     }
@@ -153,7 +159,16 @@ public sealed class TryOnService(
                 : ServiceResult.Forbidden<TryOnStartDto>(decision.Reason ?? ErrorCodes.PremiumRequired);
         }
 
-        var job = JobStarter.New(tenantId, requestId, JobKind.TryOn, StylingJson.Serialize(new TryOnJobInput(resolved.Pieces)), Now, key);
+        // Photo try-on: the outfit photo goes where the worker reads it (content-addressed, so a retry rewrites the same key).
+        string? referenceKey = null;
+        if (resolved.Reference is { } reference)
+        {
+            referenceKey = StorageKeys.TryOnReferenceUpload(tenantId, target.Id);
+            await storage.PutAsync(referenceKey, reference.Data, reference.ContentType, ct);
+        }
+
+        var input = new TryOnJobInput(resolved.Pieces, referenceKey, resolved.Reference?.ContentType);
+        var job = JobStarter.New(tenantId, requestId, JobKind.TryOn, StylingJson.Serialize(input), Now, key);
         await repository.SaveAsync(job, ct);
 
         var reservation = await credits.ReserveAsync(tenantId, key, job.Id, ct);
@@ -262,6 +277,8 @@ public sealed class TryOnService(
                     ? (null, ErrorCodes.TargetNotFound)
                     : await OutfitAsync(tenantId, productIds.Select(id => new OutfitPiece(null, id)), ct);
             }
+            case TryOnTargetKind.Photo or TryOnTargetKind.ImportPhoto:
+                return await ReferenceAsync(tenantId, target, ct);
             case TryOnTargetKind.TripDay:
             {
                 // "{tripId}/{date}": the day's look on the trip detail. Same outfit rule as a look, so the image is shared.
@@ -277,6 +294,47 @@ public sealed class TryOnService(
             default:
                 return (null, ErrorCodes.TargetNotFound);
         }
+    }
+
+    /// <summary>
+    /// Photo try-on: the outfit photo, strictly from the caller's own uploads — an item upload or item draft (12, its original
+    /// once the item processor took the upload), or an outfit import photo (session id + index). Not an image → 422
+    /// tryon_reference_invalid; gone → 404 target_not_found.
+    /// </summary>
+    private async Task<(Resolved?, string?)> ReferenceAsync(string tenantId, TryOnTargetInput target, CancellationToken ct)
+    {
+        var candidates = new List<string>();
+        if (target.Kind == TryOnTargetKind.ImportPhoto)
+        {
+            if (target.Index is not { } index)
+                return (null, ErrorCodes.TargetNotFound);
+            var photo = await repository.GetAsync<OutfitImportPhotoEntity>(OutfitImportPhotoEntity.GetPk(tenantId), OutfitImportPhotoEntity.GetSk(target.Id, index), ct);
+            if (photo is not null)
+                candidates.AddRange(new[] { photo.PhotoKey, photo.UploadKey }.OfType<string>());
+        }
+        else if (await repository.GetAsync<ItemUploadEntity>(ItemUploadEntity.GetPk(tenantId), ItemUploadEntity.GetSk(target.Id), ct) is { } upload)
+        {
+            candidates.Add(upload.S3Key);
+        }
+        else if (await repository.GetAsync<ItemDraftEntity>(ItemDraftEntity.GetPk(tenantId), ItemDraftEntity.GetSk(target.Id), ct) is { } draft)
+        {
+            candidates.Add(StorageKeys.Upload(tenantId, draft.Id));
+            if (draft.OriginalKey is not null)
+                candidates.Add(draft.OriginalKey);
+        }
+
+        var settings = photoOptions.CurrentValue;
+        foreach (var key in candidates.Where(k => StorageKeys.BelongsToTenant(k, tenantId)))
+        {
+            var raw = await storage.ReadAsync(key, settings.MaxUploadBytes, ct);
+            if (raw is null)
+                continue;
+            var clean = ImageMetadataStripper.Strip(raw);
+            if (clean is null || !settings.AllowedContentTypes.Contains(clean.ContentType))
+                return (null, ErrorCodes.TryOnReferenceInvalid);
+            return (new Resolved(new TryOnTarget(TryOnTargetKind.Photo, TryOnRules.ReferenceHash(clean.Data), 0), [], clean), null);
+        }
+        return (null, ErrorCodes.TargetNotFound);
     }
 
     /// <summary>Drops pieces that no longer exist (deleted item, retired product); what is left is the outfit's identity.</summary>
@@ -352,6 +410,9 @@ public sealed class TryOnService(
     private async Task<TryOnImageDto> ToDtoAsync(TryOnImageEntity image, CancellationToken ct)
     {
         var ttl = TimeSpan.FromSeconds(photoOptions.CurrentValue.ReadUrlTtlSeconds);
-        return new TryOnImageDto(image.Id, await storage.CreateReadUrlAsync(image.S3Key, ttl, ct), Now.Add(ttl), image.CreatedAt, image.Source);
+        var reference = image.ReferenceKey is { } referenceKey && StorageKeys.BelongsToTenant(referenceKey, image.TenantId)
+            ? await storage.CreateReadUrlAsync(referenceKey, ttl, ct)
+            : null;
+        return new TryOnImageDto(image.Id, await storage.CreateReadUrlAsync(image.S3Key, ttl, ct), Now.Add(ttl), image.CreatedAt, image.Source, reference);
     }
 }

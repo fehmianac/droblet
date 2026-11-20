@@ -33,8 +33,15 @@ public enum TryOnSource { Body, Face }
 /// <summary>Why the server-side photo check rejected a body / face photo (no credit is charged; the photo is removed).</summary>
 public enum PhotoIssue { NotFullBody, TooDark, MultiplePeople, Blurry, NoFace }
 
-/// <summary>TripDay id = "{tripId}/{yyyy-MM-dd}": the look of one trip day (BavulDetay).</summary>
-public enum TryOnTargetKind { Item, Look, Product, EditLook, Suggestion, TripDay }
+/// <summary>Why an outfit photo ("kombin fotoğrafı", try-on target Photo) cannot be tried on: no person, several people, no clothing visible, or someone who appears to be under 18.</summary>
+public enum ReferenceIssue { NoPerson, MultiplePeople, NoClothing, Minor }
+
+/// <summary>
+/// TripDay id = "{tripId}/{yyyy-MM-dd}": the look of one trip day (BavulDetay). Photo id = an item upload / item draft id
+/// (a photo of someone wearing a whole outfit, tried on without splitting it into pieces); ImportPhoto id = an outfit
+/// import session id + index = the photo number. Both are stored as Photo with id = the reference image hash.
+/// </summary>
+public enum TryOnTargetKind { Item, Look, Product, EditLook, Suggestion, TripDay, Photo, ImportPhoto }
 
 public enum Tier { Free, Premium }
 
