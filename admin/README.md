@@ -12,7 +12,7 @@ server, the panel only hides what the signed-in role cannot use.
 | Content | Weekly edits (7 days, 1–2 price-band variants, sponsor), collections + their looks, ready-made library |
 | Users & moderation | User search, user detail (counts, membership, credits, devices — never photos), suspend / delete, **TEST grants** (premium, credits), reports queue (dismiss / resolve / block; undo a content removal) |
 | Reports | Revenue (clicks, conversions, commission by brand / network / source / look / day, CSV export), funnel |
-| System | App settings (owner-editable Parameter Store values; secrets are never shown), admin users, audit log, my account |
+| System | App settings (owner-editable Parameter Store values; secrets are never shown), admin users, audit log, maintenance (super admin: "move images to the public location" job — dry run, start, live progress, cancel, retry failed, history), my account |
 
 ## Local development
 

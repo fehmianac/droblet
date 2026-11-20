@@ -20,7 +20,8 @@ export type Permission =
   | 'admins.manage'
   | 'audit.view'
   | 'ai.manage'
-  | 'ai.usage.view';
+  | 'ai.usage.view'
+  | 'maintenance.manage';
 
 export interface AdminMe {
   id: string;
@@ -617,4 +618,39 @@ export interface AiUsageSummary {
   anomalies: AiUsageAnomaly[];
   rates: AiUsageRates;
   thresholds: { medianMultiplier: number; minHistoryDays: number; minDayUsd: number; absoluteDayUsd: number };
+}
+
+// ── Maintenance jobs (v1/admin/maintenance/*, maintenance.manage — super admin only) ──────────────────
+
+export type MaintenanceRunStatus = 'queued' | 'running' | 'cancelling' | 'completed' | 'cancelled' | 'failed';
+/** A run in one of these states blocks a new one (the server answers 409 maintenance_run_active). */
+export const ACTIVE_MAINTENANCE_STATUSES: MaintenanceRunStatus[] = ['queued', 'running', 'cancelling'];
+export type MaintenanceSkipReason = 'libraryOrCatalog' | 'originalOnly' | 'noImage' | 'notOwnCleaned' | 'cleanedMissing';
+export type MaintenanceFailReason = 'copyFailed' | 'conflict' | 'error';
+
+/** In a dry run `published` / `renditionsMade` mean "would publish" / "would make". */
+export interface MaintenanceRun {
+  id: string;
+  kind: 'publishItemImages';
+  dryRun: boolean;
+  status: MaintenanceRunStatus;
+  /** Tenants finished so far. */
+  tenants: number;
+  scanned: number;
+  published: number;
+  alreadyPublic: number;
+  skipped: number;
+  hidden: number;
+  renditionsMade: number;
+  failed: number;
+  skipReasons: { reason: MaintenanceSkipReason; count: number }[];
+  /** At most 100; `failed` is the full count. */
+  failedItems: { tenantId: string; itemId: string; reason: MaintenanceFailReason }[];
+  retryOf: string | null;
+  onlyItemCount: number | null;
+  startedBy: { id: string; email: string };
+  startedAt: string;
+  updatedAt: string;
+  finishedAt: string | null;
+  cancelRequestedAt: string | null;
 }
