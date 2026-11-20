@@ -74,7 +74,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [GrantTestPremium] = [],
         [RevokeTestPremium] = [],
         [GenerateLibraryImages] = ["dry-run", "force"],
-        [AiSmoke] = ["keep-user", "items-only", "prereq-only"],
+        [AiSmoke] = ["keep-user", "items-only", "prereq-only", "photo-tryon"],
         [AiProbe] = [],
         [AiPerf] = ["keep-user", "face"],
         [AiBench] = ["text-only", "image-only"],

@@ -93,6 +93,13 @@ internal sealed partial class AiSmokeCommand(IServiceProvider services, OpsArgum
                 return _rows.Any(r => r.Status is "failed" or "timeout" or "error" || r.Failure.Length > 0) ? 1 : 0;
             }
 
+            // --photo-tryon: only the outfit-photo try-on (canvas 16): body photo + one stored outfit photo → 1 image call.
+            if (args.Flag("photo-tryon"))
+            {
+                await PhotoTryOnAsync(fixtures, ct);
+                return _rows.Any(r => r.Status is "failed" or "timeout" or "error" || r.Failure.Length > 0) ? 1 : 0;
+            }
+
             // --prereq-only: canvas 11 flows only (thin-wardrobe gap filling + face-path try-on), on this user.
             if (args.Flag("prereq-only"))
             {
@@ -352,6 +359,52 @@ internal sealed partial class AiSmokeCommand(IServiceProvider services, OpsArgum
         var cached = status == 200 && body?["status"]?.GetValue<string>() == "cached";
         Add("POST v1/tenant/tryon (same outfit again)", $"{status} {body?["status"]}", elapsed, cached && beforeRepeat == afterRepeat ? null : "not_cached_or_charged",
             $"credits {beforeRepeat} → {afterRepeat} ({(beforeRepeat == afterRepeat ? "free ✓" : "charged ✗")})");
+    }
+
+    /// <summary>Canvas 16: the whole outfit of a photo on the user (target kind "photo" = the upload id of an item photo).</summary>
+    private async Task PhotoTryOnAsync(SmokeFixtures fixtures, CancellationToken ct)
+    {
+        var watch = Stopwatch.StartNew();
+        var (bodyData, _) = await fixtures.GetAsync(SmokeFixtures.Body, ct);
+        var photo = await UploadProfilePhotoAsync("body", bodyData, ct);
+        Add("photo body", photo.Ok ? "200" : "failed", watch.Elapsed, photo.Error, $"{bodyData.Length / 1024} KB synthetic");
+        if (!photo.Ok) return;
+
+        var (outfit, generated) = await fixtures.GetAsync(OutfitImportSmokeCommand.Outfits[0], ct);
+        var (status, slots, elapsed) = await CallAsync(HttpMethod.Post, "v1/tenant/item/upload-url", new JsonObject { ["count"] = 1, ["contentType"] = "image/jpeg" }, ct);
+        var slot = slots?["uploads"]?[0];
+        if (status != 200 || slot is null || await PresignedPostAsync(slot, outfit, "image/jpeg", ct) is { } uploadError)
+        {
+            Add("outfit photo upload", status.ToString(), elapsed, Code(slots), "upload failed");
+            return;
+        }
+        Add("outfit photo upload", "200", elapsed, null, $"{outfit.Length / 1024} KB {(generated ? "generated now" : "from ops-fixtures/")}");
+
+        var before = await CreditsAsync(ct);
+        var target = new JsonObject { ["kind"] = "photo", ["id"] = slot["uploadId"]!.GetValue<string>() };
+        (status, var body, elapsed) = await CallAsync(HttpMethod.Post, "v1/tenant/tryon", new JsonObject { ["requestId"] = Ulid.New(), ["target"] = target }, ct);
+        if (status != 202 || body?["job"]?["id"]?.GetValue<string>() is not { } jobId)
+        {
+            Add("POST v1/tenant/tryon (photo)", status.ToString(), elapsed, Code(body), body?.ToJsonString());
+            return;
+        }
+        string? imageId = null;
+        await PollStepAsync("try-on (outfit photo)", "POST v1/tenant/tryon", jobId, elapsed, ct, result =>
+        {
+            imageId = result?["tryOnImageId"]?.GetValue<string>();
+            return $"image {imageId} {result?["referenceIssue"]}";
+        });
+        await SavePhotosAsync("photo-tryon", ct);
+        if (imageId is not null)
+        {
+            await SaveTryOnAsync(imageId, "tryon-outfit-photo", ct);
+            var (s2, img, _) = await CallAsync(HttpMethod.Get, $"v1/tenant/tryon/{imageId}", null, ct);
+            if (s2 == 200 && img?["referenceUrl"]?.GetValue<string>() is { } refUrl)
+                await DownloadAsync(refUrl, "tryon-outfit-photo-reference", ct);
+        }
+        var after = await CreditsAsync(ct);
+        if (_rows.LastOrDefault() is { } last)
+            _rows[^1] = last with { Notable = $"{last.Notable}; credits {before} → {after}" };
     }
 
     // ── canvas 11: thin wardrobe gap filling + the face path of try-on ────────────────────────────────────────────────
