@@ -68,6 +68,10 @@ public static class DependencyInjection
         // Admin "Bakım" › publish-item-images: the Api starts runs, the item processor runs the batches (it has SkiaSharp).
         services.Configure<Services.Maintenance.MaintenanceOptions>(configuration.GetSection(Services.Maintenance.MaintenanceOptions.Section));
         services.AddSingleton<Domain.Services.Admin.IMaintenanceQueue, Services.Maintenance.SqsMaintenanceQueue>();
+        // Thumbnails need SkiaSharp, which only the item processor ships: it registers SkiaImageThumbnailer after this
+        // (the last registration wins). Every other host gets this stand-in, so the Api — which only starts runs and never
+        // makes thumbnails — can still build ItemImageMigrator / PublishItemImagesJob.
+        services.AddSingleton<Domain.Services.IImageThumbnailer, Services.Maintenance.UnavailableImageThumbnailer>();
         services.AddSingleton<Services.Maintenance.ItemImageMigrator>();
         services.AddSingleton<Services.Maintenance.PublishItemImagesJob>();
         services.AddSingleton<Domain.Services.Admin.IPublishItemImagesJob>(sp => sp.GetRequiredService<Services.Maintenance.PublishItemImagesJob>());
