@@ -91,7 +91,7 @@ One session / the open (not committed, not expired) sessions, newest first — s
       "lookId": "01JD…",                   // id of the look the commit creates
       "pieces": [
         { "ref": "1-1", "kind": "match", "itemId": "01J…", "pieceId": null, "name": "Siyah blazer", "category": "outerwear",
-          "subcategory": "blazer", "colorIds": ["black"], "slot": "outerwear", "imageUrl": "…(the wardrobe item)", "matchConfidence": 0.92, "alsoIn": [] },
+          "subcategory": "blazer", "colorIds": ["black"], "slot": "outerwear", "imageUrl": "…(the wardrobe item's thumbUrl, 256 px)", "matchConfidence": 0.92, "alsoIn": [] },
         { "ref": "1-2", "kind": "new", "itemId": null, "pieceId": "01J…", "name": "Beyaz gömlek", "category": "top",
           "subcategory": "shirt", "colorIds": ["white"], "slot": "top", "imageUrl": "…(the crop)", "matchConfidence": null, "alsoIn": [4, 7] }
       ]

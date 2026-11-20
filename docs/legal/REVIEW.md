@@ -50,7 +50,7 @@ Same placeholder in both languages; the EN spelling is in brackets. Count = occu
 | 16 | `[UYGULANACAK HUKUK VE YETKİLİ MAHKEME]` (`[GOVERNING LAW AND COURTS]`) | terms | 1 | See Q10. |
 | 17 | `[CLOUDFLARE ÇEREZLERİ]` (`[CLOUDFLARE COOKIES]`) | cookies | 2 | Check the zone: Bot Fight Mode / Bot Management sets `__cf_bm` (30 min); challenges set `cf_clearance`. List what is actually set, or write "none". |
 
-Lawyer markers: 18 distinct `[HUKUK ONAYI: …]` / `[LEGAL REVIEW: …]` notes (they map to the questions in §4). All
+Lawyer markers: 19 distinct `[HUKUK ONAYI: …]` / `[LEGAL REVIEW: …]` notes (they map to the questions in §4). All
 placeholders and markers must be gone before the banner is removed — a quick `grep -o '\[[^]]*\]' landing/content/*.json`
 shows what is left.
 
@@ -99,6 +99,19 @@ box and continues, "Seçtiklerimle devam et" saves a partial choice (unticked bo
 We believe per-purpose boxes keep each consent specific; please confirm that an "accept all" button on that screen is
 acceptable under KVKK (Board guidance on bundled consent) and UK GDPR art. 7 / ICO guidance, and whether the button must be
 visually equal to the partial option. `/consents` intro, summary and §0 were updated to describe this.
+
+### Q1c. Background-removed item images at public, unguessable addresses — added 2026-11-20
+Owner decision: to make the wardrobe load fast and cache on the device, the **background-removed item images** (the
+AI-cleaned product shots, no person in them) and their 256 / 768 px copies are stored at public web addresses
+(`cdn.droblet.alatech.co/public/items/<hash of the account id>/<item id>-<128-bit random>-<size>.webp`) served through
+Cloudflare. The address cannot be guessed or listed, but anyone who has it can open the image — **even for a private
+closet** (visibility then still decides who is *shown* the address in the app). Everything else stays private behind
+short-lived links: the original item photo, look cover photos, body / face photos, try-on images, avatars, exports.
+Deleting an item or the account, or a moderator removing an item, deletes the public copies (an edge cache may serve
+them for up to 24 h unless the Cloudflare purge token is configured). The privacy policy (“What other users can see”
+and “Security”, TR + EN) now says this. Please confirm this is acceptable for private closets under UK GDPR art. 5(1)(f)
+/ 25 and KVKK art. 12 (security, privacy by default), and whether the item photo screen needs an extra notice. Technical
+detail: [docs/images.md](../images.md).
 
 ### Q2. Lawful basis per processing (explicit consent vs contract vs legitimate interest)
 Proposed matrix (privacy §5, KVKK §4):

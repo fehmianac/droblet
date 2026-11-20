@@ -135,6 +135,8 @@ Olaylar kaydedilirken hesap kimliğin yerine geri döndürülemez bir karma kull
 
 Arkadaşlarına görünen look görselleri parça görsellerinden oluşur; asla “Üzerimde gör” görselin değildir. Parça görselleri arka planı temizlenmiş görsellerdir, çektiğin orijinal fotoğraf değildir.
 
+Hızlı yüklenmeleri için arka planı temizlenmiş parça görselleri (ve küçük kopyaları), uzun rastgele bir kod içeren, tahmin edilemeyen ve listelenemeyen herkese açık web adreslerinde saklanır ve içerik dağıtım ağımız (Cloudflare) üzerinden sunulur. Bu, dolabın gizli olsa da geçerlidir: böyle bir görselin tam adresine sahip olan herkes onu açabilir. Çektiğin orijinal fotoğraflar, look kapak fotoğrafları, boy ve yüz fotoğrafların ve üzerinde üretilen görseller asla bu şekilde saklanmaz; gizli kalır ve yalnızca kısa ömürlü özel bağlantılarla gösterilir. Bir parçayı ya da hesabını sildiğinde veya bir moderatör bir parçayı kaldırdığında herkese açık kopyaları silinir (bir adres önbellekten en fazla bir gün daha açılabilir). [HUKUK ONAYI: gizli dolapların arka planı temizlenmiş parça görsellerinin herkese açık, tahmin edilemeyen adreslerde tutulması]
+
 Davet bağlantını açan kişi web sayfasında yalnızca ilk adını görür.
 
 ## 11. Verileri kimlerle paylaşıyoruz
@@ -235,7 +237,7 @@ Droblet 18 yaşından küçükler için değildir ve 18 yaşından küçüklerde
 
 ## 18. Güvenlik
 
-Verilerini korumak için şu önlemleri alırız: tüm bağlantılarda şifreleme (TLS); veritabanı ve fotoğraf depolamada şifreleme; herkese kapalı fotoğraf depolama ve kısa ömürlü özel bağlantılar; şifrelerin güçlü bir karma algoritmasıyla saklanması; her kullanıcının verisinin ayrı anahtarla tutulması ve başka kullanıcıya yalnızca görünürlük kuralından geçerek açılması; giriş ve hassas işlemlerde hız sınırları; yönetici erişiminin rol bazlı sınırlanması ve kaydının tutulması; yönetim panelinde kullanıcı fotoğraflarının gösterilmemesi.
+Verilerini korumak için şu önlemleri alırız: tüm bağlantılarda şifreleme (TLS); veritabanı ve fotoğraf depolamada şifreleme; herkese kapalı fotoğraf depolama ve kısa ömürlü özel bağlantılar (tek istisna: tahmin edilemeyen herkese açık adreslerdeki arka planı temizlenmiş parça görselleri — “Diğer kullanıcılar neyi görebilir” bölümüne bak); şifrelerin güçlü bir karma algoritmasıyla saklanması; her kullanıcının verisinin ayrı anahtarla tutulması ve başka kullanıcıya yalnızca görünürlük kuralından geçerek açılması; giriş ve hassas işlemlerde hız sınırları; yönetici erişiminin rol bazlı sınırlanması ve kaydının tutulması; yönetim panelinde kullanıcı fotoğraflarının gösterilmemesi.
 
 Hiçbir sistem tamamen güvenli değildir. Verilerini etkileyen bir ihlal olursa yasal süreler içinde yetkili kuruma ve gerektiğinde sana bildiririz.
 
