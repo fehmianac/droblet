@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 namespace Infrastructure.Storage;
 
 /// <summary>
-/// Photo bucket access: presigned POST/GET. Everything is private except public/items/ (cleaned piece images, read
+/// Photo bucket access: presigned POST/GET. Everything is private except public/{stage}/items/ (cleaned piece images, read
 /// through Cloudflare — docs/images.md); this class never builds a public URL itself.
 /// </summary>
 public sealed class S3ObjectStorage(IAmazonS3 s3, IOptionsMonitor<PhotoOptions> options, TimeProvider timeProvider) : IObjectStorage

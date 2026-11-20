@@ -83,7 +83,7 @@ public sealed record ItemImageView(string? ImageUrl, string? MediumUrl, string? 
 public interface IItemImageUrls
 {
     /// <summary>
-    /// Public CDN URLs when the item is published and Photos:PublicBaseUrl is set; presigned GETs otherwise (the published
+    /// Public CDN URLs when the item is published and Photos:PublicUrlsEnabled is on (Photos:PublicBaseUrl); presigned GETs otherwise (the published
     /// copies, else the private cleaned / original image), then the global library / catalog image.
     /// </summary>
     Task<ItemImageView> GetAsync(ItemEntity item, CancellationToken ct);

@@ -36,7 +36,7 @@ public record ItemDto(
     // Owner-only: { hidden: true, reason } when a moderator removed the item from everyone else; null otherwise.
     ModerationDto? Moderation = null,
     // docs/images.md: imageUrl = full size (viewer), mediumUrl = 768 px (detail), thumbUrl = 256 px (lists). Public CDN URLs
-    // (imageUrlExpiresAt null) once Photos:PublicBaseUrl is set; presigned otherwise. imageCacheKey stays the same while
+    // (imageUrlExpiresAt null) once Photos:PublicUrlsEnabled is on; presigned otherwise. imageCacheKey stays the same while
     // the image does — the app's image cache key.
     string? ThumbUrl = null,
     string? MediumUrl = null,

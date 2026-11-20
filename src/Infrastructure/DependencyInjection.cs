@@ -58,13 +58,19 @@ public static class DependencyInjection
 
         services.AddSingleton<IRepository, Repository>();
         services.AddSingleton<IObjectStorage, S3ObjectStorage>();
-        // Public cleaned item images (docs/images.md): copies to public/items/, URLs, optional Cloudflare purge.
+        // Public cleaned item images (docs/images.md): copies to public/{stage}/items/, URLs, optional Cloudflare purge.
         services.AddSingleton<ICdnCache>(sp => new CloudflareCdnCache(
             new HttpClient { Timeout = TimeSpan.FromSeconds(10) },
             sp.GetRequiredService<IOptionsMonitor<CloudflareOptions>>(), sp.GetRequiredService<IOptionsMonitor<PhotoOptions>>(),
             sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<CloudflareCdnCache>>()));
         services.AddSingleton<IItemImagePublisher, ItemImagePublisher>();
         services.AddSingleton<IItemImageUrls, ItemImageUrls>();
+        // Admin "Bakım" › publish-item-images: the Api starts runs, the item processor runs the batches (it has SkiaSharp).
+        services.Configure<Services.Maintenance.MaintenanceOptions>(configuration.GetSection(Services.Maintenance.MaintenanceOptions.Section));
+        services.AddSingleton<Domain.Services.Admin.IMaintenanceQueue, Services.Maintenance.SqsMaintenanceQueue>();
+        services.AddSingleton<Services.Maintenance.ItemImageMigrator>();
+        services.AddSingleton<Services.Maintenance.PublishItemImagesJob>();
+        services.AddSingleton<Domain.Services.Admin.IPublishItemImagesJob>(sp => sp.GetRequiredService<Services.Maintenance.PublishItemImagesJob>());
         services.AddSingleton<IEventManager, EventManager>();
         services.AddSingleton<IEntitlementService, EntitlementService>();
         services.AddSingleton<ICreditService, CreditService>();

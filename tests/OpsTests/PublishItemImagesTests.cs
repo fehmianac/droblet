@@ -1,23 +1,25 @@
 using Domain.Entity;
 using Domain.Enum;
 using Domain.Services;
+using Domain.Services.Admin;
+using Infrastructure.Services.Admin;
+using Infrastructure.Services.Maintenance;
 using Infrastructure.Storage;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Ops;
 using Ops.Commands;
 using Tests.Shared;
-using Skip = Ops.Commands.PublishItemImagesCommand.SkipReason;
 
 namespace OpsTests;
 
+/// <summary>publish-item-images as a thin wrapper over the admin "Bakım" job (the job itself: InfrastructureTests.PublishItemImagesJobTests).</summary>
 public class PublishItemImagesTests : IDisposable
 {
     private readonly string _dir = Directory.CreateTempSubdirectory("ops-publish-test-").FullName;
     private readonly InMemoryRepository _repository = new();
     private readonly FakeObjectStorage _storage = new();
-    private readonly FakeCdnCache _cdn = new();
-    private readonly FakeThumbnailer _thumbnailer = new();
     private readonly FakeTimeProvider _time = new(new DateTimeOffset(2026, 11, 20, 9, 0, 0, TimeSpan.Zero));
 
     public void Dispose()
@@ -26,155 +28,81 @@ public class PublishItemImagesTests : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    private ItemImagePublisher Publisher() => new(_storage, _cdn, NullLogger<ItemImagePublisher>.Instance);
-
-    private Task<PublishItemImagesCommand.Result> RunAsync(bool dryRun = false, string? after = null) =>
-        PublishItemImagesCommand.PublishAsync(_repository, _storage, _thumbnailer, Publisher(), _time, dryRun, after, new OpsOutput(_dir), default);
-
-    private Task<ItemEntity?> GetAsync(string tenant, string id) => _repository.GetAsync<ItemEntity>(ItemEntity.GetPk(tenant), ItemEntity.GetSk(id));
-
-    private async Task<ItemEntity> CleanedAsync(string tenant, string id, bool renditions = false, bool hidden = false)
+    private sealed class Monitor<T>(T value) : IOptionsMonitor<T>
     {
-        var key = StorageKeys.ItemImage(tenant, "d-" + id);
-        await _storage.PutAsync(key, [1, 2, 3], "image/webp", default);
-        if (renditions)
-            foreach (var r in ItemImageRenditions.KeysOf(key))
-                await _storage.PutAsync(r, [9], "image/webp", default);
-        var item = new ItemEntity
-        {
-            Id = id, TenantId = tenant, Category = ItemCategory.Top, Source = ItemSource.Photo, ImageKey = key,
-            OriginalImageKey = StorageKeys.ItemOriginal(tenant, "d-" + id, "jpg"), Version = 3,
-            ModerationHiddenAt = hidden ? new DateTime(2026, 11, 1, 0, 0, 0, DateTimeKind.Utc) : null,
-        };
-        await _repository.SaveAsync(item);
-        return item;
+        public T CurrentValue => value;
+        public T Get(string? name) => value;
+        public IDisposable? OnChange(Action<T, string?> listener) => null;
+    }
+
+    private (MaintenanceService Service, PublishItemImagesJob Job, PublishItemImagesCommand.InlineQueue Queue) Inline(int batchSize = 1)
+    {
+        var queue = new PublishItemImagesCommand.InlineQueue();
+        var publisher = new ItemImagePublisher(_storage, new FakeCdnCache(), NullLogger<ItemImagePublisher>.Instance);
+        var service = new MaintenanceService(_repository, queue, new AuditLog(_repository, _time, NullLogger<AuditLog>.Instance), _time, NullLogger<MaintenanceService>.Instance);
+        var job = new PublishItemImagesJob(_repository, new ItemImageMigrator(_repository, _storage, new FakeThumbnailer(), publisher, _time), queue,
+            new Monitor<MaintenanceOptions>(new MaintenanceOptions { BatchSize = batchSize }), _time, NullLogger<PublishItemImagesJob>.Instance);
+        return (service, job, queue);
     }
 
     private async Task ArrangeAsync()
     {
-        foreach (var tenant in new[] { "t1", "t2" })
-            await _repository.SaveAsync(new TenantEntity { Id = tenant, OwnerUserId = "u-" + tenant, Version = 1 });
-        await CleanedAsync("t1", "a");                                  // single photo, cleaned before renditions existed
-        await CleanedAsync("t1", "b", renditions: true);                // multi-item piece with renditions
-        await CleanedAsync("t1", "h", hidden: true);                    // moderation-hidden: never public
-        await _repository.SaveAsync(new ItemEntity { Id = "l", TenantId = "t1", Source = ItemSource.Library, GlobalImageKey = "library/x.webp", Version = 1 });
-        await _repository.SaveAsync(new ItemEntity
+        await _repository.SaveAsync(new TenantEntity { Id = "t1", OwnerUserId = "u", Version = 1 });
+        foreach (var id in new[] { "a", "b" })
         {
-            Id = "o", TenantId = "t2", Source = ItemSource.Photo, Version = 1, UseOriginalImage = true,  // outfit-import piece, cleanup pending
-            OriginalImageKey = StorageKeys.ImportCrop("t2", "s", 1, 1),
-        });
-        await CleanedAsync("t2", "c");                                  // outfit-import piece with its cleaned image
-        await _repository.SaveAsync(new ItemEntity { Id = "m", TenantId = "t2", Source = ItemSource.Photo, ImageKey = StorageKeys.ItemImage("t2", "gone"), Version = 1 });
+            var key = StorageKeys.ItemImage("t1", "d-" + id);
+            await _storage.PutAsync(key, [1, 2], "image/webp", default);
+            await _repository.SaveAsync(new ItemEntity { Id = id, TenantId = "t1", Category = ItemCategory.Top, Source = ItemSource.Photo, ImageKey = key, Version = 1 });
+        }
     }
 
     [Fact]
-    public async Task Publish_AllTenants_MakesRenditions_PublishesCleaned_SkipsWithReasons_BumpsVersion()
+    public async Task Inline_StartsTheSameRun_ProcessesEveryBatch_AndReportsIt()
     {
         await ArrangeAsync();
+        var (service, job, queue) = Inline();
 
-        var result = await RunAsync();
+        var exit = await PublishItemImagesCommand.RunAsync(service, job, queue, dryRun: false, wait: false, "dev", new OpsOutput(_dir), default);
 
-        Assert.Equal((2, 7, 3, 0, 1, 0, 2), (result.Tenants, result.Scanned, result.Published, result.AlreadyPublic, result.Hidden, result.Failed, result.RenditionsMade));
-        Assert.Equal(new Dictionary<string, int> { [Skip.LibraryOrCatalog] = 1, [Skip.OriginalOnly] = 1, [Skip.CleanedMissing] = 1 }, result.Skipped);
-        Assert.Equal("t2", result.Checkpoint);
-
-        var a = (await GetAsync("t1", "a"))!;
-        Assert.Equal(4, a.Version);
-        Assert.Equal(_time.GetUtcNow().UtcDateTime, a.UpdatedAt);
-        Assert.All(new[] { a.PublicImageKey, a.PublicMediumKey, a.PublicThumbKey }, k => Assert.True(_storage.Objects.ContainsKey(k!)));
-        Assert.All(ItemImageRenditions.KeysOf(a.ImageKey!), k => Assert.True(_storage.Objects.ContainsKey(k)));
-        Assert.Equal("webp-256"u8.ToArray(), _storage.Objects[a.PublicThumbKey!].Data);
-        Assert.Null((await GetAsync("t1", "h"))!.PublicImageKey);
-        Assert.Null((await GetAsync("t2", "o"))!.PublicImageKey);
-        Assert.Equal(1, (await GetAsync("t1", "l"))!.Version);
-        // Only cleaned images went public: no original, crop or anything outside public/items/.
-        Assert.All(_storage.Objects.Keys.Where(k => k.StartsWith("public/", StringComparison.Ordinal)), k => Assert.StartsWith("public/items/", k));
-        Assert.Equal(9, _storage.Objects.Keys.Count(k => k.StartsWith("public/", StringComparison.Ordinal)));
+        Assert.Equal(0, exit);
+        var run = Assert.Single((await service.ListPublishItemImagesAsync(default)).Runs);   // the run the admin panel lists
+        Assert.Equal((MaintenanceRunStatus.Completed, 2, 2), (run.Status, run.Scanned, run.Published));
+        Assert.Equal(OpsHost.ActorId, run.StartedBy.Id);
+        Assert.Contains(await _repository.GetAllAsync<AdminAuditEntity>(AdminAuditEntity.GetPk()), e => e.Action == "maintenance.publish_item_images.start" && e.AdminId == OpsHost.ActorId);
     }
 
     [Fact]
-    public async Task Publish_SecondRun_ChangesNothing()
+    public async Task Refused_WhenARunIsActive_ExitOne()
     {
         await ArrangeAsync();
-        await RunAsync();
-        var before = _storage.Objects.Keys.Order(StringComparer.Ordinal).ToList();
-        var version = (await GetAsync("t1", "a"))!.Version;
+        var (service, _, _) = Inline();
+        await service.StartPublishItemImagesAsync(new AdminUserEntity { Id = "adm", Email = "a@b.c" }, false, null, default);
 
-        var second = await RunAsync();
-
-        Assert.Equal((0, 3, 0), (second.Published, second.AlreadyPublic, second.RenditionsMade));
-        Assert.Equal(before, _storage.Objects.Keys.Order(StringComparer.Ordinal).ToList());
-        Assert.Equal(version, (await GetAsync("t1", "a"))!.Version);
+        Assert.Equal(1, await PublishItemImagesCommand.RunAsync(service, null, null, dryRun: true, wait: false, "dev", new OpsOutput(_dir), default));
     }
 
     [Fact]
-    public async Task Publish_DryRun_CountsButWritesNothing()
+    public async Task Queued_WithoutWait_ReturnsAtOnce_TheWorkerDoesTheRest()
     {
         await ArrangeAsync();
-        var before = _storage.Objects.Keys.Order(StringComparer.Ordinal).ToList();
+        var (service, _, queue) = Inline();
 
-        var result = await RunAsync(dryRun: true);
-
-        Assert.Equal((3, 2), (result.Published, result.RenditionsMade));
-        Assert.Equal(before, _storage.Objects.Keys.Order(StringComparer.Ordinal).ToList());
-        Assert.Equal(3, (await GetAsync("t1", "a"))!.Version);
-    }
-
-    [Fact]
-    public async Task Publish_ResumesAfterTheCheckpoint()
-    {
-        await ArrangeAsync();
-
-        var result = await RunAsync(after: "t1");
-
-        Assert.Equal((1, 1), (result.Tenants, result.Published));
-        Assert.Null((await GetAsync("t1", "a"))!.PublicImageKey);
-        Assert.NotNull((await GetAsync("t2", "c"))!.PublicImageKey);
-    }
-
-    [Fact]
-    public async Task Publish_RepublishesWhenThePublicCopyIsGone_OrHadNoThumbnails_AndDeletesTheOldCopy()
-    {
-        await _repository.SaveAsync(new TenantEntity { Id = "t1", OwnerUserId = "u", Version = 1 });
-        var item = await CleanedAsync("t1", "a");
-        var old = (await Publisher().PublishAsync(item, default))!;  // published before renditions existed: full only
-        item.SetPublicImage(old);
-        await _repository.SaveAsync(item);
-
-        var result = await RunAsync();
-        var stored = (await GetAsync("t1", "a"))!;
-
-        Assert.Equal(1, result.Published);
-        Assert.NotEqual(old.FullKey, stored.PublicImageKey);
-        Assert.NotNull(stored.PublicThumbKey);
-        Assert.False(_storage.Objects.ContainsKey(old.FullKey));
-        Assert.Contains(old.FullKey, _cdn.Purged);
-    }
-
-    [Fact]
-    public async Task Publish_CopyFailure_IsReportedAsFailed_ExitCodeOne()
-    {
-        await _repository.SaveAsync(new TenantEntity { Id = "t1", OwnerUserId = "u", Version = 1 });
-        await CleanedAsync("t1", "a", renditions: true);
-        _storage.FailCopyTo = _ => true;
-
-        var exit = await PublishItemImagesCommand.RunAsync(_repository, _storage, _thumbnailer, Publisher(), _time,
-            OpsArguments.Parse(["publish-item-images", "--stage", "dev"]).Arguments!, new OpsOutput(_dir), default);
-
-        Assert.Equal(1, exit);
-        Assert.Null((await GetAsync("t1", "a"))!.PublicImageKey);
+        Assert.Equal(0, await PublishItemImagesCommand.RunAsync(service, null, null, dryRun: true, wait: false, "dev", new OpsOutput(_dir), default));
+        Assert.NotNull(queue.Next);
+        Assert.Equal(MaintenanceRunStatus.Queued, Assert.Single((await service.ListPublishItemImagesAsync(default)).Runs).Status);
     }
 
     [Theory]
     [InlineData("prod")]
     [InlineData("dev")]
-    public void Arguments_AllowedOnEveryStage_WithDryRunAndCheckpoint(string stage)
+    public void Arguments_AllowedOnEveryStage(string stage)
     {
-        var (parsed, error) = OpsArguments.Parse(["publish-item-images", "--stage", stage, "--dry-run", "--after-tenant", "01JTENANT0000000000000000A"]);
+        var (parsed, error) = OpsArguments.Parse(["publish-item-images", "--stage", stage, "--dry-run", "--wait"]);
 
         Assert.Null(error);
-        Assert.True(parsed!.DryRun);
-        Assert.Equal("01JTENANT0000000000000000A", parsed.Option("after-tenant"));
-        Assert.NotNull(OpsArguments.Parse(["publish-item-images", "--stage", stage, "--after-tenant", "../x"]).Error);
+        Assert.True(parsed!.DryRun && parsed.Flag("wait"));
+        Assert.Null(OpsArguments.Parse(["publish-item-images", "--stage", stage, "--inline"]).Error);
+        Assert.NotNull(OpsArguments.Parse(["publish-item-images", "--stage", stage, "--wait", "--inline"]).Error);
+        Assert.Equal($"droblet-{stage}-item-process-request", PublishItemImagesCommand.QueueName(stage));
     }
 }

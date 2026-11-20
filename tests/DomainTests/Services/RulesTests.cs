@@ -120,7 +120,7 @@ public class DeletionPlanTests
     public void AccountDeletion_CoversWholeTenantPrefixAndUploads()
     {
         Assert.Equal(["tenant/t1/", "uploads/tmp/t1/", "uploads/import/t1/", "exports/t1/", StorageKeys.PublicItemsRoot("t1")], DeletionPlan.AccountS3Prefixes("t1"));
-        Assert.StartsWith("public/items/", StorageKeys.PublicItemsRoot("t1"));
+        Assert.StartsWith("public/dev/items/", StorageKeys.PublicItemsRoot("t1"));   // STAGE unset in tests = dev
     }
 }
 

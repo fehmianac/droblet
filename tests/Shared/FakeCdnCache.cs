@@ -27,3 +27,17 @@ public sealed class FakeThumbnailer : IImageThumbnailer
         return image.Length == 0 ? null : System.Text.Encoding.ASCII.GetBytes($"webp-{maxSide}");
     }
 }
+
+/// <summary>Collects publish-item-images batch messages instead of sending them to SQS.</summary>
+public sealed class RecordingMaintenanceQueue : Domain.Services.Admin.IMaintenanceQueue
+{
+    public Queue<Domain.Services.Admin.PublishItemImagesBatchRequested> Pending { get; } = new();
+    public List<Domain.Services.Admin.PublishItemImagesBatchRequested> Sent { get; } = [];
+
+    public Task EnqueueAsync(Domain.Services.Admin.PublishItemImagesBatchRequested message, CancellationToken ct)
+    {
+        Pending.Enqueue(message);
+        Sent.Add(message);
+        return Task.CompletedTask;
+    }
+}

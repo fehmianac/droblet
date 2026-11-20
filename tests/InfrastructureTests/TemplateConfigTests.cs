@@ -265,7 +265,7 @@ public partial class TemplateConfigTests
     }
 
     /// <summary>
-    /// docs/images.md: the photo bucket has exactly one public grant — GetObject on public/items/* from Cloudflare's ranges —
+    /// docs/images.md: the photo bucket has exactly one public grant — GetObject on public/{stage}/items/* from Cloudflare's ranges —
     /// and no private prefix can ever fall under it.
     /// </summary>
     [Fact]
@@ -283,7 +283,7 @@ public partial class TemplateConfigTests
         Assert.Contains("ObjectOwnership: BucketOwnerEnforced", bucket);
         Assert.Contains("SSEAlgorithm: AES256", bucket);
 
-        // Exactly one Allow to Principal '*', and it is the Cloudflare-only GetObject on public/items/*.
+        // Exactly one Allow to Principal '*', and it is the Cloudflare-only GetObject on public/{stage}/items/*.
         var statements = Regex.Split(policy, @"\n          - ").Skip(1).ToList();
         var publicAllows = statements.Where(s => s.Contains("Effect: Allow") && s.Contains("Principal: '*'")).ToList();
         var grant = Assert.Single(publicAllows);
@@ -292,7 +292,7 @@ public partial class TemplateConfigTests
         Assert.DoesNotContain("s3:List", grant);
         Assert.DoesNotContain("s3:*", grant);
         var resources = Regex.Matches(grant, @"Resource: (?<r>.+)").Select(m => m.Groups["r"].Value.Trim()).ToList();
-        Assert.Equal(["!Sub '${PhotoBucket.Arn}/public/items/*'"], resources);
+        Assert.Equal(["!Sub '${PhotoBucket.Arn}/public/${Stage}/items/*'"], resources);
         Assert.Contains("IpAddress:", grant);
         Assert.Contains("aws:SourceIp:", grant);
         Assert.Contains("- 173.245.48.0/20", grant);
@@ -300,7 +300,7 @@ public partial class TemplateConfigTests
         // The HTTPS-only deny still covers the whole bucket.
         Assert.Contains("Sid: DenyInsecureTransport", policy);
 
-        // Every private prefix the code builds lies outside public/items/; the public keys lie inside it.
+        // Every private prefix the code builds lies outside public/{stage}/items/; the public keys lie inside it.
         const string tenant = "01JTENANT0000000000000000A";
         string[] privateKeys =
         [
@@ -312,7 +312,7 @@ public partial class TemplateConfigTests
         Assert.All(privateKeys, k => Assert.False(k.StartsWith("public/", StringComparison.Ordinal), k));
         var publicKey = StorageKeys.PublicItemImage(tenant, "i", "0123456789abcdef0123456789abcdef", "256");
         Assert.StartsWith(StorageKeys.PublicItemsPrefix, publicKey);
-        Assert.Equal("public/items/", StorageKeys.PublicItemsPrefix);
+        Assert.Equal("public/dev/items/", StorageKeys.PublicItemsPrefix);   // the template's ${Stage} = the Lambda's STAGE
         Assert.DoesNotContain(tenant, publicKey);
         // Nothing expires public copies by accident; the bucket's lifecycle rules all name private prefixes.
         Assert.DoesNotMatch(@"Prefix: public/", bucket);
@@ -324,8 +324,14 @@ public partial class TemplateConfigTests
         Assert.Equal(3600, Bind<PhotoOptions>("api", PhotoOptions.Section).ReadUrlTtlSeconds);
         var template = Template();
         string Role(string name) => Regex.Match(template, $@"\n  {name}:\n(?<body>(?:    .*\n|\n)+?)\n  [A-Za-z]+:\n").Groups["body"].Value;
-        Assert.Contains("public/items/*", Role("ApiLambdaRole"));
-        Assert.Contains("public/items/*", Role("ItemProcessorLambdaRole"));
+        Assert.Contains("public/${Stage}/items/*", Role("ApiLambdaRole"));
+        Assert.Contains("public/${Stage}/items/*", Role("ItemProcessorLambdaRole"));
+        // Owner decision: cdn.alatech.co, in config; CDN links only once api/Photos/PublicUrlsEnabled is switched on.
+        var photos = Bind<PhotoOptions>("api", PhotoOptions.Section);
+        Assert.Equal(("https://cdn.alatech.co", false, (string?)null), (photos.PublicBaseUrl, photos.PublicUrlsEnabled, photos.EffectivePublicBaseUrl));
+        // publish-item-images batches re-queue themselves on the item processor queue.
+        Assert.Contains("ITEM_PROCESS_REQUEST_QUEUE_URL: !Ref ItemProcessorRequestQueue", template);
+        Assert.Contains("sqs:ChangeMessageVisibility, sqs:SendMessage]\n                Resource: !GetAtt ItemProcessorRequestQueue.Arn", template.Replace("\r", ""));
         foreach (var role in new[] { "OutfitImportLambdaRole", "StylistLambdaRole", "TryOnLambdaRole", "PaletteLambdaRole", "NotifierLambdaRole", "DataExportLambdaRole" })
             Assert.DoesNotContain("public/", Role(role));
     }

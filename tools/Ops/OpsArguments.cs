@@ -58,7 +58,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [OutfitImportSmoke] = ["api-url"],
         [AiAdminSmoke] = ["api-url"],
         [AiUsageBackfill] = ["days"],
-        [PublishItemImages] = ["after-tenant"],
+        [PublishItemImages] = [],
     };
 
     private static readonly IReadOnlyDictionary<string, string[]> AllowedFlags = new Dictionary<string, string[]>(StringComparer.Ordinal)
@@ -78,7 +78,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [OutfitImportSmoke] = ["keep-user"],
         [AiAdminSmoke] = [],
         [AiUsageBackfill] = ["dry-run"],
-        [PublishItemImages] = ["dry-run"],
+        [PublishItemImages] = ["dry-run", "wait", "inline"],
     };
 
     [GeneratedRegex("^lib-[a-z0-9]+(-[a-z0-9]+)*$")]
@@ -87,8 +87,6 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
     [GeneratedRegex("^[a-z0-9-]{1,64}$")]
     private static partial Regex FunctionPattern();
 
-    [GeneratedRegex("^[A-Za-z0-9_-]{1,64}$")]
-    private static partial Regex TenantIdPattern();
 
     [GeneratedRegex(@"^ops-presets/[a-z0-9-]+\.json$")]
     private static partial Regex AiSettingsPresetPattern();
@@ -220,8 +218,8 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
                     return "--days must be 1–7 (the job table keeps 7 days)";
                 break;
             case PublishItemImages:
-                if (Option("after-tenant") is { } after && !TenantIdPattern().IsMatch(after))
-                    return "--after-tenant takes the tenant id printed as the last checkpoint";
+                if (Flag("wait") && Flag("inline"))
+                    return "--wait and --inline exclude each other (--inline already waits)";
                 break;
             case AiSettings:
                 if (Option("apply") is { } preset && !AiSettingsPresetPattern().IsMatch(preset))
@@ -253,7 +251,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         "  ai-usage-backfill       [--days 7] [--dry-run]                 (no AI call; replays finished jobs into the AI usage counters, idempotent)\n" +
         "  logs                    --function stylist [--minutes 30] [--filter OpenAI] [--limit 200]\n" +
         "  migrate-library-item-images [--dry-run]                         (one-off, idempotent: library pieces → current library image)\n" +
-        "  publish-item-images     [--dry-run] [--after-tenant <id>]      (no AI call; idempotent, resumable: cleaned piece images → public/items/ + 256/768 px thumbnails)";
+        "  publish-item-images     [--dry-run] [--wait | --inline]       (no AI call; starts the admin Bakım job: cleaned piece images → public/items/ + 256/768 px thumbnails)";
 }
 
 /// <summary>Counts image-model calls of one run and refuses the call that would cross the cap.</summary>

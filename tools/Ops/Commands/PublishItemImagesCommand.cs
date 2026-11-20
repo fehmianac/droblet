@@ -1,192 +1,120 @@
+using Amazon.SQS;
+using Amazon.SQS.Model;
 using Domain.Entity;
-using Domain.Entity.Base;
 using Domain.Manager;
 using Domain.Services;
+using Domain.Services.Admin;
+using Infrastructure.Serialization;
+using Infrastructure.Services.Maintenance;
 using ItemProcessor.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Ops.Commands;
 
 /// <summary>
-/// publish-item-images: idempotent, resumable, no AI, allowed on dev and prod (docs/images.md §Migration). Every tenant
-/// (the whole tenant list, paginated by the repository) and every wardrobe piece of it is scanned — single photos, pieces
-/// of multi-item photos and outfit-import pieces alike, since all of them keep their cleaned image at
-/// tenant/{id}/items/*.webp. For a piece with a cleaned image:
-///   1. the private 256 / 768 px renditions are made when missing (SkiaSharp, exactly like the item worker);
-///   2. the cleaned image and its renditions are copied to public/items/ under fresh random keys when the piece is not
-///      published yet, a public copy is missing, or it was published before its renditions existed;
-///   3. the keys are stored with a versioned write (SaveIfVersionAsync: Version + 1, UpdatedAt = now, so other devices
-///      sync the new URLs; a concurrent edit is re-read once). Replaced public copies are deleted afterwards.
-/// Moderation-hidden pieces are never published. Pieces without a cleaned image are skipped (with the reason) and keep
-/// the presigned fallback. Tenants are processed in id order and the last finished tenant is printed as a checkpoint:
-/// --after-tenant &lt;id&gt; resumes after it (a re-run from the start is safe too, only slower). --dry-run only counts.
+/// publish-item-images: a thin wrapper over the admin "Bakım" job (docs/images.md §8) — the run is the same row the admin
+/// panel lists, started as the Ops actor and audited. No AI; idempotent; allowed on dev and prod.
+///   default   start the run on the item processor queue (the worker processes the batches) and return;
+///   --wait    … then poll until it finishes and print the counters (exit 1 when pieces failed or the run did not complete);
+///   --inline  process the batches in this process with the same job code (no queue needed: CI, or before the worker
+///             has the code);
+///   --dry-run count only.
 /// </summary>
 internal static class PublishItemImagesCommand
 {
-    public static class SkipReason
+    public static string QueueName(string stage) => $"droblet-{stage}-item-process-request";
+
+    public static async Task<int> RunAsync(IServiceProvider services, OpsArguments args, OpsOutput output, CancellationToken ct)
     {
-        public const string LibraryOrCatalog = "library / catalog piece (global image, already public)";
-        public const string OriginalOnly = "no cleaned image (manual photo, cleanup pending or failed): original stays private";
-        public const string NoImage = "no image at all";
-        public const string NotOwnCleaned = "image key outside the tenant's items/ folder or not a cleaned .webp";
-        public const string CleanedMissing = "cleaned image missing in S3";
-    }
-
-    public sealed record Result(int Tenants, int Scanned, int RenditionsMade, int Published, int AlreadyPublic, int Hidden, int Failed,
-        IReadOnlyDictionary<string, int> Skipped, string? Checkpoint)
-    {
-        public int SkippedTotal => Skipped.Values.Sum();
-    }
-
-    public static Task<int> RunAsync(IServiceProvider services, OpsArguments args, OpsOutput output, CancellationToken ct) =>
-        RunAsync(services.GetRequiredService<IRepository>(), services.GetRequiredService<IObjectStorage>(), new SkiaImageThumbnailer(),
-            services.GetRequiredService<IItemImagePublisher>(), services.GetRequiredService<TimeProvider>(), args, output, ct);
-
-    public static async Task<int> RunAsync(IRepository repository, IObjectStorage storage, IImageThumbnailer thumbnailer, IItemImagePublisher publisher,
-        TimeProvider time, OpsArguments args, OpsOutput output, CancellationToken ct)
-    {
-        var result = await PublishAsync(repository, storage, thumbnailer, publisher, time, args.DryRun, args.Option("after-tenant"), output, ct);
-        output.Summary($"### publish-item-images ({args.Stage}){(args.DryRun ? " — dry run" : "")}\n");
-        output.Table(["tenants", "items scanned", args.DryRun ? "would publish" : "published", "already public", "skipped", "hidden (moderation)",
-                args.DryRun ? "would make renditions" : "renditions made", "failed", "checkpoint"],
-            [[$"{result.Tenants}", $"{result.Scanned}", $"{result.Published}", $"{result.AlreadyPublic}", $"{result.SkippedTotal}", $"{result.Hidden}",
-              $"{result.RenditionsMade}", $"{result.Failed}", result.Checkpoint ?? "-"]]);
-        if (result.Skipped.Count > 0)
-            output.Table(["skipped because", "items"], result.Skipped.OrderByDescending(s => s.Value).Select(s => new[] { s.Key, $"{s.Value}" }).ToList());
-        return result.Failed == 0 ? 0 : 1;
-    }
-
-    public static async Task<Result> PublishAsync(IRepository repository, IObjectStorage storage, IImageThumbnailer thumbnailer, IItemImagePublisher publisher,
-        TimeProvider time, bool dryRun, string? afterTenant, OpsOutput output, CancellationToken ct)
-    {
-        var tenants = (await repository.GetAllAsync<TenantEntity>(TenantEntity.GetPk(), ct))
-            .Where(t => afterTenant is null || string.CompareOrdinal(t.Id, afterTenant) > 0)
-            .OrderBy(t => t.Id, StringComparer.Ordinal)
-            .ToList();
-        int scanned = 0, renditions = 0, published = 0, already = 0, hidden = 0, failed = 0;
-        var skipped = new Dictionary<string, int>(StringComparer.Ordinal);
-        string? checkpoint = null;
-        void Skip(string reason) => skipped[reason] = skipped.GetValueOrDefault(reason) + 1;
-
-        foreach (var tenant in tenants)
+        var repository = services.GetRequiredService<IRepository>();
+        var time = services.GetRequiredService<TimeProvider>();
+        var audit = services.GetRequiredService<IAuditLog>();
+        IMaintenanceQueue queue;
+        InlineQueue? inline = null;
+        if (args.Flag("inline"))
+            queue = inline = new InlineQueue();
+        else
         {
-            foreach (var item in await repository.GetAllAsync<ItemEntity>(ItemEntity.GetPk(tenant.Id), ct))
+            var sqs = services.GetRequiredService<IAmazonSQS>();
+            var url = (await sqs.GetQueueUrlAsync(new GetQueueUrlRequest { QueueName = QueueName(args.Stage) }, ct)).QueueUrl;
+            queue = new FixedQueue(sqs, url);
+        }
+        var maintenance = new MaintenanceService(repository, queue, audit, time, services.GetRequiredService<ILogger<MaintenanceService>>());
+        PublishItemImagesJob Job() => new(repository,
+            new ItemImageMigrator(repository, services.GetRequiredService<IObjectStorage>(), new SkiaImageThumbnailer(), services.GetRequiredService<IItemImagePublisher>(), time),
+            queue, services.GetRequiredService<IOptionsMonitor<MaintenanceOptions>>(), time, services.GetRequiredService<ILogger<PublishItemImagesJob>>());
+
+        return await RunAsync(maintenance, inline is null ? null : Job(), inline, args.DryRun, args.Flag("wait"), args.Stage, output, ct);
+    }
+
+    public static async Task<int> RunAsync(IMaintenanceService maintenance, IPublishItemImagesJob? job, InlineQueue? inline, bool dryRun, bool wait,
+        string stage, OpsOutput output, CancellationToken ct, TimeSpan? pollInterval = null)
+    {
+        var started = await maintenance.StartPublishItemImagesAsync(OpsHost.Actor, dryRun, null, ct);
+        if (started.Outcome != MaintenanceStartOutcome.Started)
+        {
+            output.Error($"publish-item-images: not started ({started.Outcome}{(started.Run is { } active ? $", active run {active.Id}" : "")})");
+            output.Summary($"**publish-item-images refused:** {started.Outcome}");
+            return 1;
+        }
+        var run = started.Run!;
+        output.Line($"run {run.Id} started{(dryRun ? " (dry run)" : "")}; it is listed in the admin panel under Bakım");
+
+        if (job is not null && inline is not null)
+        {
+            while (inline.Next is { } next)
             {
-                ct.ThrowIfCancellationRequested();
-                scanned++;
-                if (item.ImageKey is not { } cleaned)
-                {
-                    Skip(item.OriginalImageKey is not null ? SkipReason.OriginalOnly : item.GlobalImageKey is not null ? SkipReason.LibraryOrCatalog : SkipReason.NoImage);
-                    continue;
-                }
-                if (!cleaned.StartsWith(StorageKeys.ItemsPrefix(tenant.Id), StringComparison.Ordinal) || !cleaned.EndsWith(".webp", StringComparison.Ordinal))
-                {
-                    Skip(SkipReason.NotOwnCleaned);
-                    continue;
-                }
-                if (item.IsModerationHidden())
-                {
-                    hidden++;
-                    continue;
-                }
-                if (await storage.HeadAsync(cleaned, ct) is null)
-                {
-                    Skip(SkipReason.CleanedMissing);
-                    output.Error($"tenant {tenant.Id} item {item.Id}: cleaned image missing in S3; skipped");
-                    continue;
-                }
-
-                // 1. Renditions.
-                var missing = 0;
-                foreach (var key in ItemImageRenditions.KeysOf(cleaned))
-                    if (await storage.HeadAsync(key, ct) is null)
-                        missing++;
-                var hasRenditions = missing == 0;
-                if (!hasRenditions)
-                {
-                    if (dryRun)
-                    {
-                        renditions++;
-                        hasRenditions = true; // counted as made for the publish decision below
-                    }
-                    else if (await storage.ReadAsync(cleaned, 15 * 1024 * 1024, ct) is { } data
-                             && (await ItemImageRenditions.WriteAsync(storage, thumbnailer, cleaned, data, ct)).Count == ItemImageRenditions.Widths.Count)
-                    {
-                        renditions++;
-                        hasRenditions = true;
-                    }
-                    else
-                    {
-                        output.Error($"tenant {tenant.Id} item {item.Id}: the cleaned image could not be resampled; published without thumbnails");
-                    }
-                }
-
-                // 2. Publication.
-                if (!await NeedsPublishAsync(storage, item, hasRenditions, ct))
-                {
-                    already++;
-                    continue;
-                }
-                if (dryRun)
-                {
-                    published++;
-                    continue;
-                }
-                if (await PublishOneAsync(repository, publisher, time, item, ct))
-                    published++;
-                else
-                {
-                    failed++;
-                    output.Error($"tenant {tenant.Id} item {item.Id}: not published (copy failed or changed concurrently twice; run again)");
-                }
+                inline.Next = null;
+                await job.RunBatchAsync(next, ct);
+                if (await maintenance.GetPublishItemImagesAsync(run.Id, ct) is { } progress)
+                    output.Line($"batch {next.Seq}: scanned {progress.Scanned} · published {progress.Published} · already public {progress.AlreadyPublic} · skipped {progress.Skipped} · failed {progress.Failed}");
             }
-            checkpoint = tenant.Id;
-            if (!dryRun)
-                output.Line($"checkpoint: tenant {tenant.Id} done (resume with --after-tenant {tenant.Id})");
+        }
+        else if (wait)
+        {
+            while (await maintenance.GetPublishItemImagesAsync(run.Id, ct) is { } current && current.Status is MaintenanceRunStatus.Queued or MaintenanceRunStatus.Running or MaintenanceRunStatus.Cancelling)
+                await Task.Delay(pollInterval ?? TimeSpan.FromSeconds(10), ct);
+        }
+        else
+        {
+            output.Summary($"### publish-item-images ({stage}){(dryRun ? " — dry run" : "")}\n\nRun `{run.Id}` queued; follow it in the admin panel (Bakım) or re-run with --wait.");
+            return 0;
         }
 
-        output.Line($"{tenants.Count} tenants · {scanned} items scanned · {(dryRun ? "would publish" : "published")} {published} · already public {already} · " +
-                    $"skipped {skipped.Values.Sum()} · hidden {hidden} · renditions {(dryRun ? "to make" : "made")} {renditions} · failed {failed}");
-        return new Result(tenants.Count, scanned, renditions, published, already, hidden, failed, skipped, checkpoint);
+        run = await maintenance.GetPublishItemImagesAsync(run.Id, ct) ?? run;
+        Report(run, stage, output);
+        return run.Status == MaintenanceRunStatus.Completed && run.Failed == 0 ? 0 : 1;
     }
 
-    private static async Task<bool> NeedsPublishAsync(IObjectStorage storage, ItemEntity item, bool hasRenditions, CancellationToken ct)
+    private static void Report(MaintenanceRunDto run, string stage, OpsOutput output)
     {
-        if (item.PublicImageKey is not { } full || !StorageKeys.IsPublicItemKeyOf(full, item.TenantId))
-            return true;
-        if (hasRenditions && (item.PublicThumbKey is null || item.PublicMediumKey is null))
-            return true; // published before its renditions existed
-        foreach (var key in item.PublicImageKeys())
-            if (await storage.HeadAsync(key, ct) is null)
-                return true;
-        return false;
+        output.Summary($"### publish-item-images ({stage}){(run.DryRun ? " — dry run" : "")} — run `{run.Id}` {run.Status}\n");
+        output.Table(["tenants", "items scanned", run.DryRun ? "would publish" : "published", "already public", "skipped", "hidden (moderation)",
+                run.DryRun ? "would make renditions" : "renditions made", "failed"],
+            [[$"{run.Tenants}", $"{run.Scanned}", $"{run.Published}", $"{run.AlreadyPublic}", $"{run.Skipped}", $"{run.Hidden}", $"{run.RenditionsMade}", $"{run.Failed}"]]);
+        if (run.SkipReasons.Count > 0)
+            output.Table(["skipped because", "items"], run.SkipReasons.Select(s => new[] { s.Reason, $"{s.Count}" }).ToList());
+        if (run.FailedItems.Count > 0)
+            output.Table(["tenant", "item", "reason"], run.FailedItems.Select(f => new[] { f.TenantId, f.ItemId, f.Reason }).ToList());
     }
 
-    private static async Task<bool> PublishOneAsync(IRepository repository, IItemImagePublisher publisher, TimeProvider time, ItemEntity item, CancellationToken ct)
+    /// <summary>--inline: the next batch message is kept here instead of being sent to SQS.</summary>
+    internal sealed class InlineQueue : IMaintenanceQueue
     {
-        var image = await publisher.PublishAsync(item, ct);
-        if (image is null)
-            return false;
-        for (var attempt = 0; attempt < 2; attempt++)
+        public PublishItemImagesBatchRequested? Next { get; set; }
+
+        public Task EnqueueAsync(PublishItemImagesBatchRequested message, CancellationToken ct)
         {
-            var previous = item.PublicImageKeys();
-            var expected = item.Version;
-            item.SetPublicImage(image);
-            item.UpdatedAt = time.GetUtcNow().UtcDateTime;
-            if (await repository.SaveIfVersionAsync(item, expected, ct))
-            {
-                await publisher.UnpublishAsync(item.TenantId, previous, ct);
-                return true;
-            }
-            var current = await repository.GetAsync<ItemEntity>(item.Pk, item.Sk, ct);
-            if (current is null || current.ImageKey != item.ImageKey || current.IsModerationHidden())
-            {
-                await publisher.UnpublishAsync(item.TenantId, image.Keys, ct); // deleted, replaced or hidden meanwhile
-                return true;
-            }
-            item = current;
+            Next = message;
+            return Task.CompletedTask;
         }
-        await publisher.UnpublishAsync(item.TenantId, image.Keys, ct);
-        return false;
+    }
+
+    private sealed class FixedQueue(IAmazonSQS sqs, string url) : IMaintenanceQueue
+    {
+        public Task EnqueueAsync(PublishItemImagesBatchRequested message, CancellationToken ct) =>
+            sqs.SendMessageAsync(new SendMessageRequest { QueueUrl = url, MessageBody = MessageSerializer.Serialize(message) }, ct);
     }
 }

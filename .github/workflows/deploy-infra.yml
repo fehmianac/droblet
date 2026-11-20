@@ -292,9 +292,10 @@ jobs:
             "APNs anahtarinin Key ID'si."
           ensure "notifier/Push/ApnsTeamId" String "4LB4RD97A9" \
             "APNs provider token iss = Apple Developer Team ID."
-          # Public parca gorselleri (docs/images.md): cdn.droblet.alatech.co Cloudflare kaydi hazir olunca https://cdn.droblet.alatech.co yazilir.
-          ensure "api/Photos/PublicBaseUrl" String "CHANGE_ME" \
-            "Temizlenmis parca gorsellerinin public adresi (or. https://cdn.droblet.alatech.co). CHANGE_ME ise presigned URL kullanilir."
+          # Public parca gorselleri (docs/images.md): adres template'te (api/Photos PublicBaseUrl = https://cdn.alatech.co).
+          # cdn.alatech.co Cloudflare kaydi ve origin kurallari calisinca urun sahibi bunu "true" yapar; o zamana kadar presigned URL.
+          ensure "api/Photos/PublicUrlsEnabled" String "false" \
+            "true = uygulamaya temizlenmis parca gorselleri icin CDN adresi verilir (Cloudflare kaydi hazir olunca). false = presigned URL."
           ensure "api/Cloudflare/ZoneId" String "CHANGE_ME" \
             "alatech.co Cloudflare Zone ID (onbellek temizligi icin). CHANGE_ME ise temizlik yapilmaz."
           ensure "worker/Ai" String \

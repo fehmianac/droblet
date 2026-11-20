@@ -55,10 +55,18 @@ public static class StorageKeys
 
     // ── Public (Cloudflare → S3, docs/images.md) ──────────────────────────────────────────────────────────────────
     // Only cleaned wardrobe piece images (no person in them) and their thumbnails live here. The bucket policy allows an
-    // anonymous GetObject on exactly public/items/* (from Cloudflare's ranges); every other prefix stays private.
+    // anonymous GetObject on exactly public/{stage}/items/* (from Cloudflare's ranges); every other prefix stays private.
+    // The stage is part of the key so one hostname (cdn.alatech.co) serves both stages: the URL path equals the key, and a
+    // Cloudflare origin rule per path prefix (/public/dev/ → dev bucket, /public/prod/ → prod bucket) picks the bucket.
 
-    /// <summary>The only publicly readable prefix of the photo bucket.</summary>
-    public const string PublicItemsPrefix = "public/items/";
+    /// <summary>"public/" — no private key starts with it.</summary>
+    public const string PublicRoot = "public/";
+
+    /// <summary>Stage of this process (Lambda env STAGE, set by the template; the Ops tool sets it too). Default dev.</summary>
+    public static string Stage => Environment.GetEnvironmentVariable("STAGE") is { Length: > 0 } stage && stage.All(char.IsAsciiLetterLower) ? stage : "dev";
+
+    /// <summary>The only publicly readable prefix of the photo bucket: <c>public/{stage}/items/</c>.</summary>
+    public static string PublicItemsPrefix => $"{PublicRoot}{Stage}/items/";
 
     /// <summary>
     /// One tenant's public folder. The segment is a one-way hash of the tenant id (128 bits of SHA-256), so a URL never
@@ -67,7 +75,7 @@ public static class StorageKeys
     public static string PublicItemsRoot(string tenantId) => $"{PublicItemsPrefix}{TenantToken(Guard(tenantId))}/";
 
     /// <summary>
-    /// A published rendition: <c>public/items/{tenantHash}/{itemId}-{version}-{size}.webp</c>. <paramref name="version"/>
+    /// A published rendition: <c>public/{stage}/items/{tenantHash}/{itemId}-{version}-{size}.webp</c>. <paramref name="version"/>
     /// is 128 random bits chosen per publication (unguessable, and a replaced image gets a new key, so caches never
     /// serve the old one). <paramref name="size"/>: "full", "768", "256".
     /// </summary>

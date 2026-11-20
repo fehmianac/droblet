@@ -26,8 +26,8 @@ public class ItemImageTests
 
     private ItemImagePublisher Publisher() => new(_storage, _cdn, NullLogger<ItemImagePublisher>.Instance);
 
-    private ItemImageUrls Urls(string? publicBaseUrl) => new(_storage,
-        Fixtures.Monitor(new PhotoOptions { ReadUrlTtlSeconds = 3600, PublicBaseUrl = publicBaseUrl }),
+    private ItemImageUrls Urls(string? publicBaseUrl, bool enabled = true) => new(_storage,
+        Fixtures.Monitor(new PhotoOptions { ReadUrlTtlSeconds = 3600, PublicBaseUrl = publicBaseUrl, PublicUrlsEnabled = enabled }),
         Fixtures.Monitor(new WardrobeOptions { PublicAssetBaseUrl = "https://catalog.test" }), Fixtures.Clock());
 
     private async Task<ItemEntity> CleanedItemAsync(bool renditions = true, string id = "item-1")
@@ -52,7 +52,7 @@ public class ItemImageTests
     {
         var root = StorageKeys.PublicItemsRoot(Tenant);
 
-        Assert.Matches("^public/items/[0-9a-f]{32}/$", root);
+        Assert.Matches("^public/dev/items/[0-9a-f]{32}/$", root);
         Assert.DoesNotContain(Tenant, root);
         Assert.Equal(root, StorageKeys.PublicItemsRoot(Tenant));
         Assert.NotEqual(root, StorageKeys.PublicItemsRoot("01JTENANT0000000000000000B"));
@@ -183,6 +183,8 @@ public class ItemImageTests
 
         var fallback = await Urls(null).GetAsync(item, default);
         var placeholder = await Urls(ConfigSecret.Placeholder).GetAsync(item, default);
+        var switchedOff = await Urls(Cdn, enabled: false).GetAsync(item, default);   // record not live yet
+        Assert.Equal(fallback.ImageUrl, switchedOff.ImageUrl);
         var cdn = await Urls(Cdn).GetAsync(item, default);
 
         Assert.StartsWith($"https://s3.test/bucket/{item.PublicThumbKey}?X-Amz-Expires=3600", fallback.ThumbUrl);
@@ -278,7 +280,7 @@ public class ItemImageTests
 
     private static CloudflareCdnCache Purger(RecordingHandler handler, string? zone, string? token, string? baseUrl) => new(new HttpClient(handler),
         Fixtures.Monitor(new CloudflareOptions { ZoneId = zone, ApiToken = token }),
-        Fixtures.Monitor(new PhotoOptions { PublicBaseUrl = baseUrl }), NullLogger<CloudflareCdnCache>.Instance);
+        Fixtures.Monitor(new PhotoOptions { PublicBaseUrl = baseUrl, PublicUrlsEnabled = true }), NullLogger<CloudflareCdnCache>.Instance);
 
     [Fact]
     public async Task Purge_IsSkipped_WhenNotConfigured()
@@ -321,6 +323,7 @@ public class ItemImageTests
         [
             new Parameter { Name = $"{path}/Photos", Value = """{"UploadUrlTtlSeconds":300,"ReadUrlTtlSeconds":3600}""" },
             new Parameter { Name = $"{path}/Photos/PublicBaseUrl", Value = value },
+            new Parameter { Name = $"{path}/Photos/PublicUrlsEnabled", Value = "true" },
             new Parameter { Name = $"{path}/Cloudflare/ZoneId", Value = "CHANGE_ME" },
             new Parameter { Name = $"{path}/Cloudflare/ApiToken", Value = "CHANGE_ME" },
         ], path);
@@ -331,7 +334,8 @@ public class ItemImageTests
         using var provider = services.BuildServiceProvider();
 
         var photos = provider.GetRequiredService<IOptionsMonitor<PhotoOptions>>().CurrentValue;
-        Assert.Equal((3600, expected), (photos.ReadUrlTtlSeconds, photos.PublicBaseUrl));
+        Assert.Equal((3600, expected, expected), (photos.ReadUrlTtlSeconds, photos.PublicBaseUrl, photos.EffectivePublicBaseUrl));
+        Assert.True(photos.PublicUrlsEnabled);
         Assert.False(provider.GetRequiredService<IOptionsMonitor<CloudflareOptions>>().CurrentValue.IsConfigured);
         Assert.IsType<CloudflareCdnCache>(provider.GetRequiredService<ICdnCache>());
         Assert.IsType<ItemImagePublisher>(provider.GetRequiredService<IItemImagePublisher>());

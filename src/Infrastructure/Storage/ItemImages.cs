@@ -13,8 +13,8 @@ using Microsoft.Extensions.Options;
 namespace Infrastructure.Storage;
 
 /// <summary>
-/// <see cref="IItemImagePublisher"/>: server-side S3 copies from tenant/{id}/items/ to public/items/{hash}/ under a fresh
-/// 128-bit random version. Best effort: a failed copy (e.g. AccessDenied while the template that grants public/items/* is
+/// <see cref="IItemImagePublisher"/>: server-side S3 copies from tenant/{id}/items/ to public/{stage}/items/{hash}/ under a fresh
+/// 128-bit random version. Best effort: a failed copy (e.g. AccessDenied while the template that grants public/{stage}/items/* is
 /// not deployed yet) leaves the item unpublished — it keeps its presigned private image — and removes partial copies.
 /// </summary>
 public sealed class ItemImagePublisher(IObjectStorage storage, ICdnCache cdn, ILogger<ItemImagePublisher> logger) : IItemImagePublisher
@@ -82,7 +82,7 @@ public sealed class ItemImagePublisher(IObjectStorage storage, ICdnCache cdn, IL
     }
 }
 
-/// <summary><see cref="IItemImageUrls"/> over Photos:PublicBaseUrl (public) with presigned GETs as the fallback.</summary>
+/// <summary><see cref="IItemImageUrls"/> over Photos:PublicBaseUrl when PublicUrlsEnabled (public) with presigned GETs as the fallback.</summary>
 public sealed class ItemImageUrls(
     IObjectStorage storage,
     IOptionsMonitor<PhotoOptions> photoOptions,
@@ -101,7 +101,7 @@ public sealed class ItemImageUrls(
             var medium = Own(item.PublicMediumKey, item) ?? full;
             var thumb = Own(item.PublicThumbKey, item) ?? medium;
             var cacheKey = CacheKey(item.Id, full);
-            if (ConfigSecret.OrNull(photoOptions.CurrentValue.PublicBaseUrl) is { } baseUrl)
+            if (photoOptions.CurrentValue.EffectivePublicBaseUrl is { } baseUrl)
                 return new ItemImageView(Public(baseUrl, full), Public(baseUrl, medium), Public(baseUrl, thumb), null, cacheKey);
 
             // Not set up yet (no Cloudflare record): the published copies, presigned — same bucket, same objects.
@@ -152,7 +152,7 @@ public sealed class CloudflareCdnCache(
     public async Task PurgeAsync(IReadOnlyList<string> publicKeys, CancellationToken ct)
     {
         var settings = options.CurrentValue;
-        if (publicKeys.Count == 0 || !settings.IsConfigured || ConfigSecret.OrNull(photoOptions.CurrentValue.PublicBaseUrl) is not { } baseUrl)
+        if (publicKeys.Count == 0 || !settings.IsConfigured || photoOptions.CurrentValue.EffectivePublicBaseUrl is not { } baseUrl)
             return;
 
         foreach (var chunk in publicKeys.Select(k => ItemImageUrls.Public(baseUrl, k)).Chunk(MaxFilesPerCall))

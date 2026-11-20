@@ -215,10 +215,18 @@ public sealed class PhotoOptions
     /// </summary>
     public int ReadUrlTtlSeconds { get; set; } = 3600;
     /// <summary>
-    /// Public base of the cleaned item images (Cloudflare in front of the photo bucket's public/items/ prefix), e.g.
-    /// https://cdn.droblet.alatech.co. Empty / CHANGE_ME = not set up yet: item images are served as presigned GETs.
+    /// Public base of the cleaned item images: Cloudflare in front of the photo bucket's public/{stage}/items/ prefix
+    /// (owner decision 2026-11-20: https://cdn.alatech.co for both stages; template.yaml api/Photos — config, so it can change).
     /// </summary>
     public string? PublicBaseUrl { get; set; }
+    /// <summary>
+    /// Switch (SSM api/Photos/PublicUrlsEnabled, created "false" by deploy-infra): the app gets CDN URLs only once the owner
+    /// set it to true — after the Cloudflare record is live. Until then item images are presigned GETs (fallback).
+    /// </summary>
+    public bool PublicUrlsEnabled { get; set; }
+
+    /// <summary>The base URL to build public links with, or null while public URLs are off / not configured.</summary>
+    public string? EffectivePublicBaseUrl => PublicUrlsEnabled ? ConfigSecret.OrNull(PublicBaseUrl) : null;
     public long MaxUploadBytes { get; set; } = 10 * 1024 * 1024;
     public List<string> AllowedContentTypes { get; set; } = ["image/jpeg", "image/png"];
     /// <summary>Profile picture: the app resizes to 512 px before upload; the server enforces size and dimensions (no resampling).</summary>

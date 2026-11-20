@@ -22,7 +22,7 @@ public sealed class AccountDeletionService(
 {
     /// <summary>
     /// The public copies of the cleaned piece images: listed first (for the CDN purge), then deleted. Before the template
-    /// grants the Api role public/items/*, nothing can have been published there, so an AccessDenied is skipped.
+    /// grants the Api role public/{stage}/items/*, nothing can have been published there, so an AccessDenied is skipped.
     /// </summary>
     private async Task DeletePublicItemsAsync(string prefix, CancellationToken ct)
     {
@@ -34,7 +34,7 @@ public sealed class AccountDeletionService(
         }
         catch (Amazon.S3.AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
         {
-            logger.LogWarning("public/items/ is not accessible yet (template not deployed); nothing can be published there, skipped");
+            logger.LogWarning("public/<stage>/items/ is not accessible yet (template not deployed); nothing can be published there, skipped");
         }
     }
 
