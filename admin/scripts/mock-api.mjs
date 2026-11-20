@@ -8,7 +8,7 @@ import { createServer } from 'node:http';
 const PORT = Number(process.env.PORT ?? 4010);
 const ROLE = process.env.MOCK_ROLE ?? 'superAdmin';
 const PERMS = {
-  superAdmin: ['dashboard.view', 'analytics.view', 'catalog.manage', 'content.manage', 'image.upload', 'users.read', 'users.suspend', 'users.delete', 'users.grant', 'moderation.manage', 'settings.manage', 'admins.manage', 'audit.view', 'ai.manage'],
+  superAdmin: ['dashboard.view', 'analytics.view', 'catalog.manage', 'content.manage', 'image.upload', 'users.read', 'users.suspend', 'users.delete', 'users.grant', 'moderation.manage', 'settings.manage', 'admins.manage', 'audit.view', 'ai.manage', 'ai.usage.view'],
   contentEditor: ['dashboard.view', 'analytics.view', 'catalog.manage', 'content.manage', 'image.upload'],
   moderator: ['dashboard.view', 'users.read', 'users.suspend', 'moderation.manage'],
 };
@@ -103,6 +103,177 @@ const audit = Array.from({ length: 40 }, (_, i) => ({
   targetId: [products[i % 30].id, 'vakko', null, users[4].id, 'entitlements', 'edit-2026-11-23'][i % 6],
   before: i % 6 === 0 ? JSON.stringify({ priceMinor: 129990 }) : null, after: i % 6 === 0 ? JSON.stringify({ priceMinor: 119990 }) : i % 6 === 4 ? JSON.stringify({ 'Free.ItemRecognitionLimit': 10 }) : null, ip: '203.0.113.7',
 }));
+
+// ── AI usage and cost (docs/api/admin.md §5c). Deterministic per user and day; numbers in micro-USD. ───────────────
+const AI_RATES = { usdTry: 43, netMonthlyPlanTry: 141.66, netYearlyPlanPerMonthTry: 88.54 };
+const AI_THRESHOLDS = { medianMultiplier: 5, minHistoryDays: 3, minDayUsd: 0.1, absoluteDayUsd: 2 };
+// operation → [model, typical cost µ$, input tokens, output tokens, image output?, typical calls per active day]
+const AI_OPS = {
+  stylist_outfit: ['gpt-6-astra', 27_300, 1227, 462, false, 1.6],
+  stylist_week: ['gpt-6-astra', 43_500, 1044, 501, false, 0.15],
+  stylist_pack: ['gpt-6-astra', 30_300, 1321, 576, false, 0.06],
+  item_detection: ['gpt-6.1-terra', 2_900, 2904, 840, false, 0.9],
+  cleanup: ['gpt-image-2.5-sunburst', 12_500, 991, 200, true, 1.1],
+  multi_item: ['gpt-image-2.5-sunburst', 11_200, 940, 190, true, 0.4],
+  import_detect: ['gpt-6.1-terra', 4_700, 2600, 900, false, 0.25],
+  import_match: ['gpt-6.1-terra', 1_400, 674, 76, false, 0.6],
+  import_cleanup: ['gpt-image-2.5-sunburst', 12_000, 980, 200, true, 0.4],
+  palette: ['gpt-6.1-terra', 800, 2100, 75, false, 0.02],
+  photo_check: ['gpt-6.1-terra', 600, 398, 58, false, 0.05],
+  tryon: ['gpt-image-2.5-sunburst', 31_400, 5489, 158, true, 0.7],
+};
+const hash = (str) => {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) h = Math.imul(h ^ str.charCodeAt(i), 16777619);
+  return (h >>> 0) / 4294967296;
+};
+const isoDay = (d) => d.toISOString().slice(0, 10);
+const dayList = (from, to) => {
+  const out = [];
+  for (let t = Date.parse(`${from}T00:00:00Z`); t <= Date.parse(`${to}T00:00:00Z`) && out.length < 400; t += 86_400_000) out.push(isoDay(new Date(t)));
+  return out;
+};
+const aiPlan = (u, i) => (u.testPremium || i % 3 === 0 ? 'premium' : 'free');
+const emptyTotals = () => ({ jobs: 0, completed: 0, failed: 0, refunded: 0, calls: 0, callErrors: 0, inputTokens: 0, outputTokens: 0, cachedTokens: 0, images: 0, costMicroUsd: 0 });
+
+/** One user's counters of one day (null = no AI that day). User 2 has a spike today (anomaly). */
+function aiDay(u, i, day) {
+  const premium = aiPlan(u, i) === 'premium';
+  const spiking = i === 1 && day === isoDay(new Date());
+  const activity = hash(`${u.id}:${day}`);
+  if (!spiking && activity > (premium ? 0.8 : i === 1 ? 0.9 : 0.35)) return null;
+  const heavy = i === 1 ? 2 : premium ? 1.1 : 0.5;
+  const spike = spiking ? 9 : 1;
+  const ops = {};
+  for (const [op, [model, cost, input, output, image, rate]] of Object.entries(AI_OPS)) {
+    if (!premium && ['tryon', 'stylist_week', 'stylist_pack'].includes(op)) continue;
+    const calls = Math.round(rate * heavy * spike * (0.4 + hash(`${u.id}:${day}:${op}`) * 1.4));
+    if (calls <= 0) continue;
+    const failed = hash(`${day}:${op}:${u.id}:f`) > 0.93 ? 1 : 0;
+    ops[op] = { model, calls, jobs: calls, failed, inputTokens: input * calls, outputTokens: output * calls, cachedTokens: Math.round(input * calls * 0.08), images: image ? calls - failed : 0, costMicroUsd: cost * calls };
+  }
+  return Object.keys(ops).length ? ops : null;
+}
+
+function sumOps(list) {
+  const totals = emptyTotals();
+  const byOp = {};
+  const byModel = {};
+  for (const ops of list) {
+    for (const [op, r] of Object.entries(ops)) {
+      const o = (byOp[op] ??= { operation: op, jobs: 0, failed: 0, calls: 0, inputTokens: 0, outputTokens: 0, cachedTokens: 0, images: 0, costMicroUsd: 0 });
+      const m = (byModel[r.model] ??= { model: r.model, calls: 0, inputTokens: 0, outputTokens: 0, cachedTokens: 0, images: 0, costMicroUsd: 0 });
+      for (const k of ['calls', 'inputTokens', 'outputTokens', 'cachedTokens', 'images', 'costMicroUsd']) {
+        o[k] += r[k];
+        m[k] += r[k];
+        totals[k] += r[k];
+      }
+      o.jobs += r.jobs;
+      o.failed += r.failed;
+      totals.jobs += r.jobs;
+      totals.failed += r.failed;
+      totals.refunded += op === 'tryon' ? r.failed : 0;
+    }
+  }
+  totals.completed = totals.jobs - totals.failed;
+  const sort = (a, b) => b.costMicroUsd - a.costMicroUsd;
+  return { totals, operations: Object.values(byOp).sort(sort), models: Object.values(byModel).sort(sort) };
+}
+
+function aiUserUsage(u, from, to) {
+  const i = users.indexOf(u);
+  const days = dayList(from, to)
+    .map((day) => [day, aiDay(u, i, day)])
+    .filter(([, ops]) => ops);
+  const all = sumOps(days.map(([, ops]) => ops));
+  const months = [...new Set(dayList(from, to).map((d) => d.slice(0, 7)))].map((month) => {
+    const inMonth = dayList(`${month}-01`, isoDay(new Date(Math.min(Date.now(), Date.parse(`${month}-01T00:00:00Z`) + 31 * 86_400_000 - 86_400_000))))
+      .filter((d) => d.startsWith(month))
+      .map((day) => aiDay(u, i, day))
+      .filter(Boolean);
+    const sum = sumOps(inMonth);
+    return { period: month, totals: sum.totals, operations: sum.operations };
+  });
+  const kinds = [['stylistOutfit', 'stylist_outfit'], ['tryOn', 'tryon'], ['itemProcess', 'item_detection'], ['itemClean', 'multi_item'], ['palette', 'palette'], ['stylistWeek', 'stylist_week']];
+  const recentJobs = Array.from({ length: 9 }, (_, n) => {
+    const [kind, op] = kinds[(n + i) % kinds.length];
+    const [model, cost] = AI_OPS[op];
+    const failed = hash(`${u.id}:job:${n}`) > 0.82;
+    const credit = kind === 'tryOn';
+    const created = new Date(Date.now() - (n * 17 + 3) * 3_600_000);
+    return {
+      id: `01JJOB${String(i).padStart(4, '0')}${String(n).padStart(16, '0')}`, kind, outcome: failed ? (credit ? 'refunded' : 'failed') : 'completed', failure: failed ? 'providerError' : null,
+      models: op === 'item_detection' ? ['gpt-6.1-terra', 'gpt-image-2.5-sunburst'] : [model], durationMs: 2000 + Math.round(hash(`${u.id}:d:${n}`) * 24_000),
+      costMicroUsd: failed ? 0 : Math.round(cost * (0.8 + hash(`${u.id}:c:${n}`) * 0.6)), creditsCharged: credit ? 1 : 0, creditsRefunded: credit && failed ? 1 : 0,
+      createdAt: created.toISOString(), updatedAt: new Date(created.getTime() + 15_000).toISOString(),
+    };
+  });
+  const d = detail(u);
+  return {
+    userId: u.id, tenantId: u.tenantId, from, to, plan: aiPlan(u, i), credits: d.credits, ...all,
+    days: days.map(([day, ops]) => {
+      const sum = sumOps([ops]);
+      return { period: day, totals: sum.totals, operations: sum.operations };
+    }),
+    months, recentJobs, rates: AI_RATES,
+  };
+}
+
+const maskEmail = (e) => `${e[0]}***@${e.split('@')[1][0]}***.${e.split('.').pop()}`;
+const maskHandle = (h) => `${h.slice(0, h.length <= 3 ? 1 : 2)}***`;
+
+function aiUsageSummary(from, to) {
+  const range = dayList(from, to);
+  const history = dayList(isoDay(new Date(Date.parse(`${from}T00:00:00Z`) - 30 * 86_400_000)), to);
+  const perUser = users.map((u, i) => ({ u, i, plan: aiPlan(u, i), byDay: Object.fromEntries(history.map((day) => [day, aiDay(u, i, day)]).filter(([, ops]) => ops)) }));
+  const inRange = (x) => range.filter((d) => x.byDay[d]).map((d) => x.byDay[d]);
+  const all = sumOps(perUser.flatMap(inRange));
+  const admin = emptyTotals();
+  admin.calls = 14;
+  admin.jobs = 14;
+  admin.completed = 13;
+  admin.failed = 1;
+  admin.costMicroUsd = 186_000;
+  all.totals.costMicroUsd += admin.costMicroUsd;
+  all.totals.calls += admin.calls;
+  const days = range.map((day) => {
+    const sum = sumOps(perUser.map((x) => x.byDay[day]).filter(Boolean));
+    const trial = hash(`trial:${day}`) > 0.7 ? 12_000 : 0;
+    return { day, costMicroUsd: sum.totals.costMicroUsd + trial, calls: sum.totals.calls + (trial ? 1 : 0), jobs: sum.totals.jobs, failed: sum.totals.failed };
+  });
+  const plans = ['free', 'premium'].map((plan) => {
+    const members = perUser.filter((x) => x.plan === plan && inRange(x).length);
+    const sum = sumOps(members.flatMap(inRange));
+    const perActive = members.length ? Math.round(sum.totals.costMicroUsd / members.length) : 0;
+    const per30 = Math.round((perActive * 30) / range.length);
+    const share = (net) => (plan === 'premium' && members.length ? Math.round(((per30 / 1e6) * AI_RATES.usdTry * 10_000) / net) / 10_000 : null);
+    return { plan, activeUsers: members.length, totals: sum.totals, costPerActiveUserMicroUsd: perActive, costPerActiveUserPer30DaysMicroUsd: per30, shareOfMonthlyNet: share(AI_RATES.netMonthlyPlanTry), shareOfYearlyNet: share(AI_RATES.netYearlyPlanPerMonthTry) };
+  });
+  const cost = (ops) => Object.values(ops).reduce((s, r) => s + r.costMicroUsd, 0);
+  const calls = (ops) => Object.values(ops).reduce((s, r) => s + r.calls, 0);
+  const who = (x) => ({ tenantId: x.u.tenantId, userId: x.u.id, email: maskEmail(x.u.email), handle: maskHandle(x.u.handle), plan: x.plan });
+  const topUsers = perUser
+    .map((x) => ({ ...who(x), costMicroUsd: inRange(x).reduce((s, o) => s + cost(o), 0), calls: inRange(x).reduce((s, o) => s + calls(o), 0), activeDays: inRange(x).length }))
+    .filter((x) => x.calls > 0)
+    .sort((a, b) => b.costMicroUsd - a.costMicroUsd)
+    .slice(0, 20);
+  const anomalies = [];
+  for (const x of perUser) {
+    for (const day of range) {
+      if (!x.byDay[day]) continue;
+      const c = cost(x.byDay[day]);
+      const before = Array.from({ length: 30 }, (_, k) => isoDay(new Date(Date.parse(`${day}T00:00:00Z`) - (k + 1) * 86_400_000))).filter((d) => x.byDay[d]).map((d) => cost(x.byDay[d])).sort((a, b) => a - b);
+      const median = before.length >= AI_THRESHOLDS.minHistoryDays ? (before.length % 2 ? before[(before.length - 1) / 2] : Math.round((before[before.length / 2 - 1] + before[before.length / 2]) / 2)) : null;
+      const multiple = median ? Math.round((c / median) * 100) / 100 : null;
+      const reasons = [];
+      if (multiple && multiple > AI_THRESHOLDS.medianMultiplier && c >= AI_THRESHOLDS.minDayUsd * 1e6) reasons.push('median');
+      if (c > AI_THRESHOLDS.absoluteDayUsd * 1e6) reasons.push('absolute');
+      if (reasons.length) anomalies.push({ day, ...who(x), costMicroUsd: c, medianMicroUsd: median, multiple, reasons });
+    }
+  }
+  anomalies.sort((a, b) => b.costMicroUsd - a.costMicroUsd);
+  return { from, to, totals: all.totals, admin, days, operations: all.operations, models: all.models, plans, topUsers, anomalies: anomalies.slice(0, 100), rates: AI_RATES, thresholds: AI_THRESHOLDS };
+}
 
 // ── AI prompts and models (docs/api/admin.md §5b) ──────────────────────────────────────────────────────
 const P = (key, feature, operation, kind, description, defaultText, variables = [], trialMode = 'chat', imagesRequired = 0) => ({
@@ -399,6 +570,18 @@ createServer(async (req, res) => {
     return send(200, page(users.filter((u) => !q || `${u.email} ${u.handle} ${u.displayName}`.toLowerCase().includes(q)), url));
   }
   {
+    const au = m(/^\/v1\/admin\/user\/([^/]+)\/ai-usage$/);
+    if (au) {
+      const u = users.find((x) => x.id === au[1]);
+      if (!u) return problem(404, 'not_found');
+      const today = new Date().toISOString().slice(0, 10);
+      const to = url.searchParams.get('to') ?? today;
+      const from = url.searchParams.get('from') ?? isoDay(new Date(Date.parse(`${to}T00:00:00Z`) - 29 * 86_400_000));
+      if (from > to || dayList(from, to).length > 92) return problem(400, 'validation_failed');
+      return send(200, aiUserUsage(u, from, to));
+    }
+  }
+  {
     const mm = m(/^\/v1\/admin\/user\/([^/]+)(?:\/(.+))?$/);
     if (mm) {
       const u = users.find((x) => x.id === mm[1]);
@@ -433,6 +616,7 @@ createServer(async (req, res) => {
   const to = url.searchParams.get('to') ?? today;
   if (p === '/v1/admin/report/revenue') return send(200, revenue(from, to));
   if (p === '/v1/admin/report/funnel') return send(200, funnel(from, to));
+  if (p === '/v1/admin/ai-usage/summary') return from > to || dayList(from, to).length > 92 ? problem(400, 'validation_failed') : send(200, aiUsageSummary(from, to));
 
   // AI prompts, trials and models
   if (p === '/v1/admin/ai/prompt') return send(200, { items: aiCatalog.map(aiSummary) });
