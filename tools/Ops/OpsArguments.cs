@@ -24,6 +24,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
     public const int MaxPerfRuns = 10;
     public const string Logs = "logs";
     public const string AiSettings = "ai-settings";
+    public const string CdnCheck = "cdn-check";
     public const string MigrateLibraryItemImages = "migrate-library-item-images";
     public const string AccountSmoke = "account-smoke";
     public const string OutfitImportSmoke = "outfit-import-smoke";
@@ -36,7 +37,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
     /// <summary>Hard ceiling of image-model calls in one run (library images and synthetic fixtures together).</summary>
     public const int MaxImageCallsPerRun = 30;
 
-    public static readonly IReadOnlyList<string> Commands = [GrantTestPremium, RevokeTestPremium, GenerateLibraryImages, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, Logs, MigrateLibraryItemImages, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, AiUsageBackfill, PublishItemImages];
+    public static readonly IReadOnlyList<string> Commands = [GrantTestPremium, RevokeTestPremium, GenerateLibraryImages, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, Logs, MigrateLibraryItemImages, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, AiUsageBackfill, PublishItemImages, CdnCheck];
 
     /// <summary>Commands that create or change test accounts or spend AI credit on a throw-away user: never on prod.</summary>
     public static readonly IReadOnlySet<string> DevOnly = new HashSet<string>(StringComparer.Ordinal) { GrantTestPremium, RevokeTestPremium, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke };
@@ -53,6 +54,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [AiCost] = ["days", "reps", "ops", "text-variants", "image-variants", "max-calls", "max-text-calls"],
         [Logs] = ["function", "minutes", "filter", "limit"],
         [AiSettings] = ["apply"],
+        [CdnCheck] = ["base"],
         [MigrateLibraryItemImages] = [],
         [AccountSmoke] = ["api-url"],
         [OutfitImportSmoke] = ["api-url"],
@@ -73,6 +75,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [AiCost] = ["usage-only", "synthetic-only", "text-only", "image-only"],
         [Logs] = [],
         [AiSettings] = [],
+        [CdnCheck] = [],
         [MigrateLibraryItemImages] = ["dry-run"],
         [AccountSmoke] = ["keep-user"],
         [OutfitImportSmoke] = ["keep-user"],
