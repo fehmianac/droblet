@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams, type Href } from 'expo-router';
-import { Briefcase, Calendar, Cloud, LayoutGrid, Palette, ShoppingBag, Sparkles, X, type LucideIcon } from 'lucide-react-native';
+import { Briefcase, Calendar, ChevronRight, Cloud, LayoutGrid, Palette, ShoppingBag, Sparkles, X, type LucideIcon } from 'lucide-react-native';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
@@ -21,7 +21,9 @@ import { useItems } from '@/features/wardrobe/queries';
 import { formatDate, formatTemperature, parseLocalDate, seasonOf, toIsoDate, weekdayShort } from '@/lib/format';
 import { RequirementHint } from '@/features/requirements/RequirementHint';
 import { useGate } from '@/features/requirements/useRequirements';
+import { useOutfitPhotoPicker } from '@/features/tryon/OutfitPhotoPicker';
 import { useIsOnline } from '@/sync/network';
+import { brandTones, garmentColors, palettes, surfaceTones } from '@/theme/tokens';
 import { useThemeColors } from '@/theme/useThemeColors';
 
 /** Chips on the board: Ofis · Akşam yemeği · Hafta sonu · Düğün · Seyahat · Spor. */
@@ -51,6 +53,53 @@ function HangerGlyph({ color }: { color: string }) {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+    </Svg>
+  );
+}
+
+/**
+ * 16c "Bir kombin fotoğrafını üzerimde dene": the quick entry of an outfit-photo try-on (the whole outfit of a photo,
+ * without splitting it into pieces). A tap opens 29h (camera / library); the picked photo opens 16d.
+ */
+function OutfitPhotoCard({ onPress }: { onPress: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={t('tryOnPhoto.hubTitle')}
+      accessibilityHint={t('tryOnPhoto.hubBody')}
+      testID="stylist.outfitPhoto"
+      className="flex-row items-center gap-3.5 rounded-[20px] border border-line bg-paper p-3 active:opacity-80"
+    >
+      <View className="h-[72px] w-14 items-center justify-center overflow-hidden rounded-thumb bg-sand">
+        <OutfitFigure />
+        <View className="absolute bottom-1 right-1 h-5 w-5 items-center justify-center rounded-pill bg-ink">
+          <Icon icon={Sparkles} size={12} tone="cream" />
+        </View>
+      </View>
+      <View className="min-w-0 flex-1 gap-[3px]">
+        <Text variant="eyebrow">{t('tryOnPhoto.hubEyebrow')}</Text>
+        <Text variant="bodyMedium" className="text-[14.5px] leading-[19px]">
+          {t('tryOnPhoto.hubTitle')}
+        </Text>
+        <Text variant="caption" tone="muted">
+          {t('tryOnPhoto.hubBody')}
+        </Text>
+      </View>
+      <Icon icon={ChevronRight} size={18} tone="muted" />
+    </Pressable>
+  );
+}
+
+/** A dressed figure (top, trousers, bag) on the card's photo tile — a drawing, never a real photo. */
+function OutfitFigure() {
+  return (
+    <Svg width={44} height={64} viewBox="80 30 140 330" accessible={false}>
+      <Path d="M150 35a21 21 0 1 1 0 42a21 21 0 1 1 0-42z" fill={brandTones.dropOnInk} />
+      <Path d="M112 92 Q150 82 188 92 L206 168 L188 172 L182 128 L182 198 L118 198 L118 128 L112 172 L94 168 Z" fill={palettes.light.cream} stroke={palettes.light.line} />
+      <Path d="M119 196 L181 196 L178 344 L157 344 L150 244 L143 344 L122 344 Z" fill={garmentColors.navy} />
+      <Path d="M199 184h40a7 7 0 0 1 7 7v40a7 7 0 0 1-7 7h-40a7 7 0 0 1-7-7v-40a7 7 0 0 1 7-7z" fill={surfaceTones.camera} />
     </Svg>
   );
 }
@@ -111,6 +160,7 @@ export default function StylistTab() {
   };
   // Membership / city missing: the requirements flow first (canvas 11), then the request is sent.
   const gate = useGate('stylist', send);
+  const outfitPhoto = useOutfitPhotoPicker();
 
   const submit = () => {
     if (!canSubmit) {
@@ -274,6 +324,8 @@ export default function StylistTab() {
 
         <View className="h-px bg-line" />
 
+        <OutfitPhotoCard onPress={outfitPhoto.open} />
+
         <View className="flex-row flex-wrap gap-2.5">
           {SHORTCUTS.map((s) => {
             const title = t(`stylistHome.shortcut${s.key}Title`);
@@ -301,6 +353,7 @@ export default function StylistTab() {
           })}
         </View>
       </ScrollView>
+      {outfitPhoto.sheet}
     </Screen>
   );
 }

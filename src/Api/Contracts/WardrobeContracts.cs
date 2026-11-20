@@ -384,7 +384,8 @@ public class StartTryOnCommandValidator : AbstractValidator<StartTryOnCommand>
         {
             RuleFor(x => x.Target.Kind).IsInEnum().WithErrorCode("target_kind_invalid");
             RuleFor(x => x.Target.Id).NotEmpty().MaximumLength(64).WithErrorCode("target_id_invalid");
-            RuleFor(x => x.Target.Index).Must(i => i is null or >= 0 and < 20).WithErrorCode("target_index_invalid");
+            RuleFor(x => x.Target.Index).Must((c, i) => c.Target.Kind == TryOnTargetKind.ImportPhoto ? i is >= 1 and <= 100 : i is null or >= 0 and < 20)
+                .WithErrorCode("target_index_invalid");
         });
     }
 }

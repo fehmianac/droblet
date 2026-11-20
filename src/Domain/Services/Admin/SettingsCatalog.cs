@@ -56,7 +56,7 @@ public static partial class SettingsCatalog
     public static readonly IReadOnlyList<string> AiTextOperations =
     [
         AiSchemas.Outfit, AiSchemas.WeekPlan, AiSchemas.Packing, AiSchemas.GarmentDraft, AiSchemas.ItemDetection, AiSchemas.ItemMatch,
-        AiSchemas.PaletteSeason, AiSchemas.PhotoCheck,
+        AiSchemas.PaletteSeason, AiSchemas.PhotoCheck, AiSchemas.ReferenceCheck,
     ];
 
     public static readonly IReadOnlyList<string> ReasoningEfforts = ["none", "minimal", "low", "medium", "high", "xhigh"];

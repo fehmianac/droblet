@@ -23,6 +23,13 @@ public static class StorageKeys
     public static string AvatarPrefix(string tenantId) => $"{TenantRoot(tenantId)}avatar/";
     public static string Avatar(string tenantId, string avatarId, string extension) => $"{AvatarPrefix(tenantId)}{Guard(avatarId)}.{extension}";
     public static string TryOnPrefix(string tenantId) => $"{TenantRoot(tenantId)}tryon/";
+    /// <summary>
+    /// The outfit photo of a "photo" try-on while its job runs (EXIF-stripped, content-addressed by its hash). Under
+    /// uploads/tmp/, so the 1-day lifecycle removes it when the job never produced an image.
+    /// </summary>
+    public static string TryOnReferenceUpload(string tenantId, string referenceHash) => Upload(tenantId, $"tryonref-{Guard(referenceHash)}");
+    /// <summary>The outfit photo kept with a finished "photo" try-on image ("Kaynak fotoğraf"); deleted with the image.</summary>
+    public static string TryOnReference(string tenantId, string imageId, string extension) => $"{TryOnPrefix(tenantId)}{Guard(imageId)}-ref.{Guard(extension)}";
     public static string ItemsPrefix(string tenantId) => $"{TenantRoot(tenantId)}items/";
     /// <summary>Cleaned (background removed) garment image of a draft / item.</summary>
     public static string ItemImage(string tenantId, string draftId) => $"{ItemsPrefix(tenantId)}{Guard(draftId)}.webp";

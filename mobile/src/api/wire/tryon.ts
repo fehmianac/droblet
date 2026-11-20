@@ -8,12 +8,20 @@ import type { TryOnResult, TryOnTarget } from '../contracts/tryon';
 import { ApiError } from '../errors';
 import type { JobWire } from './core';
 
-export type TryOnTargetKindWire = 'item' | 'look' | 'product' | 'editLook' | 'suggestion' | 'tripDay';
+export type TryOnTargetKindWire = 'item' | 'look' | 'product' | 'editLook' | 'suggestion' | 'tripDay' | 'photo' | 'importPhoto';
 /** `id`: item / look / product / edit look id; for `suggestion` the stylist job id with `index`; for `tripDay` `{tripId}/{yyyy-MM-dd}`. */
 export type TryOnTargetWire = { kind: TryOnTargetKindWire; id: string; index: number | null };
 
 /** `source`: `body` = rendered on the full-length photo, `face` = built from the face photo + chosen body type (absent on older servers = body). */
-export type TryOnImageWire = { id: string; url: string; urlExpiresAt: string; createdAt: string; source?: 'body' | 'face' };
+export type TryOnImageWire = {
+  id: string;
+  url: string;
+  urlExpiresAt: string;
+  createdAt: string;
+  source?: 'body' | 'face';
+  /** Outfit-photo try-on: the outfit photo ("Kaynak fotoğraf"), presigned like `url`; null otherwise. */
+  referenceUrl?: string | null;
+};
 
 /** POST v1/tenant/tryon → 200 (`cached`, no credit) | 202 (`queued`, job result `{ tryOnImageId }`). */
 export type TryOnStartWire = { status: 'cached' | 'queued'; image: TryOnImageWire | null; job: JobWire | null };
@@ -70,6 +78,16 @@ export async function toWireTarget(target: TryOnTarget): Promise<TryOnTargetWire
       }
       return { kind: 'tripDay', id: `${target.id.slice(0, cut)}/${date}`, index: null };
     }
+    case 'photo':
+      return { kind: 'photo', id: target.id, index: null };
+    case 'import-photo': {
+      const cut = target.id.lastIndexOf(':');
+      const index = cut >= 0 ? Number(target.id.slice(cut + 1)) : Number.NaN;
+      if (cut <= 0 || !Number.isInteger(index) || index < 1) {
+        throw new ApiError('http', 400, { code: 'target_index_invalid', status: 400 });
+      }
+      return { kind: 'importPhoto', id: target.id.slice(0, cut), index };
+    }
     default:
       throw new ApiError('http', 422, { code: 'tryon_target_unsupported', status: 422 });
   }
@@ -82,6 +100,7 @@ export function toTryOnResult(image: TryOnImageWire, target: TryOnTarget | null)
     imageUrl: image.url,
     creditsRemaining: null,
     source: image.source === 'face' ? 'face' : 'body',
+    referenceUrl: image.referenceUrl ?? null,
   };
 }
 

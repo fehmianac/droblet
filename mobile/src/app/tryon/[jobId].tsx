@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { router, useIsFocused, useLocalSearchParams } from 'expo-router';
 import { Camera, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react-native';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,12 +17,16 @@ import { IconButton } from '@/components/ui/IconButton';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Text } from '@/components/ui/Text';
+import { showToast } from '@/components/ui/toast/store';
 import { aiCreditsKey, useAiCredits } from '@/features/credits/useAiCredits';
 import { PhotoRejected } from '@/features/requirements/PhotoRejected';
 import { requirementsFlow } from '@/features/requirements/store';
 import { isTryOnTargetKind, TRY_ON_CREDIT_COST, useStartTryOn, useTryOnJob } from '@/features/tryon/api';
 import { TryOnResultImage } from '@/features/tryon/TryOnResultImage';
 import { CachedTryOnNote, isCachedTryOnJob } from '@/features/tryon/cached';
+import { useOutfitPhotoPicker } from '@/features/tryon/OutfitPhotoPicker';
+import { PhotoResultActions, ReferenceRejected, referenceViewerImage, shareTryOnImage, SourcePhotoThumb } from '@/features/tryon/PhotoTryOnParts';
+import { useStartItemDrafts } from '@/features/wardrobe/mutations';
 import { Zoomable } from '@/components/ui/viewer';
 import { useThemeColors } from '@/theme/useThemeColors';
 
@@ -52,18 +56,27 @@ function CreditGlyph({ color }: { color: string }) {
  * Params: `jobId`; optional `title` (what is being tried on), `kind` + `id` (the target, so "Tekrar
  * dene" can start a fresh job). Leaving keeps the job running on the server; polling stops while
  * the screen is not focused.
+ *
+ * Outfit-photo try-on (`mode=photo`, 16e / 16f): `ref` = the outfit photo on the device (or its signed URL), `draftId`
+ * when it came from "Parçaları seç". The result shows the "Kaynak fotoğraf" thumbnail and "Parçalara ayır ve gardıroba
+ * ekle" + share; a refused outfit photo (`guardRejected` + referenceIssue) shows why and "Başka fotoğraf seç".
  */
 export default function TryOnScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
   const client = useQueryClient();
-  const params = useLocalSearchParams<{ jobId: string; title?: string; kind?: string; id?: string }>();
+  const params = useLocalSearchParams<{ jobId: string; title?: string; kind?: string; id?: string; mode?: string; ref?: string; draftId?: string }>();
   const focused = useIsFocused();
   const job = useTryOnJob(params.jobId, { enabled: focused });
   const credits = useAiCredits();
   const start = useStartTryOn();
   const title = params.title || null;
+  const photoMode = params.mode === 'photo';
+  // The hub's outfit photo can be picked again from here (the new 16d replaces this screen).
+  const otherPhoto = useOutfitPhotoPicker({ replace: true });
+  const startDrafts = useStartItemDrafts();
+  const [sharing, setSharing] = useState(false);
 
   const settled = job.isDone || job.isFailed;
   useEffect(() => {
@@ -71,6 +84,22 @@ export default function TryOnScreen() {
   }, [client, settled]);
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
+
+  // The photo on the device (hub) can be sent to "Parçaları seç"; from 12 and an import the photo is already split there.
+  const localRef = params.ref && !/^https?:/i.test(params.ref) ? params.ref : null;
+  const split =
+    params.draftId || params.kind === 'import-photo'
+      ? close
+      : localRef
+        ? () =>
+            void startDrafts
+              .start([localRef])
+              .then(({ draftIds }) => {
+                const draftId = draftIds[0];
+                if (draftId) router.replace({ pathname: '/item/detect', params: { draftId, photo: localRef, since: String(Date.now()) } });
+              })
+              .catch(() => showToast({ message: t('tryOnPhoto.splitFailed'), tone: 'error' }))
+        : null;
 
   if (job.isFailed) {
     const target: TryOnTarget | null = isTryOnTargetKind(params.kind) && params.id ? { kind: params.kind, id: params.id } : null;
@@ -84,6 +113,18 @@ export default function TryOnScreen() {
         .then(({ jobId }) => router.replace({ pathname: '/tryon/[jobId]', params: { jobId, title: title ?? '', kind: target.kind, id: target.id } }))
         .catch(() => undefined);
     };
+    // 16f: the outfit photo itself was refused (nobody / several people / no clothing / a minor) — pick another one.
+    const reference = job.job?.error?.reference;
+    if (photoMode && reference) {
+      const fromHub = !params.draftId && params.kind !== 'import-photo';
+      return (
+        <Screen bottom={false}>
+          <ScreenHeader title={t('screens.tryon')} leading="close" onLeadingPress={close} />
+          <ReferenceRejected issue={reference} photoUri={params.ref || null} onOtherPhoto={fromHub ? otherPhoto.open : close} onClose={close} />
+          {otherPhoto.sheet}
+        </Screen>
+      );
+    }
     // The server refused the photo (canvas 11 "Fotoğraf uygun değil"): tips, then back to the photo step.
     const photo = job.job?.error?.photo;
     if (job.job?.error?.code === 'photo_unsuitable' && photo) {
@@ -118,12 +159,27 @@ export default function TryOnScreen() {
     const imageUrl = job.result?.imageUrl ?? null;
     // Same cache key (`tryon:{id}`) as the image on the screen; a fresh URL once if the presigned one expired.
     const viewer = viewerSourceOf(tryOnImageSource(job.result));
+    const tryOnId = job.result?.tryOnId ?? null;
+    const referenceUri = photoMode ? (job.result?.referenceUrl ?? params.ref ?? null) || null : null;
+    const reference = referenceViewerImage(tryOnId, referenceUri, t('tryOnPhoto.sourceThumb'));
+    const images = [...(viewer ? [{ ...viewer, label: imageLabel, ai: { tag: imageTag } }] : []), ...(reference ? [reference] : [])];
+    const heading = photoMode ? t('tryOnPhoto.resultTitle') : title ? t('tryOn.readyTitleNamed', { name: title }) : t('tryOn.readyTitle');
+    const share =
+      photoMode && imageUrl && tryOnId
+        ? () => {
+            setSharing(true);
+            shareTryOnImage(imageUrl, tryOnId, t('tryOnPhoto.shareMessage'))
+              .catch(() => showToast({ message: t('tryOnPhoto.shareFailed'), tone: 'error' }))
+              .finally(() => setSharing(false));
+          }
+        : null;
     return (
-      <Screen bottom>
+      <Screen bottom={!photoMode}>
         <ScreenHeader title={t('screens.tryon')} leading="close" onLeadingPress={close} />
         <ScrollView contentContainerClassName="gap-4 px-gutter pb-4">
+          <View>
           <Zoomable
-            images={viewer ? [{ ...viewer, label: imageLabel, ai: { tag: imageTag } }] : []}
+            images={images}
             disabled={!imageUrl}
             accessibilityLabel={imageLabel}
             testID="tryon.zoom"
@@ -141,9 +197,11 @@ export default function TryOnScreen() {
               </View>
             ) : null}
           </Zoomable>
+          {reference && referenceUri ? <SourcePhotoThumb images={images} index={images.length - 1} uri={referenceUri} /> : null}
+          </View>
           <View className="gap-1.5" accessibilityLiveRegion="polite">
             <Text variant="eyebrow">{t('tryOn.readyEyebrow')}</Text>
-            <Text variant="h2">{title ? t('tryOn.readyTitleNamed', { name: title }) : t('tryOn.readyTitle')}</Text>
+            <Text variant="h2">{heading}</Text>
             <Text variant="body" tone="muted">
               {t('tryOn.readyBody')}
             </Text>
@@ -179,9 +237,13 @@ export default function TryOnScreen() {
             ) : null}
           </View>
         </ScrollView>
-        <View className="px-gutter pb-4">
-          <Button label={t('tryOn.done')} onPress={close} />
-        </View>
+        {photoMode ? (
+          <PhotoResultActions onSplit={split} splitting={startDrafts.isPending} onShare={share} sharing={sharing} onDone={close} />
+        ) : (
+          <View className="px-gutter pb-4">
+            <Button label={t('tryOn.done')} onPress={close} />
+          </View>
+        )}
       </Screen>
     );
   }

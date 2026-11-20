@@ -140,6 +140,7 @@ export default function RootLayout() {
           <Stack.Screen name="notifications" />
           <Stack.Screen name="delete-account" />
           <Stack.Screen name="data-export" />
+          <Stack.Screen name="tryon/photo" />
           <Stack.Screen name="tryon/[jobId]" options={{ presentation: 'modal' }} />
           {/* Consents never answered (a new purpose): the all-in-one screen, once, on the next app open. */}
           <Stack.Screen name="consent-review" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />

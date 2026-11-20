@@ -103,6 +103,8 @@ public class TryOnImageEntity : IEntity
     [JsonPropertyName("targetVersion")] public long TargetVersion { get; set; }
     [JsonPropertyName("s3Key")] public string S3Key { get; set; } = null!;
     [JsonPropertyName("jobId")] public string? JobId { get; set; }
+    // Photo try-on: the outfit photo it was made from ("Kaynak fotoğraf", StorageKeys.TryOnReference); deleted with the image.
+    [JsonPropertyName("referenceKey")] public string? ReferenceKey { get; set; }
     [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; }
 
     public static string GetPk(string tenantId) => $"tenant#{tenantId}#tryon";

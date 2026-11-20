@@ -38,7 +38,7 @@ import { tryOnRuns } from './runs';
 /** Every try-on image costs one credit (README §9.1). Shown before starting; the server is authoritative. */
 export const TRY_ON_CREDIT_COST = 1;
 
-const TARGET_KINDS: readonly TryOnTargetKind[] = ['item', 'look', 'product', 'edit-look', 'suggestion', 'plan-day', 'trip-day'];
+const TARGET_KINDS: readonly TryOnTargetKind[] = ['item', 'look', 'product', 'edit-look', 'suggestion', 'plan-day', 'trip-day', 'photo', 'import-photo'];
 
 /** Narrows a route param to a try-on target kind (the try-on screen takes `kind` + `id` so it can retry). */
 export function isTryOnTargetKind(value: string | undefined): value is TryOnTargetKind {

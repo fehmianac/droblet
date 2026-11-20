@@ -193,7 +193,7 @@ Every prompt has a stable key (`PromptCatalog`, Infrastructure). The shipped tex
 | wardrobe | `item.detect.instructions`, `item.detect.request`, `item.describe.instructions`, `item.describe.request`; `item.{detect,describe}.schema` | — |
 | outfit_import | `item.match.instructions`, `item.match.request`; `item.match.schema` | request: **`candidates`**, `pieceHint` |
 | palette | `palette.instructions`, `palette.request`; `palette.schema` | — |
-| tryon | `photo_check.body.instructions`, `photo_check.face.instructions`, `photo_check.request`; `photo_check.schema`; `tryon.image.body`, `tryon.image.face` (image edit prompts) | body: **`garmentCount`**; face: **`garmentCount`**, **`bodyShape`**, `height`, `size` |
+| tryon | `photo_check.body.instructions`, `photo_check.face.instructions`, `photo_check.reference.instructions` (the outfit photo of a photo try-on, operation `reference_check`), `photo_check.request`; `photo_check.schema`, `photo_check.reference.schema`; `tryon.image.body`, `tryon.image.face`, `tryon.image.photo.body`, `tryon.image.photo.face` (image edit prompts) | body: **`garmentCount`**; face: **`garmentCount`**, **`bodyShape`**, `height`, `size`; photo body: none; photo face: **`bodyShape`**, `height`, `size` |
 | cleanup | `cleanup.item.image`, `cleanup.item.jewellery.image`, `cleanup.garment.image` | item: **`piece`** |
 
 Placeholders are `{{name}}`; rendering is one pass (a value is never expanded again). With no override the worker
@@ -314,7 +314,7 @@ The group is not on `v1/admin/setting` (that page keeps `ai.Enabled`, the kill s
 | Field | Values |
 |---|---|
 | `TextModel`, `ImageModel` | model |
-| `FastTextModel` (optional), `FastTextOperations` | model; subset of `outfit, week_plan, packing, garment_draft, item_detection, item_match, palette_season, photo_check` |
+| `FastTextModel` (optional), `FastTextOperations` | model; subset of `outfit, week_plan, packing, garment_draft, item_detection, item_match, palette_season, photo_check, reference_check` (default `photo_check,reference_check`) |
 | `ReasoningEffort.Default`, `ReasoningEffort.{operation}` (each of the 8 operations) | `none, minimal, low, medium, high, xhigh` (optional) |
 | `ServiceTier`; `ServiceTiers.{operation}`, `ServiceTiers.outfit_import` (the background import flow) | `auto, default, flex, priority` (optional) |
 | `VisionDetail.{operation}` (operations that send images) | `low, high, auto` (optional) |
@@ -359,7 +359,7 @@ Counter attributes (atomic `ADD`): `jobs`, `completed`, `failed` (every failed j
 `calls`, `callErrors`, `in` / `out` / `cached` / `reasoning` (tokens), `images` (image outputs), `cost` (micro-USD); per
 operation `op|{operation}|{metric}` and per model `model|{model}|{metric}`. Operations: `stylist_outfit`, `stylist_week`,
 `stylist_pack`, `item_detection`, `cleanup`, `multi_item` (a piece picked from a multi-item photo), `import_detect`,
-`import_match`, `import_cleanup`, `palette`, `photo_check`, `tryon`, `admin_trial`, `other`.
+`import_match`, `import_cleanup`, `palette`, `photo_check` (also the outfit-photo check `reference_check`), `tryon`, `admin_trial`, `other`.
 
 **Privacy.** The per-user rows are personal data about the account (like the usage events): they are **deleted with the
 account** (DeletionPlan; the day-index rows are found through the user's day rows) and **included in “Download my data”**

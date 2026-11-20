@@ -885,6 +885,7 @@ export const en = {
       item_match: 'Outfit import match',
       palette_season: 'Colour analysis',
       photo_check: 'Photo check',
+      reference_check: 'Outfit photo check',
     },
   },
   enums: {

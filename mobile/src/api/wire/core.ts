@@ -248,6 +248,17 @@ export type JobFailureWire = 'providerError' | 'timeout' | 'guardRejected' | 'so
 export type PhotoIssueResultWire = { photoIssue: PhotoIssue; photoKind: 'body' | 'face' };
 export type PhotoIssue = 'notFullBody' | 'tooDark' | 'multiplePeople' | 'blurry' | 'noFace';
 
+/** `result` of an outfit-photo try-on that failed with `guardRejected`: why the chosen outfit photo cannot be used. */
+export type ReferenceIssue = 'noPerson' | 'multiplePeople' | 'noClothing' | 'minor';
+const REFERENCE_ISSUES: readonly ReferenceIssue[] = ['noPerson', 'multiplePeople', 'noClothing', 'minor'];
+
+/** The outfit-photo problem a `guardRejected` failure names, or null when it is not about an outfit photo. */
+export function toReferenceIssue(result: unknown): ReferenceIssue | null {
+  if (!result || typeof result !== 'object') return null;
+  const issue = (result as { referenceIssue?: unknown }).referenceIssue;
+  return REFERENCE_ISSUES.find((i) => i === issue) ?? null;
+}
+
 /** GET v1/tenant/job/{id}, and the body (or `job` field) of every 202. */
 export type JobWire<TResult = unknown> = {
   id: string;
@@ -330,6 +341,7 @@ export async function toJob<T>(
             code: wire.failure ? (JOB_FAILURE_CODES[wire.failure] ?? 'generation_failed') : 'generation_failed',
             creditRefunded: true,
             ...(wire.failure === 'photoUnsuitable' ? { photo: toPhotoIssue(wire.result) } : {}),
+            ...(wire.failure === 'guardRejected' && toReferenceIssue(wire.result) ? { reference: toReferenceIssue(wire.result) } : {}),
           }
         : null,
   };

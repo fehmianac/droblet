@@ -18,6 +18,8 @@ export type JobError = {
   creditRefunded: boolean;
   /** `photo_unsuitable` only: what was wrong with which photo (the server deleted it). */
   photo?: { issue: 'notFullBody' | 'tooDark' | 'multiplePeople' | 'blurry' | 'noFace'; kind: 'body' | 'face' } | null;
+  /** `guard_rejected` of an outfit-photo try-on: why the chosen outfit photo cannot be used (no credit was used). */
+  reference?: 'noPerson' | 'multiplePeople' | 'noClothing' | 'minor' | null;
 };
 
 /** GET v1/tenant/job/{id} */

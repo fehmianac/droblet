@@ -10,7 +10,7 @@ import { Text } from '@/components/ui/Text';
 
 export type PhotoSourceGroup = {
   /** body | face — also the testID stem: `photoSource.<id>.camera` / `.library`. */
-  id: 'body' | 'face';
+  id: 'body' | 'face' | 'outfit';
   /** Group heading ("Boy fotoğrafı"); omitted when the sheet holds one group (its title says it). */
   title?: string;
   /** Right of the heading ("1 / 3"). */

@@ -28,6 +28,9 @@ public class TryOnGarmentTests
 
         public Task<ImageInput> RenderFromFaceAsync(ImageInput facePhoto, IReadOnlyList<ImageInput> garments, TryOnFigure figure, CancellationToken ct, string? quality = null) =>
             RenderAsync(facePhoto, garments, ct);
+
+        public Task<ImageInput> RenderOutfitPhotoAsync(ImageInput subject, ImageInput outfitPhoto, TryOnFigure? figure, CancellationToken ct, string? quality = null) =>
+            RenderAsync(subject, [outfitPhoto], ct);
     }
 
     /// <summary>Global images (library / catalog): only https://catalog.test/… is "downloadable".</summary>

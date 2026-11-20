@@ -886,6 +886,7 @@ export const tr: Dict = {
       item_match: 'İçe aktarma eşleştirmesi',
       palette_season: 'Renk analizi',
       photo_check: 'Fotoğraf kontrolü',
+      reference_check: 'Kombin fotoğrafı kontrolü',
     },
   },
   enums: {

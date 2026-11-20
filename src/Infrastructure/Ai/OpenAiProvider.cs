@@ -178,6 +178,24 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
         return await EditImageAsync(prompt, [facePhoto, .. garments], ImageUse.TryOn, quality, "image_tryon", ct);
     }
 
+    public async Task<ImageInput> RenderOutfitPhotoAsync(ImageInput subject, ImageInput outfitPhoto, TryOnFigure? figure, CancellationToken ct, string? quality = null)
+    {
+        var prompt = figure is null
+            ? await PromptAsync(PromptCatalog.TryOnPhotoBody, OpenAiPrompts.TryOnOutfitPhotoTemplate, [], ct)
+            : await PromptAsync(PromptCatalog.TryOnPhotoFace, OpenAiPrompts.TryOnOutfitPhotoFromFace(figure), [], ct, OpenAiPrompts.FigureValues(figure));
+        // The user first (identity), then the outfit photo (clothes only) — the order the prompt names them in.
+        return await EditImageAsync(prompt, [subject, outfitPhoto], ImageUse.TryOn, quality, "image_tryon", ct);
+    }
+
+    public async Task<ReferenceInspection> InspectReferenceAsync(ImageInput outfitPhoto, CancellationToken ct)
+    {
+        var used = new List<PromptOverride>();
+        var system = await PromptAsync(PromptCatalog.ReferenceCheckInstructions, OpenAiPrompts.ReferenceCheck, used, ct);
+        var user = await PromptAsync(PromptCatalog.PhotoCheckRequest, OpenAiPrompts.PhotoCheckRequest, used, ct);
+        var content = await ChatAsync(system, user, [outfitPhoto], AiSchemas.ReferenceCheck, AiSchemas.ReferenceCheckSchema(), used, ct);
+        return await ParseAsync(OpenAiPayloads.ParseReferenceCheck, content, used, ct);
+    }
+
     public async Task<PhotoInspection> InspectAsync(ImageInput photo, PhotoKind kind, CancellationToken ct)
     {
         var used = new List<PromptOverride>();
@@ -656,6 +674,12 @@ public static class OpenAiPayloads
         return new PaletteAnalysis(Text(node["seasonTypeId"]) ?? "", [], [], Int(node["facesDetected"]), Number(node["confidence"]), Text(node["refusal"]));
     }
 
+    public static ReferenceInspection ParseReferenceCheck(string content)
+    {
+        var node = ParseObject(content);
+        return new ReferenceInspection(Int(node["people"]), Bool(node["clothingVisible"]), Bool(node["appearsMinor"]));
+    }
+
     public static PhotoInspection ParsePhotoCheck(string content)
     {
         var node = ParseObject(content);
@@ -972,6 +996,44 @@ public static class OpenAiPrompts
                "The face must be the same face as in the photo: the same face shape, eyes, nose, mouth, eyebrows, skin texture and expression. Never redraw, retouch, slim, age or de-age it; render it at a natural size for a full-length photo. " +
                "The person is fully clothed, wearing exactly these garments, keeping each garment's colour, pattern, cut and every brand logo, monogram, print and lettering exactly as on the garment; add plain neutral basics only where a garment is missing so the person is never undressed. " +
                "Never show nudity, underwear alone or a suggestive pose. Never exaggerate the body shape. Neutral studio background, full body in frame, no text.";
+
+    /// <summary>
+    /// Registry key tryon.image.photo.body — photo try-on on the body photo. The first image is the user, the second the
+    /// outfit photo: every garment, shoe, bag and accessory of the outfit, never the reference person's identity or body.
+    /// </summary>
+    public const string TryOnOutfitPhotoTemplate =
+        "The first image is a full-body photo of the user. The second image is a reference photo of another person wearing a complete outfit. " +
+        "Show the user from the first image, with the same face, hair, skin tone, body shape and pose, wearing exactly the outfit worn in the reference photo: " +
+        "every visible garment, the shoes, the bag and every accessory, keeping each one's colour, pattern, fabric, cut and fit and every brand logo, monogram, print and lettering exactly as in the reference. " +
+        "Use the reference photo only for the clothes: never copy the reference person's face, hair, skin, body shape, pose or background. " +
+        "Realistic fit and proportions, neutral studio background, full body in frame from head to feet. Do not change the user's body. No text.";
+
+    /// <summary>Photo try-on on the face path (no body photo): the face-path figure, dressed in the outfit of the reference photo.</summary>
+    public static string TryOnOutfitPhotoFromFace(TryOnFigure figure) => PromptTemplate.Render(TryOnOutfitPhotoFromFaceTemplate, FigureValues(figure));
+
+    /// <summary>{{bodyShape}}, {{height}}, {{size}} of the face-path figure (the same texts as tryon.image.face).</summary>
+    public static IReadOnlyDictionary<string, string> FigureValues(TryOnFigure figure)
+    {
+        var values = new Dictionary<string, string>(TryOnFromFaceValues(0, figure));
+        values.Remove("garmentCount");
+        return values;
+    }
+
+    /// <summary>Registry key tryon.image.photo.face.</summary>
+    public const string TryOnOutfitPhotoFromFaceTemplate =
+        "The first image is a photo of an adult user's face. The second image is a reference photo of another person wearing a complete outfit. " +
+        "Create a realistic full-length photo of this same adult user with {{bodyShape}},{{height}}{{size}} standing in a relaxed, neutral pose. " +
+        "Keep the face, facial features, skin tone, hair and apparent age exactly as in the face photo — do not change, beautify or replace the user's identity. " +
+        "Dress the user in exactly the outfit worn in the reference photo: every visible garment, the shoes, the bag and every accessory, keeping each one's colour, pattern, fabric, cut and every brand logo, monogram, print and lettering exactly as in the reference; " +
+        "add plain neutral basics only where the reference shows no garment so the user is never undressed. " +
+        "Use the reference photo only for the clothes: never copy the reference person's face, hair, skin, body shape, pose or background. " +
+        "Never show nudity, underwear alone or a suggestive pose. Never exaggerate the body shape. Neutral studio background, full body in frame, no text.";
+
+    /// <summary>Registry key photo_check.reference.instructions — the outfit photo of a photo try-on, before the image model sees it.</summary>
+    public const string ReferenceCheck =
+        "You check one photo a user chose as an outfit to try on virtually: a photo of someone wearing a complete outfit. people: the number of people visible. " +
+        "clothingVisible: true only when that person's clothes are clearly visible (at least a top, a dress or trousers, not only a face or a hand). " +
+        "appearsMinor: a visible person clearly appears to be under 18. Do not identify, name or describe the person.";
 
     public const string PhotoCheckRequest = "Check this photo.";
 

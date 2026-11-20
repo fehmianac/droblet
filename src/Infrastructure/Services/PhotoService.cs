@@ -181,6 +181,9 @@ public sealed class PhotoService(
         var stale = tryOns.Where(t => replacedIds.Contains(t.SourcePhotoId ?? t.BodyPhotoId)).ToList();
         foreach (var image in stale.Where(t => StorageKeys.BelongsToTenant(t.S3Key, tenantId)))
             await storage.DeleteAsync(image.S3Key, ct);
+        // A photo try-on keeps its outfit photo next to the image ("Kaynak fotoğraf"): it goes with it.
+        foreach (var key in stale.Select(t => t.ReferenceKey).OfType<string>().Where(k => StorageKeys.BelongsToTenant(k, tenantId)))
+            await storage.DeleteAsync(key, ct);
         if (stale.Count > 0)
             await repository.BatchDeleteKeysAsync(stale.Select(t => (t.Pk, t.Sk)).ToList(), ct);
         if (kind == PhotoKind.Body)

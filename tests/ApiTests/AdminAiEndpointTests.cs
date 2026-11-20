@@ -41,6 +41,9 @@ public class AdminAiEndpointTests(StoreSocialApiFactory factory) : IClassFixture
         Assert.Equal(Infrastructure.Ai.PromptCatalog.All.Count, keys.Count);
         Assert.Contains("stylist.outfit.instructions", keys);
         Assert.Contains("tryon.image.body", keys);
+        Assert.Contains("tryon.image.photo.body", keys);
+        Assert.Contains("tryon.image.photo.face", keys);
+        Assert.Contains("photo_check.reference.instructions", keys);
 
         var face = await (await admin.GetAsync("v1/admin/ai/prompt/tryon.image.face")).JsonAsync();
         Assert.Equal(Infrastructure.Ai.OpenAiPrompts.TryOnFromFaceTemplate, face.GetProperty("defaultText").GetString());

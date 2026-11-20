@@ -20,6 +20,7 @@ import { DetectChooser, type DetectPhase } from '@/features/wardrobe/DetectChoos
 import { useDiscardDraft, useRetryDraft, useSelectDetected } from '@/features/wardrobe/mutations';
 import { StatePanel } from '@/features/wardrobe/parts';
 import { useItemDrafts } from '@/features/wardrobe/queries';
+import { usePhotoTryOn } from '@/features/tryon/usePhotoTryOn';
 import { useIsOnline } from '@/sync/network';
 
 /** Where a finished choice goes: back to the bulk list it came from, otherwise to that list (background removal + confirm). */
@@ -65,6 +66,8 @@ export default function ItemDetectScreen() {
   const retry = useRetryDraft();
   const discard = useDiscardDraft();
   const editsVersion = useDetectedEditsVersion();
+  // "Ayırmadan üzerimde dene": the same photo (this draft), tried on whole — no need to wait for the detection.
+  const wholeTryOn = usePhotoTryOn({ feature: 'tryon_photo_detect' });
 
   const list = useMemo(() => drafts.data ?? [], [drafts.data]);
   const state = chooserState(list, draftId);
@@ -160,6 +163,9 @@ export default function ItemDetectScreen() {
         onManual={manual}
         retrying={retry.isPending}
         retryDisabled={!online}
+        onTryOnWhole={() => wholeTryOn.tryOn({ kind: 'draft', draftId, uri: photoUrl })}
+        tryOnBusy={wholeTryOn.busy}
+        tryOnNote={wholeTryOn.note}
       />
     );
   } else {
@@ -176,6 +182,7 @@ export default function ItemDetectScreen() {
     <Screen>
       <ScreenHeader title={t('itemDetect.title')} leading="back" />
       <ScreenState query={drafts}>{() => content}</ScreenState>
+      {wholeTryOn.sheet}
     </Screen>
   );
 }

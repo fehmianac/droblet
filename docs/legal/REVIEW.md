@@ -113,6 +113,28 @@ and “Security”, TR + EN) now says this. Please confirm this is acceptable fo
 / 25 and KVKK art. 12 (security, privacy by default), and whether the item photo screen needs an extra notice. Technical
 detail: [docs/images.md](../images.md).
 
+### Q1d. "See it on me" with an outfit photo the user chooses — added 2026-11-20
+Owner request: try a **whole outfit from a photo** (e.g. a saved inspiration photo, an outfit import photo) on the user
+without splitting it into pieces. What is processed: the user's own full-body photo (consent 1) or face photo + body type
+(consent 7) exactly as today, **plus the outfit photo the user chooses**, which goes to OpenAI (US) as the second input
+image. That photo will usually show **another person** wearing the outfit. Engineering safeguards: metadata stripped
+before anything is stored or sent; a check rejects photos with nobody, several people, no visible clothing or someone who
+appears to be under 18 (nothing generated, credit refunded); the image prompt tells the model to take only the clothes
+and never the reference person's face, body, hair or skin; no identification; the photo is kept privately next to the
+result ("Kaynak fotoğraf"), deleted with it, and included in the data export.
+No new consent type was added: the existing try-on consents (1 / 7 + 6 cross-border) gate the feature. **Text changes
+proposed, not yet made** (the dictionary `landing/content/{tr,en}.json` → `legal` is the source; please approve wording):
+- Privacy §6 "AI processing", "See it on me" bullet → "your full-body photo (or face photo, body type, height and size)
+  and the images of the selected pieces, **or an outfit photo you choose**".
+- Consents 1 and 7, "Data" → add "and, if you use it, an outfit photo you choose (it may show another person; only the
+  clothes are used)"; proposal: the consent statement stays as is [LEGAL REVIEW]
+- Terms (user content) → the user confirms they have the right to use a photo they upload, and that a photo showing
+  another person is used only for its clothes. [LEGAL REVIEW]
+Questions: (a) is the other person in the outfit photo a third-party data subject we must address (UK GDPR art. 14 /
+KVKK art. 10), given we only use the clothes and never identify them; (b) is the existing consent wording enough, or does
+"a photo you choose" need to be named in the consent statement itself; (c) should a photo of a minor's outfit be refused
+at upload as well (today the check refuses it before generation).
+
 ### Q2. Lawful basis per processing (explicit consent vs contract vs legitimate interest)
 Proposed matrix (privacy §5, KVKK §4):
 

@@ -88,6 +88,31 @@ public class DataExportJobTests
     }
 
     [Fact]
+    public async Task Process_PhotoTryOn_TheImageAndItsSourcePhotoAreInTheExport()
+    {
+        var export = await SeedAsync();
+        var image = new TryOnImageEntity
+        {
+            Id = "01TRYONPHOTO00000000000000", TenantId = TenantId, BodyPhotoId = "b1", TargetKind = TryOnTargetKind.Photo,
+            TargetId = "0123456789abcdef0123456789abcdef", CreatedAt = WorkerTestHost.Now,
+        };
+        image.S3Key = $"tenant/{TenantId}/tryon/{image.Id}.webp";
+        image.ReferenceKey = StorageKeys.TryOnReference(TenantId, image.Id, "jpg");
+        await _host.Storage.PutAsync(image.S3Key, [6], "image/webp", default);
+        await _host.Storage.PutAsync(image.ReferenceKey, [7, 7], "image/jpeg", default);
+        await _host.Repository.SaveAsync(image);
+
+        await _host.Get<IDataExportJob>().ProcessAsync(TenantId, export.Id, isLastAttempt: false, default);
+
+        var stored = await _host.Repository.GetAsync<DataExportEntity>(export.Pk, export.Sk);
+        var files = ReadZip(stored!.S3Key!);
+        Assert.Equal([6], files[$"files/tryon/{image.Id}.webp"]);
+        Assert.Equal([7, 7], files[$"files/tryon/{image.Id}-ref.jpg"]);
+        var rows = files.Where(f => f.Key.StartsWith("data/") && System.Text.Encoding.UTF8.GetString(f.Value).Contains(image.Id)).ToList();
+        Assert.Single(rows);
+    }
+
+    [Fact]
     public async Task Process_BuildsTheZip_StoresIt_InboxAndEmail_WithoutSecrets()
     {
         var export = await SeedAsync();

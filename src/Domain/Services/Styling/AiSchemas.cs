@@ -19,6 +19,8 @@ public static class AiSchemas
     public const string ItemDetection = "item_detection";
     public const string PaletteSeason = "palette_season";
     public const string PhotoCheck = "photo_check";
+    /// <summary>Photo try-on: the check of the outfit photo (someone wearing the outfit), before it goes to the image model.</summary>
+    public const string ReferenceCheck = "reference_check";
     public const string ItemMatch = "item_match";
 
     public static string NameFor(JobKind kind) => kind switch
@@ -96,6 +98,11 @@ public static class AiSchemas
         ("faceVisible", Boolean()),
         ("tooDark", Boolean()),
         ("blurry", Boolean()),
+        ("appearsMinor", Boolean()));
+
+    public static JsonObject ReferenceCheckSchema() => Object(
+        ("people", Integer()),
+        ("clothingVisible", Boolean()),
         ("appearsMinor", Boolean()));
 
     private static JsonObject Garment() => Object(

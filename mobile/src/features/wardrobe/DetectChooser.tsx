@@ -1,4 +1,4 @@
-import { Check, CircleAlert, ImageOff, Pencil, ScanSearch } from 'lucide-react-native';
+import { Check, CircleAlert, ImageOff, Pencil, ScanSearch, Sparkles } from 'lucide-react-native';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, View } from 'react-native';
@@ -49,6 +49,14 @@ type Props = {
   retrying?: boolean;
   /** Offline: retry needs a connection. */
   retryDisabled?: boolean;
+  /**
+   * "Ayırmadan üzerimde dene" (12d+ / 12f+): try the whole outfit of this photo on the user without splitting it —
+   * offered while the photo is scanned (no need to wait) and next to the choice. Absent = not offered.
+   */
+  onTryOnWhole?: () => void;
+  tryOnBusy?: boolean;
+  /** "Çevrimdışısın…" / "Başlatılamadı…" of the try-on, under its button. */
+  tryOnNote?: string | null;
 };
 
 function pieceName(piece: ItemDraft, fallback: string): string {
@@ -238,6 +246,9 @@ export function DetectChooser({
   onManual,
   retrying = false,
   retryDisabled = false,
+  onTryOnWhole,
+  tryOnBusy = false,
+  tryOnNote = null,
 }: Props) {
   const { t } = useTranslation();
   const chipLabel = useChipLabel();
@@ -277,9 +288,28 @@ export function DetectChooser({
   const photoLabel =
     phase === 'choose' ? t('itemDetect.photoA11y', { count: pieces.length }) : phase === 'loading' ? t('itemDetect.photoScanA11y') : t('itemDetect.photoPlainA11y');
 
+  const tryOnNoteLine = tryOnNote ? (
+    <Text variant="caption" tone="muted" className="text-center" accessibilityLiveRegion="polite" testID="detect-tryon-note">
+      {tryOnNote}
+    </Text>
+  ) : null;
+
   let below: ReactNode;
   if (phase === 'loading' || finishing) {
-    below = <DetectWait since={waitSince} done={phase !== 'loading'} reduceMotion={reduceMotion} />;
+    below = (
+      <View className="gap-5">
+        <DetectWait since={waitSince} done={phase !== 'loading'} reduceMotion={reduceMotion} />
+        {onTryOnWhole ? (
+          <View className="gap-1.5">
+            <Button variant="secondary" icon={Sparkles} label={t('tryOnPhoto.detectAction')} onPress={onTryOnWhole} loading={tryOnBusy} testID="detect-tryon-whole" />
+            <Text variant="caption" tone="muted" className="text-center">
+              {t('tryOnPhoto.detectHint')}
+            </Text>
+            {tryOnNoteLine}
+          </View>
+        ) : null}
+      </View>
+    );
   } else if (phase === 'choose') {
     below = (
       <SlideUp animate={animate} delayMs={listDelay}>
@@ -363,14 +393,27 @@ export function DetectChooser({
       {phase === 'choose' && !finishing ? (
         <SlideUp animate={animate} delayMs={listDelay}>
           <BottomActionBar>
-            <Button
-              size="lg"
-              label={count > 0 ? t('itemDetect.add', { count }) : t('itemDetect.addNone')}
-              disabled={count === 0}
-              loading={adding}
-              onPress={onAdd}
-              testID="detect-add"
-            />
+            <View className="gap-1">
+              <Button
+                size="lg"
+                label={count > 0 ? t('itemDetect.add', { count }) : t('itemDetect.addNone')}
+                disabled={count === 0}
+                loading={adding}
+                onPress={onAdd}
+                testID="detect-add"
+              />
+              {onTryOnWhole ? (
+                <Button
+                  variant="text"
+                  icon={Sparkles}
+                  label={t('tryOnPhoto.detectActionChoose')}
+                  onPress={onTryOnWhole}
+                  loading={tryOnBusy}
+                  testID="detect-tryon-whole"
+                />
+              ) : null}
+              {tryOnNoteLine}
+            </View>
           </BottomActionBar>
         </SlideUp>
       ) : null}
