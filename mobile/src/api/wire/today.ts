@@ -3,6 +3,8 @@
  * and of the weekly edit (docs/api/store-social-settings.md §2), with the mappers to the app types of
  * `../contracts` and `../contracts/today`. Pure functions here; the requests live in the feature hooks.
  */
+import { imageVariantsOf } from '@/lib/images';
+
 import type { LookPiece, Occasion, TodayLook, TodayResponse, WeeklyEditCard } from '../contracts';
 import type { EditLook, EditProduct, PlanDay, PlanWeekResult, PriceBand, WearLog, WearSummary, WeeklyEdit } from '../contracts/today';
 import type { ItemCategory } from '../contracts/wardrobe';
@@ -111,7 +113,7 @@ export function toTodayLook(wire: LookWire, ctx: LookContext, extra: { worn: boo
     .map((s) => toLookSlot(s, ctx))
     // A deleted wardrobe piece has nothing to show on the card.
     .filter((s) => !(s.source === 'wardrobe' && s.deleted))
-    .map((s) => ({ id: s.refId, name: s.name, source: s.source, imageUrl: s.imageUrl }));
+    .map((s) => ({ id: s.refId, name: s.name, source: s.source, imageUrl: s.imageUrl, ...imageVariantsOf(s) }));
   return {
     id: wire.id,
     name: wire.name,

@@ -8,6 +8,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 
 import type { Palette, PaletteTone } from '@/api/contracts/account';
 import { CONSENTS_FOR } from '@/api/contracts/consents';
+import { itemImageSource, photoImageSource } from '@/api/imageSources';
 import { ensureConsents } from '@/features/consent/store';
 import { useEnqueuePhotoUpload } from '@/api/photos';
 import { SectionState } from '@/components/blocks/SectionState';
@@ -30,6 +31,7 @@ import type { PreparedPhoto } from '@/features/photos/preparePhoto';
 import { usePhotoPicker } from '@/features/photos/usePhotoPicker';
 import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { formatPercent } from '@/lib/format';
+import type { ImageSource } from '@/lib/images';
 import { suffixed } from '@/lib/trSuffix';
 import { mutationKeys } from '@/sync/queryKeys';
 
@@ -60,7 +62,7 @@ function ToneBlock({ tone, className }: { tone: PaletteTone; className: string }
   return <View className={`${className} ${isLightTone(tone.hex) ? 'border border-line' : ''}`} style={{ backgroundColor: tone.hex }} />;
 }
 
-function ReadyView({ palette, faceUrl }: { palette: ReadyPalette; faceUrl: string | null }) {
+function ReadyView({ palette, face }: { palette: ReadyPalette; face: ImageSource }) {
   const { t } = useTranslation();
   const language = useAppLanguage();
   const [mismatchOpen, setMismatchOpen] = useState(false);
@@ -77,7 +79,7 @@ function ReadyView({ palette, faceUrl }: { palette: ReadyPalette; faceUrl: strin
     <>
       <ScrollView contentContainerClassName="gap-4 px-gutter pb-10 pt-1">
         <View className="flex-row items-center gap-3.5">
-          <ImageSlot uri={faceUrl} className="h-[110px] w-[88px] rounded-image-lg" placeholder={{ kind: 'figure', tone: 'stage', figureHeight: 68 }} />
+          <ImageSlot {...face} className="h-[110px] w-[88px] rounded-image-lg" placeholder={{ kind: 'figure', tone: 'stage', figureHeight: 68 }} />
           <View className="flex-1 gap-1">
             <Text variant="eyebrow">{t('palette.seasonEyebrow')}</Text>
             <Text variant="display" accessibilityRole="header">
@@ -152,7 +154,7 @@ function ReadyView({ palette, faceUrl }: { palette: ReadyPalette; faceUrl: strin
               {data.items.map((item) => (
                 <View key={item.id} className="w-24 gap-1.5">
                   <ImageSlot
-                    uri={item.imageUrl}
+                    {...itemImageSource(item, 'thumb', [accountKeys.paletteMismatch])}
                     className="aspect-[4/5] w-full rounded-image"
                     placeholder={{ kind: 'garment', category: item.category, color: item.color, glyphSize: 34 }}
                   />
@@ -252,7 +254,7 @@ export default function PaletteScreen() {
       <ScreenHeader title={t('screens.palette')} leading="back" />
       <ScreenState query={palette}>
         {(data) => {
-          if (data?.status === 'ready') return <ReadyView palette={data} faceUrl={photos.data?.face?.url ?? null} />;
+          if (data?.status === 'ready') return <ReadyView palette={data} face={photoImageSource(photos.data?.face)} />;
           if (data?.status === 'pending') {
             // The shared AI wait (canvas `AiYukleniyor`): tones appearing one by one + calm progress sentences.
             return (

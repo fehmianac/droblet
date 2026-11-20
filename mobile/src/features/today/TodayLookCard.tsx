@@ -3,6 +3,7 @@ import { Check, ChevronRight, Heart, RefreshCw } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { Pressable, View } from 'react-native';
 
+import { itemImageSource, tryOnImageSource } from '@/api/imageSources';
 import type { TodayLook } from '@/api/contracts';
 import { AiBusyButton, AiDropPulse, AiShimmerImage } from '@/components/ui/ai';
 import { Button } from '@/components/ui/Button';
@@ -45,7 +46,9 @@ export function TodayLookCard({ look, onWear, onRefresh, onToggleFavorite, refre
   const hasMissing = look.pieces.some((p) => p.source === 'store');
   // An image the plan already carries wins; otherwise the existing-image check and this session's run (14b's rules).
   const lookTryOn = useLookTryOn(look.id, { enabled: !look.tryOnImageUrl });
-  const imageUrl = look.tryOnImageUrl ?? (lookTryOn.state === 'image' ? (lookTryOn.image?.imageUrl ?? null) : null);
+  // The run / check result carries its id: stable cache key `tryon:{id}` and a fresh URL once when it expired.
+  const image = look.tryOnImageUrl ? { uri: look.tryOnImageUrl, cacheKey: null } : tryOnImageSource(lookTryOn.state === 'image' ? lookTryOn.image : null);
+  const imageUrl = image.uri;
   const generating = !imageUrl && lookTryOn.state === 'generating';
   const action = useTryOnAction({ target: { kind: 'look', id: look.id }, title: look.name, feature: 'today_try_on', cachedJobId: lookTryOn.cachedJobId });
   const { shown, more } = heroTiles(look.pieces, (p) => p.source === 'store');
@@ -60,7 +63,7 @@ export function TodayLookCard({ look, onWear, onRefresh, onToggleFavorite, refre
             </AiShimmerImage>
           ) : imageUrl ? (
             <OnYouImage
-              uri={imageUrl}
+              {...image}
               className="h-full w-full bg-sand"
               pieces={[]}
               seed={look.id}
@@ -84,7 +87,7 @@ export function TodayLookCard({ look, onWear, onRefresh, onToggleFavorite, refre
               missing,
               content: (
                 <ImageSlot
-                  uri={p.imageUrl}
+                  {...itemImageSource(p, 'thumb')}
                   placeholder={{ kind: 'garment', category: p.category, color: p.color, glyphSize: 28 }}
                   accessibilityLabel={missing ? t('todayHome.pieceMissingA11y', { name: p.name }) : p.name}
                   className="h-full w-full"

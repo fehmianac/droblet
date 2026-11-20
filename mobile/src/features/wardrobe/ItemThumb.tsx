@@ -4,6 +4,7 @@ import { View } from 'react-native';
 import type { ItemCategory, ItemColor } from '@/api/contracts/wardrobe';
 import { Icon } from '@/components/ui/Icon';
 import { GarmentGlyph, ImageSlot } from '@/components/ui/ImageSlot';
+import type { ImageRefresh } from '@/lib/images';
 import { garmentColors } from '@/theme/tokens';
 
 /** The category's line glyph on its own (camera frame of board 12, placeholders) — the shared one. */
@@ -13,6 +14,10 @@ type Props = {
   category: ItemCategory;
   color?: ItemColor;
   uri?: string | null;
+  /** expo-image cache key (`itemImageSource(item, 'thumb')` gives uri + cacheKey + onExpired: spread it). */
+  cacheKey?: string | null;
+  /** Refresh of an expired presigned URL (see `ImageSlot`). */
+  onExpired?: ImageRefresh;
   /** Size / aspect / radius, e.g. `aspect-[4/5] w-full rounded-image-lg` or `h-12 w-10 rounded-[8px]`. */
   className?: string;
   /** Glyph size in points (default 32; use ~20 for row thumbnails). */
@@ -25,10 +30,12 @@ type Props = {
  * fails to load) a ground tinted from the colour with the category's line glyph. Use this wherever an
  * Item (or a look slot pointing at one) is shown.
  */
-export function ItemThumb({ category, color = 'other', uri, className, glyphSize = 32, accessibilityLabel }: Props) {
+export function ItemThumb({ category, color = 'other', uri, cacheKey, onExpired, className, glyphSize = 32, accessibilityLabel }: Props) {
   return (
     <ImageSlot
       uri={uri}
+      cacheKey={cacheKey}
+      onExpired={onExpired}
       className={className}
       accessibilityLabel={accessibilityLabel}
       placeholder={{ kind: 'garment', category, color, glyphSize }}

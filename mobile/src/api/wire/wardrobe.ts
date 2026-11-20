@@ -8,6 +8,7 @@
  * v1/tenant/item`) and the catalogue (`GET v1/catalog/product/{id}`).
  */
 import i18n from '@/i18n';
+import { imageVariantsOf } from '@/lib/images';
 import { getActiveQueryClient } from '@/sync/activeClient';
 
 import { apiRequest } from '../client';
@@ -54,9 +55,16 @@ export type ItemWire = {
   source: ItemSourceWire;
   productId: string | null;
   libraryItemId: string | null;
-  /** Short-lived presigned GET (cleaned image, or the original when `useOriginalImage`). */
+  /** Full size (cleaned image, or the original when `useOriginalImage`): public CDN URL, or a presigned GET. */
   imageUrl: string | null;
+  /** Null when the URLs are public (CDN); set when they are presigned (fallback). */
   imageUrlExpiresAt: string | null;
+  /** 256 px longest side WebP (absent on older servers; may equal `imageUrl` in fallback mode). */
+  thumbUrl?: string | null;
+  /** 768 px WebP (absent on older servers; may equal `imageUrl` in fallback mode). */
+  mediumUrl?: string | null;
+  /** Stable for the same image version across fetches; changes when the image changes. */
+  imageCacheKey?: string | null;
   hasOriginalImage: boolean;
   useOriginalImage: boolean;
   wearCount: number;
@@ -160,6 +168,11 @@ export function toItem(wire: ItemWire): Item {
     fabric: toFabricLabel(wire.fabric) ?? wire.fabricText ?? null,
     seasons: wire.seasons,
     imageUrl: wire.imageUrl,
+    // Absent on older servers → null (thumb / medium fall back to `imageUrl`, no cache key).
+    thumbUrl: wire.thumbUrl ?? null,
+    mediumUrl: wire.mediumUrl ?? null,
+    imageCacheKey: wire.imageCacheKey ?? null,
+    imageUrlExpiresAt: wire.imageUrlExpiresAt ?? null,
     // The wire has one image URL (cleaned or original, by `useOriginalImage`); there is no second URL.
     originalImageUrl: wire.hasOriginalImage && wire.useOriginalImage ? wire.imageUrl : null,
     hasOriginalImage: wire.hasOriginalImage,
@@ -279,6 +292,7 @@ export function toLookSlot(wire: LookSlotWire, ctx: LookContext): LookSlot {
     refId: wire.itemId ?? '',
     name: item?.name ?? '',
     imageUrl: item?.imageUrl ?? null,
+    ...imageVariantsOf(item),
     brand: item?.brand ?? null,
     price: null,
     deleted: Boolean(wire.unavailable) || !item,

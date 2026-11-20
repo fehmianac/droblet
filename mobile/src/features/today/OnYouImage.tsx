@@ -4,10 +4,14 @@ import { View } from 'react-native';
 import { AiBadge } from '@/components/ui/AiBadge';
 import { ImageSlot, type Piece } from '@/components/ui/ImageSlot';
 import { Text } from '@/components/ui/Text';
+import type { ImageRefresh } from '@/lib/images';
 
 type Props = {
   /** Owner-only try-on image; null until one is generated. */
   uri: string | null;
+  /** Stable cache key (`tryon:{id}`) and refresh of an expired URL — `tryOnImageSource(result)`. */
+  cacheKey?: string | null;
+  onExpired?: ImageRefresh;
   /** Size, flex and radius (the 06 card and the 08 hero draw it square-cornered, edge to edge). */
   className?: string;
   /** The look's pieces — drawn as the piece collage ("Parça kolajı", 17b) when there is no uri. */
@@ -30,13 +34,15 @@ type Props = {
  * pieces instead. Without a uri this draws the piece collage with its "Parça kolajı" badge (never an empty box), and
  * it never carries a call to action over the picture (canvas pattern "görsel üstündeki düğme").
  */
-export function OnYouImage({ uri, className, pieces, seed, silhouetteHeight, accessibilityLabel, collageLabel, badgeClassName = 'left-3.5 top-3.5' }: Props) {
+export function OnYouImage({ uri, cacheKey, onExpired, className, pieces, seed, silhouetteHeight, accessibilityLabel, collageLabel, badgeClassName = 'left-3.5 top-3.5' }: Props) {
   const { t } = useTranslation();
   return (
     <View className={`overflow-hidden ${className ?? ''}`}>
       <ImageSlot
         fit="contain"
         uri={uri}
+        cacheKey={cacheKey}
+        onExpired={onExpired}
         className="h-full w-full"
         accessibilityLabel={uri ? accessibilityLabel : (collageLabel ?? accessibilityLabel)}
         placeholder={{ kind: 'look', pieces, seed, figureHeight: silhouetteHeight }}

@@ -2,6 +2,7 @@
  * E3 Look'lar — the APP-side types. Wire shapes (`LookDto`: slots as `itemId` / `productId`, slot
  * `bagAccessory`, `favorite`, `version`, `rating { average, count }`) and mappers: `../wire/wardrobe.ts`.
  */
+import type { ImageVariants } from '@/lib/images';
 import type { Money } from '@/lib/format';
 import type { Occasion } from '../contracts';
 import type { ContentModeration, ItemCategory } from './wardrobe';
@@ -23,7 +24,8 @@ export const LOOK_MIN_PIECES = 2;
 
 export type LookPieceSource = 'wardrobe' | 'store';
 
-export type LookSlot = {
+/** Wardrobe pieces: the image variants of the item (`itemImageSource` picks one); absent elsewhere. */
+export type LookSlot = ImageVariants & {
   slot: LookSlotKind;
   /** 'wardrobe' → `refId` is an Item id; 'store' → a catalogue product id (a missing piece). */
   source: LookPieceSource;

@@ -3,6 +3,7 @@
  * and the mapping live in `../wire/stylist`. Text suggestions need the membership (403
  * `premium_required`) but no AI credit; only the try-on image of a suggestion costs one.
  */
+import type { ImageVariants } from '@/lib/images';
 import type { Money } from '@/lib/format';
 import type { Occasion } from '../contracts';
 import type { JobAccepted } from './jobs';
@@ -33,7 +34,8 @@ export type StylistOutfitRequest = {
 };
 export type StylistOutfitResponse = JobAccepted;
 
-export type StylistPiece = {
+/** Wardrobe pieces: the image variants of the item (`itemImageSource` picks one); absent elsewhere. */
+export type StylistPiece = ImageVariants & {
   slot: LookSlotKind;
   /**
    * 'wardrobe' → `refId` is an Item id; 'store' → a catalogue product id (a missing piece);

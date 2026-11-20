@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, View } from 'react-native';
 
 import { ITEM_SEASONS, type Item, type ItemSeason } from '@/api/contracts/wardrobe';
+import { itemImageSource } from '@/api/imageSources';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 import { Chip, ChipWrap } from '@/components/ui/Chip';
@@ -13,11 +14,6 @@ import { Text } from '@/components/ui/Text';
 
 import { toggleIn } from './filters';
 import { ItemThumb } from './ItemThumb';
-
-/** The picture a piece is shown with: the cleaned image, or the original when the user chose it. */
-export function itemImage(item: Pick<Item, 'imageUrl' | 'originalImageUrl' | 'useOriginalImage'>): string | null {
-  return item.useOriginalImage ? (item.originalImageUrl ?? item.imageUrl) : item.imageUrl;
-}
 
 type PanelProps = {
   icon?: LucideIcon;
@@ -81,7 +77,7 @@ export function OutlineBadge({ label }: { label: string }) {
 }
 
 type TileProps = {
-  item: Pick<Item, 'name' | 'category' | 'color' | 'imageUrl' | 'originalImageUrl' | 'useOriginalImage'>;
+  item: Pick<Item, 'name' | 'category' | 'color' | 'imageUrl' | 'originalImageUrl' | 'useOriginalImage' | 'thumbUrl' | 'mediumUrl' | 'imageCacheKey' | 'imageUrlExpiresAt'>;
   /** undefined = not in selection mode. */
   selected?: boolean;
   onPress: () => void;
@@ -114,7 +110,7 @@ export function ItemTile({ item, selected, onPress, onLongPress, mark = 'select'
         <ItemThumb
           category={item.category}
           color={item.color}
-          uri={itemImage(item)}
+          {...itemImageSource(item, 'thumb')}
           glyphSize={size === 'library' ? 44 : 48}
           className={`w-full rounded-image ${size === 'library' ? 'h-24' : 'h-[128px]'}`}
         />

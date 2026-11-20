@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 
-import type { Item } from '@/api/contracts/wardrobe';
+import { itemImageSource } from '@/api/imageSources';
 import { Badge } from '@/components/ui/Bits';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -25,7 +25,6 @@ const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
 /** How many never-worn pieces the strip shows; the sentence above it gives the full count. */
 const UNWORN_SHOWN = 8;
 
-const itemImage = (item: Item) => (item.useOriginalImage ? item.originalImageUrl : item.imageUrl);
 const openItem = (id: string) => router.push({ pathname: '/item/[id]', params: { id } });
 
 function Stat({ value, label }: { value: string; label: string }) {
@@ -102,7 +101,7 @@ export default function MonthReportScreen() {
                       accessibilityLabel={`${item.name}, ${t('monthReport.wornTimes', { count })}`}
                       className="flex-row items-center gap-3 border-b border-line py-2 active:opacity-80"
                     >
-                      <ItemThumb category={item.category} color={item.color} uri={itemImage(item)} className="h-16 w-[52px] rounded-thumb" glyphSize={22} />
+                      <ItemThumb category={item.category} color={item.color} {...itemImageSource(item, 'thumb')} className="h-16 w-[52px] rounded-thumb" glyphSize={22} />
                       <Text variant="body" className="flex-1" numberOfLines={1}>
                         {item.name}
                       </Text>
@@ -141,7 +140,7 @@ export default function MonthReportScreen() {
                         accessibilityLabel={item.name}
                         className="w-[88px] gap-1.5 active:opacity-80"
                       >
-                        <ItemThumb category={item.category} color={item.color} uri={itemImage(item)} className="h-[110px] w-full rounded-image" glyphSize={28} />
+                        <ItemThumb category={item.category} color={item.color} {...itemImageSource(item, 'thumb')} className="h-[110px] w-full rounded-image" glyphSize={28} />
                         <Text variant="caption" numberOfLines={2}>
                           {item.name}
                         </Text>

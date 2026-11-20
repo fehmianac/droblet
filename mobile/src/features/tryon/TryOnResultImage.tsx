@@ -88,5 +88,6 @@ export function TryOnResultImage({ tryOnId, url, className, accessibilityLabel, 
     );
   }
 
-  return <AiImage kind="onYou" uri={current} className={className} accessibilityLabel={accessibilityLabel} onError={onError} testID="tryon.image" tagLabel={tagLabel} />;
+  // Stable cache key: the same try-on image hits the disk cache whatever signature its presigned URL carries.
+  return <AiImage kind="onYou" uri={current} cacheKey={tryOnId ? `tryon:${tryOnId}` : null} className={className} accessibilityLabel={accessibilityLabel} onError={onError} testID="tryon.image" tagLabel={tagLabel} />;
 }

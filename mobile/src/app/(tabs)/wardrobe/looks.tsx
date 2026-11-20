@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { FlatList, Pressable, RefreshControl, View } from 'react-native';
 
 import type { Look } from '@/api/contracts/looks';
+import { lookCoverSource } from '@/api/imageSources';
 import { ImageTag } from '@/components/ui/Bits';
 import { Chip, ChipRow } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
@@ -37,7 +38,7 @@ function LookTile({ look, itemsById, onToggleFavorite }: { look: Look; itemsById
         accessibilityLabel={rating ? t('looks.cardLabelRated', { occasion, name: look.name, rating }) : t('looks.cardLabel', { occasion, name: look.name })}
         className="gap-2 active:opacity-80"
       >
-        <LookCover seed={look.id} tryOnImageUrl={look.tryOnImageUrl ?? look.coverImageUrl ?? null} slots={look.slots} itemsById={itemsById} className="h-[210px] w-full rounded-image-lg">
+        <LookCover seed={look.id} tryOnImageUrl={look.tryOnImageUrl} cover={look.tryOnImageUrl ? null : lookCoverSource(look)} slots={look.slots} itemsById={itemsById} className="h-[210px] w-full rounded-image-lg">
           <ImageTag label={toDisplayUpper(occasion, language)} className="absolute bottom-2 left-2" />
         </LookCover>
         <View className="flex-row items-center justify-between gap-2">

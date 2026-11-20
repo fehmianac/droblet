@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { ItemDetail } from '@/api/contracts/wardrobe';
 import { isNotFound } from '@/api/errors';
+import { itemImageSource, itemViewerSource } from '@/api/imageSources';
 import { Badge, ImageTag, PopoverMenu } from '@/components/ui/Bits';
 import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { Button } from '@/components/ui/Button';
@@ -22,7 +23,7 @@ import { Text } from '@/components/ui/Text';
 import { ModeratedNote } from '@/features/moderation/ModeratedNote';
 import { ItemThumb } from '@/features/wardrobe/ItemThumb';
 import { useDeleteItems, useUpdateItem } from '@/features/wardrobe/mutations';
-import { DeleteConfirmSheet, itemImage, SeasonSheet } from '@/features/wardrobe/parts';
+import { DeleteConfirmSheet, SeasonSheet } from '@/features/wardrobe/parts';
 import { useItemDetail } from '@/features/wardrobe/queries';
 import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { toDisplayUpper } from '@/lib/upper';
@@ -93,17 +94,19 @@ export default function ItemDetailScreen() {
             category: t(`itemCategory.${item.category}`),
             seasons: item.seasons.map((s) => t(`itemSeason.${s}`)).join(', '),
           });
+          // 13a: the full image in the viewer (the cached medium hero stays the tile).
+          const viewerImage = itemViewerSource(item, 'medium');
           return (
             <>
               <ScrollView contentContainerClassName="gap-3 pb-6">
                 {/* 13a: the item photo opens full screen (a glyph placeholder does not). */}
                 <Zoomable
-                  images={itemImage(item) ? [{ uri: itemImage(item) ?? '', label: item.name }] : []}
-                  disabled={!itemImage(item)}
+                  images={viewerImage ? [{ ...viewerImage, label: item.name }] : []}
+                  disabled={!viewerImage}
                   accessibilityLabel={item.name}
                   testID="item-image-zoom"
                 >
-                  <ItemThumb category={item.category} color={item.color} uri={itemImage(item)} className="h-[350px] w-full" glyphSize={180} accessibilityLabel={item.name} />
+                  <ItemThumb category={item.category} color={item.color} {...itemImageSource(item, 'medium')} className="h-[350px] w-full" glyphSize={180} accessibilityLabel={item.name} />
                 </Zoomable>
                 <View className="gap-3 px-gutter pt-1">
                   <View className="gap-1">

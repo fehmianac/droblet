@@ -1,3 +1,4 @@
+import type { ImageVariants } from '@/lib/images';
 import type { AppLanguage } from '@/i18n';
 
 import type { StyleTag } from '../contracts';
@@ -165,7 +166,7 @@ export type AnalyzePaletteRequest = { requestId: string; clientMutationId: strin
 /** GET v1/tenant/palette/mismatch */
 export type PaletteMismatch = {
   /** Wardrobe pieces; `category` / `color` (wardrobe vocabulary, optional) draw the placeholder while there is no picture. */
-  items: { id: string; name: string; imageUrl: string | null; category?: string | null; color?: string | null }[];
+  items: (ImageVariants & { id: string; name: string; imageUrl: string | null; category?: string | null; color?: string | null })[];
 };
 
 /** DELETE v1/auth/me → 204 — account deletion (29c). Online only. */

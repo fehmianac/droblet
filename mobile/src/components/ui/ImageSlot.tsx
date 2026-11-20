@@ -1,9 +1,10 @@
 import { Image } from 'expo-image';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Text as RNText, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import type { ItemCategory, ItemColor } from '@/api/contracts/wardrobe';
+import type { ImageRefresh } from '@/lib/images';
 import { placeholderTones, type PlaceholderTone } from '@/theme/tokens';
 import { useThemeColors } from '@/theme/useThemeColors';
 
@@ -112,6 +113,10 @@ export type Piece = {
   category?: string | null;
   color?: string | null;
   imageUrl?: string | null;
+  /** expo-image cache key of `imageUrl` (`pickImage` / `itemImageSource`). */
+  cacheKey?: string | null;
+  /** Refresh of an expired `imageUrl` (see `ImageSlot.onExpired`). */
+  onExpired?: ImageRefresh;
   /** A piece the user does not own: dashed espresso frame + "EKSİK" marker, as on 17b. */
   missing?: boolean;
 };
@@ -166,6 +171,8 @@ function CollageTile({ piece, glyphSize }: { piece: Piece; glyphSize: number }) 
     <View className={`flex-1 overflow-hidden rounded-image ${piece.missing ? 'border-[1.5px] border-dashed border-accent' : ''}`}>
       <ImageSlot
         uri={piece.imageUrl}
+        cacheKey={piece.cacheKey}
+        onExpired={piece.onExpired}
         className="h-full w-full"
         placeholder={{ kind: 'garment', category: piece.category, color: piece.color, glyphSize }}
       />
@@ -243,6 +250,17 @@ function Placeholder({ spec }: { spec: SlotPlaceholder }) {
 
 type Props = {
   uri?: string | null;
+  /**
+   * Stable expo-image `cacheKey` / `recyclingKey` (e.g. `${imageCacheKey}:256`, `tryon:${id}`): the disk cache is
+   * keyed by it instead of the URL, so a presigned URL whose signature changes on every fetch still hits the cache.
+   */
+  cacheKey?: string | null;
+  /**
+   * Called ONCE per mount when the picture fails to load (an expired presigned URL). It may answer a fresh URL,
+   * which is loaded with the same `cacheKey`; or nothing, when the owner re-renders with a new `uri` (an
+   * invalidated query). A second failure keeps the placeholder.
+   */
+  onExpired?: ImageRefresh;
   /** What to draw while there is no picture (or it failed to load). Defaults to the standing figure. */
   placeholder?: SlotPlaceholder;
   /** Size / aspect / radius, e.g. `aspect-[4/5] w-full rounded-image-lg`. */
@@ -261,11 +279,48 @@ type Props = {
   fit?: 'cover' | 'contain';
 };
 
-export function ImageSlot({ uri, placeholder = { kind: 'figure' }, className, accessibilityLabel, children, testID, onLoad, onError, fit = 'cover' }: Props) {
+export function ImageSlot({
+  uri,
+  cacheKey,
+  onExpired,
+  placeholder = { kind: 'figure' },
+  className,
+  accessibilityLabel,
+  children,
+  testID,
+  onLoad,
+  onError,
+  fit = 'cover',
+}: Props) {
   const [failedUri, setFailedUri] = useState<string | null>(null);
   const [loadedUri, setLoadedUri] = useState<string | null>(null);
-  const showImage = Boolean(uri) && failedUri !== uri;
-  const loading = showImage && loadedUri !== uri;
+  // A fresh URL answered by `onExpired` for the `uri` it replaced (a new `uri` from the owner wins).
+  const [fresh, setFresh] = useState<{ from: string; uri: string } | null>(null);
+  const refreshed = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  const current = uri && fresh?.from === uri ? fresh.uri : (uri ?? null);
+  const showImage = Boolean(current) && failedUri !== current;
+  const loading = showImage && loadedUri !== current;
+
+  const expired = () => {
+    if (!onExpired || refreshed.current || !uri) return;
+    refreshed.current = true;
+    const from = uri;
+    Promise.resolve()
+      .then(onExpired)
+      .then((next) => {
+        if (mounted.current && typeof next === 'string' && next) setFresh({ from, uri: next });
+      })
+      .catch(() => undefined);
+  };
+
   return (
     <View
       testID={testID}
@@ -274,7 +329,7 @@ export function ImageSlot({ uri, placeholder = { kind: 'figure' }, className, ac
       accessibilityRole={accessibilityLabel ? 'image' : undefined}
       accessibilityLabel={accessibilityLabel}
     >
-      {showImage && uri ? (
+      {showImage && current ? (
         <>
           {loading ? (
             <View className="absolute inset-0" testID="image-slot-loading">
@@ -283,18 +338,20 @@ export function ImageSlot({ uri, placeholder = { kind: 'figure' }, className, ac
           ) : null}
           <Image
             testID="image-slot-image"
-            source={{ uri }}
+            source={cacheKey ? { uri: current, cacheKey } : { uri: current }}
+            recyclingKey={cacheKey ?? current}
             contentFit={fit}
             className="h-full w-full"
             transition={200}
             cachePolicy="memory-disk"
             onLoad={() => {
-              setLoadedUri(uri);
+              setLoadedUri(current);
               onLoad?.();
             }}
             onError={() => {
-              setFailedUri(uri);
+              setFailedUri(current);
               onError?.();
+              expired();
             }}
           />
         </>

@@ -179,15 +179,17 @@ export function SuggestionResult({ jobId, title, result, focused, onAskAgain, as
     : t('stylistResult.noCreditsBodyNoDate');
 
   /** Try-on state of a page. The open page is polled; the others read what the job cache already knows. */
-  const mediaOf = (s: StylistSuggestion): { mode: MediaMode; imageUrl: string | null; creditRefunded: boolean; cached: boolean } => {
+  const mediaOf = (s: StylistSuggestion): { mode: MediaMode; imageUrl: string | null; tryOnId: string | null; creditRefunded: boolean; cached: boolean } => {
     const id = tryOns.jobs[s.index] ?? null;
     const live = s.index === index;
     const cached = id && !live ? client.getQueryData<Job<TryOnResult>>(jobQueryKey(id)) : undefined;
     const done = live ? tryOn.isDone : cached?.status === 'done';
     const failed = live ? tryOn.isFailed : cached?.status === 'failed';
-    const imageUrl = (live ? tryOn.result?.imageUrl : cached?.result?.imageUrl) ?? s.tryOnImageUrl;
+    const result = live ? tryOn.result : cached?.result;
+    const imageUrl = result?.imageUrl ?? s.tryOnImageUrl;
+    const tryOnId = result?.imageUrl ? (result.tryOnId ?? null) : null;
     const mode: MediaMode = done || s.tryOnImageUrl ? 'done' : id && failed ? 'failed' : id ? 'working' : outOfCredits ? 'noCredits' : 'idle';
-    return { mode, imageUrl, creditRefunded: live ? tryOn.creditRefunded : (cached?.error?.creditRefunded ?? false), cached: isCachedTryOnJob(id) };
+    return { mode, imageUrl, tryOnId, creditRefunded: live ? tryOn.creditRefunded : (cached?.error?.creditRefunded ?? false), cached: isCachedTryOnJob(id) };
   };
 
   const mode = mediaOf(suggestion).mode;
@@ -316,6 +318,7 @@ export function SuggestionResult({ jobId, title, result, focused, onAskAgain, as
                     suggestion={s}
                     mode={media.mode}
                     imageUrl={media.imageUrl}
+                    tryOnId={media.tryOnId}
                     creditLine={creditLine}
                     invite={invite}
                     onTryOn={onTryOn}
