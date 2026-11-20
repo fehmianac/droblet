@@ -17,7 +17,7 @@ Bu politika, Droblet mobil uygulamasını ve droblet.alatech.co web sitesini kul
 - Yüz fotoğrafını renk paleti analizi için ve — ayrı rızanla, boy fotoğrafın yoksa — “Üzerimde gör” figürünü oluşturmak için kullanırız; kimlik tespiti ya da yüz tanıma yapmayız, yüz şablonu çıkarmayız.
 - Yapay zekâ işlemleri için fotoğrafların ve gerekli bilgiler OpenAI'ye gönderilir; verilerimiz AWS Frankfurt'ta saklanır. Bu, Türkiye ve Birleşik Krallık dışına aktarım demektir.
 - Rehberinden arkadaş bulmak istersen rehberin telefonundan çıkmaz; yalnızca tek kullanımlık karmalar gönderilir ve saklanmaz.
-- Reklam izleme, üçüncü taraf analitik ya da reklam SDK'sı kullanmayız ve verini satmayız. Markaya yönlendirdiğimizde komisyon için yalnızca bir tıklama kimliği ekleriz.
+- Reklam için izleme yapmayız, reklam kimliğini okumayız ve verini satmayız. Uygulamayı geliştirmek için Google Analytics for Firebase ile takma adlı ürün analitiği yaparız; bunu Ayarlar › Gizlilik › “Ürün analitiği”nden istediğin an kapatabilirsin. Markaya yönlendirdiğimizde komisyon için yalnızca bir tıklama kimliği ekleriz.
 - Hesabını sildiğinde verilerin hemen silinir; yedeklerden en geç 30 gün içinde çıkar.
 - Verine erişme, düzeltme, silme, itiraz ve taşıma hakların var: [İLETİŞİM E-POSTASI].
 
@@ -53,6 +53,7 @@ Hizmeti kullanırken oluşan veriler:
 - Üyelik ve krediler: abonelik durumun, mağaza işlem kimlikleri, AI görseli kredi bakiyen ve hareketleri. Kart ya da ödeme bilgin bize gelmez.
 - Cihaz: cihaz kimliği (uygulamanın oluşturduğu), platform, bildirim (push) anahtarı.
 - Kullanım olayları: uygulamadaki belirli adımlar (ör. kayıt tamamlandı, ilk parça eklendi, üyelik ekranı görüldü). Bunlar ad, e-posta ya da serbest metin içermez (bkz. madde 9).
+- Ürün analitiği (Google Analytics for Firebase, kapatılabilir): açtığın ekranların adları (ör. “gardırop” — içerik ya da kimlik değil), uygulamadaki belirli adımlar (ör. kayıt, “Üzerimde gör” başlatıldı, parça eklendi), kaba kullanıcı özellikleri, Firebase'in uygulama örneği kimliği, cihaz modeli, işletim sistemi ve uygulama sürümü, dil ve IP adresinden türetilen yaklaşık konum (ülke/şehir). Ad, e-posta, serbest metin, fotoğraf ya da parça adı gönderilmez (bkz. madde 9).
 - Teknik ve güvenlik verileri: IP adresi, istek zamanı, hata kayıtları; kötüye kullanımı önlemek için giriş denemesi sayaçları.
 
 Başkalarından gelen veriler:
@@ -85,6 +86,7 @@ Fotoğraflarından ya da diğer verilerinden etnik köken, sağlık, din gibi ö
 - Haftanın edit'i ve fiyat düşüşü gibi pazarlama niteliğindeki bildirimler: rızan (bkz. madde 16).
 - Markaya gittiğin tıklamayı ve gelen siparişi eşleştirmek (komisyon, satın alınan ürünleri gardıroba ekleme önerisi, 48 saat sonra izleme listesine ekleme): Hizmet'in gelir modelini sürdürmek ve sana alışverişinle ilgili kolaylık sunmak konusundaki meşru menfaatimiz; gardıroba ekleme senin onayına bağlıdır.
 - Kullanım olaylarıyla ürünü geliştirmek ve ölçmek: meşru menfaat (takma adlı ve sınırlı veriyle).
+- Google Analytics for Firebase ile ürün analitiği (hangi özelliklerin kullanıldığını ve nerede takıldığını ölçmek, akışları iyileştirmek): meşru menfaat (m. 6(1)(f)). Varsayılan olarak açıktır; Ayarlar › Gizlilik › “Ürün analitiği”nden istediğin an kapatabilirsin, kapattığında o cihazdan Google'a analitik verisi gönderilmez. [HUKUK ONAYI: ürün analitiği için meşru menfaat dayanağı ve PECR m. 6 — Data (Use and Access) Act 2025 ile gelen istatistik/analitik istisnası; KVKK m. 5/2-f]
 - Güvenlik, dolandırıcılık ve kötüye kullanımın önlenmesi, hız sınırları, şikâyetlerin incelenmesi ve moderasyon: meşru menfaat ve gerektiğinde yasal yükümlülük.
 - Yasal taleplerin kurulması, kullanılması ve savunulması, resmi makamların talepleri: yasal yükümlülük ve meşru menfaat.
 
@@ -121,11 +123,19 @@ Sipariş verirsen ağ ya da marka bize bu tıklama kimliğiyle sipariş numaras�
 
 Marka sitesinde verdiğin bilgiler (ad, adres, ödeme) markanın sorumluluğundadır ve markanın gizlilik politikasına tabidir. Ağların ve markaların kendi sitelerinde kullandığı çerezler de onların sorumluluğundadır.
 
-## 9. Kullanım olayları (kendi analitiğimiz)
+## 9. Kullanım olayları ve ürün analitiği
 
-Üçüncü taraf analitik, reklam ya da izleme SDK'sı kullanmayız ve reklam kimliğini (IDFA/AAID) okumayız. Ürünü geliştirmek için uygulama sınırlı bir listedeki olayları (ör. “kayıt tamamlandı”, “üyelik ekranı görüldü”, “kredi harcandı”) kendi sunucularımıza gönderir.
+Reklam ya da izleme SDK'sı kullanmayız ve reklam kimliğini (IDFA/AAID) okumayız. Ürünü geliştirmek için uygulama sınırlı bir listedeki olayları (ör. “kayıt tamamlandı”, “üyelik ekranı görüldü”, “kredi harcandı”) kendi sunucularımıza gönderir.
 
 Olaylar kaydedilirken hesap kimliğin yerine geri döndürülemez bir karma kullanılır; olaylar ad, e-posta ya da serbest metin içeremez, yalnızca önceden tanımlı kısa değerler (ör. ekran adı, ürün kimliği, sayı) taşır. Bu karmayı hesabından yeniden hesaplayabildiğimiz için bu olaylar yine de seninle ilgili kişisel veridir (takma adlı): verilerinin kopyasına (“Verilerimi indir”) dahil edilir ve hesabını sildiğinde silinir. Aksi hâlde olay kayıtları 400 gün sonra kendiliğinden silinir.
+
+Ürün analitiği: Bu olayların bir kısmını ve ekran görüntülemelerini Google LLC'nin (ABD) Google Analytics for Firebase hizmetine de göndeririz; Google bu hizmette bizim adımıza veri işleyen olarak çalışır. Gönderilenler: olay adı ve kısa, önceden tanımlı değerler (ör. giriş yöntemi, kaynak, sayı, katalog ürün kimliği), ekran adı (ör. “item/[id]” — kimliğin kendisi değil), kaba kullanıcı özellikleri (plan türü, uygulama dili, tanıtım adımlarının bitip bitmediği, boy ya da yüz fotoğrafı olup olmadığı, gardırop büyüklüğü aralığı), Firebase'in uygulama örneği kimliği, cihaz, işletim sistemi ve uygulama sürümü ile yaklaşık konum. Kullanıcı kimliği olarak hesap kimliğin değil, kendi analitiğimizdeki geri döndürülemez karma kullanılır.
+
+Yapmadıklarımız: reklam kimliğini (IDFA/AAID), Android cihaz kimliğini (SSAID) ya da iOS satıcı kimliğini (IDFV) toplamayız; reklam depolamasını, reklam kişiselleştirme sinyallerini ve reklam ağlarıyla kaydı kapalı tutarız; Google sinyallerini açmayız. Bu veriler reklam ya da uygulamalar arası izleme için kullanılmaz. Ad, e-posta, serbest metin, fotoğraf, fotoğraf bağlantısı ya da parça adı hiçbir zaman gönderilmez; uygulama değerleri göndermeden önce süzer.
+
+Kapatma: Ayarlar › Gizlilik › “Ürün analitiği” işaretini kaldırdığında Firebase Analytics o cihazda hemen durur ve tercihin saklanır. Kendi analitiğimiz (yukarıdaki olaylar) bu ayardan etkilenmez.
+
+Saklama: Google Analytics'te olay düzeyindeki veriler 14 ay saklanır ve sonra kendiliğinden silinir; raporlar toplu ve anonimdir. Hesabını sildiğinde karma artık hesabınla eşleştirilemez. [HUKUK ONAYI: 14 aylık saklama süresi; hesap silmede Google Analytics'e kullanıcı silme talebi gönderilmesi gerekip gerekmediği]
 
 ## 10. Diğer kullanıcıların görebildikleri
 
@@ -148,6 +158,7 @@ Verini satmayız ve reklam amacıyla paylaşmayız. Hizmeti sunmak için şu tar
 - Twilio SendGrid: şifre sıfırlama e-postaları; e-posta adresin ve e-posta içeriği. Veri işleyen.
 - Cloudflare: web sitesinin sunulması ve korunması; siteyi ziyaret edenlerin IP adresi ve istek bilgileri. Veri işleyen.
 - Apple (Apple Push Notification service) ve Google (Firebase Cloud Messaging): bildirimlerin cihazına iletilmesi; cihazın bildirim anahtarı ve bildirim metni.
+- Google LLC (Google Analytics for Firebase): ürün analitiği (madde 9); takma adlı kullanım verileri, uygulama örneği kimliği, cihaz bilgileri ve yaklaşık konum. Veri işleyen. [HUKUK ONAYI: Google Ads Veri İşleme Şartları'nın kabulü ve Google Analytics veri paylaşım ayarlarının kapalı olması]
 - Apple ve Google: “Apple ile giriş” / “Google ile giriş” ve App Store / Google Play ödemeleri. Bu şirketler kendi hizmetleri için ayrı veri sorumlusudur.
 - Open-Meteo: hava durumu. Sunucumuzdan yalnızca seçtiğin şehrin koordinatları gönderilir; senin kimliğin ya da IP adresin gönderilmez.
 - Admitad, Gelir Ortakları (ReklamAction) ve doğrudan anlaşmalı markalar: yalnızca tıklama kimliği (madde 8).
@@ -159,7 +170,7 @@ Güncel veri işleyen listesini [İLETİŞİM E-POSTASI] adresinden isteyebilirs
 
 ## 12. Yurt dışına aktarım
 
-Droblet Birleşik Krallık'ta kurulu bir şirkettir ve hizmet sağlayıcılarımız farklı ülkelerdedir. Bu nedenle verilerin Türkiye ve Birleşik Krallık dışına, özellikle AB'ye (Almanya — AWS) ve ABD'ye (OpenAI, Twilio SendGrid, Google, Apple, Cloudflare) aktarılır.
+Droblet Birleşik Krallık'ta kurulu bir şirkettir ve hizmet sağlayıcılarımız farklı ülkelerdedir. Bu nedenle verilerin Türkiye ve Birleşik Krallık dışına, özellikle AB'ye (Almanya — AWS) ve ABD'ye (OpenAI, Twilio SendGrid, Google — Firebase Cloud Messaging ve Google Analytics for Firebase dahil —, Apple, Cloudflare) aktarılır.
 
 Birleşik Krallık'tan AB'ye aktarım, Birleşik Krallık'ın AB/AEA için verdiği yeterlilik düzenlemesine dayanır. ABD'ye ve diğer ülkelere aktarımda [YURT DIŞI AKTARIM MEKANİZMASI] (ör. UK–ABD veri köprüsü kapsamında sertifikalı alıcılar, ICO Uluslararası Veri Aktarım Sözleşmesi ya da AB Standart Sözleşme Hükümlerine Birleşik Krallık eki) kullanılır.
 
@@ -175,6 +186,7 @@ Aktarım güvencelerinin bir kopyasını [İLETİŞİM E-POSTASI] adresinden ist
 - Onay bekleyen parça taslakları ve yapay zekâ iş kayıtları: 7 gün.
 - “Beğenmedim” geri bildirimleri, kredi hareketleri ve kredi rezervasyonları: 400 gün ya da hesabını silene kadar (hangisi önce gelirse).
 - Kullanım olayları: 400 gün ya da hesabını silene kadar (hangisi önce gelirse; takma adlı).
+- Ürün analitiği (Google Analytics for Firebase): olay düzeyinde 14 ay; sonra Google tarafından kendiliğinden silinir.
 - Şifre sıfırlama bağlantısı: 30 dakika. Oturum: erişim anahtarı 60 dakika, yenileme anahtarı 60 gün.
 - E-posta doğrulama kodu ve bağlantısı: 24 saat (yalnızca özetleri saklanır).
 - “Verilerimi indir” ile hazırlanan veri kopyası (ZIP dosyası): 7 gün; sonra kendiliğinden silinir. İsteğin kaydı 30 gün tutulur.
@@ -243,7 +255,7 @@ Hiçbir sistem tamamen güvenli değildir. Verilerini etkileyen bir ihlal olursa
 
 ## 19. Çerezler
 
-Web sitemiz kendi kodu ile çerez yazmaz, tarayıcıda veri saklamaz ve analitik ya da reklam aracı içermez. Uygulama çerez kullanmaz. Ayrıntılar Çerez Bildirimi'ndedir.
+Web sitemiz kendi kodu ile çerez yazmaz, tarayıcıda veri saklamaz ve analitik ya da reklam aracı içermez. Uygulama çerez kullanmaz; ürün analitiği açıkken Firebase SDK'sı cihazda bir uygulama örneği kimliği saklar (madde 9). Ayrıntılar Çerez Bildirimi'ndedir.
 
 ## 20. Değişiklikler ve iletişim
 

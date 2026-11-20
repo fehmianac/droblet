@@ -426,7 +426,7 @@
           "Yüz fotoğrafını renk paleti analizi için ve — ayrı rızanla, boy fotoğrafın yoksa — “Üzerimde gör” figürünü oluşturmak için kullanırız; kimlik tespiti ya da yüz tanıma yapmayız, yüz şablonu çıkarmayız.",
           "Yapay zekâ işlemleri için fotoğrafların ve gerekli bilgiler OpenAI'ye gönderilir; verilerimiz AWS Frankfurt'ta saklanır. Bu, Türkiye ve Birleşik Krallık dışına aktarım demektir.",
           "Rehberinden arkadaş bulmak istersen rehberin telefonundan çıkmaz; yalnızca tek kullanımlık karmalar gönderilir ve saklanmaz.",
-          "Reklam izleme, üçüncü taraf analitik ya da reklam SDK'sı kullanmayız ve verini satmayız. Markaya yönlendirdiğimizde komisyon için yalnızca bir tıklama kimliği ekleriz.",
+          "Reklam için izleme yapmayız, reklam kimliğini okumayız ve verini satmayız. Uygulamayı geliştirmek için Google Analytics for Firebase ile takma adlı ürün analitiği yaparız; bunu Ayarlar › Gizlilik › “Ürün analitiği”nden istediğin an kapatabilirsin. Markaya yönlendirdiğimizde komisyon için yalnızca bir tıklama kimliği ekleriz.",
           "Hesabını sildiğinde verilerin hemen silinir; yedeklerden en geç 30 gün içinde çıkar.",
           "Verine erişme, düzeltme, silme, itiraz ve taşıma hakların var: [İLETİŞİM E-POSTASI]."
         ],
@@ -463,6 +463,7 @@
               "- Üyelik ve krediler: abonelik durumun, mağaza işlem kimlikleri, AI görseli kredi bakiyen ve hareketleri. Kart ya da ödeme bilgin bize gelmez.",
               "- Cihaz: cihaz kimliği (uygulamanın oluşturduğu), platform, bildirim (push) anahtarı.",
               "- Kullanım olayları: uygulamadaki belirli adımlar (ör. kayıt tamamlandı, ilk parça eklendi, üyelik ekranı görüldü). Bunlar ad, e-posta ya da serbest metin içermez (bkz. madde 9).",
+              "- Ürün analitiği (Google Analytics for Firebase, kapatılabilir): açtığın ekranların adları (ör. “gardırop” — içerik ya da kimlik değil), uygulamadaki belirli adımlar (ör. kayıt, “Üzerimde gör” başlatıldı, parça eklendi), kaba kullanıcı özellikleri, Firebase'in uygulama örneği kimliği, cihaz modeli, işletim sistemi ve uygulama sürümü, dil ve IP adresinden türetilen yaklaşık konum (ülke/şehir). Ad, e-posta, serbest metin, fotoğraf ya da parça adı gönderilmez (bkz. madde 9).",
               "- Teknik ve güvenlik verileri: IP adresi, istek zamanı, hata kayıtları; kötüye kullanımı önlemek için giriş denemesi sayaçları.",
               "Başkalarından gelen veriler:",
               "- Apple ve Google: giriş bilgilerin; App Store ve Google Play: satın alma, yenileme, iptal ve iade bildirimleri.",
@@ -493,6 +494,7 @@
               "- Haftanın edit'i ve fiyat düşüşü gibi pazarlama niteliğindeki bildirimler: rızan (bkz. madde 16).",
               "- Markaya gittiğin tıklamayı ve gelen siparişi eşleştirmek (komisyon, satın alınan ürünleri gardıroba ekleme önerisi, 48 saat sonra izleme listesine ekleme): Hizmet'in gelir modelini sürdürmek ve sana alışverişinle ilgili kolaylık sunmak konusundaki meşru menfaatimiz; gardıroba ekleme senin onayına bağlıdır.",
               "- Kullanım olaylarıyla ürünü geliştirmek ve ölçmek: meşru menfaat (takma adlı ve sınırlı veriyle).",
+              "- Google Analytics for Firebase ile ürün analitiği (hangi özelliklerin kullanıldığını ve nerede takıldığını ölçmek, akışları iyileştirmek): meşru menfaat (m. 6(1)(f)). Varsayılan olarak açıktır; Ayarlar › Gizlilik › “Ürün analitiği”nden istediğin an kapatabilirsin, kapattığında o cihazdan Google'a analitik verisi gönderilmez. [HUKUK ONAYI: ürün analitiği için meşru menfaat dayanağı ve PECR m. 6 — Data (Use and Access) Act 2025 ile gelen istatistik/analitik istisnası; KVKK m. 5/2-f]",
               "- Güvenlik, dolandırıcılık ve kötüye kullanımın önlenmesi, hız sınırları, şikâyetlerin incelenmesi ve moderasyon: meşru menfaat ve gerektiğinde yasal yükümlülük.",
               "- Yasal taleplerin kurulması, kullanılması ve savunulması, resmi makamların talepleri: yasal yükümlülük ve meşru menfaat.",
               "Meşru menfaate dayandığımız işlemlerde senin hak ve özgürlüklerinle dengeyi değerlendirdik; bu değerlendirmeyi talep edebilir ve işlemeye itiraz edebilirsin."
@@ -528,10 +530,14 @@
             ]
           },
           {
-            "heading": "Kullanım olayları (kendi analitiğimiz)",
+            "heading": "Kullanım olayları ve ürün analitiği",
             "paragraphs": [
-              "Üçüncü taraf analitik, reklam ya da izleme SDK'sı kullanmayız ve reklam kimliğini (IDFA/AAID) okumayız. Ürünü geliştirmek için uygulama sınırlı bir listedeki olayları (ör. “kayıt tamamlandı”, “üyelik ekranı görüldü”, “kredi harcandı”) kendi sunucularımıza gönderir.",
-              "Olaylar kaydedilirken hesap kimliğin yerine geri döndürülemez bir karma kullanılır; olaylar ad, e-posta ya da serbest metin içeremez, yalnızca önceden tanımlı kısa değerler (ör. ekran adı, ürün kimliği, sayı) taşır. Bu karmayı hesabından yeniden hesaplayabildiğimiz için bu olaylar yine de seninle ilgili kişisel veridir (takma adlı): verilerinin kopyasına (“Verilerimi indir”) dahil edilir ve hesabını sildiğinde silinir. Aksi hâlde olay kayıtları 400 gün sonra kendiliğinden silinir."
+              "Reklam ya da izleme SDK'sı kullanmayız ve reklam kimliğini (IDFA/AAID) okumayız. Ürünü geliştirmek için uygulama sınırlı bir listedeki olayları (ör. “kayıt tamamlandı”, “üyelik ekranı görüldü”, “kredi harcandı”) kendi sunucularımıza gönderir.",
+              "Olaylar kaydedilirken hesap kimliğin yerine geri döndürülemez bir karma kullanılır; olaylar ad, e-posta ya da serbest metin içeremez, yalnızca önceden tanımlı kısa değerler (ör. ekran adı, ürün kimliği, sayı) taşır. Bu karmayı hesabından yeniden hesaplayabildiğimiz için bu olaylar yine de seninle ilgili kişisel veridir (takma adlı): verilerinin kopyasına (“Verilerimi indir”) dahil edilir ve hesabını sildiğinde silinir. Aksi hâlde olay kayıtları 400 gün sonra kendiliğinden silinir.",
+              "Ürün analitiği: Bu olayların bir kısmını ve ekran görüntülemelerini Google LLC'nin (ABD) Google Analytics for Firebase hizmetine de göndeririz; Google bu hizmette bizim adımıza veri işleyen olarak çalışır. Gönderilenler: olay adı ve kısa, önceden tanımlı değerler (ör. giriş yöntemi, kaynak, sayı, katalog ürün kimliği), ekran adı (ör. “item/[id]” — kimliğin kendisi değil), kaba kullanıcı özellikleri (plan türü, uygulama dili, tanıtım adımlarının bitip bitmediği, boy ya da yüz fotoğrafı olup olmadığı, gardırop büyüklüğü aralığı), Firebase'in uygulama örneği kimliği, cihaz, işletim sistemi ve uygulama sürümü ile yaklaşık konum. Kullanıcı kimliği olarak hesap kimliğin değil, kendi analitiğimizdeki geri döndürülemez karma kullanılır.",
+              "Yapmadıklarımız: reklam kimliğini (IDFA/AAID), Android cihaz kimliğini (SSAID) ya da iOS satıcı kimliğini (IDFV) toplamayız; reklam depolamasını, reklam kişiselleştirme sinyallerini ve reklam ağlarıyla kaydı kapalı tutarız; Google sinyallerini açmayız. Bu veriler reklam ya da uygulamalar arası izleme için kullanılmaz. Ad, e-posta, serbest metin, fotoğraf, fotoğraf bağlantısı ya da parça adı hiçbir zaman gönderilmez; uygulama değerleri göndermeden önce süzer.",
+              "Kapatma: Ayarlar › Gizlilik › “Ürün analitiği” işaretini kaldırdığında Firebase Analytics o cihazda hemen durur ve tercihin saklanır. Kendi analitiğimiz (yukarıdaki olaylar) bu ayardan etkilenmez.",
+              "Saklama: Google Analytics'te olay düzeyindeki veriler 14 ay saklanır ve sonra kendiliğinden silinir; raporlar toplu ve anonimdir. Hesabını sildiğinde karma artık hesabınla eşleştirilemez. [HUKUK ONAYI: 14 aylık saklama süresi; hesap silmede Google Analytics'e kullanıcı silme talebi gönderilmesi gerekip gerekmediği]"
             ]
           },
           {
@@ -554,6 +560,7 @@
               "- Twilio SendGrid: şifre sıfırlama e-postaları; e-posta adresin ve e-posta içeriği. Veri işleyen.",
               "- Cloudflare: web sitesinin sunulması ve korunması; siteyi ziyaret edenlerin IP adresi ve istek bilgileri. Veri işleyen.",
               "- Apple (Apple Push Notification service) ve Google (Firebase Cloud Messaging): bildirimlerin cihazına iletilmesi; cihazın bildirim anahtarı ve bildirim metni.",
+              "- Google LLC (Google Analytics for Firebase): ürün analitiği (madde 9); takma adlı kullanım verileri, uygulama örneği kimliği, cihaz bilgileri ve yaklaşık konum. Veri işleyen. [HUKUK ONAYI: Google Ads Veri İşleme Şartları'nın kabulü ve Google Analytics veri paylaşım ayarlarının kapalı olması]",
               "- Apple ve Google: “Apple ile giriş” / “Google ile giriş” ve App Store / Google Play ödemeleri. Bu şirketler kendi hizmetleri için ayrı veri sorumlusudur.",
               "- Open-Meteo: hava durumu. Sunucumuzdan yalnızca seçtiğin şehrin koordinatları gönderilir; senin kimliğin ya da IP adresin gönderilmez.",
               "- Admitad, Gelir Ortakları (ReklamAction) ve doğrudan anlaşmalı markalar: yalnızca tıklama kimliği (madde 8).",
@@ -566,7 +573,7 @@
           {
             "heading": "Yurt dışına aktarım",
             "paragraphs": [
-              "Droblet Birleşik Krallık'ta kurulu bir şirkettir ve hizmet sağlayıcılarımız farklı ülkelerdedir. Bu nedenle verilerin Türkiye ve Birleşik Krallık dışına, özellikle AB'ye (Almanya — AWS) ve ABD'ye (OpenAI, Twilio SendGrid, Google, Apple, Cloudflare) aktarılır.",
+              "Droblet Birleşik Krallık'ta kurulu bir şirkettir ve hizmet sağlayıcılarımız farklı ülkelerdedir. Bu nedenle verilerin Türkiye ve Birleşik Krallık dışına, özellikle AB'ye (Almanya — AWS) ve ABD'ye (OpenAI, Twilio SendGrid, Google — Firebase Cloud Messaging ve Google Analytics for Firebase dahil —, Apple, Cloudflare) aktarılır.",
               "Birleşik Krallık'tan AB'ye aktarım, Birleşik Krallık'ın AB/AEA için verdiği yeterlilik düzenlemesine dayanır. ABD'ye ve diğer ülkelere aktarımda [YURT DIŞI AKTARIM MEKANİZMASI] (ör. UK–ABD veri köprüsü kapsamında sertifikalı alıcılar, ICO Uluslararası Veri Aktarım Sözleşmesi ya da AB Standart Sözleşme Hükümlerine Birleşik Krallık eki) kullanılır.",
               "Türkiye'den yurt dışına aktarım KVKK m. 9'a tabidir; dayanaklar KVKK Aydınlatma Metni'nde yer alır. [HUKUK ONAYI: KVKK standart sözleşme ve Kurul'a bildirim]",
               "Aktarım güvencelerinin bir kopyasını [İLETİŞİM E-POSTASI] adresinden isteyebilirsin."
@@ -581,6 +588,7 @@
               "- Onay bekleyen parça taslakları ve yapay zekâ iş kayıtları: 7 gün.",
               "- “Beğenmedim” geri bildirimleri, kredi hareketleri ve kredi rezervasyonları: 400 gün ya da hesabını silene kadar (hangisi önce gelirse).",
               "- Kullanım olayları: 400 gün ya da hesabını silene kadar (hangisi önce gelirse; takma adlı).",
+              "- Ürün analitiği (Google Analytics for Firebase): olay düzeyinde 14 ay; sonra Google tarafından kendiliğinden silinir.",
               "- Şifre sıfırlama bağlantısı: 30 dakika. Oturum: erişim anahtarı 60 dakika, yenileme anahtarı 60 gün.",
               "- E-posta doğrulama kodu ve bağlantısı: 24 saat (yalnızca özetleri saklanır).",
               "- “Verilerimi indir” ile hazırlanan veri kopyası (ZIP dosyası): 7 gün; sonra kendiliğinden silinir. İsteğin kaydı 30 gün tutulur.",
@@ -647,7 +655,7 @@
           {
             "heading": "Çerezler",
             "paragraphs": [
-              "Web sitemiz kendi kodu ile çerez yazmaz, tarayıcıda veri saklamaz ve analitik ya da reklam aracı içermez. Uygulama çerez kullanmaz. Ayrıntılar Çerez Bildirimi'ndedir."
+              "Web sitemiz kendi kodu ile çerez yazmaz, tarayıcıda veri saklamaz ve analitik ya da reklam aracı içermez. Uygulama çerez kullanmaz; ürün analitiği açıkken Firebase SDK'sı cihazda bir uygulama örneği kimliği saklar (madde 9). Ayrıntılar Çerez Bildirimi'ndedir."
             ]
           },
           {
@@ -694,6 +702,7 @@
               "- İşlem güvenliği: şifre karması, oturum anahtarları, Apple/Google hesap kimlikleri, şifreli Apple yenileme anahtarı, cihaz kimliği, bildirim (push) anahtarı, IP adresi, sunucu kayıtları, giriş denemesi sayaçları, hesap askıya alma kayıtları.",
               "- Rehber: rehberindeki e-posta adreslerinden telefonunda üretilen tek kullanımlık karmalar (saklanmaz; adlar, numaralar ve adreslerin kendisi telefonundan çıkmaz).",
               "- Kullanım olayları: hesap kimliği yerine karma kullanılan, serbest metin içermeyen uygulama olayları.",
+              "- Ürün analitiği: Google Analytics for Firebase'e gönderilen ekran görüntülemeleri ve uygulama olayları, kaba kullanıcı özellikleri, uygulama örneği kimliği, cihaz, işletim sistemi ve uygulama sürümü, yaklaşık konum (hesap kimliği yerine karma; Ayarlar'dan kapatılabilir).",
               "Özel nitelikli kişisel veriler: Yüz fotoğrafını renk paleti analizi ve — boy fotoğrafın yoksa — “Üzerimde gör” figürünü oluşturmak için kullanırız; kimlik tespiti, doğrulama ya da yüz tanıma yapmaz, kişiyi benzersiz biçimde tanımlayan biyometrik şablon çıkarmaz ve saklamayız. Bu nedenle yüz fotoğrafının biyometrik veri olarak işlenmediğini değerlendiriyoruz. Kilo bilgisi sağlıkla ilgili veri olarak değerlendirilebilir. Her iki durumda da bu verileri yalnızca açık rızanla işleriz. [HUKUK ONAYI: KVKK m. 6 değerlendirmesi]"
             ]
           },
@@ -710,7 +719,7 @@
               "- mağaza kataloğunun sunulması, markaya yönlendirme, satış ortaklığı komisyonunun takibi, satın alınan ürünlerin gardıroba eklenmesinin önerilmesi, izleme listesi ve fiyat takibi;",
               "- Droblet Üyelik ve ek kredi satın alımlarının doğrulanması, üyelik ve kredi yönetimi;",
               "- hizmet bildirimlerinin ve açık rızan varsa pazarlama bildirimlerinin gönderilmesi;",
-              "- ürünün geliştirilmesi ve ölçülmesi;",
+              "- ürünün geliştirilmesi ve ölçülmesi (kendi kullanım olaylarımız ve Google Analytics for Firebase ile ürün analitiği);",
               "- bilgi ve işlem güvenliğinin sağlanması, kötüye kullanım ve dolandırıcılığın önlenmesi, şikâyetlerin incelenmesi ve topluluk kurallarının uygulanması;",
               "- talep ve şikâyetlerin yanıtlanması, ilgili kişi başvurularının sonuçlandırılması;",
               "- hukuki yükümlülüklerin yerine getirilmesi, yetkili kurumlara bilgi verilmesi ve hukuki uyuşmazlıklarda hakların korunması."
@@ -722,7 +731,7 @@
               "- Bir sözleşmenin kurulması veya ifasıyla doğrudan ilgili olması (KVKK m. 5/2-c): hesap, profil, gardırop, look, plan, bavul, yapay zekâ ile parça tanıma ve stil önerileri, sosyal özellikler, mağaza ve sepet, üyelik ve kredi, hizmet bildirimleri, destek.",
               "- Veri sorumlusunun hukuki yükümlülüğünü yerine getirmesi (m. 5/2-ç): yetkili kurumların talepleri, ilgili kişi başvuruları, gerekli kayıtların saklanması.",
               "- Bir hakkın tesisi, kullanılması veya korunması (m. 5/2-e): uyuşmazlık ve şikâyet süreçleri.",
-              "- İlgili kişinin temel hak ve özgürlüklerine zarar vermemek kaydıyla veri sorumlusunun meşru menfaati (m. 5/2-f): güvenlik ve kötüye kullanımın önlenmesi, moderasyon, satış ortaklığı tıklama ve sipariş eşleştirmesi, takma adlı kullanım olaylarıyla ürün geliştirme.",
+              "- İlgili kişinin temel hak ve özgürlüklerine zarar vermemek kaydıyla veri sorumlusunun meşru menfaati (m. 5/2-f): güvenlik ve kötüye kullanımın önlenmesi, moderasyon, satış ortaklığı tıklama ve sipariş eşleştirmesi, takma adlı kullanım olayları ve Google Analytics for Firebase ile ürün geliştirme ve ölçme (Ayarlar › Gizlilik › “Ürün analitiği”nden kapatılabilir). [HUKUK ONAYI: ürün analitiğinde m. 5/2-f yeterliliği]",
               "- Açık rıza (m. 5/1 ve gerektiğinde m. 6): boy ve yüz fotoğrafının yapay zekâ ile işlenmesi (“Üzerimde gör”, renk paleti), kilo bilgisinin saklanması, rehberden arkadaş bulma, pazarlama niteliğindeki bildirimler ve gerektiğinde yurt dışına arızi aktarım. Açık rızanı istediğin an geri alabilirsin; bu durumda ilgili özellik kullanılamaz, ancak Droblet'in diğer özelliklerini kullanmaya devam edersin."
             ]
           },
@@ -743,6 +752,7 @@
               "- Twilio SendGrid (ABD): şifre sıfırlama e-postaları — e-posta adresi.",
               "- Cloudflare (ABD ve küresel): web sitesinin sunulması ve korunması — IP adresi.",
               "- Apple ve Google (ABD): giriş, uygulama içi satın alma doğrulaması ve bildirimlerin iletilmesi.",
+              "- Google LLC (ABD) — Google Analytics for Firebase: ürün analitiği — takma adlı kullanım verileri, uygulama örneği kimliği, cihaz bilgileri ve yaklaşık konum.",
               "- Admitad (yurt dışı satış ortaklığı ağı [HUKUK ONAYI: ülke]): yalnızca tıklama kimliği.",
               "- Open-Meteo ([HUKUK ONAYI: ülke]): yalnızca seçtiğin şehrin koordinatları; kimlik bilgisi aktarılmaz.",
               "Yurt dışına aktarım KVKK m. 9 kapsamında [YURT DIŞI AKTARIM MEKANİZMASI] dayanağıyla yapılır (ör. Kurul'un ilan ettiği standart sözleşmelerin alıcılarla imzalanıp Kurum'a süresi içinde bildirilmesi). Bu güvencelerin bulunmadığı arızi aktarımlar için m. 9/6-a uyarınca açık rızana başvurulabilir. [HUKUK ONAYI: aktarım mekanizması]"
@@ -752,6 +762,7 @@
             "heading": "Saklama süreleri",
             "paragraphs": [
               "Kişisel verilerin, işleme amacı için gerekli süre boyunca saklanır: hesap ve içerik verileri sen silene ya da hesabını silene kadar; işlenmemiş yüklemeler en fazla 1 gün; parça taslakları ve yapay zekâ iş kayıtları 7 gün; kullanım olayları, kredi hareketleri ve stilist geri bildirimleri 400 gün ya da hesabını silene kadar (hangisi önce gelirse); şifre sıfırlama bağlantısı 30 dakika; yenileme anahtarı 60 gün. Satış ortaklığı kayıtları [AFFILIATE KAYIT SAKLAMA SÜRESİ], şikâyet kayıtları [ŞİKAYET KAYDI SAKLAMA SÜRESİ], sunucu kayıtları [LOG SAKLAMA SÜRESİ] saklanır. Silinen veriler yedeklerden en geç 30 gün içinde çıkar. Ayrıntılı tablo Gizlilik Politikası'ndadır.",
+              "Google Analytics for Firebase'deki ürün analitiği verileri olay düzeyinde 14 ay saklanır, sonra kendiliğinden silinir.",
               "E-posta doğrulama kodu ve bağlantısı 24 saat, “Verilerimi indir” ile hazırlanan veri kopyası 7 gün saklanır.",
               "Süresi dolan veriler silinir, yok edilir ya da anonim hâle getirilir. [HUKUK ONAYI: kişisel veri saklama ve imha politikası]"
             ]
@@ -1069,7 +1080,7 @@
           {
             "heading": "Mobil uygulama",
             "paragraphs": [
-              "Droblet uygulaması çerez kullanmaz ve üçüncü taraf analitik, reklam ya da izleme SDK'sı içermez; reklam kimliğini (IDFA/AAID) okumaz ve uygulamalar arası izleme yapmaz.",
+              "Droblet uygulaması çerez kullanmaz ve reklam ya da izleme SDK'sı içermez; reklam kimliğini (IDFA/AAID) okumaz ve uygulamalar arası izleme yapmaz. Ürün analitiği için Google Analytics for Firebase SDK'sını kullanır: SDK cihazda bir uygulama örneği kimliği ve gönderilmeyi bekleyen olayları saklar. Bunu Ayarlar › Gizlilik › “Ürün analitiği”nden kapatabilirsin (Gizlilik Politikası madde 9). [HUKUK ONAYI: PECR m. 6 — analitik amaçlı cihazda saklama için Data (Use and Access) Act 2025 istisnası ve itiraz imkânı]",
               "Uygulama cihazında yalnızca çalışması için gereken bilgileri saklar: oturum anahtarları cihazın güvenli deposunda (iOS Keychain / Android Keystore), dil tercihin ve kısa süreli görsel önbelleği uygulamanın kendi alanında. Çıkış yaptığında ve fotoğraflarını sildiğinde ilgili önbellek temizlenir.",
               "Uygulamanın kendi sunucularımıza gönderdiği kullanım olayları Gizlilik Politikası'nda anlatılır."
             ]

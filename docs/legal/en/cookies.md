@@ -43,7 +43,7 @@ Such cookies are strictly necessary for the site to run securely and, under the 
 
 ## 4. Mobile app
 
-The Droblet app uses no cookies and contains no third-party analytics, advertising or tracking SDKs; it does not read the advertising identifier (IDFA/AAID) and does not track you across apps.
+The Droblet app uses no cookies and contains no advertising or tracking SDKs; it does not read the advertising identifier (IDFA/AAID) and does not track you across apps. For product analytics it uses the Google Analytics for Firebase SDK, which keeps an app instance id and the events waiting to be sent on your device. You can switch it off under Settings › Privacy › “Product analytics” (Privacy Policy section 9). [LEGAL REVIEW: PECR reg. 6 — the Data (Use and Access) Act 2025 exception for storage used for analytics, with the opportunity to object]
 
 The app keeps on your device only what it needs to work: session tokens in the device's secure storage (iOS Keychain / Android Keystore), your language preference and a short-lived image cache in the app's own space. The relevant cache is cleared when you sign out and when you delete your photos.
 

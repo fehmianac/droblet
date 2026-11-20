@@ -39,6 +39,7 @@ Registration with the Data Controllers' Registry (VERBİS): [VERBIS REGISTRATION
 - Transaction security: password hash, session tokens, Apple/Google account ids, encrypted Apple refresh token, device id, push token, IP address, server logs, sign-in attempt counters, account suspension records.
 - Contacts: single-use hashes made on your phone from the e-mail addresses in your contacts (not stored; names, numbers and the addresses themselves never leave your phone).
 - Usage events: app events in which a hash replaces the account id and which contain no free text.
+- Product analytics: screen views and app events sent to Google Analytics for Firebase, coarse user properties, app instance id, device, operating system and app version, approximate location (a hash replaces the account id; can be switched off in Settings).
 
 Special categories of personal data: We use the face photo for the colour palette analysis and — when there is no full-body photo — to build the “See it on me” figure; we do not identify or verify anyone or run face recognition, and we do not extract or store a biometric template that uniquely identifies a person. We therefore consider that the face photo is not processed as biometric data. Weight may be regarded as health-related data. In both cases we process this data only with your explicit consent. [LEGAL REVIEW: KVKK art. 6 assessment]
 
@@ -54,7 +55,7 @@ Special categories of personal data: We use the face photo for the colour palett
 - providing the shop catalogue, sending you to brands, tracking affiliate commission, offering to add purchased products to your wardrobe, watch list and price tracking;
 - verifying Droblet Membership and extra credit purchases, managing membership and credits;
 - sending service notifications and, with your explicit consent, marketing notifications;
-- developing and measuring the product;
+- developing and measuring the product (our own usage events and product analytics with Google Analytics for Firebase);
 - information and transaction security, preventing abuse and fraud, reviewing reports and enforcing the community guidelines;
 - answering requests and complaints and handling data subject applications;
 - meeting legal obligations, informing competent authorities and protecting rights in legal disputes.
@@ -64,7 +65,7 @@ Special categories of personal data: We use the face photo for the colour palett
 - Processing directly related to the formation or performance of a contract (KVKK art. 5/2-c): account, profile, wardrobe, looks, plans, trips, AI item recognition and style suggestions, social features, shop and cart, membership and credits, service notifications, support.
 - Compliance with the controller's legal obligation (art. 5/2-ç): requests of competent authorities, data subject applications, keeping required records.
 - Establishing, exercising or protecting a right (art. 5/2-e): dispute and complaint processes.
-- The controller's legitimate interest, provided it does not harm your fundamental rights and freedoms (art. 5/2-f): security and abuse prevention, moderation, matching affiliate clicks and orders, product development with pseudonymous usage events.
+- The controller's legitimate interest, provided it does not harm your fundamental rights and freedoms (art. 5/2-f): security and abuse prevention, moderation, matching affiliate clicks and orders, developing and measuring the product with pseudonymous usage events and Google Analytics for Firebase (can be switched off under Settings › Privacy › “Product analytics”). [LEGAL REVIEW: whether art. 5/2-f suffices for product analytics]
 - Explicit consent (art. 5/1 and, where needed, art. 6): AI processing of your full-body and face photos (“See it on me”, colour palette), storing your weight, finding friends from contacts, notifications of a marketing nature and, where needed, incidental transfers abroad. You can withdraw your explicit consent at any time; the related feature then stops working, but you can keep using Droblet's other features.
 
 ## 5. Method of collection
@@ -83,6 +84,7 @@ Abroad: to provide the Service your personal data is transferred to these recipi
 - Twilio SendGrid (US): password reset e-mails — e-mail address.
 - Cloudflare (US and global): delivering and protecting the website — IP address.
 - Apple and Google (US): sign-in, in-app purchase verification and delivering notifications.
+- Google LLC (US) — Google Analytics for Firebase: product analytics — pseudonymous usage data, app instance id, device details and approximate location.
 - Admitad (affiliate network abroad [LEGAL REVIEW: country]): the click id only.
 - Open-Meteo ([LEGAL REVIEW: country]): only the coordinates of the city you chose; no identity data is transferred.
 
@@ -91,6 +93,8 @@ Transfers abroad are made under KVKK art. 9 on the basis of [TRANSFER MECHANISM]
 ## 7. Retention periods
 
 Your personal data is kept as long as needed for the purpose: account and content data until you delete it or your account; unprocessed uploads 1 day at most; item drafts and AI job records 7 days; usage events, credit movements and stylist feedback 400 days or until you delete your account, whichever comes first; password reset link 30 minutes; refresh token 60 days. Affiliate records are kept for [AFFILIATE RECORD RETENTION], reports for [REPORT RETENTION] and server logs for [LOG RETENTION]. Deleted data leaves backups within 30 days at the latest. The detailed table is in the Privacy Policy.
+
+Product analytics data in Google Analytics for Firebase is kept at event level for 14 months and then deleted automatically.
 
 The e-mail verification code and link are kept for 24 hours, and the copy of your data prepared with “Download my data” for 7 days.
 
