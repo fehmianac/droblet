@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Platform, View } from 'react-native';
 
+import { track } from '@/analytics/track';
 import { openPrivacy, openTerms } from '@/components/LegalLinks';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
@@ -42,6 +43,9 @@ export function CreditPackSheet({ reason }: { reason: CreditSheetReason }) {
     purchaseFlow.reset();
     return () => purchaseFlow.reset();
   }, []);
+  useEffect(() => {
+    track('credit_pack_view', { reason });
+  }, [reason]);
 
   const close = () => creditSheetStore.close();
   const pack = store.data?.products.find((p) => p.kind === 'consumable' && p.credits !== null);

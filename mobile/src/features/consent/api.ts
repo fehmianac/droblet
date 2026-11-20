@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 
+import { track } from '@/analytics/track';
 import { apiRequest } from '@/api/client';
 import {
   CONSENT_TEXT_VERSION,
@@ -53,6 +54,7 @@ export async function saveConsents(client: QueryClient, decisions: ConsentDecisi
     () => apiRequest<ConsentState>('v1/tenant/consents', { method: 'PUT', body }),
   );
   client.setQueryData(consentKeys.all, state);
+  decisions.forEach((d) => track('consent_updated', { type: d.type, granted: d.granted, source }));
   // Server side effects of a withdrawal: marketing switches the weekly edit / price drops off, weight clears the weight.
   if (decisions.some((d) => !d.granted && d.type === 'marketingNotifications')) void client.invalidateQueries({ queryKey: accountKeys.notifications });
   if (decisions.some((d) => !d.granted && d.type === 'weight')) void client.invalidateQueries({ queryKey: queryKeys.bodyProfile });

@@ -30,6 +30,7 @@ import { aiCreditsKey } from '@/features/credits/useAiCredits';
 import { fixtureDb } from '@/fixtures/db';
 import { fixtureJobOptions, startFixtureJob } from '@/fixtures/jobs';
 import { ulid } from '@/lib/ids';
+import { trackTryOnStarted, type TryOnPath } from '@/analytics/jobEvents';
 
 import { matchesPhotoKey, useTryOnPhotoKey, type TryOnPhotoKey } from './photoKey';
 import { tryOnRuns } from './runs';
@@ -76,6 +77,12 @@ export function tryOnConsents(): readonly ConsentType[] {
   const photos = getActiveQueryClient()?.getQueryData<MyPhotos>(accountKeys.photos);
   if (photos && photos.body.length === 0 && photos.face) return CONSENTS_FOR.tryOnFace;
   return CONSENTS_FOR.tryOn;
+}
+
+/** Which picture a try-on is rendered on (analytics `path`): the full-length photo when there is one, else the face. */
+export function tryOnPath(): TryOnPath {
+  const photos = getActiveQueryClient()?.getQueryData<MyPhotos>(accountKeys.photos);
+  return photos && photos.body.length === 0 && photos.face ? 'face' : 'body';
 }
 
 /**
@@ -139,6 +146,7 @@ export function useStartTryOn() {
     start: async (target: TryOnTarget) => {
       await requireTryOnConsent();
       const accepted = await mutation.mutateAsync({ requestId: ulid(), target });
+      trackTryOnStarted(accepted.jobId, target.kind, tryOnPath());
       // 14b's hero shows "Hazırlanıyor…" for this target until the job ends.
       tryOnRuns.record(target, accepted.jobId);
       return accepted;
@@ -146,7 +154,14 @@ export function useStartTryOn() {
     /** Several targets under one confirmation (07b "7 kredi harcanacak"); resolves with the job ids in order. */
     startMany: async (targets: TryOnTarget[]) => {
       await requireTryOnConsent();
-      return Promise.all(targets.map((target) => mutation.mutateAsync({ requestId: ulid(), target })));
+      const path = tryOnPath();
+      return Promise.all(
+        targets.map(async (target) => {
+          const accepted = await mutation.mutateAsync({ requestId: ulid(), target });
+          trackTryOnStarted(accepted.jobId, target.kind, path);
+          return accepted;
+        }),
+      );
     },
   };
 }

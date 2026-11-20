@@ -1,13 +1,25 @@
-import { useQueryClient, type QueryClient } from '@tanstack/react-query';
+import { skipToken, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import Constants from 'expo-constants';
+import { useSegments } from 'expo-router';
 import { AppState, Platform } from 'react-native';
 
 import { apiRequest } from '@/api/client';
+import type { MyPhotos, ProfileStats } from '@/api/contracts/account';
 import type { EventBatchRequest } from '@/api/contracts/analytics';
 import { toEventBatchWire, type EventBatchResponseWire } from '@/api/wire/analytics';
+import type { toEntitlement } from '@/api/wire/core';
+import { useOnboardingStatus } from '@/auth/onboarding';
+import { useSession } from '@/auth/session';
+import { accountKeys } from '@/features/account/queries';
+import { useAppLanguage } from '@/i18n/useAppLanguage';
+import { queryKeys } from '@/sync/queryKeys';
 
-import { bindAnalyticsSink, flushAnalytics } from './track';
+import { analyticsActor } from './actor';
+import { firebaseCollecting, setFirebaseUserId, setFirebaseUserProperties } from './firebase';
+import { toFirebaseUserProperties, wardrobeSizeBucket } from './firebaseEvents';
+import { useProductAnalyticsEnabled } from './preference';
+import { bindAnalyticsSink, flushAnalytics, trackScreen } from './track';
 
 export const analyticsMutationKey = ['tenant', 'event', 'batch'] as const;
 
@@ -33,9 +45,72 @@ export function registerAnalyticsMutation(client: QueryClient): void {
   });
 }
 
+/** GA4 `screen_view` on every route change, named by the route pattern (`item/[id]`), never by ids. */
+function ScreenViews() {
+  const segments = useSegments();
+  const screen = segments.join('/');
+  useEffect(() => {
+    trackScreen(screen ? screen.split('/') : []);
+  }, [screen]);
+  return null;
+}
+
+/** Reads a query's cached data without ever fetching it (the screens that need it do). */
+function useCached<T>(queryKey: readonly unknown[]): T | undefined {
+  return useQuery<T>({ queryKey, queryFn: skipToken }).data;
+}
+
+/**
+ * Firebase user id (the pseudonymous actor hash, = the server's) and the GA4 user properties. Mounted only
+ * while Firebase collects; reads cached data only — it never adds a request.
+ */
+function FirebaseUser({ userId }: { userId: string }) {
+  const session = useSession();
+  const tenantId = session.status === 'signedIn' ? (session.user.tenantId ?? null) : null;
+  const onboarding = useOnboardingStatus(userId);
+  const language = useAppLanguage();
+  const entitlement = useCached<ReturnType<typeof toEntitlement>>(queryKeys.entitlement);
+  const photos = useCached<MyPhotos>(accountKeys.photos);
+  const stats = useCached<ProfileStats>(accountKeys.stats);
+
+  useEffect(() => {
+    if (!tenantId) return;
+    let live = true;
+    void analyticsActor(tenantId)
+      .then((actor) => live && setFirebaseUserId(actor))
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [tenantId]);
+
+  const plan = entitlement ? (entitlement.tier === 'member' ? 'premium' : 'free') : null;
+  const onboardingDone = onboarding === 'unknown' ? null : onboarding === 'done';
+  const hasBody = photos ? photos.body.length > 0 : null;
+  const hasFace = photos ? photos.face !== null : null;
+  const bucket = wardrobeSizeBucket(stats?.itemCount);
+  useEffect(() => {
+    if (!firebaseCollecting()) return;
+    setFirebaseUserProperties(
+      toFirebaseUserProperties({
+        plan,
+        app_language: language,
+        onboarding_done: onboardingDone,
+        has_body_photo: hasBody,
+        has_face_photo: hasFace,
+        wardrobe_size_bucket: bucket,
+      }),
+    );
+  }, [plan, language, onboardingDone, hasBody, hasFace, bucket]);
+
+  useEffect(() => () => setFirebaseUserId(null), []);
+  return null;
+}
+
 /**
  * Connects `track()` to the signed-in user's persisted mutation queue and flushes when the app
- * goes to the background. Rendered inside the QueryProvider; does nothing while signed out.
+ * goes to the background; reports screen views and, while product analytics is on, the Firebase
+ * user id / properties. Rendered inside the QueryProvider; the first-party sink does nothing while signed out.
  */
 export function AnalyticsHost({ userId }: { userId: string | null }) {
   const client = useQueryClient();
@@ -58,5 +133,11 @@ export function AnalyticsHost({ userId }: { userId: string | null }) {
     };
   }, [client, userId]);
 
-  return null;
+  const productAnalytics = useProductAnalyticsEnabled();
+  return (
+    <>
+      <ScreenViews />
+      {userId && productAnalytics ? <FirebaseUser key={userId} userId={userId} /> : null}
+    </>
+  );
 }

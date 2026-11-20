@@ -426,7 +426,7 @@
           "We use your face photo for the colour palette analysis and — with a separate consent, when you have no full-body photo — to build your “See it on me” figure; we do not identify you, run face recognition or extract a face template.",
           "For AI features your photos and the information needed are sent to OpenAI; our data is stored with AWS in Frankfurt. This means transfers outside Türkiye and the UK.",
           "If you choose to find friends from your contacts, your address book never leaves your phone; only single-use hashes are sent, and they are not stored.",
-          "We use no ad tracking, no third-party analytics or advertising SDKs, and we do not sell your data. When we send you to a brand we add only a click id for the commission.",
+          "We do no ad tracking, we do not read the advertising identifier and we do not sell your data. To improve the app we run pseudonymous product analytics with Google Analytics for Firebase; you can switch it off at any time under Settings › Privacy › “Product analytics”. When we send you to a brand we add only a click id for the commission.",
           "When you delete your account your data is deleted at once and leaves our backups within 30 days.",
           "You have the right to access, correct, delete, object and port your data: [CONTACT E-MAIL]."
         ],
@@ -463,6 +463,7 @@
               "- Membership and credits: your subscription status, store transaction ids, your AI image credit balance and movements. We never receive your card or payment details.",
               "- Device: a device id (created by the app), platform and push notification token.",
               "- Usage events: certain steps in the app (for example sign-up completed, first item added, membership screen viewed). They contain no name, e-mail or free text (see section 9).",
+              "- Product analytics (Google Analytics for Firebase, can be switched off): the names of the screens you open (for example “wardrobe” — not their content or ids), certain steps in the app (for example sign-up, “See it on me” started, item added), coarse user properties, Firebase's app instance id, device model, operating system and app version, language and an approximate location (country/city) derived from the IP address. No name, e-mail, free text, photo or item name is sent (see section 9).",
               "- Technical and security data: IP address, request time, error records; sign-in attempt counters to prevent abuse.",
               "Information from others:",
               "- Apple and Google: your sign-in details; App Store and Google Play: purchase, renewal, cancellation and refund notifications.",
@@ -493,6 +494,7 @@
               "- Notifications of a marketing nature such as the weekly edit and price drops: your consent (see section 16).",
               "- Matching your click to a brand with the order that follows (commission, offering to add what you bought to your wardrobe, adding to your watch list after 48 hours): our legitimate interest in sustaining the Service's revenue model and making shopping easier for you; adding to your wardrobe needs your confirmation.",
               "- Improving and measuring the product with usage events: legitimate interests (with pseudonymous, limited data).",
+              "- Product analytics with Google Analytics for Firebase (measuring which features are used and where people get stuck, improving flows): legitimate interests (art. 6(1)(f)). It is on by default; you can switch it off at any time under Settings › Privacy › “Product analytics”, after which that device sends no analytics data to Google. [LEGAL REVIEW: legitimate interests for product analytics and PECR reg. 6 — the statistical/analytics exception introduced by the Data (Use and Access) Act 2025; KVKK art. 5/2-f]",
               "- Security, preventing fraud and abuse, rate limits, reviewing reports and moderation: legitimate interests and, where applicable, legal obligation.",
               "- Establishing, exercising or defending legal claims and responding to authorities: legal obligation and legitimate interests.",
               "Where we rely on legitimate interests we have balanced them against your rights and freedoms; you can ask for this assessment and object to the processing."
@@ -528,10 +530,14 @@
             ]
           },
           {
-            "heading": "Usage events (our own analytics)",
+            "heading": "Usage events and product analytics",
             "paragraphs": [
-              "We use no third-party analytics, advertising or tracking SDKs and we do not read the advertising identifier (IDFA/AAID). To improve the product, the app sends events from a fixed list (for example “sign-up completed”, “membership screen viewed”, “credit spent”) to our own servers.",
-              "When events are stored, a one-way hash replaces your account id; events cannot contain names, e-mail addresses or free text, only short predefined values (for example a screen name, a product id or a number). Because we can recompute this hash from your account, these events are still personal data about you (pseudonymous): they are included in the copy of your data (“Download my data”) and deleted when you delete your account. Otherwise event records are deleted automatically after 400 days."
+              "We use no advertising or tracking SDKs and we do not read the advertising identifier (IDFA/AAID). To improve the product, the app sends events from a fixed list (for example “sign-up completed”, “membership screen viewed”, “credit spent”) to our own servers.",
+              "When events are stored, a one-way hash replaces your account id; events cannot contain names, e-mail addresses or free text, only short predefined values (for example a screen name, a product id or a number). Because we can recompute this hash from your account, these events are still personal data about you (pseudonymous): they are included in the copy of your data (“Download my data”) and deleted when you delete your account. Otherwise event records are deleted automatically after 400 days.",
+              "Product analytics: we also send some of these events and screen views to Google Analytics for Firebase, a service of Google LLC (US); Google acts as our processor for it. What is sent: the event name and short predefined values (for example sign-in method, source, a count, a catalogue product id), the screen name (for example “item/[id]” — never the id itself), coarse user properties (plan type, app language, whether onboarding is finished, whether you have a full-body or face photo, a wardrobe size range), Firebase's app instance id, device, operating system and app version, and an approximate location. The user id is not your account id but the same one-way hash our own analytics uses.",
+              "What we do not do: we do not collect the advertising identifier (IDFA/AAID), the Android device id (SSAID) or the iOS identifier for vendors (IDFV); ad storage, ad personalisation signals and registration with ad networks stay off, and Google signals are not enabled. This data is never used for advertising or for tracking you across apps. Names, e-mail addresses, free text, photos, photo links and item names are never sent; the app filters values before sending them.",
+              "Switching it off: when you untick Settings › Privacy › “Product analytics”, Firebase Analytics stops on that device at once and your choice is kept. Our own analytics (the events above) is not affected by this setting.",
+              "Retention: event-level data is kept in Google Analytics for 14 months and then deleted automatically; reports are aggregated and anonymous. When you delete your account the hash can no longer be matched to your account. [LEGAL REVIEW: the 14-month retention; whether a user deletion request must be sent to Google Analytics when an account is deleted]"
             ]
           },
           {
@@ -554,6 +560,7 @@
               "- Twilio SendGrid: password reset e-mails; your e-mail address and the e-mail content. Processor.",
               "- Cloudflare: delivering and protecting the website; visitors' IP addresses and request details. Processor.",
               "- Apple (Apple Push Notification service) and Google (Firebase Cloud Messaging): delivering notifications to your device; the device's push token and the notification text.",
+              "- Google LLC (Google Analytics for Firebase): product analytics (section 9); pseudonymous usage data, app instance id, device details and approximate location. Processor. [LEGAL REVIEW: acceptance of the Google Ads Data Processing Terms and Google Analytics data-sharing settings switched off]",
               "- Apple and Google: Sign in with Apple / Google and App Store / Google Play payments. These companies are separate controllers for their own services.",
               "- Open-Meteo: weather. Our server sends only the coordinates of the city you chose; never your identity or IP address.",
               "- Admitad, Gelir Ortakları (ReklamAction) and brands with direct agreements: only the click id (section 8).",
@@ -566,7 +573,7 @@
           {
             "heading": "International transfers",
             "paragraphs": [
-              "Droblet is a UK company and our service providers are in several countries. Your data is therefore transferred outside Türkiye and the UK, in particular to the EU (Germany — AWS) and the US (OpenAI, Twilio SendGrid, Google, Apple, Cloudflare).",
+              "Droblet is a UK company and our service providers are in several countries. Your data is therefore transferred outside Türkiye and the UK, in particular to the EU (Germany — AWS) and the US (OpenAI, Twilio SendGrid, Google — including Firebase Cloud Messaging and Google Analytics for Firebase —, Apple, Cloudflare).",
               "Transfers from the UK to the EU rely on the UK's adequacy regulations for the EU/EEA. Transfers to the US and other countries rely on [TRANSFER MECHANISM] (for example certified recipients under the UK–US data bridge, the ICO International Data Transfer Agreement, or the UK Addendum to the EU Standard Contractual Clauses).",
               "Transfers from Türkiye abroad are subject to KVKK art. 9; the grounds are set out in the KVKK Information Notice. [LEGAL REVIEW: KVKK standard contracts and notification to the Board]",
               "You can ask for a copy of the transfer safeguards at [CONTACT E-MAIL]."
@@ -581,6 +588,7 @@
               "- Item drafts awaiting your confirmation and AI job records: 7 days.",
               "- “Not for me” feedback, credit movements and credit reservations: 400 days or until you delete your account, whichever comes first.",
               "- Usage events: 400 days or until you delete your account, whichever comes first (pseudonymous).",
+              "- Product analytics (Google Analytics for Firebase): event-level data 14 months, then deleted automatically by Google.",
               "- Password reset link: 30 minutes. Session: access token 60 minutes, refresh token 60 days.",
               "- E-mail verification code and link: 24 hours (only their hashes are stored).",
               "- The copy of your data prepared with “Download my data” (ZIP file): 7 days, then deleted automatically. The record of the request is kept for 30 days.",
@@ -647,7 +655,7 @@
           {
             "heading": "Cookies",
             "paragraphs": [
-              "Our website's own code sets no cookies, stores nothing in your browser and contains no analytics or advertising tools. The app does not use cookies. Details are in the Cookie Notice."
+              "Our website's own code sets no cookies, stores nothing in your browser and contains no analytics or advertising tools. The app does not use cookies; while product analytics is on, the Firebase SDK keeps an app instance id on your device (section 9). Details are in the Cookie Notice."
             ]
           },
           {
@@ -694,6 +702,7 @@
               "- Transaction security: password hash, session tokens, Apple/Google account ids, encrypted Apple refresh token, device id, push token, IP address, server logs, sign-in attempt counters, account suspension records.",
               "- Contacts: single-use hashes made on your phone from the e-mail addresses in your contacts (not stored; names, numbers and the addresses themselves never leave your phone).",
               "- Usage events: app events in which a hash replaces the account id and which contain no free text.",
+              "- Product analytics: screen views and app events sent to Google Analytics for Firebase, coarse user properties, app instance id, device, operating system and app version, approximate location (a hash replaces the account id; can be switched off in Settings).",
               "Special categories of personal data: We use the face photo for the colour palette analysis and — when there is no full-body photo — to build the “See it on me” figure; we do not identify or verify anyone or run face recognition, and we do not extract or store a biometric template that uniquely identifies a person. We therefore consider that the face photo is not processed as biometric data. Weight may be regarded as health-related data. In both cases we process this data only with your explicit consent. [LEGAL REVIEW: KVKK art. 6 assessment]"
             ]
           },
@@ -710,7 +719,7 @@
               "- providing the shop catalogue, sending you to brands, tracking affiliate commission, offering to add purchased products to your wardrobe, watch list and price tracking;",
               "- verifying Droblet Membership and extra credit purchases, managing membership and credits;",
               "- sending service notifications and, with your explicit consent, marketing notifications;",
-              "- developing and measuring the product;",
+              "- developing and measuring the product (our own usage events and product analytics with Google Analytics for Firebase);",
               "- information and transaction security, preventing abuse and fraud, reviewing reports and enforcing the community guidelines;",
               "- answering requests and complaints and handling data subject applications;",
               "- meeting legal obligations, informing competent authorities and protecting rights in legal disputes."
@@ -722,7 +731,7 @@
               "- Processing directly related to the formation or performance of a contract (KVKK art. 5/2-c): account, profile, wardrobe, looks, plans, trips, AI item recognition and style suggestions, social features, shop and cart, membership and credits, service notifications, support.",
               "- Compliance with the controller's legal obligation (art. 5/2-ç): requests of competent authorities, data subject applications, keeping required records.",
               "- Establishing, exercising or protecting a right (art. 5/2-e): dispute and complaint processes.",
-              "- The controller's legitimate interest, provided it does not harm your fundamental rights and freedoms (art. 5/2-f): security and abuse prevention, moderation, matching affiliate clicks and orders, product development with pseudonymous usage events.",
+              "- The controller's legitimate interest, provided it does not harm your fundamental rights and freedoms (art. 5/2-f): security and abuse prevention, moderation, matching affiliate clicks and orders, developing and measuring the product with pseudonymous usage events and Google Analytics for Firebase (can be switched off under Settings › Privacy › “Product analytics”). [LEGAL REVIEW: whether art. 5/2-f suffices for product analytics]",
               "- Explicit consent (art. 5/1 and, where needed, art. 6): AI processing of your full-body and face photos (“See it on me”, colour palette), storing your weight, finding friends from contacts, notifications of a marketing nature and, where needed, incidental transfers abroad. You can withdraw your explicit consent at any time; the related feature then stops working, but you can keep using Droblet's other features."
             ]
           },
@@ -743,6 +752,7 @@
               "- Twilio SendGrid (US): password reset e-mails — e-mail address.",
               "- Cloudflare (US and global): delivering and protecting the website — IP address.",
               "- Apple and Google (US): sign-in, in-app purchase verification and delivering notifications.",
+              "- Google LLC (US) — Google Analytics for Firebase: product analytics — pseudonymous usage data, app instance id, device details and approximate location.",
               "- Admitad (affiliate network abroad [LEGAL REVIEW: country]): the click id only.",
               "- Open-Meteo ([LEGAL REVIEW: country]): only the coordinates of the city you chose; no identity data is transferred.",
               "Transfers abroad are made under KVKK art. 9 on the basis of [TRANSFER MECHANISM] (for example standard contracts announced by the Board, signed with the recipients and notified to the Authority in time). For incidental transfers without these safeguards, your explicit consent under art. 9/6-a may be relied on. [LEGAL REVIEW: transfer mechanism]"
@@ -752,6 +762,7 @@
             "heading": "Retention periods",
             "paragraphs": [
               "Your personal data is kept as long as needed for the purpose: account and content data until you delete it or your account; unprocessed uploads 1 day at most; item drafts and AI job records 7 days; usage events, credit movements and stylist feedback 400 days or until you delete your account, whichever comes first; password reset link 30 minutes; refresh token 60 days. Affiliate records are kept for [AFFILIATE RECORD RETENTION], reports for [REPORT RETENTION] and server logs for [LOG RETENTION]. Deleted data leaves backups within 30 days at the latest. The detailed table is in the Privacy Policy.",
+              "Product analytics data in Google Analytics for Firebase is kept at event level for 14 months and then deleted automatically.",
               "The e-mail verification code and link are kept for 24 hours, and the copy of your data prepared with “Download my data” for 7 days.",
               "When the period ends, data is deleted, destroyed or anonymised. [LEGAL REVIEW: personal data retention and destruction policy]"
             ]
@@ -1069,7 +1080,7 @@
           {
             "heading": "Mobile app",
             "paragraphs": [
-              "The Droblet app uses no cookies and contains no third-party analytics, advertising or tracking SDKs; it does not read the advertising identifier (IDFA/AAID) and does not track you across apps.",
+              "The Droblet app uses no cookies and contains no advertising or tracking SDKs; it does not read the advertising identifier (IDFA/AAID) and does not track you across apps. For product analytics it uses the Google Analytics for Firebase SDK, which keeps an app instance id and the events waiting to be sent on your device. You can switch it off under Settings › Privacy › “Product analytics” (Privacy Policy section 9). [LEGAL REVIEW: PECR reg. 6 — the Data (Use and Access) Act 2025 exception for storage used for analytics, with the opportunity to object]",
               "The app keeps on your device only what it needs to work: session tokens in the device's secure storage (iOS Keychain / Android Keystore), your language preference and a short-lived image cache in the app's own space. The relevant cache is cleared when you sign out and when you delete your photos.",
               "The usage events the app sends to our own servers are described in the Privacy Policy."
             ]
