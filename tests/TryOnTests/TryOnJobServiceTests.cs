@@ -137,6 +137,25 @@ public class TryOnJobServiceTests
     }
 
     [Fact]
+    public async Task Process_WithPreview_TheFullRenderAfterCompletionIsCountedToo_TheJobOnce()
+    {
+        var renderer = new QualityRenderer();
+        var (host, _, message) = await ArrangeAsync(renderer, configure: s => s.Configure<Domain.Options.AiOptions>(o => o.Image.TryOnPreview = true));
+        using (AiUsageProbe.Run("image_tryon", "gpt-image-2.5-sunburst", 0.031m))   // the preview call
+        {
+            renderer.BeforeSecond = () =>
+            {
+                Infrastructure.Telemetry.AiTelemetry.Current!.AddCall(new("image_tryon", "gpt-image-2.5-sunburst", 9000, 200, 5000, 760, CostUsd: 0.05m));
+                return Task.CompletedTask;
+            };
+            await host.Get<ITryOnJobService>().ProcessAsync(message, false, default);
+        }
+
+        var day = await AiUsageProbe.DayAsync(host.Repository, Tenant, WorkerTestHost.Now);
+        Assert.Equal((1L, 2L, 81_000L), (day[AiUsageCounters.Jobs], AiUsageProbe.Op(day, AiUsageOperations.TryOn, AiUsageCounters.Calls), day[AiUsageCounters.Cost]));
+    }
+
+    [Fact]
     public async Task Process_WithPreview_FullRenderCutByTheTimeBudgetOnTheLastAttempt_JobStaysCompleted()
     {
         // The full-quality render runs after the job completed; the worker's time budget (CancelAfter) can end it.

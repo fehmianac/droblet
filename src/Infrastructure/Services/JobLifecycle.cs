@@ -84,6 +84,15 @@ public sealed class JobLifecycle(
         logger.LogWarning("Job {JobId} ({Kind}) for tenant {TenantId} failed: {Failure}", job.Id, job.Kind, job.TenantId, failure);
     }
 
+    public Task RecordLateUsageAsync(JobEntity job, string stage, CancellationToken ct)
+    {
+        var calls = AiTelemetry.Current?.TakeUncountedCalls().Select(c => c.ToUsage()).ToList() ?? [];
+        return calls.Count == 0
+            ? Task.CompletedTask
+            : usage.RecordAsync(new AiUsageRecord(job.TenantId, job.Id + "#" + stage, job.Kind, AiUsageOutcome.Completed, calls,
+                timeProvider.GetUtcNow().UtcDateTime, CountsJob: false, Source: AiUsageOperations.SourceOf(job.Input)), ct);
+    }
+
     /// <summary>The run's provider calls into the durable usage counters (marker = job id). Best effort.</summary>
     private Task RecordUsageAsync(JobEntity job, AiUsageOutcome outcome, CancellationToken ct)
     {
