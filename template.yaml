@@ -733,6 +733,12 @@ Resources:
                 # GetObject: the source of the public copy (CopyObject) of a cleaned image.
                 Action: [s3:PutObject, s3:DeleteObject, s3:GetObject]
                 Resource: !Sub '${PhotoBucket.Arn}/tenant/*/items/*'
+              # Without ListBucket S3 answers HEAD/GET on a missing key with 403 instead of 404, so the image migration could
+              # not tell "cleaned image missing" (skip) from "access denied". A prefix condition does not apply to HEAD, so the
+              # grant is on the bucket; it reveals key names only, never content (GetObject stays limited to tenant/*/items/*).
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource: !GetAtt PhotoBucket.Arn
               # Outfit-import pieces get their cleaned image here: it is published (copied) like the Api does on confirm.
               - Effect: Allow
                 Action: [s3:PutObject, s3:DeleteObject]
