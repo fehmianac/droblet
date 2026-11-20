@@ -434,16 +434,42 @@ rejected photo fails the job with `photoUnsuitable` (credit refunded), the job `
 photo is **removed** (the app asks for another one with tips). A person who appears to be under 18 → `guardRejected`. A
 photo that passed is not checked again.
 
+**Outfit photo ("Kombini ayırmadan üzerimde gör").** Target kinds `photo` and `importPhoto` try on the **whole outfit
+someone wears in a photo** (a saved inspiration photo, an outfit import photo) without splitting it into pieces:
+
+* `photo` — `id` = an **item upload id** (`POST v1/tenant/item/upload-url` + the S3 POST, the same upload as 12 "Parça
+  ekle") or an **item draft id** (the photo already on the chooser `app/item/detect`; once the item processor took the
+  upload, its EXIF-stripped original is used). `importPhoto` — `id` = an outfit import session id, `index` = the photo
+  number (1–100, required).
+* The Api reads the photo from the caller's own uploads only, strips EXIF / location (`ImageMetadataStripper`) and hashes
+  it (SHA-256, first 128 bits, lower-case hex). **The hash is the target id**: the same photo from 12, an import or the
+  stylist hub is one image, cached per body photo / face subject like any try-on, and charged once (1 credit, refunded on
+  failure). The stripped copy goes to `uploads/tmp/{tenant}/tryonref-{hash}` for the job (1-day lifecycle).
+* The worker checks the outfit photo first (fast model, `reference_check`, every job): exactly one person, clothing visible,
+  nobody who appears to be under 18. Otherwise the job fails with `guardRejected`, `result` =
+  `{ "referenceIssue": "noPerson" | "multiplePeople" | "noClothing" | "minor" }`, credit refunded; the user's own photo is
+  not touched. The user's body / face photo still passes the photo check above.
+* The image model gets the user's photo (or the face photo + figure on the face path) and the outfit photo, with the
+  registry prompts `tryon.image.photo.body` / `tryon.image.photo.face`: every visible garment, shoe, bag and accessory of
+  the outfit with its colours, patterns, logos and cut — never the reference person's face, body, hair or skin; the same
+  full-body framing as every try-on.
+* The outfit photo is kept next to the image (`tenant/{tenant}/tryon/{imageId}-ref.{ext}`, private) and returned as
+  `TryOnImageDto.referenceUrl` (presigned, same TTL) — the app's "Kaynak fotoğraf". It is deleted with the image (photo
+  replaced / deleted, "Fotoğraflarımı sil", account deletion) and included in the data export (`files/tryon/`).
+* 422 `tryon_reference_invalid`: not a supported image; 404 `target_not_found`: no such upload / draft / import photo of the
+  caller.
+
 ### POST `v1/tenant/tryon`
 ```json
 { "requestId": "01J…", "target": { "kind": "look", "id": "01J…", "index": null } }
 ```
-`target.id`: item id · look id · product id (catalog) · edit look id · for `suggestion` the **stylist job id** with `index` · for `tripDay` `"{tripId}/{yyyy-MM-dd}"` (the look of that trip day, `TripDetailDto.days[]`; its existing pieces are the outfit, so the same pieces as a look or suggestion share one cached image and one credit; an unknown trip or day → 404 `target_not_found`, a day whose pieces are all gone → 422 `tryon_target_empty`).
+`target.kind`: `item` · `look` · `product` · `editLook` · `suggestion` · `tripDay` · `photo` · `importPhoto` (outfit photo, above).
+`target.id`: item id · look id · product id (catalog) · edit look id · for `suggestion` the **stylist job id** with `index` · for `photo` an item upload / draft id · for `importPhoto` the import session id with `index` = the photo number · for `tripDay` `"{tripId}/{yyyy-MM-dd}"` (the look of that trip day, `TripDetailDto.days[]`; its existing pieces are the outfit, so the same pieces as a look or suggestion share one cached image and one credit; an unknown trip or day → 404 `target_not_found`, a day whose pieces are all gone → 422 `tryon_target_empty`).
 `editLook` ids: a weekly-edit look id (`EditDto.looks[].id`) renders its first price-band variant; `"{lookId}@{priceBand}"` (e.g. `edit-2026-w47-d1@luxuryTouch`) renders that variant; `"{collectionId}/{lookId}"` renders a creator / series collection look. Only published, non-retired content resolves. Product garments are rendered from the product's first catalog image.
 
 | Status | Body | Meaning |
 |---|---|---|
-| 200 | `{ "status": "cached", "image": { "id", "url", "urlExpiresAt", "createdAt", "source" }, "job": null }` | Image already exists — no credit |
+| 200 | `{ "status": "cached", "image": { "id", "url", "urlExpiresAt", "createdAt", "source", "referenceUrl" }, "job": null }` | Image already exists — no credit. `referenceUrl`: the outfit photo of a `photo` / `importPhoto` try-on, else null |
 | 202 | `{ "status": "queued", "image": null, "job": JobDto }` | Job running (1 credit reserved, or an already running job for the same outfit — no second credit). Poll the job; its `result` is `{ "tryOnImageId": "…" }`, then `GET v1/tenant/tryon/{id}` |
 | 402 | `credits_exhausted` | Open the credit-pack sheet; show the piece collage |
 | 403 | `premium_required` | Paywall |
@@ -451,10 +477,11 @@ photo that passed is not checked again.
 | 422 | `body_photo_required` | Neither a body nor a face photo → the requirements sheet (body photo, or face photo + body type) |
 | 403 | `consent_required` + `missing` | The consents of the path (body: `bodyPhotoAi` + `crossBorderTransfer`; face: `facePhotoTryOn` + `crossBorderTransfer`) |
 | 422 | `tryon_target_empty` | Every piece of the look is gone |
+| 422 | `tryon_reference_invalid` | `photo` / `importPhoto`: the outfit photo is not a supported image |
 | 409 | `request_id_reused` | |
 | 400 | `request_id_invalid`, `target_required`, `target_kind_invalid`, `target_id_invalid`, `target_index_invalid` | |
 
-Job failures: `sourceDeleted` (the body / face photo or a piece was deleted meanwhile — or a product has no downloadable image: not https, not an image, larger than `Catalog:MaxImageBytes`, or its host is not in `Catalog:ImageHosts` when that list is set), `photoUnsuitable` (photo check, see above), `providerError`, `guardRejected`. In every case the credit is refunded. A `suggestion` target also renders the library pieces the stylist picked (owned copy once added, else the library image).
+Job failures: `sourceDeleted` (the body / face photo or a piece was deleted meanwhile — or a product has no downloadable image: not https, not an image, larger than `Catalog:MaxImageBytes`, or its host is not in `Catalog:ImageHosts` when that list is set), `photoUnsuitable` (photo check, see above), `providerError`, `guardRejected` (a minor in the user's photo; for an outfit photo also `result.referenceIssue`). In every case the credit is refunded. A `suggestion` target also renders the library pieces the stylist picked (owned copy once added, else the library image).
 
 | Method | Path | Response |
 |---|---|---|
