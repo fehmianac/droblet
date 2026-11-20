@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 
+import { track } from '@/analytics/track';
 import { toast } from '@/components/ui/toast';
 
 import type { Occasion } from '@/api/contracts';
@@ -60,6 +61,7 @@ export function useLookWrites() {
     create: (draft: LookDraft): string => {
       const variables = createVariables(draft);
       create.mutate(variables);
+      track('look_saved', { source: 'editor' });
       return variables.request.id;
     },
     update: (look: Look, draft: LookDraft): void => {
@@ -72,6 +74,7 @@ export function useLookWrites() {
     createNow: async (draft: LookDraft): Promise<string> => {
       const variables = createVariables(draft);
       await create.mutateAsync(variables);
+      track('look_saved', { source: 'editor' });
       return variables.request.id;
     },
     updateNow: async (look: Look, draft: LookDraft): Promise<void> => {

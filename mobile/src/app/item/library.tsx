@@ -38,7 +38,10 @@ export default function ItemLibraryScreen() {
   const submit = (items: LibraryItem[]) => {
     const chosen = items.filter((i) => selected.includes(i.id));
     if (chosen.length === 0) return;
-    addItems.add(chosen.map((i) => ({ fields: libraryItemFields(i), draftId: null, libraryItemId: i.id, preview: i.imageUrl })));
+    addItems.add(
+      chosen.map((i) => ({ fields: libraryItemFields(i), draftId: null, libraryItemId: i.id, preview: i.imageUrl })),
+      'library',
+    );
     router.dismissTo('/wardrobe');
   };
 

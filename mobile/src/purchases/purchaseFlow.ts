@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import { Platform } from 'react-native';
 
+import { track } from '@/analytics/track';
 import { apiRequest } from '@/api/client';
 import { ApiError } from '@/api/errors';
 import {
@@ -103,6 +104,11 @@ function errorKindOf(error: unknown): PurchaseErrorKind {
   return 'store';
 }
 
+/** Analytics category of a store product. */
+function productKind(productId: string): 'credit_pack' | 'subscription' {
+  return CONSUMABLE_IDS.includes(productId) ? 'credit_pack' : 'subscription';
+}
+
 export const purchaseFlow = {
   getState: (): PurchaseState => state,
   subscribe(listener: () => void) {
@@ -123,6 +129,7 @@ export const purchaseFlow = {
       return;
     }
     emit({ phase: 'purchasing', productId: product.productId, error: null });
+    track('begin_checkout', { productId: product.productId, kind: productKind(product.productId) });
     try {
       await startPurchase(product, accountToken);
     } catch (e) {
@@ -162,6 +169,7 @@ export const purchaseFlow = {
         // Android: the server already acknowledged / consumed it; iOS: finished on the next delivery.
       }
       emit({ phase: 'success', productId: purchase.productId, error: null });
+      track('purchase', { productId: purchase.productId, kind: productKind(purchase.productId) });
     } catch (e) {
       if (foreground) emit({ phase: 'error', productId: purchase.productId, error: errorKindOf(e) });
     } finally {

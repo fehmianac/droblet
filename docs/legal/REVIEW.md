@@ -50,7 +50,7 @@ Same placeholder in both languages; the EN spelling is in brackets. Count = occu
 | 16 | `[UYGULANACAK HUKUK VE YETKİLİ MAHKEME]` (`[GOVERNING LAW AND COURTS]`) | terms | 1 | See Q10. |
 | 17 | `[CLOUDFLARE ÇEREZLERİ]` (`[CLOUDFLARE COOKIES]`) | cookies | 2 | Check the zone: Bot Fight Mode / Bot Management sets `__cf_bm` (30 min); challenges set `cf_clearance`. List what is actually set, or write "none". |
 
-Lawyer markers: 19 distinct `[HUKUK ONAYI: …]` / `[LEGAL REVIEW: …]` notes (they map to the questions in §4). All
+Lawyer markers: 26 distinct `[HUKUK ONAYI: …]` / `[LEGAL REVIEW: …]` notes (they map to the questions in §4; 5 added 2026-11-20 for Firebase Analytics, Q16). All
 placeholders and markers must be gone before the banner is removed — a quick `grep -o '\[[^]]*\]' landing/content/*.json`
 shows what is left.
 
@@ -66,7 +66,7 @@ Facts taken from the handoff and code — confirm or correct:
 6. **Push**: APNs directly for iOS, FCM for Android. Default on after the first device registration: morning outfit + weekly edit; off: friend ratings, price drop, follow requests (decision 9).
 7. **Weather**: Open-Meteo, city chosen in the profile; the app does not request device location (the API accepts coordinates, rounded to 0.1°, but the app does not send them). No user identifier goes to Open-Meteo.
 8. **Affiliate**: Admitad, Gelir Ortakları (ReklamAction — assumed a Turkish company) and direct brand deals; only a `click_id` goes out; postbacks return order id, amount, currency, status; commission 7–12 %; 48 h auto-add to watch list.
-9. **Analytics**: own pipeline only, actor = one-way hash, no free text, 400-day TTL. The hash is unsalted per user and Droblet can recompute it from the account id, so the events are **pseudonymous personal data** (GDPR recital 26; KVKK treats re-identifiable data the same way), not anonymous: since 2026-11-19 every event also has a per-actor copy keyed by the hash, so the events are **in the data export and deleted with the account** (G9 closed).
+9. **Analytics**: own pipeline **plus Google Analytics for Firebase** (owner decision 2026-11-20, see Q16), actor = one-way hash, no free text, 400-day TTL. The hash is unsalted per user and Droblet can recompute it from the account id, so the events are **pseudonymous personal data** (GDPR recital 26; KVKK treats re-identifiable data the same way), not anonymous: since 2026-11-19 every event also has a per-actor copy keyed by the hash, so the events are **in the data export and deleted with the account** (G9 closed).
 10. **Contacts matching**: as in `docs/privacy/contacts-matching.md` (salted hashes, nothing stored, 10/day, e-mail only).
 11. **Social**: visibility default "Followers only"; ratings anonymous to the owner; report reasons spam / inappropriate / harassment / impersonation / minor safety / other, note ≤ 500 chars, 20 reports/day; outcomes dismissed / content removed / user warned / user suspended. No comments or DMs.
 12. **Subscriptions**: monthly + yearly in group "Droblet Üyelik", store-configured free trial (currently 1 week), 30 AI images per subscription month, non-rollover, consumable 20-credit pack usable only while premium (try-on requires premium), refunded pack credits removed, data kept after expiry, free tier = 10 AI recognitions. Prices are never in the texts — "shown in the store".
@@ -207,6 +207,41 @@ Droblet is a user-to-user service (profiles, item images, looks, ratings visible
 - Open-Meteo: its free API is licensed for **non-commercial** use; a commercial plan or another provider is needed before launch (owner decision 6 already says "decide again before launch").
 - KVKK Cookie Guidelines: Cloudflare security cookies as strictly necessary — fine?
 
+### Q16. Firebase Analytics (Google Analytics 4) — added 2026-11-20
+
+Owner decision: product analytics through **Google Analytics for Firebase** (Google LLC, US) next to the first-party
+events, **on by default on the basis of legitimate interest**, disclosed in the privacy notice, with an opt-out in the
+app (Ayarlar › Gizlilik › "Ürün analitiği"). No onboarding checkbox. What the app does is in
+[`docs/analytics-events.md`](../analytics-events.md). Texts changed: privacy §3, §5, §9 (now "Kullanım olayları ve ürün
+analitiği / Usage events and product analytics"), §11, §12, §13, §19 and the summary; KVKK §2, §3, §4, §6, §7; cookie
+notice §4 (mobile app). Please confirm:
+
+1. **Lawful basis.** Legitimate interest (UK GDPR art. 6(1)(f); KVKK m. 5/2-f) with opt-out, instead of consent. A
+   legitimate interests assessment (LIA) should be written down — the drafts say users can ask for it.
+2. **PECR reg. 6 / storage on the device.** The Firebase SDK stores an app instance id and an event queue on the device.
+   Does the **Data (Use and Access) Act 2025** exception for storage used only for statistical / analytics purposes
+   (with clear information and a simple way to object) apply, so that no prior consent is needed in the UK? For TR,
+   is opt-out acceptable under the KVKK Cookie Guidelines (Çerez Uygulamaları Hakkında Rehber), which lean towards
+   consent for analytics cookies? If consent is required anywhere, the toggle can start **off** for that market
+   (a one-line change in `mobile/src/analytics/preference.ts`) — the canvas wording would then need a consent screen.
+3. **Processor terms.** Accept the Google Ads Data Processing Terms (processor) in the Firebase / GA4 console; keep
+   "data sharing settings" (Google products & services, benchmarking, technical support, account specialists) **off**
+   and **Google signals off**, so Google stays a processor and nothing is used for advertising.
+4. **Transfer.** Google LLC (US): UK–US data bridge (Google is certified under the DPF + UK extension) / IDTA; KVKK m. 9
+   standard contract with Google and notification to the Board — is Google's KVKK SCC offering sufficient?
+5. **Retention.** Proposed GA4 event-data retention: **14 months** (close to the 400 days of the first-party events);
+   "reset on new activity" off. Aggregated reports are anonymous. Confirm, or choose 2 months (data minimisation).
+6. **Account deletion and access requests.** The GA4 user id is the same one-way actor hash as the first-party events
+   (`SHA-256("droblet-analytics:" + tenantId)`, truncated). After account deletion the tenant id is gone, so the hash can
+   no longer be linked to a person; the data then ages out with the retention period. Is that enough, or must account
+   deletion also send a **GA4 user deletion request** (User Deletion API) — an engineering item (G12)? Should
+   "Verilerimi indir" mention that GA4 data is not included (Google holds it as our processor and we can export it per
+   user only through the User Explorer)?
+7. **Store labels.** App Privacy now declares Usage Data › Product Interaction **linked**, Identifiers › Device ID and
+   Location › Coarse also for Analytics, tracking **No**; Data safety: App interactions, Device IDs and approximate
+   location for Analytics, not shared ([app-privacy.md](../store-listing/app-privacy.md),
+   [data-safety.md](../store-listing/data-safety.md)). Confirm.
+
 ## 5. Gaps between the texts and the product (engineering / product backlog)
 
 The texts describe the intended behaviour; these items are not (fully) built yet. Either build them before launch or
@@ -225,6 +260,7 @@ change the text.
 | G8 | Paywall: check the subscription terms link and the 24-hour auto-renew disclosure; mobile `LegalLinks` currently links Terms and Privacy only. | Subscription terms |
 | G9 | ~~Analytics rows survive account deletion~~ **Implemented (2026-11-19):** the events are pseudonymous personal data (the hash is recomputable from the account id); each event has a per-actor copy (`analytics-actor#{hash}`), so "Verilerimi indir" includes them (`data/analytics-events.json`) and account deletion removes them. Events recorded before this change have no copy and only age out by the 400-day TTL (not backfilled). | Privacy §9, §13, §14; KVKK §7 |
 | G10 | OpenAI data retention / ZDR not configured in code; confirm at account level. | Privacy §6 |
+| G12 | Firebase Analytics: account deletion does not send a GA4 user deletion request (the actor hash is no longer linkable once the tenant is deleted; data ages out after the GA4 retention). Add one if Q16.6 says so. GA4 retention (14 months) and data-sharing settings are console settings, not code. | Privacy §9, §13 |
 | G11 | Footer contact link appears only when `NEXT_PUBLIC_CONTACT_EMAIL` is set. | All pages |
 | G12 | ~~Unverified e-mail sign-ups could be matched by contacts~~ **Implemented (2026-11-19):** e-mail sign-ups get a 6-digit code + link (24 h); only a verified address (code / link, a completed password reset, or Apple / Google saying it is verified) enters the contact-matching directory. Unverified accounts can use the app; nothing else is blocked. | Privacy §7; consents §4 |
 
@@ -243,6 +279,7 @@ whatever the period.
 | Affiliate conversions and the revenue ledger | No period (financial / commission records; the ledger loses the person on account deletion) | — · *lawyer: tax / commercial retention period?* |
 | Anonymous click ledger (brand, source, network, click id; no user id) | No period (revenue report) | — · *after 13 months the click id no longer resolves to a person* |
 | Analytics events (one-way hash of the account, allow-listed properties) | 400 days or account deletion | DynamoDB TTL (`AnalyticsEventEntity` + per-actor copy `AnalyticsActorEventEntity`); removed with the account (G9) |
+| Firebase / Google Analytics 4 events (actor hash as user id, app instance id, allow-listed params) | **14 months** (GA4 event-data retention, proposal) | GA4 console setting (Admin › Data retention), not code · *lawyer: Q16.5* |
 | AI jobs (inputs / results of stylist, try-on, palette, item jobs) | 7 days | DynamoDB TTL (`JobEntity`, `ItemDraftEntity`) |
 | Credit reservations and ledger entries | 400 days | DynamoDB TTL |
 | Stylist "Beğenmedim" feedback | 400 days | DynamoDB TTL |

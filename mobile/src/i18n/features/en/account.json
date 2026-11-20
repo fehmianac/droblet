@@ -303,5 +303,10 @@
       "item": "Only you can see this piece: it was found to go against our community guidelines.",
       "profile": "Your name, photo and style tags are hidden from others: they were found to go against our community guidelines."
     }
+  },
+  "productAnalytics": {
+    "title": "Product analytics",
+    "body": "Measures how the app is used so we can improve it. Never used for ads.",
+    "privacy": "Privacy notice"
   }
 }

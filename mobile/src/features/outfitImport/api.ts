@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { track } from '@/analytics/track';
 import { apiRequest } from '@/api/client';
 import type { Entitlement } from '@/api/contracts';
 import type { ImportChoices, ImportCommitResult, ImportCreated, ImportSession } from '@/api/contracts/outfitImport';
@@ -134,7 +135,9 @@ export function useCommitImport(session: ImportSession | undefined) {
             await apiRequest<ImportCommitResultWire>(`v1/tenant/outfit-import/${session?.id}/commit`, { method: 'POST', body: session ? commitBody(session, choices) : { looks: [] } }),
           ),
       ),
-    onSuccess: () => {
+    onSuccess: (result) => {
+      track('outfit_import_commit', { looks: result.createdLookCount, items: result.createdItemCount });
+      if (result.createdItemCount > 0) track('item_added', { source: 'import', count: result.createdItemCount });
       void client.invalidateQueries({ queryKey: wardrobeKeys.items });
       void client.invalidateQueries({ queryKey: lookKeys.looks });
       void client.invalidateQueries({ queryKey: importKeys.open });

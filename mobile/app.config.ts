@@ -27,6 +27,14 @@ const easProjectId = process.env.EAS_PROJECT_ID;
  */
 const googleServicesFile = process.env.GOOGLE_SERVICES_JSON || undefined;
 
+/**
+ * Firebase iOS config (Firebase Analytics, project drob-bce7f). The release workflow writes the
+ * GOOGLE_SERVICE_INFO_PLIST secret to a file and passes its path here; locally:
+ * GOOGLE_SERVICE_INFO_PLIST=./GoogleService-Info.plist (git-ignored). Without it iOS builds work, only
+ * without Firebase Analytics (plugins/withFirebaseAnalytics.js skips the iOS Firebase setup).
+ */
+const googleServiceInfoPlist = process.env.GOOGLE_SERVICE_INFO_PLIST || undefined;
+
 /** APNs environment of the build: production for store / TestFlight builds, development otherwise. */
 const apsMode: 'production' | 'development' =
   process.env.EAS_BUILD_PROFILE === 'production' || process.env.EAS_BUILD_PROFILE === 'preview' ? 'production' : 'development';
@@ -58,6 +66,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ...config.ios,
     icon: './assets/expo.icon',
     usesAppleSignIn: true,
+    ...(googleServiceInfoPlist ? { googleServicesFile: googleServiceInfoPlist } : {}),
     associatedDomains: [`applinks:${LINK_DOMAIN}`],
     supportsTablet: false,
     infoPlist: {
@@ -76,8 +85,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
     predictiveBackGestureEnabled: false,
     ...(googleServicesFile ? { googleServicesFile } : {}),
-    // expo-contacts also adds WRITE_CONTACTS; contacts matching only reads e-mail addresses.
-    blockedPermissions: ['android.permission.WRITE_CONTACTS'],
+    // expo-contacts also adds WRITE_CONTACTS; contacts matching only reads e-mail addresses. Firebase
+    // Analytics (play-services-measurement) adds AD_ID; Droblet never reads the advertising id.
+    blockedPermissions: ['android.permission.WRITE_CONTACTS', 'com.google.android.gms.permission.AD_ID'],
     intentFilters: [
       {
         action: 'VIEW',
@@ -134,6 +144,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         barcodeScannerEnabled: false,
       },
     ],
+    // Firebase Analytics (GA4): RNFB setup per configured platform, no ad id, privacy defaults (collection
+    // starts off; the app turns it on only while Ayarlar › "Ürün analitiği" is on). docs/analytics-events.md.
+    './plugins/withFirebaseAnalytics.js',
+    // react-native-firebase 27 ships Firebase iOS SDK 13 through Swift Package Manager only, which requires
+    // dynamic frameworks (its pod install fails on static linkage). See docs/analytics-events.md § SDK.
+    ['expo-build-properties', { ios: { useFrameworks: 'dynamic' } }],
     [
       'expo-contacts',
       {

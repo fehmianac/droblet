@@ -55,3 +55,14 @@ jest.mock('expo-contacts/legacy', () => ({
   requestPermissionsAsync: jest.fn(async () => ({ status: 'granted', canAskAgain: true, granted: true })),
   getContactsAsync: jest.fn(async () => ({ data: [], hasNextPage: false, hasPreviousPage: false })),
 }));
+
+// Firebase Analytics (react-native-firebase): no native module in Jest and no default app, so the
+// sink is a no-op unless a test injects a client (`setFirebaseClientForTests`).
+jest.mock('@react-native-firebase/app', () => ({ getApps: jest.fn(() => []) }));
+jest.mock('@react-native-firebase/analytics', () => ({
+  getAnalytics: jest.fn(() => ({})),
+  logEvent: jest.fn(async () => undefined),
+  setAnalyticsCollectionEnabled: jest.fn(async () => undefined),
+  setUserId: jest.fn(async () => undefined),
+  setUserProperties: jest.fn(async () => undefined),
+}));

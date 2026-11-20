@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 
+import { reportJobSettled } from '@/analytics/jobEvents';
 import { getFixtureJob } from '@/fixtures/jobs';
 
 import { apiRequest } from './client';
@@ -96,7 +97,10 @@ export function useJob<T>(kind: JobKind, id: string | null | undefined, options:
         'jobs',
         () => getFixtureJob<T>(id ?? '', kind),
         async () => toJob<T>(await apiRequest<JobWire>(`v1/tenant/job/${id}`), mapResult),
-      ),
+      ).then((job) => {
+        if (id) reportJobSettled(kind, id, job);
+        return job;
+      }),
     refetchInterval: (q) => {
       if (isJobSettled(q.state.data)) {
         pollStartedAt.delete(q.queryHash);

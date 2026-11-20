@@ -7,6 +7,7 @@ import { Trans, useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { track } from '@/analytics/track';
 import { tryOnImageSource, viewerSourceOf } from '@/api/imageSources';
 import { ONE_SIZE, type ProductDetail, type ProductSize } from '@/api/contracts/store';
 import { useBodyProfile } from '@/api/profile';
@@ -465,6 +466,10 @@ export default function ProductScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const product = useProduct(id);
   const loaded = product.data != null;
+  const brandId = product.data?.brandId ?? null;
+  useEffect(() => {
+    if (brandId) track('view_item', { productId: id, brandId });
+  }, [id, brandId]);
 
   return (
     <Screen top={!loaded}>

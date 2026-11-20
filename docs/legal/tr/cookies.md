@@ -43,7 +43,7 @@ Bu tür çerezler sitenin güvenli çalışması için kesinlikle gereklidir; KV
 
 ## 4. Mobil uygulama
 
-Droblet uygulaması çerez kullanmaz ve üçüncü taraf analitik, reklam ya da izleme SDK'sı içermez; reklam kimliğini (IDFA/AAID) okumaz ve uygulamalar arası izleme yapmaz.
+Droblet uygulaması çerez kullanmaz ve reklam ya da izleme SDK'sı içermez; reklam kimliğini (IDFA/AAID) okumaz ve uygulamalar arası izleme yapmaz. Ürün analitiği için Google Analytics for Firebase SDK'sını kullanır: SDK cihazda bir uygulama örneği kimliği ve gönderilmeyi bekleyen olayları saklar. Bunu Ayarlar › Gizlilik › “Ürün analitiği”nden kapatabilirsin (Gizlilik Politikası madde 9). [HUKUK ONAYI: PECR m. 6 — analitik amaçlı cihazda saklama için Data (Use and Access) Act 2025 istisnası ve itiraz imkânı]
 
 Uygulama cihazında yalnızca çalışması için gereken bilgileri saklar: oturum anahtarları cihazın güvenli deposunda (iOS Keychain / Android Keystore), dil tercihin ve kısa süreli görsel önbelleği uygulamanın kendi alanında. Çıkış yaptığında ve fotoğraflarını sildiğinde ilgili önbellek temizlenir.
 

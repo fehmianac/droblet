@@ -15,6 +15,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
 
+import { restoreProductAnalytics } from '@/analytics/preference';
 import { useOnboardingStatus } from '@/auth/onboarding';
 import { AnimatedSplash } from '@/components/brand/AnimatedSplash';
 import { sessionStore, useSession } from '@/auth/session';
@@ -30,6 +31,8 @@ import { palettes } from '@/theme/tokens';
 void SplashScreen.preventAutoHideAsync();
 wireNetworkAndFocus();
 void restoreLanguagePreference();
+// Ayarlar › "Ürün analitiği": applies the stored choice to Firebase Analytics (which starts with collection off).
+void restoreProductAnalytics();
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({

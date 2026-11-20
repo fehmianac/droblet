@@ -961,7 +961,8 @@ public static class OpenAiPrompts
     public const string TryOnTemplate =
         "The first image is a full-body photo of a person. The following {{garmentCount}} image(s) are garments. " +
         "Show the same person, with the same face, hair, skin tone, body shape and pose, wearing exactly these garments, keeping each garment's colour, pattern, cut and every brand logo, monogram, print and lettering exactly as on the garment. " +
-        "Realistic fit and proportions, neutral studio background, full body in frame. Do not change the person's body. No text.";
+        "The face must stay identical to the first image: the same facial features, face shape, eyes, nose, mouth, eyebrows, skin texture, expression and apparent age. Never redraw, retouch, beautify, slim, age, de-age or replace the face; only the clothing changes. " +
+        "Realistic fit and proportions, neutral studio background, full body in frame from head to feet. Do not change the person's body. No text.";
 
     /// <summary>
     /// Face path (owner decision 4): build a full-body figure from a face photo + the chosen body type, height and size.
@@ -992,6 +993,7 @@ public static class OpenAiPrompts
                "The first image is a photo of an adult person's face. The following {{garmentCount}} image(s) are garments. " +
                "Create a realistic full-length photo of this same adult person with {{bodyShape}},{{height}}{{size}} standing in a relaxed, neutral pose. " +
                "Keep the face, facial features, skin tone, hair and apparent age exactly as in the face photo — do not change, beautify or replace the person's identity. " +
+               "The face must be the same face as in the photo: the same face shape, eyes, nose, mouth, eyebrows, skin texture and expression. Never redraw, retouch, slim, age or de-age it; render it at a natural size for a full-length photo. " +
                "The person is fully clothed, wearing exactly these garments, keeping each garment's colour, pattern, cut and every brand logo, monogram, print and lettering exactly as on the garment; add plain neutral basics only where a garment is missing so the person is never undressed. " +
                "Never show nudity, underwear alone or a suggestive pose. Never exaggerate the body shape. Neutral studio background, full body in frame, no text.";
 

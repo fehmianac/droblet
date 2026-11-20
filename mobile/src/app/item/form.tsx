@@ -67,7 +67,7 @@ function DraftForm({ draftId, from, startManual }: { draftId: string; from: stri
           return <StateMessage testID="state-not-found" role="status" {...draftGone} />;
         }
         const submit = (fields: ItemFields) => {
-          addItems.add([{ fields, draftId: draft.id, preview: fields.useOriginalImage ? draft.originalImageUrl : draft.imageUrl, reviewed: true }]);
+          addItems.add([{ fields, draftId: draft.id, preview: fields.useOriginalImage ? draft.originalImageUrl : draft.imageUrl, reviewed: true }], 'photo');
           leave(from);
         };
 
@@ -173,7 +173,7 @@ export default function ItemFormScreen() {
           originalImageUrl={photoUri}
           unprocessedPhoto={photoUri !== null}
           onSubmit={(fields) => {
-            addItems.add([{ fields: photoUri ? { ...fields, useOriginalImage: true } : fields, draftId: null, photoUri, preview: photoUri }]);
+            addItems.add([{ fields: photoUri ? { ...fields, useOriginalImage: true } : fields, draftId: null, photoUri, preview: photoUri }], 'manual');
             leave(params.from);
           }}
         />
