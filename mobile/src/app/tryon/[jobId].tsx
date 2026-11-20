@@ -27,6 +27,7 @@ import { CachedTryOnNote, isCachedTryOnJob } from '@/features/tryon/cached';
 import { useOutfitPhotoPicker } from '@/features/tryon/OutfitPhotoPicker';
 import { PhotoResultActions, ReferenceRejected, referenceViewerImage, shareTryOnImage, SourcePhotoThumb } from '@/features/tryon/PhotoTryOnParts';
 import { useStartItemDrafts } from '@/features/wardrobe/mutations';
+import { isRecognitionLimitReached, openRecognitionPaywall } from '@/features/wardrobe/recognition';
 import { Zoomable } from '@/components/ui/viewer';
 import { useThemeColors } from '@/theme/useThemeColors';
 
@@ -66,7 +67,16 @@ export default function TryOnScreen() {
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
   const client = useQueryClient();
-  const params = useLocalSearchParams<{ jobId: string; title?: string; kind?: string; id?: string; mode?: string; ref?: string; draftId?: string }>();
+  const params = useLocalSearchParams<{
+    jobId: string;
+    title?: string;
+    kind?: string;
+    id?: string;
+    mode?: string;
+    ref?: string;
+    draftId?: string;
+    uploadId?: string;
+  }>();
   const focused = useIsFocused();
   const job = useTryOnJob(params.jobId, { enabled: focused });
   const credits = useAiCredits();
@@ -86,19 +96,23 @@ export default function TryOnScreen() {
   const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
   // The photo on the device (hub) can be sent to "Parçaları seç"; from 12 and an import the photo is already split there.
+  // A local photo was uploaded for the try-on (`uploadId`): recognition starts on that same upload — never sent twice.
   const localRef = params.ref && !/^https?:/i.test(params.ref) ? params.ref : null;
   const split =
     params.draftId || params.kind === 'import-photo'
       ? close
       : localRef
         ? () =>
-            void startDrafts
-              .start([localRef])
+            void (params.uploadId ? startDrafts.startFromUpload(params.uploadId, localRef) : startDrafts.start([localRef]))
               .then(({ draftIds }) => {
                 const draftId = draftIds[0];
                 if (draftId) router.replace({ pathname: '/item/detect', params: { draftId, photo: localRef, since: String(Date.now()) } });
               })
-              .catch(() => showToast({ message: t('tryOnPhoto.splitFailed'), tone: 'error' }))
+              .catch((error: unknown) => {
+                // Free recognitions used up: the paywall, as on 12.
+                if (isRecognitionLimitReached(error)) openRecognitionPaywall();
+                else showToast({ message: t('tryOnPhoto.splitFailed'), tone: 'error' });
+              })
         : null;
 
   if (job.isFailed) {

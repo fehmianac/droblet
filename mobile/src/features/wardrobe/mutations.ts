@@ -396,7 +396,8 @@ export class RecognitionLimitError extends ApiError {
 }
 
 async function startDraftsOnApi(vars: StartDraftsVariables): Promise<CreateItemDraftsResponse> {
-  const uploadIds = await uploadItemPhotos(vars.localUris);
+  // A photo already uploaded for an outfit-photo try-on is not sent again: its upload becomes the draft.
+  const uploadIds = vars.uploadIds?.length ? vars.uploadIds : await uploadItemPhotos(vars.localUris);
   if (vars.manual) {
     return { jobId: vars.requestId, draftIds: await startManualDrafts(uploadIds) };
   }
@@ -464,7 +465,8 @@ export function toCreateItemWire(entry: ConfirmItemDraftsRequest['items'][number
   return { ...fields, clientMutationId: entry.id, itemId: entry.id };
 }
 
-export type StartDraftsVariables = { requestId: string; localUris: string[]; splitOutfit: boolean; manual?: boolean };
+/** `uploadIds`: item uploads that already exist for these photos (same order) — used instead of uploading again. */
+export type StartDraftsVariables = { requestId: string; localUris: string[]; splitOutfit: boolean; manual?: boolean; uploadIds?: string[] };
 
 /**
  * Uploads item photos and starts one ItemProcessor job per photo (12, 13). NOT queued: AI processing
@@ -495,6 +497,12 @@ export function useStartItemDrafts() {
     start: (localUris: string[], splitOutfit = false) => m.mutateAsync({ requestId: ulid(), localUris, splitOutfit }),
     /** "Elle gir" with a photo: no AI and no allowance, the drafts are ready at once with empty fields. */
     startManual: (localUris: string[]) => m.mutateAsync({ requestId: ulid(), localUris, splitOutfit: false, manual: true }),
+    /**
+     * Recognition on a photo that is already uploaded (the outfit-photo try-on's upload, 16e "Parçalara ayır"): the
+     * draft is made from that upload, nothing is sent twice. Fixture mode uses the local file as before.
+     */
+    startFromUpload: (uploadId: string, localUri: string) =>
+      m.mutateAsync({ requestId: ulid(), localUris: [localUri], uploadIds: [uploadId], splitOutfit: false }),
   };
 }
 

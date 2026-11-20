@@ -1,0 +1,30 @@
+{
+  "tryFirst": {
+    "eyebrow": "PHOTO READY",
+    "title": "What shall we do with this photo?",
+    "privacy": "The photo stays on your phone until you choose; nothing is sent.",
+    "tryOn": "Try it on me first",
+    "tryOnBody": "The whole outfit, on you · 1 credit",
+    "split": "Split into pieces",
+    "splitBody": "Find the pieces and add them to your wardrobe",
+    "later": "You can still split the same photo after trying it on; it is not uploaded again."
+  },
+  "shareIn": {
+    "title": "Shared photo",
+    "tag": "SHARED PHOTO",
+    "photoA11y": "The photo you shared to Droblet",
+    "heading": "What shall we do with this photo?",
+    "privacy": "The photo stays on your phone until you choose; nothing is sent.",
+    "preparing": "Preparing the photo…",
+    "waitTitle": "Your photo is ready",
+    "waitBody": "Sign in and we will carry on with the photo you shared.",
+    "notImage": "You can only share photos to Droblet.",
+    "failed": "The shared photo could not be opened. Try another photo."
+  },
+  "clipboardPhoto": {
+    "title": "Try the photo you copied on me",
+    "body": "Read from the clipboard when you tap · 1 credit",
+    "dismiss": "Close the copied photo card",
+    "failed": "The photo on the clipboard could not be read. Copy it again."
+  }
+}

@@ -8,10 +8,10 @@ import type { PreparedPhoto } from '@/features/photos/preparePhoto';
 import { usePhotoPicker } from '@/features/photos/usePhotoPicker';
 
 /** The bottom sheet's dismiss animation (the picker opens after it). */
-const SHEET_DISMISS_MS = 450;
+export const SHEET_DISMISS_MS = 450;
 
 /** Route params of 16d for a picked photo: the local file and its size (the frame keeps the photo's aspect). */
-export function outfitPhotoParams(photo: PreparedPhoto) {
+export function outfitPhotoParams(photo: Pick<PreparedPhoto, 'localUri' | 'width' | 'height'>) {
   return { uri: photo.localUri, w: String(photo.width), h: String(photo.height) };
 }
 

@@ -39,6 +39,17 @@ const googleServiceInfoPlist = process.env.GOOGLE_SERVICE_INFO_PLIST || undefine
 const apsMode: 'production' | 'development' =
   process.env.EAS_BUILD_PROFILE === 'production' || process.env.EAS_BUILD_PROFILE === 'preview' ? 'production' : 'development';
 
+/**
+ * Share › Droblet (canvas 16g). Android: ACTION_SEND / ACTION_SEND_MULTIPLE for `image/*` — always on, nothing to sign.
+ * iOS: a Share Extension target (`com.alatech.droplet.share`) that hands the image to the app through the App Group
+ * `group.com.alatech.droplet`. It needs its own App ID + App Store profile and App Groups on both IDs, so it is built
+ * only with DROBLET_IOS_SHARE_EXTENSION=1 (the release workflow sets it once the extension's profile exists). Without
+ * it the iOS app builds exactly as before: no extension, no App Group entitlement.
+ */
+const IOS_SHARE_EXTENSION = process.env.DROBLET_IOS_SHARE_EXTENSION === '1';
+const SHARE_EXTENSION_BUNDLE_ID = 'com.alatech.droplet.share';
+const APP_GROUP = 'group.com.alatech.droplet';
+
 /** Reversed iOS OAuth client id, e.g. com.googleusercontent.apps.123-abc — the redirect scheme of Google sign-in. */
 const GOOGLE_IOS_SCHEME = process.env.DROBLET_GOOGLE_IOS_CLIENT_ID
   ? process.env.DROBLET_GOOGLE_IOS_CLIENT_ID.split('.').reverse().join('.')
@@ -144,6 +155,21 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         barcodeScannerEnabled: false,
       },
     ],
+    [
+      // Share › Droblet: images only (one, or the first of several). See IOS_SHARE_EXTENSION above.
+      'expo-share-intent',
+      {
+        disableIOS: !IOS_SHARE_EXTENSION,
+        iosActivationRules: { NSExtensionActivationSupportsImageWithMaxCount: 1 },
+        iosShareExtensionName: 'Droblet Share',
+        iosShareExtensionBundleIdentifier: SHARE_EXTENSION_BUNDLE_ID,
+        iosAppGroupIdentifier: APP_GROUP,
+        androidIntentFilters: ['image/*'],
+        androidMultiIntentFilters: ['image/*'],
+      },
+    ],
+    // The share sheet shows "Droblet" (the extension target itself stays "DrobletShare").
+    ['./plugins/withShareExtensionName.js', { targetName: 'DrobletShare', displayName: config.name ?? 'Droblet' }],
     // Firebase Analytics (GA4): RNFB setup per configured platform, no ad id, privacy defaults (collection
     // starts off; the app turns it on only while Ayarlar › "Ürün analitiği" is on). docs/analytics-events.md.
     './plugins/withFirebaseAnalytics.js',

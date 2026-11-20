@@ -1,3 +1,4 @@
+import { isShareExtensionLink } from '@/features/share/sharedPhoto';
 import { mapIncomingLink } from '@/features/social/deepLinks';
 import { inviteStore } from '@/features/social/inviteStore';
 
@@ -17,6 +18,9 @@ export function isAuthRedirect(path: string): boolean {
 
 export function redirectSystemPath({ path }: { path: string; initial: boolean }): string {
   if (isAuthRedirect(path)) return '/';
+  // iOS Share Extension (`droplet://dataUrl=dropletShareKey…`): the image is read by ShareIntentHost from the App Group;
+  // the route is 16g (signed out, the guard sends the user to sign in and 16g opens afterwards).
+  if (isShareExtensionLink(path)) return '/share';
   try {
     const mapped = mapIncomingLink(path);
     if (mapped.inviteCode) void inviteStore.capture(mapped.inviteCode);

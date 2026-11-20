@@ -37,8 +37,15 @@ jobs:
       run: { working-directory: mobile }
     env:
       # The provisioning profile's name in Certificates, Identifiers & Profiles. Manual signing matches on this.
-      # App Store profile for com.alatech.droplet. Droblet has no widget/extension target, so there is one profile.
+      # App Store profile for com.alatech.droplet.
       PROFILE_NAME: droplet-appstore-ios
+      # Share › Droblet (iOS Share Extension, app.config.ts IOS_SHARE_EXTENSION): its own App ID and App Store profile,
+      # App Groups on both IDs. Built only when the repository variable PROFILE_NAME_SHARE names that profile AND the
+      # IOS_SHARE_PROVISIONING_PROFILE secret holds it; otherwise the app is built without the extension (a warning, never
+      # a failed release). IOS_SHARE_EXTENSION=off (repository variable) turns it off on purpose.
+      PROFILE_NAME_SHARE: ${{ vars.PROFILE_NAME_SHARE }}
+      SHARE_BUNDLE_ID: com.alatech.droplet.share
+      APP_GROUP: group.com.alatech.droplet
       # app.config.ts adds expo.extra.eas.projectId only from this (push tokens and eas build need it)
       EAS_PROJECT_ID: ${{ vars.EAS_PROJECT_ID }}
     steps:
@@ -146,6 +153,29 @@ jobs:
             command -v fastlane >/dev/null || { echo "::error::fastlane is missing (brew install fastlane) — it is what uploads the bundle to Play"; exit 1; }
           fi
           echo "p12=$p12" >> "$GITHUB_OUTPUT"
+
+      # Share › Droblet on iOS needs a second signed target. Decided once here and handed to prebuild through the
+      # environment (app.config.ts reads DROBLET_IOS_SHARE_EXTENSION), so a missing profile builds the app without the
+      # extension instead of failing at export. Android's share target needs nothing and is always built.
+      - name: iOS share extension
+        id: share
+        if: steps.tag.outputs.builder == 'local' && steps.tag.outputs.ios == 'true'
+        env:
+          IOS_SHARE_PROVISIONING_PROFILE: ${{ secrets.IOS_SHARE_PROVISIONING_PROFILE }}
+          SWITCH: ${{ vars.IOS_SHARE_EXTENSION }}
+        run: |
+          set -eu
+          on=false
+          if [ "${SWITCH:-}" = off ]; then
+            echo "::notice::IOS_SHARE_EXTENSION=off — building without the iOS share extension"
+          elif [ -z "${PROFILE_NAME_SHARE:-}" ] || [ -z "${IOS_SHARE_PROVISIONING_PROFILE:-}" ]; then
+            echo "::warning::iOS share extension skipped: set the repository variable PROFILE_NAME_SHARE and the secret IOS_SHARE_PROVISIONING_PROFILE (App Store profile for $SHARE_BUNDLE_ID, App Groups: $APP_GROUP). Android's share target is unaffected."
+          else
+            on=true
+            echo "iOS share extension on: $SHARE_BUNDLE_ID · profile '$PROFILE_NAME_SHARE' · $APP_GROUP"
+          fi
+          echo "on=$on" >> "$GITHUB_OUTPUT"
+          if [ "$on" = true ]; then echo "DROBLET_IOS_SHARE_EXTENSION=1" >> "$GITHUB_ENV"; else echo "DROBLET_IOS_SHARE_EXTENSION=0" >> "$GITHUB_ENV"; fi
       # Ask Apple whether the key works, before ten minutes of building. "Cloud signing permission error" at export
       # has causes that all stay invisible until then: the wrong **kind** of key — an In-App Purchase
       # key (SubscriptionKey_*.p8, which belongs in SSM for the App Store Server API) instead of an App Store
@@ -278,6 +308,16 @@ jobs:
               [ "$v" = false ] || { echo "::error::$plist lacks ITSAppUsesNonExemptEncryption = false (app.json ios.config.usesNonExemptEncryption)"; exit 1; }
             done
             [ "$apps" -gt 0 ] || { echo "::error::no app Info.plist found under ios/"; exit 1; }
+            # The share extension is generated exactly when it will be signed (step "iOS share extension").
+            ent="$(ls ios/*/*.entitlements | grep -v DrobletShare | head -1)"
+            if [ "${DROBLET_IOS_SHARE_EXTENSION:-0}" = 1 ]; then
+              [ -f ios/DrobletShare/ShareExtension-Info.plist ] || { echo "::error::share extension on, but prebuild generated no ios/DrobletShare target"; exit 1; }
+              grep -q "$APP_GROUP" ios/DrobletShare/ShareExtension.entitlements || { echo "::error::ios/DrobletShare lacks the App Group $APP_GROUP"; exit 1; }
+              grep -q "$APP_GROUP" "$ent" || { echo "::error::$ent lacks the App Group $APP_GROUP"; exit 1; }
+            else
+              [ ! -d ios/DrobletShare ] || { echo "::error::share extension off, but prebuild generated ios/DrobletShare"; exit 1; }
+              ! grep -q "com.apple.security.application-groups" "$ent" || { echo "::error::share extension off, but $ent asks for App Groups (the profile would not match)"; exit 1; }
+            fi
             (cd ios && pod install)
           fi
           if [ "${{ steps.tag.outputs.android }}" = true ]; then
@@ -319,6 +359,8 @@ jobs:
         if: steps.tag.outputs.builder == 'local' && steps.tag.outputs.ios == 'true'
         env:
           IOS_PROVISIONING_PROFILE: ${{ secrets.IOS_PROVISIONING_PROFILE }}
+          IOS_SHARE_PROVISIONING_PROFILE: ${{ secrets.IOS_SHARE_PROVISIONING_PROFILE }}
+          SHARE_ON: ${{ steps.share.outputs.on }}
         run: |
           set -eu
           bundle="${BUNDLE_ID:-$(jq -r '.expo.ios.bundleIdentifier' app.json)}"
@@ -382,14 +424,23 @@ jobs:
           }
 
           : > "$RUNNER_TEMP/profile-uuids"
-          # Droblet's App ID capabilities: Push Notifications, Sign in with Apple, Associated Domains (applinks).
-          # No App Groups and no second profile: there is no widget/extension target.
-          install IOS_PROVISIONING_PROFILE "${IOS_PROVISIONING_PROFILE:-}" "${{ env.PROFILE_NAME }}" "$bundle" \
-            aps-environment com.apple.developer.applesignin com.apple.developer.associated-domains
+          # Droblet's App ID capabilities: Push Notifications, Sign in with Apple, Associated Domains (applinks) — and
+          # App Groups when the share extension is built (the app reads the shared image from the group container).
+          if [ "${SHARE_ON:-false}" = true ]; then
+            install IOS_PROVISIONING_PROFILE "${IOS_PROVISIONING_PROFILE:-}" "${{ env.PROFILE_NAME }}" "$bundle" \
+              aps-environment com.apple.developer.applesignin com.apple.developer.associated-domains com.apple.security.application-groups
+            # The extension: its own App ID ($SHARE_BUNDLE_ID) with App Groups only.
+            install IOS_SHARE_PROVISIONING_PROFILE "${IOS_SHARE_PROVISIONING_PROFILE:-}" "$PROFILE_NAME_SHARE" "$SHARE_BUNDLE_ID" \
+              com.apple.security.application-groups
+          else
+            install IOS_PROVISIONING_PROFILE "${IOS_PROVISIONING_PROFILE:-}" "${{ env.PROFILE_NAME }}" "$bundle" \
+              aps-environment com.apple.developer.applesignin com.apple.developer.associated-domains
+          fi
 
       - name: Archive, export and upload to TestFlight
         if: steps.tag.outputs.builder == 'local' && steps.tag.outputs.ios == 'true'
         env:
+          SHARE_ON: ${{ steps.share.outputs.on }}
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
@@ -412,6 +463,11 @@ jobs:
           scheme="$(basename "$ws" .xcworkspace)"
           echo "workspace $ws · scheme $scheme · team $team · build ${{ github.run_number }}"
 
+          # The share extension's bundle → profile pair, only when it is built.
+          share_profile=""
+          if [ "${SHARE_ON:-false}" = true ]; then
+            share_profile="<key>${SHARE_BUNDLE_ID}</key><string>${PROFILE_NAME_SHARE}</string>"
+          fi
           cat > ios/ExportOptions.plist <<PLIST
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -424,6 +480,7 @@ jobs:
             <key>provisioningProfiles</key>
             <dict>
               <key>${BUNDLE_ID}</key><string>${PROFILE_NAME}</string>
+              ${share_profile}
             </dict>
             <key>destination</key><string>export</string>
           </dict></plist>
@@ -447,24 +504,30 @@ jobs:
           # xcodeproj ships with CocoaPods; install it for this user only if the runner's Ruby cannot load it.
           ruby -e 'require "xcodeproj"' 2>/dev/null || gem install xcodeproj --no-document --user-install
           GEM_PATH="$(ruby -e 'print Gem.user_dir'):$(gem env gempath)" \
-          SCHEME="$scheme" TEAM="$team" PROFILE="$PROFILE_NAME" ruby -e '
+          # The share extension target (DrobletShare, when built) gets the same manual signing with its own profile.
+          SCHEME="$scheme" TEAM="$team" PROFILE="$PROFILE_NAME" \
+          SHARE_TARGET="$([ "${SHARE_ON:-false}" = true ] && echo DrobletShare || true)" SHARE_PROFILE="${PROFILE_NAME_SHARE:-}" ruby -e '
             require "xcodeproj"
             project = Xcodeproj::Project.open(Dir["ios/*.xcodeproj"].first)
-            target = project.targets.find { |t| t.name == ENV["SCHEME"] } or abort("no target #{ENV["SCHEME"]}")
-            target.build_configurations.each do |c|
-              next unless c.name == "Release"
-              b = c.build_settings
-              b["CODE_SIGN_STYLE"] = "Manual"
-              b["DEVELOPMENT_TEAM"] = ENV["TEAM"]
-              b["CODE_SIGN_IDENTITY"] = "Apple Distribution"
-              b["CODE_SIGN_IDENTITY[sdk=iphoneos*]"] = "Apple Distribution"
-              b["PROVISIONING_PROFILE_SPECIFIER"] = ENV["PROFILE"]
+            sign = lambda do |name, profile|
+              target = project.targets.find { |t| t.name == name } or abort("no target #{name}")
+              target.build_configurations.each do |c|
+                next unless c.name == "Release"
+                b = c.build_settings
+                b["CODE_SIGN_STYLE"] = "Manual"
+                b["DEVELOPMENT_TEAM"] = ENV["TEAM"]
+                b["CODE_SIGN_IDENTITY"] = "Apple Distribution"
+                b["CODE_SIGN_IDENTITY[sdk=iphoneos*]"] = "Apple Distribution"
+                b["PROVISIONING_PROFILE_SPECIFIER"] = profile
+              end
+              attrs = (project.root_object.attributes["TargetAttributes"] ||= {})
+              (attrs[target.uuid] ||= {})["ProvisioningStyle"] = "Manual"
+              (attrs[target.uuid])["DevelopmentTeam"] = ENV["TEAM"]
+              puts "manual signing: #{target.name} · #{profile}"
             end
-            attrs = (project.root_object.attributes["TargetAttributes"] ||= {})
-            (attrs[target.uuid] ||= {})["ProvisioningStyle"] = "Manual"
-            (attrs[target.uuid])["DevelopmentTeam"] = ENV["TEAM"]
+            sign.call(ENV["SCHEME"], ENV["PROFILE"])
+            sign.call(ENV["SHARE_TARGET"], ENV["SHARE_PROFILE"]) unless ENV["SHARE_TARGET"].to_s.empty?
             project.save
-            puts "manual signing: #{target.name} · #{ENV["PROFILE"]}"
           '
           set +e
           xcodebuild -workspace "$ws" -scheme "$scheme" -configuration Release \
