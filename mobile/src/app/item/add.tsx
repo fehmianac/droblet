@@ -1,6 +1,6 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Image } from 'expo-image';
-import { router, useIsFocused } from 'expo-router';
+import { router, useIsFocused, useLocalSearchParams } from 'expo-router';
 import { CircleAlert, Copy, Image as ImageIcon, Images, LayoutGrid, Sparkles, X, type LucideIcon } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -14,6 +14,10 @@ import { cameraStateOf } from '@/features/photos/cameraState';
 import { deleteLocalPhoto, preparePhoto, type PreparedPhoto } from '@/features/photos/preparePhoto';
 import { usePhotoPicker } from '@/features/photos/usePhotoPicker';
 import { VIEWFINDER_MAX_WIDTH, viewfinderWidth } from '@/features/photos/viewfinder';
+import { SHEET_DISMISS_MS } from '@/features/tryon/OutfitPhotoPicker';
+import type { TryFirstChoice, TryFirstEntry } from '@/features/tryon/tryFirst';
+import { TryFirstSheet } from '@/features/tryon/TryFirstSheet';
+import { useTryFirstPhoto } from '@/features/tryon/useTryFirstPhoto';
 import { GarmentGlyph } from '@/features/wardrobe/ItemThumb';
 import { useStartItemDrafts } from '@/features/wardrobe/mutations';
 import { useItemDrafts } from '@/features/wardrobe/queries';
@@ -70,9 +74,11 @@ function FrameAction({ label, onPress, testID }: { label: string; onPress: () =>
 
 /**
  * 12 Parça ekle — the live camera on the dark ground of the board: the framed viewfinder with its four
- * corners, the shutter, and the shortcuts to the gallery, the ready-made library and bulk add. A shot is
- * downscaled and stripped of EXIF on the device, sent for AI recognition, and the pill under the frame
- * says what was found ("Gömlek algılandı · Beyaz · Pamuk") before the review form (12c) opens.
+ * corners, the shutter, and the shortcuts to the gallery, the ready-made library and bulk add. A shot (or a
+ * gallery pick) is downscaled and stripped of EXIF on the device, then 12+ asks "Bu fotoğrafla ne yapalım?":
+ * "Önce üzerimde dene" (16d the first time, else the credit confirmation over this photo; the result's "Parçalara
+ * ayır" reuses the upload) or "Parçalarına ayır" — only then is it sent for AI recognition, and the pill under the
+ * frame says what was found ("Gömlek algılandı · Beyaz · Pamuk") before the review form (12c) opens.
  *
  * Camera permission: asked from the frame with our reason first; when denied the frame explains and links
  * to Settings while gallery / library / "Elle gir" keep working. Without a camera (simulator, web) the
@@ -168,10 +174,60 @@ export default function ItemAddScreen() {
       .finally(() => setPhase('idle'));
   };
 
+  // 12+ "Bu fotoğrafla ne yapalım?": a picked or taken photo first offers "Önce üzerimde dene" / "Parçalarına ayır".
+  // Nothing is uploaded and no recognition runs before the choice.
+  const [choosing, setChoosing] = useState<TryFirstEntry | null>(null);
+  /** The entry of the last choice: keeps the sheet's highlight while it fades out. */
+  const [sheetEntry, setSheetEntry] = useState<TryFirstEntry>('gallery');
+  /** Where the picker's next photo comes from (set before the system picker opens). */
+  const pickEntry = useRef<TryFirstEntry>('gallery');
+  const tryFirst = useTryFirstPhoto({
+    feature: 'tryon_photo_add',
+    // Closing the credit confirmation goes back to the choice over the same photo.
+    onCancel: () => setTimeout(() => setChoosing((current) => current ?? pickEntry.current), SHEET_DISMISS_MS),
+  });
+  const offer = (photo: PreparedPhoto, entry: TryFirstEntry) => {
+    setCaptured(photo);
+    setNotice('none');
+    pickEntry.current = entry;
+    setSheetEntry(entry);
+    setChoosing(entry);
+  };
+  const choose = (choice: TryFirstChoice) => {
+    setChoosing(null);
+    if (!captured) return;
+    if (choice === 'split') {
+      send(captured);
+      return;
+    }
+    // iOS cannot present the credit confirmation while the choice sheet is still dismissing.
+    const photo = captured;
+    setTimeout(() => tryFirst.tryOnPhoto(photo), SHEET_DISMISS_MS);
+  };
+
+  // A shared image (16g "Parçalarına ayır") arrives with `photo`, `w`, `h` and `then=split`: recognition starts on it
+  // right away, with this screen's scan line, pill, recognition allowance and "Elle gir".
+  const incoming = useLocalSearchParams<{ photo?: string; w?: string; h?: string; then?: string }>();
+  const handledIncoming = useRef(false);
+  useEffect(() => {
+    if (!incoming.photo) return;
+    const localUri = incoming.photo;
+    const timer = setTimeout(() => {
+      if (handledIncoming.current) return;
+      handledIncoming.current = true;
+      const photo: PreparedPhoto = { uploadId: '', localUri, width: Number(incoming.w) || 0, height: Number(incoming.h) || 0 };
+      if (incoming.then === 'split') send(photo);
+      else offer(photo, 'share');
+    }, 0);
+    return () => clearTimeout(timer);
+    // Once, for the params the screen opened with.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [incoming.photo]);
+
   const picker = usePhotoPicker({
     onPicked: (photos) => {
       const photo = photos[0];
-      if (photo) send(photo);
+      if (photo) offer(photo, pickEntry.current);
     },
     onError: () => setNotice('photoFailed'),
   });
@@ -194,7 +250,9 @@ export default function ItemAddScreen() {
     try {
       const picture = await camera.current?.takePictureAsync({ quality: 1, exif: false });
       if (!picture) throw new Error('camera not ready');
-      send(await preparePhoto(picture.uri, picture.width, picture.height));
+      const photo = await preparePhoto(picture.uri, picture.width, picture.height);
+      setPhase('idle');
+      offer(photo, 'camera');
     } catch {
       // No usable camera after all (simulator): from now on the shutter opens the system picker.
       setUnavailable(true);
@@ -220,11 +278,16 @@ export default function ItemAddScreen() {
     else if (cameraState === 'live') void capture();
     else if (cameraState === 'ask') void requestPermission();
     // Denied / no camera / still checking: the system picker (it explains a denial and offers the gallery).
-    else picker.takePhoto();
+    else {
+      pickEntry.current = 'camera';
+      picker.takePhoto();
+    }
   };
 
   const onGallery = () => {
-    if (!blocked()) picker.chooseFromLibrary(1);
+    if (blocked()) return;
+    pickEntry.current = 'gallery';
+    picker.chooseFromLibrary(1);
   };
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/wardrobe'));
@@ -387,7 +450,7 @@ export default function ItemAddScreen() {
       </View>
 
       <View className="min-h-12 items-center justify-center gap-2 px-gutter pb-[18px] pt-7">
-        {notice === 'none' ? (
+        {notice === 'none' && !tryFirst.note ? (
           <Text variant="body" tone="cream" className="text-center text-[13px] opacity-90">
             {t('itemAdd.hint')}
           </Text>
@@ -395,7 +458,7 @@ export default function ItemAddScreen() {
           <View className="flex-row items-start gap-2 rounded-image-lg bg-cream px-3 py-2.5" accessibilityLiveRegion="polite" accessibilityRole="alert">
             <Icon icon={CircleAlert} size={16} tone="danger" />
             <Text variant="caption" className="flex-1">
-              {t(`itemAdd.${notice === 'recognitionLimit' && captured ? 'recognitionLimitPhoto' : notice}`)}
+              {notice === 'none' ? tryFirst.note : t(`itemAdd.${notice === 'recognitionLimit' && captured ? 'recognitionLimitPhoto' : notice}`)}
             </Text>
           </View>
         )}
@@ -436,6 +499,16 @@ export default function ItemAddScreen() {
         <Shortcut icon={LayoutGrid} label={t('itemAdd.library')} a11y={t('itemAdd.libraryA11y')} onPress={() => router.push('/item/library')} testID="item-add-library" />
       </View>
       {picker.sheet}
+      <TryFirstSheet
+        visible={choosing !== null}
+        entry={choosing ?? sheetEntry}
+        onChoose={choose}
+        onCancel={() => {
+          setChoosing(null);
+          retake();
+        }}
+      />
+      {tryFirst.sheet}
     </View>
   );
 }

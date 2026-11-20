@@ -1,0 +1,30 @@
+{
+  "tryFirst": {
+    "eyebrow": "FOTOĞRAF HAZIR",
+    "title": "Bu fotoğrafla ne yapalım?",
+    "privacy": "Fotoğraf seçene kadar telefonunda kalır; hiçbir şey gönderilmez.",
+    "tryOn": "Önce üzerimde dene",
+    "tryOnBody": "Kombinin tamamı, senin üzerinde · 1 kredi",
+    "split": "Parçalarına ayır",
+    "splitBody": "Parçaları bulup gardırobuna ekleyelim",
+    "later": "Denedikten sonra da aynı fotoğrafı parçalarına ayırabilirsin; tekrar yüklenmez."
+  },
+  "shareIn": {
+    "title": "Paylaşılan fotoğraf",
+    "tag": "PAYLAŞILAN FOTOĞRAF",
+    "photoA11y": "Droblet'e paylaştığın fotoğraf",
+    "heading": "Bu fotoğrafla ne yapalım?",
+    "privacy": "Seçene kadar fotoğraf telefonunda kalır; hiçbir şey gönderilmez.",
+    "preparing": "Fotoğraf hazırlanıyor…",
+    "waitTitle": "Fotoğrafın hazır",
+    "waitBody": "Giriş yap, paylaştığın fotoğrafla kaldığın yerden devam edelim.",
+    "notImage": "Droblet'e yalnızca fotoğraf paylaşabilirsin.",
+    "failed": "Paylaşılan fotoğraf açılamadı. Başka bir fotoğraf dene."
+  },
+  "clipboardPhoto": {
+    "title": "Kopyaladığın fotoğrafı üzerimde dene",
+    "body": "Dokununca panodan alınır · 1 kredi",
+    "dismiss": "Kopyalanan fotoğraf kartını kapat",
+    "failed": "Panodaki fotoğraf okunamadı. Fotoğrafı yeniden kopyala."
+  }
+}
