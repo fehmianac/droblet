@@ -269,7 +269,7 @@ wear log, cart, watch list, notification settings, e-mail.
 
 // SocialLookDto
 { "id": "01J…", "ownerHandle": "ayse", "ownerDisplayName": "Ayşe", "name": "Ofis", "occasion": "office", "createdAt": "…",
-  "pieces": [ { "slot": "top", "itemId": "…", "productId": null, "name": "Beyaz gömlek", "imageUrl": "https://cdn…/public/items/…-768.webp (presigned until the CDN is set up)", "product": null },
+  "pieces": [ { "slot": "top", "itemId": "…", "productId": null, "name": "Beyaz gömlek", "imageUrl": "https://cdn.alatech.co/public/prod/items/…-768.webp (presigned until the CDN is set up)", "product": null },
               { "slot": "bagAccessory", "itemId": null, "productId": "lx-bag", "name": "Deri El Çantası", "imageUrl": "https://…", "product": ProductDto } ],
   "rating": { "average": 4.6, "count": 12, "myScore": 5 },   // average null when count = 0; one decimal
   "saved": false }

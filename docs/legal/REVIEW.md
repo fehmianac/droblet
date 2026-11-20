@@ -103,7 +103,7 @@ visually equal to the partial option. `/consents` intro, summary and §0 were up
 ### Q1c. Background-removed item images at public, unguessable addresses — added 2026-11-20
 Owner decision: to make the wardrobe load fast and cache on the device, the **background-removed item images** (the
 AI-cleaned product shots, no person in them) and their 256 / 768 px copies are stored at public web addresses
-(`cdn.droblet.alatech.co/public/items/<hash of the account id>/<item id>-<128-bit random>-<size>.webp`) served through
+(`cdn.alatech.co/public/<stage>/items/<hash of the account id>/<item id>-<128-bit random>-<size>.webp`) served through
 Cloudflare. The address cannot be guessed or listed, but anyone who has it can open the image — **even for a private
 closet** (visibility then still decides who is *shown* the address in the app). Everything else stays private behind
 short-lived links: the original item photo, look cover photos, body / face photos, try-on images, avatars, exports.
