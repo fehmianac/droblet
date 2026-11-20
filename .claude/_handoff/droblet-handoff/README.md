@@ -295,6 +295,7 @@ Uygulama **çok dilli**; ilk diller **Türkçe ve İngilizce**, sonrası veriyle
 | 16 | OpenAI sıfır veri saklama (ZDR) talebi | Yüz/boy fotoğrafları şu an 30 güne kadar saklanabilir; ZDR ile 0. `privacy.md` [OPENAI RETENTION] boşluğu buna göre dolar (`docs/ai-cost/image-models.md`) |
 | 17 | Prod AI ayarları | Dev'deki ekonomik ayarlar (`ops-presets/dev-worker-ai.json`: terra, düşük kalite try-on, flare, kısa stilist talimatı) prod'a ne zaman? Günlük AI sınırları prod'da 0 (kapalı) |
 | 18 | Yasal metinlere AI kullanım sayaçları | Kullanıcı başına AI kullanım sayıları (yalnız sayılar) tutuluyor, dışa aktarmada `data/ai-usage.json`; gizlilik/KVKK metnine bir satır (hukukçu onayı) |
+| 19 | Firebase/GA4 konsol ayarları | Olay saklama 14 ay, Google signals ve veri paylaşımı kapalı, Google Ads veri işleme şartları kabul, Ads/AdMob bağlama yok; hukukçu Q16 (meşru menfaat mi ön rıza mı) |
 | 14 | Prod kurulumu | Altyapı + SSM + mağaza başvurusu; ürün sahibini bekler |
 
 Benim tarafımda (bekleme listesi dışı, sıradaki işler): paywall'a abonelik koşulları linki; moderasyonda "içerik kaldırıldı"nın gerçekten kaldırması; palette ai-perf zaman aşımı incelemesi.
