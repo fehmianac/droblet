@@ -26,6 +26,7 @@ import { Text } from '@/components/ui/Text';
 import { photoDeleteLines } from '@/features/account/logic';
 import { useDeleteAllPhotos, useRemovePhoto, useSetVisibility } from '@/features/account/mutations';
 import { NotificationPrefsCard } from '@/features/account/NotificationPrefsCard';
+import { ProductAnalyticsCard } from '@/features/account/ProductAnalyticsCard';
 import { SelfPremiumCard } from '@/features/account/SelfPremiumCard';
 import { accountKeys, useMyPhotos, useMyProfile, usePalette } from '@/features/account/queries';
 import { ChoiceRow, ProfileMenuRow, RowCard } from '@/features/account/rows';
@@ -391,6 +392,8 @@ export default function SettingsScreen() {
         <RowCard>
           <ProfileMenuRow first icon={Download} label={t('dataExport.menu')} onPress={() => router.push('/data-export')} testID="settings.dataExport" />
         </RowCard>
+        {/* 29d "Ürün analitiği": Firebase Analytics on / off (legitimate interest; not an explicit consent). */}
+        <ProductAnalyticsCard />
 
         <Text variant="eyebrow">{t('settings.notificationsEyebrow')}</Text>
         {/* Every notification switch, the morning time and the push permission prompt (main's prefs card). */}
