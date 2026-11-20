@@ -249,6 +249,8 @@ jobs:
         env:
           # Firebase Android config (FCM push token on Android). app.config.ts reads GOOGLE_SERVICES_JSON as a path.
           GOOGLE_SERVICES_JSON_CONTENT: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          # Firebase iOS config (Firebase Analytics). app.config.ts reads GOOGLE_SERVICE_INFO_PLIST as a path.
+          GOOGLE_SERVICE_INFO_PLIST_CONTENT: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
         run: |
           set -eu
           # The build number is the run number on both stores: monotonic, visible in the run's URL, and it needs no
@@ -256,6 +258,15 @@ jobs:
           # Android's versionCode is a number, iOS's buildNumber a string; Play refuses a code it has seen before.
           if [ "${{ steps.tag.outputs.ios }}" = true ]; then
             jq --arg b '${{ github.run_number }}' '.expo.ios.buildNumber = $b' app.json > app.json.tmp && mv app.json.tmp app.json
+            if [ -n "${GOOGLE_SERVICE_INFO_PLIST_CONTENT:-}" ]; then
+              printf '%s' "$GOOGLE_SERVICE_INFO_PLIST_CONTENT" > "$RUNNER_TEMP/GoogleService-Info.plist"
+              bundle="$(/usr/libexec/PlistBuddy -c 'Print :BUNDLE_ID' "$RUNNER_TEMP/GoogleService-Info.plist" 2>/dev/null || true)"
+              [ "$bundle" = com.alatech.droplet ] \
+                || { echo "::error::GOOGLE_SERVICE_INFO_PLIST is not the Firebase config of com.alatech.droplet (BUNDLE_ID: ${bundle:-unreadable})"; exit 1; }
+              export GOOGLE_SERVICE_INFO_PLIST="$RUNNER_TEMP/GoogleService-Info.plist"
+            else
+              echo "::warning::GOOGLE_SERVICE_INFO_PLIST secret not set: iOS builds without Firebase Analytics."
+            fi
             npx expo prebuild --platform ios --clean
             # Without this key App Store Connect holds every build at "Missing Compliance" until someone answers the
             # export questions by hand. app.json's ios.config.usesNonExemptEncryption writes it; fail if it ever doesn't.
