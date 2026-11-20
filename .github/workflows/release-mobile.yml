@@ -246,6 +246,9 @@ jobs:
 
       - name: Native project (prebuild)
         if: steps.tag.outputs.builder == 'local'
+        env:
+          # Firebase Android config (FCM push token on Android). app.config.ts reads GOOGLE_SERVICES_JSON as a path.
+          GOOGLE_SERVICES_JSON_CONTENT: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: |
           set -eu
           # The build number is the run number on both stores: monotonic, visible in the run's URL, and it needs no
@@ -268,6 +271,14 @@ jobs:
           fi
           if [ "${{ steps.tag.outputs.android }}" = true ]; then
             jq --argjson c ${{ github.run_number }} '.expo.android.versionCode = $c' app.json > app.json.tmp && mv app.json.tmp app.json
+            if [ -n "${GOOGLE_SERVICES_JSON_CONTENT:-}" ]; then
+              printf '%s' "$GOOGLE_SERVICES_JSON_CONTENT" > "$RUNNER_TEMP/google-services.json"
+              jq -e '.client[].client_info.android_client_info.package_name == "com.alatech.droplet"' "$RUNNER_TEMP/google-services.json" >/dev/null \
+                || { echo "::error::GOOGLE_SERVICES_JSON is not the Firebase config of com.alatech.droplet"; exit 1; }
+              export GOOGLE_SERVICES_JSON="$RUNNER_TEMP/google-services.json"
+            else
+              echo "::warning::GOOGLE_SERVICES_JSON secret not set: Android builds without FCM, so no push token on Android."
+            fi
             npx expo prebuild --platform android --clean
           fi
 
