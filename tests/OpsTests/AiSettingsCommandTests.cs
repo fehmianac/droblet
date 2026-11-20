@@ -31,3 +31,17 @@ public class AiSettingsCommandTests
         Assert.Null(OpsArguments.Parse(["ai-settings", "--stage", "dev", "--apply", "ops-presets/dev-worker-ai.json"]).Error);
     }
 }
+
+public class GoogleAuthCommandTests
+{
+    [Fact]
+    public void AddClientId_AppendsOnce_AndKeepsOtherFields()
+    {
+        const string id = "246101741985-hka3auqnqlnlu891bt4g1jcbdr6q212t.apps.googleusercontent.com";
+        var once = Ops.Commands.GoogleAuthCommand.AddClientId("{\"AndroidPackage\":\"com.alatech.droplet\",\"ClientIds\":[]}", id);
+        Assert.Equal("{\"AndroidPackage\":\"com.alatech.droplet\",\"ClientIds\":[\"" + id + "\"]}", once);
+        Assert.Equal(once, Ops.Commands.GoogleAuthCommand.AddClientId(once, id));
+        Assert.Null(Ops.OpsArguments.Parse(["google-auth", "--stage", "dev", "--add-client-id", id]).Error);
+        Assert.NotNull(Ops.OpsArguments.Parse(["google-auth", "--stage", "dev", "--add-client-id", "not-an-id"]).Error);
+    }
+}

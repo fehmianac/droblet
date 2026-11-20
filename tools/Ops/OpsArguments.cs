@@ -26,6 +26,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
     public const string AiSettings = "ai-settings";
     public const string CdnCheck = "cdn-check";
     public const string PublicUrls = "public-urls";
+    public const string GoogleAuth = "google-auth";
     public const string MigrateLibraryItemImages = "migrate-library-item-images";
     public const string AccountSmoke = "account-smoke";
     public const string OutfitImportSmoke = "outfit-import-smoke";
@@ -38,7 +39,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
     /// <summary>Hard ceiling of image-model calls in one run (library images and synthetic fixtures together).</summary>
     public const int MaxImageCallsPerRun = 30;
 
-    public static readonly IReadOnlyList<string> Commands = [GrantTestPremium, RevokeTestPremium, GenerateLibraryImages, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, Logs, MigrateLibraryItemImages, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, AiUsageBackfill, PublishItemImages, CdnCheck, PublicUrls];
+    public static readonly IReadOnlyList<string> Commands = [GrantTestPremium, RevokeTestPremium, GenerateLibraryImages, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, Logs, MigrateLibraryItemImages, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, AiUsageBackfill, PublishItemImages, CdnCheck, PublicUrls, GoogleAuth];
 
     /// <summary>Commands that create or change test accounts or spend AI credit on a throw-away user: never on prod.</summary>
     public static readonly IReadOnlySet<string> DevOnly = new HashSet<string>(StringComparer.Ordinal) { GrantTestPremium, RevokeTestPremium, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, PublicUrls };
@@ -57,6 +58,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [AiSettings] = ["apply"],
         [CdnCheck] = ["base"],
         [PublicUrls] = [],
+        [GoogleAuth] = ["add-client-id"],
         [MigrateLibraryItemImages] = [],
         [AccountSmoke] = ["api-url"],
         [OutfitImportSmoke] = ["api-url"],
@@ -79,6 +81,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [AiSettings] = [],
         [CdnCheck] = [],
         [PublicUrls] = ["enable", "disable"],
+        [GoogleAuth] = [],
         [MigrateLibraryItemImages] = ["dry-run"],
         [AccountSmoke] = ["keep-user"],
         [OutfitImportSmoke] = ["keep-user"],
@@ -226,6 +229,10 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
             case PublishItemImages:
                 if (Flag("wait") && Flag("inline"))
                     return "--wait and --inline exclude each other (--inline already waits)";
+                break;
+            case GoogleAuth:
+                if (Option("add-client-id") is { } clientId && !Ops.Commands.GoogleAuthCommand.ClientIdPattern().IsMatch(clientId))
+                    return "--add-client-id must be an OAuth client id (…apps.googleusercontent.com)";
                 break;
             case AiSettings:
                 if (Option("apply") is { } preset && !AiSettingsPresetPattern().IsMatch(preset))

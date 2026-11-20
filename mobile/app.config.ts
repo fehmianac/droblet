@@ -31,6 +31,11 @@ const googleServicesFile = process.env.GOOGLE_SERVICES_JSON || undefined;
 const apsMode: 'production' | 'development' =
   process.env.EAS_BUILD_PROFILE === 'production' || process.env.EAS_BUILD_PROFILE === 'preview' ? 'production' : 'development';
 
+/** Reversed iOS OAuth client id, e.g. com.googleusercontent.apps.123-abc — the redirect scheme of Google sign-in. */
+const GOOGLE_IOS_SCHEME = process.env.DROBLET_GOOGLE_IOS_CLIENT_ID
+  ? process.env.DROBLET_GOOGLE_IOS_CLIENT_ID.split('.').reverse().join('.')
+  : null;
+
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   // From app.json; the fallbacks only satisfy the type when the file is evaluated without it.
@@ -39,7 +44,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   version: config.version,
   orientation: 'portrait',
   icon: './assets/images/icon.png',
-  scheme: SCHEME,
+  // Google sign-in returns to the app through the reversed iOS client id (com.googleusercontent.apps.…).
+  scheme: GOOGLE_IOS_SCHEME ? [SCHEME, GOOGLE_IOS_SCHEME] : SCHEME,
   // No dark mode in phase 1 (README §9.1, A-9). Tokens are structured so a dark palette can be added.
   userInterfaceStyle: 'light',
   backgroundColor: CREAM,
