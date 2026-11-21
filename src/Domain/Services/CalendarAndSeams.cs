@@ -202,6 +202,9 @@ public enum ResultKind { Ok, Created, Accepted, NoContent, NotFound, Conflict, I
 
 public sealed record ServiceResult<T>(ResultKind Kind, T? Value = default, string? Code = null)
 {
+    /// <summary>Extra ProblemDetails members of a failure (e.g. resetsAt of teen_stylist_daily_limit).</summary>
+    public IReadOnlyDictionary<string, object?>? Extensions { get; init; }
+
     public bool IsSuccess => Kind is ResultKind.Ok or ResultKind.Created or ResultKind.Accepted or ResultKind.NoContent;
 }
 
@@ -218,4 +221,13 @@ public static class ServiceResult
     public static ServiceResult<T> Forbidden<T>(string code) => new(ResultKind.Forbidden, default, code);
     public static ServiceResult<T> PaymentRequired<T>(string code) => new(ResultKind.PaymentRequired, default, code);
     public static ServiceResult<T> TooManyRequests<T>(string code) => new(ResultKind.TooManyRequests, default, code);
+
+    /// <summary>
+    /// A refused EntitlementDecision: a used-up teen stylist allowance → 429 with resetsAt; anything else → 403 with its code
+    /// (premium_required, parental_consent_required, teen_stylist_unavailable…).
+    /// </summary>
+    public static ServiceResult<T> Denied<T>(EntitlementDecision decision) =>
+        decision.ResetsAt is { } resetsAt
+            ? new(ResultKind.TooManyRequests, default, decision.Reason) { Extensions = new Dictionary<string, object?> { ["resetsAt"] = resetsAt } }
+            : Forbidden<T>(decision.Reason ?? Constant.ErrorCodes.PremiumRequired);
 }

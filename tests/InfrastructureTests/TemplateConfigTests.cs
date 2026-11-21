@@ -175,17 +175,22 @@ public partial class TemplateConfigTests
             Assert.False(prod.TryOnEnabled);
             Assert.Equal((7, 5, 3, 90), (prod.ConsentLinkDays, prod.ConsentRequestsPerDay, prod.ConsentRequestsPerParentPerDay, prod.PhotoRetentionInactiveDays));
             Assert.EndsWith("/parent-consent/", prod.ParentConsentUrl);   // trailing slash: S3 keeps the query
+            // Teen stylist allowance (owner decision 2026-11-21): on, 3 outfits a day, 1 week plan a week, packing off.
+            Assert.Equal((true, 3, 1, 0), (prod.Stylist.Enabled, prod.Stylist.DailyLimit, prod.Stylist.WeekPlanPerWeek, prod.Stylist.TripPackPerWeek));
 
             var dev = Regex.Match(template, scope + @"/Teen[\s\S]*?- IsProd\s*\n\s*- '[^']*'\s*\n\s*- '(?<dev>[^']*)'").Groups["dev"].Value;
             var devOptions = System.Text.Json.JsonSerializer.Deserialize<TeenOptions>(dev)!;
             Assert.True(devOptions.Enabled);
             Assert.False(devOptions.TryOnEnabled);   // coordinator safety condition: off on every stage
+            Assert.Equal((true, 3, 1, 0), (devOptions.Stylist.Enabled, devOptions.Stylist.DailyLimit, devOptions.Stylist.WeekPlanPerWeek, devOptions.Stylist.TripPackPerWeek));
         }
 
         var values = Parameters().SelectMany(p => p.Value.Where(v => v.Section == "Teen").Select(v => v.Value)).Distinct().ToList();
         Assert.Single(values);
         // Not editable from the panel.
         Assert.DoesNotContain(Domain.Services.Admin.SettingsCatalog.Find("teen")!.Fields, f => f.Key == "TryOnEnabled");
+        // …but the stylist allowance is.
+        Assert.Contains(Domain.Services.Admin.SettingsCatalog.Find("teen")!.Fields, f => f.Key == "Stylist.DailyLimit");
     }
 
     [Fact]

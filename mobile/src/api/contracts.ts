@@ -218,6 +218,8 @@ export type ProblemDetails = {
   current?: unknown;
   /** On 403 `consent_required`: the consent types that are missing (`ConsentType`). */
   missing?: string[];
+  /** On 429 `teen_stylist_daily_limit` / `teen_stylist_weekly_limit`: when the teen allowance comes back (UTC). */
+  resetsAt?: string;
 };
 
 // ---------- NOT YET AGREED (fixture-backed in this slice) ----------

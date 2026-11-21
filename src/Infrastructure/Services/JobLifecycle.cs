@@ -16,6 +16,7 @@ public sealed class JobLifecycle(
     IRepository repository,
     ICreditService credits,
     IItemRecognitionQuotaService itemRecognition,
+    IStylistAllowanceService stylistAllowance,
     IAiUsageRecorder usage,
     TimeProvider timeProvider,
     ILogger<JobLifecycle> logger) : IJobLifecycle
@@ -60,7 +61,12 @@ public sealed class JobLifecycle(
         // A recognised photo consumes one of a non-member's free recognitions (no-op for members).
         if (job.Kind is JobKind.ItemProcess or JobKind.ItemSplit)
             await itemRecognition.CommitAsync(job.TenantId, job.Id, ct);
+        // A delivered stylist job uses its teen allowance slot (no-op for adults and members: no reservation).
+        if (IsStylist(job.Kind))
+            await stylistAllowance.CommitAsync(job.TenantId, job.Id, ct);
     }
+
+    private static bool IsStylist(JobKind kind) => kind is JobKind.StylistOutfit or JobKind.StylistWeek or JobKind.StylistPack;
 
     public async Task FailAsync(JobEntity job, JobFailure failure, CancellationToken ct)
     {
@@ -80,6 +86,9 @@ public sealed class JobLifecycle(
         // …nor one of a non-member's free garment recognitions, whatever the failure (provider, guard, deleted source).
         if (job.Kind is JobKind.ItemProcess or JobKind.ItemSplit)
             await itemRecognition.ReleaseAsync(job.TenantId, job.Id, ct);
+        // …nor a teen's stylist suggestion (Teen:Stylist allowance).
+        if (IsStylist(job.Kind))
+            await stylistAllowance.ReleaseAsync(job.TenantId, job.Id, ct);
 
         logger.LogWarning("Job {JobId} ({Kind}) for tenant {TenantId} failed: {Failure}", job.Id, job.Kind, job.TenantId, failure);
     }

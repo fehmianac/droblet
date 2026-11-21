@@ -52,6 +52,9 @@ export function TeenHost({ userId, ready }: { userId: string; ready: boolean }) 
 
   useEffect(() => () => teenStore.reset(), []);
 
+  const { refetch } = state;
+  useEffect(() => teenStore.onRefresh(() => void refetch()), [refetch]);
+
   useEffect(() => {
     if (rules.isTeen) void setProductAnalyticsEnabled(false);
   }, [rules.isTeen]);

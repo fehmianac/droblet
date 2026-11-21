@@ -12,6 +12,8 @@ import { AiSkeletonRows } from '@/components/ui/ai/AiSkeletonCards';
 import { InfoNote } from '@/components/ui/Bits';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
+import { useTeenRules } from '@/features/teen/store';
+import { TeenPackLock } from '@/features/teen/TeenStylist';
 import { ItemThumb } from '@/features/wardrobe/ItemThumb';
 import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { parseLocalDate, weekdayShort } from '@/lib/format';
@@ -39,12 +41,15 @@ export function TripPacking({ trip }: { trip: TripDetail }) {
   const writes = useTripWrites();
   const job = usePackJob(trip.packJobId, { enabled: focused });
   const [dismissedJob, setDismissedJob] = useState<string | null>(null);
+  // Canvas 18 · 16w: an approved teen whose packing is off (or used this week) never starts the job.
+  const teenStylist = useTeenRules().stylist;
+  const teenPackLocked = teenStylist !== null && teenStylist.pack !== 'open';
 
   // A job that failed and was retried must not flash its old failure while the new one starts.
   const jobActive = Boolean(trip.packJobId) && trip.packJobId !== dismissedJob;
   // The create write may still be queued (baseVersion 0 = not confirmed): the job can only start afterwards.
   const confirmed = trip.baseVersion > 0;
-  const canAutoStart = confirmed && online && !jobActive && !start.isPending && !start.isError && dismissedJob === null;
+  const canAutoStart = confirmed && online && !jobActive && !start.isPending && !start.isError && dismissedJob === null && !teenPackLocked;
   const { mutate } = start;
   const tripId = trip.id;
 
@@ -99,8 +104,11 @@ export function TripPacking({ trip }: { trip: TripDetail }) {
     );
   }
 
+  if (teenPackLocked && !jobActive) return <TeenPackLock />;
+
   if (start.isError || (jobActive && job.isFailed)) {
     const state = start.isError ? packErrorState(start.error) : packErrorState(job.error, job.errorCode);
+    if (state === 'teenOff' || state === 'teenLimit') return <TeenPackLock state={state === 'teenOff' ? 'unavailable' : 'limitReached'} />;
     if (state === 'failed') return <AiFailure creditRefunded={false} onRetry={retry} retrying={start.isPending} layout="inline" />;
     return <PackBlocked state={state} onRetry={retry} retrying={start.isPending} />;
   }
@@ -149,14 +157,14 @@ const BLOCKED_TEXT = {
   paywall: 'tripDetail.packPremium',
   consent: 'tripDetail.packConsent',
   wardrobe: 'tripDetail.packWardrobe',
-} as const satisfies Record<Exclude<PackErrorState, 'failed'>, string>;
+} as const satisfies Record<Exclude<PackErrorState, 'failed' | 'teenOff' | 'teenLimit'>, string>;
 
 /**
  * A pack start the server refused for a reason the user can act on: Premium (the paywall — and from there the
  * self-premium link when it is enabled — opened once by `routeAiStartError`, offered again here), a missing consent
  * (the consent sheet opened by the query client; "Try again" once it is given) or a wardrobe too small to dress a day.
  */
-function PackBlocked({ state, onRetry, retrying }: { state: Exclude<PackErrorState, 'failed'>; onRetry: () => void; retrying: boolean }) {
+function PackBlocked({ state, onRetry, retrying }: { state: Exclude<PackErrorState, 'failed' | 'teenOff' | 'teenLimit'>; onRetry: () => void; retrying: boolean }) {
   const { t } = useTranslation();
   return (
     <View className="items-center gap-3 py-4" accessibilityLiveRegion="polite" testID={`pack-blocked-${state}`}>

@@ -640,11 +640,11 @@ Resources:
     Properties:
       Name: !Sub /droblet/${Stage}/api/Teen
       Type: String
-      Description: Teen mode 16-17 (docs/api/teen.md). Enabled - dev true, prod false. TryOnEnabled stays false on every stage until OpenAI policy and lawyer approval (not editable in the panel).
+      Description: Teen mode 16-17 (docs/api/teen.md). Enabled - dev true, prod false. TryOnEnabled stays false on every stage until OpenAI policy and lawyer approval (not editable in the panel). Stylist - free-tier teen stylist allowance (Istanbul day / week, 0 = off).
       Value: !If
         - IsProd
-        - '{"Enabled":false,"TryOnEnabled":false,"ConsentLinkDays":7,"ConsentRequestsPerDay":5,"ConsentRequestsPerParentPerDay":3,"PhotoRetentionInactiveDays":90,"LegacyAgeCheckbox":true,"ParentConsentUrl":"https://droblet.alatech.co/parent-consent/","ParentalConsentTextVersion":"2026-11-21"}'
-        - '{"Enabled":true,"TryOnEnabled":false,"ConsentLinkDays":7,"ConsentRequestsPerDay":5,"ConsentRequestsPerParentPerDay":3,"PhotoRetentionInactiveDays":90,"LegacyAgeCheckbox":true,"ParentConsentUrl":"https://droblet.alatech.co/parent-consent/","ParentalConsentTextVersion":"2026-11-21"}'
+        - '{"Enabled":false,"TryOnEnabled":false,"ConsentLinkDays":7,"ConsentRequestsPerDay":5,"ConsentRequestsPerParentPerDay":3,"PhotoRetentionInactiveDays":90,"LegacyAgeCheckbox":true,"ParentConsentUrl":"https://droblet.alatech.co/parent-consent/","ParentalConsentTextVersion":"2026-11-21","Stylist":{"Enabled":true,"DailyLimit":3,"WeekPlanPerWeek":1,"TripPackPerWeek":0}}'
+        - '{"Enabled":true,"TryOnEnabled":false,"ConsentLinkDays":7,"ConsentRequestsPerDay":5,"ConsentRequestsPerParentPerDay":3,"PhotoRetentionInactiveDays":90,"LegacyAgeCheckbox":true,"ParentConsentUrl":"https://droblet.alatech.co/parent-consent/","ParentalConsentTextVersion":"2026-11-21","Stylist":{"Enabled":true,"DailyLimit":3,"WeekPlanPerWeek":1,"TripPackPerWeek":0}}'
   SsmWorkerTeen:
     Type: AWS::SSM::Parameter
     Properties:
@@ -653,8 +653,8 @@ Resources:
       Description: Same values as api/Teen (the try-on worker re-checks TryOnEnabled).
       Value: !If
         - IsProd
-        - '{"Enabled":false,"TryOnEnabled":false,"ConsentLinkDays":7,"ConsentRequestsPerDay":5,"ConsentRequestsPerParentPerDay":3,"PhotoRetentionInactiveDays":90,"LegacyAgeCheckbox":true,"ParentConsentUrl":"https://droblet.alatech.co/parent-consent/","ParentalConsentTextVersion":"2026-11-21"}'
-        - '{"Enabled":true,"TryOnEnabled":false,"ConsentLinkDays":7,"ConsentRequestsPerDay":5,"ConsentRequestsPerParentPerDay":3,"PhotoRetentionInactiveDays":90,"LegacyAgeCheckbox":true,"ParentConsentUrl":"https://droblet.alatech.co/parent-consent/","ParentalConsentTextVersion":"2026-11-21"}'
+        - '{"Enabled":false,"TryOnEnabled":false,"ConsentLinkDays":7,"ConsentRequestsPerDay":5,"ConsentRequestsPerParentPerDay":3,"PhotoRetentionInactiveDays":90,"LegacyAgeCheckbox":true,"ParentConsentUrl":"https://droblet.alatech.co/parent-consent/","ParentalConsentTextVersion":"2026-11-21","Stylist":{"Enabled":true,"DailyLimit":3,"WeekPlanPerWeek":1,"TripPackPerWeek":0}}'
+        - '{"Enabled":true,"TryOnEnabled":false,"ConsentLinkDays":7,"ConsentRequestsPerDay":5,"ConsentRequestsPerParentPerDay":3,"PhotoRetentionInactiveDays":90,"LegacyAgeCheckbox":true,"ParentConsentUrl":"https://droblet.alatech.co/parent-consent/","ParentalConsentTextVersion":"2026-11-21","Stylist":{"Enabled":true,"DailyLimit":3,"WeekPlanPerWeek":1,"TripPackPerWeek":0}}'
   SsmNotifierTeen:
     Type: AWS::SSM::Parameter
     Properties:
@@ -663,8 +663,8 @@ Resources:
       Description: Same values as api/Teen (daily teen run - retention days).
       Value: !If
         - IsProd
-        - '{"Enabled":false,"TryOnEnabled":false,"ConsentLinkDays":7,"ConsentRequestsPerDay":5,"ConsentRequestsPerParentPerDay":3,"PhotoRetentionInactiveDays":90,"LegacyAgeCheckbox":true,"ParentConsentUrl":"https://droblet.alatech.co/parent-consent/","ParentalConsentTextVersion":"2026-11-21"}'
-        - '{"Enabled":true,"TryOnEnabled":false,"ConsentLinkDays":7,"ConsentRequestsPerDay":5,"ConsentRequestsPerParentPerDay":3,"PhotoRetentionInactiveDays":90,"LegacyAgeCheckbox":true,"ParentConsentUrl":"https://droblet.alatech.co/parent-consent/","ParentalConsentTextVersion":"2026-11-21"}'
+        - '{"Enabled":false,"TryOnEnabled":false,"ConsentLinkDays":7,"ConsentRequestsPerDay":5,"ConsentRequestsPerParentPerDay":3,"PhotoRetentionInactiveDays":90,"LegacyAgeCheckbox":true,"ParentConsentUrl":"https://droblet.alatech.co/parent-consent/","ParentalConsentTextVersion":"2026-11-21","Stylist":{"Enabled":true,"DailyLimit":3,"WeekPlanPerWeek":1,"TripPackPerWeek":0}}'
+        - '{"Enabled":true,"TryOnEnabled":false,"ConsentLinkDays":7,"ConsentRequestsPerDay":5,"ConsentRequestsPerParentPerDay":3,"PhotoRetentionInactiveDays":90,"LegacyAgeCheckbox":true,"ParentConsentUrl":"https://droblet.alatech.co/parent-consent/","ParentalConsentTextVersion":"2026-11-21","Stylist":{"Enabled":true,"DailyLimit":3,"WeekPlanPerWeek":1,"TripPackPerWeek":0}}'
   SsmNotifierLocalization:
     Type: AWS::SSM::Parameter
     Properties:

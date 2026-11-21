@@ -71,6 +71,9 @@ public enum TryOnTargetKind { Item, Look, Product, EditLook, Suggestion, TripDay
 
 public enum Tier { Free, Premium }
 
+/// <summary>What a teen stylist allowance slot is for (Teen:Stylist): outfit / day, week plan / week, trip packing / week.</summary>
+public enum TeenStylistKind { Outfit, WeekPlan, TripPack }
+
 public enum Capability
 {
     TryOn,

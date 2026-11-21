@@ -81,6 +81,7 @@ public static class DependencyInjection
         services.AddSingleton<IEntitlementService, EntitlementService>();
         services.AddSingleton<ICreditService, CreditService>();
         services.AddSingleton<IItemRecognitionQuotaService, ItemRecognitionQuotaService>();
+        services.AddSingleton<IStylistAllowanceService, StylistAllowanceService>();
         services.AddSingleton<IAiUsageRecorder, AiUsageRecorder>();
         services.AddSingleton<IJobLifecycle, JobLifecycle>();
         services.AddSingleton<IJobEtaProvider, JobEtaProvider>();

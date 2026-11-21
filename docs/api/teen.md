@@ -38,6 +38,10 @@ SSM `api/Teen`, `worker/Teen`, `notifier/Teen` (same JSON). Admin panel → Ayar
 | `LegacyAgeCheckbox` | `true` | `true` | Transition: an old client's `ageConfirmed: true` without `birthYear` still registers an adult. Switch off once the old app versions are gone. |
 | `ParentConsentUrl` | `https://droblet.alatech.co/parent-consent/` | same | The page of the e-mailed link (trailing slash: S3 drops the query on the `/page` → `/page/` redirect). |
 | `ParentalConsentTextVersion` | `2026-11-21` | same | Version of the parent-facing text; the page sends it back with the decision. |
+| `Stylist.Enabled` | `true` | `true` | Approved teens get the limited free-tier stylist (§4.2). Off: `403 teen_stylist_unavailable`. |
+| `Stylist.DailyLimit` | 3 | 3 | Outfit suggestion jobs per Europe/Istanbul day. `0` = off. |
+| `Stylist.WeekPlanPerWeek` | 1 | 1 | Week plans per Istanbul week (Monday 00:00). `0` = off. |
+| `Stylist.TripPackPerWeek` | 0 | 0 | AI trip packing per Istanbul week. `0` (default) = off for teens. |
 
 `GET v1/config` (anonymous) gains:
 
@@ -93,7 +97,7 @@ Every rule is checked on the server; the app hides the UI too, but a call that g
 | **Social** | No follow / follow requests, followers lists, people search and profiles, ratings, saves, reports of others, feed, share links, invite link / attribution, contact matching, @handle | Every route of these groups → `403 teen_restricted` (`social`); see the list in §4.1. Block (`PUT/DELETE/GET v1/tenant/block`) stays available. |
 | | Closet forced private | Teen accounts are created `private`; `PUT v1/tenant/profile/visibility` with anything else → `403 teen_restricted` (`closetVisibility`). |
 | | Invisible to others | The visibility policy hides a teen from every cross-tenant read (profile card, closet, looks, trips), from search, suggestions and follow-request lists, and the public index never lists one. |
-| **Commerce** | No store / affiliate links, cart, checkout, favourites, watch list, purchases, paywall | Every route of these groups → `403 teen_restricted` (`commerce`). The stylist's gap filling picks from the ready library only (no catalog products). `GET v1/tenant/entitlement` answers the free tier with `paywallHidden: true`. Teens are **free tier**; a parent-bought premium is a later decision. |
+| **Commerce** | No store / affiliate links, cart, checkout, favourites, watch list, purchases, paywall | Every route of these groups → `403 teen_restricted` (`commerce`). The stylist's gap filling picks from the ready library only (no catalog products). `GET v1/tenant/entitlement` answers the free tier with `paywallHidden: true`. Teens are **free tier**; a parent-bought premium is a later decision. The stylist is open to approved teens within the allowance of §4.2. |
 | **Analytics** | No Firebase; first-party opt-out forced | The app must not initialise Firebase for a teen (`teen.restrictions` contains `firebaseAnalytics`). `POST v1/tenant/event` accepts the batch but stores nothing (`accepted: 0`, every event rejected `analytics_opted_out`); server-side events are not recorded either. |
 | **Notifications** | Marketing off | `marketingNotifications` (and `contacts`) cannot be granted (`PUT v1/tenant/consents` → `403 teen_restricted` `marketing` / `contacts`); `weeklyEdit`, `priceDrop`, `friendRatings`, `followRequests` are stored and reported `false` whatever is sent; the Notifier skips teens for marketing pushes. The morning outfit (service) stays. |
 | **AI stylist** | Age-appropriate | Prompt fragment `stylist.age.teen` (school- and age-appropriate, never suggestive) on every outfit / week / suitcase request; beachwear and other revealing pieces are left out of the candidates and the picks; suggestive wording in an answer fails the job (`guardRejected`). |
@@ -115,6 +119,51 @@ Every rule is checked on the server; the app hides the UI too, but a call that g
   `v1/tenant/profile/avatar*` (upload / set). Reading, deleting and everything without a photo or AI (wardrobe from the
   library or by hand, looks, plan, wear log, trips without packing) works.
 
+### 4.2 Limited stylist for approved teens (`Teen:Stylist`)
+
+Owner decision (2026-11-21): the stylist is a member feature, but an **approved** teen (status `active`) on the free
+tier gets a limited stylist instead of the paywall. The decision is `EntitlementPolicy.CheckTeenStylist`:
+
+| Situation | Answer |
+|---|---|
+| Teen with premium (admin test grant) | The normal member check — no allowance |
+| Consent not `active` | `403 parental_consent_required` (`status`) — unchanged, limited mode |
+| `Stylist.Enabled` false, or the kind's limit is `0` | `403 teen_stylist_unavailable` |
+| Allowance used up — outfit | `429 teen_stylist_daily_limit` with `resetsAt` (next 00:00 Europe/Istanbul, UTC) |
+| Allowance used up — week plan / trip packing | `429 teen_stylist_weekly_limit` with `resetsAt` (next Monday 00:00 Istanbul, UTC) |
+| Otherwise | `202` job, one slot reserved |
+| Adult free / adult member | Unchanged: `403 premium_required` / allowed |
+
+```json
+{ "status": 429, "code": "teen_stylist_daily_limit", "resetsAt": "2026-11-21T21:00:00Z" }
+```
+
+Kinds: `POST v1/tenant/stylist/outfit` → daily outfit allowance, `POST v1/tenant/stylist/week` → week plan allowance,
+`POST v1/tenant/trip/{id}/pack` → trip packing allowance. Accepting a suggestion, disliking it and the try-on of a
+suggestion do not use the allowance (try-on has its own rules, §6).
+
+**Counting.** One row per tenant (`TeenStylistUsageEntity`) written only with a version condition (DynamoDB
+conditional write), so two concurrent starts can never both take the last slot. A start **reserves** a slot for the job
+(the request id; a retried request keeps its one slot), the worker **commits** it when the job completes and
+**releases** it when the job fails — a failed job (provider error, guard rejection, timeout) never uses an allowance. A
+slot neither committed nor released within 24 h (a job lost in the DLQ) stops counting. A completed job counts in the
+day / week it was started in. The prompt rules (`stylist.age.teen`), the revealing-item filter and library-only gap
+filling apply as before.
+
+The teen status (`GET v1/tenant/teen`, the profile's `teen`) carries the allowance:
+
+```json
+"stylist": {
+  "enabled": true,
+  "dailyLimit": 3, "usedToday": 1, "remainingToday": 2, "resetsAt": "2026-11-21T21:00:00Z",
+  "weekPlanLimit": 1, "weekPlanUsed": 0, "weekPlanRemaining": 1, "weekResetsAt": "2026-11-22T21:00:00Z",
+  "tripPackLimit": 0, "tripPackUsed": 0, "tripPackRemaining": 0
+}
+```
+
+`used*` include jobs still running. `remaining*` is `0` when `enabled` is false. The app shows "Genç hesaplarda şimdilik
+açık değil" only for `enabled: false` / a `0` limit (or `teen_stylist_unavailable`), never a paywall.
+
 ## 5. Verified parental consent (VPC)
 
 ### Status
@@ -132,7 +181,8 @@ the rate limits.
   "ownTryOnConsent": false,
   "tryOn": { "available": false, "reason": "feature_off" },
   "adultFrom": "2027-05-01",
-  "restrictions": ["social", "commerce", "paywall", "firebaseAnalytics", "firstPartyAnalytics", "marketingNotifications", "outfitPhotoTryOn"]
+  "restrictions": ["social", "commerce", "paywall", "firebaseAnalytics", "firstPartyAnalytics", "marketingNotifications", "outfitPhotoTryOn"],
+  "stylist": { "enabled": true, "dailyLimit": 3, "usedToday": 0, "remainingToday": 3, "resetsAt": "…", "weekPlanLimit": 1, "weekPlanUsed": 0, "weekPlanRemaining": 1, "weekResetsAt": "…", "tripPackLimit": 0, "tripPackUsed": 0, "tripPackRemaining": 0 }
 }
 ```
 
@@ -223,7 +273,8 @@ not in the sitemap, `noindex`.
 - Moderation: `GET v1/admin/moderation/report` items carry `involvesTeen` and `priority` (`high` when the reporter or
   the target is a teen, else `normal`); high-priority reports come first in every page.
 - Ayarlar → group **teen** (`api/Teen`, `worker/Teen`, `notifier/Teen`): `Enabled`, `ConsentLinkDays`,
-  `ConsentRequestsPerDay`, `ConsentRequestsPerParentPerDay`, `PhotoRetentionInactiveDays`, `LegacyAgeCheckbox`.
+  `ConsentRequestsPerDay`, `ConsentRequestsPerParentPerDay`, `PhotoRetentionInactiveDays`, `LegacyAgeCheckbox`,
+  `Stylist.Enabled`, `Stylist.DailyLimit`, `Stylist.WeekPlanPerWeek`, `Stylist.TripPackPerWeek`.
 
 ## 11. New error codes
 
@@ -231,4 +282,5 @@ not in the sitemap, `noindex`.
 `teen_restricted` · `parental_consent_required` · `teen_try_on_not_available` · `not_a_teen_account` ·
 `parent_email_invalid` · `parent_email_same_as_teen` · `parental_consent_already_given` ·
 `parental_consent_not_requested` · `parental_consent_link_invalid` · `parental_consent_link_expired` ·
-`parental_consent_already_decided` · `parental_consent_confirmations_required` · `consent_version_outdated`.
+`parental_consent_already_decided` · `parental_consent_confirmations_required` · `consent_version_outdated` ·
+`teen_stylist_daily_limit` · `teen_stylist_weekly_limit` · `teen_stylist_unavailable`.

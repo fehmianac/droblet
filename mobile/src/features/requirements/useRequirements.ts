@@ -25,6 +25,7 @@ export function useRequirementInput(): RequirementInput {
   const items = useItems();
   const flow = useRequirementsFlow();
   const segment = useSegment();
+  const teen = useTeenRules();
 
   const bodyKnown = body.status === 'success';
   return {
@@ -42,6 +43,7 @@ export function useRequirementInput(): RequirementInput {
     itemCount: items.data ? items.data.length : null,
     cityDeclined: flow.cityDeclined,
     emailVerified: profile.data?.emailVerified,
+    teenStylist: teen.stylist !== null,
   };
 }
 

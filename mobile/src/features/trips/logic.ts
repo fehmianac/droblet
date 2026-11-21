@@ -1,6 +1,6 @@
 import { TRIP_MAX_DAYS, type City, type Trip, type TripDetail, type TripItem } from '@/api/contracts/trips';
 import type { ItemCategory } from '@/api/contracts/wardrobe';
-import { isConsentRequired, isPaywallError } from '@/api/errors';
+import { isConsentRequired, isPaywallError, teenStylistErrorCode } from '@/api/errors';
 import { parseLocalDate, toIsoDate } from '@/lib/format';
 
 /**
@@ -197,11 +197,16 @@ export function forecastNotice(trip: Pick<TripDetail, 'forecast' | 'forecastStat
  * - `paywall` — 403 `premium_required` (the paywall opens; the area offers it again),
  * - `consent` — 403 `consent_required` (the consent sheet opens; "Try again" afterwards),
  * - `wardrobe` — the job refused: the wardrobe cannot dress a single day (`insufficient_wardrobe`),
+ * - `teenOff` / `teenLimit` — an approved teen: packing off for teens (`teen_stylist_unavailable`) or this week's used
+ *   (`teen_stylist_weekly_limit`) — the calm 16w card, never the paywall,
  * - `failed` — anything else: credits, provider error, timeout, network, validation → the AI failure state with retry.
  */
-export type PackErrorState = 'paywall' | 'consent' | 'wardrobe' | 'failed';
+export type PackErrorState = 'paywall' | 'consent' | 'wardrobe' | 'teenOff' | 'teenLimit' | 'failed';
 
 export function packErrorState(error: unknown, jobErrorCode: string | null = null): PackErrorState {
+  const teenCode = teenStylistErrorCode(error);
+  if (teenCode === 'teen_stylist_unavailable') return 'teenOff';
+  if (teenCode) return 'teenLimit';
   if (isPaywallError(error) || jobErrorCode === 'premium_required') return 'paywall';
   if (isConsentRequired(error) || jobErrorCode === 'consent_required') return 'consent';
   // `PackRefusedError` (wire/trips) — matched by name so this module stays free of the wire mappers.

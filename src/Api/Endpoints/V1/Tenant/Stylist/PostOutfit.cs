@@ -32,8 +32,8 @@ public class PostOutfit : IEndpoint
     {
         return endpoints.MapPost("v1/tenant/stylist/outfit", Handler)
             .Produces<JobDto>(StatusCodes.Status202Accepted)
-            .Problems(StatusCodes.Status403Forbidden, StatusCodes.Status409Conflict, StatusCodes.Status422UnprocessableEntity)
+            .Problems(StatusCodes.Status403Forbidden, StatusCodes.Status409Conflict, StatusCodes.Status422UnprocessableEntity, StatusCodes.Status429TooManyRequests)
             .Validated()
-            .Tenant("Tenant Stylist", "Ask the stylist for outfit suggestions", "Queues a job that returns 3 suggestions built only from the wardrobe (free text + occasion + onlyMyWardrobe + optional pinned piece). Text stylist costs no credit; membership required. Poll GET v1/tenant/job/{requestId}.");
+            .Tenant("Tenant Stylist", "Ask the stylist for outfit suggestions", "Queues a job that returns 3 suggestions built only from the wardrobe (free text + occasion + onlyMyWardrobe + optional pinned piece). Text stylist costs no credit; membership required — an approved teen uses the Teen:Stylist daily allowance instead (429 teen_stylist_daily_limit with resetsAt, 403 teen_stylist_unavailable). Poll GET v1/tenant/job/{requestId}.");
     }
 }

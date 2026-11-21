@@ -104,6 +104,14 @@ export function isPaywallError(error: unknown): boolean {
   return code === 'premium_required' || code === 'item_recognition_limit_reached';
 }
 
+/** The approved teen's stylist allowance answers (`Teen:Stylist`, docs/api/teen.md §4.2). */
+export type TeenStylistErrorCode = 'teen_stylist_daily_limit' | 'teen_stylist_weekly_limit' | 'teen_stylist_unavailable';
+
+export function teenStylistErrorCode(error: unknown): TeenStylistErrorCode | null {
+  const code = apiErrorCode(error);
+  return code === 'teen_stylist_daily_limit' || code === 'teen_stylist_weekly_limit' || code === 'teen_stylist_unavailable' ? code : null;
+}
+
 /** 402 `credits_exhausted` → the credit-pack sheet (05b), never the paywall. */
 export function isCreditsExhausted(error: unknown): boolean {
   return apiErrorCode(error) === 'credits_exhausted';

@@ -47,6 +47,8 @@ export type RequirementInput = {
   cityDeclined?: boolean;
   /** False while the e-mail of an e-mail sign-up is not verified; true / undefined otherwise (nothing to do). */
   emailVerified?: boolean;
+  /** Approved teen: the stylist / week plan / packing run on the free-tier `Teen:Stylist` allowance (no membership step). */
+  teenStylist?: boolean;
 };
 
 export type Requirements = {
@@ -82,6 +84,11 @@ function ageStep(input: RequirementInput): RequirementStep[] {
 
 function premiumStep(input: RequirementInput): RequirementStep[] {
   return input.isMember === false ? [{ kind: 'premium' }] : [];
+}
+
+/** An approved teen's stylist runs on the free-tier allowance (`Teen:Stylist`): never the membership step (no paywall). */
+function stylistPremiumStep(input: RequirementInput): RequirementStep[] {
+  return input.teenStylist ? [] : premiumStep(input);
 }
 
 /** The steps of one photo path for "Üzerimde gör" (consent, photo, body type) — without 18+ and membership. */
@@ -138,10 +145,10 @@ export function computeRequirements(action: RequirementAction, input: Requiremen
       break;
     case 'stylist':
     case 'week':
-      steps = [...ageStep(input), ...premiumStep(input), ...(input.cityId === null && !input.cityDeclined ? [{ kind: 'city' as const, optional: true }] : [])];
+      steps = [...ageStep(input), ...stylistPremiumStep(input), ...(input.cityId === null && !input.cityDeclined ? [{ kind: 'city' as const, optional: true }] : [])];
       break;
     case 'pack':
-      steps = [...ageStep(input), ...premiumStep(input)];
+      steps = [...ageStep(input), ...stylistPremiumStep(input)];
       break;
     case 'social':
       steps = [...ageStep(input), ...(input.handle === null ? [{ kind: 'handle' as const }] : [])];

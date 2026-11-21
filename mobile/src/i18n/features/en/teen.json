@@ -182,6 +182,22 @@
     },
     "unavailable": "This feature isn't available on teen accounts yet.",
     "shareDiscarded": "Trying on a shared photo is off for teen accounts.",
-    "creditsOut": "This month's AI images are used up; they renew at the start of the month."
+    "creditsOut": "This month's AI images are used up; they renew at the start of the month.",
+    "stylist": {
+      "quotaLeft_one": "{{count}} suggestion left today",
+      "quotaLeft_other": "{{count}} suggestions left today",
+      "quotaDone": "Today's suggestions are used · Refreshes tomorrow",
+      "limitTitle": "That's it for today",
+      "limitBody_one": "You've used today's {{count}} suggestion. It refreshes tomorrow — until then, have a look at the looks you saved.",
+      "limitBody_other": "You've used today's {{count}} suggestions. They refresh tomorrow — until then, have a look at the looks you saved.",
+      "limitReset": "Refreshes tomorrow",
+      "limitAction": "Go to my looks",
+      "weekLeft_one": "{{count}} week plan left this week",
+      "weekLeft_other": "{{count}} week plans left this week",
+      "weekDone": "You've planned this week · Refreshes on Monday",
+      "packOff": "Suitcase packing isn't open for teen accounts yet. You can add pieces yourself.",
+      "packCard": "Pack your own list",
+      "packDone": "You've used this week's suitcase · Refreshes on Monday"
+    }
   }
 }

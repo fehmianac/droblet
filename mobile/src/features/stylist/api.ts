@@ -3,6 +3,7 @@ import type { TFunction } from 'i18next';
 
 import { track } from '@/analytics/track';
 import { apiRequest } from '@/api/client';
+import { refreshTeenStylist } from '@/features/teen/store';
 import type { Occasion } from '@/api/contracts';
 import {
   STYLIST_TEXT_MAX,
@@ -116,6 +117,7 @@ export function useStartStylistOutfit() {
       ),
     onSuccess: (accepted, request) => {
       client.setQueryData(stylistKeys.request(accepted.jobId), request);
+      refreshTeenStylist();
     },
     onError: (error) => void routeAiStartError(error, 'stylist'),
   });

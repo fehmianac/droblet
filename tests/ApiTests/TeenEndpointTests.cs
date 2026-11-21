@@ -562,6 +562,50 @@ public class TeenTryOnGateTests(TeenTryOnApiFactory factory) : IClassFixture<Tee
     }
 }
 
+/// <summary>Teen:Stylist — the free-tier teen stylist allowance (defaults: 3 outfits a day, 1 week plan a week, no packing).</summary>
+public class TeenStylistEndpointTests(TeenApiFactory factory) : IClassFixture<TeenApiFactory>
+{
+    private static Task<HttpResponseMessage> Outfit(HttpClient client) =>
+        client.PostJsonAsync("v1/tenant/stylist/outfit", new { requestId = Domain.Extensions.Ulid.New(), date = "2026-12-01" });
+
+    [Fact]
+    public async Task ApprovedTeen_GetsThreeOutfits_ThenTheDailyLimitWithResetsAt_StatusShowsTheAllowance()
+    {
+        var (client, _, _) = await Teen.ApprovedAsync(factory);
+        var before = (await Teen.StatusAsync(client)).GetProperty("teen").GetProperty("stylist");
+        Assert.True(before.GetProperty("enabled").GetBoolean());
+        Assert.Equal((3, 0, 3), (before.GetProperty("dailyLimit").GetInt32(), before.GetProperty("usedToday").GetInt32(), before.GetProperty("remainingToday").GetInt32()));
+        Assert.Equal((1, 0), (before.GetProperty("weekPlanLimit").GetInt32(), before.GetProperty("tripPackLimit").GetInt32()));
+
+        for (var i = 0; i < 3; i++)
+            Assert.Equal(HttpStatusCode.Accepted, (await Outfit(client)).StatusCode);
+        var over = await Outfit(client);
+        var problem = await over.JsonAsync();
+        var week = await client.PostJsonAsync("v1/tenant/stylist/week", new { requestId = Domain.Extensions.Ulid.New(), weekStart = "2026-11-30" });
+        var secondWeek = await client.PostJsonAsync("v1/tenant/stylist/week", new { requestId = Domain.Extensions.Ulid.New(), weekStart = "2026-11-30" });
+
+        Assert.Equal(HttpStatusCode.TooManyRequests, over.StatusCode);
+        Assert.Equal("teen_stylist_daily_limit", problem.GetProperty("code").GetString());
+        Assert.True(problem.GetProperty("resetsAt").GetDateTime() > DateTime.UtcNow);
+        Assert.Equal(HttpStatusCode.Accepted, week.StatusCode);
+        Assert.Equal("teen_stylist_weekly_limit", await secondWeek.CodeAsync());
+
+        var after = (await Teen.StatusAsync(client)).GetProperty("teen").GetProperty("stylist");
+        Assert.Equal((3, 0, 1), (after.GetProperty("usedToday").GetInt32(), after.GetProperty("remainingToday").GetInt32(), after.GetProperty("weekPlanUsed").GetInt32()));
+    }
+
+    [Fact]
+    public async Task PendingTeen_StaysParentalConsentRequired_AdultFree_StaysPremiumRequired()
+    {
+        var (teen, _, _) = await Teen.RegisterAsync(factory);
+        var (adult, _) = await factory.RegisterAsync();
+
+        Assert.Equal("parental_consent_required", await (await Outfit(teen)).CodeAsync());
+        var denied = await Outfit(adult);
+        Assert.Equal((HttpStatusCode.Forbidden, "premium_required"), (denied.StatusCode, await denied.CodeAsync()));
+    }
+}
+
 internal static class StringHashExtensions
 {
     public static string Sha256(this string value) => Domain.Extensions.HashExtensions.Sha256Hex(value);

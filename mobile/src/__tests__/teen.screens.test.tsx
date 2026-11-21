@@ -208,6 +208,59 @@ describe('hidden surfaces (every teen state)', () => {
   });
 });
 
+describe('stylist allowance (approved teen, canvas 18 · 16t–16w)', () => {
+  const ALLOWANCE = {
+    enabled: true,
+    dailyLimit: 3,
+    usedToday: 1,
+    remainingToday: 2,
+    resetsAt: '2026-11-21T21:00:00Z',
+    weekPlanLimit: 1,
+    weekPlanUsed: 0,
+    weekPlanRemaining: 1,
+    weekResetsAt: '2026-11-22T21:00:00Z',
+    tripPackLimit: 0,
+    tripPackUsed: 0,
+    tripPackRemaining: 0,
+  };
+
+  it('with allowance left: the normal stylist, the quota line from the server, no membership line', async () => {
+    await open('/stylist', { ...APPROVED, stylist: ALLOWANCE });
+    await waitFor(() => expect(screen.getByTestId('teen.stylistQuota.outfit.open')).toBeTruthy(), WAIT);
+    expect(screen.getByText('2 suggestions left today')).toBeTruthy();
+    expect(screen.getByText('1 week plan left this week')).toBeTruthy();
+    expect(screen.getByText('Pack your own list')).toBeTruthy();
+    expect(screen.queryByTestId('stylist.teenUnavailable')).toBeNull();
+    expect(screen.queryByText("This feature isn't available on teen accounts yet.")).toBeNull();
+  });
+
+  it('limit reached: "Refreshes tomorrow" on the line; asking opens the calm 16u sheet, never the paywall', async () => {
+    await open('/stylist', { ...APPROVED, stylist: { ...ALLOWANCE, usedToday: 3, remainingToday: 0 } });
+    await waitFor(() => expect(screen.getByTestId('teen.stylistQuota.outfit.limitReached')).toBeTruthy(), WAIT);
+    expect(screen.getByText("Today's suggestions are used · Refreshes tomorrow")).toBeTruthy();
+    await fireEvent.press(screen.getByText('Office'));
+    await fireEvent.press(screen.getByTestId('stylist-submit'));
+    await waitFor(() => expect(screen.getByTestId('teen.gate.stylistLimitState')).toBeTruthy(), WAIT);
+    expect(screen.getByText("That's it for today")).toBeTruthy();
+    expect(screen.getByText('Refreshes tomorrow')).toBeTruthy();
+    expect(screen).toHavePathname('/stylist');
+  });
+
+  it('switched off by the server: only then "not available on teen accounts"', async () => {
+    await open('/stylist', { ...APPROVED, stylist: { ...ALLOWANCE, enabled: false } });
+    await waitFor(() => expect(screen.getByTestId('stylist.teenUnavailable')).toBeTruthy(), WAIT);
+    expect(screen.getByText("This feature isn't available on teen accounts yet.")).toBeTruthy();
+    expect(screen.queryByTestId('stylist-submit')).toBeNull();
+  });
+
+  it('week plan: the weekly line; used up → a quiet button and "Refreshes on Monday"', async () => {
+    await open('/plan/week', { ...APPROVED, stylist: { ...ALLOWANCE, weekPlanUsed: 1, weekPlanRemaining: 0 } });
+    await waitFor(() => expect(screen.getByTestId('week.teenQuota.week.limitReached')).toBeTruthy(), WAIT);
+    expect(screen.getByText("You've planned this week · Refreshes on Monday")).toBeTruthy();
+    expect(screen.getByTestId('week-plan')).toBeDisabled();
+  });
+});
+
 describe('deep-link guards', () => {
   it.each([
     ['/shop', '/discover'],

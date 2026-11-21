@@ -32,8 +32,8 @@ public class PostWeek : IEndpoint
     {
         return endpoints.MapPost("v1/tenant/stylist/week", Handler)
             .Produces<JobDto>(StatusCodes.Status202Accepted)
-            .Problems(StatusCodes.Status403Forbidden, StatusCodes.Status409Conflict)
+            .Problems(StatusCodes.Status403Forbidden, StatusCodes.Status409Conflict, StatusCodes.Status429TooManyRequests)
             .Validated()
-            .Tenant("Tenant Stylist", "Plan my week", "Queues a job that drafts one look per day for the 7 days from weekStart. Nothing is written to the plan until the week is accepted.");
+            .Tenant("Tenant Stylist", "Plan my week", "Queues a job that drafts one look per day for the 7 days from weekStart. Nothing is written to the plan until the week is accepted. Membership required — an approved teen uses the Teen:Stylist weekly allowance (429 teen_stylist_weekly_limit with resetsAt, 403 teen_stylist_unavailable).");
     }
 }

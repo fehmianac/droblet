@@ -71,6 +71,10 @@ public static partial class ErrorCodes
     public const string ParentalConsentRequired = "parental_consent_required";
     /// <summary>403 with `reason`: teen try-on is not available (flag, parent's box, own consent).</summary>
     public const string TeenTryOnNotAvailable = "teen_try_on_not_available";
+    // Teen:Stylist (docs/api/teen.md §4.2): the free-tier teen stylist allowance; 429 with resetsAt, 403 when off.
+    public const string TeenStylistDailyLimit = "teen_stylist_daily_limit";
+    public const string TeenStylistWeeklyLimit = "teen_stylist_weekly_limit";
+    public const string TeenStylistUnavailable = "teen_stylist_unavailable";
     public const string NotATeenAccount = "not_a_teen_account";
     public const string ParentEmailInvalid = "parent_email_invalid";
     public const string ParentEmailSameAsTeen = "parent_email_same_as_teen";

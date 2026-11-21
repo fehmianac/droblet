@@ -110,7 +110,7 @@ public class AiUsageTests
         var repository = new InMemoryRepository();
         var clock = Fixtures.Clock();
         var credits = new CreditService(repository, Fixtures.Entitlements(), clock, NullLogger<CreditService>.Instance);
-        var lifecycle = new JobLifecycle(repository, credits, new ItemRecognitionQuotaService(repository, Fixtures.Entitlements(), clock), Recorder(repository), clock, NullLogger<JobLifecycle>.Instance);
+        var lifecycle = new JobLifecycle(repository, credits, new ItemRecognitionQuotaService(repository, Fixtures.Entitlements(), clock), Fixtures.Allowance(repository, clock), Recorder(repository), clock, NullLogger<JobLifecycle>.Instance);
         var done = new JobEntity { Id = "j1", TenantId = Tenant, Kind = JobKind.Palette, CreatedAt = Fixtures.Now, UpdatedAt = Fixtures.Now };
         var failed = new JobEntity { Id = "j2", TenantId = Tenant, Kind = JobKind.TryOn, CreditIdempotencyKey = "k", CreatedAt = Fixtures.Now, UpdatedAt = Fixtures.Now };
         await repository.SaveAsync(done);

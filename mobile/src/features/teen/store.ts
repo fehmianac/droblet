@@ -15,6 +15,7 @@ type Snapshot = { state: TeenState | null; config: TeenConfig };
 
 let snapshot: Snapshot = { state: null, config: DEFAULT_TEEN_CONFIG };
 const listeners = new Set<() => void>();
+const refreshListeners = new Set<() => void>();
 
 function emit(next: Snapshot) {
   snapshot = next;
@@ -30,6 +31,16 @@ export const teenStore = {
   setConfig(config: TeenConfig) {
     if (JSON.stringify(config) === JSON.stringify(snapshot.config)) return;
     emit({ ...snapshot, config });
+  },
+  /** Asks `TeenHost` to read `GET v1/tenant/teen` again (after a stylist start: the allowance moved). */
+  requestRefresh() {
+    refreshListeners.forEach((l) => l());
+  },
+  onRefresh(listener: () => void) {
+    refreshListeners.add(listener);
+    return () => {
+      refreshListeners.delete(listener);
+    };
   },
   /** Sign-out / another account / tests. */
   reset() {
@@ -65,4 +76,9 @@ export function currentTeenRules(): TeenRules {
   const session = sessionStore.getState();
   if (session.status !== 'signedIn') return teenRules(null, snapshot.config, null);
   return teenRules(snapshot.state, snapshot.config, session.user.ageBand ?? null);
+}
+
+/** After a stylist start or a teen allowance answer: the approved teen's allowance is read again (no-op for adults). */
+export function refreshTeenStylist(): void {
+  if (currentTeenRules().stylist) teenStore.requestRefresh();
 }

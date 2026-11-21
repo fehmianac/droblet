@@ -14,6 +14,10 @@ internal static class Fixtures
 
     public static IOptionsMonitor<T> Monitor<T>(T value) where T : class => new StaticMonitor<T>(value);
 
+    /// <summary>The stylist job gate with the default Teen:Stylist options (adults / members: no reservation).</summary>
+    public static Infrastructure.Services.StylistAllowanceService Allowance(Domain.Manager.IRepository repository, TimeProvider clock, TeenOptions? teen = null) =>
+        new(repository, new Infrastructure.Services.EntitlementService(repository, Entitlements(), clock), Monitor(teen ?? new TeenOptions()), clock);
+
     public static IOptionsMonitor<EntitlementOptions> Entitlements(int credits = 30) =>
         Monitor(new EntitlementOptions { Premium = { TryOnCreditsPerMonth = credits } });
 

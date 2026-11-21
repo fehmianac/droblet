@@ -8,7 +8,9 @@ import type { Occasion, TodayResponse } from '@/api/contracts';
 import type { CalendarMonth, PlanDay, PlanWeekRequest, PlanWeekResponse, PlanWeekResult, PriceBand, WeeklyEdit } from '@/api/contracts/today';
 import type { StylistOutfitRequest } from '@/api/contracts/stylist';
 import { fromSource } from '@/api/dataSource';
-import { ApiError, isPaywallError } from '@/api/errors';
+import { ApiError, isPaywallError, teenStylistErrorCode } from '@/api/errors';
+import { routeAiStartError } from '@/features/credits/aiErrors';
+import { refreshTeenStylist } from '@/features/teen/store';
 import { useJob } from '@/api/jobs';
 import type { JobWire, PhotosWire } from '@/api/wire/core';
 import {
@@ -45,7 +47,6 @@ import { queryKeys } from '@/sync/queryKeys';
 import { monthBounds } from './dates';
 import { planKeys, todayMutationKeys } from './keys';
 import type { AddWatchlistVariables, PutPlanDayVariables, SaveEditLookVariables, SetLookFavoriteVariables } from './mutations';
-import { openPaywall } from '@/features/teen/TeenLocks';
 
 /** GET v1/tenant/plan-day?from=&to= (inclusive, ≤ 62 days) → only days that have a record. */
 export async function requestPlanDays(from: string, to: string): Promise<PlanDay[]> {
@@ -190,9 +191,11 @@ export function useRefreshTodayLook() {
             // Same cache entry the Stilist tab writes, so 17 can retry a failed job with the same input.
             client.setQueryData(['tenant', 'stylist', 'request', job.id], request);
             router.push({ pathname: '/stylist/[jobId]', params: { jobId: job.id } });
+            refreshTeenStylist();
           } catch (e) {
-            if (!isPaywallError(e)) throw e;
-            openPaywall({ from: 'stylist' });
+            // Paywall (adults) or an approved teen's allowance answer (16u sheet / one calm line).
+            if (!isPaywallError(e) && !teenStylistErrorCode(e)) throw e;
+            routeAiStartError(e, 'stylist');
           }
           return null;
         },
@@ -267,10 +270,11 @@ export function useStartPlanWeek() {
     // The days the user asked for: the proposal sheet lists only those (the server drafts all seven).
     onSuccess: (accepted, input) => {
       client.setQueryData(planKeys.weekRequest(accepted.jobId), input.days.map((d) => d.date));
+      refreshTeenStylist();
     },
-    // 403 `premium_required`: the weekly planner is a member feature.
+    // 403 `premium_required`: the weekly planner is a member feature — an approved teen has a weekly allowance instead.
     onError: (error) => {
-      if (isPaywallError(error)) openPaywall({ from: 'stylist' });
+      if (isPaywallError(error) || teenStylistErrorCode(error)) routeAiStartError(error, 'stylist');
     },
   });
 }

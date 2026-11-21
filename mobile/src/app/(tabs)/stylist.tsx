@@ -1,13 +1,14 @@
-import { router, useLocalSearchParams, type Href } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams, type Href } from 'expo-router';
 import { Briefcase, Calendar, ChevronRight, Cloud, LayoutGrid, Palette, ShoppingBag, Sparkles, X, type LucideIcon } from 'lucide-react-native';
-import { useState, type ReactNode } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
+import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import type { Occasion } from '@/api/contracts';
 import { STYLIST_TEXT_MAX } from '@/api/contracts/stylist';
-import { extractApiError } from '@/api/errors';
+import { extractApiError, teenStylistErrorCode } from '@/api/errors';
 import { Logo } from '@/components/brand/Logo';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
@@ -22,7 +23,8 @@ import { formatDate, formatTemperature, parseLocalDate, seasonOf, toIsoDate, wee
 import { RequirementHint } from '@/features/requirements/RequirementHint';
 import { useGate } from '@/features/requirements/useRequirements';
 import { TeenLockedState } from '@/features/teen/TeenLocks';
-import { useTeenRules } from '@/features/teen/store';
+import { refreshTeenStylist, useTeenRules } from '@/features/teen/store';
+import { TeenStylistQuotaLine, TeenStylistUnavailable } from '@/features/teen/TeenStylist';
 import { ClipboardPhotoCard } from '@/features/tryon/ClipboardPhotoCard';
 import { useOutfitPhotoPicker } from '@/features/tryon/OutfitPhotoPicker';
 import { useIsOnline } from '@/sync/network';
@@ -128,8 +130,25 @@ function ContextBadge({ label, leading, outlined = false, trailing }: { label: s
  */
 export default function StylistTab() {
   const teen = useTeenRules();
-  // Canvas 18 · 16: until the parent approves, the Stylist is a calm locked state (the tab bar stays).
-  return teen.limited ? <TeenStylistLocked /> : <StylistHome hideOutfitPhoto={teen.hide.outfitPhotoTryOn} hideMembership={teen.hide.paywall} />;
+  // Canvas 18 · 16: until the parent approves, the Stylist is a calm locked state (the tab bar stays). Approved: the
+  // free-tier allowance (16t); "genç hesaplarda şimdilik açık değil" only when the server switched it off for teens.
+  if (teen.limited) return <TeenStylistLocked />;
+  if (teen.stylist?.outfit === 'unavailable') return <TeenStylistOff />;
+  return <StylistHome hideOutfitPhoto={teen.hide.outfitPhotoTryOn} hideMembership={teen.hide.paywall} />;
+}
+
+function TeenStylistOff() {
+  const { t } = useTranslation();
+  return (
+    <Screen>
+      <View className="h-12 items-center justify-center px-gutter">
+        <Text variant="title" accessibilityRole="header">
+          {t('tabs.stylist')}
+        </Text>
+      </View>
+      <TeenStylistUnavailable testID="stylist.teenUnavailable" />
+    </Screen>
+  );
 }
 
 function TeenStylistLocked() {
@@ -158,6 +177,9 @@ function StylistHome({ hideOutfitPhoto, hideMembership }: { hideOutfitPhoto: boo
   const items = useItems();
   const weather = useStylistWeather(date);
   const start = useStartStylistOutfit();
+  const teenStylist = useTeenRules().stylist;
+  // The teen allowance line follows the server: read again whenever the tab comes into view (a job may have failed).
+  useFocusEffect(useCallback(() => refreshTeenStylist(), []));
 
   const [text, setText] = useState('');
   const [occasion, setOccasion] = useState<Occasion | null>(isOccasion(params.occasion) ? params.occasion : null);
@@ -207,7 +229,7 @@ function StylistHome({ hideOutfitPhoto, hideMembership }: { hideOutfitPhoto: boo
     ? t('stylistHome.offline')
     : notMember
       ? t('stylistHome.memberOnly')
-      : start.error
+      : start.error && !teenStylistErrorCode(start.error)
         ? t(`errors.${extractApiError(start.error)}`)
         : showProblem && problem === 'text_too_short'
           ? t('stylistHome.textTooShort')
@@ -338,6 +360,7 @@ function StylistHome({ hideOutfitPhoto, hideMembership }: { hideOutfitPhoto: boo
             disabled={!online || blockedByWardrobe || (!notMember && Boolean(problem))}
             testID="stylist-submit"
           />
+          <TeenStylistQuotaLine kind="outfit" />
           {hint ? (
             <Text variant="caption" tone="muted" className="text-center" accessibilityLiveRegion="polite">
               {hint}
@@ -355,7 +378,7 @@ function StylistHome({ hideOutfitPhoto, hideMembership }: { hideOutfitPhoto: boo
         <View className="flex-row flex-wrap gap-2.5">
           {SHORTCUTS.map((s) => {
             const title = t(`stylistHome.shortcut${s.key}Title`);
-            const body = t(`stylistHome.shortcut${s.key}Body`);
+            const body = shortcutBody(s.key, teenStylist, t);
             return (
               <Pressable
                 key={s.key}
@@ -382,6 +405,20 @@ function StylistHome({ hideOutfitPhoto, hideMembership }: { hideOutfitPhoto: boo
       {outfitPhoto.sheet}
     </Screen>
   );
+}
+
+/**
+ * Canvas 18 · 16t: an approved teen's shortcut cards say what the allowance leaves — "Bu hafta 1 plan hakkın var",
+ * "Listeni kendin hazırla" when AI packing is off. Everyone else gets the usual lines.
+ */
+function shortcutBody(key: Shortcut['key'], teen: ReturnType<typeof useTeenRules>['stylist'], t: TFunction): string {
+  const fallback = t(`stylistHome.shortcut${key}Body`);
+  if (!teen) return fallback;
+  if (key === 'Trip' && teen.pack !== 'open') return t('teen.stylist.packCard');
+  if (key === 'Week' && teen.allowance && teen.week !== 'unavailable') {
+    return teen.week === 'limitReached' ? t('teen.stylist.weekDone') : t('teen.stylist.weekLeft', { count: teen.allowance.weekPlanRemaining });
+  }
+  return fallback;
 }
 
 /** A render error in this tab shows the error state with "Tekrar dene"; the tab bar and the other tabs keep working. */
