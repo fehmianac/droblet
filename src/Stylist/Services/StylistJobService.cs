@@ -120,8 +120,8 @@ public sealed class StylistJobService(
             await dislikedRead, input.Date, season, input.Occasion, Weather(forecast), input.FreeText, input.PinnedItemId);
 
         var output = StylingJson.TryDeserialize<ModelOutfitOutput>(aliases.Restore(
-            await model.GenerateAsync(new StylistPrompt(JobKind.StylistOutfit, prompt, language, aliases.Compact, fill.Segment), ct)));
-        if (StylistOutputGuard.ViolatesContentPolicy(StylistOutputGuard.Texts(output)))
+            await model.GenerateAsync(new StylistPrompt(JobKind.StylistOutfit, prompt, language, aliases.Compact, fill.Segment, fill.Teen), ct)));
+        if (StylistOutputGuard.ViolatesContentPolicy(StylistOutputGuard.Texts(output), fill.Teen))
             return Outcome.Fail(JobFailure.GuardRejected);
         if (output?.Refusal == StylistRefusals.OutOfScope)
             return new Outcome(StylingJson.Serialize(Result(StylistRefusals.OutOfScope, [])));
@@ -217,7 +217,7 @@ public sealed class StylistJobService(
         // A batch that fails is dressed by the rules below; only when every batch fails does the job fail (or retry).
         var batches = WeekPlanning.Split(dates, settings.WeekBatchDays);
         var calls = batches.Select(async batch => aliases.Restore(
-            await model.GenerateAsync(new StylistPrompt(JobKind.StylistWeek, Prompt(batch), language, aliases.Compact, fill.Segment), ct))).ToList();
+            await model.GenerateAsync(new StylistPrompt(JobKind.StylistWeek, Prompt(batch), language, aliases.Compact, fill.Segment, fill.Teen), ct))).ToList();
         try
         {
             await Task.WhenAll(calls);
@@ -230,7 +230,7 @@ public sealed class StylistJobService(
         var output = WeekPlanning.Merge(batches.Zip(calls)
             .Where(b => b.Second.IsCompletedSuccessfully)
             .Select(b => (b.First, StylingJson.TryDeserialize<ModelWeekOutput>(b.Second.Result))));
-        if (StylistOutputGuard.ViolatesContentPolicy(StylistOutputGuard.Texts(output?.Days)))
+        if (StylistOutputGuard.ViolatesContentPolicy(StylistOutputGuard.Texts(output?.Days), fill.Teen))
             return Outcome.Fail(JobFailure.GuardRejected);
 
         var accepted = StylistOutputGuard.AcceptWeek(output, dates, GuardContext.For(candidates, true, null, settings.MaxTitleLength, settings.MaxExplanationLength));
@@ -357,8 +357,8 @@ public sealed class StylistJobService(
             PackingRules.RequiresMinWears(dates.Count) ? CapsuleRules.MinRewearRatio : 1.0);
 
         var output = StylingJson.TryDeserialize<ModelPackOutput>(aliases.Restore(
-            await model.GenerateAsync(new StylistPrompt(JobKind.StylistPack, prompt, language, aliases.Compact, fill.Segment), ct)));
-        if (StylistOutputGuard.ViolatesContentPolicy(StylistOutputGuard.Texts(output?.Days)))
+            await model.GenerateAsync(new StylistPrompt(JobKind.StylistPack, prompt, language, aliases.Compact, fill.Segment, fill.Teen), ct)));
+        if (StylistOutputGuard.ViolatesContentPolicy(StylistOutputGuard.Texts(output?.Days), fill.Teen))
             return Outcome.Fail(JobFailure.GuardRejected);
 
         // Each date's occasion is the rule's (trip types in turn), whatever the model wrote.
@@ -385,8 +385,13 @@ public sealed class StylistJobService(
     private static bool WantsOuterLayer(DailyForecast? forecast, StylistOptions settings) =>
         forecast is not null && (forecast.MinC < settings.ColdBelowC || WeatherRules.IsWet(forecast.Condition));
 
-    private async Task<List<CandidateItem>> WardrobeAsync(string tenantId, CancellationToken ct) =>
-        (await repository.GetAllAsync<ItemEntity>(ItemEntity.GetPk(tenantId), ct)).Select(i => i.ToCandidate()).ToList();
+    /// <summary>The wardrobe as candidates. Teen (docs/api/teen.md §4): revealing pieces (beachwear, lingerie…) are left out.</summary>
+    private async Task<List<CandidateItem>> WardrobeAsync(string tenantId, CancellationToken ct)
+    {
+        var itemsRead = repository.GetAllAsync<ItemEntity>(ItemEntity.GetPk(tenantId), ct);
+        var teen = await repository.IsTeenTenantAsync(tenantId, ct);
+        return (await itemsRead).Where(i => !teen || !TeenRules.IsRevealing(i.Category, i.Subcategory)).Select(i => i.ToCandidate()).ToList();
+    }
 
     private async Task<IReadOnlyList<DailyForecast>> ForecastAsync(string? cityId, double? latitude, double? longitude, string from, string to, CancellationToken ct) =>
         cityId is null && latitude is null && longitude is null
@@ -409,7 +414,10 @@ public sealed class StylistJobService(
         var styleRead = repository.GetAsync<StyleProfileEntity>(StyleProfileEntity.GetPk(tenantId), StyleProfileEntity.GetSk(), ct);
         var libraryRead = library.GetAllAsync(ct);
         var catalogRead = catalog.GetProductsAsync(ct);
-        await Task.WhenAll(paletteRead, styleRead, libraryRead, catalogRead);
+        var teenRead = repository.IsTeenTenantAsync(tenantId, ct);
+        await Task.WhenAll(paletteRead, styleRead, libraryRead, catalogRead, teenRead);
+        // Teen (docs/api/teen.md §4): no store products (commerce off) and no revealing library pieces.
+        var teen = teenRead.Result;
         var (palette, style) = (paletteRead.Result, styleRead.Result);
         var band = style?.Budget switch
         {
@@ -418,13 +426,14 @@ public sealed class StylistJobService(
             _ => (PriceBand?)null,
         };
         return new GapFillContext(
-            libraryRead.Result,
-            catalogRead.Result,
+            teen ? libraryRead.Result.Where(l => !TeenRules.IsRevealing(l.Category, null)).ToList() : libraryRead.Result,
+            teen ? [] : catalogRead.Result,
             seasons, occasion, maxTempC, settings.HotFromC, isTrip, wantsOuterLayer,
             (palette?.FlatteringColorIds ?? []).ToHashSet(StringComparer.Ordinal),
             (palette?.AvoidColorIds ?? []).ToHashSet(StringComparer.Ordinal),
             band,
-            Segment: style?.Segment ?? Segment.Women);
+            Segment: style?.Segment ?? Segment.Women,
+            Teen: teen);
     }
 
     private async Task<object?> PaletteAsync(string tenantId, CancellationToken ct)

@@ -19,6 +19,7 @@ public class PutHandle : IEndpoint
         [FromBody] UpdateHandleRequest request,
         [FromServices] IApiContext apiContext,
         [FromServices] Domain.Services.IAvatarService avatars,
+        [FromServices] Domain.Services.ITeenService teens,
         [FromServices] IRepository repository,
         [FromServices] IValidator<UpdateHandleRequest> validator,
         [FromServices] TimeProvider timeProvider,
@@ -40,7 +41,7 @@ public class PutHandle : IEndpoint
             if (tenant is null)
                 return Results.NotFound();
             if (tenant.Handle == handle)
-                return Results.Ok(await tenant.ToProfileDtoAsync(user, avatars, cancellationToken));
+                return Results.Ok(await tenant.ToProfileDtoAsync(user, avatars, teens, cancellationToken));
 
             var now = timeProvider.GetUtcNow().UtcDateTime;
             var previous = tenant.Handle;
@@ -58,7 +59,7 @@ public class PutHandle : IEndpoint
 
             var result = await repository.TransactWriteAsync(operations, cancellationToken);
             if (result.Applied)
-                return Results.Ok(await tenant.ToProfileDtoAsync(user, avatars, cancellationToken));
+                return Results.Ok(await tenant.ToProfileDtoAsync(user, avatars, teens, cancellationToken));
             if (result.Outcome == TransactOutcome.ConditionFailed && result.FailedIndex == 0)
                 return ApiResults.Problem(StatusCodes.Status409Conflict, ErrorCodes.HandleTaken);
             // Version conflict: another device changed the profile — re-read and retry (handle is a single field).

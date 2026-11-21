@@ -16,6 +16,7 @@ other `[…]` is a fact the owner still has to supply.
 | Abonelik Koşulları / Subscription Terms | [tr/subscription-terms.md](tr/subscription-terms.md) | [en/subscription-terms.md](en/subscription-terms.md) | `/subscription-terms/` · `/en/subscription-terms/` |
 | Çerez Bildirimi / Cookie Notice | [tr/cookies.md](tr/cookies.md) | [en/cookies.md](en/cookies.md) | `/cookies/` · `/en/cookies/` |
 | Topluluk Kuralları / Community Guidelines | [tr/community-guidelines.md](tr/community-guidelines.md) | [en/community-guidelines.md](en/community-guidelines.md) | `/community-guidelines/` · `/en/community-guidelines/` |
+| Genç modu (16–17) taslakları / Teen mode drafts — hand-written, see §7 | [teen/](teen/) | [teen/](teen/) | **not on the site** |
 
 **Source of truth is the site dictionary**, `landing/content/{tr,en}.json` → `legal`. The Markdown files are generated
 from it (`cd landing && npm run legal:md`) and `npm run check` fails when they drift. Mark up the Markdown (or a Word copy)
@@ -168,6 +169,7 @@ Approve the periods in privacy §13 (most come from code TTLs) and fill the four
 
 ### Q6. Minors
 Phase 1 is 18+, enforced only by a statement in the terms. Is a self-declaration at sign-up (checkbox or birth date) needed for KVKK/UK GDPR and the store age rating? The planned 13–18 segment (phase 1b, parent account) will need parental consent (UK GDPR art. 8: 13; KVKK: parent/guardian consent for minors' explicit consent), the UK Age Appropriate Design Code, and a fresh review of photo/AI/social features for teens — out of scope for these drafts.
+**Update 2026-11-21:** the owner opened a 16–17 teen mode with parental consent instead — see §7 (Q17–Q24).
 
 ### Q7. VERBİS and Türkiye representative
 Foreign controllers processing data of people in Türkiye must register in VERBİS (no small-business exemption for foreign controllers) and appoint a representative (legal entity resident in Türkiye or Turkish-citizen individual). Confirm and fill placeholders 5–7.
@@ -306,3 +308,196 @@ Rows written before these TTLs existed (dev data only; prod has no users yet) ke
 3. Set `version` to the approved version and effective date; keep old versions (git tag) — consent records refer to text versions.
 4. Put the URLs into App Store Connect (Privacy Policy URL, EULA/Terms), Play Console (privacy policy, account deletion URL), and the app (`legalUrls()` in mobile).
 5. Close gaps G1–G11 or align the texts.
+
+## 7. Teen mode (16–17) — added 2026-11-21
+
+Owner decision (2026-11-21): users aged **16–17** may use Droblet in a **teen mode** after a parent approves by e-mail
+(verified parental consent, VPC); under-16s are refused. Technical contract: [`docs/api/teen.md`](../api/teen.md).
+`Teen:Enabled` is `false` on prod, `Teen:TryOnEnabled` is `false` on every stage, and the parent page `/parent-consent/` is
+built only with `NEXT_PUBLIC_TEEN_PARENT_CONSENT=1` (not linked, `noindex`). **Nothing below is public.**
+
+### 7.1 Draft files (hand-written, NOT generated, NOT on the site)
+
+These live outside the `landing/content/{tr,en}.json` → `docs/legal/{tr,en}/` pipeline, so `npm run check` does not see
+them. When approved, the wording must be moved into the dictionary (privacy section, a new consent text for `teenTryOn`)
+and into the landing parent page and the e-mail templates.
+
+| File | What | Language |
+|---|---|---|
+| [teen/privacy-teen.tr.md](teen/privacy-teen.tr.md) · [teen/privacy-teen.en.md](teen/privacy-teen.en.md) | Privacy-notice section for 16–17 year-olds, plain language | TR · EN |
+| [teen/parental-consent.tr.md](teen/parental-consent.tr.md) · [teen/parental-consent.en.md](teen/parental-consent.en.md) | Parent notice + consent page text (three confirmations + separate try-on box), request e-mail, approval-confirmation e-mail with withdrawal link — text version `2026-11-21` | TR · EN |
+| [teen/kvkk-gdpr-minors.md](teen/kvkk-gdpr-minors.md) | Analysis notes: KVKK / TMK (capacity, legal representative), special-category data, UK GDPR art. 8, ICO Children's Code standard by standard, transfers, DPIA | TR + EN |
+| [teen/store-ratings.md](teen/store-ratings.md) | App Store rating (18+ → 16+), Play target audience / Families, Declared Age Range API, Play Age Signals API, with source URLs | EN |
+
+Still to write when the feature goes live: a `teenTryOn` consent text (the teen's own try-on consent; the API already has
+the versioned consent type), the Terms of Use change ("18 or over" → "16 or over, 16–17 with parental approval"), and the
+in-app teen notices.
+
+### 7.2 Questions for the lawyer
+
+#### Q17. KVKK and minors — whose consent, and is an e-mail-based parental consent valid?
+KVKK sets no age of consent; capacity follows the Turkish Civil Code (TMK m. 11 majority at 18; m. 13 ayırt etme gücü;
+m. 16/1 limited capacity — no obligations without the legal representative's consent; m. 16/2 exception for "kişiye sıkı
+sıkıya bağlı haklar"; m. 342 parents represent the child — **article numbers checked only against secondary sources,
+please verify**). Drafted approach: **both** — the teen gives their own explicit consents (photo consents 1/2/6/7, and
+`teenTryOn`) **and** the parent approves on the parent page. Please answer:
+(a) Whose consent is legally required for a 16–17 year-old's (i) ordinary data (account, wardrobe), (ii) photos processed
+by AI, (iii) any special-category data (biometric question, Q1; weight)? Teen, parent, or both?
+(b) Is the parent's approval by e-mail link + three ticked boxes + confirmation e-mail + hashed record (no ID check) valid
+and provable explicit consent under KVKK m. 3/1-a? (Strength of the identity check: Q19.)
+(c) Is one parent's approval enough where custody is joint, and what about a non-custodial parent?
+(d) Does accepting the Terms of Use (a contract) need the legal representative's consent under TMK m. 16/1? If yes, add a
+fourth box on the parent page ("I accept the Terms of Use on {name}'s behalf") and decide what lawful basis covers
+"limited mode" (account + manual wardrobe) before the parent approves.
+(e) The parent page puts "I have read the notice" next to the consent boxes, and box 3 covers AI processing **and** the
+transfer to OpenAI (US) in one statement — acceptable under the Aydınlatma Tebliği / Board guidance on bundling, or split?
+(f) Transfers: must KVKK m. 9 standard contracts with OpenAI and SendGrid be in place (and notified) before teen photo
+features open? Any extra rule for minors' data?
+(g) Can a 16–17 year-old exercise KVKK m. 11 rights alone, and how should a parent's request as legal representative be
+verified?
+(h) At 18: must consents that rested on parental approval be re-collected from the now-adult user?
+(i) Retention of the consent record after account deletion (minimal proof); confirm the 90-day inactivity photo deletion.
+
+#### Q18. OpenAI policies on images of minors — fetched 2026-11-21
+We send a teen's own face / full-body photo to OpenAI's image **edit** endpoint (try-on, palette) and garment photos to
+vision — **only after parental approval**; try-on additionally needs `Teen:TryOnEnabled`, the parent's try-on box and the
+teen's own consent. Relevant text, quoted **verbatim** from the pages as fetched on **2026-11-21**:
+
+**Usage Policies** — https://openai.com/policies/usage-policies/ ("Effective: November 20, 2026"; changelog 2026-10-21:
+"We’ve also clarified protections for children and teens and requirements for high-stakes uses."):
+> "Children and teens deserve special protection. Our services are designed to prevent harm and support their well-being."
+
+> "Child sexual abuse and exploitation: Our services must not be used to cause, enable, facilitate, support, or encourage
+> the sexual abuse, exploitation, or sexualisation of anyone under 18."
+
+> "Teens’ use of our products and services: OpenAI tools must not be used to endanger anyone under 18. We build
+> age-appropriate safeguards designed to reduce exposure to content that may be harmful or developmentally inappropriate.
+> We prohibit use of our services for:" … "exposing minors to age-inappropriate content, such as graphic self-harm, sexual,
+> or violent content" · "promoting unhealthy dieting or exercise behavior to minors" · "shaming or otherwise stigmatizing
+> the body type or appearance of minors"
+
+Under "Respect privacy" (prohibited uses): "use of someone’s likeness, including their photorealistic image or voice,
+without their consent in ways that could confuse authenticity" and "evaluation or classification of individuals based on
+their social behavior, personal traits, or biometric data (including social scoring, profiling, or inferring sensitive
+attributes)".
+
+**Service Terms** — https://openai.com/policies/service-terms/ ("Updated: November 13, 2026"), §6 Image and Video
+Capabilities:
+> "You may not use Visual Capabilities to assist in identifying a person nor to solicit or infer private or sensitive
+> information about a person. You may not use Visual Capabilities to reproduce the likeness of any person without express
+> consent and all necessary rights."
+
+The Service Terms contain no sentence about minors, children or age.
+
+**Business Terms** (govern API use) — https://openai.com/policies/business-terms/ ("Updated: December 1, 2025",
+"Effective: January 1, 2026"), §3.3 Restrictions:
+> "Customer will not, and will not permit End Users to: … (c) allow minors to use OpenAI Services without consent from
+> their parent or guardian;"
+
+**Terms of Use** (individuals only, not the API) — https://openai.com/policies/terms-of-use/ ("Effective: January 1,
+2026"): "These Terms of Use apply to your use of ChatGPT, DALL·E, and OpenAI’s other services for individuals" and "If you
+are under 18 you must have your parent or legal guardian’s permission to use the Services."
+
+**Under-18 API guidance** (developer docs, no date shown) —
+https://developers.openai.com/api/docs/guides/safety-checks/under-18-api-guidance:
+> "You should not use OpenAI services to process any personal data of children under 13 or the applicable age of digital
+> consent without first implementing zero data retention in our API."
+
+> "Where required or otherwise appropriate for your use case, using age assurance systems to ensure only intended users can
+> access the product."
+
+**CSAM guidance** — https://developers.openai.com/api/docs/guides/csam-guidance: developers should assess misuse
+"especially if their products support messaging, content uploads, image editing, livestreaming, discovery, or payments",
+and "For the direct Images API, send the same stable identifier as `safety_identifier` for image generation and image
+edits."
+
+**What is clear:** these texts contain **no outright ban** on sending photos of 16–17 year-olds to the API or editing
+them. Sexualising anyone under 18, exposing minors to sexual content and shaming a minor's body type or appearance are
+prohibited (the teen prompt guard targets exactly these). Reproducing anyone's likeness needs "express consent and all
+necessary rights". Minors may use OpenAI services through our app only with parental consent (Business Terms §3.3(c)) —
+the parent page provides it, and teens make no AI call before it. The developer is responsible for compliance; OpenAI may
+audit.
+**What is not clear:** (1) whether the "express consent" for likeness reproduction (Service Terms §6) can be given by the
+16–17 year-old, by the parent, or needs both; (2) whether "the applicable age of digital consent" triggers zero data
+retention for Turkish users (Türkiye has no statutory digital-consent age; UK = 13) — we recommend asking for ZDR on the
+image endpoints anyway; (3) whether OpenAI's own image-model safeguards refuse or degrade edits of photos that appear to
+show a minor (product behaviour, not policy — our own `appearsMinor` check is relaxed only for a consenting teen's own
+photo); (4) whether building a full-body figure from a teen's face photo + chosen body type (consent 7 path) brushes
+against the "body type" prohibition — our prompts forbid body comments; (5) what exactly the 2026-10-21 change altered for
+teens (we read only the current page, not a diff). Please (i) confirm our reading, (ii) let the owner obtain **written
+confirmation from OpenAI** (account team / support) that palette and try-on on a teen's own photo with parental consent
+is permitted, and (iii) confirm the OpenAI DPA covers minors' data. Engineering follow-up: check that image calls send
+`safety_identifier`.
+
+#### Q19. Strength of parental identity verification
+Today: e-mail only. The teen types the parent's address; nothing stops a teen typing a second address of their own.
+Safeguards: signed token (7 days, one decision per request), rate limits (5/teen/day, 3/parent address/day, 1/min),
+parent address ≠ teen address, confirmation e-mail with a withdrawal link, hashed audit record, no monitoring by the parent.
+Benchmark: **COPPA rule 16 CFR 312.5(b)** (eCFR, fetched 2026-11-21:
+https://www.ecfr.gov/current/title-16/chapter-I/subchapter-C/part-312/section-312.5) — a method must be "reasonably
+calculated, in light of available technology, to ensure that the person providing consent is the child's parent"; listed
+methods include a signed consent form returned by post, fax or electronic scan; a card or payment transaction; a staffed
+phone or video call; government ID checked against databases; knowledge-based questions; ID + face match; and, only for an
+operator that does not "disclose" children's personal information, e-mail "coupled with additional steps", such as
+"Sending a confirmatory email to the parent following receipt of consent", with notice that consent can be revoked
+("email plus"). COPPA covers under-13s in the US — a benchmark, not law, for Droblet; whether sending photos to OpenAI is a
+"disclosure" in COPPA terms is itself unclear. UK GDPR art. 8(2) ("reasonable efforts … taking into consideration
+available technology") applies only where art. 8 does (under 13 in the UK). The ICO Children's Code expects a risk-based
+approach (code page returned HTTP 403 on 2026-11-21 — not re-verified).
+**Recommendation (lawyer to confirm):** e-mail + confirmation e-mail ("email plus") may be proportionate for the
+non-photo features, but for the **photo/AI features** — and certainly before try-on — add one stronger step, cheapest
+first: (1) a **card check** (zero-amount authorisation through a payment provider; teens are free tier, so this is a
+separate flow); (2) an uploaded **signed form**; (3) third-party ID verification of the parent with the ID deleted after
+the check. Apple's Declared Age Range and Play Age Signals can add a signal where available (Q20/Q21). Is e-mail alone
+acceptable under KVKK for the current scope?
+
+#### Q20. App Store age rating change
+Today 18+ (chosen; app gated at 18). With teen mode the questionnaire gives **16+** (unrestricted web access through the
+in-app browser; social media for adults gives a 13+ floor) — see [teen/store-ratings.md](teen/store-ratings.md); sources
+https://developer.apple.com/help/app-store-connect/reference/age-ratings and
+https://developer.apple.com/news/upcoming-requirements?id=07242025a. Please confirm: (a) 16+ is the right listing for an
+app whose youngest users are 16; (b) how to answer "Age Assurance" (Apple: "Mechanism to confirm an individual's age meets
+the age requirement for accessing specific content or services" — is a self-declared birth year a "confirmation"?) and
+"Parental Controls" (proposed No: the parent cannot monitor or restrict); (c) whether any market in the store territory
+list legally requires the Declared Age Range API (https://developer.apple.com/support/age-assurance: "In regions where
+legally required, you need to check the age of the people using your app with the Declared Age Range API" — the page names
+no regions; not verified for Türkiye or US states). Change the rating only on the day `Teen:Enabled` goes on in prod.
+
+#### Q21. Google Play — target audience and Families policy
+Proposal: target audience **16–17 + 18 and over**; turn off "Restrict Minor Access". Play's help says of the 16–17 group:
+"Note that this age group may be considered to include children in some locales", and "if your app targets any users who
+are under the age of 21, you must consider if they would be considered children under their local laws. Apps that target
+children must comply with Google Play Families Policy requirements."
+(https://support.google.com/googleplay/android-developer/answer/9867159). The Families page: "If one of the target
+audiences for your app is children, you must comply with the following requirements", without fixing an age
+(https://support.google.com/googleplay/android-developer/answer/9893335). Under Turkish law 16–17 year-olds are children.
+Does the Families policy apply? (Our assumption — Families is triggered by an under-13 group — is **not verified**.) Also:
+Data safety changes (age range, parent e-mail) and whether to use the Play Age Signals API
+(https://developer.android.com/google/play/age-signals/overview — beta; its terms limit use to age-appropriate experiences,
+"not … advertising, marketing, user profiling, or analytics").
+
+#### Q22. DPIA
+Teen mode combines minors, face/body images, generative image editing, transfer to the US and an (adult) user-to-user
+service. UK GDPR art. 35, the ICO high-risk list and Children's Code standard 2 point to a **mandatory DPIA**; KVKK has no
+DPIA duty but the same document can serve as the risk analysis. Recommendation: write it **before `Teen:Enabled` goes on
+in prod**, starting from the standard-by-standard table in [teen/kvkk-gdpr-minors.md](teen/kvkk-gdpr-minors.md) §2.2.
+Confirm it is mandatory, its scope, and whether prior consultation (art. 36) is likely. Related: the Online Safety Act
+children's access assessment now that children are users (Q13).
+
+#### Q23. Try-on for teens stays OFF until lawyer + OpenAI confirmation (coordinator safety condition)
+`Teen:TryOnEnabled` is `false` on **every** stage and can be changed only through `template.yaml` (a reviewed deploy), not
+from the admin panel (`docs/api/teen.md` §2, §6). It must stay `false` until **both** (1) the lawyer approves Q17, Q18 and
+Q22 for try-on, and (2) OpenAI's position (Q18) is confirmed in writing. Even then try-on works only with the parent's
+**separate** try-on box **and** the teen's own `teenTryOn` consent; the outfit-photo try-on (a photo of another person) is
+always off for teens. Please confirm this gate and approve the parent try-on statement (box 4 in
+[teen/parental-consent.tr.md](teen/parental-consent.tr.md)) and the still-to-write `teenTryOn` consent text.
+
+#### Q24. Other teen points
+- Self-declared age (birth year, no verification) — acceptable for KVKK and Children's Code standard 3?
+- Children's Code standards 12 (profiling — stylist personalisation) and 13 (nudge — hide "Tümünü kabul et" (Q1b) from
+  teens?).
+- Weight: the contract does not exclude the optional weight field for teens — close it for teens?
+- Moderation: reports involving a teen are high priority (`involvesTeen`); is a shorter response time required?
+- The parent's own data (address, hashes): lawful basis (legitimate interest / proving consent) and the parent's notice
+  (the parent page covers it).
+- Terms of Use, privacy summary, KVKK notice and consents: the "18+ only" sentences must change when teen mode goes live.

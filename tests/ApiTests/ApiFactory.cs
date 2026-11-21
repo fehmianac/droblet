@@ -74,7 +74,7 @@ public class ApiFactory : WebApplicationFactory<Entrypoint>
 
     public static async Task GrantAllConsentsAsync(HttpClient client)
     {
-        var consents = Enum.GetValues<Domain.Enum.ConsentType>()
+        var consents = Enum.GetValues<Domain.Enum.ConsentType>().Where(t => t != Domain.Enum.ConsentType.TeenTryOn)   // teen accounts only
             .Select(t => new { type = t, granted = true, version = Domain.Options.ConsentOptions.DefaultVersion }).ToArray();
         var response = await client.PutAsJsonAsync("v1/tenant/consents", new { consents, source = "test" }, Json);
         response.EnsureSuccessStatusCode();

@@ -62,7 +62,7 @@ public class PrerequisitesEndpointTests(ApiFactory factory) : IClassFixture<ApiF
 
         // The all-in-one step: every box is a decision (partial choice: three ticked, four left unticked).
         var ticked = new[] { "bodyPhotoAi", "facePhotoTryOn", "crossBorderTransfer" };
-        var all = Enum.GetValues<ConsentType>().Select(ConsentOptions.Name).ToArray();
+        var all = Enum.GetValues<ConsentType>().Where(t => t != ConsentType.TeenTryOn).Select(ConsentOptions.Name).ToArray();   // teenTryOn: teen accounts only
         var step = await client.PutJsonAsync("v1/tenant/consents",
             new { consents = all.Select(t => Decision(t, ticked.Contains(t))).ToArray(), source = ConsentRules.OnboardingSource, locale = "tr" });
 

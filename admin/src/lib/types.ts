@@ -234,9 +234,40 @@ export interface AppUserSummary {
   handle: string | null;
   createdAt: string;
   suspended: boolean;
+  /** Teen mode (docs/api/teen.md §10). Optional: older API builds do not send it; `null` = age not given yet. */
+  ageBand?: AgeBand | null;
+}
+
+export type AgeBand = 'adult' | 'teen';
+export type TeenStatus = 'pendingParentalConsent' | 'active' | 'declined' | 'withdrawn';
+export type TeenConsentEvent = 'requested' | 'resent' | 'approved' | 'declined' | 'withdrawn' | 'expired' | 'ended';
+
+export interface TeenConsentHistoryEntry {
+  at: string;
+  event: TeenConsentEvent;
+  textVersion: string | null;
+  tryOnAllowed: boolean;
+  /** SHA-256 of the IP, shortened to 12 hex characters (never the IP). */
+  ipHash: string | null;
+}
+
+/** `GET v1/admin/user/{id}` → `teen` (null for adults). */
+export interface AdminTeenStatus {
+  status: TeenStatus;
+  parentEmailMasked: string | null;
+  requestSentAt: string | null;
+  requestExpiresAt: string | null;
+  approvedAt: string | null;
+  parentAllowedTryOn: boolean;
+  ownTryOnConsent: boolean;
+  /** Date (yyyy-MM-dd) the account becomes adult. */
+  adultFrom: string | null;
+  photosPurgedAt: string | null;
+  history: TeenConsentHistoryEntry[];
 }
 
 export interface AppUserDetail extends AppUserSummary {
+  teen?: AdminTeenStatus | null;
   language: string;
   closetVisibility: string;
   providers: string[];
@@ -273,6 +304,9 @@ export interface ModerationReport {
   /** Set by `POST …/{id}/restore` (undo of `contentRemoved`). */
   contentRestoredAt: string | null;
   contentRestoredByUserId: string | null;
+  /** Teen mode: the reporter or the target is a teen. The server lists `high` first on every page. */
+  involvesTeen?: boolean;
+  priority?: 'high' | 'normal';
 }
 
 export interface RevenueBucket {

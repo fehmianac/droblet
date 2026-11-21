@@ -24,6 +24,9 @@ public class Entrypoint
     public Entrypoint() : this(WorkerHost.BuildServices((services, configuration) =>
     {
         services.AddSingleton<INotificationJobs, NotificationJobs>();
+        // Teen mode daily run (docs/api/teen.md §7–§8): turning 18, photo retention, request expiry.
+        services.AddSingleton<IPhotoService, Infrastructure.Services.PhotoService>();
+        services.AddSingleton<ITeenMaintenance, Infrastructure.Services.TeenMaintenance>();
         services.AddDrobletDataExportWorker(configuration);
     })) { }
 
@@ -32,7 +35,14 @@ public class Entrypoint
     public Task<NotificationRunResult> Reminder(ScheduledEvent scheduledEvent, ILambdaContext context) => Run(NotificationJob.Reminder, scheduledEvent, context);
     public Task<NotificationRunResult> WeeklyEdit(ScheduledEvent scheduledEvent, ILambdaContext context) => Run(NotificationJob.WeeklyEdit, scheduledEvent, context);
     public Task<NotificationRunResult> FriendRatings(ScheduledEvent scheduledEvent, ILambdaContext context) => Run(NotificationJob.FriendRatings, scheduledEvent, context);
-    public Task<NotificationRunResult> Lifecycle(ScheduledEvent scheduledEvent, ILambdaContext context) => Run(NotificationJob.Lifecycle, scheduledEvent, context);
+    /// <summary>Daily: the lifecycle notifications, then the teen run (turning 18, photo retention, request expiry).</summary>
+    public async Task<NotificationRunResult> Lifecycle(ScheduledEvent scheduledEvent, ILambdaContext context)
+    {
+        var result = await Run(NotificationJob.Lifecycle, scheduledEvent, context);
+        using var cts = new CancellationTokenSource(WorkerHost.Budget(context.RemainingTime));
+        await _services.GetRequiredService<ITeenMaintenance>().RunAsync(result.ScheduledAt, cts.Token);
+        return result;
+    }
 
     /// <summary>SQS data-export-request → the ZIP (BatchSize 1 + ReportBatchItemFailures).</summary>
     public async Task<SQSBatchResponse> DataExport(SQSEvent sqsEvent, ILambdaContext context)

@@ -21,6 +21,13 @@ export const siteHost = siteUrl.replace(/^https?:\/\//i, '');
 /** API origin, no trailing slash. Empty: account deletion and password reset show "unavailable". */
 export const apiBaseUrl = httpUrl(process.env.NEXT_PUBLIC_API_BASE_URL);
 
+/**
+ * Draft flag of the teen parental-consent page (`/parent-consent/`, docs/api/teen.md §9). Its legal wording is a draft
+ * pending lawyer approval: unless the variable is exactly "1", the page renders only "not available yet" and none of
+ * the notice / checkbox texts reach the exported HTML or the client.
+ */
+export const teenParentConsentEnabled = (process.env.NEXT_PUBLIC_TEEN_PARENT_CONSENT ?? '').trim() === '1';
+
 /** Store listings. Empty: the button renders disabled with "Yakında". */
 export const appStoreUrl = httpUrl(process.env.NEXT_PUBLIC_APP_STORE_URL);
 export const playStoreUrl = httpUrl(process.env.NEXT_PUBLIC_PLAY_STORE_URL);

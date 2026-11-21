@@ -88,7 +88,10 @@ public record ModerationReportDto(
     // contentRemoved only: when the target was hidden from everyone but its owner, and when an admin restored it (POST …/restore).
     DateTime? ContentRemovedAt = null,
     DateTime? ContentRestoredAt = null,
-    string? ContentRestoredByUserId = null);
+    string? ContentRestoredByUserId = null,
+    // Teen mode (docs/api/teen.md §10): the reporter or the target is a teen → priority high (listed first).
+    bool InvolvesTeen = false,
+    string Priority = "normal");
 
 // ── People / visibility ─────────────────────────────────────────────────────────────────────────────────────────
 
@@ -108,7 +111,7 @@ public sealed record PersonContext(
 
     /// <summary>The only way social code decides a cross-tenant read. A block in either direction hides everything.</summary>
     public bool CanView(VisibleResource resource) => VisibilityPolicy.CanView(new VisibilityRequest(
-        ViewerTenantId, Owner.Id, Owner.ClosetVisibility, ViewerFollowsOwner, resource, Owner.Segment, OwnerBlockedViewer: Blocked,
+        ViewerTenantId, Owner.Id, Owner.ClosetVisibility, ViewerFollowsOwner, resource, Owner.IsTeen ? Segment.Teen : Owner.Segment, OwnerBlockedViewer: Blocked,
         OwnerFollowsViewer: OwnerFollowsViewer, OwnerRequestedViewer: OwnerRequestedViewer));
 }
 

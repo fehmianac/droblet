@@ -12,13 +12,14 @@ Every HTTP endpoint of the Api Lambda (`src/Api/Endpoints/V1`), with the contrac
 | **V** — [verification-export.md](verification-export.md) | E-mail verification (code + link, resend, profile `emailVerified`), data export ("Verilerimi indir": ZIP job, status, e-mailed download link) |
 | **O** — [outfit-import.md](outfit-import.md) | "Kombinlerini içe aktar": bulk import of outfit photos (session, background uploads, per-photo processing: detect, match, de-duplicate, look draft), review, commit, discard; plan limit `outfitImport.maxPhotos` |
 | **G** — [segments.md](segments.md) | Women and men: open segments (`Segments:Available`), `GET v1/config`, per segment body types, style tags and sub-types, library / catalog `segment` filtering, admin `segment` fields, segment-aware AI prompt keys, migration |
+| **T** — [teen.md](teen.md) | Teen mode (16–17): age band vs clothing segment, birth-year age step (register, Apple / Google), verified parental consent (e-mailed link, approve / decline / withdraw, resend, expiry), server-enforced teen rules (social, commerce, analytics, notifications, AI, try-on gating), retention, turning 18, admin, `Teen:*` |
 | **—** | Foundation endpoints (sign-in, profile basics, photos, style / body profile, purchases, jobs). No contract document yet: the request / response records sit next to each endpoint in `src/Api/Endpoints/V1/Auth` and `src/Api/Endpoints/V1/Tenant/{Profile,Photo,StyleProfile,BodyProfile,Entitlement}`; the one-line summary below is the endpoint's own (`WithSummary`). |
 
 Shared conventions (both documents, §1): camelCase JSON and enum strings; `Authorization: Bearer <accessToken>`; errors are ProblemDetails with a stable snake_case `code`; calendar days are `yyyy-MM-dd`, instants UTC ISO-8601; the API returns codes, never sentences; text content is resolved to the request language (profile language → `Accept-Language` → `tr`, languages from `Localization:SupportedLanguages`).
 
 **Auth** column: `user` = signed-in user (tenant from the token) · `admin:<permission>` = signed-in **admin panel** account (separate admin token, never an app token) whose role holds that permission ([A §2](admin.md)); `admin` = any signed-in admin · `anonymous` = no token (postbacks and store notifications are authenticated by signature / OIDC token; admin sign-in routes are rate limited per IP).
 
-221 endpoints.
+227 endpoints.
 
 ## Config
 
@@ -40,7 +41,7 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | POST | `v1/auth/password/forgot` | anonymous | — | Request a password reset e-mail |
 | POST | `v1/auth/password/reset` | anonymous | — | Set a new password with a reset token |
 | POST | `v1/auth/refresh` | anonymous | — | Rotate the refresh token |
-| POST | `v1/auth/register` | anonymous | [C](consents-age-inbox-avatar.md) | Register with e-mail and password (18+ box required) |
+| POST | `v1/auth/register` | anonymous | [T](teen.md) | Register with e-mail and password (birth year → adult / teen / `422 age_under_minimum`; old clients: the 18+ box) |
 
 ## Profile, photos, style, body (foundation + additions)
 
@@ -59,7 +60,7 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | GET | `v1/tenant/profile/handle/availability` | user | [S](store-social-settings.md) | Check an @handle |
 | GET | `v1/tenant/profile/stats` | user | [W](wardrobe-looks-plan-stylist.md) | Get my profile counters |
 | PUT | `v1/tenant/profile/visibility` | user | [S](store-social-settings.md) | Change closet visibility |
-| POST | `v1/tenant/profile/age-confirmation` | user | [C](consents-age-inbox-avatar.md) | Confirm I am 18 or older |
+| POST | `v1/tenant/profile/age-confirmation` | user | [T](teen.md) | Age step after Apple / Google sign-in (birth year; empty body = old 18+ confirmation; under 16 deletes the new account) |
 | POST | `v1/tenant/profile/avatar/upload-url` | user | [C](consents-age-inbox-avatar.md) | Get a presigned upload for my profile picture |
 | PUT | `v1/tenant/profile/avatar` | user | [C](consents-age-inbox-avatar.md) | Make an uploaded image my profile picture |
 | DELETE | `v1/tenant/profile/avatar` | user | [C](consents-age-inbox-avatar.md) | Remove my profile picture |
@@ -397,3 +398,14 @@ Admin panel at `https://droblet-admin.alatech.co` ([admin.md](admin.md)). Admin 
 | Account deletion | `DELETE v1/auth/me` removes every tenant partition of both halves and every cross-tenant trace (incl. consent records and audit log, inbox, profile picture) | S §7, C |
 | Consent guards | Photo, try-on, palette, contacts, weight and marketing-push endpoints answer `403 consent_required` with the missing types; the Notifier re-checks the marketing consent | C §2 |
 | Language | One supported-language list (`Localization` config); the profile language is set at registration from `Accept-Language` and changed with a partial `PUT v1/tenant/profile` | W §1, S §1, S §7 |
+
+## Teen mode
+
+| Method | Path | Auth | Doc | What |
+|---|---|---|---|---|
+| GET | `v1/tenant/teen` | user | [T](teen.md) | My age band and teen status (parental consent, try-on availability, restrictions) |
+| POST | `v1/tenant/teen/parental-consent` | user | [T](teen.md) | Ask a parent for approval (e-mailed signed link, 7 days; rate limited) |
+| POST | `v1/tenant/teen/parental-consent/resend` | user | [T](teen.md) | Send the parent e-mail again with a fresh link |
+| GET | `v1/parent-consent` | anonymous | [T](teen.md) | Open a parental consent link (`?token=`) |
+| POST | `v1/parent-consent/decision` | anonymous | [T](teen.md) | Approve (three explicit boxes + separate try-on box) or decline as a parent |
+| POST | `v1/parent-consent/withdraw` | anonymous | [T](teen.md) | Withdraw parental consent (photo features off, personal photos deleted) |

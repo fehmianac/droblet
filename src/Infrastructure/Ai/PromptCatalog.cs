@@ -69,6 +69,10 @@ public static class PromptCatalog
     public const string CompactCandidates = "stylist.compact_candidates";
     /// <summary>Menswear fragment of the stylist system prompts (only a man's requests carry it).</summary>
     public const string StylistMenswear = "stylist.segment.men";
+    /// <summary>Teen fragment of the stylist system prompts (only a teen account's requests carry it, docs/api/teen.md §4).</summary>
+    public const string StylistTeen = "stylist.age.teen";
+    /// <summary>Extra-strict guard appended to every teen try-on image prompt (docs/api/teen.md §6).</summary>
+    public const string TryOnTeenGuard = "tryon.guard.teen";
     /// <summary>Menswear sub-type hint of the detection system prompt (only a man's photos carry it).</summary>
     public const string DetectMenswear = "item.detect.segment.men";
 
@@ -137,6 +141,9 @@ public static class PromptCatalog
         new(StylistMenswear, "stylist", "outfit, week_plan, packing", PromptKind.Fragment,
             "Erkek (menswear): appended to the outfit, week and suitcase system prompts of a man's request, after the instructions — menswear bases, outer layers, formal occasions, colours. Women's requests never carry it.",
             None, () => OpenAiPrompts.StylistMenswear, 2000, PromptTrialTarget.StylistOutfit),
+        new(StylistTeen, "stylist", "outfit, week_plan, packing", PromptKind.Fragment,
+            "Genç (16–17): appended to the outfit, week and suitcase system prompts of a teen account — school- and age-appropriate, never suggestive, no body talk, no shopping. Adult requests never carry it.",
+            None, () => OpenAiPrompts.StylistTeen, 2000, PromptTrialTarget.StylistOutfit),
         Schema("stylist.outfit.schema", "stylist", AiSchemas.Outfit, AiSchemas.OutfitSchema),
         Schema("stylist.week.schema", "stylist", AiSchemas.WeekPlan, AiSchemas.WeekSchema),
         Schema("stylist.pack.schema", "stylist", AiSchemas.Packing, AiSchemas.PackSchema),
@@ -220,6 +227,10 @@ public static class PromptCatalog
                 new("personNoun", false, "\"user\" (women) or \"man\" (men).", "user"),
             ],
             () => OpenAiPrompts.TryOnOutfitPhotoFromFaceTemplate, ImageMaxLength, PromptTrialTarget.None),
+
+        new(TryOnTeenGuard, "tryon", "image_tryon", PromptKind.Image,
+            "Prova (genç): extra-strict guard appended to every teen try-on image prompt (body or face path) — real age kept, fully clothed, neutral pose, school-appropriate. Teen try-on is off unless Teen:TryOnEnabled.",
+            None, () => OpenAiPrompts.TryOnTeenGuard, ImageMaxLength, PromptTrialTarget.None),
 
         new(CleanupItem(false), "cleanup", "image_cleanup", PromptKind.Image,
             "Arka plan temizleme: product photo of one detected piece on the sand house background.",

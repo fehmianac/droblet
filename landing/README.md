@@ -25,6 +25,7 @@ Turkish is the default language at the root; English lives under `/en/`. Every p
 | `/reset-password/?token=…` | Password reset fallback: "Uygulamada aç" + web form |
 | `/verify-email/?token=…` | E-mail verification fallback: "Uygulamada aç" + verify-in-browser button (never on load) |
 | `/invite/?c=CODE` | Friend invite fallback |
+| `/parent-consent/?token=…` | Teen mode: the parent approves / declines / withdraws (docs/api/teen.md §5, §9). **Draft flag** — see below; not linked, not in the sitemap, `noindex` |
 | `/l/?id=ID` | Shared look fallback |
 | `404.html` | Bucket error document (both languages on one page) |
 | `robots.txt`, `sitemap.xml`, `og.png` | SEO |
@@ -41,6 +42,7 @@ All are read at build time (`src/lib/site.ts`). An empty value is a supported st
 | `NEXT_PUBLIC_APP_STORE_URL` | App Store buttons | button is a disabled "App Store · Yakında" pill |
 | `NEXT_PUBLIC_PLAY_STORE_URL` | Google Play buttons | button is a disabled "Google Play · Yakında" pill |
 | `NEXT_PUBLIC_CONTACT_EMAIL` | footer "İletişim" (`mailto:`) | the link is not rendered |
+| `NEXT_PUBLIC_TEEN_PARENT_CONSENT` | `/parent-consent/` notice and consent form — only the exact value `1` turns it on | the page says "Bu bağlantı henüz kullanılamıyor" and no draft text is exported (default; keep it until the lawyer approves the wording) |
 
 The deploy workflow currently passes only `NEXT_PUBLIC_SITE_URL` and `NEXT_PUBLIC_API_BASE_URL`. Until it also
 passes the two store URLs (and the contact e-mail), production shows the "Yakında" state and no contact link.
@@ -90,6 +92,22 @@ The text lives in `legal.docs.*` of both dictionaries (a paragraph starting with
 Markdown is out of date. When the reviewed text is approved: replace the placeholders, remove the banner, set
 `index: true` in `legalMetadata` (`src/components/LegalPage.tsx`), add the routes to `src/app/sitemap.ts`, and relax
 the draft / `noindex` assertions in `scripts/check.mjs` (steps in `docs/legal/REVIEW.md` §6).
+
+## Parent consent (`/parent-consent/`) — draft flag
+
+The e-mail a teen (16–17) triggers links the parent to `/parent-consent/?token=…` (trailing slash: S3 drops the query
+on the `/page` → `/page/` redirect). The page reads the token in the browser, calls `GET {API}/v1/parent-consent`
+on load (read only), and posts `v1/parent-consent/decision` / `v1/parent-consent/withdraw` only on a click. Approve
+needs the three separate boxes; the try-on box appears only when the answer says `tryOnOffered`; Decline needs no
+box; a `manage` link of an approved consent offers Withdraw behind a confirmation step.
+
+The wording (`parentConsent.draft` in both dictionaries, `[HUKUK ONAYI]` / `[LEGAL REVIEW]` markers) is **not
+approved**. `ParentConsentPage` renders it only when `NEXT_PUBLIC_TEEN_PARENT_CONSENT=1` at build time, with the
+"TASLAK — hukuk onayı bekliyor" banner; otherwise only `parentConsent.unavailableTitle/Body` is rendered and nothing
+from `parentConsent.draft` is passed to the client. `npm run check` reads the same variable: with the flag off it
+fails if any draft sentence is found anywhere in `out/`; in both modes it requires `noindex`, no sitemap entry and no
+link to the page from any other page. Run `build` and `check` with the same value. When the text is approved:
+replace the markers, drop the banner, then set the variable in the deploy workflow.
 
 ## Account deletion (`/delete-account`)
 
@@ -169,13 +187,15 @@ no HTML challenge, no "Always Online" page on `/.well-known/*` (Apple and Google
 ## Project rules enforced by `npm run check`
 
 - `out/index.html`, `out/en/index.html`, every legal page, `/delete-account`, `/reset-password`, `/invite`,
-  `/l` exist in every language with the right `<html lang>`, hreflang alternates, a title and a description;
+  `/l`, `/parent-consent` exist in every language with the right `<html lang>`, hreflang alternates, a title and a description;
 - legal drafts carry the draft banner, the summary box and `noindex`, and every page's footer links to them;
 - `docs/legal/{tr,en}/*.md` match the dictionaries (`npm run legal:md`);
 - `out/404.html`, `robots.txt`, `sitemap.xml`, `og.png` exist;
 - both `.well-known` files exist, parse as JSON, and list the expected app and paths;
 - no `text-transform: uppercase` / `uppercase` class in the output; no runtime Google Fonts request;
 - every internal link points at a file the bucket can serve;
+- `/parent-consent` is `noindex`, not in the sitemap, not linked from another page, and without
+  `NEXT_PUBLIC_TEEN_PARENT_CONSENT=1` contains none of the draft wording (nor does any other file in `out/`);
 - dictionaries have identical keys, list lengths and placeholders.
 - every screenshot the landing page references exists for every language, both languages have the same set,
   each set stays under 2.5 MB and the hero image under 400 KB; every `<img>` has alt text and width/height.

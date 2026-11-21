@@ -93,6 +93,7 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
         var used = new List<PromptOverride>();
         var system = await PromptAsync(PromptCatalog.StylistInstructions(prompt.Kind), OpenAiPrompts.StylistInstructions(prompt.Kind), used, ct)
                      + (prompt.Segment == Segment.Men ? await PromptAsync(PromptCatalog.StylistMenswear, OpenAiPrompts.StylistMenswear, used, ct) : "")
+                     + (prompt.Teen ? await PromptAsync(PromptCatalog.StylistTeen, OpenAiPrompts.StylistTeen, used, ct) : "")
                      + (prompt.CompactCandidates ? await PromptAsync(PromptCatalog.CompactCandidates, OpenAiPrompts.CompactCandidates, used, ct) : "")
                      + await LanguageAsync(prompt.Language, used, ct);
         var content = await ChatAsync(system, prompt.InputJson, [], AiSchemas.NameFor(prompt.Kind), AiSchemas.For(prompt.Kind), used, ct);
@@ -197,6 +198,16 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
             : await PromptAsync(PromptCatalog.TryOnPhotoFace, OpenAiPrompts.TryOnOutfitPhotoFromFace(figure), [], ct, OpenAiPrompts.FigureValues(figure));
         // The user first (identity), then the outfit photo (clothes only) — the order the prompt names them in.
         return await EditImageAsync(prompt, [subject, outfitPhoto], ImageUse.TryOn, quality, "image_tryon", ct);
+    }
+
+    public async Task<ImageInput> RenderTeenAsync(ImageInput photo, IReadOnlyList<ImageInput> garments, TryOnFigure? figure, CancellationToken ct, string? quality = null)
+    {
+        var basePrompt = figure is null
+            ? await PromptAsync(PromptCatalog.TryOnBody, OpenAiPrompts.TryOn(garments.Count), [], ct,
+                new Dictionary<string, string> { ["garmentCount"] = garments.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) })
+            : await PromptAsync(PromptCatalog.TryOnFace, OpenAiPrompts.TryOnFromFace(garments.Count, figure), [], ct, OpenAiPrompts.TryOnFromFaceValues(garments.Count, figure));
+        var guard = await PromptAsync(PromptCatalog.TryOnTeenGuard, OpenAiPrompts.TryOnTeenGuard, [], ct);
+        return await EditImageAsync(OpenAiPrompts.ForTeen(basePrompt, guard), [photo, .. garments], ImageUse.TryOn, quality, "image_tryon", ct);
     }
 
     public async Task<ReferenceInspection> InspectReferenceAsync(ImageInput outfitPhoto, CancellationToken ct)
@@ -875,6 +886,22 @@ public static class OpenAiPrompts
     /// Registry key stylist.segment.men: appended to the outfit, week and suitcase system prompts of a man's request (after the
     /// instructions, before the compact-candidates and language suffixes). Women's requests never get it, so their prompts are unchanged.
     /// </summary>
+    /// <summary>Registry key stylist.age.teen: appended to every stylist system prompt of a teen account (16–17).</summary>
+    public const string StylistTeen =
+        " The user is a teenager (16–17). Suggest only age-appropriate, school-appropriate outfits: everyday, school, weekend, sport and family occasions. " +
+        "Never suggest revealing, suggestive or adult-styled looks (no lingerie, swimwear, sheer or very short pieces, no plunging necklines), and never use words that sexualise. " +
+        "Never comment on the body, weight or shape. Do not mention brands, prices, shopping or buying. Keep the tone friendly, simple and encouraging.";
+
+    /// <summary>Registry key tryon.guard.teen: appended to every teen try-on image prompt (the extra-strict guard).</summary>
+    public const string TryOnTeenGuard =
+        " The person is a teenager: keep their real apparent age exactly — never make them look older or younger. " +
+        "They are fully clothed in modest, school-appropriate clothing from neck to knees at least, standing upright in a neutral, natural pose facing the camera. " +
+        "No suggestive pose, expression or framing, no emphasis on the body, no skin-revealing adjustments, no makeup or styling changes. Plain neutral background.";
+
+    /// <summary>A teen render: the adult wording of the base prompt removed, the teen guard appended.</summary>
+    public static string ForTeen(string basePrompt, string guard) =>
+        basePrompt.Replace("an adult ", "a ", StringComparison.Ordinal).Replace("same adult ", "same ", StringComparison.Ordinal) + guard;
+
     public const string StylistMenswear =
         " The user is a man: dress him in menswear. A base is a top (shirt, polo, t-shirt, knitwear) with a bottom (chinos, jeans, tailored or suit trousers); " +
         "use a dress, a skirt or another womenswear piece only when it is among the candidates, and never name one as a missing piece. " +

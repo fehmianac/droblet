@@ -50,11 +50,11 @@ public sealed class SettingsService(
         return current is null ? (SettingsOutcome.NotFound, null) : (SettingsOutcome.Conflict, current);
     }
 
-    /// <summary>Listed only when Public; Teen accounts are never listed (A-5). Every other segment partition is cleared.</summary>
+    /// <summary>Listed only when Public; teen accounts (age band teen, docs/api/teen.md) are never listed. Every other segment partition is cleared.</summary>
     public static IEnumerable<TransactWriteOperation> PublicIndexOperations(TenantEntity tenant, DateTime now)
     {
         var segment = tenant.Segment ?? Segment.Women;
-        var listed = tenant.ClosetVisibility == ClosetVisibility.Public && segment != Segment.Teen;
+        var listed = tenant.ClosetVisibility == ClosetVisibility.Public && !tenant.IsTeen;
         foreach (var s in System.Enum.GetValues<Segment>())
         {
             if (listed && s == segment)
@@ -87,6 +87,9 @@ public sealed class SettingsService(
         TimeZone = ReminderRules.IsValidTimeZone(timeZone) ? timeZone! : options.CurrentValue.DefaultTimeZone,
     };
 
+    private static NotificationPrefsDto TeenOff(NotificationPrefsDto dto) =>
+        dto with { WeeklyEdit = false, PriceDrop = false, FriendRatings = false, FollowRequests = false };
+
     private static NotificationPrefsDto ToDto(NotificationPrefEntity p) =>
         new(p.MorningOutfit, p.MorningOutfitLocalTime, p.WeeklyEdit, p.FriendRatings, p.TimeZone, p.Version, p.Version == 0 ? null : p.UpdatedAt, p.PriceDrop, p.FollowRequests);
 
@@ -97,6 +100,10 @@ public sealed class SettingsService(
     public async Task<NotificationPrefsDto> GetNotificationPrefsAsync(string tenantId, string userId, CancellationToken ct)
     {
         var dto = ToDto(await PrefAsync(tenantId, userId, ct) ?? DefaultPref(tenantId, userId, enabled: false, timeZone: null));
+        if (!dto.WeeklyEdit && !dto.PriceDrop && !dto.FriendRatings && dto.FollowRequests != true)
+            return dto;
+        if (await repository.IsTeenTenantAsync(tenantId, ct))
+            return TeenOff(dto);
         if (!dto.WeeklyEdit && !dto.PriceDrop)
             return dto;
         var marketing = (await consents.MissingAsync(tenantId, ConsentRules.Marketing, ct)).Count == 0;
@@ -109,6 +116,9 @@ public sealed class SettingsService(
         var existing = await PrefAsync(tenantId, userId, ct);
         if ((existing?.Version ?? 0) != input.BaseVersion)
             return (SettingsOutcome.Conflict, ToDto(existing ?? DefaultPref(tenantId, userId, false, null)));
+        // Teen (docs/api/teen.md §4): marketing (weekly edit, price drops) and the social types stay off whatever is sent.
+        if (await repository.IsTeenTenantAsync(tenantId, ct))
+            input = input with { WeeklyEdit = false, FriendRatings = false, PriceDrop = false, FollowRequests = false };
 
         var updated = new NotificationPrefEntity
         {

@@ -27,6 +27,11 @@ public class UserEntity : IEntity
     // The address was proven: the 6-digit code / link of the verification e-mail, a password reset link, or Apple /
     // Google saying the address is verified. Null on an e-mail sign-up until then (the app asks, never blocks).
     [JsonPropertyName("emailVerifiedAt")] public DateTime? EmailVerifiedAt { get; set; }
+    // Teen mode (docs/api/teen.md §3): the band, and only as much of the birth date as decides it (the year; the month only
+    // when the year alone was ambiguous). Null band = the age was never given (old 18+ accounts read as adult).
+    [JsonPropertyName("ageBand")] public Enum.AgeBand? AgeBand { get; set; }
+    [JsonPropertyName("birthYear")] public int? BirthYear { get; set; }
+    [JsonPropertyName("birthMonth")] public int? BirthMonth { get; set; }
 
     /// <summary>
     /// True when there is nothing to verify: verified, no address, or an account without an e-mail sign-in (Apple /

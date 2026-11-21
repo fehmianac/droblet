@@ -24,20 +24,25 @@ public class PutVisibility : IEndpoint
         [FromServices] IValidator<UpdateVisibilityRequest> validator,
         [FromServices] IApiContext apiContext,
         [FromServices] Domain.Services.IAvatarService avatars,
+        [FromServices] Domain.Services.ITeenService teens,
         [FromServices] IRepository repository,
         [FromServices] ISettingsService settings,
+        HttpContext httpContext,
         CancellationToken cancellationToken)
     {
         var validation = await validator.ValidateAsync(request, cancellationToken);
         if (!validation.IsValid)
             return Results.BadRequest(validation.Errors.ToProblemDetails());
+        // A teen's closet is forced private (docs/api/teen.md §4).
+        if (request.ClosetVisibility != ClosetVisibility.Private && (await TeenGuard.AccessAsync(httpContext)).IsTeen)
+            return TeenGuard.Restricted(Domain.Services.TeenFeature.ClosetVisibility);
 
         var (outcome, tenant) = await settings.SetVisibilityAsync(apiContext.TenantId, request.ClosetVisibility, request.BaseVersion, cancellationToken);
         if (tenant is null)
             return Results.NotFound();
 
         var user = await repository.GetAsync<UserEntity>(UserEntity.GetPk(), UserEntity.GetSk(apiContext.UserId), cancellationToken);
-        return outcome == SettingsOutcome.Conflict ? Results.Conflict(await tenant.ToProfileDtoAsync(user, avatars, cancellationToken)) : Results.Ok(await tenant.ToProfileDtoAsync(user, avatars, cancellationToken));
+        return outcome == SettingsOutcome.Conflict ? Results.Conflict(await tenant.ToProfileDtoAsync(user, avatars, teens, cancellationToken)) : Results.Ok(await tenant.ToProfileDtoAsync(user, avatars, teens, cancellationToken));
     }
 
     public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints)

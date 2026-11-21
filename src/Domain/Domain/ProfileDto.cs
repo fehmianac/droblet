@@ -22,7 +22,10 @@ public record ProfileDto(
     bool EmailVerified = true,
     DateTime? EmailVerifiedAt = null,
     // Owner-only: { hidden: true, reason } when a moderator hid the profile's public fields (name, avatar, style tags) from others.
-    ModerationDto? Moderation = null);
+    ModerationDto? Moderation = null,
+    // Teen mode (docs/api/teen.md §3): adult | teen | null (age not given yet); teen = the status object (null for adults).
+    AgeBand? AgeBand = null,
+    Services.TeenStateDto? Teen = null);
 
 public static class ProfileDtoMapper
 {

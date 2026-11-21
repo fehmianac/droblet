@@ -11,6 +11,7 @@ namespace Infrastructure.Services;
 /// Own analytics in DynamoDB (README §9.2 — no third-party SDK). Events are TTL'd (400 days) and carry no personal
 /// content. The funnel report reads the day partitions of the requested range. Every event is written twice: the day
 /// row (funnel) and a per-actor copy (<see cref="AnalyticsActorEventEntity"/>: data export and account deletion).
+/// Teen accounts (docs/api/teen.md §4): the opt-out is forced — nothing is stored, client or server side.
 /// </summary>
 public sealed class AnalyticsService(IRepository repository, TimeProvider timeProvider, ILogger<AnalyticsService> logger) : IAnalyticsService
 {
@@ -22,6 +23,8 @@ public sealed class AnalyticsService(IRepository repository, TimeProvider timePr
         var now = Now;
         var rejected = new List<AnalyticsEventRejection>();
         var entities = new List<IEntity>(); // event row + per-actor copy, in pairs
+        if (await repository.IsTeenTenantAsync(tenantId, ct))
+            return new AnalyticsBatchResult(0, events.Select((_, i) => new AnalyticsEventRejection(i, AnalyticsRules.OptedOut)).ToList());
 
         for (var i = 0; i < events.Count; i++)
         {
@@ -54,6 +57,8 @@ public sealed class AnalyticsService(IRepository repository, TimeProvider timePr
     {
         try
         {
+            if (await repository.IsTeenTenantAsync(tenantId, ct))
+                return; // teen: forced opt-out
             var now = Now;
             var safe = props?.Where(p => AnalyticsRules.AllowedProps.Contains(p.Key) && AnalyticsRules.IsSafeValue(p.Value))
                 .ToDictionary(p => p.Key, p => p.Value);

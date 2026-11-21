@@ -13,10 +13,12 @@ public class Get : IEndpoint
 {
     private static IResult Handler(
         [FromServices] IOptionsMonitor<SegmentOptions> segments,
+        [FromServices] IOptionsMonitor<TeenOptions> teen,
         HttpContext httpContext)
     {
         var language = Localized.Language(null, httpContext.RequestLanguage());
-        return Results.Ok(AppConfigDto.Build(segments.CurrentValue, language, v => StartupExtensions.EnumNaming.ConvertName(v.ToString())));
+        return Results.Ok(AppConfigDto.Build(segments.CurrentValue, language, v => StartupExtensions.EnumNaming.ConvertName(v.ToString()))
+            with { Teen = TeenConfigDto.From(teen.CurrentValue) });
     }
 
     public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints)
@@ -28,7 +30,7 @@ public class Get : IEndpoint
             .WithSummary("App configuration: open segments and the per segment choices")
             .WithDescription("No sign-in needed (onboarding). segments.available = the segments a user may choose now (Segments:Available; the others are shown as \"Yakında\"; teen is never open). " +
                              "bodyTypes / styleTags / subcategories are keyed by segment (women, men): ids with their names in the Accept-Language (tr fallback). " +
-                             "Sub-types only filter the pickers: item writes accept any id.")
+                             "Sub-types only filter the pickers: item writes accept any id. teen = { enabled, minimumAge, adultAge, tryOnEnabled } (docs/api/teen.md §2).")
             .WithTags("Config");
     }
 }
