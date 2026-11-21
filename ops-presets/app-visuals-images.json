@@ -1,0 +1,29 @@
+{
+  "purpose": "In-app visuals, canvas section 22: the membership screen hero (05 Üyelik) and the full-length photo guide (04 Beden ve fotoğraf). Owner approved on 2026-11-21: 4 image calls in total (2 paywall + 2 photo guide); the guide's 'wrong' examples are derived from the same photo on the device, no extra calls.",
+  "size": "1024x1536",
+  "quality": "high",
+  "format": "jpeg",
+  "style": "Photograph for a premium wardrobe app, shot on a full-frame camera with a 50mm lens, soft natural daylight, subtle film grain, true-to-life skin texture, no retouched plastic look. Warm neutral colour palette: cream, sand, warm beige, deep ink navy and a single terracotta accent. Vertical portrait composition. Fictional people only, not resembling any celebrity. Plain unbranded clothing with no logos, no lettering, no text, no signs, no screens showing content, no watermark anywhere in the image. Tasteful, confident and natural, not a cheesy stock photo, no big smile at the camera.",
+  "images": [
+    {
+      "id": "paywall-woman",
+      "segment": "women",
+      "prompt": "A woman in her late twenties with a dark low bun stands in a bright, airy Istanbul apartment bedroom by a tall window with sheer linen curtains, choosing what to wear. Beside her a slim wooden clothing rail holds a few neatly spaced pieces in cream, sand and ink navy. She wears a sand-coloured relaxed blazer over a cream silk top and wide ink-navy trousers, and holds a camel knit sweater on a wooden hanger up against herself, looking down at it thoughtfully with a slight smile. Upper two thirds: the woman and the rail; bottom third: calm warm wooden floor and soft shadow, uncluttered. Editorial, aspirational, quietly luxurious."
+    },
+    {
+      "id": "paywall-man",
+      "segment": "men",
+      "prompt": "A man in his early thirties with short dark hair and a trimmed beard stands in a bright loft apartment with large steel-framed windows and soft morning light, choosing what to wear. Beside him a slim black metal clothing rail holds a few neatly spaced pieces in navy, stone and charcoal. He wears a fine stone-coloured merino crew-neck and dark navy tailored trousers, and holds a navy wool overcoat on a wooden hanger up in front of himself, looking at it with quiet focus. Upper two thirds: the man and the rail; bottom third: calm pale concrete floor in soft shadow, uncluttered. Editorial, aspirational, quietly confident."
+    },
+    {
+      "id": "photo-guide-woman",
+      "segment": "women",
+      "prompt": "A full-length reference photo for virtual try-on: a woman in her early thirties with shoulder-length dark hair stands straight facing the camera in a bright room against a plain, smooth warm off-white wall, nothing else in the frame. Her whole body is visible from the top of the head to the feet, with a little empty space above the head and below the shoes, centred in the frame. Arms relaxed and held slightly away from the body, feet hip-width apart, neutral calm expression, looking at the camera. She wears simple fitted clothes that show her shape: a plain cream fitted long-sleeve top, straight dark-blue jeans and plain white sneakers. Even, soft, bright daylight from the front, no harsh shadows, sharp focus, camera at waist height, straight-on, no tilt. Clean catalogue style, not glamorous."
+    },
+    {
+      "id": "photo-guide-man",
+      "segment": "men",
+      "prompt": "A full-length reference photo for virtual try-on: a man in his early thirties with short dark hair stands straight facing the camera in a bright room against a plain, smooth warm off-white wall, nothing else in the frame. His whole body is visible from the top of the head to the feet, with a little empty space above the head and below the shoes, centred in the frame. Arms relaxed and held slightly away from the body, feet hip-width apart, neutral calm expression, looking at the camera. He wears simple fitted clothes that show his shape: a plain stone-coloured fitted crew-neck t-shirt, straight dark-blue jeans and plain white sneakers. Even, soft, bright daylight from the front, no harsh shadows, sharp focus, camera at waist height, straight-on, no tilt. Clean catalogue style, not glamorous."
+    }
+  ]
+}
