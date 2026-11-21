@@ -42,7 +42,6 @@ const requestPermissions = Notifications.requestPermissionsAsync as jest.Mock;
 const getToken = Notifications.getDevicePushTokenAsync as jest.Mock;
 
 const METRICS = { frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 54, left: 0, right: 0, bottom: 34 } };
-const PAYWALL = { pathname: '/paywall', params: { from: 'onboarding' } };
 
 function permission(granted: boolean, canAskAgain: boolean, status = granted ? 'granted' : canAskAgain ? 'undetermined' : 'denied') {
   getPermissions.mockResolvedValue({ granted, canAskAgain, status });
@@ -72,6 +71,7 @@ describe('after 04b İlk 5 parça', () => {
   });
 
   it('skips it when the permission is granted, refused for good, or this install was asked', async () => {
+    const markDone = jest.spyOn(onboardingStore, 'markDone');
     permission(true, true);
     await continueAfterFirstItems('u-push');
     permission(false, false);
@@ -79,16 +79,19 @@ describe('after 04b İlk 5 parça', () => {
     permission(false, true);
     await AsyncStorage.setItem(PUSH_ASKED_KEY, '2026-11-01T08:00:00Z');
     await continueAfterFirstItems('u-push');
-    expect(router.push).not.toHaveBeenCalledWith('/push-permission');
-    expect(router.push).toHaveBeenCalledTimes(3);
-    expect(router.push).toHaveBeenNthCalledWith(1, PAYWALL);
+    expect(router.push).not.toHaveBeenCalled();
+    // UX turu 1 · F: onboarding ends on Bugün (marked done; the guards open it), never on the paywall.
+    expect(markDone).toHaveBeenCalledTimes(3);
+    expect(markDone).toHaveBeenCalledWith('u-push');
   });
 
   it('skips it off native (web)', async () => {
+    const markDone = jest.spyOn(onboardingStore, 'markDone');
     const restore = jest.replaceProperty(Platform, 'OS', 'web');
     await continueAfterFirstItems('u-push');
     restore.restore();
-    expect(router.push).toHaveBeenCalledWith(PAYWALL);
+    expect(markDone).toHaveBeenCalledWith('u-push');
+    expect(router.push).not.toHaveBeenCalled();
     expect(getPermissions).not.toHaveBeenCalled();
   });
 
@@ -112,12 +115,15 @@ describe('04d Bildirim izni', () => {
     expect(mockTrack).toHaveBeenCalledWith('push_permission', { action: 'shown', source: 'onboarding', variant: 'adult' });
   });
 
-  it('"Bildirimlere izin ver" shows the system prompt, registers the device and moves on to 05', async () => {
+  it('"Bildirimlere izin ver" shows the system prompt, registers the device and ends onboarding on Bugün', async () => {
+    const markDone = jest.spyOn(onboardingStore, 'markDone');
     await renderStep();
     await act(async () => {
       fireEvent.press(screen.getByTestId('pushAsk.allow'));
     });
-    await waitFor(() => expect(router.push).toHaveBeenCalledWith(PAYWALL));
+    await waitFor(() => expect(markDone).toHaveBeenCalledWith('u-push'));
+    expect(router.push).not.toHaveBeenCalled();
+    expect(mockTrack).toHaveBeenCalledWith('signup_step', { step: 'done' });
     expect(requestPermissions).toHaveBeenCalledTimes(1);
     expect(mockRegister).toHaveBeenCalledWith('apns-token', 'apns');
     expect(await AsyncStorage.getItem(PUSH_ASKED_KEY)).not.toBeNull();
@@ -127,21 +133,24 @@ describe('04d Bildirim izni', () => {
 
   it('a "no" in the system prompt still moves on and registers without a token', async () => {
     requestPermissions.mockResolvedValue({ granted: false, canAskAgain: false, status: 'denied' });
+    const markDone = jest.spyOn(onboardingStore, 'markDone');
     await renderStep();
     await act(async () => {
       fireEvent.press(screen.getByTestId('pushAsk.allow'));
     });
-    await waitFor(() => expect(router.push).toHaveBeenCalledWith(PAYWALL));
+    await waitFor(() => expect(markDone).toHaveBeenCalledWith('u-push'));
     expect(mockRegister).toHaveBeenCalledWith(undefined, undefined);
     expect(mockTrack).toHaveBeenCalledWith('push_permission', { action: 'result', granted: false, source: 'onboarding' });
   });
 
   it('"Şimdi değil" shows no system prompt, remembers the answer and moves on', async () => {
+    const markDone = jest.spyOn(onboardingStore, 'markDone');
     await renderStep();
     await act(async () => {
       fireEvent.press(screen.getByTestId('pushAsk.notNow'));
     });
-    expect(router.push).toHaveBeenCalledWith(PAYWALL);
+    expect(markDone).toHaveBeenCalledWith('u-push');
+    expect(router.push).not.toHaveBeenCalled();
     expect(requestPermissions).not.toHaveBeenCalled();
     await waitFor(async () => expect(await AsyncStorage.getItem(PUSH_ASKED_KEY)).not.toBeNull());
     expect(mockTrack).toHaveBeenCalledWith('push_permission', { action: 'decline', source: 'onboarding', variant: 'adult' });
