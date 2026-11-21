@@ -161,7 +161,9 @@ OIDC token'ı (aud + servis hesabı e-postası) ile doğrular; test bildirimi 20
 3. **Project settings → Service accounts → Generate new private key** → JSON'un tamamı →
    SSM SecureString `/droblet/{stage}/notifier/Push/ServiceAccountJson`.
 
-iOS push Firebase kullanmaz (§2.2). Uygulama bildirim iznini onboarding bitince ve bir bildirim anahtarı açılınca ister;
+iOS push Firebase kullanmaz (§2.2). Uygulama bildirim iznini onboarding'deki 04d Bildirim izni adımında (yumuşak soru,
+sonra sistem istemi) ve bir bildirim anahtarı açılınca ister; 04d'den önce onboarding'i bitirmiş, hiç sorulmamış kullanıcıya
+uygulama açılışında bir kez sorulur;
 token `PUT v1/tenant/user/me/device` ile `pushTokenType` (`apns` / `fcm`) birlikte kaydedilir.
 
 ## 5. Parameter Store özeti (`/droblet/{stage}/…`, eu-central-1)

@@ -40,7 +40,7 @@ export function AppHosts({ userId }: { userId: string | null }) {
       {/* Keyed by user: a new sign-in re-checks the profile language against this phone's. */}
       {userId ? <LanguageSyncHost key={userId} /> : null}
       {/* Registers this installation (`PUT v1/tenant/user/me/device`) once per sign-in / app start. */}
-      {userId ? <DeviceHost key={`device-${userId}`} /> : null}
+      {userId ? <DeviceHost key={`device-${userId}`} userId={userId} /> : null}
       {/* "Gardıroba ekleyelim mi?" after a purchase on a brand site, on the next app open. */}
       {userId && !teen ? <PurchasePromptHost key={`purchase-${userId}`} /> : null}
       {/* StoreKit / Play Billing listener: verifies late or unfinished purchases with the server. */}
