@@ -39,6 +39,8 @@ const HERO_PHOTOS: Record<AppSegment, { source: number; top: `${number}%` }> = {
 };
 /** The "Önce üzerinde gör" badge: 26 high, centred on the 44 pt close button beside it. */
 const BADGE_HEIGHT = 26;
+/** The board's photo height (22a); the strip grows to it when the offer leaves room. */
+const HERO_MAX_HEIGHT = 300;
 
 const BENEFITS: { title: 'paywall.benefitAiTitle' | 'paywall.benefitStylistTitle' | 'paywall.benefitPackingTitle' | 'paywall.benefitPaletteTitle'; body: 'paywall.benefitAiBody' | 'paywall.benefitStylistBody' | 'paywall.benefitPackingBody' | 'paywall.benefitPaletteBody'; icon: LucideIcon | 'mirror' }[] = [
   { title: 'paywall.benefitAiTitle', body: 'paywall.benefitAiBody', icon: 'mirror' },
@@ -139,7 +141,14 @@ export default function PaywallScreen() {
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const [screenHeight, setScreenHeight] = useState(windowHeight);
-  const hero = paywallHeroHeight(windowHeight, screenHeight);
+  const base = paywallHeroHeight(windowHeight, screenHeight);
+  // 22a: the photo takes whatever height the offer leaves free above the footer (up to the board's 300), never less than
+  // the strip that keeps both plans visible — measured from the content and footer, so no price moves under the CTA.
+  const [contentHeight, setContentHeight] = useState(0);
+  const [footerHeight, setFooterHeight] = useState(0);
+  const baseOverlap = base < 136 ? 24 : 36;
+  const free = contentHeight && footerHeight ? screenHeight - footerHeight - contentHeight + baseOverlap - 16 : 0;
+  const hero = Math.max(base, Math.min(HERO_MAX_HEIGHT, Math.floor(free / 4) * 4));
   const compact = paywallCompact(windowHeight);
   const { from } = useLocalSearchParams<{ from?: string }>();
   const session = useSession();
@@ -287,7 +296,10 @@ export default function PaywallScreen() {
           ) : null}
         </View>
 
-        <View className={`px-6 ${overlap === 36 ? '-mt-9' : '-mt-6'} ${compact ? 'gap-2' : 'gap-3'}`}>
+        <View
+          className={`px-6 ${overlap === 36 ? '-mt-9' : '-mt-6'} ${compact ? 'gap-2' : 'gap-3'}`}
+          onLayout={(e) => setContentHeight(e.nativeEvent.layout.height)}
+        >
           <Text variant="eyebrow" tone="accent">
             {t('paywall.eyebrow')}
           </Text>
@@ -338,7 +350,12 @@ export default function PaywallScreen() {
         <IconButton icon={X} onPress={() => void close()} variant="inverse" accessibilityLabel={t('a11y.close')} className="border border-line" testID="paywall.close" />
       </View>
 
-      <View className="gap-1 px-6 pt-3" style={{ paddingBottom: Math.max(insets.bottom, 12) }} testID="paywall.footer">
+      <View
+        className="gap-1 px-6 pt-3"
+        style={{ paddingBottom: Math.max(insets.bottom, 12) }}
+        onLayout={(e) => setFooterHeight(e.nativeEvent.layout.height)}
+        testID="paywall.footer"
+      >
         {action}
         {/* Each separator travels with the link after it, so a wrapped line never ends on a lone "·". */}
         <View className={`flex-row flex-wrap items-center justify-center ${compact ? 'gap-x-0.5' : 'gap-x-1'}`} testID="paywall.legal">
