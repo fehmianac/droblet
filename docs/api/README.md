@@ -11,13 +11,20 @@ Every HTTP endpoint of the Api Lambda (`src/Api/Endpoints/V1`), with the contrac
 | **P** — [purchases-push.md](purchases-push.md) | In-app purchases (StoreKit 2 / Play Billing verified on the server), restore, App Store / Play store notifications, device push tokens (APNs / FCM) and notification deep links, Sign in with Apple token revocation |
 | **V** — [verification-export.md](verification-export.md) | E-mail verification (code + link, resend, profile `emailVerified`), data export ("Verilerimi indir": ZIP job, status, e-mailed download link) |
 | **O** — [outfit-import.md](outfit-import.md) | "Kombinlerini içe aktar": bulk import of outfit photos (session, background uploads, per-photo processing: detect, match, de-duplicate, look draft), review, commit, discard; plan limit `outfitImport.maxPhotos` |
+| **G** — [segments.md](segments.md) | Women and men: open segments (`Segments:Available`), `GET v1/config`, per segment body types, style tags and sub-types, library / catalog `segment` filtering, admin `segment` fields, segment-aware AI prompt keys, migration |
 | **—** | Foundation endpoints (sign-in, profile basics, photos, style / body profile, purchases, jobs). No contract document yet: the request / response records sit next to each endpoint in `src/Api/Endpoints/V1/Auth` and `src/Api/Endpoints/V1/Tenant/{Profile,Photo,StyleProfile,BodyProfile,Entitlement}`; the one-line summary below is the endpoint's own (`WithSummary`). |
 
 Shared conventions (both documents, §1): camelCase JSON and enum strings; `Authorization: Bearer <accessToken>`; errors are ProblemDetails with a stable snake_case `code`; calendar days are `yyyy-MM-dd`, instants UTC ISO-8601; the API returns codes, never sentences; text content is resolved to the request language (profile language → `Accept-Language` → `tr`, languages from `Localization:SupportedLanguages`).
 
 **Auth** column: `user` = signed-in user (tenant from the token) · `admin:<permission>` = signed-in **admin panel** account (separate admin token, never an app token) whose role holds that permission ([A §2](admin.md)); `admin` = any signed-in admin · `anonymous` = no token (postbacks and store notifications are authenticated by signature / OIDC token; admin sign-in routes are rate limited per IP).
 
-220 endpoints.
+221 endpoints.
+
+## Config
+
+| Method | Path | Auth | Doc | What |
+|---|---|---|---|---|
+| GET | `v1/config` | anonymous | [G](segments.md) | App configuration: open segments and the per segment choices (body types, style tags, sub-types) |
 
 ## Auth and account (foundation)
 
@@ -40,7 +47,7 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | Method | Path | Auth | Doc | What |
 |---|---|---|---|---|
 | GET | `v1/tenant/body-profile` | user | — | Get body profile |
-| PUT | `v1/tenant/body-profile` | user | — | Create or update body profile (optional `bodyType`: hourglass · pear · apple · rectangle · invertedTriangle · unsure; omitted = unchanged; `400 body_type_invalid`) |
+| PUT | `v1/tenant/body-profile` | user | [G](segments.md) | Create or update body profile (optional `bodyType` per segment — women: hourglass · pear · apple · rectangle · invertedTriangle · unsure; men: rectangle · invertedTriangle · triangle · oval · trapezoid · unsure; omitted = unchanged; `400 body_type_invalid` / `body_type_not_in_segment`) |
 | GET | `v1/tenant/photo` | user | — | Get my body and face photos |
 | DELETE | `v1/tenant/photo` | user | — | Delete my photos and generated images |
 | POST | `v1/tenant/photo/upload-url` | user | — | Get a presigned upload for a body/face photo |
@@ -65,7 +72,7 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | PUT | `v1/tenant/consents` | user | [C](consents-age-inbox-avatar.md) | Give or withdraw consents |
 | GET | `v1/tenant/consents/history` | user | [C](consents-age-inbox-avatar.md) | My consent history |
 | GET | `v1/tenant/style-profile` | user | — | Get style profile |
-| PUT | `v1/tenant/style-profile` | user | — | Create or update style profile |
+| PUT | `v1/tenant/style-profile` | user | [G](segments.md) | Create or update style profile (segment must be open, `422 segment_not_available`; tags per segment, `400 style_tag_not_in_segment`) |
 
 ## Data export
 

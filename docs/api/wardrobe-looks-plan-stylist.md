@@ -90,7 +90,10 @@ Colour ids, fabric ids and season type ids are fixed kebab-case strings; get the
 Ready-made library (screens 04b, 12b). Names in the profile language.
 
 ```json
-[{ "id": "lib-white-tshirt", "name": "Beyaz tişört", "category": "top", "colorIds": ["white"], "fabric": "cotton", "seasons": ["spring", "summer", "autumn"], "imageUrl": null }]
+[{ "id": "lib-white-tshirt", "name": "Beyaz tişört", "category": "top", "colorIds": ["white"], "fabric": "cotton", "seasons": ["spring", "summer", "autumn"], "imageUrl": null, "segment": "women" }]
+
+Only the user's segment plus `unisex` pieces are listed (style profile; women when never chosen — [G §4](segments.md)).
+`imageUrl: null` = no image yet (the men's starter set until its images are generated): show the garment placeholder.
 ```
 `imageUrl` is null until `Wardrobe:PublicAssetBaseUrl` is configured (global asset bucket/CDN).
 
