@@ -19,10 +19,11 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Text } from '@/components/ui/Text';
 import { TextField } from '@/components/ui/TextField';
 import { CreditConfirmSheet } from '@/features/credits/CreditConfirmSheet';
+import { useSpendConfirm } from '@/features/credits/spendConfirm';
 import { useCachedTryOn } from '@/features/tryon/cached';
 import { RequirementHint, StepCountBadge } from '@/features/requirements/RequirementHint';
 import { useGate } from '@/features/requirements/useRequirements';
-import { ensureTryOnConsent, useStartTryOn } from '@/features/tryon/api';
+import { ensureTryOnConsent, TRY_ON_CREDIT_COST, useStartTryOn } from '@/features/tryon/api';
 import { formatMoney } from '@/lib/format';
 import { useIsOnline } from '@/sync/network';
 
@@ -65,8 +66,6 @@ export function LookEditor({ look, initialSlots, skippedCount = 0, items, initia
   const [menu, setMenu] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [tryOnNote, setTryOnNote] = useState<'offline' | 'failed' | null>(initialTryOnNote ?? null);
-  // Canvas 11a: what "Üzerimde gör" still needs is said under it; tapping opens the flow, which resumes here.
-  const gate = useGate('tryOn', () => void ensureTryOnConsent().then((ok) => ok && setConfirm(true)), { origin: t(look ? 'lookEditor.titleEdit' : 'lookEditor.titleNew') });
 
   // 13d: a saved, unchanged look whose image already exists opens it — no credit sheet, nothing charged.
   const cachedTryOn = useCachedTryOn(look ? { kind: 'look', id: look.id } : null);
@@ -90,19 +89,6 @@ export function LookEditor({ look, initialSlots, skippedCount = 0, items, initia
     leave();
   };
 
-  const onTryOnPress = () => {
-    if (!online) {
-      setTryOnNote('offline');
-      return;
-    }
-    setTryOnNote(null);
-    if (look && !dirty && cachedTryOn.cachedJobId) {
-      router.replace({ pathname: '/tryon/[jobId]', params: { jobId: cachedTryOn.cachedJobId, title: draft.name } });
-      return;
-    }
-    gate.run();
-  };
-
   const onTryOnConfirm = () => {
     void (async () => {
       let savedId: string | null = look?.id ?? null;
@@ -120,6 +106,28 @@ export function LookEditor({ look, initialSlots, skippedCount = 0, items, initia
         if (!look && savedId) router.setParams({ id: savedId, tryOn: 'failed' });
       }
     })();
+  };
+
+  // Canvas 11a: what "Üzerimde gör" still needs is said under it; tapping opens the flow, which resumes here. Then the
+  // credit confirmation only when it has something to say (first try-on, low balance), else the try-on starts.
+  const spend = useSpendConfirm();
+  const gate = useGate(
+    'tryOn',
+    () => void ensureTryOnConsent().then((ok) => ok && spend(TRY_ON_CREDIT_COST, { confirm: () => setConfirm(true), start: onTryOnConfirm })),
+    { origin: t(look ? 'lookEditor.titleEdit' : 'lookEditor.titleNew') },
+  );
+
+  const onTryOnPress = () => {
+    if (!online) {
+      setTryOnNote('offline');
+      return;
+    }
+    setTryOnNote(null);
+    if (look && !dirty && cachedTryOn.cachedJobId) {
+      router.replace({ pathname: '/tryon/[jobId]', params: { jobId: cachedTryOn.cachedJobId, title: draft.name } });
+      return;
+    }
+    gate.run();
   };
 
   const confirmDelete = () => {
@@ -177,7 +185,16 @@ export function LookEditor({ look, initialSlots, skippedCount = 0, items, initia
             </View>
             <View className="gap-1.5">
               <View>
-                <Button variant="secondary" icon={MirrorRound} label={t('lookEditor.tryOn')} onPress={onTryOnPress} disabled={!savable} testID="look-try-on" />
+                <Button
+                  variant="secondary"
+                  icon={MirrorRound}
+                  label={t('lookEditor.tryOn')}
+                  detail={t('ai.creditCost', { count: TRY_ON_CREDIT_COST })}
+                  onPress={onTryOnPress}
+                  loading={tryOn.isStarting && !confirm}
+                  disabled={!savable}
+                  testID="look-try-on"
+                />
                 {gate.count > 0 ? (
                   <View className="absolute -right-1 -top-1" pointerEvents="none">
                     <StepCountBadge count={gate.count} />
@@ -308,7 +325,7 @@ export function LookEditor({ look, initialSlots, skippedCount = 0, items, initia
           setSheetSlot(null);
         }}
       />
-      <CreditConfirmSheet visible={confirm} onClose={() => setConfirm(false)} cost={1} onConfirm={onTryOnConfirm} confirming={tryOn.isStarting} />
+      <CreditConfirmSheet visible={confirm} onClose={() => setConfirm(false)} cost={TRY_ON_CREDIT_COST} onConfirm={onTryOnConfirm} confirming={tryOn.isStarting} />
       <PopoverMenu
         visible={menu}
         onClose={() => setMenu(false)}

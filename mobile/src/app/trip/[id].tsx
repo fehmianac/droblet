@@ -31,6 +31,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
 import { Text } from '@/components/ui/Text';
 import { CreditConfirmSheet } from '@/features/credits/CreditConfirmSheet';
+import { useSpendConfirm } from '@/features/credits/spendConfirm';
 import { indexItems, LookCover } from '@/features/looks/LookCover';
 import { assignItemsToSlots, slotList } from '@/features/looks/logic';
 import { useTrip, useTripWrites } from '@/features/trips/api';
@@ -285,7 +286,6 @@ function PackedTrip({ trip }: { trip: TripDetail }) {
   const [openDay, setOpenDay] = useState<TripDay | null>(null);
   const [tryOnNote, setTryOnNote] = useState<'offline' | 'failed' | null>(null);
   const pendingScope = useRef<'all' | string>('all');
-  const tryOnGate = useGate('tryOn', () => void ensureTryOnConsent().then((ok) => ok && setConfirm(pendingScope.current)), { origin: trip.cityName });
 
   const ready = readiness(trip.items);
   const lookDays = trip.days.filter((d) => d.look);
@@ -295,7 +295,38 @@ function PackedTrip({ trip }: { trip: TripDetail }) {
   const dayTarget = (d: TripDay) => ({ kind: 'trip-day' as const, id: `${trip.id}:${d.date}` });
   const cachedDays = useCachedTryOns(lookDays.map(dayTarget));
   const cachedJobOf = (d: TripDay) => cachedDays[dayTarget(d).id] ?? null;
-  const confirmDays = (confirm === 'all' ? lookDays : lookDays.filter((d) => d.date === confirm)).filter((d) => !cachedJobOf(d));
+  const daysToStart = (scope: 'all' | string) => (scope === 'all' ? lookDays : lookDays.filter((d) => d.date === scope)).filter((d) => !cachedJobOf(d));
+  const confirmDays = confirm === null ? [] : daysToStart(confirm);
+
+  const startTryOn = (scope: 'all' | string) => {
+    void (async () => {
+      try {
+        // Target `tripDay` (`{tripId}/{date}` on the wire): the common job and cache, 1 credit per new image.
+        const jobs = await tryOn.startMany(daysToStart(scope).map(dayTarget));
+        setConfirm(null);
+        const first = jobs[0];
+        if (first) router.push({ pathname: '/tryon/[jobId]', params: { jobId: first.jobId, title: trip.cityName } });
+      } catch {
+        setConfirm(null);
+        setTryOnNote('failed');
+      }
+    })();
+  };
+
+  // After the requirements and consent: the credit confirmation for several days, the first try-on or a low balance;
+  // a single day otherwise starts at once.
+  const spend = useSpendConfirm();
+  const tryOnGate = useGate(
+    'tryOn',
+    () =>
+      void ensureTryOnConsent().then((ok) => {
+        if (!ok) return;
+        const scope = pendingScope.current;
+        spend(daysToStart(scope).length, { confirm: () => setConfirm(scope), start: () => startTryOn(scope) });
+      }),
+    { origin: trip.cityName },
+  );
+
   const askTryOn = (scope: 'all' | string) => {
     if (!online) {
       setTryOnNote('offline');
@@ -312,21 +343,6 @@ function PackedTrip({ trip }: { trip: TripDetail }) {
     // What is missing first (requirements flow, canvas 11), then consent and the credit confirmation.
     pendingScope.current = scope;
     tryOnGate.run();
-  };
-
-  const startTryOn = () => {
-    void (async () => {
-      try {
-        // Target `tripDay` (`{tripId}/{date}` on the wire): the common job and cache, 1 credit per new image.
-        const jobs = await tryOn.startMany(confirmDays.map(dayTarget));
-        setConfirm(null);
-        const first = jobs[0];
-        if (first) router.push({ pathname: '/tryon/[jobId]', params: { jobId: first.jobId, title: trip.cityName } });
-      } catch {
-        setConfirm(null);
-        setTryOnNote('failed');
-      }
-    })();
   };
 
   return (
@@ -439,7 +455,7 @@ function PackedTrip({ trip }: { trip: TripDetail }) {
         onClose={() => setConfirm(null)}
         cost={confirmDays.length}
         scope={confirm === 'all' ? t('tripDetail.tryOnScopeTag') : undefined}
-        onConfirm={startTryOn}
+        onConfirm={() => confirm !== null && startTryOn(confirm)}
         confirming={tryOn.isStarting}
       />
     </>

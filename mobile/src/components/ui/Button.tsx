@@ -23,6 +23,8 @@ type Props = {
    */
   loading?: boolean;
   loadingLabel?: string;
+  /** A lighter second part after the label: the cost of "Üzerimde gör · 1 kredi" (canvas 15, 14b, 07: regular weight, muted). */
+  detail?: string;
   disabled?: boolean;
   icon?: LucideIcon;
   /** Where the icon sits; 'trailing' for links that leave the app ("[Marka]'da öde"). Default 'leading'. */
@@ -60,6 +62,7 @@ export function Button({
   size,
   loading = false,
   loadingLabel,
+  detail,
   disabled = false,
   icon,
   iconPosition = 'leading',
@@ -71,13 +74,15 @@ export function Button({
   const filled = variant === 'primary' || variant === 'danger' || variant === 'inverse';
   const contentTone = variant === 'inverse' ? 'ink' : filled || variant === 'inverseOutline' ? 'cream' : 'ink';
   const resolvedSize = size ?? (filled ? 'lg' : 'md');
+  const detailText = detail ? `\u00a0· ${detail}` : null;
+  const a11yLabel = detail ? `${label} · ${detail}` : label;
   return (
     <Pressable
       testID={testID}
       onPress={inactive ? undefined : onPress}
       disabled={inactive}
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={a11yLabel}
       accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled, busy: loading }}
       className={`flex-row items-center justify-center active:opacity-80 ${sizeClass[resolvedSize]} ${containerClass[variant]} ${
@@ -91,12 +96,17 @@ export function Button({
         {icon && iconPosition === 'leading' ? <Icon icon={icon} tone={contentTone} size={18} /> : null}
         <Text variant="button" tone={contentTone} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} className="shrink">
           {label}
+          {detailText ? (
+            <Text variant="body" tone={contentTone === 'ink' ? 'muted' : contentTone} className={contentTone === 'ink' ? '' : 'opacity-70'}>
+              {detailText}
+            </Text>
+          ) : null}
         </Text>
         {icon && iconPosition === 'trailing' ? <Icon icon={icon} tone={contentTone} size={16} /> : null}
       </View>
       {loading ? (
         <View className="absolute inset-0 flex-row items-center justify-center gap-2" pointerEvents="none">
-          <DropLoader size="inline" tone={contentTone === 'ink' ? 'ink' : 'cream'} accessibilityLabel={loadingLabel ?? label} />
+          <DropLoader size="inline" tone={contentTone === 'ink' ? 'ink' : 'cream'} accessibilityLabel={loadingLabel ?? a11yLabel} />
           {loadingLabel ? (
             <Text variant="button" tone={contentTone} numberOfLines={1}>
               {loadingLabel}

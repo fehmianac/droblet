@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { fromSource } from '@/api/dataSource';
 import type { TryOnTarget } from '@/api/contracts/tryon';
 import { CreditConfirmSheet } from '@/features/credits/CreditConfirmSheet';
+import { useSpendConfirm } from '@/features/credits/spendConfirm';
 import { openCreditSheetIfExhausted } from '@/features/credits/creditSheetStore';
 import { useGate } from '@/features/requirements/useRequirements';
 import { uploadItemPhotos } from '@/features/wardrobe/mutations';
@@ -107,18 +108,6 @@ export function usePhotoTryOn({
   const [uploading, setUploading] = useState(false);
   const [note, setNote] = useState<'offline' | 'failed' | null>(null);
 
-  const gate = useGate('tryOn', () => void ensureTryOnConsent().then((ok) => ok && setConfirm(true)), { origin: t('tryOnPhoto.hubTitle') });
-
-  const tryOn = (source: PhotoTryOnSource) => {
-    if (!online) {
-      setNote('offline');
-      return;
-    }
-    setNote(null);
-    pending.current = source;
-    gate.run();
-  };
-
   const confirmed = () => {
     const source = pending.current;
     if (!source) return;
@@ -138,6 +127,24 @@ export function usePhotoTryOn({
         setUploading(false);
       }
     })();
+  };
+
+  // The credit confirmation only when it has something to say (first try-on, low balance); else the photo goes at once.
+  const spend = useSpendConfirm();
+  const gate = useGate(
+    'tryOn',
+    () => void ensureTryOnConsent().then((ok) => ok && spend(TRY_ON_CREDIT_COST, { confirm: () => setConfirm(true), start: confirmed })),
+    { origin: t('tryOnPhoto.hubTitle') },
+  );
+
+  const tryOn = (source: PhotoTryOnSource) => {
+    if (!online) {
+      setNote('offline');
+      return;
+    }
+    setNote(null);
+    pending.current = source;
+    gate.run();
   };
 
   const busy = uploading || start.isStarting;

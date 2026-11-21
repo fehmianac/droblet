@@ -254,6 +254,7 @@ export default function PlanWeekScreen() {
                           variant="secondary"
                           className="px-3"
                           label={t('weekPlan.tryOn')}
+                          detail={targets.length > 0 ? t('ai.creditCost', { count: targets.length }) : undefined}
                           icon={MirrorRound}
                           loading={weekTryOn.isQuoting}
                           testID="week-tryon"
