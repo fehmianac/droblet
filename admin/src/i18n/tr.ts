@@ -633,6 +633,10 @@ export const tr: Dict = {
         ConsentRequestsPerParentPerDay: 'Bir veli adresine gidebilecek e-posta / 24 sa',
         PhotoRetentionInactiveDays: 'Hareketsizlikte gencin kişisel fotoğraflarını sil (gün)',
         LegacyAgeCheckbox: 'Eski uygulama sürümleri: 18+ kutusu hâlâ yetişkin kaydeder',
+        'Stylist.Enabled': 'Onaylı gençlere sınırlı Stilist',
+        'Stylist.DailyLimit': 'Gençlere günlük kombin önerisi (İstanbul günü)',
+        'Stylist.WeekPlanPerWeek': 'Gençlere haftalık plan / hafta',
+        'Stylist.TripPackPerWeek': 'Gençlere AI bavul hazırlama / hafta',
       },
     },
     fieldHelp: {
@@ -643,6 +647,10 @@ export const tr: Dict = {
         ConsentRequestsPerParentPerDay: 'Tüm gençler toplamında; bir adres e-postaya boğulamaz.',
         PhotoRetentionInactiveDays: 'Beden / yüz fotoğrafları, deneme görselleri ve renk analizi. Hareket = giriş ya da oturum yenileme.',
         LegacyAgeCheckbox: 'Geçiş ayarı. Doğum yılı adımı olmayan uygulama sürümleri kalmayınca kapat.',
+        'Stylist.Enabled': 'Ücretsiz katmandaki onaylı gençler üyelik gerekmeden sınırlı Stilist kullanır (paywall gösterilmez). Kapalıyken "genç hesaplarda şimdilik açık değil" görürler.',
+        'Stylist.DailyLimit': 'Gün İstanbul saatiyle gece yarısı yenilenir. Başarısız işler sayılmaz. 0 = kapalı.',
+        'Stylist.WeekPlanPerWeek': 'Hafta pazartesi 00:00 (İstanbul) yenilenir. 0 = kapalı.',
+        'Stylist.TripPackPerWeek': 'Varsayılan 0 = gençlerde kapalı; bavulu elle hazırlarlar.',
       },
     },
     fields: {

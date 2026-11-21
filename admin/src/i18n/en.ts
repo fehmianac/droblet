@@ -632,6 +632,10 @@ export const en = {
         ConsentRequestsPerParentPerDay: 'E-mails one parent address may receive / 24 h',
         PhotoRetentionInactiveDays: 'Delete a teen\'s personal photos after inactivity (days)',
         LegacyAgeCheckbox: 'Old app versions: the 18+ checkbox still registers an adult',
+        'Stylist.Enabled': 'Limited stylist for approved teens',
+        'Stylist.DailyLimit': 'Outfit suggestions per teen per day (Istanbul day)',
+        'Stylist.WeekPlanPerWeek': 'Week plans per teen per week',
+        'Stylist.TripPackPerWeek': 'AI trip packing per teen per week',
       },
     },
     fieldHelp: {
@@ -642,6 +646,10 @@ export const en = {
         ConsentRequestsPerParentPerDay: 'Across all teens, so one address cannot be flooded.',
         PhotoRetentionInactiveDays: 'Body / face photos, try-on images and the palette result. Activity = sign-in or token refresh.',
         LegacyAgeCheckbox: 'Transition setting. Switch off once the app versions without the birth-year step are gone.',
+        'Stylist.Enabled': 'Approved teens on the free tier use a limited stylist without membership (no paywall). Off: they see "not available for teen accounts yet".',
+        'Stylist.DailyLimit': 'Resets at midnight Istanbul time. Failed jobs are not counted. 0 = off.',
+        'Stylist.WeekPlanPerWeek': 'Resets Monday 00:00 (Istanbul). 0 = off.',
+        'Stylist.TripPackPerWeek': 'Default 0 = off for teens; they pack by hand.',
       },
     },
     fields: {
