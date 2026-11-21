@@ -1,13 +1,21 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Linking, View } from 'react-native';
+import { Linking, Platform, View } from 'react-native';
 
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
 
 import { preparePhoto, type PreparedPhoto } from './preparePhoto';
+
+/**
+ * iOS refuses to present the system picker / camera while a Modal (our BottomSheet: the photo-source sheet, the
+ * consent sheet, the rationale sheet) is still animating out: the call is dropped silently and nothing opens.
+ * Every launch waits for the sheet's fade-out first. Android presents over a closing Modal fine.
+ */
+export const SHEET_SETTLE_MS = Platform.OS === 'ios' ? 450 : 0;
+const settle = () => new Promise<void>((resolve) => setTimeout(resolve, SHEET_SETTLE_MS));
 
 type SheetState =
   | { kind: 'none' }
@@ -49,6 +57,7 @@ export function usePhotoPicker({ onPicked, onError, maxEdge }: Options): {
   const chooseFromLibrary = (limit: number) => {
     void (async () => {
       try {
+        await settle();
         const result = await ImagePicker.launchImageLibraryAsync({
           mediaTypes: ['images'],
           allowsMultipleSelection: limit > 1,
@@ -66,6 +75,7 @@ export function usePhotoPicker({ onPicked, onError, maxEdge }: Options): {
   };
 
   const launchCamera = async () => {
+    await settle();
     const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], exif: false, quality: 1 });
     await handleResult(result);
   };
