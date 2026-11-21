@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Text as RNText, View } from 'react-native';
+import { Platform, Text as RNText, View, type ViewStyle } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import type { ItemCategory, ItemColor } from '@/api/contracts/wardrobe';
@@ -17,7 +17,8 @@ import { Skeleton } from './Skeleton';
  * ONE place for "an image may be missing". Nothing in the app renders an empty box:
  *
  * - garment / product without a picture → the category's line glyph on a ground tinted from its colour;
- * - look / outfit without a rendered image → a collage of its pieces (canvas "Parça kolajı", 17b);
+ * - look / outfit without a rendered image → a collage of its pieces (canvas "Parça kolajı", 17b), or on a look
+ *   cover the pieces laid out flat in body order (canvas 21c, `layout: 'flatlay'`);
  * - person without a photo → initials;
  * - anything else → the standing figure of the canvas look placeholders.
  *
@@ -162,9 +163,13 @@ export type Piece = {
   missing?: boolean;
 };
 
+/** Glyph size in points, or a percentage of its box ('56%'): the glyph keeps its aspect inside. */
+export type GlyphSize = number | `${number}%`;
+
 export type SlotPlaceholder =
-  | { kind: 'garment'; category?: string | null; subcategory?: string | null; color?: string | null; glyphSize?: number }
-  | { kind: 'look'; pieces: Piece[]; seed?: string; figureHeight?: number }
+  | { kind: 'garment'; category?: string | null; subcategory?: string | null; color?: string | null; glyphSize?: GlyphSize }
+  /** `flatlay`: the pieces laid out flat in body order (look covers, 21c); thumbnails (figure under 80) keep the collage. */
+  | { kind: 'look'; pieces: Piece[]; seed?: string; figureHeight?: number; layout?: 'collage' | 'flatlay' }
   | { kind: 'avatar'; name: string | null | undefined }
   | { kind: 'figure'; seed?: string; tone?: SlotTone; figureHeight?: number };
 
@@ -183,7 +188,7 @@ export function GarmentGlyph({
 }: {
   category: ItemCategory | string;
   subcategory?: string | null;
-  size?: number;
+  size?: GlyphSize;
   tone?: 'ink' | 'cream';
   opacity?: number;
 }) {
@@ -204,7 +209,7 @@ function GarmentPlaceholder({
   category?: string | null;
   subcategory?: string | null;
   color?: string | null;
-  glyphSize?: number;
+  glyphSize?: GlyphSize;
 }) {
   const ground = useGround(TONE_BY_COLOR[asGarmentColor(color)]);
   return (
@@ -275,6 +280,157 @@ export function PieceCollage({ pieces, compact = false }: { pieces: Piece[]; com
   );
 }
 
+/** A frame on the cover as fractions of its width / height, and a tilt in degrees. */
+export type FlatlayFrame = { x: number; y: number; w: number; h: number; rotate: number };
+export type FlatlayBucket = 'upper' | 'lower' | 'dress' | 'shoes' | 'accessory';
+export type FlatlaySpot = { index: number; bucket: FlatlayBucket; frame: FlatlayFrame; small: boolean };
+
+/** Where a piece lies in the flat-lay: by its body zone (beachwear / skiwear lie as tops, a bag as an accessory). */
+export function flatlayBucket(category: string | null | undefined): FlatlayBucket {
+  switch (asGarmentCategory(category)) {
+    case 'bottom':
+      return 'lower';
+    case 'dress':
+      return 'dress';
+    case 'shoes':
+      return 'shoes';
+    case 'bag':
+    case 'accessory':
+      return 'accessory';
+    default:
+      return 'upper';
+  }
+}
+
+/**
+ * Body-order frames of 21c, measured on the 169 × 210 lookbook card and a little larger than the board's vector
+ * shapes (a photograph has a margin around the garment): top upper-left, bottom right, shoes at the foot, the small
+ * pieces in the free corners.
+ */
+const FL = {
+  upper: { x: 0.04, y: 0.05, w: 0.6, h: 0.44, rotate: -6 },
+  /** A second upper (top under an open jacket) lies on the first, smaller. */
+  upperLayer: { x: 0.17, y: 0.13, w: 0.44, h: 0.34, rotate: 3 },
+  right: { x: 0.54, y: 0.26, w: 0.38, h: 0.56, rotate: 4 },
+  /** A dress without a top takes the left / centre, tall. */
+  dressTall: { x: 0.08, y: 0.04, w: 0.5, h: 0.68, rotate: -4 },
+  shoes: { x: 0.05, y: 0.76, w: 0.46, h: 0.18, rotate: -3 },
+} satisfies Record<string, FlatlayFrame>;
+/** Free corners for accessories (and any piece whose zone is taken), first come first served. */
+const FL_FREE_RIGHT_TAKEN: FlatlayFrame[] = [
+  { x: 0.66, y: 0.05, w: 0.28, h: 0.2, rotate: 6 },
+  { x: 0.66, y: 0.73, w: 0.27, h: 0.21, rotate: 8 },
+  { x: 0.42, y: 0.8, w: 0.2, h: 0.15, rotate: -4 },
+];
+const FL_FREE_RIGHT_OPEN: FlatlayFrame[] = [
+  { x: 0.6, y: 0.27, w: 0.32, h: 0.22, rotate: 10 },
+  { x: 0.66, y: 0.58, w: 0.26, h: 0.2, rotate: 0 },
+  { x: 0.66, y: 0.05, w: 0.28, h: 0.2, rotate: -8 },
+];
+const FL_FREE_UPPER: FlatlayFrame = { x: 0.08, y: 0.08, w: 0.44, h: 0.34, rotate: -6 };
+const FL_FREE_SHOES: FlatlayFrame = { x: 0.1, y: 0.76, w: 0.3, h: 0.18, rotate: -3 };
+/** With 5+ pieces the accessories shrink to this, around their centre. */
+const FL_SMALL = 0.75;
+
+function shrink(f: FlatlayFrame): FlatlayFrame {
+  const w = f.w * FL_SMALL;
+  const h = f.h * FL_SMALL;
+  return { ...f, x: f.x + (f.w - w) / 2, y: f.y + (f.h - h) / 2, w, h };
+}
+
+/**
+ * The flat-lay of a look's pieces (canvas 21c), in paint order (bottom / dress first, the upper over it, shoes,
+ * then the small pieces). A dress takes the tall left frame when there is no upper, else the bottom's. Pieces that
+ * find no frame (beyond seven) are left out.
+ */
+export function flatlayLayout(categories: readonly (string | null | undefined)[]): FlatlaySpot[] {
+  const buckets = categories.map(flatlayBucket);
+  const of = (b: FlatlayBucket) => buckets.flatMap((bucket, index) => (bucket === b ? [index] : []));
+  const uppers = of('upper');
+  // The outerwear is the base layer, the top lies on it.
+  uppers.sort((a, b) => Number(asGarmentCategory(categories[b]) === 'outerwear') - Number(asGarmentCategory(categories[a]) === 'outerwear'));
+  const dresses = of('dress');
+  const lowers = of('lower');
+  const shoes = of('shoes');
+  const overflow: number[] = [];
+  const spots: FlatlaySpot[] = [];
+  const place = (index: number | undefined, frame: FlatlayFrame) => {
+    if (index !== undefined) spots.push({ index, bucket: buckets[index] ?? 'accessory', frame, small: false });
+  };
+
+  const tallDress = uppers.length === 0 ? dresses.shift() : undefined;
+  const rightPiece = lowers.shift() ?? dresses.shift();
+  overflow.push(...uppers.slice(2), ...lowers, ...dresses, ...shoes.slice(1));
+  place(rightPiece, FL.right);
+  place(tallDress, FL.dressTall);
+  place(uppers[0], FL.upper);
+  place(uppers[1], FL.upperLayer);
+  place(shoes[0], FL.shoes);
+
+  const free = [...(rightPiece !== undefined ? FL_FREE_RIGHT_TAKEN : FL_FREE_RIGHT_OPEN)];
+  if (uppers.length === 0 && tallDress === undefined) free.unshift(FL_FREE_UPPER);
+  if (shoes.length === 0) free.push(FL_FREE_SHOES);
+  const small = categories.length >= 5;
+  [...overflow.sort((a, b) => a - b), ...of('accessory')].forEach((index, i) => {
+    const frame = free[i];
+    if (frame) spots.push({ index, bucket: buckets[index] ?? 'accessory', frame: small ? shrink(frame) : frame, small });
+  });
+  return spots;
+}
+
+const pct = (n: number) => `${Math.round(n * 1000) / 10}%` as const;
+
+/** Soft drop shadow under a piece: follows the cut-out photograph's outline on iOS, a drop-shadow filter on Android. */
+function useFlatlayShadow(): ViewStyle {
+  const colors = useThemeColors();
+  return Platform.OS === 'android'
+    ? { filter: [{ dropShadow: { offsetX: 0, offsetY: 3, standardDeviation: 4, color: `${colors.ink}24` } }] }
+    : { shadowColor: colors.ink, shadowOpacity: 0.14, shadowRadius: 4, shadowOffset: { width: 0, height: 4 } };
+}
+
+function FlatlayPiece({ piece, spot, shadow }: { piece: Piece; spot: FlatlaySpot; shadow: ViewStyle }) {
+  const { frame } = spot;
+  return (
+    <View
+      accessible={false}
+      pointerEvents="none"
+      testID={`flatlay-${spot.bucket}${spot.small ? '-small' : ''}`}
+      className={`absolute ${piece.missing ? 'rounded-image border-[1.5px] border-dashed border-accent' : ''}`}
+      style={[{ left: pct(frame.x), top: pct(frame.y), width: pct(frame.w), height: pct(frame.h), transform: [{ rotate: `${frame.rotate}deg` }] }, shadow]}
+    >
+      <ImageSlot
+        uri={piece.imageUrl}
+        cacheKey={piece.cacheKey}
+        onExpired={piece.onExpired}
+        fit="contain"
+        transparent
+        className={piece.imageUrl ? 'h-full w-full' : 'h-full w-full rounded-image'}
+        placeholder={{ kind: 'garment', category: piece.category, color: piece.color, glyphSize: '56%' }}
+      />
+      {piece.missing ? <MissingTag short className="absolute right-1 top-1" /> : null}
+    </View>
+  );
+}
+
+/**
+ * A look cover without a rendered image (canvas 21c "Looklar · flat-lay"): the pieces' background-removed photographs
+ * (or each piece's glyph on its colour) laid out flat in body order on the look's ground, slightly tilted, each with a
+ * soft shadow. Sized in percentages of the cover, so it needs no measuring at any size.
+ */
+export function PieceFlatlay({ pieces, seed }: { pieces: Piece[]; seed?: string }) {
+  const ground = useGround(toneFromSeed(seed));
+  const shadow = useFlatlayShadow();
+  const spots = flatlayLayout(pieces.map((p) => p.category));
+  return (
+    <View className="h-full w-full" style={{ backgroundColor: ground.backgroundColor }} testID="image-slot-flatlay">
+      {spots.map((spot) => {
+        const piece = pieces[spot.index];
+        return piece ? <FlatlayPiece key={spot.index} piece={piece} spot={spot} shadow={shadow} /> : null;
+      })}
+    </View>
+  );
+}
+
 function AvatarPlaceholder({ name }: { name: string | null | undefined }) {
   const [size, setSize] = useState(0);
   const initials = initialsOf(name);
@@ -301,10 +457,12 @@ function Placeholder({ spec }: { spec: SlotPlaceholder }) {
     case 'avatar':
       return <AvatarPlaceholder name={spec.name} />;
     case 'look':
-      return spec.pieces.length > 0 ? (
-        <PieceCollage pieces={spec.pieces} compact={(spec.figureHeight ?? 999) < 80} />
-      ) : (
+      return spec.pieces.length === 0 ? (
         <FigurePlaceholder tone={toneFromSeed(spec.seed)} figureHeight={spec.figureHeight} />
+      ) : spec.layout === 'flatlay' && (spec.figureHeight ?? 999) >= 80 ? (
+        <PieceFlatlay pieces={spec.pieces} seed={spec.seed} />
+      ) : (
+        <PieceCollage pieces={spec.pieces} compact={(spec.figureHeight ?? 999) < 80} />
       );
     case 'figure':
       return <FigurePlaceholder tone={spec.tone ?? toneFromSeed(spec.seed)} figureHeight={spec.figureHeight} />;
@@ -340,6 +498,8 @@ type Props = {
    * always `contain`: the person is shown whole, head to feet, whatever the slot's shape.
    */
   fit?: 'cover' | 'contain';
+  /** No sand ground and no skeleton (a cut-out piece lying on a flat-lay): the photograph fades in on what is under it. */
+  transparent?: boolean;
 };
 
 export function ImageSlot({
@@ -354,6 +514,7 @@ export function ImageSlot({
   onLoad,
   onError,
   fit = 'cover',
+  transparent = false,
 }: Props) {
   const [failedUri, setFailedUri] = useState<string | null>(null);
   const [loadedUri, setLoadedUri] = useState<string | null>(null);
@@ -387,14 +548,14 @@ export function ImageSlot({
   return (
     <View
       testID={testID}
-      className={`overflow-hidden bg-sand ${className ?? ''}`}
+      className={`overflow-hidden ${transparent ? '' : 'bg-sand'} ${className ?? ''}`}
       accessible={Boolean(accessibilityLabel)}
       accessibilityRole={accessibilityLabel ? 'image' : undefined}
       accessibilityLabel={accessibilityLabel}
     >
       {showImage && current ? (
         <>
-          {loading ? (
+          {loading && !transparent ? (
             <View className="absolute inset-0" testID="image-slot-loading">
               <Skeleton className="h-full w-full" />
             </View>

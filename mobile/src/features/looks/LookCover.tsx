@@ -63,9 +63,10 @@ export function lookPieces(slots: LookSlot[], itemsById: ItemsById = NO_ITEMS): 
 const SMALL_COVER = 80;
 
 /**
- * What a cover without a rendered image draws. Full-size covers: the piece collage (photographs, or each
- * piece's glyph on its colour). Thumbnails: a collage only of real photographs — glyph tiles would be
- * unreadable at that size, so they keep the canvas figure (empty list) and no "EKSİK" markers.
+ * What a cover without a rendered image draws. Full-size covers: the flat-lay of the pieces (21c: photographs, or
+ * each piece's glyph on its colour, in body order). Thumbnails keep the grid collage (tilted pieces in free corners
+ * would be specks at that size), and only of real photographs — glyph tiles would be unreadable at that size, so
+ * they keep the canvas figure (empty list) and no "EKSİK" markers.
  */
 export function coverPieces(slots: LookSlot[], itemsById: ItemsById = NO_ITEMS, figureHeight = 130): Piece[] {
   const pieces = lookPieces(slots, itemsById);
@@ -92,8 +93,7 @@ type Props = {
 
 /**
  * Cover of a look, through `ImageSlot`: the owner's try-on image when there is one (skeleton, fade-in,
- * fallback on error); otherwise the collage of its pieces (photographs, or each piece's glyph on its
- * colour); and when the look has no piece at all (or the cover is a thumbnail without any photograph),
+ * fallback on error); otherwise its pieces laid out flat in body order (21c; a thumbnail keeps the collage); and when the look has no piece at all (or the cover is a thumbnail without any photograph),
  * the standing figure on a ground picked by `seed`.
  */
 export function LookCover({ seed, figureHeight = 130, tryOnImageUrl, cover, slots, itemsById, className, accessibilityLabel, children }: Props) {
@@ -102,7 +102,7 @@ export function LookCover({ seed, figureHeight = 130, tryOnImageUrl, cover, slot
       {...(cover?.uri ? cover : { uri: tryOnImageUrl ?? null })}
       className={className}
       accessibilityLabel={accessibilityLabel}
-      placeholder={{ kind: 'look', pieces: coverPieces(slots, itemsById, figureHeight), seed, figureHeight }}
+      placeholder={{ kind: 'look', pieces: coverPieces(slots, itemsById, figureHeight), seed, figureHeight, layout: 'flatlay' }}
     >
       {children}
     </ImageSlot>

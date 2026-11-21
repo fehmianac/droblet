@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react-nativ
 
 import '@/i18n';
 
-import { ImageSlot, asGarmentCategory, asGarmentColor, initialsOf, toneFromSeed, TONE_BY_COLOR } from './ImageSlot';
+import { ImageSlot, asGarmentCategory, asGarmentColor, flatlayBucket, flatlayLayout, initialsOf, toneFromSeed, TONE_BY_COLOR } from './ImageSlot';
 import { PlaceholderImage } from './PlaceholderImage';
 
 describe('ImageSlot — a missing image is never an empty box', () => {
@@ -72,6 +72,99 @@ function sourceOf(): { uri: string; cacheKey?: string } | undefined {
   const source = screen.getByTestId('image-slot-image').props.source as { uri: string; cacheKey?: string } | { uri: string; cacheKey?: string }[];
   return Array.isArray(source) ? source[0] : source;
 }
+
+describe('ImageSlot — flat-lay look cover (21c)', () => {
+  const bucketsOf = (categories: string[]) => flatlayLayout(categories).map((s) => [categories[s.index], s.bucket, s.small] as const);
+  const frameOf = (categories: string[], category: string) => flatlayLayout(categories).find((s) => categories[s.index] === category)?.frame;
+
+  it('puts each piece in its body zone: top upper-left tilted left, bottom right tilted right, shoes at the foot, a bag in a corner', () => {
+    expect(['top', 'outerwear', 'beachwear', 'skiwear'].map(flatlayBucket)).toEqual(['upper', 'upper', 'upper', 'upper']);
+    expect(['bottom', 'dress', 'shoes', 'bag', 'accessory'].map(flatlayBucket)).toEqual(['lower', 'dress', 'shoes', 'accessory', 'accessory']);
+    expect(flatlayBucket('jeans')).toBe('lower');
+
+    const look = ['bag', 'shoes', 'bottom', 'top'];
+    // Paint order: the bottom under the top, then the shoes, the small pieces last.
+    expect(bucketsOf(look)).toEqual([
+      ['bottom', 'lower', false],
+      ['top', 'upper', false],
+      ['shoes', 'shoes', false],
+      ['bag', 'accessory', false],
+    ]);
+    const top = frameOf(look, 'top')!;
+    const bottom = frameOf(look, 'bottom')!;
+    const shoes = frameOf(look, 'shoes')!;
+    const bag = frameOf(look, 'bag')!;
+    expect(top.x).toBeLessThan(0.1);
+    expect(top.y).toBeLessThan(0.1);
+    expect(top.rotate).toBeLessThan(0);
+    expect(bottom.x).toBeGreaterThan(0.5);
+    expect(bottom.rotate).toBeGreaterThan(0);
+    expect(shoes.x).toBeLessThan(0.1);
+    expect(shoes.y).toBeGreaterThan(0.7);
+    expect(bag.x).toBeGreaterThan(0.6);
+  });
+
+  it('a dress without a top stands tall on the left; with a top it takes the bottom frame', () => {
+    const tall = frameOf(['dress', 'shoes', 'bag'], 'dress')!;
+    expect(tall.x).toBeLessThan(0.1);
+    expect(tall.h).toBeGreaterThan(0.6);
+    expect(frameOf(['outerwear', 'dress'], 'dress')).toEqual(frameOf(['top', 'bottom'], 'bottom'));
+  });
+
+  it('with 5+ pieces the accessories shrink; garments keep their size', () => {
+    const four = flatlayLayout(['top', 'bottom', 'shoes', 'bag']);
+    const five = flatlayLayout(['top', 'bottom', 'shoes', 'bag', 'accessory']);
+    expect(four.every((s) => !s.small)).toBe(true);
+    expect(five.filter((s) => s.small).map((s) => s.bucket)).toEqual(['accessory', 'accessory']);
+    expect(five[3]!.frame.w).toBeLessThan(four[3]!.frame.w);
+    expect(five[0]!.frame).toEqual(four[0]!.frame);
+  });
+
+  it('lays the pieces on the look ground, a photograph where there is one and the glyph on its colour where not', async () => {
+    await render(
+      <ImageSlot
+        accessibilityLabel="Lacivert Blazer"
+        placeholder={{
+          kind: 'look',
+          layout: 'flatlay',
+          seed: 'look-1',
+          figureHeight: 130,
+          pieces: [
+            { category: 'top', color: 'navy', imageUrl: 'https://cdn/top.webp', cacheKey: 'item:1:256' },
+            { category: 'bottom', color: 'beige' },
+            { category: 'shoes', color: 'brown' },
+            { category: 'bag', color: 'black', missing: true },
+            { category: 'accessory', color: 'other' },
+          ],
+        }}
+      />,
+    );
+    expect(screen.getByTestId('image-slot-flatlay')).toBeTruthy();
+    expect(screen.queryByTestId('image-slot-collage')).toBeNull();
+    expect(screen.getByTestId('flatlay-upper')).toBeTruthy();
+    expect(screen.getByTestId('flatlay-lower')).toBeTruthy();
+    expect(screen.getByTestId('flatlay-shoes')).toBeTruthy();
+    expect(screen.getAllByTestId('flatlay-accessory-small')).toHaveLength(2);
+    // The photograph is shown whole, on the ground, without a skeleton box; the rest are glyph tiles.
+    expect(screen.getByTestId('image-slot-image').props.contentFit).toBe('contain');
+    expect(screen.queryByTestId('image-slot-loading')).toBeNull();
+    expect(screen.getAllByTestId('image-slot-garment')).toHaveLength(4);
+    expect(screen.getByText('MISSING')).toBeTruthy();
+    // One label for the whole cover.
+    expect(screen.getByLabelText('Lacivert Blazer')).toBeTruthy();
+  });
+
+  it('a thumbnail keeps the grid collage, and a rendered image wins over both', async () => {
+    const pieces = [{ category: 'top' }, { category: 'bottom' }];
+    await render(<ImageSlot placeholder={{ kind: 'look', layout: 'flatlay', pieces, figureHeight: 45 }} />);
+    expect(screen.getByTestId('image-slot-collage')).toBeTruthy();
+    expect(screen.queryByTestId('image-slot-flatlay')).toBeNull();
+
+    await render(<ImageSlot uri="https://s3/tryon.webp" placeholder={{ kind: 'look', layout: 'flatlay', pieces, figureHeight: 130 }} />);
+    expect(screen.getByTestId('image-slot-image')).toBeTruthy();
+    expect(screen.queryByTestId('image-slot-flatlay')).toBeNull();
+  });
+});
 
 describe('ImageSlot — stable cache key and refresh-once on an expired URL', () => {
   it('loads through the cache key (also the recycling key) instead of the URL', async () => {
