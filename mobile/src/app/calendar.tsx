@@ -22,6 +22,7 @@ import { useCalendarMonth } from '@/features/today/api';
 import { combineQueries } from '@/features/today/combineQueries';
 import { monthGrid, monthOf, shiftMonth, weekDates } from '@/features/today/dates';
 import { dayStatus, type DayStatus } from '@/features/today/logic';
+import { PlanLookSheet } from '@/features/today/PlanLookSheet';
 import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { formatDate, formatMonthYear, formatNumber, parseLocalDate, toIsoDate, weekdayShort } from '@/lib/format';
 import { toDisplayUpper } from '@/lib/upper';
@@ -36,7 +37,8 @@ const goBack = () => (router.canGoBack() ? router.back() : router.replace('/'));
 /**
  * 09 Takvim — "ne giyeceğim, ne giydim": a Monday-first month grid (the day number above a 52-high box:
  * the look's thumbnail on worn and planned days, a dashed box on empty ones), a day sheet with that day's
- * look or a stylist suggestion, and the month's summary with "Rapor" → the month report.
+ * look ("Değiştir") or, on an empty day, "Planla" + "Stilistten öner" — both ways to choose open 07c "Bu güne look
+ * seç" (a saved look, no AI) — and the month's summary with "Rapor" → the month report.
  */
 export default function CalendarScreen() {
   const language = useAppLanguage();
@@ -45,6 +47,8 @@ export default function CalendarScreen() {
   const today = toIsoDate(new Date());
   const [month, setMonth] = useState(monthOf(today));
   const [selected, setSelected] = useState<string | null>(null);
+  // 07c: the day whose look is being chosen (null = sheet closed).
+  const [pick, setPick] = useState<string | null>(null);
 
   const calendar = useCalendarMonth(month);
   const looks = useLooks();
@@ -56,6 +60,10 @@ export default function CalendarScreen() {
   const suggest = (date: string) => {
     setSelected(null);
     router.navigate({ pathname: '/stylist', params: { date } });
+  };
+  const planDay = (date: string) => {
+    setSelected(null);
+    setPick(date);
   };
 
   return (
@@ -217,7 +225,7 @@ export default function CalendarScreen() {
                             </View>
                           ) : null}
                           <View className="min-w-[45%] flex-1">
-                            <Button size="md" label={t('calendarScreen.change')} onPress={() => suggest(selected)} />
+                            <Button size="md" label={t('calendarScreen.change')} onPress={() => planDay(selected)} testID="calendar-change" />
                           </View>
                         </View>
                       </>
@@ -226,12 +234,27 @@ export default function CalendarScreen() {
                         <Text variant="body" tone="muted">
                           {t('calendarScreen.emptyDay')}
                         </Text>
-                        <Button label={t('calendarScreen.suggestForDay')} icon={Sparkles} onPress={() => suggest(selected)} />
+                        <View className="flex-row flex-wrap gap-2">
+                          <View className="min-w-[45%] flex-1">
+                            <Button size="md" label={t('calendarScreen.plan')} onPress={() => planDay(selected)} testID="calendar-plan" />
+                          </View>
+                          <View className="min-w-[45%] flex-1">
+                            <Button
+                              variant="secondary"
+                              className="px-3"
+                              icon={Sparkles}
+                              label={t('calendarScreen.suggestForDay')}
+                              onPress={() => suggest(selected)}
+                              testID="calendar-suggest"
+                            />
+                          </View>
+                        </View>
                       </>
                     )}
                   </View>
                 ) : null}
               </BottomSheet>
+              <PlanLookSheet date={pick} onClose={() => setPick(null)} onSuggest={() => pick && suggest(pick)} />
             </>
           );
         }}
