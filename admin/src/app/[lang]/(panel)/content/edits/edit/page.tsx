@@ -9,7 +9,7 @@ import { api } from '@/lib/api';
 import { mondayOf } from '@/lib/dates';
 import { useI18n } from '@/lib/i18n';
 import { resolveText } from '@/lib/text';
-import { PRICE_BANDS, type AdminBrand, type AdminEdit, type Localized, type PriceBand } from '@/lib/types';
+import { EDIT_SEGMENTS, PRICE_BANDS, type AdminBrand, type AdminEdit, type EditSegment, type Localized, type PriceBand } from '@/lib/types';
 
 interface VariantForm {
   priceBand: PriceBand;
@@ -25,6 +25,7 @@ interface LookForm {
 }
 interface Form {
   id: string;
+  segment: EditSegment;
   weekStart: string;
   title: Localized;
   subtitle: Localized;
@@ -40,6 +41,7 @@ function blank(): Form {
   const week = mondayOf(new Date(Date.now() + 7 * 86_400_000));
   return {
     id: `edit-${week}`,
+    segment: 'women',
     weekStart: week,
     title: {},
     subtitle: {},
@@ -55,6 +57,7 @@ function blank(): Form {
 function toForm(e: AdminEdit): Form {
   return {
     id: e.id,
+    segment: e.segment === 'men' ? 'men' : 'women',
     weekStart: e.weekStart,
     title: e.title,
     subtitle: e.subtitle ?? {},
@@ -101,7 +104,7 @@ function EditForm() {
     setErrors({});
     try {
       const saved = await api.put<AdminEdit>(`v1/admin/edit/${encodeURIComponent(form.id.trim())}`, {
-        segment: 'women',
+        segment: form.segment,
         weekStart: form.weekStart,
         title: emptyToNull(form.title),
         subtitle: emptyToNull(form.subtitle),
@@ -174,6 +177,15 @@ function EditForm() {
           <div className="space-y-4">
             <Field label={t.common.id} htmlFor="e-id" required error={errors.id}>
               <Input id="e-id" value={form.id} disabled={!isNew} onChange={(e) => set('id', e.target.value.toLowerCase())} className="font-mono" />
+            </Field>
+            <Field label={t.edits.segment} htmlFor="e-segment" required hint={t.edits.segmentHint} error={errors.segment}>
+              <Select id="e-segment" value={form.segment} onChange={(e) => set('segment', e.target.value as EditSegment)}>
+                {EDIT_SEGMENTS.map((s) => (
+                  <option key={s} value={s}>
+                    {t.enums.editSegment[s]}
+                  </option>
+                ))}
+              </Select>
             </Field>
             <Field label={t.edits.weekStart} htmlFor="e-week" required error={errors.weekStart}>
               <Input id="e-week" type="date" value={form.weekStart} onChange={(e) => set('weekStart', e.target.value)} />

@@ -45,6 +45,7 @@ const products = Array.from({ length: 36 }, (_, i) => {
     category, colors: ['white', 'navy', 'camel'].slice(0, 1 + (i % 3)), sizes: ['XS', 'S', 'M', 'L'], priceMinor: price, currency: 'TRY',
     previousPriceMinor: i % 7 === 0 ? price + 20_000 : null, priceChangedAt: i % 7 === 0 ? daysAgo(2) : null, priceBand: i % 4 === 0 ? 'luxuryTouch' : 'highStreet',
     images: [img(i % 6), img((i + 1) % 6)], affiliateUrl: `https://${brand.id}.example/p/${i}`, affiliateSource: brand.source, retired: i % 11 === 10, createdAt: daysAgo(40 - i), updatedAt: daysAgo(i % 9),
+    segment: ['women', 'women', 'men', 'unisex'][i % 4],
   };
 });
 
@@ -65,7 +66,12 @@ const library = ['white-tshirt', 'black-trousers', 'denim-jacket', 'trench', 'wh
   id: `lib-${id}`, name: { tr: ['Beyaz tişört', 'Siyah pantolon', 'Kot ceket', 'Trençkot', 'Beyaz spor ayakkabı', 'Siyah çanta'][i], en: ['White T-shirt', 'Black trousers', 'Denim jacket', 'Trench coat', 'White sneakers', 'Black bag'][i] },
   category: ['top', 'bottom', 'outerwear', 'outerwear', 'shoes', 'bag'][i], colorIds: [['white'], ['black'], ['denim'], ['camel'], ['white'], ['black']][i], fabric: ['cotton', 'wool', 'denim', 'cotton', 'leather', 'leather'][i],
   seasons: ['spring', 'summer', 'autumn'].slice(0, 1 + (i % 3)), imageUrl: img(i), sortOrder: i * 10, retired: false, stored: i < 4,
+  segment: 'women', needsImage: false,
 }));
+library.push(
+  { id: 'lib-men-oxford-shirt', name: { tr: 'Beyaz oxford gömlek', en: 'White oxford shirt' }, category: 'top', colorIds: ['white'], fabric: 'cotton', seasons: ['spring', 'summer', 'autumn', 'winter'], imageUrl: null, sortOrder: 500, retired: false, stored: false, segment: 'men', needsImage: true },
+  { id: 'lib-men-navy-chinos', name: { tr: 'Lacivert chino pantolon', en: 'Navy chinos' }, category: 'bottom', colorIds: ['navy'], fabric: 'cotton', seasons: ['spring', 'autumn'], imageUrl: null, sortOrder: 510, retired: false, stored: false, segment: 'men', needsImage: true },
+);
 const users = Array.from({ length: 30 }, (_, i) => ({
   id: `01JUSER${String(i).padStart(18, '0')}`, tenantId: `01JTEN${String(i).padStart(19, '0')}`, email: `kullanici${i + 1}@example.com`,
   displayName: ['Ayşe Yılmaz', 'Elif Demir', 'Zeynep Kaya', 'Selin Aksoy', 'Deniz Arslan'][i % 5], handle: `stil${i + 1}`, createdAt: daysAgo(i * 2), suspended: i === 4,
@@ -597,8 +603,9 @@ createServer(async (req, res) => {
   if (p === '/v1/admin/product') {
     const q = (url.searchParams.get('q') ?? '').toLowerCase();
     const brand = url.searchParams.get('brand');
+    const segment = url.searchParams.get('segment');
     const incl = url.searchParams.get('includeRetired') !== 'false';
-    return send(200, page(products.filter((x) => (incl || !x.retired) && (!brand || x.brandId === brand) && (!q || `${x.id} ${x.name.tr} ${x.name.en}`.toLowerCase().includes(q))), url));
+    return send(200, page(products.filter((x) => (incl || !x.retired) && (!brand || x.brandId === brand) && (!segment || x.segment === segment) && (!q || `${x.id} ${x.name.tr} ${x.name.en}`.toLowerCase().includes(q))), url));
   }
   if (p === '/v1/admin/product/bulk') {
     const rows = (b.products ?? []).map((x, index) => (!x.name?.tr ? { index, id: x.id, outcome: 'invalid', errors: { name: ['name_invalid'] } } : !brands.some((br) => br.id === x.brandId) ? { index, id: x.id, outcome: 'brand_not_found' } : { index, id: x.id, outcome: products.some((pr) => pr.id === x.id) ? 'updated' : 'created' }));
@@ -611,7 +618,7 @@ createServer(async (req, res) => {
       const found = products.find((x) => x.id === id);
       if (req.method === 'GET') return found ? send(200, found) : problem(404, 'product_not_found');
       if (req.method === 'DELETE') return send(204);
-      const product = { ...(found ?? {}), ...b, id, currency: 'TRY', affiliateSource: b.affiliateSource ?? 'network', previousPriceMinor: null, priceChangedAt: null, createdAt: found?.createdAt ?? now(), updatedAt: now() };
+      const product = { ...(found ?? {}), ...b, id, currency: 'TRY', affiliateSource: b.affiliateSource ?? 'network', segment: b.segment ?? 'women', previousPriceMinor: null, priceChangedAt: null, createdAt: found?.createdAt ?? now(), updatedAt: now() };
       return send(200, { product, created: !found, priceDropped: !!found && b.priceMinor < found.priceMinor, watchersFlagged: 2 });
     }
   }
@@ -633,7 +640,7 @@ createServer(async (req, res) => {
     }
   }
   if (p === '/v1/admin/library') return send(200, library);
-  if (m(/^\/v1\/admin\/library\/([^/]+)$/)) return req.method === 'PUT' ? send(200, { ...b, id: m(/^\/v1\/admin\/library\/([^/]+)$/)[1], stored: true }) : send(204);
+  if (m(/^\/v1\/admin\/library\/([^/]+)$/)) return req.method === 'PUT' ? send(200, { ...b, id: m(/^\/v1\/admin\/library\/([^/]+)$/)[1], segment: b.segment ?? 'women', needsImage: !String(b.imageUrl ?? '').startsWith('https://'), stored: true }) : send(204);
 
   // Users
   if (p === '/v1/admin/user') {
