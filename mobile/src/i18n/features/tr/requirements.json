@@ -250,12 +250,7 @@
       "failed": "Onay kaydedilemedi. Yeniden dene."
     },
     "done": {
-      "eyebrow": "TAMAMLANDI",
-      "title": "Hazır",
-      "body": "Tüm adımlar tamam. Kaldığın yere dönüyoruz.",
       "saved": "Profiline kaydedildi, bir daha sormayız",
-      "returning": "{{origin}} ekranına dönülüyor",
-      "returningPlain": "Kaldığın yere dönülüyor",
       "item": {
         "age": "18+ onaylandı",
         "consent": "Açık rıza verildi",

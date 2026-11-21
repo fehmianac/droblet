@@ -250,12 +250,7 @@
       "failed": "Couldn't save the confirmation. Try again."
     },
     "done": {
-      "eyebrow": "DONE",
-      "title": "Ready",
-      "body": "All steps done. Taking you back to where you were.",
       "saved": "Saved to your profile, we won't ask again",
-      "returning": "Returning to {{origin}}",
-      "returningPlain": "Returning to where you were",
       "item": {
         "age": "18+ confirmed",
         "consent": "Consent given",

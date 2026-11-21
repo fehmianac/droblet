@@ -4,6 +4,7 @@ import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-li
 import { CONSENT_TYPES } from '@/api/contracts/consents';
 import { setBodyProfileFixture } from '@/api/profile';
 import { onboardingStore } from '@/auth/onboarding';
+import { toast } from '@/components/ui/toast';
 import { resetConsentReviewHost } from '@/features/consent/ConsentReviewHost';
 import { consentRequests } from '@/features/consent/store';
 import { requirementsFlow } from '@/features/requirements/store';
@@ -103,6 +104,7 @@ describe('Onboarding 2 / 4 — every consent on one screen (owner decision 1)', 
 
 describe('Canvas 11 — requirements flow on "See it on me"', () => {
   it('face path: hint → sheet (two photo paths) → consent → body type → "Ready" → the try-on resumes on the same look', async () => {
+    const toastSpy = jest.spyOn(toast, 'success');
     accountFixtures.removePhoto('body', 'photo_body_1');
     resetConsentFixtures({ granted: CONSENT_TYPES.filter((type) => type !== 'facePhotoTryOn') });
     await open('/look/look_lacivert_blazer');
@@ -142,10 +144,10 @@ describe('Canvas 11 — requirements flow on "See it on me"', () => {
     await fireEvent.changeText(screen.getByTestId('requirements.bodyType.height'), '168');
     await fireEvent.press(screen.getByTestId('requirements.bodyType.save'));
 
-    await waitFor(() => expect(screen.getByTestId('requirements.ready')).toBeTruthy(), WAIT);
-    expect(screen.getByText('Body type chosen')).toBeTruthy();
-    // Back on the look by itself: the credit confirmation of the try-on.
+    // No "Ready" page (canvas 11f): straight back on the look, the credit confirmation of the try-on opens by itself.
     await waitFor(() => expect(screen.getByText('1 credit will be used')).toBeTruthy(), WAIT);
+    expect(screen.queryByTestId('requirements.stepper')).toBeNull();
+    expect(toastSpy).toHaveBeenCalledWith("Saved to your profile, we won't ask again", { testID: 'requirements.saved' });
     expect(consentFixtures.requests()[0]).toMatchObject({ source: 'requirements', consents: [{ type: 'facePhotoTryOn', granted: true }] });
   });
 
