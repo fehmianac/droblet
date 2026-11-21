@@ -1,0 +1,22 @@
+# Opens "Doğum yılın" (canvas 18 · 02 / 02f), scrolls the year sheet to YEAR and chooses it.
+appId: com.alatech.droplet
+env:
+  YEAR: ${YEAR}
+---
+- tapOn:
+    id: "birth.year"
+- extendedWaitUntil:
+    visible:
+      id: "birth.yearSheet.list"
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      id: "birth.yearSheet.option.${YEAR}"
+    direction: DOWN
+    timeout: 20000
+    centerElement: true
+- tapOn:
+    id: "birth.yearSheet.option.${YEAR}"
+- tapOn:
+    id: "birth.yearSheet.select"
+- waitForAnimationToEnd

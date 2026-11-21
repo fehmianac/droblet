@@ -87,7 +87,14 @@ const routes = {
     fresh = false;
     savedStyle = null;
     teen = null;
-    if (email.startsWith('ece.onay') || email.startsWith('ece.dene')) {
+    if (email.startsWith('ece.ret')) {
+      teen = { status: 'declined', requestState: 'sent', parentAllowedTryOn: false, ownTryOnConsent: false, tryOnEnabled: false };
+    } else if (email.startsWith('ece.geri')) {
+      teen = { status: 'withdrawn', requestState: 'sent', parentAllowedTryOn: false, ownTryOnConsent: false, tryOnEnabled: false };
+    } else if (email.startsWith('ece.18')) {
+      teen = null; // turned 18: the same account, now adult
+      persona = 'women';
+    } else if (email.startsWith('ece.onay') || email.startsWith('ece.dene')) {
       teen = { status: 'active', requestState: 'sent', parentAllowedTryOn: true, ownTryOnConsent: false, tryOnEnabled: email.startsWith('ece.dene') };
     } else if (email.startsWith('ece')) {
       teen = { status: 'pendingParentalConsent', requestState: 'sent', parentAllowedTryOn: false, ownTryOnConsent: false, tryOnEnabled: false, resendAt: iso2(Date.now() + 42_000) };

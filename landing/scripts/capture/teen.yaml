@@ -1,0 +1,196 @@
+# Teen showcase screenshots (canvas 18, "Ece"): limited mode (waiting for the parent), the one-time notices
+# (approved, declined, withdrawn, turned 18) and the approved teen's UI (Keşfet, Profil, Ayarlar, Stilist, try-on
+# locked and the 22t explainer). Personas come from the e-mail (mock-auth.mjs). No AI step is started: the explainer
+# is captured and closed.
+#   maestro --device <udid> test -e LANG=tr -e LOCALE=tr_TR --test-output-dir=/abs/dir landing/scripts/capture/teen.yaml
+appId: com.alatech.droplet
+env:
+  LANG: ${LANG}
+  LOCALE: ${LOCALE}
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+    arguments:
+      AppleLanguages: "(${LANG})"
+      AppleLocale: ${LOCALE}
+# --- pending (limited mode) ---
+- runFlow:
+    file: teen-login.yaml
+    env:
+      EMAIL: ece@example.com
+- extendedWaitUntil:
+    visible:
+      id: "teen.banner.pending"
+    timeout: 15000
+- takeScreenshot: teen-06-bugun-bekleniyor
+- runFlow:
+    file: open.yaml
+    env:
+      URL: droplet://stylist
+- extendedWaitUntil:
+    visible:
+      id: "stylist.teenLocked"
+    timeout: 10000
+- takeScreenshot: teen-16-stilist-kilitli
+- runFlow:
+    file: open.yaml
+    env:
+      URL: droplet://look/look_lacivert_blazer
+- extendedWaitUntil:
+    visible:
+      id: "teen.tryOnLock.limited"
+    timeout: 10000
+- takeScreenshot: teen-14b-deneme-onay-bekleniyor
+- runFlow:
+    file: open.yaml
+    env:
+      URL: droplet://teen/parent
+- extendedWaitUntil:
+    visible:
+      id: "teen.waiting"
+    timeout: 10000
+- takeScreenshot: teen-02j-bekleniyor-uygulamadan
+- runFlow:
+    file: teen-logout.yaml
+# --- approved: notice, then the teen UI ---
+- runFlow:
+    file: teen-login.yaml
+    env:
+      EMAIL: ece.onay@example.com
+- extendedWaitUntil:
+    visible:
+      id: "teen.notice.approved"
+    timeout: 15000
+- waitForAnimationToEnd
+- takeScreenshot: teen-onaylandi
+- tapOn:
+    id: "teen.notice.primary"
+- runFlow:
+    file: open.yaml
+    env:
+      URL: droplet://discover
+- extendedWaitUntil:
+    visible:
+      id: "discover.teen"
+    timeout: 10000
+- waitForAnimationToEnd
+- takeScreenshot: teen-20-kesfet
+- runFlow:
+    file: open.yaml
+    env:
+      URL: droplet://profile
+- extendedWaitUntil:
+    visible:
+      id: "profile.parentConsent"
+    timeout: 10000
+- takeScreenshot: teen-28-profil
+- runFlow:
+    file: open.yaml
+    env:
+      URL: droplet://settings
+- extendedWaitUntil:
+    visible:
+      id: "settings.parentConsent"
+    timeout: 10000
+- takeScreenshot: teen-29d-ayarlar
+- scrollUntilVisible:
+    element:
+      id: "settings.teenAnalyticsNote"
+    direction: DOWN
+    timeout: 15000
+- takeScreenshot: teen-29d-ayarlar-2
+- runFlow:
+    file: open.yaml
+    env:
+      URL: droplet://stylist
+- takeScreenshot: teen-16-stilist-onayli
+- runFlow:
+    file: open.yaml
+    env:
+      URL: droplet://look/look_lacivert_blazer
+- extendedWaitUntil:
+    visible:
+      id: "teen.tryOnLock.unavailable"
+    timeout: 10000
+- takeScreenshot: teen-14b-deneme-kullanilamiyor
+- runFlow:
+    file: teen-logout.yaml
+# --- declined, withdrawn, turned 18: the one-time notices ---
+- runFlow:
+    file: teen-login.yaml
+    env:
+      EMAIL: ece.ret@example.com
+- extendedWaitUntil:
+    visible:
+      id: "teen.notice.declined"
+    timeout: 15000
+- waitForAnimationToEnd
+- takeScreenshot: teen-onaylamadi
+- tapOn:
+    id: "teen.notice.secondary"
+- runFlow:
+    file: teen-logout.yaml
+- runFlow:
+    file: teen-login.yaml
+    env:
+      EMAIL: ece.geri@example.com
+- extendedWaitUntil:
+    visible:
+      id: "teen.notice.withdrawn"
+    timeout: 15000
+- waitForAnimationToEnd
+- takeScreenshot: teen-geri-cekildi
+- tapOn:
+    id: "teen.notice.primary"
+- extendedWaitUntil:
+    visible:
+      id: "teen.banner.withdrawn"
+    timeout: 10000
+- takeScreenshot: teen-06-bugun-geri-cekildi
+- runFlow:
+    file: teen-logout.yaml
+- runFlow:
+    file: teen-login.yaml
+    env:
+      EMAIL: ece.18@example.com
+- extendedWaitUntil:
+    visible:
+      id: "teen.notice.adult"
+    timeout: 15000
+- waitForAnimationToEnd
+- takeScreenshot: teen-18-yasinda
+- tapOn:
+    id: "teen.notice.primary"
+- runFlow:
+    file: teen-logout.yaml
+# --- try-on open (flag on, parent box ticked): the 22t explainer, closed without starting anything ---
+- runFlow:
+    file: teen-login.yaml
+    env:
+      EMAIL: ece.dene@example.com
+- runFlow:
+    when:
+      visible:
+        id: "teen.notice.approved"
+    commands:
+      - tapOn:
+          id: "teen.notice.primary"
+- runFlow:
+    file: open.yaml
+    env:
+      URL: droplet://look/look_lacivert_blazer
+- extendedWaitUntil:
+    visible:
+      id: "look-hero-invite"
+    timeout: 10000
+- tapOn:
+    id: "look-hero-invite"
+- extendedWaitUntil:
+    visible:
+      id: "teen.tryOnExplainer"
+    timeout: 10000
+- waitForAnimationToEnd
+- takeScreenshot: teen-22t-deneme-aciklama
+- tapOn:
+    id: "teen.tryOnExplainer.cancel"

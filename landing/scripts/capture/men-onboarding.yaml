@@ -47,8 +47,11 @@ env:
 - inputText: "showcase1"
 - tapOn:
     point: "50%,14%"
-- tapOn:
-    id: "age.checkbox"
+# Canvas 18: the birth year replaced the 18+ box — an adult year.
+- runFlow:
+    file: pick-year.yaml
+    env:
+      YEAR: "1996"
 - tapOn:
     id: "auth.submit"
 # iOS "Save password?" (TR "Sonra" / EN "Not Now") may cover the next screen.
