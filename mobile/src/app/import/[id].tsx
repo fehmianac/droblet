@@ -28,6 +28,7 @@ import { toDisplayUpper } from '@/lib/upper';
 import { useIsOnline } from '@/sync/network';
 import { surfaceTones } from '@/theme/tokens';
 import { useThemeColors } from '@/theme/useThemeColors';
+import { useTeenRules } from '@/features/teen/store';
 
 // ── 31b: uploads and processing ─────────────────────────────────────────────────────────────────────────────
 
@@ -316,6 +317,7 @@ function ReviewView({ session, onDiscard, discarding }: { session: ImportSession
   const everything = choices.looksOff.length === 0 && choices.piecesOff.length === 0;
   // "Üzerimde dene" per photo: the whole outfit of that photo on the user (the session keeps the photo server-side).
   const tryOn = usePhotoTryOn({ feature: 'tryon_photo_import' });
+  const hideOutfitPhoto = useTeenRules().hide.outfitPhotoTryOn;
 
   return (
     <>
@@ -350,7 +352,8 @@ function ReviewView({ session, onDiscard, discarding }: { session: ImportSession
             photo={item}
             choices={choices}
             onChange={setChoices}
-            onTryOn={(photo) => tryOn.tryOn({ kind: 'import', sessionId: session.id, index: photo.index, uri: photo.imageUrl })}
+            // Canvas 18: "Üzerimde dene" on an imported photo is an outfit-photo try-on — hidden for a teen.
+            onTryOn={hideOutfitPhoto ? undefined : (photo) => tryOn.tryOn({ kind: 'import', sessionId: session.id, index: photo.index, uri: photo.imageUrl })}
           />
         )}
       />

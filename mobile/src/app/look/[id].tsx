@@ -35,6 +35,8 @@ import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { formatMoney, formatNumber } from '@/lib/format';
 import { toDisplayUpper } from '@/lib/upper';
 import { useIsOnline } from '@/sync/network';
+import { useTeenRules } from '@/features/teen/store';
+import { TeenTryOnLock } from '@/features/teen/TeenLocks';
 
 function leave() {
   if (router.canGoBack()) router.back();
@@ -44,6 +46,7 @@ function leave() {
 /** One piece of the look, as the piece rows of 17: 40 × 48 thumb, name, where it comes from. */
 function PieceRow({ slot, itemsById }: { slot: LookSlot; itemsById: ItemsById }) {
   const { t } = useTranslation();
+  const hideCommerce = useTeenRules().hide.commerce;
   const missing = slot.source === 'store';
   const slotLabel = t(`lookSlot.${slot.slot}`);
   const name = slot.name || t('lookEditor.deletedPiece');
@@ -57,7 +60,9 @@ function PieceRow({ slot, itemsById }: { slot: LookSlot; itemsById: ItemsById })
   const open = slot.deleted
     ? undefined
     : missing
-      ? () => router.push({ pathname: '/shop/product/[id]', params: { id: slot.refId } })
+      ? hideCommerce
+        ? undefined
+        : () => router.push({ pathname: '/shop/product/[id]', params: { id: slot.refId } })
       : () => router.push({ pathname: '/item/[id]', params: { id: slot.refId } });
 
   const body = (
@@ -118,11 +123,20 @@ function LookBody({ look, itemsById, note, tryOn, invite }: BodyProps) {
   const language = useAppLanguage();
   const { t } = useTranslation();
   const occasion = t(`occasion.${look.occasion}`);
+  // Canvas 18: friends' ratings are social — not shown to a teen.
+  const teen = useTeenRules();
+  const hideSocial = teen.hide.social;
+  const teenTryOnLocked = teen.isTeen && teen.tryOn !== 'open';
   const rating = look.rating !== null ? formatNumber(look.rating, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : null;
   const missing = missingPieceCount(look);
   return (
     <ScrollView contentContainerClassName="gap-3 px-gutter pb-6 pt-1">
-      <LookHero name={look.name} slots={look.slots} itemsById={itemsById} tryOn={tryOn} invite={invite} />
+      {/* Canvas 18 · 14b: a teen whose try-on is closed sees the calm lock card in place of the hero. */}
+      {teenTryOnLocked ? (
+        <TeenTryOnLock className="h-[420px]" />
+      ) : (
+        <LookHero name={look.name} slots={look.slots} itemsById={itemsById} tryOn={tryOn} invite={invite} />
+      )}
 
       <View className="flex-row items-start justify-between gap-3">
         <View className="flex-1 gap-1">
@@ -131,7 +145,7 @@ function LookBody({ look, itemsById, note, tryOn, invite }: BodyProps) {
           </Text>
           <Text variant="h2">{look.name}</Text>
         </View>
-        {rating ? (
+        {rating && !hideSocial ? (
           <View
             className="flex-row items-center gap-1 pt-1.5"
             accessible
@@ -148,7 +162,7 @@ function LookBody({ look, itemsById, note, tryOn, invite }: BodyProps) {
 
       <ModeratedNote moderation={look.moderation} kind="look" />
 
-      {rating ? null : (
+      {rating || hideSocial ? null : (
         <Text variant="caption" tone="muted">
           {t('lookDetail.noRating')}
         </Text>

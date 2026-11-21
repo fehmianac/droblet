@@ -301,9 +301,10 @@ export function useCartLineCount() {
   return useQuery({ queryKey: storeKeys.cart, queryFn: fetchCart, select: (cart) => cart.lineCount });
 }
 
-export function useWatchlist() {
+export function useWatchlist(enabled = true) {
   return useQuery({
     queryKey: storeKeys.watchlist,
+    enabled,
     queryFn: () =>
       fromSource<Watchlist>('watchlist', storeFixtures.watchlist, async () =>
         toWatchlist(await apiRequest<WatchItemWire[]>('v1/tenant/watch-list')),

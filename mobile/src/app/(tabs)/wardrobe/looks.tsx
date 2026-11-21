@@ -24,6 +24,7 @@ import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { formatNumber } from '@/lib/format';
 import { toDisplayUpper } from '@/lib/upper';
 import { useThemeColors } from '@/theme/useThemeColors';
+import { stopIfTeenLimited } from '@/features/teen/TeenLocks';
 
 function LookTile({ look, itemsById, onToggleFavorite }: { look: Look; itemsById: ItemsById; onToggleFavorite: () => void }) {
   const language = useAppLanguage();
@@ -98,7 +99,8 @@ export default function WardrobeLooksScreen() {
         }}
         onImport={() => {
           setAddOpen(false);
-          router.push('/import');
+          // Canvas 18: importing photos waits for the parent's approval.
+          if (!stopIfTeenLimited()) router.push('/import');
         }}
       />
       <ScreenState

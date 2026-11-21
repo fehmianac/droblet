@@ -28,6 +28,7 @@ import { useItemDetail } from '@/features/wardrobe/queries';
 import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { toDisplayUpper } from '@/lib/upper';
 import type { PlaceholderTone } from '@/theme/tokens';
+import { useTeenRules } from '@/features/teen/store';
 
 /** Grounds of the look tiles on board 11, in order. */
 const LOOK_TONES: PlaceholderTone[] = ['taupe', 'dark', 'clay'];
@@ -53,6 +54,7 @@ function InfoCard({ label, value }: { label: string; value: string }) {
 export default function ItemDetailScreen() {
   const language = useAppLanguage();
   const { t } = useTranslation();
+  const hideCommerce = useTeenRules().hide.commerce;
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const query = useItemDetail(id);
@@ -189,6 +191,8 @@ export default function ItemDetailScreen() {
                     label={t('itemDetail.styleWith')}
                     onPress={() => router.navigate({ pathname: '/stylist', params: { itemId: item.id } })}
                   />
+                  {/* "Mağazada bul" — a store link, not drawn for a teen (canvas 18). */}
+                  {hideCommerce ? null : (
                   <Pressable
                     onPress={() => router.push({ pathname: '/shop', params: { itemId: item.id } })}
                     accessibilityRole="button"
@@ -197,6 +201,7 @@ export default function ItemDetailScreen() {
                   >
                     <Icon icon={ShoppingBag} size={18} />
                   </Pressable>
+                  )}
                 </View>
               </BottomActionBar>
 

@@ -21,6 +21,8 @@ import { useItems } from '@/features/wardrobe/queries';
 import { formatDate, formatTemperature, parseLocalDate, seasonOf, toIsoDate, weekdayShort } from '@/lib/format';
 import { RequirementHint } from '@/features/requirements/RequirementHint';
 import { useGate } from '@/features/requirements/useRequirements';
+import { TeenLockedState } from '@/features/teen/TeenLocks';
+import { useTeenRules } from '@/features/teen/store';
 import { ClipboardPhotoCard } from '@/features/tryon/ClipboardPhotoCard';
 import { useOutfitPhotoPicker } from '@/features/tryon/OutfitPhotoPicker';
 import { useIsOnline } from '@/sync/network';
@@ -125,6 +127,26 @@ function ContextBadge({ label, leading, outlined = false, trailing }: { label: s
  * yap" from 11), `date` (plan for that day), `occasion`.
  */
 export default function StylistTab() {
+  const teen = useTeenRules();
+  // Canvas 18 · 16: until the parent approves, the Stylist is a calm locked state (the tab bar stays).
+  return teen.limited ? <TeenStylistLocked /> : <StylistHome hideOutfitPhoto={teen.hide.outfitPhotoTryOn} hideMembership={teen.hide.paywall} />;
+}
+
+function TeenStylistLocked() {
+  const { t } = useTranslation();
+  return (
+    <Screen>
+      <View className="h-12 items-center justify-center px-gutter">
+        <Text variant="title" accessibilityRole="header">
+          {t('tabs.stylist')}
+        </Text>
+      </View>
+      <TeenLockedState body={t('teen.locked.stylist')} testID="stylist.teenLocked" />
+    </Screen>
+  );
+}
+
+function StylistHome({ hideOutfitPhoto, hideMembership }: { hideOutfitPhoto: boolean; hideMembership: boolean }) {
   const { t } = useTranslation();
   const colors = useThemeColors();
   const params = useLocalSearchParams<{ itemId?: string; date?: string; occasion?: string }>();
@@ -145,7 +167,7 @@ export default function StylistTab() {
 
   const pinned = params.itemId && params.itemId !== unpinned ? (items.data?.find((i) => i.id === params.itemId) ?? null) : null;
   const wardrobeEmpty = items.data !== undefined && items.data.length === 0;
-  const notMember = !credits.isLoading && !credits.isMember;
+  const notMember = !hideMembership && !credits.isLoading && !credits.isMember;
 
   const draft: StylistDraft = { date, occasion, text, wardrobeOnly, itemIds: pinned ? [pinned.id] : [] };
   const problem = validateStylistDraft(draft);
@@ -325,9 +347,10 @@ export default function StylistTab() {
 
         <View className="h-px bg-line" />
 
-        {/* 16c+: only when the clipboard holds an image; read only on a tap. */}
-        <ClipboardPhotoCard />
-        <OutfitPhotoCard onPress={outfitPhoto.open} />
+        {/* 16c+: only when the clipboard holds an image; read only on a tap. Both are outfit-photo try-on entries, hidden
+            for a teen (canvas 18). */}
+        {hideOutfitPhoto ? null : <ClipboardPhotoCard />}
+        {hideOutfitPhoto ? null : <OutfitPhotoCard onPress={outfitPhoto.open} />}
 
         <View className="flex-row flex-wrap gap-2.5">
           {SHORTCUTS.map((s) => {

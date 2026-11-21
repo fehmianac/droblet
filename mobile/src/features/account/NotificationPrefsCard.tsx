@@ -19,6 +19,8 @@ import { REMINDER_TIMES } from '@/notify/time';
 
 import { useSaveNotificationSettings } from './mutations';
 import { useNotificationSettings } from './queries';
+import { useTeenRules } from '@/features/teen/store';
+
 import { ChoiceRow, RowCard } from './rows';
 
 /**
@@ -30,6 +32,8 @@ import { ChoiceRow, RowCard } from './rows';
  * `PUT v1/tenant/user/me/notifications`; turning one on is the moment to ask for push permission.
  */
 export function NotificationPrefsCard() {
+  // Canvas 18 · 29d genç: only the morning outfit reminder (the server keeps the others off for a teen).
+  const teenOnlyMorning = useTeenRules().hide.marketing;
   const { t } = useTranslation();
   const settings = useNotificationSettings();
   const save = useSaveNotificationSettings();
@@ -80,6 +84,8 @@ export function NotificationPrefsCard() {
                   <Icon icon={ChevronRight} size={16} />
                 </Pressable>
               ) : null}
+              {teenOnlyMorning ? null : (
+                <>
               {box('weeklyEdit', t('settings.weeklyEdit'))}
               {consents.data && !marketingGiven ? (
                 <Text variant="caption" tone="muted" className="pb-2" testID="notifications.marketingNote">
@@ -94,6 +100,8 @@ export function NotificationPrefsCard() {
                 </Text>
               ) : null}
               {box('followRequests', t('friends.followRequests'))}
+                </>
+              )}
               {pushOff ? (
                 <Text variant="caption" tone="muted" className="pb-3">
                   {t('push.denied')}

@@ -1,6 +1,6 @@
 import { useIsMutating, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { Ban, Download, Pencil, Plus, Trash2, X } from 'lucide-react-native';
+import { Ban, Download, Pencil, Plus, ShieldCheck, Trash2, X } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, ScrollView, View } from 'react-native';
@@ -35,6 +35,8 @@ import { PhotoSourceSheet } from '@/features/photos/PhotoSourceSheet';
 import { usePhotoPicker } from '@/features/photos/usePhotoPicker';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { LANGUAGES, SUPPORTED_LANGUAGES, type AppLanguage } from '@/i18n';
+import { openParentStatus, stopIfTeenLimited } from '@/features/teen/TeenLocks';
+import { useTeenRules, useTeenSnapshot } from '@/features/teen/store';
 import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { setAppLanguage } from '@/i18n/preference';
 import type { ImageRefresh } from '@/lib/images';
@@ -100,6 +102,7 @@ function PhotoThumb({ uri, cacheKey, onExpired, kind, tag, removeLabel, onRemove
 /** FOTOĞRAFLARIM — the user's own photos: remove one, add / replace one, or delete everything (29b). */
 function PhotosSection({ onDeleteAll }: { onDeleteAll: () => void }) {
   const { t } = useTranslation();
+  const teen = useTeenRules();
   const client = useQueryClient();
   const photos = useMyPhotos();
   const removePhoto = useRemovePhoto();
@@ -194,16 +197,18 @@ function PhotosSection({ onDeleteAll }: { onDeleteAll: () => void }) {
                   />
                 ))}
                 <Pressable
-                  onPress={() => setAddOpen(true)}
+                  // Canvas 18: until the parent approves, adding a photo shows the calm lock (server: parental_consent_required).
+                  onPress={() => (stopIfTeenLimited() ? undefined : setAddOpen(true))}
                   accessibilityRole="button"
                   accessibilityLabel={t('settings.addPhoto')}
+                  testID="settings.addPhoto"
                   className="h-[66px] w-[52px] items-center justify-center rounded-thumb border-[1.5px] border-dashed border-muted active:opacity-70"
                 >
                   <Icon icon={Plus} size={18} />
                 </Pressable>
               </View>
               <Text variant="caption" tone="muted" className="min-w-[96px] flex-1 text-[11.5px] leading-4">
-                {t('settings.photosNote')}
+                {teen.isTeen ? t('teen.settings.photosNote') : t('settings.photosNote')}
               </Text>
             </View>
             {queued.length > 0 ? (
@@ -336,8 +341,47 @@ function DeletePhotosDialog({ visible, onClose }: { visible: boolean; onClose: (
  * Türkçe / English switch (applies at once, is remembered on the device and saved to the profile),
  * "Çıkış yap" and the way to 29c account deletion. Detail screen: no bottom menu.
  */
+/** Canvas 18 · 29d genç: "VELİ ONAYI" — the status, the parent's masked address and what it means for try-on. */
+function ParentConsentCard() {
+  const { t } = useTranslation();
+  const teen = useTeenRules();
+  const { state } = useTeenSnapshot();
+  const masked = state?.teen?.parentEmailMasked ?? null;
+  const line =
+    teen.consent !== 'approved'
+      ? t('teen.settings.notApproved')
+      : state?.teen?.parentAllowedTryOn
+        ? t('teen.settings.tryOnAllowed')
+        : t('teen.settings.tryOnNotAllowed');
+  return (
+    <>
+      <Text variant="eyebrow">{t('teen.settings.section')}</Text>
+      <Pressable
+        onPress={() => openParentStatus(teen.consent !== 'pending' && teen.consent !== 'approved')}
+        accessibilityRole="button"
+        accessibilityLabel={`${t(`teen.profile.status.${teen.consent}`)}. ${line}`}
+        className="gap-1.5 rounded-card border border-line bg-paper px-3.5 py-3 active:opacity-80"
+        testID="settings.parentConsent"
+      >
+        <View className="flex-row items-center justify-between gap-3">
+          <Text variant="bodyMedium">{t(`teen.profile.status.${teen.consent}`)}</Text>
+          {masked ? (
+            <Text variant="caption" tone="muted">
+              {masked}
+            </Text>
+          ) : null}
+        </View>
+        <Text variant="caption" tone="muted">
+          {line}
+        </Text>
+      </Pressable>
+    </>
+  );
+}
+
 export default function SettingsScreen() {
   const { t } = useTranslation();
+  const teen = useTeenRules();
   const profile = useMyProfile();
   const setVisibility = useSetVisibility();
   const [deletePhotos, setDeletePhotos] = useState(false);
@@ -354,7 +398,10 @@ export default function SettingsScreen() {
     <Screen bottom>
       <ScreenHeader title={t('screens.settings')} leading="back" />
       <ScrollView contentContainerClassName="gap-2.5 px-gutter pb-10 pt-0.5">
-        <Text variant="eyebrow">{t('settings.visibilityEyebrow')}</Text>
+        {teen.isTeen ? <ParentConsentCard /> : null}
+        {/* Canvas 18 · 29d genç: no closet visibility (always private) and no blocked list (no social). */}
+        {teen.hide.social ? null : <Text variant="eyebrow">{t('settings.visibilityEyebrow')}</Text>}
+        {teen.hide.social ? null : (
         <RowCard>
           <SectionState query={profile} inset={false} skeleton={<Skeleton className="my-3.5 h-28 rounded-image" />}>
             {(data) => (
@@ -377,9 +424,10 @@ export default function SettingsScreen() {
             )}
           </SectionState>
         </RowCard>
+        )}
         <RowCard>
           <ProfileMenuRow first icon={Pencil} label={t('friends.menuEditProfile')} onPress={() => router.push('/edit-profile')} />
-          <ProfileMenuRow icon={Ban} label={t('friends.menuBlocked')} onPress={() => router.push('/friends/blocked')} />
+          {teen.hide.social ? null : <ProfileMenuRow icon={Ban} label={t('friends.menuBlocked')} onPress={() => router.push('/friends/blocked')} />}
         </RowCard>
 
         <Text variant="eyebrow">{t('settings.photosEyebrow')}</Text>
@@ -392,15 +440,25 @@ export default function SettingsScreen() {
         <RowCard>
           <ProfileMenuRow first icon={Download} label={t('dataExport.menu')} onPress={() => router.push('/data-export')} testID="settings.dataExport" />
         </RowCard>
-        {/* 29d "Ürün analitiği": Firebase Analytics on / off (legitimate interest; not an explicit consent). */}
-        <ProductAnalyticsCard />
+        {/* 29d "Ürün analitiği": Firebase Analytics on / off (legitimate interest; not an explicit consent). A teen has no
+            switch: analytics is off and stays off (canvas 18). */}
+        {teen.hide.analytics ? (
+          <View className="flex-row items-start gap-2.5 rounded-card border border-line bg-paper px-3.5 py-3" testID="settings.teenAnalyticsNote">
+            <Icon icon={ShieldCheck} size={18} />
+            <Text variant="caption" className="flex-1">
+              {t('teen.settings.analyticsNote')}
+            </Text>
+          </View>
+        ) : (
+          <ProductAnalyticsCard />
+        )}
 
         <Text variant="eyebrow">{t('settings.notificationsEyebrow')}</Text>
         {/* Every notification switch, the morning time and the push permission prompt (main's prefs card). */}
         <NotificationPrefsCard />
 
-        {/* Temporary self-serve premium; only while the server switch is on. */}
-        <SelfPremiumCard />
+        {/* Temporary self-serve premium; only while the server switch is on. Never for a teen. */}
+        {teen.hide.paywall ? null : <SelfPremiumCard />}
 
         <View className="flex-row flex-wrap items-center justify-between gap-3">
           <Text variant="eyebrow">{t('settings.languageEyebrow')}</Text>

@@ -18,8 +18,10 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { CreatorCardView } from '@/features/store/CreatorCardView';
 import { useCreators, useCurrentEdit, useSeriesOutfits } from '@/features/store/queries';
+import { useTeenRules } from '@/features/teen/store';
+import { useWeeklyEdit } from '@/features/today/api';
 import { useAppLanguage } from '@/i18n/useAppLanguage';
-import { formatIsoDateRange } from '@/lib/format';
+import { formatDate, formatIsoDateRange, parseLocalDate } from '@/lib/format';
 import { toDisplayUpper } from '@/lib/upper';
 import { inkFade, placeholderTones } from '@/theme/tokens';
 import { useThemeColors } from '@/theme/useThemeColors';
@@ -60,13 +62,14 @@ function CreatorGrid({ creators }: { creators: CreatorCard[] }) {
  * The weekly edit cover of 20: a 290-high photograph (radius 20) with the eyebrow, the serif title and
  * the meta line set on an ink fade at its foot. Opens the edit (20b).
  */
-function EditCover({ edit }: { edit: WeeklyEditSummary }) {
+function EditCover({ edit, teen = false }: { edit: WeeklyEditSummary; teen?: boolean }) {
   const language = useAppLanguage();
   const { t } = useTranslation();
   const eyebrow = t('explore.editEyebrow', {
     range: toDisplayUpper(formatIsoDateRange(edit.startDate, edit.endDate), language),
   });
-  const meta = t('explore.editMeta', { count: edit.lookCount });
+  // Canvas 18 · 20: a teen's cover leaves out "senin üzerinde" (try-on may be closed for them).
+  const meta = teen ? t('teen.discover.editMeta', { count: edit.lookCount }) : t('explore.editMeta', { count: edit.lookCount });
   return (
     <Pressable
       onPress={() => router.push({ pathname: '/edit/[id]', params: { id: edit.id } })}
@@ -91,12 +94,107 @@ function EditCover({ edit }: { edit: WeeklyEditSummary }) {
   );
 }
 
+/** One look of the week: day · occasion over the name, opening the edit at that look. */
+function TeenEdit({ summary }: { summary: WeeklyEditSummary }) {
+  const { t } = useTranslation();
+  const language = useAppLanguage();
+  const editId = summary.id;
+  const edit = useWeeklyEdit(editId);
+  const looks = edit.data?.looks ?? [];
+  // A sponsored edit is advertising: not shown to a teen (the server leaves it out too).
+  if (edit.data?.sponsoredBy) {
+    return (
+      <Text variant="body" tone="muted" className="px-gutter py-10 text-center" testID="discover.teen.sponsored">
+        {t('explore.editEmpty')}
+      </Text>
+    );
+  }
+  return (
+    <>
+      <EditCover edit={summary} teen />
+      <View className="px-gutter" testID="discover.teen.looks">
+        <Text variant="h3" className="mb-1.5">
+          {t('teen.discover.weekLooks')}
+        </Text>
+        {looks.map((look, i) => {
+          const day = toDisplayUpper(formatDate(parseLocalDate(look.date), { weekday: 'long' }), language);
+          const eyebrow = `${day} · ${toDisplayUpper(t(`occasion.${look.occasion}`), language)}`;
+          return (
+            <Pressable
+              key={look.id}
+              onPress={() => router.push({ pathname: '/edit/[id]', params: { id: editId, look: look.id } })}
+              accessibilityRole="button"
+              accessibilityLabel={`${eyebrow}, ${look.name}`}
+              className="min-h-16 flex-row items-center gap-3 border-t border-line py-2 active:opacity-80"
+              testID={`discover.teen.look.${i}`}
+            >
+              <ImageSlot uri={look.tryOnImageUrl} className="h-12 w-12 rounded-thumb" placeholder={{ kind: 'look', pieces: [], seed: look.id }} />
+              <View className="min-w-0 flex-1">
+                <Text variant="eyebrow" numberOfLines={1}>
+                  {eyebrow}
+                </Text>
+                <Text variant="bodyMedium" className="mt-0.5" numberOfLines={1}>
+                  {look.name}
+                </Text>
+              </View>
+              <Icon icon={ChevronRight} size={16} />
+            </Pressable>
+          );
+        })}
+      </View>
+    </>
+  );
+}
+
+/**
+ * 20 Keşfet · genç (canvas 18): safe content only — the logo header without search or cart, no chips, the weekly edit
+ * cover (a sponsored edit is not shown) and that week's looks as a list, then one sentence on why. No creators, no
+ * store, no friends.
+ */
+function TeenDiscover() {
+  const { t } = useTranslation();
+  const colors = useThemeColors();
+  const edit = useCurrentEdit();
+  return (
+    <Screen>
+      <View className="h-12 flex-row items-center px-gutter">
+        <Logo />
+      </View>
+      <ScreenState
+        query={edit}
+        isEmpty={(data) => data === null}
+        empty={{ message: t('explore.editEmpty'), actionLabel: t('teen.locked.wardrobe'), onAction: () => router.navigate('/wardrobe') }}
+      >
+        {(data) =>
+          data ? (
+            <ScrollView
+              contentContainerClassName="gap-4 pb-8 pt-1.5"
+              refreshControl={<RefreshControl refreshing={edit.isRefetching} onRefresh={() => void edit.refetch()} tintColor={colors.muted} />}
+              testID="discover.teen"
+            >
+              <TeenEdit summary={data} />
+              <Text variant="caption" tone="muted" className="px-gutter" testID="discover.teen.note">
+                {t('teen.discover.note')}
+              </Text>
+            </ScrollView>
+          ) : null
+        }
+      </ScreenState>
+    </Screen>
+  );
+}
+
 /**
  * 20 Keşfet — the logo header with search and the cart (count dot), the chips (Editör · Mağaza ·
  * Influencer · Arkadaşlar · Dizi outfitleri), the weekly edit cover and the creator looks strip (with
  * the "SPONSORLU" tag). Mağaza and Arkadaşlar open their own screens (21, 25); "Tümü" opens the feed (25).
  */
 export default function DiscoverTab() {
+  const teen = useTeenRules().isTeen;
+  return teen ? <TeenDiscover /> : <AdultDiscover />;
+}
+
+function AdultDiscover() {
   const { t } = useTranslation();
   const colors = useThemeColors();
   const [section, setSection] = useState<DiscoverSection>('editor');
@@ -122,7 +220,12 @@ export default function DiscoverTab() {
         <ChipRow>
           <Chip testID="discover.chip.editor" label={t('discover.chipEditor')} selected={section === 'editor'} onPress={() => setSection('editor')} />
           <Chip testID="discover.chip.shop" label={t('discover.chipShop')} onPress={() => router.push('/shop')} />
-          <Chip testID="discover.chip.influencer" label={t('discover.chipInfluencer')} selected={section === 'influencer'} onPress={() => setSection('influencer')} />
+          <Chip
+            testID="discover.chip.influencer"
+            label={t('discover.chipInfluencer')}
+            selected={section === 'influencer'}
+            onPress={() => setSection('influencer')}
+          />
           <Chip testID="discover.chip.friends" label={t('discover.chipFriends')} onPress={() => router.push('/friends/feed')} />
           <Chip testID="discover.chip.series" label={t('discover.chipSeries')} selected={section === 'series'} onPress={() => setSection('series')} />
         </ChipRow>
