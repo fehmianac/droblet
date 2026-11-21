@@ -177,7 +177,8 @@
     "fromEdit": "From the edit of the week",
     "addToCart": "Add to cart",
     "viewProduct": "View product",
-    "empty": "Your watchlist is empty. Watch a product you like and we'll tell you when its price drops.",
+    "emptyTitle": "Your watchlist is empty",
+    "emptyBody": "Watch a product you like and we'll tell you when its price drops.",
     "emptyAction": "Explore products",
     "fromBrandVisit": "You visited the brand without buying, so we kept it on your list"
   },

@@ -278,6 +278,7 @@ describe('Keşfet and the style store (20–24b, fixtures, EN)', () => {
     await open('/cart');
     await waitFor(() => expect(screen.getByText('Your cart is empty')).toBeTruthy(), WAIT);
     expect(screen.getByText('Pieces that complete your looks are gathered here by brand.')).toBeTruthy();
+    expect(screen.getByTestId('empty-illustration-cart', { includeHiddenElements: true })).toBeTruthy();
     expect(screen.queryByLabelText('My watchlist')).toBeNull();
     await fireEvent.press(screen.getByText('Explore products'));
     await waitFor(() => expect(screen.getByLabelText('Search the store')).toBeTruthy(), WAIT);
@@ -298,5 +299,17 @@ describe('Keşfet and the style store (20–24b, fixtures, EN)', () => {
     await fireEvent.press(screen.getByLabelText('Price alert off'));
     await waitFor(() => expect(screen.getAllByLabelText('Price alert on')).toHaveLength(3), WAIT);
     await waitFor(() => expect(storeFixtures.watchlist().items.every((i) => i.alertEnabled)).toBe(true), WAIT);
+  });
+
+  it('24b İzleme listem · boş: the price-tag drawing, headline and sentence of 22e, leading to the store', async () => {
+    for (const { productId } of storeFixtures.watchlist().items) {
+      storeFixtures.setWatch({ productId, watching: false, alertEnabled: false, clientMutationId: `unwatch_${productId}` });
+    }
+    await open('/watchlist');
+    await waitFor(() => expect(screen.getByText('Your watchlist is empty')).toBeTruthy(), WAIT);
+    expect(screen.getByText("Watch a product you like and we'll tell you when its price drops.")).toBeTruthy();
+    expect(screen.getByTestId('empty-illustration-watchlist', { includeHiddenElements: true })).toBeTruthy();
+    await fireEvent.press(screen.getByText('Explore products'));
+    await waitFor(() => expect(screen.getByLabelText('Search the store')).toBeTruthy(), WAIT);
   });
 });

@@ -295,3 +295,28 @@ export const sizes = {
   iconStroke: 1.5,
   icon: 22,
 } as const;
+
+/**
+ * The empty-state drawings (canvas 22d–22e `GorselBos*`: 160 × 120, sand ground, flat-lay pieces). Fixed tones, like
+ * `placeholderTones`: the drawing carries its own ground, so it reads the same whatever the screen behind it.
+ */
+export const illustrationTones = {
+  /** The sand ground (= palette `sand`). */
+  ground: '#E8E1D7',
+  /** Rail and stands of the rack, the shoes, the price-tag string (= palette `accent`). */
+  wood: '#6E5640',
+  /** Outlines, the "+" disc, the bag's rivets (= palette `ink`). */
+  ink: '#1C1A17',
+  /** Shirts, tag, folded top, the "+" (= palette `cream`). */
+  cream: '#F4F1EC',
+  /** The dashed outline of the empty look draft. */
+  dash: '#A69B8E',
+  /** The suitcase body. */
+  suitcase: '#A89582',
+  /** The navy folded piece in the suitcase. */
+  navy: '#2F3A4F',
+  /** The folded knit in the suitcase and the shopping bag. */
+  oat: '#D6CBBE',
+  /** The tick on the price tag (= palette `danger`). */
+  tick: '#9A3B2E',
+} as const;
