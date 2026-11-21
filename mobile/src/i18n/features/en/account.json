@@ -23,6 +23,7 @@
     "teaserBody": "Become a member to see products and outfits on your own photo.",
     "teaserAction": "See membership",
     "menu": {
+      "styleProfile": "Style profile",
       "wardrobeStats": "Wardrobe stats",
       "tripArchive": "Trip archive",
       "palette": "My colour palette",
@@ -159,7 +160,7 @@
     "mismatchError": "The pieces couldn't be loaded right now.",
     "products": "Products in my palette",
     "emptyTitle": "Upload a face photo first",
-    "emptyBody": "From a face photo in daylight, without make-up, we work out the tones that suit you and your season type.",
+    "emptyBody": "From a plain, unfiltered face photo in daylight, we work out the tones that suit you and your season type.",
     "emptyAction": "Upload face photo",
     "emptyNote": "Your photo is visible only to you.",
     "analyzeTitle": "Let's work out your palette",

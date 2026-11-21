@@ -161,7 +161,8 @@
     "selected_one": "{{count}} parça seçildi",
     "selected_other": "{{count}} parça seçildi",
     "editLater": "Renk ve bedeni sonra düzenle",
-    "add": "Gardıroba ekle"
+    "add": "Gardıroba ekle",
+    "searchPlaceholderMen": "Ara: chino, blazer, loafer"
   },
   "itemForm": {
     "titleNew": "Parça bilgileri",
@@ -209,7 +210,8 @@
     "processingFields": "Alanlar dolduruluyor…",
     "processingBody": "Fotoğrafın işleniyor; tür, renk ve kumaşı birazdan önereceğiz. Kaydetmeden önce her şeyi düzeltebilirsin.",
     "colorHex": "Renk kodu",
-    "colorHexPlaceholder": "#A1B2C3"
+    "colorHexPlaceholder": "#A1B2C3",
+    "typeSuggestions": "Öneriler"
   },
   "bulkAdd": {
     "title": "Toplu ekle",

@@ -180,13 +180,40 @@
       "romantic": "Romantik",
       "office_chic": "Ofis şıklığı",
       "colorful": "Renkli",
-      "vintage": "Vintage"
+      "vintage": "Vintage",
+      "smart_casual": "Smart casual",
+      "outdoor": "Outdoor",
+      "business": "İş"
     },
     "budgetLabel": "Bütçe tercihin",
     "budget": {
       "high_street": "High street",
       "mixed": "Karma",
       "luxury_touch": "Lüks dokunuş"
+    },
+    "segmentStep": {
+      "eyebrow": "STİL PROFİLİ",
+      "title": "Önerileri hangi reyondan hazırlayalım?",
+      "body": "Haftalık edit'ler, stil etiketleri ve hazır kütüphane bu seçime göre gelir. Profil › Stil profili'nden istediğin zaman değiştirebilirsin.",
+      "groupLabel": "Reyon",
+      "desc": {
+        "women": "Kadın koleksiyonları",
+        "men": "Erkek koleksiyonları"
+      },
+      "note": "Bu seçim yalnızca önerileri belirler; profilinde görünmez, kimseyle paylaşılmaz. Gardırobuna her şeyi ekleyebilirsin.",
+      "needChoice": "Devam etmek için bir reyon seç."
+    },
+    "styleProfile": {
+      "title": "Stil profili",
+      "segmentEyebrow": "REYON",
+      "segmentNote": "Öneriler, edit'ler ve hazır kütüphane bu reyondan gelir. Gardırobun aynı kalır.",
+      "save": "Kaydet",
+      "saved": "Stil profilin kaydedildi.",
+      "confirmTitle": "{{segment}} reyonuna geçilsin mi?",
+      "confirmBody": "Öneriler ve hazır kütüphane buna göre değişir; gardırobun aynı kalır.",
+      "confirmNote": "Stil etiketlerini yeni reyona göre yeniden seçersin. Vücut tipin bu reyonda yoksa bir kez daha sorarız.",
+      "confirmGo": "{{segment}} reyonuna geç",
+      "confirmCancel": "Vazgeç"
     }
   },
   "body": {

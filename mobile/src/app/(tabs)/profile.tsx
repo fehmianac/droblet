@@ -10,6 +10,7 @@ import {
   Palette as PaletteIcon,
   Pencil,
   Settings,
+  Tag,
   UserCheck,
   UserPlus,
   Users,
@@ -34,6 +35,8 @@ import { useMyPhotos, useMyProfile, usePalette, useProfileStats } from '@/featur
 import { ProfileMenuRow, RowCard } from '@/features/account/rows';
 import { creditSheetStore } from '@/features/credits/creditSheetStore';
 import { ProfileCompleteCard } from '@/features/requirements/ProfileCompleteCard';
+import { useSegment } from '@/features/segment/store';
+import { useAvailableSegments } from '@/features/segment/useAvailableSegments';
 import { useIncomingRequestCount } from '@/features/social/queries';
 import { priceDropPercent } from '@/features/store/cartMath';
 import { useWatchlist } from '@/features/store/queries';
@@ -171,6 +174,8 @@ export default function ProfileTab() {
   const palette = usePalette();
   const watchlist = useWatchlist();
   const requestCount = useIncomingRequestCount();
+  const segment = useSegment();
+  const segments = useAvailableSegments();
 
   const name = profile.data?.displayName ?? (session.status === 'signedIn' ? session.user.name : '');
   const tags = (profile.data?.styleTags ?? []).slice(0, 2).map((tag) => t(`style.tags.${tag}`));
@@ -260,7 +265,15 @@ export default function ProfileTab() {
         )}
 
         <RowCard>
-          <ProfileMenuRow first icon="hanger" label={t('me.menu.wardrobeStats')} onPress={() => router.navigate('/wardrobe')} />
+          <ProfileMenuRow
+            first
+            icon={Tag}
+            label={t('me.menu.styleProfile')}
+            value={segments.choice ? t(`style.segment.${segment}`) : undefined}
+            onPress={() => router.push('/style-profile')}
+            testID="profile.styleProfile"
+          />
+          <ProfileMenuRow icon="hanger" label={t('me.menu.wardrobeStats')} onPress={() => router.navigate('/wardrobe')} />
           <ProfileMenuRow icon={Briefcase} label={t('me.menu.tripArchive')} onPress={() => router.navigate('/wardrobe/trips')} />
           <ProfileMenuRow
             icon={UserCheck}

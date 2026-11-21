@@ -23,6 +23,7 @@
     "teaserBody": "Ürünleri ve kombinleri kendi fotoğrafında görmek için üye ol.",
     "teaserAction": "Üyeliği gör",
     "menu": {
+      "styleProfile": "Stil profili",
       "wardrobeStats": "Gardırop istatistikleri",
       "tripArchive": "Seyahat arşivi",
       "palette": "Renk paletim",
@@ -159,7 +160,7 @@
     "mismatchError": "Parçalar şu an yüklenemedi.",
     "products": "Paletime uygun ürünler",
     "emptyTitle": "Önce yüz fotoğrafını yükle",
-    "emptyBody": "Gün ışığında, makyajsız bir yüz fotoğrafından sana yakışan tonları ve sezon tipini çıkarırız.",
+    "emptyBody": "Gün ışığında, filtresiz ve sade bir yüz fotoğrafından sana yakışan tonları ve sezon tipini çıkarırız.",
     "emptyAction": "Yüz fotoğrafı yükle",
     "emptyNote": "Fotoğrafın yalnızca sana açıktır.",
     "analyzeTitle": "Paletini çıkaralım",
