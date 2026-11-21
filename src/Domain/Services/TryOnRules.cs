@@ -22,9 +22,11 @@ public static class TryOnRules
     /// Cache / credit subject of the face path: the face photo plus everything that shapes the figure. Lower-case, no '#'
     /// (it is part of the try-on image sort key). A body type that was never chosen counts as unsure.
     /// </summary>
-    public static string FaceSubjectKey(string facePhotoId, BodyType? bodyType, int? heightCm, ClothingSize? size) =>
-        string.Join('-', "face", facePhotoId, (bodyType ?? BodyType.Unsure).ToString(),
+    /// <remarks>Men get a "-men" suffix: the same face and body type render a different figure; women's keys are unchanged.</remarks>
+    public static string FaceSubjectKey(string facePhotoId, BodyType? bodyType, int? heightCm, ClothingSize? size, Segment segment = Segment.Women) =>
+        (string.Join('-', "face", facePhotoId, (bodyType ?? BodyType.Unsure).ToString(),
                 heightCm?.ToString(CultureInfo.InvariantCulture) ?? "na", size?.ToString() ?? "na")
+            + (segment == Segment.Men ? "-men" : ""))
             .ToLowerInvariant();
 
     /// <summary>
@@ -75,5 +77,5 @@ public sealed record ReferenceInspection(int People, bool ClothingVisible, bool 
 /// <summary>What the server-side photo check saw (vision model, no identification). AppearsMinor rejects the job outright.</summary>
 public sealed record PhotoInspection(int People, bool FullBody, bool FaceVisible, bool TooDark, bool Blurry, bool AppearsMinor);
 
-/// <summary>Shape of the figure the face path asks the image model for.</summary>
-public sealed record TryOnFigure(BodyType BodyType, int? HeightCm, ClothingSize? Size);
+/// <summary>Shape of the figure the face path asks the image model for. Segment: an adult man's figure for men (men's body type wording).</summary>
+public sealed record TryOnFigure(BodyType BodyType, int? HeightCm, ClothingSize? Size, Segment Segment = Segment.Women);

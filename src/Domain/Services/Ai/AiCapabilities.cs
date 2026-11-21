@@ -69,7 +69,8 @@ public interface IPhotoInspector
 
 /// <param name="Language">Language of every generated text (tr | en …) — always passed explicitly, never guessed by the model.</param>
 /// <param name="CompactCandidates">The candidates are descriptor strings with short aliases (CandidateAliases, Ai:CompactStylistPrompt).</param>
-public sealed record StylistPrompt(JobKind Kind, string InputJson, string Language = "tr", bool CompactCandidates = false);
+/// <param name="Segment">Men: the menswear fragment (stylist.segment.men) follows the instructions; women's prompts are unchanged.</param>
+public sealed record StylistPrompt(JobKind Kind, string InputJson, string Language = "tr", bool CompactCandidates = false, Segment Segment = Segment.Women);
 
 public interface IStylistModel
 {
@@ -107,6 +108,10 @@ public sealed record DetectedItem(GarmentSuggestion Garment, BoundingBox Box, st
 public interface IItemDetector
 {
     Task<IReadOnlyList<DetectedItem>> DetectItemsAsync(ImageInput photo, string language, CancellationToken ct);
+
+    /// <summary>The same detection for a user of <paramref name="segment"/> (men: the menswear sub-type hint). Default: segment ignored.</summary>
+    Task<IReadOnlyList<DetectedItem>> DetectItemsAsync(ImageInput photo, string language, Segment segment, CancellationToken ct) =>
+        DetectItemsAsync(photo, language, ct);
 }
 
 /// <param name="Index">0-based index of the candidate that is the very same physical piece; null = none of them.</param>
@@ -126,6 +131,10 @@ public interface IItemMatcher
 public interface IFastItemDetector
 {
     Task<IReadOnlyList<DetectedItem>> DetectItemsAsync(ImageInput photo, string language, bool fast, CancellationToken ct);
+
+    /// <summary>The same detection for a user of <paramref name="segment"/>. Default: segment ignored.</summary>
+    Task<IReadOnlyList<DetectedItem>> DetectItemsAsync(ImageInput photo, string language, bool fast, Segment segment, CancellationToken ct) =>
+        DetectItemsAsync(photo, language, fast, ct);
 }
 
 /// <summary>Background removal of one piece (already cropped to its box), as a product photo on the house background.</summary>

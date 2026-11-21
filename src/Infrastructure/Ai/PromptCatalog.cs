@@ -67,6 +67,13 @@ public static class PromptCatalog
 
     public const string Language = "common.language";
     public const string CompactCandidates = "stylist.compact_candidates";
+    /// <summary>Menswear fragment of the stylist system prompts (only a man's requests carry it).</summary>
+    public const string StylistMenswear = "stylist.segment.men";
+    /// <summary>Menswear sub-type hint of the detection system prompt (only a man's photos carry it).</summary>
+    public const string DetectMenswear = "item.detect.segment.men";
+
+    /// <summary>The segment-specific keys: a dry-run of one of them runs as a man's request.</summary>
+    public static bool IsMenswear(string key) => key is StylistMenswear or DetectMenswear;
 
     public static string StylistInstructions(JobKind kind) => kind switch
     {
@@ -127,6 +134,9 @@ public static class PromptCatalog
         new(CompactCandidates, "stylist", "outfit, week_plan, packing", PromptKind.Fragment,
             "Compact candidates (Stylist:CompactPrompt): how to read the 'id|category|colorIds|fabric|seasons' descriptor strings; appended before the language suffix.",
             None, () => OpenAiPrompts.CompactCandidates, 2000, PromptTrialTarget.None),
+        new(StylistMenswear, "stylist", "outfit, week_plan, packing", PromptKind.Fragment,
+            "Erkek (menswear): appended to the outfit, week and suitcase system prompts of a man's request, after the instructions — menswear bases, outer layers, formal occasions, colours. Women's requests never carry it.",
+            None, () => OpenAiPrompts.StylistMenswear, 2000, PromptTrialTarget.StylistOutfit),
         Schema("stylist.outfit.schema", "stylist", AiSchemas.Outfit, AiSchemas.OutfitSchema),
         Schema("stylist.week.schema", "stylist", AiSchemas.WeekPlan, AiSchemas.WeekSchema),
         Schema("stylist.pack.schema", "stylist", AiSchemas.Packing, AiSchemas.PackSchema),
@@ -134,6 +144,9 @@ public static class PromptCatalog
         new(DetectInstructions, "wardrobe", AiSchemas.ItemDetection, PromptKind.Instructions,
             "Parça tanıma: system prompt of the multi-item detection of a wardrobe photo (every wearable piece with its box, category, colours, fabric).",
             None, () => OpenAiPrompts.ItemDetectionBase, InstructionsMaxLength, PromptTrialTarget.ItemDetect, 1),
+        new(DetectMenswear, "wardrobe", AiSchemas.ItemDetection, PromptKind.Fragment,
+            "Erkek (menswear): appended to the detection system prompt of a man's photo — prefer the menswear sub-types. Women's photos never carry it.",
+            None, () => OpenAiPrompts.ItemDetectionMenswear, 2000, PromptTrialTarget.ItemDetect, 1),
         new(DetectRequest, "wardrobe", AiSchemas.ItemDetection, PromptKind.Request,
             "User message text sent with the photo of the detection call.",
             None, () => OpenAiPrompts.ItemDetectionRequest, RequestMaxLength, PromptTrialTarget.ItemDetect, 1),
@@ -189,9 +202,10 @@ public static class PromptCatalog
             "Prova (yüz fotoğrafı): image edit prompt — a full-length figure from the face photo, body type, height and size.",
             [
                 new("garmentCount", true, "Number of garment images after the face photo.", "2"),
-                new("bodyShape", true, "Body type description chosen by the user.", "a pear body shape (hips wider than the shoulders)"),
+                new("bodyShape", true, "Body type description chosen by the user (women's or men's wording by segment).", "a pear body shape (hips wider than the shoulders)"),
                 new("height", false, "\" about 170 cm tall,\" or empty.", " about 170 cm tall,"),
                 new("size", false, "\" wearing clothing size M,\" or empty.", " wearing clothing size M,"),
+                new("personNoun", false, "\"person\" (women) or \"man\" (men).", "person"),
             ],
             () => OpenAiPrompts.TryOnFromFaceTemplate, ImageMaxLength, PromptTrialTarget.None),
         new(TryOnPhotoBody, "tryon", "image_tryon", PromptKind.Image,
@@ -200,9 +214,10 @@ public static class PromptCatalog
         new(TryOnPhotoFace, "tryon", "image_tryon", PromptKind.Image,
             "Kombin fotoğrafını üzerimde dene (yüz fotoğrafı): a full-length figure from the face photo, body type, height and size, wearing the outfit of the reference photo.",
             [
-                new("bodyShape", true, "Body type description chosen by the user.", "a pear body shape (hips wider than the shoulders)"),
+                new("bodyShape", true, "Body type description chosen by the user (women's or men's wording by segment).", "a pear body shape (hips wider than the shoulders)"),
                 new("height", false, "\" about 170 cm tall,\" or empty.", " about 170 cm tall,"),
                 new("size", false, "\" wearing clothing size M,\" or empty.", " wearing clothing size M,"),
+                new("personNoun", false, "\"user\" (women) or \"man\" (men).", "user"),
             ],
             () => OpenAiPrompts.TryOnOutfitPhotoFromFaceTemplate, ImageMaxLength, PromptTrialTarget.None),
 
@@ -314,6 +329,25 @@ public static class PromptCatalog
             """,
         _ => "",
     };
+
+    /// <summary>
+    /// Segment of a dry-run: men for a menswear key, else the "segment" field of the sample (women | men), else women — so the
+    /// stylist instructions can be tried as a man's request too.
+    /// </summary>
+    public static Segment SampleSegment(PromptDefinition definition, string? input)
+    {
+        if (IsMenswear(definition.Key))
+            return Segment.Men;
+        try
+        {
+            return JsonNode.Parse(input ?? "")?["segment"]?.GetValue<string>() is { } value
+                   && string.Equals(value, "men", StringComparison.OrdinalIgnoreCase) ? Segment.Men : Segment.Women;
+        }
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException or FormatException)
+        {
+            return Segment.Women;
+        }
+    }
 
     /// <summary>Language of a dry-run (the "language" field of the sample, else tr).</summary>
     public static string SampleLanguage(string? input)
