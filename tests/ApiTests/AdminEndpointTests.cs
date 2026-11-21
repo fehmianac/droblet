@@ -406,6 +406,26 @@ public class AdminEndpointTests(StoreSocialApiFactory factory) : IClassFixture<S
     }
 
     [Fact]
+    public async Task Library_Segment_RoundTrips_AndTheMensSeedNeedsImages()
+    {
+        var admin = await factory.AdminAsync(AdminRole.SuperAdmin);
+        var list = (await (await admin.GetAsync("v1/admin/library")).JsonAsync()).EnumerateArray().ToList();
+        var menSeed = list.Where(i => i.GetProperty("segment").GetString() == "men").ToList();
+        Assert.True(menSeed.Count >= 25);
+        Assert.All(menSeed, i => Assert.True(i.GetProperty("needsImage").GetBoolean()));
+
+        var badSegment = await admin.PutJsonAsync("v1/admin/library/lib-test-tie", new { name = new { tr = "Kravat" }, category = "accessory", colorIds = new[] { "navy" }, seasons = new[] { "winter" }, sortOrder = 5, segment = "kids" });
+        Assert.Equal(HttpStatusCode.BadRequest, badSegment.StatusCode);
+        var ok = await admin.PutJsonAsync("v1/admin/library/lib-test-tie", new { name = new { tr = "Kravat" }, category = "accessory", colorIds = new[] { "navy" }, seasons = new[] { "winter" }, sortOrder = 5, segment = "unisex" });
+        Assert.Equal(HttpStatusCode.OK, ok.StatusCode);
+        Assert.Equal(("unisex", true), ((await ok.JsonAsync()).GetProperty("segment").GetString(), (await ok.JsonAsync()).GetProperty("needsImage").GetBoolean()));
+        Assert.Equal(CatalogSegment.Unisex, (await factory.Repository.GetAsync<LibraryItemEntity>(LibraryItemEntity.GetPk(), LibraryItemEntity.GetSk("lib-test-tie")))!.Segment);
+        // After the first write the men's seed pieces are still listed (served from the seed until edited).
+        var after = (await (await admin.GetAsync("v1/admin/library")).JsonAsync()).EnumerateArray().ToList();
+        Assert.Equal(menSeed.Count, after.Count(i => i.GetProperty("segment").GetString() == "men"));
+    }
+
+    [Fact]
     public async Task ImageUpload_ReturnsAPresignedPostOnThePublicCatalogBucket()
     {
         var admin = await factory.AdminAsync(AdminRole.ContentEditor);
@@ -440,6 +460,33 @@ public class AdminEndpointTests(StoreSocialApiFactory factory) : IClassFixture<S
 
         (await admin.PostJsonAsync("v1/admin/product/bulk", body)).EnsureSuccessStatusCode();
         Assert.Equal(HttpStatusCode.OK, (await admin.GetAsync($"v1/admin/product/{id}")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Products_Segment_ImportedOrOmitted_KeptOnUpdate_FilteredInTheList()
+    {
+        var admin = await factory.AdminAsync(AdminRole.ContentEditor);
+        var brand = await factory.SeedBrandAsync(admin);
+        var (men, plain, bad) = (StoreSocialApiFactory.Unique("prod-m-"), StoreSocialApiFactory.Unique("prod-w-"), StoreSocialApiFactory.Unique("prod-x-"));
+        object Row(string id, string? segment) => segment is null
+            ? new { id, brandId = brand, name = StoreSocialApiFactory.Text("Gömlek", "Shirt"), category = "shirt", priceMinor = 1000, priceBand = "highStreet" }
+            : new { id, brandId = brand, name = StoreSocialApiFactory.Text("Gömlek", "Shirt"), category = "shirt", priceMinor = 1000, priceBand = "highStreet", segment };
+
+        var import = await (await admin.PostJsonAsync("v1/admin/product/bulk", new { products = new[] { Row(men, "men"), Row(plain, null) } })).JsonAsync();
+        Assert.Equal(2, import.GetProperty("created").GetInt32());
+        // An unknown value is not a segment: the body does not bind (the CSV import checks the column per row first).
+        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostJsonAsync("v1/admin/product/bulk", new { products = new[] { Row(bad, "kids") } })).StatusCode);
+
+        Assert.Equal("men", (await (await admin.GetAsync($"v1/admin/product/{men}")).JsonAsync()).GetProperty("segment").GetString());
+        Assert.Equal("women", (await (await admin.GetAsync($"v1/admin/product/{plain}")).JsonAsync()).GetProperty("segment").GetString());
+        // A feed without the column keeps the admin's choice.
+        (await admin.PostJsonAsync("v1/admin/product/bulk", new { products = new[] { Row(men, null) } })).EnsureSuccessStatusCode();
+        Assert.Equal("men", (await (await admin.GetAsync($"v1/admin/product/{men}")).JsonAsync()).GetProperty("segment").GetString());
+
+        var filtered = (await (await admin.GetAsync("v1/admin/product?segment=men&limit=200")).JsonAsync()).GetProperty("items").EnumerateArray().Select(p => p.GetProperty("id").GetString()).ToList();
+        Assert.Contains(men, filtered);
+        Assert.DoesNotContain(plain, filtered);
+        Assert.Equal(HttpStatusCode.BadRequest, (await admin.GetAsync("v1/admin/product?segment=kids")).StatusCode);
     }
 
     [Fact]

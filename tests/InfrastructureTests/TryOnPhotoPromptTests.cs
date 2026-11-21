@@ -21,7 +21,8 @@ public class TryOnPhotoPromptTests
         Assert.Equal((PromptKind.Image, "image_tryon", true), (body.Kind, body.Operation, body.Editable));
         Assert.Equal(OpenAiPrompts.TryOnOutfitPhotoTemplate, body.Default());
         Assert.Equal(PromptKind.Image, face.Kind);
-        Assert.Equal(["bodyShape", "height", "size"], face.Variables.Select(v => v.Name).ToArray());
+        Assert.Equal(["bodyShape", "height", "size", "personNoun"], face.Variables.Select(v => v.Name).ToArray());
+        Assert.False(face.Variables.Single(v => v.Name == "personNoun").Required);   // overrides published before the men launch stay valid
         Assert.Empty(PromptCatalog.Validate(face, face.Default()));
         Assert.Equal((PromptKind.Instructions, AiSchemas.ReferenceCheck, PromptTrialTarget.PhotoCheckReference), (check.Kind, check.Operation, check.Trial));
         Assert.False(PromptCatalog.Find("photo_check.reference.schema")!.Editable);

@@ -72,10 +72,33 @@ public class NotificationJobsTests
         TenantId = tenantId, Type = ConsentType.MarketingNotifications, Granted = true, Version = version, GrantedAt = Now, UpdatedAt = Now,
     };
 
-    private Task PublishEditAsync(string id, string weekStart, bool published = true) => _host.Repository.SaveAsync(new WeeklyEditEntity
+    private Task PublishEditAsync(string id, string weekStart, bool published = true, Segment segment = Segment.Women) => _host.Repository.SaveAsync(new WeeklyEditEntity
     {
-        Id = id, WeekStart = weekStart, Segment = Segment.Women, Published = published, Title = new() { ["tr"] = "Edit" },
+        Id = id, WeekStart = weekStart, Segment = segment, Published = published, Title = new() { ["tr"] = "Edit" },
     });
+
+    [Fact]
+    public async Task WeeklyEdit_EachSubscriberGetsTheEditOfTheirSegment_NoneWhenTheirSegmentHasNone()
+    {
+        await PublishEditAsync("edit-47-women", "2026-11-16");
+        await PublishEditAsync("edit-47-men", "2026-11-16", segment: Segment.Men);
+        await AddTenantAsync("t-woman", subscriptions: [NotificationType.WeeklyEdit]);   // no style profile = women
+        await AddTenantAsync("t-man", subscriptions: [NotificationType.WeeklyEdit]);
+        await _host.Repository.SaveAsync(new StyleProfileEntity { TenantId = "t-man", Segment = Segment.Men, StyleTags = [StyleTag.Minimal, StyleTag.Classic, StyleTag.Tailored], Version = 1 });
+
+        var result = await _jobs.RunAsync(NotificationJob.WeeklyEdit, Now, default);
+
+        Assert.Equal((2, 2), (result.Candidates, result.Sent));
+        Assert.Equal("edit-47-women", _push.Sent.Single(m => m.Token == "token-t-woman").Data["editId"]);
+        Assert.Equal("edit-47-men", _push.Sent.Single(m => m.Token == "token-t-man").Data["editId"]);
+
+        // A men's edit only: women subscribers get nothing that week.
+        await _host.Repository.DeleteAsync(WeeklyEditEntity.GetPk(), WeeklyEditEntity.GetSk("edit-47-women"));
+        await AddTenantAsync("t-woman-2", subscriptions: [NotificationType.WeeklyEdit]);
+        var second = await _jobs.RunAsync(NotificationJob.WeeklyEdit, Now.AddHours(1), default);
+        Assert.DoesNotContain(_push.Sent, m => m.Token == "token-t-woman-2");
+        Assert.Equal(0, second.Sent);
+    }
 
     [Fact]
     public async Task WeeklyEdit_GoesToSubscribersWithADevice_OncePerEdit_InTheirLanguage()
