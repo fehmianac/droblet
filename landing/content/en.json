@@ -1340,5 +1340,123 @@
     "genericTitle": "Discover Droblet",
     "genericBody": "Photograph your clothes; Droblet prepares your outfit for every day and every trip.",
     "storeTitle": "Don't have the app?"
+  },
+  "parentConsent": {
+    "metaTitle": "Parental consent — Droblet",
+    "metaDescription": "Parental consent page for a Droblet account.",
+    "eyebrow": "PARENTAL CONSENT",
+    "title": "Parental consent",
+    "unavailableTitle": "This link is not available yet",
+    "unavailableBody": "This page is being prepared. Please try again later.",
+    "draft": {
+      "draftNote": "Every text in this section is a DRAFT pending legal review [LEGAL REVIEW]. It is left out of the build unless NEXT_PUBLIC_TEEN_PARENT_CONSENT=1.",
+      "draftBadge": "DRAFT",
+      "draftTitle": "DRAFT — pending legal review",
+      "draftBody": "The texts on this page have not been legally reviewed yet and may change.",
+      "intro": "{name} is asking for your consent to use Droblet. Please read the notice below and make your decision.",
+      "expires": "This link is valid until {date}.",
+      "textVersion": "Text version: {version}",
+      "noticeTitle": "Notice",
+      "sections": [
+        {
+          "title": "What is Droblet?",
+          "paragraphs": [
+            "Droblet is a digital wardrobe and styling assistant: clothes are photographed or added from a ready-made library, and the app suggests outfits for every day and every trip.",
+            "Users aged 16–17 use Droblet in \"teen mode\". Teen mode runs with age-appropriate rules, and features that use photos open only after a parent approves."
+          ]
+        },
+        {
+          "title": "What data is processed?",
+          "paragraphs": [
+            "- Account details: name, e-mail address, birth year (and month when needed). The rest of the date of birth is not stored.",
+            "- Wardrobe: photos and descriptions of clothes, outfits, plans and wear log, trips.",
+            "- After approval and only by your child's own choice: a face photo for colour analysis, body and face photos.",
+            "- Your e-mail address: only to send the consent e-mails; deleted when your child turns 18 or the account is deleted.",
+            "- Proof of your decision: the decision, date, text version, a one-way hash of your e-mail address and of your IP address (the IP address itself is not stored).",
+            "Outfit suggestions and photo analysis are processed by an AI service provider [LEGAL REVIEW: processor and international transfer notice]."
+          ]
+        },
+        {
+          "title": "What can your child do?",
+          "paragraphs": [
+            "- Build a wardrobe, get outfit and weekly plan suggestions, pack a suitcase for a trip.",
+            "- Get age- and school-appropriate styling: revealing pieces are left out of suggestions.",
+            "- After approval: add clothes by photo, get a colour analysis, set a profile picture."
+          ]
+        },
+        {
+          "title": "What can your child not do?",
+          "paragraphs": [
+            "- Social features are off: no following, profiles, feed, share links, people search or contact matching. The closet is always private and invisible to others.",
+            "- Shopping is off: no store links, cart, purchases or paid membership.",
+            "- No marketing notifications are sent; no analytics tools (including Firebase) are used.",
+            "- No try-on on a photo of another person.",
+            "- Virtual try-on is available only when the feature is on, you separately allowed it and your child gave their own consent too."
+          ]
+        },
+        {
+          "title": "Retention and your rights",
+          "paragraphs": [
+            "- If the account is not used for 90 days, your child's personal photos are deleted.",
+            "- You can withdraw your consent at any time with the link in the confirmation e-mail. When you withdraw, photo features stop and your child's personal photos (body and face photos, try-on images, colour analysis, profile picture) are deleted; clothing photos stay.",
+            "- When your child turns 18 the account becomes an adult account and your e-mail address is deleted.",
+            "Details: Privacy Policy and KVKK Notice [LEGAL REVIEW: teen section and parental rights]."
+          ]
+        }
+      ],
+      "decisionTitle": "Your decision",
+      "confirmParent": "I am the parent or legal guardian of this child.",
+      "confirmNotice": "I have read the notice above.",
+      "confirmProcessing": "I agree to the processing described in the notice.",
+      "confirmHint": "Tick all three boxes to approve. Declining needs no boxes.",
+      "tryOnTitle": "Optional: virtual try-on",
+      "allowTryOn": "I also allow my child to use virtual try-on (seeing clothes on themselves) with their own photo.",
+      "allowTryOnHelp": "This permission is separate and not needed for approval. Your child must also give their own consent.",
+      "approve": "I approve",
+      "approving": "Sending…",
+      "decline": "I decline",
+      "declining": "Sending…",
+      "statuses": {
+        "pendingTitle": "Waiting for a decision",
+        "pendingBody": "No decision has been made for this request yet. You can decide with the link in the consent e-mail.",
+        "approvedTitle": "Consent given",
+        "approvedBody": "Thank you. {name} can now use Droblet's photo features. We have e-mailed you the link to withdraw your consent.",
+        "declinedTitle": "Request declined",
+        "declinedBody": "Your decision has been recorded. Photo features stay off. Your child may send a new request.",
+        "withdrawnTitle": "Consent withdrawn",
+        "withdrawnBody": "Photo features have stopped and your child's personal photos have been deleted. Clothing photos stay.",
+        "endedTitle": "This link is no longer valid",
+        "endedBody": "The account holder has turned 18; the account became an adult account and your e-mail address was deleted.",
+        "decidedAt": "Decided on: {date}",
+        "tryOnAllowed": "Virtual try-on permission: given",
+        "tryOnNotAllowed": "Virtual try-on permission: not given"
+      },
+      "manage": {
+        "title": "Manage your consent",
+        "body": "Your consent for {name} is active. You can withdraw it at any time.",
+        "withdraw": "Withdraw my consent",
+        "confirmTitle": "Are you sure you want to withdraw your consent?",
+        "confirmBody": "When you withdraw, photo features stop at once and your child's personal photos (body and face photos, try-on images, colour analysis, profile picture) are permanently deleted. Clothing photos stay. This cannot be undone.",
+        "confirmWithdraw": "Yes, withdraw my consent",
+        "withdrawing": "Withdrawing…",
+        "cancel": "Cancel"
+      },
+      "childFallbackName": "Your child",
+      "missingTitle": "Link missing or invalid",
+      "missingBody": "This page opens from the link in the parental consent e-mail. Please use the link in the e-mail.",
+      "apiUnavailableBody": "Parental consent is not available right now. Please try again later.",
+      "retry": "Try again",
+      "errors": {
+        "parental_consent_link_invalid": "This link is not valid or a newer one has been sent. Please use the link in the latest e-mail.",
+        "parental_consent_link_expired": "This link has expired. Your child can send a new request from the app.",
+        "parental_consent_already_decided": "A decision has already been made for this request.",
+        "parental_consent_confirmations_required": "Tick all three boxes to approve.",
+        "consent_version_outdated": "The notice has been updated. Please read the current text and tick the boxes again.",
+        "too_many_attempts": "Too many attempts. Please try again in a while.",
+        "validation": "This link is not valid. Please use the link in the latest e-mail.",
+        "network": "Could not connect. Check your internet connection and try again.",
+        "unknown": "Something went wrong. Please try again."
+      }
+    }
   }
 }

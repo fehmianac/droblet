@@ -1340,5 +1340,123 @@
     "genericTitle": "Droblet'i keşfet",
     "genericBody": "Kıyafetlerini fotoğrafla; Droblet her gün ve her seyahat için kombinini hazırlasın.",
     "storeTitle": "Uygulama yüklü değil mi?"
+  },
+  "parentConsent": {
+    "metaTitle": "Veli onayı — Droblet",
+    "metaDescription": "Droblet hesabı için veli onay sayfası.",
+    "eyebrow": "VELİ ONAYI",
+    "title": "Veli onayı",
+    "unavailableTitle": "Bu bağlantı henüz kullanılamıyor",
+    "unavailableBody": "Bu sayfa şu an hazırlanıyor. Lütfen daha sonra yeniden dene.",
+    "draft": {
+      "draftNote": "Bu bölümdeki tüm metinler TASLAKTIR ve hukuk onayı bekler [HUKUK ONAYI]. NEXT_PUBLIC_TEEN_PARENT_CONSENT=1 olmadan derlemeye girmez.",
+      "draftBadge": "TASLAK",
+      "draftTitle": "TASLAK — hukuk onayı bekliyor",
+      "draftBody": "Bu sayfanın metinleri henüz hukuk incelemesinden geçmedi ve değişebilir.",
+      "intro": "{name} Droblet'i kullanmak için senin onayını istiyor. Lütfen aşağıdaki bilgilendirmeyi oku ve kararını ver.",
+      "expires": "Bu bağlantı {date} tarihine kadar geçerli.",
+      "textVersion": "Metin sürümü: {version}",
+      "noticeTitle": "Bilgilendirme",
+      "sections": [
+        {
+          "title": "Droblet nedir?",
+          "paragraphs": [
+            "Droblet bir dijital gardırop ve stil asistanıdır: kıyafetler fotoğraflanır ya da hazır kütüphaneden eklenir, uygulama her gün ve her seyahat için kombin önerir.",
+            "16–17 yaşındaki kullanıcılar Droblet'i \"genç modu\"nda kullanır. Genç modu yaşa uygun kurallarla çalışır ve fotoğraf kullanan özellikler ancak veli onayından sonra açılır."
+          ]
+        },
+        {
+          "title": "Hangi veriler işlenir?",
+          "paragraphs": [
+            "- Hesap bilgileri: ad, e-posta adresi, doğum yılı (gerekirse ay). Doğum tarihinin geri kalanı saklanmaz.",
+            "- Gardırop: kıyafet fotoğrafları ve açıklamaları, kombinler, plan ve giyim kaydı, seyahatler.",
+            "- Onaydan sonra ve yalnızca çocuğun kendi seçimiyle: renk analizi için yüz fotoğrafı, beden ve yüz fotoğrafları.",
+            "- Senin e-posta adresin: yalnızca onay e-postalarını göndermek için; çocuğun 18 yaşına girdiği gün ya da hesap silindiğinde silinir.",
+            "- Kararın kanıtı: karar, tarih, metin sürümü, e-posta adresinin ve IP adresinin tek yönlü özeti (IP adresinin kendisi saklanmaz).",
+            "Kombin önerileri ve fotoğraf analizleri bir yapay zekâ hizmet sağlayıcısında işlenir [HUKUK ONAYI: veri işleyen ve yurt dışına aktarım açıklaması]."
+          ]
+        },
+        {
+          "title": "Çocuğun neler yapabilir?",
+          "paragraphs": [
+            "- Gardırobunu oluşturmak, kombin ve haftalık plan önerileri almak, seyahat bavulu hazırlamak.",
+            "- Yaşa ve okula uygun stil önerileri almak: açık giyim parçaları öneriye girmez.",
+            "- Onaydan sonra: fotoğrafla kıyafet eklemek, renk analizi yaptırmak, profil fotoğrafı koymak."
+          ]
+        },
+        {
+          "title": "Çocuğun neler yapamaz?",
+          "paragraphs": [
+            "- Sosyal özellikler kapalıdır: takip, profiller, akış, paylaşım bağlantıları, kişi arama ve rehber eşleştirme yoktur. Dolabı her zaman gizlidir ve başkalarına görünmez.",
+            "- Alışveriş kapalıdır: mağaza bağlantıları, sepet, satın alma ve ücretli üyelik yoktur.",
+            "- Pazarlama bildirimi gönderilmez; analiz araçları (Firebase dahil) kullanılmaz.",
+            "- Başka bir kişinin fotoğrafı üzerinde kıyafet denemesi yapılamaz.",
+            "- Sanal deneme yalnızca bu özellik açıkken, sen ayrıca izin verdiysen ve çocuğun kendisi de onay verdiyse kullanılabilir."
+          ]
+        },
+        {
+          "title": "Saklama ve hakların",
+          "paragraphs": [
+            "- Hesap 90 gün kullanılmazsa çocuğun kişisel fotoğrafları silinir.",
+            "- Onayını, onay e-postasındaki bağlantıyla istediğin zaman geri alabilirsin. Geri aldığında fotoğraf özellikleri durur ve çocuğun kişisel fotoğrafları (beden ve yüz fotoğrafları, deneme görselleri, renk analizi, profil fotoğrafı) silinir; kıyafet fotoğrafları kalır.",
+            "- Çocuk 18 yaşına girdiğinde hesap yetişkin hesabına dönüşür ve senin e-posta adresin silinir.",
+            "Ayrıntılar: Gizlilik Politikası ve KVKK Aydınlatma Metni [HUKUK ONAYI: genç kullanıcı bölümü ve veli hakları]."
+          ]
+        }
+      ],
+      "decisionTitle": "Kararın",
+      "confirmParent": "Bu çocuğun annesi, babası ya da yasal vasisiyim.",
+      "confirmNotice": "Yukarıdaki bilgilendirmeyi okudum.",
+      "confirmProcessing": "Bilgilendirmede açıklanan veri işlemeye onay veriyorum.",
+      "confirmHint": "Onaylamak için üç kutunun üçünü de işaretle. Reddetmek için kutu gerekmez.",
+      "tryOnTitle": "İsteğe bağlı: sanal deneme",
+      "allowTryOn": "Çocuğumun kendi fotoğrafıyla sanal deneme (kıyafetleri üzerinde görme) kullanmasına da izin veriyorum.",
+      "allowTryOnHelp": "Bu izin ayrıdır ve onay için gerekli değildir. Çocuğun ayrıca kendi onayını da vermesi gerekir.",
+      "approve": "Onaylıyorum",
+      "approving": "Gönderiliyor…",
+      "decline": "Reddediyorum",
+      "declining": "Gönderiliyor…",
+      "statuses": {
+        "pendingTitle": "Karar bekleniyor",
+        "pendingBody": "Bu istek için henüz bir karar verilmedi. Kararı onay e-postasındaki bağlantıdan verebilirsin.",
+        "approvedTitle": "Onay verildi",
+        "approvedBody": "Teşekkürler. {name} artık Droblet'in fotoğraf kullanan özelliklerine erişebilir. Onayını geri alma bağlantısını e-postayla gönderdik.",
+        "declinedTitle": "İstek reddedildi",
+        "declinedBody": "Kararın kaydedildi. Fotoğraf kullanan özellikler kapalı kalır. Çocuğun dilerse yeni bir istek gönderebilir.",
+        "withdrawnTitle": "Onay geri alındı",
+        "withdrawnBody": "Fotoğraf özellikleri durduruldu ve çocuğun kişisel fotoğrafları silindi. Kıyafet fotoğrafları kalır.",
+        "endedTitle": "Bu bağlantı artık geçerli değil",
+        "endedBody": "Hesap sahibi 18 yaşına girdi; hesap yetişkin hesabına dönüştü ve senin e-posta adresin silindi.",
+        "decidedAt": "Karar tarihi: {date}",
+        "tryOnAllowed": "Sanal deneme izni: verildi",
+        "tryOnNotAllowed": "Sanal deneme izni: verilmedi"
+      },
+      "manage": {
+        "title": "Onayını yönet",
+        "body": "{name} için verdiğin onay geçerli. Onayını istediğin zaman geri alabilirsin.",
+        "withdraw": "Onayımı geri al",
+        "confirmTitle": "Onayını geri almak istediğine emin misin?",
+        "confirmBody": "Geri aldığında fotoğraf özellikleri hemen durur ve çocuğun kişisel fotoğrafları (beden ve yüz fotoğrafları, deneme görselleri, renk analizi, profil fotoğrafı) kalıcı olarak silinir. Kıyafet fotoğrafları kalır. Bu işlem geri alınamaz.",
+        "confirmWithdraw": "Evet, onayımı geri al",
+        "withdrawing": "Geri alınıyor…",
+        "cancel": "Vazgeç"
+      },
+      "childFallbackName": "Çocuğun",
+      "missingTitle": "Bağlantı eksik ya da geçersiz",
+      "missingBody": "Bu sayfa veli onay e-postasındaki bağlantıyla açılır. Lütfen e-postadaki bağlantıyı kullan.",
+      "apiUnavailableBody": "Veli onayı şu an kullanılamıyor. Lütfen daha sonra yeniden dene.",
+      "retry": "Yeniden dene",
+      "errors": {
+        "parental_consent_link_invalid": "Bu bağlantı geçerli değil ya da yerine yenisi gönderildi. Lütfen son gelen e-postadaki bağlantıyı kullan.",
+        "parental_consent_link_expired": "Bu bağlantının süresi dolmuş. Çocuğun uygulamadan yeni bir istek gönderebilir.",
+        "parental_consent_already_decided": "Bu istek için zaten bir karar verilmiş.",
+        "parental_consent_confirmations_required": "Onaylamak için üç kutunun üçünü de işaretle.",
+        "consent_version_outdated": "Bilgilendirme metni güncellendi. Lütfen güncel metni okuyup kutuları yeniden işaretle.",
+        "too_many_attempts": "Çok fazla deneme yapıldı. Lütfen bir süre sonra yeniden dene.",
+        "validation": "Bu bağlantı geçerli değil. Lütfen son gelen e-postadaki bağlantıyı kullan.",
+        "network": "Bağlantı kurulamadı. İnternetini kontrol edip yeniden dene.",
+        "unknown": "Bir şeyler ters gitti. Lütfen yeniden dene."
+      }
+    }
   }
 }
