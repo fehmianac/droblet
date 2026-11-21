@@ -15,6 +15,8 @@
 
 import type { ImageVariants } from '@/lib/images';
 
+import type { TeenConfig } from './contracts/teen';
+
 // ---------- Auth ----------
 
 /** The signed-in user as the app keeps it. `name` / `email` come from the form or `GET v1/tenant/profile`. */
@@ -28,6 +30,11 @@ export type AuthUser = {
    */
   ageConfirmed?: boolean;
   /**
+   * Teen mode (canvas 18): the server's `ageBand`, remembered with the session so the teen rules (hidden surfaces,
+   * Firebase off) apply from the first frame of the next app start. `TeenHost` keeps it in step with the server.
+   */
+  ageBand?: 'adult' | 'teen';
+  /**
    * The account's tenant id (auth responses carry it). Only used for the pseudonymous analytics actor
    * (`analytics/actor.ts`, = the server's `AnalyticsRules.Actor`); absent on sessions stored before it
    * was kept, until the next token refresh fills it in.
@@ -39,7 +46,11 @@ export type AuthUser = {
 export type { AuthResponseWire as AuthResponse } from './wire/core';
 
 /** POST v1/auth/register → 201. 409 `email_taken`, 429 `too_many_attempts`, 400 `age_confirmation_required`. */
-export type RegisterRequest = { name: string; email: string; password: string; ageConfirmed: true };
+/**
+ * POST v1/auth/register (docs/api/teen.md §3): the birth year (and the month when the year is ambiguous) instead of the
+ * 18+ box. `ageConfirmed: true` is still sent for an adult (servers before teen mode require it).
+ */
+export type RegisterRequest = { name: string; email: string; password: string; birthYear: number; birthMonth?: number; ageConfirmed?: true };
 /** POST v1/auth/login. 401 `invalid_credentials`, 429 `too_many_attempts`. */
 export type LoginRequest = { email: string; password: string };
 /**
@@ -190,7 +201,7 @@ export type Entitlement = {
  * `GET v1/config` (anonymous, docs/api/segments.md §1) — the app keeps its own labels and reads the ids only.
  * One open segment = no choice is shown (onboarding skips 03a, Profil › Stil profili has no segment row).
  */
-export type AppConfig = { availableSegments: AppSegment[] };
+export type AppConfig = { availableSegments: AppSegment[]; teen: TeenConfig };
 
 export type ItemRecognitionQuota = { limit: number | null; used: number; remaining: number | null };
 

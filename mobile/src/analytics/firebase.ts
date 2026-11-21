@@ -20,6 +20,9 @@ import type { FirebaseEvent, FirebaseParams } from './firebaseEvents';
  * - A build without the Firebase config files (no `GoogleService-Info.plist` / `google-services.json`)
  *   has no default Firebase app: every call is a no-op.
  * - Events tracked before the choice is read wait in a small buffer; they are dropped if it is off.
+ * - Teen accounts (canvas 18, docs/api/teen.md §4): collection stays OFF whatever the choice — no events, no user id,
+ *   no user properties. The age gate starts `unknown` and holds events in the buffer until the root layout knows who is
+ *   signed in (`setFirebaseAgeGate`), so not even a first screen view of a teen leaves the phone.
  */
 export type FirebaseAnalyticsClient = {
   setCollectionEnabled(enabled: boolean): Promise<void>;
@@ -35,6 +38,9 @@ let client: FirebaseAnalyticsClient | null | undefined;
 /** The user's choice; null until `preference.ts` has read it. */
 let allowed: boolean | null = null;
 let pending: FirebaseEvent[] = [];
+/** `unknown` until the signed-in account's age band is known; `blocked` for a teen. */
+let ageGate: 'unknown' | 'open' | 'blocked' = 'unknown';
+const gateListeners = new Set<() => void>();
 
 /** Showcase / fixture builds never report (their data is not real usage). Read at call time. */
 export function isFixturesBuild(): boolean {
@@ -82,21 +88,60 @@ function run(call: (c: FirebaseAnalyticsClient) => Promise<void>): void {
 
 /** Whether events go to Firebase right now. */
 export function firebaseCollecting(): boolean {
-  return allowed === true && currentClient() !== null;
+  return allowed === true && ageGate === 'open' && currentClient() !== null;
+}
+
+/** Sends the buffer once both the choice and the age gate allow it; drops it when either says no. */
+function settle(): void {
+  if (allowed === false || ageGate === 'blocked') {
+    pending = [];
+    return;
+  }
+  if (allowed !== true || ageGate !== 'open') return;
+  const waiting = pending;
+  pending = [];
+  waiting.forEach((e) => run((c) => c.logEvent(e.name, e.params)));
 }
 
 /** Applies the user's "Ürün analitiği" choice to the native SDK (persisted there too) and flushes / drops the buffer. */
 export function setFirebaseCollection(enabled: boolean): void {
   allowed = enabled;
-  run((c) => c.setCollectionEnabled(enabled));
-  const waiting = pending;
-  pending = [];
-  if (enabled) waiting.forEach((e) => run((c) => c.logEvent(e.name, e.params)));
+  // A teen (or an account not known yet) never switches collection on.
+  if (!enabled || ageGate === 'open') run((c) => c.setCollectionEnabled(enabled));
+  settle();
+}
+
+/**
+ * The age gate (canvas 18): `blocked` for a teen account — `setAnalyticsCollectionEnabled(false)`, the user id cleared,
+ * the buffer dropped; `open` for adults and signed-out use (the user's choice applies again).
+ */
+export function setFirebaseAgeGate(gate: 'open' | 'blocked'): void {
+  if (gate === ageGate) return;
+  ageGate = gate;
+  gateListeners.forEach((l) => l());
+  if (gate === 'blocked') {
+    run((c) => c.setCollectionEnabled(false));
+    run((c) => c.setUserId(null));
+  } else if (allowed === true) {
+    run((c) => c.setCollectionEnabled(true));
+  }
+  settle();
+}
+
+export function firebaseAgeGate(): 'unknown' | 'open' | 'blocked' {
+  return ageGate;
+}
+
+export function subscribeFirebaseAgeGate(listener: () => void): () => void {
+  gateListeners.add(listener);
+  return () => {
+    gateListeners.delete(listener);
+  };
 }
 
 export function sendFirebaseEvent(event: FirebaseEvent): void {
-  if (allowed === false || !currentClient()) return;
-  if (allowed === null) {
+  if (allowed === false || ageGate === 'blocked' || !currentClient()) return;
+  if (allowed === null || ageGate === 'unknown') {
     pending.push(event);
     if (pending.length > MAX_PENDING) pending = pending.slice(pending.length - MAX_PENDING);
     return;
@@ -120,11 +165,15 @@ export function setFirebaseUserProperties(props: Record<string, string | null>):
   run((c) => c.setUserProperties(props));
 }
 
-/** Tests: use this client instead of the native one (null = no Firebase), and forget the choice and the buffer. */
-export function setFirebaseClientForTests(next: FirebaseAnalyticsClient | null | undefined): void {
+/**
+ * Tests: use this client instead of the native one (null = no Firebase), and forget the choice and the buffer. The age
+ * gate starts `open` (an adult) unless a test asks for another.
+ */
+export function setFirebaseClientForTests(next: FirebaseAnalyticsClient | null | undefined, gate: 'unknown' | 'open' | 'blocked' = 'open'): void {
   client = next;
   allowed = null;
   pending = [];
+  ageGate = gate;
 }
 
 export function pendingFirebaseCount(): number {
