@@ -5,6 +5,7 @@
  */
 import i18n from '@/i18n';
 import { imageVariantsOf } from '@/lib/images';
+import { segmentStore } from '@/features/segment/store';
 import { getActiveQueryClient } from '@/sync/activeClient';
 import { queryKeys } from '@/sync/queryKeys';
 
@@ -207,17 +208,27 @@ function storePiece(slot: OutfitSlotWire, product: ProductWire, category: ItemCa
   };
 }
 
-type LibraryRowWire = { id: string; name: string; category: string; colorIds: string[]; imageUrl: string | null };
+type LibraryRowWire = { id: string; name: string; category: string; subcategory?: string | null; colorIds: string[]; imageUrl: string | null };
 
-async function requestLibrary(): Promise<LibraryItem[]> {
-  const rows = await apiRequest<LibraryRowWire[]>('v1/tenant/library/item');
-  return rows.map((w) => ({ id: w.id, name: w.name, category: w.category, imageUrl: w.imageUrl ?? null, color: w.colorIds?.[0] ? toItemColor(w.colorIds[0]) : null }));
+async function requestLibrary(segment: 'women' | 'men'): Promise<LibraryItem[]> {
+  const rows = await apiRequest<LibraryRowWire[]>(`v1/tenant/library/item?segment=${segment}`);
+  return rows.map((w) => ({
+    id: w.id,
+    name: w.name,
+    category: w.category,
+    subcategory: w.subcategory ?? null,
+    imageUrl: w.imageUrl ?? null,
+    color: w.colorIds?.[0] ? toItemColor(w.colorIds[0]) : null,
+  }));
 }
 
 /** The ready-made library by id (names / pictures of the pieces the stylist picked); the cached list when there is one. */
 export async function fetchLibraryMap(): Promise<Map<string, LibraryItem>> {
   const client = getActiveQueryClient();
-  const list = client ? await client.fetchQuery({ queryKey: queryKeys.library, queryFn: requestLibrary, staleTime: 5 * 60_000 }) : await requestLibrary();
+  const segment = segmentStore.get();
+  const list = client
+    ? await client.fetchQuery({ queryKey: queryKeys.libraryFor(segment), queryFn: () => requestLibrary(segment), staleTime: 5 * 60_000 })
+    : await requestLibrary(segment);
   return new Map(list.map((i) => [i.id, i]));
 }
 

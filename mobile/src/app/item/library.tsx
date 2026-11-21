@@ -20,6 +20,7 @@ import { matchesSearch, toggleIn } from '@/features/wardrobe/filters';
 import { libraryCategory, libraryItemFields } from '@/features/wardrobe/form';
 import { useAddItems } from '@/features/wardrobe/mutations';
 import { ItemTile, padToColumns } from '@/features/wardrobe/parts';
+import { useSegment } from '@/features/segment/store';
 import { useThemeColors } from '@/theme/useThemeColors';
 
 /**
@@ -30,6 +31,7 @@ export default function ItemLibraryScreen() {
   const { t } = useTranslation();
   const colors = useThemeColors();
   const library = useItemLibrary();
+  const segment = useSegment();
   const addItems = useAddItems();
   const [selected, setSelected] = useState<string[]>([]);
   const [category, setCategory] = useState<ItemCategory | 'all'>('all');
@@ -78,7 +80,7 @@ export default function ItemLibraryScreen() {
                         <Icon icon={Search} size={18} tone="muted" />
                         <TextInput
                           accessibilityLabel={t('itemLibrary.searchLabel')}
-                          placeholder={t('itemLibrary.searchPlaceholder')}
+                          placeholder={t(segment === 'men' ? 'itemLibrary.searchPlaceholderMen' : 'itemLibrary.searchPlaceholder')}
                           placeholderTextColor={colors.muted}
                           selectionColor={colors.accent}
                           value={search}
@@ -121,6 +123,8 @@ export default function ItemLibraryScreen() {
                       item={{
                         name: item.name,
                         category: libraryCategory(item.category),
+                        // The library's own category (e.g. `tie`) or sub-type picks the finer glyph.
+                        subcategory: item.subcategory ?? item.category,
                         color: asGarmentColor(item.color),
                         imageUrl: item.imageUrl,
                         originalImageUrl: null,

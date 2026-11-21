@@ -11,7 +11,6 @@ import { FlatList, Pressable, RefreshControl, ScrollView, TextInput, View, useWi
 import {
   CATALOG_COLORS,
   type CatalogColor,
-  type ProductCategory,
   type ProductQuery,
   type ProductSummary,
 } from '@/api/contracts/store';
@@ -39,10 +38,10 @@ import {
   useFavoriteProducts,
   useProducts,
 } from '@/features/store/queries';
+import { shopChipCategories } from '@/features/segment/catalog';
+import { useSegment } from '@/features/segment/store';
 import { useThemeColors } from '@/theme/useThemeColors';
 
-/** The category chips of the design, in order. Shoes and bags are reached through search and the builder. */
-const CHIP_CATEGORIES: ProductCategory[] = ['tshirt', 'shirt', 'knit', 'jacket', 'trousers', 'dress', 'accessory'];
 
 /** Grid metrics of the board: 20 gutter, 12 between the two columns. */
 const GUTTER = 20;
@@ -144,6 +143,9 @@ export default function ShopScreen() {
   const cardWidth = (width - GUTTER * 2 - COLUMN_GAP) / 2;
   const params = useLocalSearchParams<{ colors?: string }>();
   const bodyProfile = useBodyProfile();
+  // The category chips of the design, in order (canvas 17: the men's store has Jeanler instead of Elbiseler).
+  // Shoes and bags are reached through search and the builder.
+  const chipCategories = shopChipCategories(useSegment());
   const profileSize = bodyProfile.data?.size ?? null;
 
   const [query, setQuery] = useState<ProductQuery>(() => ({ ...EMPTY_PRODUCT_QUERY, colors: parseColors(params.colors) }));
@@ -229,7 +231,7 @@ export default function ShopScreen() {
               selected={query.categories.length === 0}
               onPress={() => setQuery((q) => ({ ...q, categories: [] }))}
             />
-            {CHIP_CATEGORIES.map((c) => (
+            {chipCategories.map((c) => (
               <Chip
                 key={c}
                 label={t(`shop.category.${c}`)}

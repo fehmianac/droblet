@@ -4,14 +4,15 @@ import { ulid } from '@/lib/ids';
 
 import { planKeys } from '@/features/today/keys';
 import { sessionStore } from '@/auth/session';
-import { buildTodayFixture, fixtureLogWear, libraryFixture, withLatency } from '@/fixtures/today';
+import { buildTodayFixture, fixtureLogWear, libraryFixture, menLibraryFixture, withLatency } from '@/fixtures/today';
+import { useSegment } from '@/features/segment/store';
 import { toIsoDate } from '@/lib/format';
 import { newClientMutation } from '@/sync/clientMutation';
 import { mutationKeys, queryKeys } from '@/sync/queryKeys';
 
 import { apiRequest } from './client';
 import type { LibraryItem, TodayResponse, WearLogRequest } from './contracts';
-import { DATA_SOURCE, fromSource } from './dataSource';
+import { DATA_SOURCE, fromSource, queryString } from './dataSource';
 import type { ProfileWire } from './wire/core';
 import { firstNameOf, toToday, toWeeklyEditCards, type EditWire, type TodayWire } from './wire/today';
 import { ITEMS_QUERY_KEY, loadLookContext, toItemColor, type ItemWire } from './wire/wardrobe';
@@ -97,6 +98,7 @@ export type LibraryItemWire = {
   id: string;
   name: string;
   category: string;
+  subcategory?: string | null;
   colorIds: string[];
   fabric: string | null;
   seasons: string[];
@@ -109,21 +111,23 @@ export function toLibraryItem(wire: LibraryItemWire): LibraryItem {
     id: wire.id,
     name: wire.name,
     category: wire.category,
+    subcategory: wire.subcategory ?? null,
     imageUrl: wire.imageUrl ?? null,
     color: wire.colorIds && wire.colorIds.length > 0 ? toItemColor(wire.colorIds[0]) : null,
   };
 }
 
-/** Ready-made piece library (04b / 12b) — `GET v1/tenant/library/item`. */
+/** Ready-made piece library (04b / 12b) — `GET v1/tenant/library/item?segment=` (the user's segment, canvas 17). */
 export function useItemLibrary() {
+  const segment = useSegment();
   return useQuery({
-    queryKey: queryKeys.library,
+    queryKey: queryKeys.libraryFor(segment),
     queryFn: () =>
       fromSource<LibraryItem[]>(
         'library',
-        () => withLatency(libraryFixture),
+        () => withLatency(segment === 'men' ? menLibraryFixture : libraryFixture),
         async () =>
-          (await apiRequest<LibraryItemWire[]>('v1/tenant/library/item')).map(toLibraryItem),
+          (await apiRequest<LibraryItemWire[]>(`v1/tenant/library/item${queryString({ segment })}`)).map(toLibraryItem),
       ),
   });
 }

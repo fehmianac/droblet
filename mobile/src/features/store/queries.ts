@@ -53,6 +53,9 @@ import { cachedTryOnJobId, requestExistingTryOn } from '@/api/wire/tryon';
 import { storeFixtures } from '@/fixtures/store';
 
 import { localFavorites } from './localState';
+import { productCategoriesFor } from '@/features/segment/catalog';
+import { useSegment } from '@/features/segment/store';
+
 import { lookSlotCategories, slotCategories } from './slots';
 
 /** Query keys for E8. Global catalogue/content data and tenant data are kept under separate roots. */
@@ -62,7 +65,8 @@ export const storeKeys = {
   creators: ['content', 'creator'] as const,
   series: ['content', 'series-outfit'] as const,
   brands: ['catalog', 'brand'] as const,
-  products: (query: ProductQuery) => ['catalog', 'product', 'list', query] as const,
+  /** The catalogue of one segment (canvas 17: `?segment=` on every list request). */
+  products: (query: ProductQuery, segment: 'women' | 'men' = 'women') => ['catalog', 'product', 'list', segment, query] as const,
   product: (id: string) => ['catalog', 'product', 'detail', id] as const,
   match: (id: string) => ['tenant', 'catalog', 'match', id] as const,
   complete: (itemId: string) => ['tenant', 'stylist', 'complete', itemId] as const,
@@ -127,45 +131,48 @@ export function useBrands() {
 }
 
 /** One catalogue page. Single-valued filters go to the server, multi-valued ones are applied here (see `ProductQuery`). */
-async function requestProducts(query: ProductQuery, pageToken: string | null, limit?: number): Promise<ProductPage> {
+async function requestProducts(query: ProductQuery, pageToken: string | null, segment: 'women' | 'men', limit?: number): Promise<ProductPage> {
   const { server, local } = splitProductQuery(query);
   const wire = await apiRequest<ProductPageWire>(
-    `v1/catalog/product${queryString({ ...server, q: query.q.trim().slice(0, 80), sort: fromProductSort(query.sort), pageToken, limit })}`,
+    `v1/catalog/product${queryString({ ...server, q: query.q.trim().slice(0, 80), sort: fromProductSort(query.sort), segment, pageToken, limit })}`,
   );
   return toProductPage(wire, local);
 }
 
-function fetchProducts(query: ProductQuery, pageToken: string | null): Promise<ProductPage> {
-  return fromSource('catalog', () => storeFixtures.products(query, pageToken), () => requestProducts(query, pageToken));
+function fetchProducts(query: ProductQuery, pageToken: string | null, segment: 'women' | 'men'): Promise<ProductPage> {
+  return fromSource('catalog', () => storeFixtures.products(query, pageToken, segment), () => requestProducts(query, pageToken, segment));
 }
 
-/** 21 — paged catalogue (infinite scroll). The previous result stays visible while a new filter loads. */
+/** 21 — paged catalogue (infinite scroll) of the user's segment. The previous result stays visible while a new filter loads. */
 export function useProducts(query: ProductQuery, enabled = true) {
+  const segment = useSegment();
   return useInfiniteQuery({
-    queryKey: storeKeys.products(query),
+    queryKey: storeKeys.products(query, segment),
     enabled,
     initialPageParam: null as string | null,
-    queryFn: ({ pageParam }) => fetchProducts(query, pageParam),
+    queryFn: ({ pageParam }) => fetchProducts(query, pageParam, segment),
     getNextPageParam: (last) => last.nextPageToken,
     placeholderData: keepPreviousData,
   });
 }
 
 /** First catalogue page of some categories — enough for a suggestion strip or a slot picker. */
-function useCategoryProducts(categories: ProductCategory[] | null) {
+function useCategoryProducts(slotCategories: ProductCategory[] | null) {
+  const segment = useSegment();
+  const categories = slotCategories ? productCategoriesFor(segment, slotCategories) : null;
   const query: ProductQuery = { ...EMPTY_PRODUCT_QUERY, categories: categories ?? [] };
   return useQuery({
-    queryKey: [...storeKeys.products(query), 'first-page'] as const,
+    queryKey: [...storeKeys.products(query, segment), 'first-page'] as const,
     enabled: categories !== null,
     queryFn: () =>
       fromSource<ProductSummary[]>(
         'catalog',
-        () => storeFixtures.products(query, null).items,
+        () => storeFixtures.products(query, null, segment).items,
         async () => {
           // The server filters one category per request: one first page per category, merged in slot order.
           const pages = await Promise.all(
             (categories ?? []).map((category) =>
-              apiRequest<ProductPageWire>(`v1/catalog/product${queryString({ category: fromProductCategory(category), limit: 24 })}`),
+              apiRequest<ProductPageWire>(`v1/catalog/product${queryString({ category: fromProductCategory(category), segment, limit: 24 })}`),
             ),
           );
           return pages.flatMap((page) => page.items.map(toProductSummary));
