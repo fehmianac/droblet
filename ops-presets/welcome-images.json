@@ -1,0 +1,39 @@
+{
+  "purpose": "Welcome screen (pre sign-in) hero photos, canvas section 20 · Karşılama ekranı (yeni), direction A. Owner approved: at most 6 image calls in total.",
+  "size": "1024x1536",
+  "quality": "high",
+  "format": "jpeg",
+  "style": "Editorial fashion photograph for a premium wardrobe app, shot on a full-frame camera with a 50mm lens, shallow depth of field, soft natural daylight, subtle film grain, true-to-life skin texture, no retouched plastic look. Warm neutral colour palette: cream, sand, warm beige, deep ink navy and a single terracotta accent. Vertical portrait composition. The subject or subjects occupy the upper two thirds of the frame; the bottom third is calm, uncluttered and slightly darker (pavement, floor or wall in shadow) so white text can sit over it later. Fictional people only, not resembling any celebrity. Plain unbranded clothing with no logos, no lettering, no text, no signs, no watermark anywhere in the image. Tasteful, confident, relaxed and natural, not a cheesy stock photo, not posing at the camera with a big smile.",
+  "images": [
+    {
+      "id": "welcome-woman-1",
+      "segment": "women",
+      "prompt": "A woman in her early thirties with dark wavy shoulder-length hair walks along a quiet cobbled side street in Istanbul's Galata neighbourhood in warm late-afternoon light, old stone facades with tall wooden shutters softly out of focus behind her. She wears a long camel wool coat open over a cream ribbed knit top, high-waisted ink navy wide-leg trousers and simple brown leather loafers, a small terracotta leather shoulder bag. Three-quarter full-length view, mid-stride, glancing slightly away from the camera."
+    },
+    {
+      "id": "welcome-woman-2",
+      "segment": "women",
+      "prompt": "A woman around thirty-five with a sleek low dark bun and small gold hoop earrings stands in a warm minimal studio with a plastered sand-coloured wall and soft window light from the left. She wears a relaxed oversized ecru linen blazer, a fine terracotta silk camisole, a fluid sand-coloured midi skirt and minimal tan leather mules. Full-length portrait, one hand in the blazer pocket, calm and self-assured expression, looking just past the camera. A long soft shadow falls on the floor below her."
+    },
+    {
+      "id": "welcome-man-1",
+      "segment": "men",
+      "prompt": "A man in his early thirties with short dark hair and a neatly trimmed beard leans casually against a sunlit warm stone wall on a quiet street in Istanbul's Karaköy district, soft golden-hour light, a blurred tram line and old buildings far behind him. He wears an unstructured sand-coloured cotton overshirt over a cream crew-neck t-shirt, ink navy tapered chinos and clean white leather sneakers, a simple steel watch. Three-quarter full-length view, relaxed posture, looking slightly off camera."
+    },
+    {
+      "id": "welcome-man-2",
+      "segment": "men",
+      "prompt": "A man around thirty-eight with short salt-and-pepper hair and light stubble stands in a warm minimal studio with a textured cream plaster wall and soft daylight from a tall window. He wears a tailored deep ink navy wool suit jacket over a fine cream merino roll-neck, relaxed taupe pleated trousers and dark brown suede chelsea boots. Full-length portrait, hands loosely in trouser pockets, quietly confident, gaze just past the camera. A soft shadow falls across the floor below him."
+    },
+    {
+      "id": "welcome-mixed-1",
+      "segment": "mixed",
+      "prompt": "A stylish woman and man, both in their early thirties, walk side by side and chat on a wide quiet seaside promenade in Istanbul by the Bosphorus at golden hour, the water and a distant hazy skyline softly out of focus. She wears a cream cable-knit sweater, a long sand trench coat and ink navy straight trousers with loafers; he wears a terracotta brushed-cotton overshirt over a white t-shirt, beige chinos and white sneakers. Three-quarter full-length view, natural candid moment, both glancing at each other, not at the camera."
+    },
+    {
+      "id": "welcome-mixed-2",
+      "segment": "mixed",
+      "prompt": "A small group of three friends in their late twenties to late thirties, two women and one man, stand together in a warm minimal studio with a sand-coloured plaster wall and soft daylight. One woman wears an ecru wide-leg trouser suit, the other a terracotta knit midi dress with a camel coat over her shoulders, the man a cream knit polo with ink navy pleated trousers. Full-length editorial group portrait, relaxed natural poses, one laughing softly, varied heights, gaps between them, everyone fully visible. Soft shadows on the floor below them."
+    }
+  ]
+}

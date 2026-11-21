@@ -11,6 +11,11 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
     public const string GrantTestPremium = "grant-test-premium";
     public const string RevokeTestPremium = "revoke-test-premium";
     public const string GenerateLibraryImages = "generate-library-images";
+    /// <summary>Marketing images (welcome screen) from a checked-in prompt file; hard cap <see cref="MaxMarketingImageCalls"/>.</summary>
+    public const string GenerateMarketingImages = "generate-marketing-images";
+
+    /// <summary>generate-marketing-images: owner-approved ceiling of image calls in one run (--max can only lower it).</summary>
+    public const int MaxMarketingImageCalls = 6;
     public const string AiSmoke = "ai-smoke";
     public const string AiProbe = "ai-probe";
     public const string AiPerf = "ai-perf";
@@ -40,16 +45,17 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
     /// <summary>Hard ceiling of image-model calls in one run (library images and synthetic fixtures together).</summary>
     public const int MaxImageCallsPerRun = 30;
 
-    public static readonly IReadOnlyList<string> Commands = [GrantTestPremium, RevokeTestPremium, GenerateLibraryImages, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, Logs, MigrateLibraryItemImages, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, AiUsageBackfill, PublishItemImages, CdnCheck, PublicUrls, GoogleAuth, PushTest];
+    public static readonly IReadOnlyList<string> Commands = [GrantTestPremium, RevokeTestPremium, GenerateLibraryImages, GenerateMarketingImages, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, Logs, MigrateLibraryItemImages, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, AiUsageBackfill, PublishItemImages, CdnCheck, PublicUrls, GoogleAuth, PushTest];
 
     /// <summary>Commands that create or change test accounts or spend AI credit on a throw-away user: never on prod.</summary>
-    public static readonly IReadOnlySet<string> DevOnly = new HashSet<string>(StringComparer.Ordinal) { GrantTestPremium, RevokeTestPremium, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, PublicUrls };
+    public static readonly IReadOnlySet<string> DevOnly = new HashSet<string>(StringComparer.Ordinal) { GrantTestPremium, RevokeTestPremium, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, PublicUrls, GenerateMarketingImages };
 
     private static readonly IReadOnlyDictionary<string, string[]> AllowedOptions = new Dictionary<string, string[]>(StringComparer.Ordinal)
     {
         [GrantTestPremium] = ["email", "credits", "days"],
         [RevokeTestPremium] = ["email"],
         [GenerateLibraryImages] = ["only", "max-calls", "quality", "price-per-image"],
+        [GenerateMarketingImages] = ["prompts", "only", "max"],
         [AiSmoke] = ["api-url", "price-per-image"],
         [AiProbe] = [],
         [AiPerf] = ["api-url", "runs", "flows"],
@@ -74,6 +80,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [GrantTestPremium] = [],
         [RevokeTestPremium] = [],
         [GenerateLibraryImages] = ["dry-run", "force"],
+        [GenerateMarketingImages] = ["dry-run"],
         [AiSmoke] = ["keep-user", "items-only", "prereq-only", "photo-tryon"],
         [AiProbe] = [],
         [AiPerf] = ["keep-user", "face"],
@@ -99,6 +106,12 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
     [GeneratedRegex("^[a-z0-9-]{1,64}$")]
     private static partial Regex FunctionPattern();
 
+    [GeneratedRegex("^[a-z0-9]+(-[a-z0-9]+)*$")]
+    internal static partial Regex MarketingIdPattern();
+
+    [GeneratedRegex(@"^ops-presets/[a-z0-9-]+-images\.json$")]
+    private static partial Regex MarketingPromptFilePattern();
+
 
     [GeneratedRegex(@"^ops-presets/[a-z0-9-]+\.json$")]
     private static partial Regex AiSettingsPresetPattern();
@@ -119,6 +132,9 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
 
     /// <summary>Image-call budget of this run: --max-calls, never above <see cref="MaxImageCallsPerRun"/>.</summary>
     public int MaxImageCalls => Math.Clamp(IntOption("max-calls", MaxImageCallsPerRun), 0, MaxImageCallsPerRun);
+
+    /// <summary>generate-marketing-images budget: --max (required), never above <see cref="MaxMarketingImageCalls"/>.</summary>
+    public int MaxMarketingCalls => Math.Clamp(IntOption("max", 0), 0, MaxMarketingImageCalls);
 
     /// <summary>ai-perf flows (default: all).</summary>
     public static readonly IReadOnlyList<string> AllPerfFlows = ["outfit", "week", "pack", "item", "palette", "tryon"];
@@ -199,6 +215,14 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
                 if (Option("quality") is { } quality && quality is not ("low" or "medium" or "high" or "auto"))
                     return "--quality must be low | medium | high | auto";
                 break;
+            case GenerateMarketingImages:
+                if (Option("max") is not { } cap || !int.TryParse(cap, out var mx) || mx is < 1 or > MaxMarketingImageCalls)
+                    return $"--max is required, 1–{MaxMarketingImageCalls}";
+                if (Option("prompts") is { } prompts && !MarketingPromptFilePattern().IsMatch(prompts))
+                    return "--prompts takes a prompt file from ops-presets/ (…-images.json)";
+                if (OnlyIds.FirstOrDefault(id => !MarketingIdPattern().IsMatch(id)) is { } badId)
+                    return $"--only: '{badId}' is not an image id";
+                break;
             case AiPerf:
                 if (Option("runs") is { } runs && (!int.TryParse(runs, out var r) || r is < 1 or > MaxPerfRuns))
                     return $"--runs must be 1–{MaxPerfRuns}";
@@ -256,6 +280,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         "  grant-test-premium      --email <e> [--credits N] [--days N]   (dev only)\n" +
         "  revoke-test-premium     --email <e>                            (dev only)\n" +
         "  generate-library-images [--only id,id] [--dry-run] [--force] [--max-calls N<=30] [--quality high]\n" +
+        "  generate-marketing-images --max N<=6 [--prompts ops-presets/welcome-images.json] [--only id,id] [--dry-run]  (dev only; never retries)\n" +
         "  ai-smoke                [--api-url URL] [--keep-user] [--items-only | --prereq-only]  (dev only)\n" +
         "  account-smoke           [--api-url URL] [--keep-user]  (dev only; e-mail verification + data export)\n" +
         "  ai-admin-smoke          [--api-url URL]  (dev only; admin AI prompts / trials / publish → a stylist job uses it → rollback; ≤ 4 AI calls)\n" +

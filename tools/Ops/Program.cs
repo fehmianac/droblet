@@ -56,6 +56,7 @@ try
             OpsArguments.GrantTestPremium => await TestPremiumCommands.GrantAsync(services, arguments, output, cts.Token),
             OpsArguments.RevokeTestPremium => await TestPremiumCommands.RevokeAsync(services, arguments, output, cts.Token),
             OpsArguments.GenerateLibraryImages => await LibraryImagesCommand.RunAsync(services, arguments, output, cts.Token),
+            OpsArguments.GenerateMarketingImages => await MarketingImagesCommand.RunAsync(services, arguments, output, cts.Token),
             OpsArguments.AiSmoke => await new AiSmokeCommand(services, arguments, output).RunAsync(cts.Token),
             OpsArguments.AiProbe => await ProbeAsync(services, output, cts.Token),
             OpsArguments.AiPerf => await new AiPerfCommand(services, arguments, output).RunAsync(cts.Token),
