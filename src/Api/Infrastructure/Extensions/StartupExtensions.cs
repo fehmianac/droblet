@@ -66,8 +66,8 @@ public static class StartupExtensions
             if (endpointType.IsInterface || endpointType.IsAbstract) continue;
 
             var endpoint = Activator.CreateInstance(endpointType);
-            // Every endpoint passes the teen guard (docs/api/teen.md §4): a no-op outside TeenRouteRules.
             if (endpoint is IEndpoint endpointItem)
+                // Every endpoint passes the teen guard (docs/api/teen.md §4): a no-op outside TeenRouteRules.
                 endpointItem.MapEndpoint(endpoints).AddTeenGuard();
         }
 

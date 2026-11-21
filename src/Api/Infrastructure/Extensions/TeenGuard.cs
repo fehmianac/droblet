@@ -16,24 +16,31 @@ public static class TeenGuard
 {
     private const string ItemKey = "droblet.teen-access";
 
-    public static RouteHandlerBuilder AddTeenGuard(this RouteHandlerBuilder builder) =>
-        builder.AddEndpointFilter(async (context, next) =>
+    /// <remarks>Inserted as the FIRST filter, so a teen gets teen_restricted before any consent guard of the endpoint answers.</remarks>
+    public static RouteHandlerBuilder AddTeenGuard(this RouteHandlerBuilder builder)
+    {
+        builder.Add(endpointBuilder =>
         {
-            var http = context.HttpContext;
-            var endpoint = http.GetEndpoint() as RouteEndpoint;
-            var rule = TeenRouteRules.Classify(http.Request.Method, endpoint?.RoutePattern.RawText);
-            if (rule is null || http.User.Identity?.IsAuthenticated != true)
-                return await next(context);
+            var pattern = (endpointBuilder as RouteEndpointBuilder)?.RoutePattern.RawText;
+            endpointBuilder.FilterFactories.Insert(0, (_, next) => async context =>
+            {
+                var http = context.HttpContext;
+                var rule = TeenRouteRules.Classify(http.Request.Method, pattern);
+                if (rule is null || http.User.Identity?.IsAuthenticated != true)
+                    return await next(context);
 
-            var access = await AccessAsync(http);
-            if (!access.IsTeen)
+                var access = await AccessAsync(http);
+                if (!access.IsTeen)
+                    return await next(context);
+                if (rule.Feature is { } feature)
+                    return Restricted(feature);
+                if (rule.LimitedMode && !access.ConsentActive)
+                    return ConsentRequired(access);
                 return await next(context);
-            if (rule.Feature is { } feature)
-                return Restricted(feature);
-            if (rule.LimitedMode && !access.ConsentActive)
-                return ConsentRequired(access);
-            return await next(context);
+            });
         });
+        return builder;
+    }
 
     /// <summary>
     /// Teen try-on (docs/api/teen.md §6): the outfit-photo try-on is never for teens (403 teen_restricted outfitPhotoTryOn); any
