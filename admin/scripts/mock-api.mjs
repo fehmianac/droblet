@@ -75,9 +75,33 @@ library.push(
 const users = Array.from({ length: 30 }, (_, i) => ({
   id: `01JUSER${String(i).padStart(18, '0')}`, tenantId: `01JTEN${String(i).padStart(19, '0')}`, email: `kullanici${i + 1}@example.com`,
   displayName: ['Ayşe Yılmaz', 'Elif Demir', 'Zeynep Kaya', 'Selin Aksoy', 'Deniz Arslan'][i % 5], handle: `stil${i + 1}`, createdAt: daysAgo(i * 2), suspended: i === 4,
+  // Teen mode (docs/api/teen.md §10): two sample 16–17 accounts, no @handle (social is closed to teens).
+  ageBand: i === 2 || i === 7 ? 'teen' : 'adult',
 }));
+for (const u of users) if (u.ageBand === 'teen') u.handle = null;
+const teenDetail = (u) =>
+  u.ageBand !== 'teen'
+    ? null
+    : u === users[2]
+      ? {
+          status: 'active', parentEmailMasked: 'a***@g***.com', requestSentAt: daysAgo(6), requestExpiresAt: daysAgo(-1), approvedAt: daysAgo(5), parentAllowedTryOn: false, ownTryOnConsent: false,
+          adultFrom: '2027-05-01', photosPurgedAt: null,
+          history: [
+            { at: daysAgo(6), event: 'requested', textVersion: '2026-11-21', tryOnAllowed: false, ipHash: '3f9a1c0be27d' },
+            { at: daysAgo(5), event: 'approved', textVersion: '2026-11-21', tryOnAllowed: false, ipHash: 'b81e44d2a90c' },
+          ],
+        }
+      : {
+          status: 'pendingParentalConsent', parentEmailMasked: 'm***@h***.com', requestSentAt: daysAgo(9), requestExpiresAt: daysAgo(2), approvedAt: null, parentAllowedTryOn: false, ownTryOnConsent: false,
+          adultFrom: '2026-12-01', photosPurgedAt: daysAgo(1),
+          history: [
+            { at: daysAgo(10), event: 'requested', textVersion: '2026-11-21', tryOnAllowed: false, ipHash: '0c55e19f7a43' },
+            { at: daysAgo(9), event: 'resent', textVersion: '2026-11-21', tryOnAllowed: false, ipHash: '0c55e19f7a43' },
+            { at: daysAgo(2), event: 'expired', textVersion: null, tryOnAllowed: false, ipHash: null },
+          ],
+        };
 const detail = (u) => ({
-  ...u, language: 'tr', closetVisibility: 'followersOnly', providers: ['email', 'apple'], suspendedAt: u.suspended ? daysAgo(1) : null, suspendReason: u.suspended ? 'Spam paylaşımlar' : null,
+  ...u, language: 'tr', closetVisibility: u.ageBand === 'teen' ? 'private' : 'followersOnly', teen: teenDetail(u), providers: ['email', 'apple'], suspendedAt: u.suspended ? daysAgo(1) : null, suspendReason: u.suspended ? 'Spam paylaşımlar' : null,
   counts: { items: 48, looks: 12, trips: 2, followers: 31, following: 18 },
   entitlement: { tier: u.testPremium ? 'premium' : 'free', source: u.testPremium ? 'admin' : null, expiresAt: u.testPremium ?? null, testPremiumExpiresAt: u.testPremium ?? null },
   credits: { allowanceTotal: u.testPremium ? 30 : 0, allowanceRemaining: u.testPremium ? 22 : 0, packBalance: u.credits ?? 0 },
@@ -90,12 +114,24 @@ const reports = Array.from({ length: 6 }, (_, i) => ({
   createdAt: daysAgo(i), resolution: i >= 4 ? (i === 4 ? 'contentRemoved' : 'dismissed') : null, resolutionNote: null, resolvedByUserId: i >= 4 ? me.id : null, resolvedAt: i >= 4 ? daysAgo(0) : null,
   contentRemovedAt: i === 4 ? daysAgo(0) : null, contentRestoredAt: null, contentRestoredByUserId: null,
 }));
+// Teen mode: a report whose reporter or target is a teen is high priority; the server lists those first.
+for (const r of reports) {
+  const teenTenants = users.filter((u) => u.ageBand === 'teen').map((u) => u.tenantId);
+  r.involvesTeen = teenTenants.includes(r.reporterTenantId) || teenTenants.includes(r.targetTenantId);
+  r.priority = r.involvesTeen ? 'high' : 'normal';
+  if (r.involvesTeen) {
+    r.reporterHandle = teenTenants.includes(r.reporterTenantId) ? null : r.reporterHandle;
+    r.targetHandle = teenTenants.includes(r.targetTenantId) ? null : r.targetHandle;
+  }
+}
+reports.sort((a, b) => (a.priority === b.priority ? 0 : a.priority === 'high' ? -1 : 1));
 const settings = [
   { group: 'entitlements', parameters: ['/droblet/dev/api/Entitlements', '/droblet/dev/worker/Entitlements'], fields: [{ key: 'Premium.TryOnCreditsPerMonth', type: 'int', min: 0, max: 1000, value: 30 }, { key: 'Free.ItemRecognitionLimit', type: 'int', min: 0, max: 1000, value: 10 }, { key: 'SelfServePremium.Enabled', type: 'bool', value: true }] },
   { group: 'packing', parameters: ['/droblet/dev/api/Packing', '/droblet/dev/worker/Packing'], fields: [{ key: 'CabinMaxItems', type: 'int', min: 0, max: 100, value: 12 }, { key: 'MaxTripDays', type: 'int', min: 1, max: 60, value: 21 }] },
   { group: 'ai', parameters: ['/droblet/dev/worker/Ai'], fields: [{ key: 'Enabled', type: 'bool', value: false }] },
   { group: 'notifications', parameters: ['/droblet/dev/api/Notifications'], fields: [{ key: 'DefaultMorningLocal', type: 'time', value: '07:30' }, { key: 'DefaultTimeZone', type: 'timeZone', value: 'Europe/Istanbul' }, { key: 'MaxDevicesPerTenant', type: 'int', min: 1, max: 50, value: 10 }] },
   { group: 'notifierSchedule', parameters: ['/droblet/dev/notifier/Notifications'], fields: [{ key: 'DefaultMorningLocal', type: 'time', value: '07:30' }, { key: 'DefaultWeeklyEditLocal', type: 'weekdayTime', value: 'Mon 09:00' }, { key: 'DefaultFriendRatingsLocal', type: 'time', value: '19:00' }] },
+  { group: 'teen', parameters: ['/droblet/dev/api/Teen', '/droblet/dev/worker/Teen', '/droblet/dev/notifier/Teen'], fields: [{ key: 'Enabled', type: 'bool', value: true }, { key: 'ConsentLinkDays', type: 'int', min: 1, max: 30, value: 7 }, { key: 'ConsentRequestsPerDay', type: 'int', min: 1, max: 50, value: 5 }, { key: 'ConsentRequestsPerParentPerDay', type: 'int', min: 1, max: 50, value: 3 }, { key: 'PhotoRetentionInactiveDays', type: 'int', min: 7, max: 730, value: 90 }, { key: 'LegacyAgeCheckbox', type: 'bool', value: true }] },
   { group: 'authRateLimits', parameters: ['/droblet/dev/api/AuthRateLimits'], fields: [{ key: 'LoginPerEmailPer15Minutes', type: 'int', min: 1, max: 1000, value: 50 }, { key: 'LoginPerIpPer15Minutes', type: 'int', min: 1, max: 10000, value: 500 }, { key: 'RegisterPerIpPerHour', type: 'int', min: 1, max: 10000, value: 500 }, { key: 'ForgotPerEmailPerHour', type: 'int', min: 1, max: 100, value: 20 }] },
 ];
 const admins = [

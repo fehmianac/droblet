@@ -40,7 +40,10 @@ function UsersInner() {
             {(u.displayName || u.email || '?').slice(0, 1)}
           </span>
           <div className="min-w-0">
-            <p className="truncate font-medium">{u.displayName || '—'}</p>
+            <p className="flex items-center gap-2 font-medium">
+              <span className="truncate">{u.displayName || '—'}</span>
+              {u.ageBand === 'teen' && <Badge tone="brand">{t.users.teenBadge}</Badge>}
+            </p>
             <p className="truncate text-xs text-muted">{u.handle ? `@${u.handle}` : u.id}</p>
           </div>
         </div>

@@ -56,7 +56,12 @@ function GroupCard({ group, onSaved }: { group: SettingGroup; onSaved: (g: Setti
   const changed = group.fields.filter((f) => values[f.key] !== f.value);
   const problems = Object.fromEntries(group.fields.map((f) => [f.key, validateField(f, values[f.key] ?? null)]));
   const invalid = changed.some((f) => problems[f.key]);
-  const label = (key: string) => (t.settings.fields as Record<string, string>)[key] ?? key;
+  // Group-specific labels first (the same key, e.g. "Enabled", means different things in different groups).
+  const groupFields = (t.settings.groupFields as Record<string, Record<string, string> | undefined>)[group.group];
+  const groupHelp = (t.settings.fieldHelp as Record<string, Record<string, string> | undefined>)[group.group];
+  const label = (key: string) => groupFields?.[key] ?? (t.settings.fields as Record<string, string>)[key] ?? key;
+  const help = (key: string) => groupHelp?.[key] ?? null;
+  const note = (t.settings.groupNotes as Record<string, string | undefined>)[group.group] ?? null;
   const title = (t.settings.groups as Record<string, string>)[group.group] ?? group.group;
 
   const save = async () => {
@@ -88,6 +93,12 @@ function GroupCard({ group, onSaved }: { group: SettingGroup; onSaved: (g: Setti
         </Button>
       }
     >
+      {note && (
+        <p className="mb-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
+          <Icon name="shield" className="mt-0.5 h-4 w-4 shrink-0" />
+          {note}
+        </p>
+      )}
       <div className="grid gap-5 md:grid-cols-2">
         {group.fields.map((f) => {
           const id = `${group.group}-${f.key}`;
@@ -103,6 +114,7 @@ function GroupCard({ group, onSaved }: { group: SettingGroup; onSaved: (g: Setti
               <div key={f.key} className="flex items-center justify-between gap-4 rounded-lg border border-line px-4 py-3">
                 <div>
                   <p className="text-[13px] font-medium">{label(f.key)}</p>
+                  {help(f.key) && <p className="mt-0.5 text-xs text-muted">{help(f.key)}</p>}
                   <p className="font-mono text-xs text-muted">{f.key}</p>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted">
@@ -113,7 +125,12 @@ function GroupCard({ group, onSaved }: { group: SettingGroup; onSaved: (g: Setti
             );
           }
           return (
-            <Field key={f.key} label={label(f.key)} htmlFor={id} hint={<span>{hint} · <span className="font-mono">{f.key}</span></span>} error={error}>
+            <Field key={f.key} label={label(f.key)} htmlFor={id} hint={
+                <span>
+                  {help(f.key) && <span className="block">{help(f.key)}</span>}
+                  {hint} · <span className="font-mono">{f.key}</span>
+                </span>
+              } error={error}>
               <Input
                 id={id}
                 type={f.type === 'int' ? 'number' : 'text'}

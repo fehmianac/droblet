@@ -88,7 +88,22 @@ function ModerationInner() {
       <span className="font-mono text-xs text-muted">{tenantId ?? t.moderation.anonymous}</span>
     );
 
+  // Server order is kept (high-priority teen reports come first on every page); the column has no sort.
   const columns: Column<ModerationReport>[] = [
+    {
+      key: 'priority',
+      header: t.moderation.priority,
+      render: (r) =>
+        r.priority === 'high' ? (
+          <span title={r.involvesTeen ? t.moderation.involvesTeen : undefined}>
+            <Badge tone="red">{t.moderation.priorityHigh}</Badge>
+          </span>
+        ) : r.involvesTeen ? (
+          <Badge tone="amber">{t.moderation.involvesTeen}</Badge>
+        ) : (
+          <span className="text-xs text-muted">{t.moderation.priorityNormal}</span>
+        ),
+    },
     { key: 'created', header: t.common.createdAt, sortValue: (r) => r.createdAt, render: (r) => <span className="whitespace-nowrap text-muted">{dateTime(r.createdAt)}</span> },
     {
       key: 'target',
