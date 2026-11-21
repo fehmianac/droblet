@@ -61,6 +61,8 @@ export const ANALYTICS_EVENTS = [
   'search',
   /** A piece of content was picked; `contentType`, `source`. */
   'select_content',
+  /** Canvas 19 · notification permission: `action` shown | allow | decline | result, `granted` (result), `source` onboarding | app_start, `variant` adult | teen. */
+  'push_permission',
 ] as const;
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];
 

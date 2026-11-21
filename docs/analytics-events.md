@@ -108,8 +108,12 @@ documented manual screen tracking).
 | `signup_step` step=`welcome` | `tutorial_begin` | Onboarding 01 "Başla" | — | ✓ `signup_started` |
 | `signup_step` step=`account_created` | `sign_up` | A new account is created (e-mail, Apple, Google) | `method` email \| apple \| google | ✓ `signup_completed` |
 | `login` | `login` | A returning user signs in | `method` email \| apple \| google | — |
-| `signup_step` step=`consents` / `style_profile` / `body_profile` / `first_items` | `onboarding_step` | Each onboarding step is passed | `step`, `count`, `skipped`, `body_photos`, `face_photo` | ✓ (style / body / first items) |
+| `signup_step` step=`consents` / `style_profile` / `body_profile` / `first_items` / `push_permission` | `onboarding_step` | Each onboarding step is passed | `step`, `count`, `skipped`, `body_photos`, `face_photo` | ✓ (style / body / first items) |
 | `signup_step` step=`done` | `tutorial_complete` | Onboarding finished (paywall closed from onboarding) | — | — |
+| `push_permission` action=`shown` | `push_permission` | 04d Bildirim izni (canvas 19) appears in onboarding (only when the OS can still ask and this install was never asked) | `action`, `variant` adult \| teen, `source`=onboarding | — |
+| `push_permission` action=`allow` | `push_permission` | "Bildirimlere izin ver" on 04d (the system prompt follows) | `action`, `variant`, `source`=onboarding | — |
+| `push_permission` action=`decline` | `push_permission` | "Şimdi değil" on 04d (no system prompt; a notification toggle can still ask later) | `action`, `variant`, `source`=onboarding | — |
+| `push_permission` action=`result` | `push_permission` | The system prompt answered: after "Bildirimlere izin ver", or the one-time app-start ask of users onboarded before 04d existed | `action`, `granted` true \| false, `source` onboarding \| app_start | — |
 | `paywall_viewed` | `paywall_view` | 05 paywall opens | `source` (where it was opened from) | ✓ |
 | `credit_pack_view` | `credit_pack_view` | 05b extra-credit sheet opens | `reason` exhausted \| topUp | — |
 | `begin_checkout` | `begin_checkout` | The store purchase sheet opens | `item_id` (store product id), `item_category` subscription \| credit_pack, `checkout`=store | — |

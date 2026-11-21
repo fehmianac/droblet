@@ -10,13 +10,15 @@ type Props = {
   /** Shows "Atla" next to the step count (04 only). */
   onSkip?: () => void;
   skipTestID?: string;
+  /** Hides the "1 / 4" count (04d Bildirim izni: an extra step after the last numbered one, progress line full). */
+  hideCount?: boolean;
 };
 
 /**
  * Header of the onboarding steps (03, 04, 04b): back button, "1 / 3" on the right (plus "Atla" where the
  * step can be skipped) and the 3 pt progress line underneath, inset 24.
  */
-export function StepHeader({ step, total, onSkip, skipTestID }: Props) {
+export function StepHeader({ step, total, onSkip, skipTestID, hideCount = false }: Props) {
   const { t } = useTranslation();
   const count = t('common.stepOf', { current: step, total });
   return (
@@ -24,7 +26,7 @@ export function StepHeader({ step, total, onSkip, skipTestID }: Props) {
       <ScreenHeader
         right={
           <View className="flex-row items-center gap-3">
-            <Text variant="label">{count}</Text>
+            {hideCount ? null : <Text variant="label">{count}</Text>}
             {onSkip ? (
               <Pressable
                 onPress={onSkip}

@@ -22,7 +22,6 @@ import { useEntitlement } from '@/entitlement/useEntitlement';
 import { useStoreProducts } from '@/entitlement/useStoreProducts';
 import { CanvasGlyph } from '@/features/account/rows';
 import type { StoreProduct } from '@/fixtures/storeProducts';
-import { syncPushRegistration } from '@/notify/push';
 import { PurchaseStatus } from '@/purchases/PurchaseStatus';
 import { paywallCompact, paywallHeroHeight } from '@/purchases/paywallLayout';
 import { purchaseFlow, usePurchaseState } from '@/purchases/purchaseFlow';
@@ -170,8 +169,6 @@ export default function PaywallScreen() {
     if (from === 'onboarding' && session.status === 'signedIn') {
       await onboardingStore.markDone(session.user.id);
       track('signup_step', { step: 'done' });
-      // Onboarding is over: the sensible moment to ask for push (morning outfit, weekly edit).
-      void syncPushRegistration({ ask: true });
       router.replace('/');
       return;
     }
