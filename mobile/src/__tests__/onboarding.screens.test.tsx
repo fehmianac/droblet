@@ -97,7 +97,7 @@ describe('04 Beden ve fotoğraf', () => {
 });
 
 describe('04b İlk 5 parça', () => {
-  it('counts the selection in the bottom bar and continues to the paywall without a minimum', async () => {
+  it('counts the selection in the bottom bar and continues without a minimum: 04d Bildirim izni, then the paywall', async () => {
     await open('/first-items');
     await waitFor(() => expect(screen.getByText('Which of these are in your wardrobe?')).toBeTruthy(), WAIT);
     expect(screen.getByText('4 / 4')).toBeTruthy();
@@ -115,7 +115,11 @@ describe('04b İlk 5 parça', () => {
     expect(screen.getByTestId('firstItems.item.lib_white_shirt').props.accessibilityState).toMatchObject({ checked: true });
 
     await fireEvent.press(screen.getByTestId('firstItems.continue'));
-    await waitFor(() => expect(screen).toHavePathname('/paywall'), WAIT);
+    // The permission is still undetermined (jest setup): 04d comes first, "Not now" goes on to 05.
+    await waitFor(() => expect(screen).toHavePathname('/push-permission'), WAIT);
+    expect(screen.getByText("We'll let you know when your morning outfit is ready")).toBeTruthy();
     expect(await AsyncStorage.getItem('droblet.firstItems.u1')).toBe(JSON.stringify(['lib_white_shirt', 'lib_beige_trench']));
+    await fireEvent.press(screen.getByTestId('pushAsk.notNow'));
+    await waitFor(() => expect(screen).toHavePathname('/paywall'), WAIT);
   });
 });

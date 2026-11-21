@@ -273,6 +273,21 @@
     "empty": "Hazır kütüphane şu an boş.",
     "emptyAction": "Fotoğrafla ekle"
   },
+  "pushAsk": {
+    "eyebrow": "BİLDİRİMLER",
+    "title": "Sabah kombinin hazır olunca haber verelim",
+    "body": "Yalnızca işine yarayan anlarda yazarız; gün boyu rahatsız etmeyiz.",
+    "bodyTeen": "Yalnızca sabah kombinin ve sonuçların için yazarız; kampanya bildirimi göndermeyiz.",
+    "morningTitle": "Hava durumuna göre günün kombini",
+    "morningBody": "Her sabah, sen hazırlanmadan önce",
+    "weeklyTitle": "Haftalık plan hatırlatması",
+    "weeklyBody": "Pazar akşamı, yeni haftanı planlaman için",
+    "resultTitle": "Üzerimde gör sonucun hazır",
+    "resultBody": "Görsel bitince hemen haber veririz",
+    "settingsHint": "İstediğin zaman Ayarlar'dan değiştirebilirsin.",
+    "allow": "Bildirimlere izin ver",
+    "notNow": "Şimdi değil"
+  },
   "paywall": {
     "eyebrow": "DROBLET ÜYELİK",
     "title": "Droblet Üyelik",

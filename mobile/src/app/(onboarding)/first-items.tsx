@@ -19,9 +19,7 @@ import { Text } from '@/components/ui/Text';
 import { libraryCategory } from '@/features/wardrobe/form';
 import { asGarmentColor } from '@/components/ui/ImageSlot';
 import { ItemThumb } from '@/features/wardrobe/ItemThumb';
-import { openPaywall } from '@/features/teen/TeenLocks';
-import { currentTeenRules } from '@/features/teen/store';
-import { onboardingStore } from '@/auth/onboarding';
+import { continueAfterFirstItems } from '@/features/onboarding/finish';
 
 /** The board shows a 3 × 3 selection; the whole library is one tap away. */
 const GRID_SIZE = 9;
@@ -70,7 +68,7 @@ function LibraryTile({ item, selected, onToggle }: { item: LibraryItem; selected
  * 04b İlk 5 parça (3/3) — "Gardırobunda bunlardan hangileri var?": camera shortcut card, a 3 × 3 grid of
  * ready-made pieces, a link to the whole library and the bottom bar with the "N / 5 seçildi" counter.
  * Five is a recommendation, not a gate. "Devam et" adds the chosen pieces to the wardrobe
- * (`POST v1/tenant/item/from-library`).
+ * (`POST v1/tenant/item/from-library`), then 04d Bildirim izni (canvas 19) or 05 Üyelik.
  */
 export default function FirstItemsScreen() {
   const { t } = useTranslation();
@@ -87,14 +85,12 @@ export default function FirstItemsScreen() {
       void AsyncStorage.setItem(`droblet.firstItems.${session.user.id}`, JSON.stringify(selected));
     }
     track('signup_step', { step: 'first_items', count: selected.length });
-    // Canvas 18: a teen never sees 05 Üyelik — onboarding ends here and Bugün opens (the guards follow the store).
-    const goToPaywall = () =>
-      currentTeenRules().hide.paywall
-        ? void (session.status === 'signedIn' ? onboardingStore.markDone(session.user.id) : Promise.resolve())
-        : openPaywall({ from: 'onboarding' });
+    // Next: 04d Bildirim izni while the OS can still ask, then 05 Üyelik (canvas 18: a teen never sees it —
+    // onboarding ends and Bugün opens; the guards follow the store).
+    const next = () => void continueAfterFirstItems(session.status === 'signedIn' ? session.user.id : null);
     // The user is never held on this step: a failed add is not fatal, 12b offers the same pieces later.
-    if (selected.length === 0) goToPaywall();
-    else addItems.mutate(selected, { onSettled: goToPaywall });
+    if (selected.length === 0) next();
+    else addItems.mutate(selected, { onSettled: next });
   };
 
   const openCamera = () => router.push('/item/add');

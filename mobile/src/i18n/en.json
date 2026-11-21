@@ -273,6 +273,21 @@
     "empty": "The ready-made library is empty right now.",
     "emptyAction": "Add with a photo"
   },
+  "pushAsk": {
+    "eyebrow": "NOTIFICATIONS",
+    "title": "We'll let you know when your morning outfit is ready",
+    "body": "We only write when it helps; no buzzing all day.",
+    "bodyTeen": "We only write about your morning outfit and your results; never about campaigns.",
+    "morningTitle": "Today's outfit for the weather",
+    "morningBody": "Every morning, before you get dressed",
+    "weeklyTitle": "Weekly plan reminder",
+    "weeklyBody": "Sunday evening, to plan your new week",
+    "resultTitle": "Your try-on result is ready",
+    "resultBody": "We'll tell you as soon as the image is done",
+    "settingsHint": "You can change this anytime in Settings.",
+    "allow": "Allow notifications",
+    "notNow": "Not now"
+  },
   "paywall": {
     "eyebrow": "DROBLET MEMBERSHIP",
     "title": "Droblet Membership",

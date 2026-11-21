@@ -112,6 +112,7 @@ export default function RootLayout() {
           <Stack.Screen name="(onboarding)/consents" />
           <Stack.Screen name="(onboarding)/body" />
           <Stack.Screen name="(onboarding)/first-items" />
+          <Stack.Screen name="(onboarding)/push-permission" />
         </Stack.Protected>
 
         <Stack.Protected guard={onboarded} redirectTo={home}>
