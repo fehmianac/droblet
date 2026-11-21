@@ -473,7 +473,7 @@ someone wears in a photo** (a saved inspiration photo, an outfit import photo) w
 | Status | Body | Meaning |
 |---|---|---|
 | 200 | `{ "status": "cached", "image": { "id", "url", "urlExpiresAt", "createdAt", "source", "referenceUrl" }, "job": null }` | Image already exists — no credit. `referenceUrl`: the outfit photo of a `photo` / `importPhoto` try-on, else null |
-| 202 | `{ "status": "queued", "image": null, "job": JobDto }` | Job running (1 credit reserved, or an already running job for the same outfit — no second credit). Poll the job; its `result` is `{ "tryOnImageId": "…" }`, then `GET v1/tenant/tryon/{id}` |
+| 202 | `{ "status": "queued", "image": null, "job": JobDto, "pieces": [{ "name": "Lacivert Yün Blazer", "category": "outerwear" }] }` | Job running (1 credit reserved, or an already running job for the same outfit — no second credit). Poll the job; its `result` is `{ "tryOnImageId": "…" }`, then `GET v1/tenant/tryon/{id}`. `pieces`: the outfit's pieces in dressing order (top, outerwear, bottom / dress, shoes, bag, accessory) for the curtain wait (canvas 21e); `name` is the item / product / library name (`null` when the item has none); empty for a photo try-on. Only on the start answer, not on the job. |
 | 402 | `credits_exhausted` | Open the credit-pack sheet; show the piece collage |
 | 403 | `premium_required` | Paywall |
 | 404 | `target_not_found` | Unknown target (also: someone else's look/item, retired product) |

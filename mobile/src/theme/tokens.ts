@@ -111,6 +111,21 @@ export const placeholderTones = {
 } as const;
 export type PlaceholderTone = keyof typeof placeholderTones;
 
+/** The "Üzerimde gör" curtain (canvas 21e): linen stripes, rail and the card on it — fixed tones in both themes. */
+export const curtainTones = {
+  ground: '#3A342E',
+  rail: '#6E5640',
+  stripeA: '#D8CBBA',
+  stripeB: '#E6DCCF',
+  stripeC: '#CDBFAD',
+  stripeD: '#DED3C4',
+  ink: '#1C1A17',
+  cream: '#F4F1EC',
+  muted: '#8A8178',
+  ring: '#CFC5B8',
+  accent: '#6E5640',
+} as const;
+
 /**
  * Two surfaces the canvas draws outside the palette: the ground of the camera screen (board 12) and the
  * warm "check this" badge on an uncertain AI guess (board 13 "Kategoriyi kontrol et"; ink text on it).

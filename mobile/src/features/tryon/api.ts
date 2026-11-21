@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { apiRequest } from '@/api/client';
-import type { StartTryOnRequest, StartTryOnResponse, TryOnResult, TryOnTarget, TryOnTargetKind } from '@/api/contracts/tryon';
+import type { StartTryOnRequest, StartTryOnResponse, TryOnPiece, TryOnResult, TryOnTarget, TryOnTargetKind } from '@/api/contracts/tryon';
 import { ApiError } from '@/api/errors';
 import { useJob, type JobView } from '@/api/jobs';
 import { fromSource } from '@/api/dataSource';
@@ -33,6 +33,7 @@ import { ulid } from '@/lib/ids';
 import { trackTryOnStarted, type TryOnPath } from '@/analytics/jobEvents';
 
 import { matchesPhotoKey, useTryOnPhotoKey, type TryOnPhotoKey } from './photoKey';
+import { inDressingOrder, toTryOnPieces, tryOnPieces } from './pieces';
 import { tryOnRuns } from './runs';
 
 /** Every try-on image costs one credit (README §9.1). Shown before starting; the server is authoritative. */
@@ -66,7 +67,27 @@ function startFixtureTryOn(request: StartTryOnRequest): StartTryOnResponse {
     }),
     { id: `job_${request.requestId}` },
   );
-  return { jobId };
+  return { jobId, pieces: fixturePieces(request.target) };
+}
+
+const FIXTURE_SLOT_CATEGORY = { top: 'top', bottom: 'bottom', outerwear: 'outerwear', shoes: 'shoes', accessory: 'bag' } as const;
+
+/** What the server would list for the curtain (look slots / the item itself), in dressing order. */
+function fixturePieces(target: TryOnTarget): TryOnPiece[] {
+  if (target.kind === 'item') {
+    const item = fixtureDb.items.find((i) => i.id === target.id);
+    return item ? [{ name: item.name, category: item.category }] : [];
+  }
+  if (target.kind !== 'look') return [];
+  const look = fixtureDb.looks.find((l) => l.id === target.id);
+  return inDressingOrder(
+    (look?.slots ?? [])
+      .filter((s) => !s.deleted)
+      .map((s) => ({
+        name: s.name || null,
+        category: (s.source === 'wardrobe' ? fixtureDb.items.find((i) => i.id === s.refId)?.category : undefined) ?? FIXTURE_SLOT_CATEGORY[s.slot],
+      })),
+  );
 }
 
 /**
@@ -131,7 +152,7 @@ export function useStartTryOn() {
         async () => {
           const target = await toWireTarget(request.target);
           const started = await apiRequest<TryOnStartWire>('v1/tenant/tryon', { method: 'POST', body: { requestId: request.requestId, target } });
-          if (started.job) return { jobId: started.job.id };
+          if (started.job) return { jobId: started.job.id, pieces: toTryOnPieces(started.pieces) };
           if (started.image) return { jobId: cachedTryOnJobId(started.image.id) };
           throw new ApiError('http', 502, null);
         },
@@ -147,6 +168,8 @@ export function useStartTryOn() {
       await requireTryOnConsent();
       const accepted = await mutation.mutateAsync({ requestId: ulid(), target });
       trackTryOnStarted(accepted.jobId, target.kind, tryOnPath());
+      // The curtain wait (21e) lists these pieces by name.
+      tryOnPieces.record(accepted.jobId, accepted.pieces);
       // 14b's hero shows "Hazırlanıyor…" for this target until the job ends.
       tryOnRuns.record(target, accepted.jobId);
       return accepted;

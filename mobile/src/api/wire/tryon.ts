@@ -24,7 +24,13 @@ export type TryOnImageWire = {
 };
 
 /** POST v1/tenant/tryon → 200 (`cached`, no credit) | 202 (`queued`, job result `{ tryOnImageId }`). */
-export type TryOnStartWire = { status: 'cached' | 'queued'; image: TryOnImageWire | null; job: JobWire | null };
+export type TryOnStartWire = {
+  status: 'cached' | 'queued';
+  image: TryOnImageWire | null;
+  job: JobWire | null;
+  /** Queued only: the outfit's pieces in dressing order (older servers send none). */
+  pieces?: { name: string | null; category: string }[] | null;
+};
 
 /** Result of a `tryOn` job. */
 export type TryOnJobResultWire = { tryOnImageId: string };

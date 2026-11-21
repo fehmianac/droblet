@@ -4,6 +4,7 @@ import { renderRouter, screen, waitFor } from 'expo-router/testing-library';
 import type { TryOnResult } from '@/api/contracts/tryon';
 import { resetFixtureDb } from '@/fixtures/db';
 import { fixtureJobOptions, resetFixtureJobs, startFixtureJob } from '@/fixtures/jobs';
+import { tryOnPieces } from '@/features/tryon/pieces';
 
 const mockSession = {
   accessToken: 'a',
@@ -26,25 +27,54 @@ const result = (): TryOnResult => ({ tryOnId: 't1', target: { kind: 'look', id: 
 beforeEach(async () => {
   resetFixtureDb();
   resetFixtureJobs();
+  tryOnPieces.clear();
   await AsyncStorage.clear();
   await AsyncStorage.setItem('droblet.onboarding.u1', 'done');
 });
 
 describe('tryon/[jobId] — "Üzerimde gör"', () => {
-  it('shows the wait (stage, progress line, credit line, background action), then the result', async () => {
+  it('shows the curtain wait (card, heading, credit line, background action), then opens it on the result', async () => {
     const jobId = startFixtureJob('tryon', result, { id: 'job_t1', durationMs: 900 });
     await renderRouter('./src/app', { initialUrl: `/tryon/${jobId}?title=Lacivert%20Blazer&kind=look&id=look_lacivert_blazer` });
 
     await waitFor(() => expect(screen.getByText('TRY IT ON ME')).toBeTruthy(), WAIT);
-    expect(screen.getByText('Getting the pieces ready…')).toBeTruthy();
-    expect(screen.getByText('ON YOU · IN PROGRESS')).toBeTruthy();
-    expect(screen.getByText('Lacivert Blazer is being prepared on your photo. It usually takes 20–40 seconds.')).toBeTruthy();
+    expect(screen.getByTestId('tryon.curtain.card')).toBeTruthy();
+    expect(screen.getByText('Getting ready')).toBeTruthy();
+    // Opened without the start answer (no pieces known): one "Outfit" row.
+    expect(screen.getByText('Putting on Outfit…')).toBeTruthy();
+    expect(screen.getByText('Lacivert Blazer is in the fitting room')).toBeTruthy();
+    expect(screen.getByText("Being made on your photo. It usually takes 20–40 seconds; the curtain opens when it's ready.")).toBeTruthy();
     expect(screen.getByLabelText("Continue in the background — we'll let you know when it's done")).toBeTruthy();
     await waitFor(() => expect(screen.getByText('1 credit · 11 left')).toBeTruthy(), WAIT);
 
+    // The result is in: every row ✓ and "Ready", then the curtain opens and the result layout follows.
+    await waitFor(() => expect(screen.getByText('Ready')).toBeTruthy(), WAIT);
+    expect(screen.getByText('Outfit on')).toBeTruthy();
     await waitFor(() => expect(screen.getByText('Lacivert Blazer on you')).toBeTruthy(), WAIT);
     expect(screen.getByText('You have 10 images left this month.')).toBeTruthy();
     expect(screen.getByText('Done')).toBeTruthy();
+  }, 30_000);
+
+  it('lists the outfit pieces by their own names, puts them on one by one, bags are "added"', async () => {
+    const jobId = startFixtureJob('tryon', result, { id: 'job_t3', durationMs: 60_000 });
+    tryOnPieces.record(jobId, [
+      { name: 'Navy Wool Blazer', category: 'outerwear' },
+      { name: 'Beige Trousers', category: 'bottom' },
+      { name: null, category: 'shoes' },
+      { name: 'Leather Shoulder Bag', category: 'bag' },
+      { name: 'Silk Scarf', category: 'accessory' },
+    ]);
+    await renderRouter('./src/app', { initialUrl: `/tryon/${jobId}?title=Office` });
+
+    await waitFor(() => expect(screen.getByText('Putting on Navy Wool Blazer…')).toBeTruthy(), WAIT);
+    expect(screen.getByText('Beige Trousers')).toBeTruthy();
+    // No name: the category label.
+    expect(screen.getByText('Shoes')).toBeTruthy();
+    expect(screen.getByText('Leather Shoulder Bag')).toBeTruthy();
+    // Four rows at most.
+    expect(screen.queryByText('Silk Scarf')).toBeNull();
+    expect(screen.getByText('and 1 more piece')).toBeTruthy();
+    expect(screen.getAllByTestId('tryon.curtain.row.active')).toHaveLength(1);
   }, 30_000);
 
   it('a failed job says the credit was refunded and offers one retry', async () => {

@@ -3,6 +3,7 @@
  * `../wire/tryon`). One image = 1 AI credit; the same outfit + body photo is served from cache for free.
  */
 import type { JobAccepted } from './jobs';
+import type { ItemCategory } from './wardrobe';
 
 export type TryOnTargetKind = 'item' | 'look' | 'product' | 'edit-look' | 'suggestion' | 'plan-day' | 'trip-day' | 'photo' | 'import-photo';
 
@@ -25,7 +26,10 @@ export type TryOnTarget = { kind: TryOnTargetKind; id: string };
  * 422 `body_photo_required` / `tryon_target_empty`, 409 `request_id_reused`.
  */
 export type StartTryOnRequest = { requestId: string; target: TryOnTarget };
-export type StartTryOnResponse = JobAccepted;
+/** A piece being rendered, in dressing order — the curtain wait lists them ("Lacivert blazer giyiliyor…"). */
+export type TryOnPiece = { name: string | null; category: ItemCategory };
+/** `pieces`: queued jobs only (none for a cached image or an outfit photo). */
+export type StartTryOnResponse = JobAccepted & { pieces?: TryOnPiece[] };
 
 /** Result of a `tryon` job and body of GET v1/tenant/tryon/{id}. */
 export type TryOnResult = {
