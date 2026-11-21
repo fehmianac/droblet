@@ -1,20 +1,18 @@
 import { router } from 'expo-router';
 
+import { track } from '@/analytics/track';
 import { onboardingStore } from '@/auth/onboarding';
-import { openPaywall } from '@/features/teen/TeenLocks';
-import { currentTeenRules } from '@/features/teen/store';
 import { pushAskPending } from '@/notify/push';
 
 /**
- * The end of onboarding: 05 Üyelik (closing it marks onboarding done), or — canvas 18: a teen never sees
- * the paywall — onboarding is marked done here and the guards open Bugün.
+ * The end of onboarding (UX turu 1 · F, owner decision): onboarding ends on 06 Bugün, never on 05 Üyelik — it is
+ * marked done here and the guards open Bugün. 05 opens once by itself after the first try-on result
+ * (`useFirstTryOnPaywall`).
  */
 export function finishOnboarding(userId: string | null): void {
-  if (currentTeenRules().hide.paywall) {
-    if (userId) void onboardingStore.markDone(userId);
-    return;
-  }
-  openPaywall({ from: 'onboarding' });
+  if (!userId) return;
+  track('signup_step', { step: 'done' });
+  void onboardingStore.markDone(userId);
 }
 
 /**

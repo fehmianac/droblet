@@ -7,8 +7,9 @@
     "refreshing": "Preparing another suggestion",
     "refreshFailed": "We couldn't get another suggestion. Try again.",
     "noPlanTitle": "Nothing planned for today",
-    "noPlanBody": "We know your occasion and the weather; let the stylist put together three outfits.",
+    "noPlanBody": "Pick one of your saved looks, or let the stylist put three outfits together for you.",
     "noPlanAction": "Ask the stylist",
+    "noPlanPick": "Pick a look",
     "lookEyebrow": "TODAY'S OUTFIT · {{occasion}}",
     "greetingAlone": {
       "Morning": "Good morning {{name}}.",
@@ -48,8 +49,8 @@
     "change": "Change",
     "remove": "Remove",
     "noLook": "No outfit chosen",
-    "suggest": "Suggest",
-    "suggestA11y": "Suggest an outfit for {{day}}",
+    "plan": "Plan",
+    "planA11y": "Pick a look for {{day}}",
     "planningLines": {
       "wardrobe": "Looking through your wardrobe…",
       "occasions": "Matching the week's occasions…",
@@ -129,8 +130,23 @@
     "savedLook": "Saved look",
     "openLook": "Open look",
     "change": "Change",
-    "emptyDay": "No look for this day. Let the stylist suggest one for the occasion and the weather.",
-    "suggestForDay": "Suggest for this day"
+    "emptyDay": "No look for this day. Pick one of your saved looks, or let the stylist suggest one.",
+    "plan": "Plan",
+    "suggestForDay": "Ask the stylist"
+  },
+  "planPick": {
+    "eyebrow": "{{day}} · {{occasion}}",
+    "title": "Pick a look for this day",
+    "filterAll": "All",
+    "looksA11y": "Saved looks",
+    "lookA11y": "{{name}}, {{occasion}}, {{pieces}}",
+    "lookPlannedA11y": "{{name}}, {{occasion}}, {{pieces}}, on this day",
+    "allLooks_one": "All my looks ({{count}})",
+    "allLooks_other": "All my looks ({{count}})",
+    "suggest": "Ask the stylist",
+    "membership": "Membership",
+    "hint": "Tap a look to add it to this day.",
+    "empty": "You have no saved looks yet."
   },
   "monthReport": {
     "eyebrow": "MONTHLY REPORT",

@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import { Bell, CalendarDays, ChevronRight, Cloud, Sparkles } from 'lucide-react-native';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 
@@ -21,6 +22,7 @@ import { ProfileCompleteCard } from '@/features/requirements/ProfileCompleteCard
 import { useUnreadNotificationCount } from '@/features/notifications/queries';
 import { useRefreshTodayLook, useSetLookFavorite } from '@/features/today/api';
 import { dayPart, todayGreeting } from '@/features/today/logic';
+import { PlanLookSheet } from '@/features/today/PlanLookSheet';
 import { TodayLookCard } from '@/features/today/TodayLookCard';
 import { WeekStrip } from '@/features/today/WeekStrip';
 import { useAppLanguage } from '@/i18n/useAppLanguage';
@@ -33,7 +35,7 @@ import { useTeenRules } from '@/features/teen/store';
 /**
  * 06 Bugün — logo + notifications, date · season + weather, greeting + today's occasion, 7-day strip,
  * today's outfit card (try-on image, pieces, missing piece → "Look'u tamamla", "Bunu giyiyorum",
- * another suggestion, heart) or the no-plan card (06 · plan yok), and this week's edit strip.
+ * another suggestion, heart) or the no-plan card (06 · plan yok: "Look seç" → 07c, "Stilistten öner"), and this week's edit strip.
  */
 export default function TodayScreen() {
   const language = useAppLanguage();
@@ -48,6 +50,8 @@ export default function TodayScreen() {
   // The greeting follows the profile: an edited name shows at once.
   const profile = useMyProfile();
   const unread = useUnreadNotificationCount();
+  // 07c for today, from the no-plan card.
+  const [pick, setPick] = useState<string | null>(null);
 
   return (
     <Screen>
@@ -143,12 +147,25 @@ export default function TodayScreen() {
                     <Text variant="body" tone="muted" className="text-center">
                       {t('todayHome.noPlanBody')}
                     </Text>
-                    <Button
-                      label={t('todayHome.noPlanAction')}
-                      icon={Sparkles}
-                      onPress={() => router.navigate({ pathname: '/stylist', params: { date: data.date } })}
-                      className="self-stretch"
-                    />
+                    {/* Canvas 06 · plan yok: a saved look (no AI) beside the stylist. */}
+                    <View className="flex-row gap-2 self-stretch">
+                      <Button
+                        variant="secondary"
+                        size="lg"
+                        label={t('todayHome.noPlanPick')}
+                        icon={CalendarDays}
+                        onPress={() => setPick(data.date)}
+                        className="flex-1 px-3"
+                        testID="today-plan-pick"
+                      />
+                      <Button
+                        label={t('todayHome.noPlanAction')}
+                        icon={Sparkles}
+                        onPress={() => router.navigate({ pathname: '/stylist', params: { date: data.date } })}
+                        className="flex-1 px-3"
+                        testID="today-plan-stylist"
+                      />
+                    </View>
                   </View>
                 )}
                 {refresh.isError ? (
@@ -198,6 +215,12 @@ export default function TodayScreen() {
           );
         }}
       </ScreenState>
+      <PlanLookSheet
+        date={pick}
+        occasion={today.data && pick === today.data.date ? today.data.occasion : null}
+        onClose={() => setPick(null)}
+        onSuggest={() => pick && router.navigate({ pathname: '/stylist', params: { date: pick } })}
+      />
     </Screen>
   );
 }

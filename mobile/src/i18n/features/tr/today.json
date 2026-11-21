@@ -7,8 +7,9 @@
     "refreshing": "Yeni öneri hazırlanıyor",
     "refreshFailed": "Yeni öneri alınamadı. Tekrar dene.",
     "noPlanTitle": "Bugün için plan yok",
-    "noPlanBody": "Ortamını ve havayı biliyoruz; stilist sana üç kombin hazırlasın.",
-    "noPlanAction": "Stilistten öneri al",
+    "noPlanBody": "Kayıtlı looklarından birini seç ya da stilist sana üç kombin hazırlasın.",
+    "noPlanAction": "Stilistten öner",
+    "noPlanPick": "Look seç",
     "lookEyebrow": "BUGÜNÜN KOMBİNİ · {{occasion}}",
     "greetingAlone": {
       "Morning": "Günaydın {{name}}.",
@@ -48,8 +49,8 @@
     "change": "Değiştir",
     "remove": "Kaldır",
     "noLook": "Kombin seçilmedi",
-    "suggest": "Öner",
-    "suggestA11y": "{{day}} için kombin öner",
+    "plan": "Planla",
+    "planA11y": "{{day}} için look seç",
     "planningLines": {
       "wardrobe": "Gardırobuna bakıyorum…",
       "occasions": "Haftanın ortamlarını eşleştiriyorum…",
@@ -129,8 +130,23 @@
     "savedLook": "Kayıtlı look",
     "openLook": "Look'u aç",
     "change": "Değiştir",
-    "emptyDay": "Bu gün için look yok. Stilist ortama ve havaya göre önersin.",
-    "suggestForDay": "Bu gün için öner"
+    "emptyDay": "Bu gün için look yok. Kayıtlı looklarından birini seç ya da stilist önersin.",
+    "plan": "Planla",
+    "suggestForDay": "Stilistten öner"
+  },
+  "planPick": {
+    "eyebrow": "{{day}} · {{occasion}}",
+    "title": "Bu güne look seç",
+    "filterAll": "Tümü",
+    "looksA11y": "Kayıtlı looklar",
+    "lookA11y": "{{name}}, {{occasion}}, {{pieces}}",
+    "lookPlannedA11y": "{{name}}, {{occasion}}, {{pieces}}, bu günde",
+    "allLooks_one": "Tüm looklarım ({{count}})",
+    "allLooks_other": "Tüm looklarım ({{count}})",
+    "suggest": "Stilistten öner",
+    "membership": "Üyelik",
+    "hint": "Bir look'a dokun, bu güne eklensin.",
+    "empty": "Henüz kayıtlı look'un yok."
   },
   "monthReport": {
     "eyebrow": "AYLIK RAPOR",

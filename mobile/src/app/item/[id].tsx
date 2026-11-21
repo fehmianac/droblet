@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, Ellipsis, Pencil, ShoppingBag, Sparkles, Sun, Tag, Trash2 } from 'lucide-react-native';
+import { ChevronLeft, Ellipsis, Pencil, Plus, ShoppingBag, Sparkles, Sun, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, View } from 'react-native';
@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ItemDetail } from '@/api/contracts/wardrobe';
 import { isNotFound } from '@/api/errors';
 import { itemImageSource, itemViewerSource } from '@/api/imageSources';
-import { Badge, ImageTag, PopoverMenu } from '@/components/ui/Bits';
+import { ImageTag, PopoverMenu } from '@/components/ui/Bits';
 import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
@@ -49,7 +49,7 @@ function InfoCard({ label, value }: { label: string; value: string }) {
 
 /**
  * 11 Parça detayı — hero picture, edit, ⋯ menu (change season, delete), facts, the looks using the
- * piece, the phase-2 "Sat · Kiraya ver" slot, and "Bununla kombin yap" / completing products.
+ * piece, and the bar: "Bununla look yap" (15 opens with this piece), "Stille" (the AI stylist), completing products.
  */
 export default function ItemDetailScreen() {
   const language = useAppLanguage();
@@ -172,23 +172,26 @@ export default function ItemDetailScreen() {
                   </Text>
                 )}
 
-                {/* Phase 2 (second-hand / rental): the slot is reserved, not interactive yet. */}
-                <View className="mx-gutter flex-row items-center gap-2.5 rounded-image-lg border border-dashed border-line px-3 py-2.5">
-                  <Icon icon={Tag} size={18} tone="muted" />
-                  <Text variant="caption" tone="muted" className="flex-1">
-                    {t('itemDetail.sellRent')}
-                  </Text>
-                  <Badge label={t('common.comingSoon')} />
-                </View>
               </ScrollView>
 
               <BottomActionBar>
                 <View className="flex-row items-center gap-3">
+                  {/* UX turu 1 · D: building a look with the piece is the main action; the AI stylist is the outlined one. */}
                   <Button
-                    className="flex-1"
+                    className="flex-1 px-3.5"
+                    size="lg"
+                    icon={Plus}
+                    label={t('itemDetail.makeLook')}
+                    testID="item-make-look"
+                    onPress={() => router.push({ pathname: '/look/new', params: { itemIds: item.id } })}
+                  />
+                  <Button
+                    variant="secondary"
+                    className="px-3.5"
                     size="lg"
                     icon={Sparkles}
-                    label={t('itemDetail.styleWith')}
+                    label={t('itemDetail.styleIt')}
+                    testID="item-style"
                     onPress={() => router.navigate({ pathname: '/stylist', params: { itemId: item.id } })}
                   />
                   {/* "Mağazada bul" — a store link, not drawn for a teen (canvas 18). */}

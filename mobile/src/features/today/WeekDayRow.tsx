@@ -1,4 +1,4 @@
-import { Ellipsis, Plus, Sparkles } from 'lucide-react-native';
+import { Ellipsis, Plus } from 'lucide-react-native';
 import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, View, type ViewInstance } from 'react-native';
@@ -23,7 +23,8 @@ type Props = {
   row: WeekRow;
   /** Opens the ⋯ menu; `top` is where the menu should sit (window coordinates). */
   onOpenMenu: (top: number) => void;
-  onSuggest: () => void;
+  /** "Planla" on an empty day: 07c "Bu güne look seç". */
+  onPlan: () => void;
   /** Try-on job started for this day in this session, if any. */
   tryOnJobId: string | null;
   /** Polling runs only while the screen is focused. */
@@ -33,9 +34,9 @@ type Props = {
 
 /**
  * One day of 07 Haftalık plan, as drawn: a paper card (56 × 72 look thumbnail, "PAZARTESİ · OFİS", the look
- * name, the date and the borderless ⋯ button) or the dashed empty day (sand "+" tile, "Kombin seçilmedi", "Öner").
+ * name, the date and the borderless ⋯ button) or the dashed empty day (sand "+" tile, "Kombin seçilmedi", "Planla").
  */
-export function WeekDayRow({ row, onOpenMenu, onSuggest, tryOnJobId, focused, onRetryTryOn }: Props) {
+export function WeekDayRow({ row, onOpenMenu, onPlan, tryOnJobId, focused, onRetryTryOn }: Props) {
   const language = useAppLanguage();
   const { t } = useTranslation();
   const anchor = useRef<ViewInstance>(null);
@@ -67,15 +68,15 @@ export function WeekDayRow({ row, onOpenMenu, onSuggest, tryOnJobId, focused, on
           </Text>
         </View>
         <Pressable
-          onPress={onSuggest}
+          onPress={onPlan}
           accessibilityRole="button"
-          accessibilityLabel={t('weekPlan.suggestA11y', { day: dayLabel })}
+          accessibilityLabel={t('weekPlan.planA11y', { day: dayLabel })}
           hitSlop={4}
           className="h-chip flex-row items-center gap-1.5 rounded-pill border border-line px-[15px] active:opacity-80"
         >
-          <Icon icon={Sparkles} size={15} />
+          <Icon icon={Plus} size={15} />
           <Text variant="chip" numberOfLines={1}>
-            {t('weekPlan.suggest')}
+            {t('weekPlan.plan')}
           </Text>
         </Pressable>
       </View>
