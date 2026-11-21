@@ -196,17 +196,23 @@ public static partial class StylistOutputGuard
     private static partial Regex BodyTalk();
 }
 
+/// <param name="Segment">Menswear rules for men (see <see cref="RuleBasedOutfit"/>); women keep the phase 1 rules exactly.</param>
+/// <param name="Occasion">The day's occasion (men: a tailored outer layer for office, dinner and wedding).</param>
 public sealed record RuleOutfitOptions(
     string? PinnedItemId = null,
     bool WithOuterwear = false,
     bool OnlyMyWardrobe = true,
     int Offset = 0,
-    IReadOnlySet<string>? ExcludeSignatures = null);
+    IReadOnlySet<string>? ExcludeSignatures = null,
+    Segment Segment = Segment.Women,
+    Occasion? Occasion = null);
 
 /// <summary>
 /// Rule-based fallback so the user always sees a result when the model's suggestion fails the guard.
 /// Deterministic: least-worn pieces first; top + bottom pairs alternate with dresses; shoes, an outer layer (when the
 /// weather asks for one) and a bag/accessory rotate. No title or explanation is invented — the client shows its own text.
+/// Men: top + bottom pairs first — an owned dress only when no pair can be made (never alternated in); for office, dinner
+/// and wedding the outer layer (blazer / suit jacket) is added when there is one, whatever the weather.
 /// </summary>
 public static class RuleBasedOutfit
 {
@@ -244,6 +250,12 @@ public static class RuleBasedOutfit
             _ => dresses.Select(d => (d, (CandidateItem?)null)).ToList(),
         };
 
+        var menswear = options.Segment == Segment.Men;
+        if (menswear && pairs.Count > 0 && pinned?.Category != ItemCategory.Dress)
+            dressBases = [];
+        var withOuterwear = options.WithOuterwear
+                            || menswear && options.Occasion is Occasion.Office or Occasion.Dinner or Occasion.Wedding;
+
         var bases = new List<(CandidateItem Top, CandidateItem? Bottom)>();
         for (var k = 0; k < Math.Max(pairs.Count, dressBases.Count); k++)
         {
@@ -259,7 +271,7 @@ public static class RuleBasedOutfit
             var (top, bottom) = bases[i % bases.Count];
             var slots = new List<SlotRef> { new(OutfitSlot.Top, top.Id) };
             if (bottom is not null) slots.Add(new SlotRef(OutfitSlot.Bottom, bottom.Id));
-            if (options.WithOuterwear && Pick(outerwear, i) is { } outer) slots.Add(new SlotRef(OutfitSlot.Outerwear, outer.Id));
+            if (withOuterwear && Pick(outerwear, i) is { } outer) slots.Add(new SlotRef(OutfitSlot.Outerwear, outer.Id));
             if (Pick(shoes, i) is { } shoe) slots.Add(new SlotRef(OutfitSlot.Shoes, shoe.Id));
             if (Pick(bags, i) is { } bag) slots.Add(new SlotRef(OutfitSlot.BagAccessory, bag.Id));
 
