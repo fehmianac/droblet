@@ -72,6 +72,15 @@ export function resetAccountFixtures(
   if (overrides.emailVerified !== undefined) state.profile = { ...state.profile, emailVerified: overrides.emailVerified };
 }
 
+/** The men's showcase account (canvas 17): Emre's name, handle and men's style tags; the rest is shared. */
+export function applyAccountPersona(persona: 'women' | 'men'): void {
+  const seed = initialState().profile;
+  state.profile =
+    persona === 'men'
+      ? { ...state.profile, handle: 'emre', displayName: 'Emre', styleTags: ['minimal', 'smart_casual', 'tailored'] }
+      : { ...state.profile, handle: seed.handle, displayName: seed.displayName, styleTags: seed.styleTags };
+}
+
 const readyPalette: Palette = {
   status: 'ready',
   seasonType: 'warm_autumn',

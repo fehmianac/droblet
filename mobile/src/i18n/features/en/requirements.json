@@ -189,7 +189,10 @@
         "apple": "Apple",
         "rectangle": "Rectangle",
         "inverted_triangle": "Inverted triangle",
-        "unsure": "Not sure"
+        "unsure": "Not sure",
+        "triangle": "Triangle",
+        "oval": "Oval",
+        "trapezoid": "Trapezoid"
       },
       "desc": {
         "hourglass": "Shoulders and hips about as wide, a more defined waist.",
@@ -198,6 +201,13 @@
         "rectangle": "Shoulders, waist and hips close to each other.",
         "inverted_triangle": "Shoulders wider than the hips.",
         "unsure": "That's fine. We use a balanced figure from your height and size; you can change it later."
+      },
+      "descMen": {
+        "rectangle": "Shoulders, waist and hips about the same width.",
+        "inverted_triangle": "Clearly broad shoulders; a narrower waist and hips.",
+        "triangle": "Hips and waist wider than the shoulders.",
+        "oval": "Volume gathers in the middle, around the waist.",
+        "trapezoid": "Shoulders a little wider than the hips, a balanced waist."
       }
     },
     "premium": {

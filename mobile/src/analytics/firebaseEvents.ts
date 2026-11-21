@@ -157,6 +157,8 @@ export type AnalyticsUserProperties = {
   has_body_photo: boolean | null;
   has_face_photo: boolean | null;
   wardrobe_size_bucket: string | null;
+  /** The style profile's segment (`women` | `men`), canvas 17. */
+  segment: 'women' | 'men' | null;
 };
 
 /** Pieces in the wardrobe → a coarse bucket (never the exact count). */

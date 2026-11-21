@@ -101,6 +101,27 @@ const SEEDS: Seed[] = [
   ['Lacivert Polo Tişört', 'Navy Polo Shirt', 'lululemon', 'tshirt', ['navy'], 1300],
 ];
 
+/** Seeds the men's catalogue leaves out (canvas 17: the server filters the catalogue by segment). */
+const WOMEN_ONLY_SEEDS = new Set([
+  'Deri Kroko Babet',
+  'City Medium Siyah Çanta',
+  'Yün Karışımlı Balloon Paça Pantolon',
+  'Saten Midi Elbise',
+  'Küçük Taşlı Küpe',
+  'Zeytin Rengi Triko Yelek',
+  'İpek Fular',
+  'Mini Omuz Çantası',
+  'Triko Midi Elbise',
+  'Bej Trençkot',
+  'Bordo Saten Gömlek',
+  'Lacivert Poplin Elbise',
+  'Hasır Dokulu Tote Çanta',
+  'Siyah Topuklu Bot',
+  'Beyaz Dantelli Gömlek',
+  'Siyah Deri Clutch',
+  'Bej Keten Elbise',
+]);
+
 function sizesFor(category: ProductCategory): string[] {
   if (category === 'shoes') return SHOES;
   if (category === 'bag' || category === 'accessory') return SINGLE;
@@ -284,8 +305,14 @@ export const storeFixtures = {
   series: (): SeriesOutfit[] => [],
   brands: (): Brand[] => brandsFixture,
 
-  products: (query: ProductQuery, pageToken: string | null): ProductPage =>
-    paginate(filterProducts(localizedCatalogue(), query), pageToken),
+  products: (query: ProductQuery, pageToken: string | null, segment: 'women' | 'men' = 'women'): ProductPage =>
+    paginate(
+      filterProducts(
+        localizedCatalogue().filter((p) => segment === 'women' || !WOMEN_ONLY_SEEDS.has(productsFixture.find((f) => f.id === p.id)?.name ?? '')),
+        query,
+      ),
+      pageToken,
+    ),
   product: (id: string): ProductDetail => product(id),
   match: (id: string): ProductMatch => {
     const p = product(id);

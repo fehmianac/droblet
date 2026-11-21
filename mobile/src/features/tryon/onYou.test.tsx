@@ -108,7 +108,7 @@ describe('library rows (04b / 12b)', () => {
   const wire = { id: 'lib_1', name: 'Lacivert blazer', category: 'outerwear', colorIds: ['navy'], fabric: null, seasons: [], imageUrl: null };
 
   it('keeps a null picture as null and carries the main colour for the placeholder', () => {
-    expect(toLibraryItem(wire)).toEqual({ id: 'lib_1', name: 'Lacivert blazer', category: 'outerwear', imageUrl: null, color: 'navy' });
+    expect(toLibraryItem(wire)).toEqual({ id: 'lib_1', name: 'Lacivert blazer', category: 'outerwear', subcategory: null, imageUrl: null, color: 'navy' });
     expect(toLibraryItem({ ...wire, colorIds: [] }).color).toBeNull();
   });
 

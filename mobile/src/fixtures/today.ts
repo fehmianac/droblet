@@ -14,7 +14,7 @@ import type {
   WeeklyEdit,
 } from '@/api/contracts/today';
 import type { ItemCategory } from '@/api/contracts/wardrobe';
-import { clone, fixtureDb, FixtureNotFound, onFixtureSeed } from '@/fixtures/db';
+import { clone, fixtureDb, FixtureNotFound, fixturePersona, onFixtureSeed } from '@/fixtures/db';
 import { L } from '@/fixtures/showcase';
 
 /**
@@ -88,13 +88,17 @@ onFixtureSeed((db, { empty }) => {
 const MISSING_PIECE: Record<string, LookPiece> = {
   look_lacivert_blazer: { id: 'prod_earrings', name: L('Küçük taşlı küpe'), source: 'store', imageUrl: null, category: 'accessory', color: 'other' },
 };
+/** The men's showcase account (canvas 17 · 06): loafers finish the suit. */
+const MISSING_PIECE_MEN: Record<string, LookPiece> = {
+  look_lacivert_blazer: { id: 'prod_loafers', name: L('Deri loafer'), source: 'store', imageUrl: null, category: 'loafers', color: 'brown' },
+};
 
 function todayLook(look: Look, date: string): TodayLook {
   const pieces: LookPiece[] = look.slots.map((s) => {
     const owned = s.source === 'wardrobe' ? fixtureDb.items.find((i) => i.id === s.refId) : undefined;
     return { id: s.refId, name: s.name, source: s.source, imageUrl: s.imageUrl, category: owned?.category ?? s.slot, color: owned?.color ?? null };
   });
-  const missing = MISSING_PIECE[look.id];
+  const missing = (fixturePersona() === 'men' ? MISSING_PIECE_MEN : MISSING_PIECE)[look.id];
   return {
     id: look.id,
     name: look.name,
@@ -115,7 +119,7 @@ export function buildTodayFixture(today: Date = new Date()): TodayResponse {
   return clone({
     date,
     weather: { temperatureC: 14, city: L('İstanbul') },
-    firstName: 'Damla',
+    firstName: fixturePersona() === 'men' ? 'Emre' : 'Damla',
     occasion: look ? (plan?.occasion ?? look.occasion) : null,
     look: look ? todayLook(look, date) : null,
     week: week.map((d) => ({ date: d, hasPlan: fixtureDb.planDays.some((p) => p.date === d && p.lookId !== null) })),
@@ -271,6 +275,61 @@ const EDIT_SEED: LookSeed[] = [
   },
 ];
 
+/** The men's weekly edit of the showcase account (canvas 17 · 06: Oxford gömlek, Koyu chino, Lacivert…). */
+const OXFORD: ProductSeed = ['prod_oxford_shirt', 'Marks & Spencer', 'Beyaz Oxford Gömlek', 1890, 'top', 'item_white_shirt'];
+const CHINOS: ProductSeed = ['prod_chinos', 'Gap', 'Koyu Chino Pantolon', 2150, 'bottom', 'item_black_trousers'];
+const EDIT_SEED_MEN: LookSeed[] = [
+  {
+    name: 'Oxford Gömlek',
+    occasion: 'office',
+    note: 'Beyaz oxford gömleği chino ile eşle; kahve loafer ve deri kemerle sade tut.',
+    high: [OXFORD, CHINOS, ['prod_loafers', 'Marks & Spencer', 'Deri Loafer', 3650, 'shoes', null], ['prod_belt_m', 'Gap', 'Deri Kemer', 890, 'accessory', null]],
+    luxury: [OXFORD, CHINOS, ['prod_lux_loafers', 'Beymen Club', 'Tokalı Deri Loafer', 18750, 'shoes', null], ['prod_lux_belt', 'Beymen Club', 'Tokalı Deri Kemer', 6400, 'accessory', null]],
+  },
+  {
+    name: 'Koyu Chino',
+    occasion: 'office',
+    note: 'Koyu chinoyu gri trikoyla yumuşat; saat tek aksesuar olsun.',
+    high: [CHINOS, ['prod_grey_knit', 'Gap', 'Gri Yün Triko', 1990, 'top', 'item_cream_knit']],
+    luxury: [CHINOS, ['prod_lux_knit', 'Vakko', 'Kaşmir Triko', 9900, 'top', null]],
+  },
+  {
+    name: 'Lacivert',
+    occasion: 'office',
+    note: 'Lacivert takım ceketini beyaz gömlek ve ipek kravatla tamamla.',
+    high: [['prod_suit_jacket', 'Vakko', 'Lacivert Takım Ceketi', 9800, 'outerwear', 'item_navy_blazer'], ['prod_tie', 'Marks & Spencer', 'İpek Kravat', 1250, 'accessory', null]],
+    luxury: [['prod_suit_jacket', 'Vakko', 'Lacivert Takım Ceketi', 9800, 'outerwear', 'item_navy_blazer'], ['prod_lux_tie', 'Beymen Club', 'El Yapımı İpek Kravat', 4900, 'accessory', null]],
+  },
+  {
+    name: 'Akşam Yemeği',
+    occasion: 'dinner',
+    note: 'Koyu gömleği chino ile eşle; deri loafer akşamı tamamlar.',
+    high: [CHINOS, ['prod_dark_shirt', 'Gap', 'Koyu Gömlek', 2290, 'top', null]],
+    luxury: [CHINOS, ['prod_lux_shirt', 'Vakko', 'Poplin Gömlek', 7900, 'top', null]],
+  },
+  {
+    name: 'Gri Katmanlar',
+    occasion: 'office',
+    note: 'Gri trikonun altına beyaz gömlek; tonları yakın tut.',
+    high: [['prod_grey_knit', 'Gap', 'Gri Yün Triko', 1990, 'top', 'item_cream_knit'], ['prod_boots_m', 'Marks & Spencer', 'Deri Bot', 4850, 'shoes', null]],
+    luxury: [['prod_grey_knit', 'Gap', 'Gri Yün Triko', 1990, 'top', 'item_cream_knit'], ['prod_lux_boots_m', 'Vakko', 'Süet Bot', 21500, 'shoes', null]],
+  },
+  {
+    name: 'Tüvit & Jean',
+    occasion: 'weekend',
+    note: 'Tüvit ceketi koyu jean ve beyaz sneaker ile rahatlat.',
+    high: [['prod_jeans', 'Gap', 'Düz Kesim Jean', 2190, 'bottom', 'item_straight_jeans'], ['prod_backpack', 'Marks & Spencer', 'Kanvas Sırt Çantası', 1450, 'bag', null]],
+    luxury: [['prod_jeans', 'Gap', 'Düz Kesim Jean', 2190, 'bottom', 'item_straight_jeans'], ['prod_lux_backpack', 'Beymen Club', 'Deri Sırt Çantası', 16900, 'bag', null]],
+  },
+  {
+    name: 'Pazar Sakinliği',
+    occasion: 'weekend',
+    note: 'Keten gömlek, koyu jean ve polo: rahat ama derli toplu.',
+    high: [['prod_linen_shirt', 'Gap', 'Keten Gömlek', 1790, 'top', 'item_linen_shirt'], ['prod_sandals', 'Marks & Spencer', 'Deri Sandalet', 2650, 'shoes', null]],
+    luxury: [['prod_linen_shirt', 'Gap', 'Keten Gömlek', 1790, 'top', 'item_linen_shirt'], ['prod_lux_sandals', 'Vakko', 'El Yapımı Deri Sandalet', 12400, 'shoes', null]],
+  },
+];
+
 /** Main colour of the edit's placeholder products (ground of the picture placeholder). */
 const PRODUCT_COLOR: Record<string, string> = {
   prod_poplin_shirt: 'white',
@@ -296,6 +355,20 @@ const PRODUCT_COLOR: Record<string, string> = {
   prod_linen_shirt: 'beige',
   prod_sandals: 'brown',
   prod_lux_sandals: 'brown',
+  prod_oxford_shirt: 'white',
+  prod_chinos: 'brown',
+  prod_belt_m: 'brown',
+  prod_grey_knit: 'grey',
+  prod_lux_knit: 'grey',
+  prod_suit_jacket: 'navy',
+  prod_tie: 'navy',
+  prod_lux_tie: 'navy',
+  prod_dark_shirt: 'navy',
+  prod_lux_shirt: 'white',
+  prod_boots_m: 'brown',
+  prod_lux_boots_m: 'brown',
+  prod_backpack: 'beige',
+  prod_lux_backpack: 'brown',
 };
 
 function product([id, brand, name, price, category, ownedItemId]: ProductSeed): EditProduct {
@@ -313,7 +386,7 @@ function product([id, brand, name, price, category, ownedItemId]: ProductSeed): 
 }
 
 function buildEditLooks(weekStart: string): EditLook[] {
-  return EDIT_SEED.map((seed, i) => {
+  return (fixturePersona() === 'men' ? EDIT_SEED_MEN : EDIT_SEED).map((seed, i) => {
     const id = `edit_${weekStart}_${i + 1}`;
     return {
       id,
@@ -405,6 +478,22 @@ export const libraryFixture: LibraryItem[] = [
   { id: 'lib_black_bag', name: L('Siyah deri çanta'), category: 'bag', imageUrl: null, color: 'black' },
   { id: 'lib_tweed_jacket', name: L('Tüvit ceket'), category: 'outerwear', imageUrl: null, color: 'grey' },
   { id: 'lib_beige_trench', name: L('Bej trençkot'), category: 'outerwear', imageUrl: null, color: 'beige' },
+];
+
+/** The men's library of canvas 17 · 12b (pictures come later: every piece shows its glyph). */
+export const menLibraryFixture: LibraryItem[] = [
+  { id: 'lib_m_basic_tee', name: L('Basic tişört'), category: 'top', subcategory: 't-shirt', imageUrl: null, color: 'white' },
+  { id: 'lib_m_oxford_shirt', name: L('Oxford gömlek'), category: 'top', subcategory: 'shirt', imageUrl: null, color: 'blue' },
+  { id: 'lib_m_polo', name: L('Polo tişört'), category: 'top', subcategory: 'polo', imageUrl: null, color: 'navy' },
+  { id: 'lib_m_crew_knit', name: L('Bisiklet yaka triko'), category: 'top', subcategory: 'sweater', imageUrl: null, color: 'grey' },
+  { id: 'lib_m_suit_jacket', name: L('Takım ceketi'), category: 'outerwear', subcategory: 'suit-jacket', imageUrl: null, color: 'navy' },
+  { id: 'lib_m_coat', name: L('Kaban'), category: 'outerwear', subcategory: 'coat', imageUrl: null, color: 'grey' },
+  { id: 'lib_m_chinos', name: L('Chino pantolon'), category: 'bottom', subcategory: 'chinos', imageUrl: null, color: 'beige' },
+  { id: 'lib_m_jeans', name: L('Düz paça jean'), category: 'bottom', subcategory: 'jeans', imageUrl: null, color: 'blue' },
+  { id: 'lib_m_loafers', name: L('Loafer'), category: 'shoes', subcategory: 'loafers', imageUrl: null, color: 'brown' },
+  { id: 'lib_m_sneakers', name: L('Sneaker'), category: 'shoes', subcategory: 'sneakers', imageUrl: null, color: 'white' },
+  { id: 'lib_m_tie', name: L('Kravat'), category: 'accessory', subcategory: 'tie', imageUrl: null, color: 'navy' },
+  { id: 'lib_m_watch', name: L('Saat'), category: 'accessory', subcategory: 'watch', imageUrl: null, color: 'grey' },
 ];
 
 /** Simulated latency so loading skeletons are exercised in development. */

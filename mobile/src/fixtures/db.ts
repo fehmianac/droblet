@@ -65,6 +65,29 @@ function seedItems(): Item[] {
   ];
 }
 
+/**
+ * The men's showcase account (canvas 17, "Emre"): the same ids as the women's seed, so every fixture that
+ * points at an item or a look (Bugün, plan, trips, stylist) stays consistent — only the pieces differ.
+ */
+function seedMenItems(): Item[] {
+  return [
+    item('item_white_shirt', 'Beyaz oxford gömlek', 'top', 'white', ['spring', 'autumn'], { subcategory: 'Gömlek', fabric: 'Pamuk', brand: 'Marks & Spencer', size: 'L', wearCount: 9 }),
+    item('item_navy_blazer', 'Lacivert takım ceketi', 'outerwear', 'navy', ['autumn', 'winter'], { subcategory: 'Takım ceketi', fabric: 'Yün', brand: 'Vakko', size: 'L', wearCount: 6 }),
+    item('item_black_midi', 'Lacivert ipek kravat', 'accessory', 'navy', ['spring', 'autumn', 'winter'], { subcategory: 'Kravat', fabric: 'İpek', size: null, wearCount: 4 }),
+    item('item_straight_jeans', 'Koyu jean', 'bottom', 'blue', ['spring', 'summer', 'autumn', 'winter'], { subcategory: 'Jean', fabric: 'Denim', brand: 'Gap', size: 'L', wearCount: 12 }),
+    item('item_cream_knit', 'Gri yün triko', 'top', 'grey', ['autumn', 'winter'], { subcategory: 'Triko', fabric: 'Yün', size: 'L', wearCount: 7 }),
+    item('item_croc_flats', 'Kahve loafer', 'shoes', 'brown', ['spring', 'summer', 'autumn'], { subcategory: 'Loafer', size: '43', fabric: 'Deri', wearCount: 5 }),
+    item('item_black_bag', 'Çelik saat', 'accessory', 'grey', ['spring', 'summer', 'autumn', 'winter'], { subcategory: 'Saat', size: null, wearCount: 14 }),
+    item('item_tweed_jacket', 'Tüvit ceket', 'outerwear', 'beige', ['spring', 'autumn'], { subcategory: 'Ceket', fabric: 'Tüvit', size: 'L', wearCount: 3 }),
+    item('item_beige_trench', 'Lacivert polo', 'top', 'navy', ['spring', 'summer'], { subcategory: 'Polo tişört', fabric: 'Pamuk', size: 'L', wearCount: 2 }),
+    item('item_black_trousers', 'Bej chino', 'bottom', 'beige', ['spring', 'autumn', 'winter'], { subcategory: 'Chino pantolon', fabric: 'Pamuk', size: 'L', wearCount: 8 }),
+    item('item_black_boots', 'Kahve bot', 'shoes', 'brown', ['autumn', 'winter'], { size: '43', fabric: 'Deri', wearCount: 6 }),
+    item('item_white_sneakers', 'Beyaz sneaker', 'shoes', 'white', ['spring', 'summer', 'autumn'], { size: '43', wearCount: 10 }),
+    item('item_silk_scarf', 'Kahve deri kemer', 'accessory', 'brown', ['spring', 'autumn'], { subcategory: 'Kemer', size: null, fabric: 'Deri', wearCount: 1 }),
+    item('item_linen_shirt', 'Keten gömlek', 'top', 'beige', ['spring', 'summer'], { subcategory: 'Gömlek', fabric: 'Keten', size: 'L', wearCount: 0 }),
+  ];
+}
+
 export function slotFromItem(slot: LookSlotKind, source: Item): LookSlot {
   return {
     slot,
@@ -78,7 +101,7 @@ export function slotFromItem(slot: LookSlotKind, source: Item): LookSlot {
   };
 }
 
-function seedLooks(items: Item[]): Look[] {
+function seedLooks(items: Item[], persona: FixturePersona = 'women'): Look[] {
   const byId = (id: string): Item => {
     const found = items.find((i) => i.id === id);
     if (!found) throw new Error(`fixture item missing: ${id}`);
@@ -97,6 +120,49 @@ function seedLooks(items: Item[]): Look[] {
     baseVersion: 1,
     ...extra,
   });
+  if (persona === 'men') {
+    return [
+      look(
+        'look_lacivert_blazer',
+        'Lacivert Takım',
+        'office',
+        [
+          ['top', 'item_white_shirt'],
+          ['outerwear', 'item_navy_blazer'],
+        ],
+        { isFavorite: true, rating: 4.6, ratingCount: 12 },
+      ),
+      look(
+        'look_siyah_duz_elbise',
+        'Akşam Klasikleri',
+        'evening',
+        [
+          ['top', 'item_white_shirt'],
+          ['bottom', 'item_black_trousers'],
+          ['accessory', 'item_black_midi'],
+        ],
+        { rating: 4.8, ratingCount: 9 },
+      ),
+      look('look_tuvit_jean', 'Tüvit & Jean', 'weekend', [
+        ['top', 'item_cream_knit'],
+        ['bottom', 'item_straight_jeans'],
+        ['outerwear', 'item_tweed_jacket'],
+        ['shoes', 'item_white_sneakers'],
+      ]),
+      look(
+        'look_krem_katmanlar',
+        'Gri Katmanlar',
+        'office',
+        [
+          ['top', 'item_cream_knit'],
+          ['bottom', 'item_black_trousers'],
+          ['shoes', 'item_croc_flats'],
+          ['accessory', 'item_black_bag'],
+        ],
+        { rating: 4.2, ratingCount: 5 },
+      ),
+    ];
+  }
   return [
     look(
       'look_lacivert_blazer',
@@ -150,6 +216,13 @@ type FixtureDb = {
   entitlement: Entitlement;
 };
 
+/** Which showcase account the fixtures stand in for: Damla (women, the default) or Emre (men, canvas 17). */
+export type FixturePersona = 'women' | 'men';
+let persona: FixturePersona = 'women';
+export function fixturePersona(): FixturePersona {
+  return persona;
+}
+
 type Seeder = (db: FixtureDb, options: { empty: boolean }) => void;
 const seeders: Seeder[] = [];
 
@@ -163,10 +236,10 @@ export function onFixtureSeed(seeder: Seeder): void {
 }
 
 function seed(): FixtureDb {
-  const items = seedItems();
+  const items = persona === 'men' ? seedMenItems() : seedItems();
   return {
     items,
-    looks: seedLooks(items),
+    looks: seedLooks(items, persona),
     planDays: [],
     wearLogs: [],
     entitlement: {
@@ -184,8 +257,12 @@ function seed(): FixtureDb {
 /** Mutable on purpose: fixture mutation functions edit it like a server would. Always return copies to callers. */
 export const fixtureDb: FixtureDb = seed();
 
-/** Restores the seed (tests) or empties the wardrobe (to exercise empty states). */
-export function resetFixtureDb(options: { empty?: boolean } = {}): void {
+/**
+ * Restores the seed (tests) or empties the wardrobe (to exercise empty states). `persona: 'men'` seeds the men's
+ * showcase account (the showcase build switches when the signed-in style profile says `men`).
+ */
+export function resetFixtureDb(options: { empty?: boolean; persona?: FixturePersona } = {}): void {
+  persona = options.persona ?? 'women';
   const fresh = seed();
   fixtureDb.items = options.empty ? [] : fresh.items;
   fixtureDb.looks = options.empty ? [] : fresh.looks;

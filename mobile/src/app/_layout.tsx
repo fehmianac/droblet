@@ -73,7 +73,8 @@ export default function RootLayout() {
   const allowed = signedIn && !ageBlocked;
   const onboarded = allowed && onboarding === 'done';
   /** Where a guarded route sends the user right now. */
-  const home = !signedIn ? '/welcome' : ageBlocked ? '/age-confirm' : onboarded ? '/' : '/style';
+  // Onboarding starts at 03a Reyon, which hands over to 03 at once while only one segment is open (canvas 17).
+  const home = !signedIn ? '/welcome' : ageBlocked ? '/age-confirm' : onboarded ? '/' : '/segment';
 
   return (
     <QueryProvider userId={userId}>
@@ -96,6 +97,7 @@ export default function RootLayout() {
         </Stack.Protected>
 
         <Stack.Protected guard={allowed && !onboarded} redirectTo={home}>
+          <Stack.Screen name="(onboarding)/segment" />
           <Stack.Screen name="(onboarding)/style" />
           <Stack.Screen name="(onboarding)/consents" />
           <Stack.Screen name="(onboarding)/body" />
@@ -137,6 +139,7 @@ export default function RootLayout() {
           <Stack.Screen name="u/[handle]" />
           <Stack.Screen name="settings" />
           <Stack.Screen name="edit-profile" />
+          <Stack.Screen name="style-profile" />
           <Stack.Screen name="subscription" />
           <Stack.Screen name="notifications" />
           <Stack.Screen name="delete-account" />

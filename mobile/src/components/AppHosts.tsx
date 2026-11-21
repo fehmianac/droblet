@@ -7,6 +7,7 @@ import { RequirementsHost } from '@/features/requirements/RequirementsHost';
 import { LanguageSyncHost } from '@/features/account/LanguageSyncHost';
 import { CreditSheetHost } from '@/features/credits/CreditPackSheet';
 import { InviteHost } from '@/features/social/InviteHost';
+import { SegmentHost } from '@/features/segment/SegmentHost';
 import { PurchasePromptHost } from '@/features/store/PurchasePromptHost';
 import { PurchaseHost } from '@/purchases/PurchaseHost';
 
@@ -18,6 +19,8 @@ export function AppHosts({ userId }: { userId: string | null }) {
   return (
     <>
       <AnalyticsHost userId={userId} />
+      {/* Canvas 17: the user's segment ("reyon") for copy, choices, placeholders and catalogue queries. */}
+      {userId ? <SegmentHost key={`segment-${userId}`} /> : null}
       <InviteHost userId={userId} />
       {userId ? <CreditSheetHost /> : null}
       {/* Just-in-time consent sheet: feature gates and 403 `consent_required` answers open it. */}

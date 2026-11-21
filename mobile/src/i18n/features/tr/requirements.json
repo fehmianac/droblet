@@ -189,7 +189,10 @@
         "apple": "Elma",
         "rectangle": "Dikdörtgen",
         "inverted_triangle": "Ters üçgen",
-        "unsure": "Emin değilim"
+        "unsure": "Emin değilim",
+        "triangle": "Üçgen",
+        "oval": "Oval",
+        "trapezoid": "Trapez"
       },
       "desc": {
         "hourglass": "Omuz ve kalça genişliği yakın, bel daha belirgin.",
@@ -198,6 +201,13 @@
         "rectangle": "Omuz, bel ve kalça birbirine yakın.",
         "inverted_triangle": "Omuzlar kalçadan daha geniş.",
         "unsure": "Sorun değil. Boyun ve bedeninle dengeli bir figür kullanırız; sonra değiştirebilirsin."
+      },
+      "descMen": {
+        "rectangle": "Omuz, bel ve kalça aşağı yukarı aynı genişlikte.",
+        "inverted_triangle": "Omuzlar belirgin biçimde geniş; bel ve kalça daha dar.",
+        "triangle": "Kalça ve bel, omuzlardan daha geniş.",
+        "oval": "Hacim gövdenin ortasında, bel çevresinde toplanır.",
+        "trapezoid": "Omuzlar kalçadan biraz geniş, bel dengeli."
       }
     },
     "premium": {

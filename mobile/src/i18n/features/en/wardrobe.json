@@ -161,7 +161,8 @@
     "selected_one": "{{count}} piece selected",
     "selected_other": "{{count}} pieces selected",
     "editLater": "Edit colour and size later",
-    "add": "Add to wardrobe"
+    "add": "Add to wardrobe",
+    "searchPlaceholderMen": "Search: chinos, blazer, loafers"
   },
   "itemForm": {
     "titleNew": "Piece details",
@@ -209,7 +210,8 @@
     "processingFields": "Filling in the fields…",
     "processingBody": "Your photo is being processed; we'll suggest the type, colour and fabric in a moment. You can correct everything before saving.",
     "colorHex": "Colour code",
-    "colorHexPlaceholder": "#A1B2C3"
+    "colorHexPlaceholder": "#A1B2C3",
+    "typeSuggestions": "SUGGESTIONS"
   },
   "bulkAdd": {
     "title": "Bulk add",

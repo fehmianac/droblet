@@ -70,6 +70,10 @@ export function ChipRow({ children }: { children: ReactNode }) {
 }
 
 /** Wrapping chip group for forms (e.g. style tags). */
-export function ChipWrap({ children }: { children: ReactNode }) {
-  return <View className="flex-row flex-wrap gap-2">{children}</View>;
+export function ChipWrap({ children, testID }: { children: ReactNode; testID?: string }) {
+  return (
+    <View className="flex-row flex-wrap gap-2" testID={testID}>
+      {children}
+    </View>
+  );
 }

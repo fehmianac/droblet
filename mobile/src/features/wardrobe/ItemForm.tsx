@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, View } from 'react-native';
 
 import { KeyboardAvoider } from '@/components/ui/KeyboardAvoider';
-import { ITEM_CATEGORIES, ITEM_COLORS, type DraftField, type ItemFields } from '@/api/contracts/wardrobe';
+import { ITEM_COLORS, type DraftField, type ItemFields } from '@/api/contracts/wardrobe';
+import { toSubcategoryId, toSubcategoryLabel } from '@/api/wire/subcategories';
 import { Badge, ImageTag } from '@/components/ui/Bits';
 import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { BottomSheet } from '@/components/ui/BottomSheet';
@@ -13,6 +14,8 @@ import { Chip, ChipWrap } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { Text } from '@/components/ui/Text';
 import { TextField } from '@/components/ui/TextField';
+import { itemCategoriesFor, subcategorySuggestions } from '@/features/segment/catalog';
+import { useSegment } from '@/features/segment/store';
 import { surfaceTones } from '@/theme/tokens';
 
 import { NAME_MAX, toItemFields, validateItemForm, type ItemFormValues } from './form';
@@ -108,6 +111,11 @@ export function ItemForm({
   const [submitted, setSubmitted] = useState(false);
   const [sheet, setSheet] = useState<'none' | 'category' | 'color'>('none');
   const set = (patch: Partial<ItemFormValues>) => setValues((v) => ({ ...v, ...patch }));
+  // Canvas 17: the category list and the "Tür" suggestions follow the user's segment (the saved value always stays).
+  const segment = useSegment();
+  const categories = itemCategoriesFor(segment, [initial.category, values.category]);
+  const suggestions = subcategorySuggestions(segment, values.category);
+  const typeId = toSubcategoryId(values.subcategory);
 
   const errors = validateItemForm(values);
   const shown = submitted ? errors : {};
@@ -142,6 +150,7 @@ export function ItemForm({
           <View>
             <ItemThumb
               category={values.category ?? 'top'}
+              subcategory={values.subcategory}
               color={values.color ?? 'other'}
               uri={picture}
               className="h-[164px] w-[132px] rounded-image-lg"
@@ -276,8 +285,8 @@ export function ItemForm({
       <BottomSheet visible={sheet === 'category'} onClose={() => setSheet('none')} title={t('itemForm.pickCategory')}>
         <View className="gap-4">
           <ChipWrap>
-            {ITEM_CATEGORIES.map((c) => (
-              <Chip key={c} label={t(`itemCategory.${c}`)} selected={values.category === c} onPress={() => set({ category: c })} />
+            {categories.map((c) => (
+              <Chip key={c} testID={`item-form-category.${c}`} label={t(`itemCategory.${c}`)} selected={values.category === c} onPress={() => set({ category: c })} />
             ))}
           </ChipWrap>
           <TextField
@@ -288,6 +297,25 @@ export function ItemForm({
             hint={t('itemForm.optional')}
             maxLength={40}
           />
+          {suggestions.length > 0 ? (
+            <View className="gap-2" testID={`item-form-type-suggestions.${segment}`}>
+              <Text variant="eyebrow">{t('itemForm.typeSuggestions')}</Text>
+              <ChipWrap>
+                {suggestions.map((id) => {
+                  const label = toSubcategoryLabel(id) ?? id;
+                  return (
+                    <Chip
+                      key={id}
+                      testID={`item-form-type.${id}`}
+                      label={label}
+                      selected={typeId === id}
+                      onPress={() => set({ subcategory: typeId === id ? '' : label })}
+                    />
+                  );
+                })}
+              </ChipWrap>
+            </View>
+          ) : null}
           <Button label={t('common.ok')} onPress={() => setSheet('none')} />
         </View>
       </BottomSheet>

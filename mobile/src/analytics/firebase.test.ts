@@ -189,6 +189,7 @@ describe('no personal data reaches Firebase', () => {
         has_body_photo: false,
         has_face_photo: null,
         wardrobe_size_bucket: wardrobeSizeBucket(42),
+        segment: 'men',
       }),
     ).toEqual({
       plan: 'premium',
@@ -197,6 +198,7 @@ describe('no personal data reaches Firebase', () => {
       has_body_photo: 'false',
       has_face_photo: null,
       wardrobe_size_bucket: '30-99',
+      segment: 'men',
     });
   });
 });

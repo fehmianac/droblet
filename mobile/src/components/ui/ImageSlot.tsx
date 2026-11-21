@@ -4,6 +4,7 @@ import { Text as RNText, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import type { ItemCategory, ItemColor } from '@/api/contracts/wardrobe';
+import { toSubcategoryId } from '@/api/wire/subcategories';
 import type { ImageRefresh } from '@/lib/images';
 import { placeholderTones, type PlaceholderTone } from '@/theme/tokens';
 import { useThemeColors } from '@/theme/useThemeColors';
@@ -36,6 +37,46 @@ export const GARMENT_GLYPHS: Record<ItemCategory, string> = {
   beachwear: 'M8 3 3 6l2 4 3-1v12h8V9l3 1 2-4-5-3c-.5 1.5-2 2.5-4 2.5S8.5 4.5 8 3z',
   skiwear: 'M8 3 4 6v15h6V9l2 3 2-3v12h6V6l-4-3-2 4z',
 };
+
+/**
+ * Finer glyphs (canvas 17 "Yeni parça glifleri") for sub-types and catalogue categories the family glyph does not
+ * tell apart — mostly the men's set. Keyed by `SubcategoryCatalog` id; catalogue spellings are aliased below.
+ */
+export const FINE_GLYPHS: Record<string, string> = {
+  'suit-jacket': 'M8 3 4 6v15h16V6l-4-3M8 3l4 4 4-4M8 3l1.5 6L12 21l2.5-12L16 3M7 14h2.5',
+  chinos: 'M7 3h10l1 18h-4.2L12 10l-1.8 11H6zM7.2 6.5c1.5 0 2.5-1.4 2.6-3.5M16.8 6.5c-1.5 0-2.5-1.4-2.6-3.5',
+  tie: 'M10 3h4l-1 3.2 2.4 10.3L12 21l-3.4-4.5L11 6.2zM11 6.2h2',
+  loafers: 'M3 16c0-2 .8-4.5 2-6.5l3 1c1 2 3 3 6 3l5 1c1.2.3 2 1.2 2 2.3V18H3zM8.5 11.4c1.6 1.4 3.4 2 5.5 2.1',
+  watch: 'M17 12a5 5 0 1 1-10 0 5 5 0 0 1 10 0zM12 9.5V12l1.7 1.1M9.6 7.6 10.2 3h3.6l.6 4.6M9.6 16.4l.6 4.6h3.6l.6-4.6',
+  polo: 'M8 3 3 6l2 4 3-1v12h8V9l3 1 2-4-5-3c-.5 1.5-2 2.5-4 2.5S8.5 4.5 8 3zM12 5.5V10M10.6 4.7 12 5.5l1.4-.8',
+  cap: 'M4 15.5c0-4.7 3.6-8.5 8-8.5s8 3.8 8 8.5zM12 7v1.6M20 15.5h2.5',
+  belt: 'M3 10h18v4H3zM14 9v6h4V9zM16 12h-3',
+};
+/** Other spellings (catalogue categories, near sub-types) of the fine glyphs. */
+const FINE_ALIAS: Record<string, string> = {
+  suit: 'suit-jacket',
+  waistcoat: 'suit-jacket',
+  oxfords: 'loafers',
+  'oxford-shoes': 'loafers',
+  derbies: 'loafers',
+  'boat-shoes': 'loafers',
+  'suit-trousers': 'chinos',
+  'polo-shirt': 'polo',
+  necktie: 'tie',
+  watches: 'watch',
+  ties: 'tie',
+  belts: 'belt',
+};
+
+/** The glyph path of a piece: its sub-type's fine glyph when there is one, else its category family's. */
+export function garmentGlyphPath(category: string | null | undefined, subcategory?: string | null): string {
+  for (const key of [subcategory ? toSubcategoryId(subcategory) : null, category]) {
+    if (!key) continue;
+    const fine = FINE_GLYPHS[FINE_ALIAS[key] ?? key];
+    if (fine) return fine;
+  }
+  return GARMENT_GLYPHS[asGarmentCategory(category)];
+}
 
 export type SlotTone = PlaceholderTone | 'sand';
 
@@ -122,7 +163,7 @@ export type Piece = {
 };
 
 export type SlotPlaceholder =
-  | { kind: 'garment'; category?: string | null; color?: string | null; glyphSize?: number }
+  | { kind: 'garment'; category?: string | null; subcategory?: string | null; color?: string | null; glyphSize?: number }
   | { kind: 'look'; pieces: Piece[]; seed?: string; figureHeight?: number }
   | { kind: 'avatar'; name: string | null | undefined }
   | { kind: 'figure'; seed?: string; tone?: SlotTone; figureHeight?: number };
@@ -133,20 +174,42 @@ function useGround(tone: SlotTone): { backgroundColor: string; ink: 'ink' | 'cre
 }
 
 /** The category's line glyph on its own. Decorative. */
-export function GarmentGlyph({ category, size = 32, tone = 'ink', opacity = 0.5 }: { category: ItemCategory; size?: number; tone?: 'ink' | 'cream'; opacity?: number }) {
+export function GarmentGlyph({
+  category,
+  subcategory,
+  size = 32,
+  tone = 'ink',
+  opacity = 0.5,
+}: {
+  category: ItemCategory | string;
+  subcategory?: string | null;
+  size?: number;
+  tone?: 'ink' | 'cream';
+  opacity?: number;
+}) {
   const colors = useThemeColors();
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" opacity={opacity} accessible={false}>
-      <Path d={GARMENT_GLYPHS[category]} fill="none" stroke={colors[tone]} strokeWidth={1.1} strokeLinejoin="round" />
+      <Path d={garmentGlyphPath(category, subcategory)} fill="none" stroke={colors[tone]} strokeWidth={1.1} strokeLinejoin="round" />
     </Svg>
   );
 }
 
-function GarmentPlaceholder({ category, color, glyphSize }: { category?: string | null; color?: string | null; glyphSize?: number }) {
+function GarmentPlaceholder({
+  category,
+  subcategory,
+  color,
+  glyphSize,
+}: {
+  category?: string | null;
+  subcategory?: string | null;
+  color?: string | null;
+  glyphSize?: number;
+}) {
   const ground = useGround(TONE_BY_COLOR[asGarmentColor(color)]);
   return (
     <View className="h-full w-full items-center justify-center" style={{ backgroundColor: ground.backgroundColor }} testID="image-slot-garment">
-      <GarmentGlyph category={asGarmentCategory(category)} size={glyphSize} tone={ground.ink} />
+      <GarmentGlyph category={category ?? 'top'} subcategory={subcategory} size={glyphSize} tone={ground.ink} />
     </View>
   );
 }
@@ -234,7 +297,7 @@ function AvatarPlaceholder({ name }: { name: string | null | undefined }) {
 function Placeholder({ spec }: { spec: SlotPlaceholder }) {
   switch (spec.kind) {
     case 'garment':
-      return <GarmentPlaceholder category={spec.category} color={spec.color} glyphSize={spec.glyphSize} />;
+      return <GarmentPlaceholder category={spec.category} subcategory={spec.subcategory} color={spec.color} glyphSize={spec.glyphSize} />;
     case 'avatar':
       return <AvatarPlaceholder name={spec.name} />;
     case 'look':

@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { FlatList, Pressable, RefreshControl, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ITEM_CATEGORIES, type Item, type ItemSeason } from '@/api/contracts/wardrobe';
+import type { Item, ItemSeason } from '@/api/contracts/wardrobe';
 import { useHideTabBar } from '@/components/navigation/tabBarVisibility';
 import { Badge } from '@/components/ui/Bits';
 import { Button } from '@/components/ui/Button';
@@ -20,6 +20,8 @@ import { HangerGlyph } from '@/features/wardrobe/HangerGlyph';
 import { useDeleteItems, useUpdateItem } from '@/features/wardrobe/mutations';
 import { DeleteConfirmSheet, ItemTile, OutlineBadge, padToColumns, SeasonSheet } from '@/features/wardrobe/parts';
 import { useItems } from '@/features/wardrobe/queries';
+import { itemCategoriesFor } from '@/features/segment/catalog';
+import { useSegment } from '@/features/segment/store';
 import { WardrobeHeader } from '@/features/wardrobe/WardrobeHeader';
 import { formatDate } from '@/lib/format';
 import { useIsOnline } from '@/sync/network';
@@ -40,6 +42,8 @@ export default function WardrobeItemsScreen() {
   const insets = useSafeAreaInsets();
   const online = useIsOnline();
   const query = useItems();
+  // Canvas 17: the men's chip row has no "Elbise" unless the wardrobe holds a piece in it.
+  const segment = useSegment();
   const update = useUpdateItem();
   const deletion = useDeleteItems();
 
@@ -130,8 +134,8 @@ export default function WardrobeItemsScreen() {
           <View className="flex-1">
             <ChipRow>
               <Chip label={t('itemCategory.all')} selected={filters.category === 'all'} onPress={() => setFilters({ ...filters, category: 'all' })} />
-              {ITEM_CATEGORIES.map((c) => (
-                <Chip key={c} label={t(`itemCategory.${c}`)} selected={filters.category === c} onPress={() => setFilters({ ...filters, category: c })} />
+              {itemCategoriesFor(segment, list.map((i) => i.category)).map((c) => (
+                <Chip key={c} testID={`wardrobe.category.${c}`} label={t(`itemCategory.${c}`)} selected={filters.category === c} onPress={() => setFilters({ ...filters, category: c })} />
               ))}
             </ChipRow>
           </View>

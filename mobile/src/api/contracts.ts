@@ -67,8 +67,15 @@ export type ResetPasswordRequest = { token: string; newPassword: string };
 // ---------- Style profile (03) ----------
 
 export type Segment = 'women' | 'men' | 'teen';
+/**
+ * The segments the app can serve (men opened after phase 1). Which of them a user may pick is server
+ * configuration: `segments.available` of `GET v1/config` (docs/api/segments.md §1; absent = women only).
+ */
+export const APP_SEGMENTS = ['women', 'men'] as const;
+export type AppSegment = (typeof APP_SEGMENTS)[number];
 export type Budget = 'high_street' | 'mixed' | 'luxury_touch';
-export const STYLE_TAGS = [
+/** Women's style tags (phase 1). */
+export const WOMEN_STYLE_TAGS = [
   'minimal',
   'classic',
   'quiet_luxury',
@@ -80,7 +87,24 @@ export const STYLE_TAGS = [
   'colorful',
   'vintage',
 ] as const;
-export type StyleTag = (typeof STYLE_TAGS)[number];
+/** Men's style tags (docs/api/segments.md §2, canvas 17 · 03): shared ids where the meaning is the same. */
+export const MEN_STYLE_TAGS = [
+  'minimal',
+  'classic',
+  'smart_casual',
+  'tailored',
+  'quiet_luxury',
+  'street',
+  'sporty',
+  'vintage',
+  'colorful',
+] as const;
+/** Every style tag id of every segment (wire: camelCase). */
+export const STYLE_TAGS = [...new Set([...WOMEN_STYLE_TAGS, ...MEN_STYLE_TAGS])] as readonly (
+  | (typeof WOMEN_STYLE_TAGS)[number]
+  | (typeof MEN_STYLE_TAGS)[number]
+)[];
+export type StyleTag = (typeof WOMEN_STYLE_TAGS)[number] | (typeof MEN_STYLE_TAGS)[number];
 
 /** GET/PUT v1/tenant/style-profile (app shape; wire uses camelCase enums + `version`). GET → 404 when not set yet (baseVersion 0). */
 export type StyleProfile = {
@@ -98,7 +122,11 @@ export const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'] as const;
 export type Size = (typeof SIZES)[number];
 
 /** Body types of the face-path try-on (canvas 11 "Vücut tipi"); `unsure` = a balanced figure from height and size. */
-export const BODY_TYPES = ['hourglass', 'pear', 'apple', 'rectangle', 'inverted_triangle', 'unsure'] as const;
+export const WOMEN_BODY_TYPES = ['hourglass', 'pear', 'apple', 'rectangle', 'inverted_triangle', 'unsure'] as const;
+/** Men's body types (canvas 17 · 11e). */
+export const MEN_BODY_TYPES = ['rectangle', 'inverted_triangle', 'triangle', 'oval', 'trapezoid', 'unsure'] as const;
+/** Every body type id of every segment. */
+export const BODY_TYPES = ['hourglass', 'pear', 'apple', 'rectangle', 'inverted_triangle', 'triangle', 'oval', 'trapezoid', 'unsure'] as const;
 export type BodyType = (typeof BODY_TYPES)[number];
 
 /** GET/PUT v1/tenant/body-profile. GET → 404 when not set yet. */
@@ -157,6 +185,12 @@ export type Entitlement = {
    */
   outfitImportMaxPhotos?: number | null;
 };
+
+/**
+ * `GET v1/config` (anonymous, docs/api/segments.md §1) — the app keeps its own labels and reads the ids only.
+ * One open segment = no choice is shown (onboarding skips 03a, Profil › Stil profili has no segment row).
+ */
+export type AppConfig = { availableSegments: AppSegment[] };
 
 export type ItemRecognitionQuota = { limit: number | null; used: number; remaining: number | null };
 
@@ -233,6 +267,8 @@ export type LibraryItem = {
   id: string;
   name: string;
   category: string;
+  /** Sub-type id when the library sends one (men's set: `tie`, `chinos`…): the finer placeholder glyph. */
+  subcategory?: string | null;
   imageUrl: string | null;
   /** Main colour (wardrobe colour vocabulary), when the library knows it: ground of the placeholder while there is no picture. */
   color?: string | null;

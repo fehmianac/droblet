@@ -32,14 +32,13 @@ beforeEach(async () => {
 });
 
 describe('03 Stil profili', () => {
-  it('shows the step, "Soon" on Men / Teen, and locks the other tags once three are chosen', async () => {
+  it('shows the step (no segment cards: 03a asks it), and locks the other tags once three are chosen', async () => {
     await open('/style');
     await waitFor(() => expect(screen.getByText("Let's get to know you")).toBeTruthy(), WAIT);
     expect(screen.getByText('1 / 4')).toBeTruthy();
-    expect(screen.getByText('WHO ARE YOU SHOPPING FOR?')).toBeTruthy();
-    expect(screen.getByLabelText('Men, Soon').props.accessibilityState).toMatchObject({ disabled: true });
-    expect(screen.getByLabelText('Teen (13–18), Soon').props.accessibilityState).toMatchObject({ disabled: true });
-    expect(screen.getByLabelText('Women').props.accessibilityState).toMatchObject({ checked: true });
+    expect(screen.queryByText('WHO ARE YOU SHOPPING FOR?')).toBeNull();
+    expect(screen.queryByLabelText('Men, Soon')).toBeNull();
+    expect(screen.getByTestId('style.tags.women')).toBeTruthy();
     expect(screen.getByText('0 / 3')).toBeTruthy();
     expect(screen.getByTestId('style.continue').props.accessibilityState).toMatchObject({ disabled: true });
 

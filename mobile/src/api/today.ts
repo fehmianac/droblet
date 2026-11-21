@@ -4,7 +4,8 @@ import { ulid } from '@/lib/ids';
 
 import { planKeys } from '@/features/today/keys';
 import { sessionStore } from '@/auth/session';
-import { buildTodayFixture, fixtureLogWear, libraryFixture, withLatency } from '@/fixtures/today';
+import { buildTodayFixture, fixtureLogWear, libraryFixture, menLibraryFixture, withLatency } from '@/fixtures/today';
+import { useSegment } from '@/features/segment/store';
 import { toIsoDate } from '@/lib/format';
 import { newClientMutation } from '@/sync/clientMutation';
 import { mutationKeys, queryKeys } from '@/sync/queryKeys';
@@ -97,6 +98,7 @@ export type LibraryItemWire = {
   id: string;
   name: string;
   category: string;
+  subcategory?: string | null;
   colorIds: string[];
   fabric: string | null;
   seasons: string[];
@@ -109,19 +111,24 @@ export function toLibraryItem(wire: LibraryItemWire): LibraryItem {
     id: wire.id,
     name: wire.name,
     category: wire.category,
+    subcategory: wire.subcategory ?? null,
     imageUrl: wire.imageUrl ?? null,
     color: wire.colorIds && wire.colorIds.length > 0 ? toItemColor(wire.colorIds[0]) : null,
   };
 }
 
-/** Ready-made piece library (04b / 12b) — `GET v1/tenant/library/item`. */
+/**
+ * Ready-made piece library (04b / 12b) — `GET v1/tenant/library/item`: the server returns the user's segment plus
+ * unisex pieces (docs/api/segments.md §4). The key carries the segment, so a segment change reads it again.
+ */
 export function useItemLibrary() {
+  const segment = useSegment();
   return useQuery({
-    queryKey: queryKeys.library,
+    queryKey: queryKeys.libraryFor(segment),
     queryFn: () =>
       fromSource<LibraryItem[]>(
         'library',
-        () => withLatency(libraryFixture),
+        () => withLatency(segment === 'men' ? menLibraryFixture : libraryFixture),
         async () =>
           (await apiRequest<LibraryItemWire[]>('v1/tenant/library/item')).map(toLibraryItem),
       ),

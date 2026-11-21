@@ -106,7 +106,7 @@ export default function ItemDetailScreen() {
                   accessibilityLabel={item.name}
                   testID="item-image-zoom"
                 >
-                  <ItemThumb category={item.category} color={item.color} {...itemImageSource(item, 'medium')} className="h-[350px] w-full" glyphSize={180} accessibilityLabel={item.name} />
+                  <ItemThumb category={item.category} subcategory={item.subcategory} color={item.color} {...itemImageSource(item, 'medium')} className="h-[350px] w-full" glyphSize={180} accessibilityLabel={item.name} />
                 </Zoomable>
                 <View className="gap-3 px-gutter pt-1">
                   <View className="gap-1">

@@ -28,6 +28,15 @@ shown in the store.
 The list the page uses is `src/lib/screens.ts`; `npm run check` fails when a referenced file is missing in
 either language, when the two sets differ, when a language's set is over 2.5 MB or the hero image over 400 KB.
 
+## Men's showcase account (canvas 17)
+
+`mock-auth.mjs` also serves `GET v1/config` (open segments) and two more accounts: an e-mail starting with `emre`
+signs in as **Emre** (men; the showcase build switches its fixtures to his wardrobe, looks, Bugün, weekly edit,
+library and profile, and leaves his body type unset so Profil › "Profilini tamamla" opens the men's 11e step), and
+"Kayıt ol" is a brand-new account with both segments open (03a Reyon → 03 → 04). Damla keeps women only, so the
+landing captures above do not change. Flows: `men.yaml` (Bugün, Gardırop, 12b, Profil, Stil profili + segment
+confirmation, 11e) and `men-onboarding.yaml` (03a, 03, 04); neither starts an AI step.
+
 ## Refresh
 
 Use a separate checkout of the branch whose UI should be shown (do not build from your working copy):

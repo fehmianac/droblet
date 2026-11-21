@@ -44,6 +44,7 @@ function LibraryTile({ item, selected, onToggle }: { item: LibraryItem; selected
       <View>
         <ItemThumb
           category={libraryCategory(item.category)}
+          subcategory={item.subcategory ?? item.category}
           color={asGarmentColor(item.color ?? 'white')}
           uri={item.imageUrl}
           glyphSize={36}

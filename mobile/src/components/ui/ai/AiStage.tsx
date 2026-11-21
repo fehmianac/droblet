@@ -13,7 +13,8 @@ import {
 } from 'react-native-reanimated';
 import Svg, { Circle, Path } from 'react-native-svg';
 
-import { SILHOUETTE_BODY_PATH, SILHOUETTE_HEAD, SILHOUETTE_LENGTH, SILHOUETTE_VIEWBOX } from '@/components/brand/logoPaths';
+import { SILHOUETTE_HEAD, SILHOUETTE_LENGTH, SILHOUETTE_VIEWBOX, silhouetteBodyPath } from '@/components/brand/logoPaths';
+import { useSegment } from '@/features/segment/store';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { motion, placeholderTones, type PlaceholderTone } from '@/theme/tokens';
 import { useThemeColors } from '@/theme/useThemeColors';
@@ -31,6 +32,7 @@ const AnimatedPath = createAnimatedComponent(Path);
  */
 export function AiSilhouetteTrace({ height = 317, paused = false }: { height?: number; paused?: boolean }) {
   const colors = useThemeColors();
+  const segment = useSegment();
   const systemReduceMotion = useReduceMotion();
   const reduceMotion = systemReduceMotion || paused;
   // 0 → 1 draws, 1 → 2 fades.
@@ -64,9 +66,9 @@ export function AiSilhouetteTrace({ height = 317, paused = false }: { height?: n
   return (
     <Svg width={height * 0.6} height={height} viewBox={SILHOUETTE_VIEWBOX} accessible={false}>
       <Circle {...SILHOUETTE_HEAD} fill={colors.ink} opacity={0.08} />
-      <Path d={SILHOUETTE_BODY_PATH} fill={colors.ink} opacity={0.08} />
+      <Path d={silhouetteBodyPath(segment)} fill={colors.ink} opacity={0.08} />
       <AnimatedPath
-        d={SILHOUETTE_BODY_PATH}
+        d={silhouetteBodyPath(segment)}
         fill="none"
         stroke={colors.accent}
         strokeWidth={0.9}

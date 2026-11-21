@@ -180,13 +180,39 @@
       "romantic": "Romantic",
       "office_chic": "Office chic",
       "colorful": "Colourful",
-      "vintage": "Vintage"
+      "vintage": "Vintage",
+      "smart_casual": "Smart casual",
+      "tailored": "Tailored"
     },
     "budgetLabel": "Your budget",
     "budget": {
       "high_street": "High street",
       "mixed": "Mixed",
       "luxury_touch": "Luxury touch"
+    },
+    "segmentStep": {
+      "eyebrow": "STYLE PROFILE",
+      "title": "Which department should we style you from?",
+      "body": "Weekly edits, style tags and the ready-made library follow this choice. You can change it any time in Profile › Style profile.",
+      "groupLabel": "Department",
+      "desc": {
+        "women": "Women's collections",
+        "men": "Men's collections"
+      },
+      "note": "This only shapes your suggestions; it isn't shown on your profile or shared with anyone. You can add anything to your wardrobe.",
+      "needChoice": "Choose a department to continue."
+    },
+    "styleProfile": {
+      "title": "Style profile",
+      "segmentEyebrow": "DEPARTMENT",
+      "segmentNote": "Suggestions, edits and the ready-made library come from this department. Your wardrobe stays the same.",
+      "save": "Save",
+      "saved": "Style profile saved.",
+      "confirmTitle": "Switch to {{segment}}?",
+      "confirmBody": "Suggestions and the ready-made library change with it; your wardrobe stays the same.",
+      "confirmNote": "You pick your style tags again for the new department. If your body type isn't in it, we'll ask once more.",
+      "confirmGo": "Switch to {{segment}}",
+      "confirmCancel": "Cancel"
     }
   },
   "body": {
