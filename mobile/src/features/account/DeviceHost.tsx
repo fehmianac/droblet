@@ -22,14 +22,14 @@ function openFrom(response: Notifications.NotificationResponse | null) {
 
 /**
  * Registers this installation for the signed-in user once per app start (mounted in `AppHosts`,
- * keyed by user) — with its push token when push is already allowed (the prompt itself is shown after
- * onboarding or when a notification toggle is switched on). Keeps the token fresh (the OS can rotate
+ * keyed by user). Owner decision: the notification permission is asked at app start — the system prompt shows
+ * only while it has never been answered (iOS asks once; a "no" is changed in Settings, never re-asked here). Keeps the token fresh (the OS can rotate
  * it) and turns notification taps into deep links. Best effort: offline or a full device list never
  * bothers the user; the next start tries again.
  */
 export function DeviceHost() {
   useEffect(() => {
-    void syncPushRegistration({ ask: false });
+    void syncPushRegistration({ ask: true });
     if (Platform.OS !== 'ios' && Platform.OS !== 'android') return;
 
     if (!handlerSet) {
