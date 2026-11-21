@@ -1,0 +1,19 @@
+{
+  "purpose": "In-app visuals v2, canvas 22a (05 Üyelik). The hero slot is wide (about 390x300 pt), so v1's portrait shots were cropped to a strip and lost the scene; v2 is a landscape composition made for that slot. 2 image calls, replaces paywall-woman/man.",
+  "size": "1536x1024",
+  "quality": "high",
+  "format": "jpeg",
+  "style": "Photograph for a premium wardrobe app, shot on a full-frame camera, soft natural daylight, subtle film grain, true-to-life skin texture, no retouched plastic look. Warm neutral colour palette: cream, sand, warm beige, deep ink navy and a single terracotta accent. Fictional people only, not resembling any celebrity. Plain unbranded clothing with no logos, no lettering, no text, no signs, no screens showing content, no watermark anywhere in the image. Tasteful, confident and natural, not a cheesy stock photo, no big smile at the camera. Horizontal landscape composition built for a wide, short banner crop: the person's head and shoulders sit in the vertical middle band of the frame (between 25% and 60% of the height), nothing important in the top 15% or the bottom 25%, the left quarter is calm and uncluttered.",
+  "images": [
+    {
+      "id": "paywall-woman",
+      "segment": "women",
+      "prompt": "Medium shot, framed from mid-thigh up, 35mm lens. A woman in her late twenties with a dark low bun stands in a bright Istanbul apartment bedroom, slightly right of centre. Behind her on the left a tall window with sheer linen curtains, the Bosphorus softly out of focus far beyond. On the right a slim wooden clothing rail with a few neatly spaced pieces in cream, sand, ink navy and one terracotta dress. She wears a sand relaxed blazer over a cream silk top and wide ink-navy trousers, and holds a camel knit sweater on a wooden hanger up against herself, glancing down at it with a quiet, pleased half smile, as if she has just decided. Warm late-morning side light from the window, gentle depth of field. Editorial, aspirational, quietly luxurious."
+    },
+    {
+      "id": "paywall-man",
+      "segment": "men",
+      "prompt": "Medium shot, framed from mid-thigh up, 35mm lens. A man in his early thirties with short dark hair and a trimmed beard stands slightly right of centre in a bright Istanbul loft with large steel-framed windows on the left, rooftops and a distant minaret softly out of focus beyond. On the right a slim black metal clothing rail with a few neatly spaced pieces in navy, stone, charcoal and one terracotta overshirt. He wears a fine stone merino crew-neck and dark navy tailored trousers, and holds a navy wool overcoat on a wooden hanger up in front of himself, looking at it with quiet, approving focus. Warm morning side light from the windows, gentle depth of field. Editorial, aspirational, quietly confident."
+    }
+  ]
+}

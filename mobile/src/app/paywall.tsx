@@ -32,10 +32,11 @@ import { useThemeColors } from '@/theme/useThemeColors';
 
 type Plan = 'year' | 'month';
 
-/** The editorial photo at the top of 05 by segment (canvas 22a), framed like the board; no segment yet = women. */
-const HERO_PHOTOS: Record<AppSegment, { source: number; top: `${number}%` }> = {
-  women: { source: require('../../assets/visuals/paywall-woman.webp'), top: '18%' },
-  men: { source: require('../../assets/visuals/paywall-man.webp'), top: '14%' },
+/** The editorial photo at the top of 05 by segment (canvas 22a); landscape shots with the person right of centre, so a short
+    strip keeps the face (about a quarter down) and a narrow one keeps the person. No segment yet = women. */
+const HERO_PHOTOS: Record<AppSegment, { source: number; left: `${number}%`; top: `${number}%` }> = {
+  women: { source: require('../../assets/visuals/paywall-woman.webp'), left: '58%', top: '24%' },
+  men: { source: require('../../assets/visuals/paywall-man.webp'), left: '56%', top: '20%' },
 };
 /** The "Önce üzerinde gör" badge: 26 high, centred on the 44 pt close button beside it. */
 const BADGE_HEIGHT = 26;
@@ -271,7 +272,7 @@ export default function PaywallScreen() {
           <Image
             source={heroPhoto.source}
             contentFit="cover"
-            contentPosition={{ left: '50%', top: heroPhoto.top }}
+            contentPosition={{ left: heroPhoto.left, top: heroPhoto.top }}
             style={StyleSheet.absoluteFill}
             accessible={false}
             testID={`paywall.hero.${segment}`}
