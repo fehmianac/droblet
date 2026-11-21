@@ -41,7 +41,7 @@ export default function ComponentsShowcase() {
           <Text variant="display">{t('style.title')}</Text>
           <Text variant="h2">{t('body.title')}</Text>
           <Text variant="h3">{t('today.weeklyEdit')}</Text>
-          <Text variant="body">{t('welcome.promise')}</Text>
+          <Text variant="body">{t('welcome.value')}</Text>
           <Text variant="brand" tone="muted">
             {t('brand.wordmark')}
           </Text>

@@ -6,7 +6,8 @@ import { DropLoader } from '@/components/brand/DropLoader';
 import { Icon } from './Icon';
 import { Text } from './Text';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'text' | 'danger';
+/** inverse / inverseOutline: the pair on a dark photo (canvas 20 · Karşılama, direction A). */
+export type ButtonVariant = 'primary' | 'secondary' | 'text' | 'danger' | 'inverse' | 'inverseOutline';
 /** lg = 52 (primary, and the outlined pair of a primary), md = 44 (secondary), bar = 48 (inside the bottom action bar). */
 export type ButtonSize = 'lg' | 'md' | 'bar';
 
@@ -40,6 +41,10 @@ const containerClass: Record<ButtonVariant, string> = {
   text: 'px-2',
   // Destructive confirm (canvas `.btn.dg`): always carries its text.
   danger: 'rounded-pill bg-danger px-6',
+  // Filled cream on a dark photo (canvas 20 `.kw-btn`).
+  inverse: 'rounded-pill bg-cream px-6',
+  // Cream outline over a faint dark glass (canvas 20 `.kw-btn2`).
+  inverseOutline: 'rounded-pill border border-onPhoto-outline bg-onPhoto-glass px-6',
 };
 
 const sizeClass: Record<ButtonSize, string> = {
@@ -63,8 +68,8 @@ export function Button({
   testID,
 }: Props) {
   const inactive = disabled || loading;
-  const filled = variant === 'primary' || variant === 'danger';
-  const contentTone = filled ? 'cream' : 'ink';
+  const filled = variant === 'primary' || variant === 'danger' || variant === 'inverse';
+  const contentTone = variant === 'inverse' ? 'ink' : filled || variant === 'inverseOutline' ? 'cream' : 'ink';
   const resolvedSize = size ?? (filled ? 'lg' : 'md');
   return (
     <Pressable
@@ -91,7 +96,7 @@ export function Button({
       </View>
       {loading ? (
         <View className="absolute inset-0 flex-row items-center justify-center gap-2" pointerEvents="none">
-          <DropLoader size="inline" tone={filled ? 'cream' : 'ink'} accessibilityLabel={loadingLabel ?? label} />
+          <DropLoader size="inline" tone={contentTone === 'ink' ? 'ink' : 'cream'} accessibilityLabel={loadingLabel ?? label} />
           {loadingLabel ? (
             <Text variant="button" tone={contentTone} numberOfLines={1}>
               {loadingLabel}

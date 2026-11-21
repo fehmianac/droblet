@@ -98,8 +98,8 @@
     "account_suspended": "Bu hesap askıya alındı; şu an giriş yapılamıyor. Ayrıntı için destek ekibimize ulaş."
   },
   "welcome": {
-    "eyebrow": "KİŞİSEL GARDIROP · STİL ASİSTANI · BAVUL",
-    "promise": "Sabah “ne giysem” derdi ve saatler süren bavul hazırlığı bitti. Dolabın artık senin için düşünüyor.",
+    "headline": "Gördüğün her şeyi önce üzerinde dene.",
+    "value": "Dolabın, AI stilistin ve bavulun tek uygulamada.",
     "start": "Hemen başla",
     "haveAccount": "Zaten hesabım var",
     "legal": "Devam ederek <terms>Kullanım Koşulları</terms> ve <privacy>Gizlilik Politikası</privacy>'nı kabul edersin."
