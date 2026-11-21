@@ -25,7 +25,7 @@ const FOCUS_X = { mixed: 0.5, group: 0.5, women: 0.42, men: 0.62 } as const;
 
 /**
  * 01 Hoş geldin — canvas 20 · Karşılama, direction A (editorial photo). A bundled photo chosen from
- * `segments.available` (20a couple / 20b woman / 20c man, 20d group on SE-class phones) fades into a dark
+ * `segments.available` (20a couple, or the 20d group on SE-class phones / 20b woman / 20c man) fades into a dark
  * ground; the cream lock-up sits top left, the headline, the value line, the two entry points and the
  * legal line at the bottom. Light status bar while this screen is focused.
  */
@@ -37,7 +37,7 @@ export default function WelcomeScreen() {
   const compact = isCompactWelcome(height);
   // Never wait for the config: the screen works at once; the photo fades in when the segments are known
   // (a failed request settles at once as women only). SE-class phones always show the group.
-  const hero = loading && !compact ? null : welcomeHero(segments, height);
+  const hero = loading ? null : welcomeHero(segments, height);
   const photoHeight = Math.round(height * (compact ? PHOTO_SHARE_COMPACT : PHOTO_SHARE));
 
   useFocusEffect(

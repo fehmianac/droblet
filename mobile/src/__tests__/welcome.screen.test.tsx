@@ -54,11 +54,13 @@ describe('welcomeHero (canvas 20 · A)', () => {
     expect(welcomeHero(segments as never, 844)).toBe(hero);
   });
 
-  it('SE-class height (667) shows the group, whatever is open', () => {
+  it('SE-class height (667) shows the group only when both segments are open; women-only never shows a man', () => {
     expect(isCompactWelcome(667)).toBe(true);
     expect(isCompactWelcome(844)).toBe(false);
     expect(welcomeHero(['women', 'men'], 667)).toBe('group');
-    expect(welcomeHero(['women'], 667)).toBe('group');
+    expect(welcomeHero(['women'], 667)).toBe('women');
+    expect(welcomeHero(['men'], 667)).toBe('men');
+    expect(welcomeHero(undefined, 667)).toBe('women');
   });
 });
 

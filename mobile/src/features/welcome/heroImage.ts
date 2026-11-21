@@ -21,14 +21,14 @@ export function isCompactWelcome(windowHeight: number): boolean {
 }
 
 /**
- * Which photo: small phones → the group (20d); both segments open → the couple (20a); women only → 20b;
- * men only → 20c. Config missing or failed (`segments` undefined) → women, the phase 1 default.
+ * Which photo: both segments open → the couple (20a), or the studio group on small phones (20d); women only → 20b;
+ * men only → 20c (on every phone size: a women-only launch never shows a man). Config missing or failed
+ * (`segments` undefined) → women, the phase 1 default.
  */
 export function welcomeHero(segments: readonly AppSegment[] | undefined, windowHeight: number): WelcomeHero {
-  if (isCompactWelcome(windowHeight)) return 'group';
   const women = segments?.includes('women') ?? false;
   const men = segments?.includes('men') ?? false;
-  if (women && men) return 'mixed';
+  if (women && men) return isCompactWelcome(windowHeight) ? 'group' : 'mixed';
   if (men) return 'men';
   return 'women';
 }
