@@ -19,6 +19,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Text } from '@/components/ui/Text';
 import { showToast } from '@/components/ui/toast/store';
 import { aiCreditsKey, useAiCredits } from '@/features/credits/useAiCredits';
+import { useFirstTryOnPaywall } from '@/features/onboarding/firstTryOnPaywall';
 import { PhotoRejected } from '@/features/requirements/PhotoRejected';
 import { requirementsFlow } from '@/features/requirements/store';
 import { isTryOnTargetKind, TRY_ON_CREDIT_COST, useStartTryOn, useTryOnJob } from '@/features/tryon/api';
@@ -97,6 +98,8 @@ export default function TryOnScreen() {
   const settledNow = job.isDone || job.isFailed;
   if (phase === 'unknown') setPhase(settledNow ? 'revealed' : 'waiting');
   else if (phase === 'waiting' && job.isDone) setPhase('revealing');
+  // UX turu 1 · F: 05 Üyelik once, after the first revealed result (non-members only).
+  useFirstTryOnPaywall(phase === 'revealed' && job.isDone);
 
   const settled = job.isDone || job.isFailed;
   useEffect(() => {

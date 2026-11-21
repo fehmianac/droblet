@@ -35,12 +35,6 @@ const settle = () => waitFor(() => new Promise<void>((resolve) => setTimeout(res
 jest.mock('expo-font', () => ({ ...jest.requireActual('expo-font'), useFonts: () => [true, null] }));
 
 const WAIT = { timeout: 4000 };
-/** 12+: a photo first offers "Try it on me first" / "Split into pieces" (nothing is recognised before) — these tests split. */
-async function chooseSplit() {
-  await waitFor(() => expect(screen.getByTestId('tryFirst.split')).toBeTruthy(), WAIT);
-  await fireEvent.press(screen.getByTestId('tryFirst.split'));
-}
-
 
 async function open(initialUrl: string) {
   // A fresh persisted cache per test (same user id): otherwise the previous test's wardrobe is restored.
@@ -178,13 +172,24 @@ describe('11 Parça detayı', () => {
     expect(screen.getByText('Looks with this piece')).toBeTruthy();
     // Canvas: the look tiles carry only the occasion tag; the name is the tile's accessible name.
     expect(screen.getByLabelText('Lacivert Blazer')).toBeTruthy();
-    expect(screen.getByText('Soon')).toBeTruthy();
-    expect(screen.getByText('Style an outfit with this')).toBeTruthy();
+    // UX turu 1 · D: "Bununla look yap" leads, "Stille" is the outlined one; the "Sat / Kiraya ver · Yakında" row is gone.
+    expect(screen.queryByText('Soon')).toBeNull();
+    expect(screen.queryByText('Sell · Rent out')).toBeNull();
+    expect(screen.getByText('Make a look with this')).toBeTruthy();
+    expect(screen.getByText('Style it')).toBeTruthy();
     expect(screen.getByLabelText('Products that complete this piece')).toBeTruthy();
 
     await fireEvent.press(screen.getByLabelText('More'));
     await waitFor(() => expect(screen.getByText('Change season')).toBeTruthy());
     expect(screen.getByText('Delete from wardrobe')).toBeTruthy();
+  });
+
+  it('"Make a look with this" opens 15 with the piece already in its slot', async () => {
+    await open('/item/item_navy_blazer');
+    await waitFor(() => expect(screen.getByTestId('item-make-look')).toBeTruthy(), WAIT);
+    await fireEvent.press(screen.getByTestId('item-make-look'));
+    await waitFor(() => expect(screen).toHavePathname('/look/new'), WAIT);
+    expect(screen).toHaveSearchParams({ itemIds: 'item_navy_blazer' });
   });
 
   it('deletes the piece after an explicit confirmation', async () => {
@@ -318,7 +323,6 @@ describe('AI recognition quota (12, 13)', () => {
     await waitFor(() => expect(screen.getByTestId('item-add-manual')).toBeTruthy(), WAIT);
     await settle();
     await fireEvent.press(screen.getByTestId('item-add-shutter'));
-    await chooseSplit();
     await waitFor(() => expect(screen).toHavePathname('/paywall'), WAIT);
     expect(fixtureListDrafts()).toHaveLength(0);
 
@@ -339,7 +343,6 @@ describe('AI recognition quota (12, 13)', () => {
     // The last free recognition is used elsewhere: the app still believes one is left, the server says 402.
     setFixtureItemRecognition(3, 3);
     await fireEvent.press(screen.getByTestId('item-add-shutter'));
-    await chooseSplit();
     await waitFor(() => expect(screen).toHavePathname('/paywall'), WAIT);
     expect(fixtureListDrafts()).toHaveLength(0);
 

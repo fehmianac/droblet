@@ -1,4 +1,4 @@
-import { curtainRows, curtainStepMs } from './TryOnCurtain';
+import { curtainRevealMs, curtainRows, curtainStepMs } from './TryOnCurtain';
 import { inDressingOrder, isWornPiece, toTryOnPieces, tryOnPieces } from './pieces';
 
 const label = (p: { category: string }) => `[${p.category}]`;
@@ -10,6 +10,11 @@ describe('curtain rows (21e)', () => {
     { name: 'Loafer', category: 'shoes' as const },
     { name: 'Çanta', category: 'bag' as const },
   ];
+
+  it('"Hazır" + the opening take ~1.2 s (was 2.45 s); with reduce motion the curtain fades in less', () => {
+    expect(curtainRevealMs(false)).toBe(1200);
+    expect(curtainRevealMs(true)).toBeLessThan(1200);
+  });
 
   it('shares ~24 s between the pieces, 3–7 s each', () => {
     expect(curtainStepMs(1)).toBe(7000);

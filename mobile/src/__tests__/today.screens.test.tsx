@@ -6,7 +6,8 @@ import { addDays, monthOf, weekDates, weekStartOf } from '@/features/today/dates
 import { accountFixtures, resetAccountFixtures } from '@/fixtures/account';
 import { fixtureDb, resetFixtureDb } from '@/fixtures/db';
 import { todayFixtureOptions } from '@/fixtures/today';
-import { formatIsoDateRange, formatMoney, formatMonthYear, moneyFromMajor, parseLocalDate, toIsoDate, weekdayShort } from '@/lib/format';
+import { longDay } from '@/features/stylist/suggestionActions';
+import { formatDate, formatIsoDateRange, formatMoney, formatMonthYear, moneyFromMajor, parseLocalDate, toIsoDate, weekdayShort } from '@/lib/format';
 import { toDisplayUpper } from '@/lib/upper';
 
 const mockSession = {
@@ -64,9 +65,39 @@ describe('06 Bugün', () => {
     resetFixtureDb({ empty: true });
     await renderRouter('./src/app', { initialUrl: '/' });
     await waitFor(() => expect(screen.getByText('Nothing planned for today')).toBeTruthy(), WAIT);
+    // Canvas 06 · plan yok: a saved look (no AI) beside the stylist.
+    expect(screen.getByText('Pick a look')).toBeTruthy();
     expect(screen.getByText('Ask the stylist')).toBeTruthy();
     // 06 · plan yok: the greeting stands alone, without the occasion line.
     expect(screen.getByText(/^Good (morning|afternoon|evening) Damla\.$/)).toBeTruthy();
+    // Without saved looks the sheet says so and keeps the stylist.
+    await fireEvent.press(screen.getByTestId('today-plan-pick'));
+    await waitFor(() => expect(screen.getByTestId('planPick.empty')).toBeTruthy(), WAIT);
+    expect(screen.getByText('You have no saved looks yet.')).toBeTruthy();
+    expect(screen.getByTestId('planPick.suggest')).toBeTruthy();
+  });
+
+  it('"Pick a look" plans a saved look for today without AI or membership, with the calendar toast', async () => {
+    fixtureDb.planDays = fixtureDb.planDays.filter((p) => p.date !== today);
+    fixtureDb.entitlement.tier = 'free';
+    await renderRouter('./src/app', { initialUrl: '/' });
+    await waitFor(() => expect(screen.getByTestId('today-plan-pick')).toBeTruthy(), WAIT);
+    await fireEvent.press(screen.getByTestId('today-plan-pick'));
+    await waitFor(() => expect(screen.getByText('Pick a look for this day')).toBeTruthy(), WAIT);
+    const look = fixtureDb.looks[0] as (typeof fixtureDb.looks)[number];
+    await waitFor(() => expect(screen.getByTestId(`planPick.look.${look.id}`)).toBeTruthy(), WAIT);
+    // "Tümü" + the occasions the looks have; the stylist is the only AI path and carries the membership badge.
+    expect(screen.getByLabelText('All').props.accessibilityState).toMatchObject({ selected: true });
+    expect(screen.getByLabelText('Ask the stylist, Membership')).toBeTruthy();
+    expect(screen.getByText(`All my looks (${fixtureDb.looks.length})`)).toBeTruthy();
+    expect(screen.getByText('Tap a look to add it to this day.')).toBeTruthy();
+
+    await fireEvent.press(screen.getByTestId(`planPick.look.${look.id}`));
+    await waitFor(() => expect(screen.getByTestId('toast-plan-look')).toBeTruthy(), WAIT);
+    expect(screen.getByTestId('toast-message').props.children).toBe(`Added to ${longDay(today)}`);
+    expect(screen.getByTestId('toast-action').props.accessibilityLabel).toBe('View');
+    await waitFor(() => expect(fixtureDb.planDays.find((p) => p.date === today)?.lookId).toBe(look.id), WAIT);
+    expect(screen.queryByText('Pick a look for this day')).toBeNull();
   });
 });
 
@@ -85,8 +116,9 @@ describe('07 Haftalık plan', () => {
     // The bottom menu stays on this list screen (canvas 07).
     expect(screen.getAllByText('Today').length).toBe(1);
 
-    // 07b: the cost is shown before anything is spent.
-    await fireEvent.press(screen.getByText('Try it on me'));
+    // 07b: the cost is shown before anything is spent — on the button ("· 7 credits") and, for a batch, on the sheet.
+    expect(screen.getByTestId('week-tryon').props.accessibilityLabel).toMatch(/^Try it on me · \d+ credits?$/);
+    await fireEvent.press(screen.getByTestId('week-tryon'));
     await waitFor(() => expect(screen.getByText(/credits? will be used/)).toBeTruthy(), WAIT);
     expect(screen.getByText('TRY IT ON ME · WHOLE WEEK')).toBeTruthy();
     await fireEvent.press(screen.getByText('Cancel'));
@@ -99,6 +131,33 @@ describe('07 Haftalık plan', () => {
     await fireEvent.press(screen.getByText('Remove'));
     await waitFor(() => expect(screen.queryByText('Lacivert Blazer')).toBeNull(), WAIT);
     expect(screen.getAllByLabelText(/^Options for /)).toHaveLength(menus.length - 1);
+  });
+
+  it('"Plan" on an empty day and "Change" in the ⋯ menu open 07c; the stylist stays its way out', async () => {
+    fixtureDb.planDays = fixtureDb.planDays.filter((p) => p.date !== today);
+    await renderRouter('./src/app', { initialUrl: '/plan/week' });
+    await waitFor(() => expect(screen.getAllByLabelText(/^Pick a look for /).length).toBeGreaterThan(0), WAIT);
+    expect(screen.getAllByText('Plan').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Suggest')).toBeNull();
+    const dayLabel = formatDate(parseLocalDate(today), { weekday: 'long', day: 'numeric', month: 'long' });
+    await fireEvent.press(screen.getByLabelText(`Pick a look for ${dayLabel}`));
+    await waitFor(() => expect(screen.getByText('Pick a look for this day')).toBeTruthy(), WAIT);
+    const look = fixtureDb.looks[1] as (typeof fixtureDb.looks)[number];
+    await waitFor(() => expect(screen.getByTestId(`planPick.look.${look.id}`)).toBeTruthy(), WAIT);
+    // A member: no badge on the stylist.
+    expect(screen.getByLabelText('Ask the stylist')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId(`planPick.look.${look.id}`));
+    await waitFor(() => expect(screen.getByTestId('toast-plan-look')).toBeTruthy(), WAIT);
+    await waitFor(() => expect(fixtureDb.planDays.find((p) => p.date === today)?.lookId).toBe(look.id), WAIT);
+
+    // A planned day: "Change" opens the same sheet; "Ask the stylist" leaves for the stylist.
+    const menus = screen.getAllByLabelText(/^Options for /);
+    await fireEvent.press(menus[0] as (typeof menus)[number]);
+    await waitFor(() => expect(screen.getByText('Change')).toBeTruthy(), WAIT);
+    await fireEvent.press(screen.getByText('Change'));
+    await waitFor(() => expect(screen.getByText('Pick a look for this day')).toBeTruthy(), WAIT);
+    await fireEvent.press(screen.getByTestId('planPick.suggest'));
+    await waitFor(() => expect(screen).toHavePathname('/stylist'), WAIT);
   });
 
   it('shows the empty state when there is no look and no plan', async () => {
@@ -233,6 +292,10 @@ describe('09 Takvim', () => {
     expect(screen.getByText('Lacivert Blazer')).toBeTruthy();
     expect(screen.getByText('Open look')).toBeTruthy();
     expect(screen.getByText('Change')).toBeTruthy();
+    // "Değiştir" opens 07c for that day (a saved look, no AI).
+    await fireEvent.press(screen.getByTestId('calendar-change'));
+    await waitFor(() => expect(screen.getByText('Pick a look for this day')).toBeTruthy(), WAIT);
+    expect(screen.getByTestId(`planPick.look.${fixtureDb.looks[0]?.id}`)).toBeTruthy();
   });
 
   it('opens the month report from "Rapor"', async () => {
@@ -242,12 +305,16 @@ describe('09 Takvim', () => {
     await waitFor(() => expect(screen.getByText('MONTHLY REPORT')).toBeTruthy(), WAIT);
   });
 
-  it('offers a stylist suggestion for an empty day and moves between months', async () => {
+  it('offers "Plan" and a stylist suggestion for an empty day and moves between months', async () => {
     resetFixtureDb({ empty: true });
     await renderRouter('./src/app', { initialUrl: '/calendar' });
     await waitFor(() => expect(screen.getByText('Nothing logged this month yet')).toBeTruthy(), WAIT);
     await fireEvent.press(screen.getByLabelText(/, empty, today$/));
-    await waitFor(() => expect(screen.getByText('Suggest for this day')).toBeTruthy(), WAIT);
+    await waitFor(() => expect(screen.getByTestId('calendar-plan')).toBeTruthy(), WAIT);
+    expect(screen.getByText('No look for this day. Pick one of your saved looks, or let the stylist suggest one.')).toBeTruthy();
+    expect(screen.getByTestId('calendar-suggest')).toHaveTextContent('Ask the stylist');
+    await fireEvent.press(screen.getByTestId('calendar-plan'));
+    await waitFor(() => expect(screen.getByTestId('planPick.empty')).toBeTruthy(), WAIT);
 
     await fireEvent.press(screen.getByLabelText('Close'));
     await fireEvent.press(screen.getByLabelText('Next month'));

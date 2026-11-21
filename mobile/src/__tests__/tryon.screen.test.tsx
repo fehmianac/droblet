@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { renderRouter, screen, waitFor } from 'expo-router/testing-library';
+import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 
 import type { TryOnResult } from '@/api/contracts/tryon';
 import { resetFixtureDb } from '@/fixtures/db';
@@ -53,6 +53,17 @@ describe('tryon/[jobId] — "Üzerimde gör"', () => {
     await waitFor(() => expect(screen.getByText('Lacivert Blazer on you')).toBeTruthy(), WAIT);
     expect(screen.getByText('You have 10 images left this month.')).toBeTruthy();
     expect(screen.getByText('Done')).toBeTruthy();
+  }, 30_000);
+
+  it('a tap on the curtain during the reveal skips straight to the result', async () => {
+    const jobId = startFixtureJob('tryon', result, { id: 'job_t4', durationMs: 300 });
+    await renderRouter('./src/app', { initialUrl: `/tryon/${jobId}?title=Lacivert%20Blazer&kind=look&id=look_lacivert_blazer` });
+    await waitFor(() => expect(screen.getByText('Ready')).toBeTruthy(), WAIT);
+    expect(screen.queryByText('Lacivert Blazer on you')).toBeNull();
+    await fireEvent.press(screen.getByTestId('tryon.curtain.skip'));
+    // Well inside the ~1.2 s reveal.
+    await waitFor(() => expect(screen.getByText('Lacivert Blazer on you')).toBeTruthy(), { timeout: 600 });
+    expect(screen.queryByTestId('tryon.curtain.skip')).toBeNull();
   }, 30_000);
 
   it('lists the outfit pieces by their own names, puts them on one by one, bags are "added"', async () => {

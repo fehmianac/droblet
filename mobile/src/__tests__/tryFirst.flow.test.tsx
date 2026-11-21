@@ -81,20 +81,27 @@ beforeEach(async () => {
 });
 
 describe('12+ — "Önce üzerimde dene" / "Parçalarına ayır" right after a photo', () => {
-  it('a camera shot offers both, detection first; nothing is uploaded or recognised before the choice', async () => {
+  it('a camera shot skips the choice and goes straight to recognition and the form (canvas n_ux1 A1)', async () => {
     await open('/item/add');
     await waitFor(() => expect(screen.getByTestId('item-add-camera')).toBeTruthy(), WAIT);
     await fireEvent.press(screen.getByTestId('item-add-shutter'));
+    await waitFor(() => expect(fixtureListDrafts()).toHaveLength(1), WAIT);
+    expect(screen.queryByTestId('tryFirst.sheet')).toBeNull();
+    await waitFor(() => expect(screen).toHavePathname('/item/form'), WAIT);
+  }, 30_000);
+
+  it('the choice from the gallery: "Vazgeç" goes back to the viewfinder; nothing is uploaded or recognised before it', async () => {
+    await open('/item/add');
+    await waitFor(() => expect(screen.getByTestId('item-add-gallery')).toBeTruthy(), WAIT);
+    await fireEvent.press(screen.getByTestId('item-add-gallery'));
     await waitFor(() => expect(screen.getByTestId('tryFirst.sheet')).toBeTruthy(), WAIT);
     expect(screen.getByText('What shall we do with this photo?')).toBeTruthy();
     expect(screen.getByText('Try it on me first')).toBeTruthy();
     expect(screen.getByText('Split into pieces')).toBeTruthy();
-    expect(optionOrder()).toEqual(['tryFirst.split', 'tryFirst.tryOn']);
     // No recognition call before the user chooses.
     expect(fixtureListDrafts()).toHaveLength(0);
     expect(screen.queryByTestId('item-add-pill')).toBeNull();
 
-    // "Vazgeç": back to the viewfinder, the photo dropped.
     await fireEvent.press(screen.getByTestId('tryFirst.cancel'));
     await waitFor(() => expect(screen.getByTestId('item-add-frame-live')).toBeTruthy(), WAIT);
     expect(fixtureListDrafts()).toHaveLength(0);

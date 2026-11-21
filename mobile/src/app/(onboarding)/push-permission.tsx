@@ -19,7 +19,7 @@ type Row = { key: string; icon: LucideIcon; title: string; body: string };
 
 /**
  * 04d Bildirim izni (canvas 19) — the soft ask before the system prompt, after 04b İlk 5 parça and before
- * 05 Üyelik (a teen goes on to Bugün). Only reached while the OS can still ask (`continueAfterFirstItems`).
+ * 06 Bugün (onboarding never ends on 05 Üyelik). Only reached while the OS can still ask (`continueAfterFirstItems`).
  * "Bildirimlere izin ver" shows the system prompt and registers this installation; "Şimdi değil" shows no
  * prompt, so a notification toggle can still ask later. Either answer moves on. Teen (canvas 18): marketing
  * and social notifications are off, so only the morning outfit and the "result ready" rows are listed.

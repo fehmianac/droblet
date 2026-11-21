@@ -36,12 +36,6 @@ jest.mock('@/features/photos/usePhotoPicker', () => ({
 }));
 
 const WAIT = { timeout: 6000 };
-/** 12+: a photo first offers "Try it on me first" / "Split into pieces" (nothing is recognised before) — these tests split. */
-async function chooseSplit() {
-  await waitFor(() => expect(screen.getByTestId('tryFirst.split')).toBeTruthy(), WAIT);
-  await fireEvent.press(screen.getByTestId('tryFirst.split'));
-}
-
 const HIDDEN = { includeHiddenElements: true };
 /** Lets the entitlement (fixture latency) settle so the screen knows the quota. */
 const settle = () => waitFor(() => new Promise<void>((resolve) => setTimeout(resolve, 700)), { timeout: 2000 });
@@ -84,23 +78,41 @@ describe('12 Parça ekle — in-app camera', () => {
     await waitFor(() => expect(screen).toHavePathname('/item/library'), WAIT);
   }, 20_000);
 
-  it('the shutter takes the picture in the app, says what was detected and opens the review form', async () => {
+  it('the shutter takes the picture and goes straight to recognition; the form opens at once with what was detected', async () => {
     await open('/item/add');
     await waitFor(() => expect(screen.getByTestId('item-add-camera')).toBeTruthy(), WAIT);
     await settle();
     await fireEvent.press(screen.getByTestId('item-add-shutter'));
-    await chooseSplit();
     await waitFor(() => expect(mockCamera.take).toHaveBeenCalledTimes(1), WAIT);
     // The system camera is not used when the viewfinder is live.
     expect(mockPicker.takePhoto).not.toHaveBeenCalled();
-    await waitFor(() => expect(screen.getByTestId('item-add-pill').props.accessibilityLabel).toMatch(/detected · /), WAIT);
-    expect(screen.getByTestId('item-add-frame-photo')).toBeTruthy();
+    // A camera shot never asks "try first / split" (canvas n_ux1 A1).
+    expect(screen.queryByTestId('tryFirst.sheet')).toBeNull();
     await waitFor(() => expect(screen).toHavePathname('/item/form'), WAIT);
     await waitFor(() => expect(screen.getByText('AI GUESS · PLEASE CHECK')).toBeTruthy(), WAIT);
+    expect(screen.queryByTestId('tryFirst.sheet')).toBeNull();
+    // 12c: "✓ Gömlek algılandı · Beyaz · Pamuk" on top of the form (category · colour · material).
+    expect(screen.getByTestId('item-form-detected').props.accessibilityLabel).toMatch(/^.+ detected · /);
     expect(fixtureListDrafts()).toHaveLength(1);
   }, 30_000);
 
-  it('a scan line sweeps over the photo only while it is being recognised, and stops on the result', async () => {
+  it('a piece saved from a camera shot returns to the camera with "<Type> saved" and "View"', async () => {
+    await open('/item/add');
+    await waitFor(() => expect(screen.getByTestId('item-add-camera')).toBeTruthy(), WAIT);
+    await settle();
+    await fireEvent.press(screen.getByTestId('item-add-shutter'));
+    await waitFor(() => expect(screen.getByTestId('item-form-save')).toBeTruthy(), WAIT);
+    const before = fixtureDb.items.length;
+    await fireEvent.press(screen.getByTestId('item-form-save'));
+    await waitFor(() => expect(fixtureDb.items).toHaveLength(before + 1), WAIT);
+    await waitFor(() => expect(screen).toHavePathname('/item/add'), WAIT);
+    await waitFor(() => expect(screen.getByTestId('item-saved-toast')).toBeTruthy(), WAIT);
+    expect(screen.getByText(/^.+ saved$/)).toBeTruthy();
+    await fireEvent.press(screen.getByText('View'));
+    await waitFor(() => expect(screen).toHavePathname(`/item/${fixtureDb.items[0]?.id ?? ''}`), WAIT);
+  }, 30_000);
+
+  it('a scan line sweeps over the photo only while it is being recognised; the result opens the form at once', async () => {
     fixtureDraftOptions.baseMs = 1500;
     await open('/item/add');
     await waitFor(() => expect(screen.getByTestId('item-add-camera')).toBeTruthy(), WAIT);
@@ -108,7 +120,6 @@ describe('12 Parça ekle — in-app camera', () => {
     // The decorative line is hidden from assistive tech: the queries include hidden elements.
     expect(screen.queryByTestId('scan-line-sweeping', HIDDEN)).toBeNull();
     await fireEvent.press(screen.getByTestId('item-add-shutter'));
-    await chooseSplit();
     await waitFor(() => expect(screen.getByTestId('scan-line-sweeping', HIDDEN)).toBeTruthy(), WAIT);
     // It already runs while the photo is sent, and keeps running through the recognition job.
     await waitFor(() => expect(screen.getByTestId('item-add-pill').props.accessibilityLabel).toBe('Recognising the piece…'), WAIT);
@@ -117,8 +128,8 @@ describe('12 Parça ekle — in-app camera', () => {
     // The photo covers the frame (no contain-fit side bars).
     expect(screen.getByTestId('item-add-photo').props.contentFit).toBe('cover');
 
-    await waitFor(() => expect(screen.getByTestId('item-add-pill').props.accessibilityLabel).toMatch(/detected · /), WAIT);
-    expect(screen.getByTestId('scan-line-idle', HIDDEN)).toBeTruthy();
+    // No hold on "… detected" (canvas n_ux1 A2): the review form takes over as soon as the piece is recognised.
+    await waitFor(() => expect(screen).toHavePathname('/item/form'), WAIT);
     expect(screen.queryByTestId('scan-line-sweeping', HIDDEN)).toBeNull();
   }, 30_000);
 
@@ -129,7 +140,6 @@ describe('12 Parça ekle — in-app camera', () => {
     await waitFor(() => expect(screen.getByTestId('item-add-camera')).toBeTruthy(), WAIT);
     await settle();
     await fireEvent.press(screen.getByTestId('item-add-shutter'));
-    await chooseSplit();
     await waitFor(() => expect(screen.getByTestId('item-add-pill').props.accessibilityLabel).toBe('Recognising the piece…'), WAIT);
     expect(screen.queryByTestId('scan-line-sweeping', HIDDEN)).toBeNull();
     expect(screen.queryByTestId('scan-line-idle', HIDDEN)).toBeNull();
@@ -187,7 +197,6 @@ describe('12 → 12c: the photo survives an exhausted recognition quota', () => 
     // The last free recognition is used elsewhere: the app still believes one is left, the server says 402.
     setFixtureItemRecognition(3, 3);
     await fireEvent.press(screen.getByTestId('item-add-shutter'));
-    await chooseSplit();
     await waitFor(() => expect(screen).toHavePathname('/paywall'), WAIT);
     expect(fixtureListDrafts()).toHaveLength(0);
 
@@ -228,7 +237,6 @@ describe('12 → 12c: the photo survives an exhausted recognition quota', () => 
     await waitFor(() => expect(screen.getByTestId('item-add-camera')).toBeTruthy(), WAIT);
     await settle();
     await fireEvent.press(screen.getByTestId('item-add-shutter'));
-    await chooseSplit();
     await waitFor(() => expect(screen).toHavePathname('/paywall'), WAIT);
     expect(mockCamera.take).toHaveBeenCalledTimes(1);
     expect(fixtureListDrafts()).toHaveLength(0);

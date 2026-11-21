@@ -30,6 +30,7 @@ import { useAcceptPlanWeek, usePlanDays, usePlanWeekJob, usePutPlanDay, useStart
 import { combineQueries } from '@/features/today/combineQueries';
 import { weekDates } from '@/features/today/dates';
 import { buildWeekRows, daysToPlan, occasionCounts, weekTryOnTargets, type WeekRow } from '@/features/today/logic';
+import { PlanLookSheet } from '@/features/today/PlanLookSheet';
 import { WeekDayRow } from '@/features/today/WeekDayRow';
 import { isQuoteChanged, useStartTryOn, useWeekTryOn } from '@/features/tryon/api';
 import { useAppLanguage } from '@/i18n/useAppLanguage';
@@ -48,7 +49,8 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 /**
  * 07 Haftalık plan — the week's occasions, "Haftamı planla" (stylist-week job, accepted by the user
  * before anything is written), "Üzerimde gör" for the whole week behind the 07b credit confirmation,
- * and one row per day with a ⋯ menu (Değiştir / Kaldır) or "Öner" for an empty day.
+ * and one row per day with a ⋯ menu (Değiştir / Kaldır) or "Planla" for an empty day; both open 07c "Bu güne look seç"
+ * (a saved look, no AI), whose "Stilistten öner" is the stylist path.
  *
  * The rows are the Monday → Sunday week the board lists (Pazartesi 16 … with today in the middle, the same
  * seven days as the strip on 06), so the line above the title names that week ("BU HAFTA · 16–22 KASIM")
@@ -80,6 +82,8 @@ export default function PlanWeekScreen() {
   const acceptPlanWeek = useAcceptPlanWeek();
 
   const [menu, setMenu] = useState<{ date: string; top: number } | null>(null);
+  // 07c: the day whose look is being chosen (null = sheet closed).
+  const [pick, setPick] = useState<WeekRow | null>(null);
   // 07b: the quote being confirmed (null = sheet closed) and why it is shown again.
   const [weekQuote, setWeekQuote] = useState<TryOnWeekQuote | null>(null);
   const [quoteChanged, setQuoteChanged] = useState(false);
@@ -254,6 +258,7 @@ export default function PlanWeekScreen() {
                           variant="secondary"
                           className="px-3"
                           label={t('weekPlan.tryOn')}
+                          detail={targets.length > 0 ? t('ai.creditCost', { count: targets.length }) : undefined}
                           icon={MirrorRound}
                           loading={weekTryOn.isQuoting}
                           testID="week-tryon"
@@ -305,7 +310,7 @@ export default function PlanWeekScreen() {
                     focused={focused}
                     tryOnJobId={tryOnJobs[row.date] ?? null}
                     onOpenMenu={(top) => setMenu({ date: row.date, top })}
-                    onSuggest={() => suggestFor(row)}
+                    onPlan={() => setPick(row)}
                     onRetryTryOn={() => void startTryOns([row.date])}
                   />
                 ))}
@@ -317,7 +322,7 @@ export default function PlanWeekScreen() {
                 top={menu?.top ?? 0}
                 right={32}
                 actions={[
-                  { key: 'change', label: t('weekPlan.change'), icon: RefreshCw, onPress: () => menuRow && suggestFor(menuRow) },
+                  { key: 'change', label: t('weekPlan.change'), icon: RefreshCw, onPress: () => menuRow && setPick(menuRow) },
                   {
                     key: 'remove',
                     label: t('weekPlan.remove'),
@@ -328,6 +333,13 @@ export default function PlanWeekScreen() {
                       menuRow && putPlanDay.put(menuRow.plan, menuRow.date, { occasion: menuRow.plan?.occasion ?? null, lookId: null }),
                   },
                 ]}
+              />
+
+              <PlanLookSheet
+                date={pick?.date ?? null}
+                occasion={pick ? (pick.plan?.occasion ?? pick.look?.occasion ?? null) : null}
+                onClose={() => setPick(null)}
+                onSuggest={() => pick && suggestFor(pick)}
               />
 
               <CreditConfirmSheet

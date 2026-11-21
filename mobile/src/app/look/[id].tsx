@@ -19,6 +19,7 @@ import { ScreenState } from '@/components/ui/ScreenState';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { CreditConfirmSheet } from '@/features/credits/CreditConfirmSheet';
+import { useSpendConfirm } from '@/features/credits/spendConfirm';
 import { useLookWrites } from '@/features/looks/api';
 import { indexItems, SlotThumb, type ItemsById } from '@/features/looks/LookCover';
 import { LookHero, useLookTryOn, type LookTryOn } from '@/features/looks/LookHero';
@@ -217,8 +218,28 @@ export default function LookScreen() {
   const [notice, setNotice] = useState<Notice>(null);
   const look = query.data;
   const itemsById = indexItems(items.data);
-  // Consent of the photo path first (normally already given), then the credit confirmation.
-  const gate = useGate('tryOn', () => void ensureTryOnConsent().then((ok) => ok && setConfirm(true)), { origin: look?.name ?? null });
+  const startTryOn = () => {
+    if (!look) return;
+    void (async () => {
+      try {
+        const { jobId } = await tryOn.start({ kind: 'look', id: look.id });
+        setConfirm(false);
+        router.push({ pathname: '/tryon/[jobId]', params: { jobId, title: look.name, kind: 'look', id: look.id } });
+      } catch (error) {
+        setConfirm(false);
+        if (!isConsentDeclined(error)) setNotice('tryOnFailed');
+      }
+    })();
+  };
+
+  // Consent of the photo path first (normally already given), then the credit confirmation only when it has something
+  // to say (first try-on, low balance) — the button already carries the cost.
+  const spend = useSpendConfirm();
+  const gate = useGate(
+    'tryOn',
+    () => void ensureTryOnConsent().then((ok) => ok && spend(TRY_ON_CREDIT_COST, { confirm: () => setConfirm(true), start: startTryOn })),
+    { origin: look?.name ?? null },
+  );
   const withHandle = useHandleGate();
   // 14b hero: the image on the CURRENT photo, the run of this session, or none. 13d: an existing image opens
   // without the credit sheet.
@@ -261,20 +282,6 @@ export default function LookScreen() {
     }
     // What is missing (photo, consent, membership…) opens the requirements flow, which comes back here (canvas 11).
     gate.run();
-  };
-
-  const startTryOn = () => {
-    if (!look) return;
-    void (async () => {
-      try {
-        const { jobId } = await tryOn.start({ kind: 'look', id: look.id });
-        setConfirm(false);
-        router.push({ pathname: '/tryon/[jobId]', params: { jobId, title: look.name, kind: 'look', id: look.id } });
-      } catch (error) {
-        setConfirm(false);
-        if (!isConsentDeclined(error)) setNotice('tryOnFailed');
-      }
-    })();
   };
 
   const noteText =
@@ -326,7 +333,10 @@ export default function LookScreen() {
                 size="bar"
                 icon={MirrorRound}
                 label={generating ? t('lookDetail.tryOnPreparing') : t('lookEditor.tryOn')}
+                // 14b: the cost rides on the button; an existing image opens without a credit.
+                detail={generating || hasImage ? undefined : t('ai.creditCost', { count: TRY_ON_CREDIT_COST })}
                 onPress={onTryOnPress}
+                loading={tryOn.isStarting && !confirm}
                 disabled={generating}
                 testID="look-try-on"
               />

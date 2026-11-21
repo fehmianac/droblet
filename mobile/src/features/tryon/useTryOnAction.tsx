@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import type { TryOnTarget } from '@/api/contracts/tryon';
 import { CreditConfirmSheet } from '@/features/credits/CreditConfirmSheet';
+import { useSpendConfirm } from '@/features/credits/spendConfirm';
 import { openCreditSheetIfExhausted } from '@/features/credits/creditSheetStore';
 import { useGate } from '@/features/requirements/useRequirements';
 import { useIsOnline } from '@/sync/network';
@@ -50,8 +51,27 @@ export function useTryOnAction({ target, title, feature, cachedJobId }: Options)
   const cached = cachedJobId === undefined ? checked.cachedJobId : cachedJobId;
   const openResult = (jobId: string) => router.push({ pathname: '/tryon/[jobId]', params: { jobId, title, kind: target.kind, id: target.id } });
 
-  // Consent of the photo path, then the credit confirmation — also the resume of the requirements flow.
-  const gate = useGate('tryOn', () => void ensureTryOnConsent().then((ok) => ok && setConfirm(true)), { origin: title });
+  const start = () => {
+    void (async () => {
+      try {
+        const { jobId } = await tryOn.start(target);
+        setConfirm(false);
+        openResult(jobId);
+      } catch (error) {
+        setConfirm(false);
+        if (!isConsentDeclined(error) && !openCreditSheetIfExhausted(error, feature)) setNote('failed');
+      }
+    })();
+  };
+
+  // Consent of the photo path, then the credit confirmation only when it has something to say (first try-on, low
+  // balance) — also the resume of the requirements flow. The tile already carries the cost.
+  const spend = useSpendConfirm();
+  const gate = useGate(
+    'tryOn',
+    () => void ensureTryOnConsent().then((ok) => ok && spend(TRY_ON_CREDIT_COST, { confirm: () => setConfirm(true), start })),
+    { origin: title },
+  );
   const footer = useTryOnInviteFooter(gate.req);
 
   const onPress = () => {
@@ -65,19 +85,6 @@ export function useTryOnAction({ target, title, feature, cachedJobId }: Options)
       return;
     }
     gate.run();
-  };
-
-  const start = () => {
-    void (async () => {
-      try {
-        const { jobId } = await tryOn.start(target);
-        setConfirm(false);
-        openResult(jobId);
-      } catch (error) {
-        setConfirm(false);
-        if (!isConsentDeclined(error) && !openCreditSheetIfExhausted(error, feature)) setNote('failed');
-      }
-    })();
   };
 
   return {
