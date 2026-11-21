@@ -8,6 +8,7 @@ import { apiRequest } from '@/api/client';
 import type { MyPhotos, ProfileStats } from '@/api/contracts/account';
 import type { EventBatchRequest } from '@/api/contracts/analytics';
 import { toEventBatchWire, type EventBatchResponseWire } from '@/api/wire/analytics';
+import type { StyleProfile } from '@/api/contracts';
 import type { toEntitlement } from '@/api/wire/core';
 import { useOnboardingStatus } from '@/auth/onboarding';
 import { useSession } from '@/auth/session';
@@ -72,6 +73,7 @@ function FirebaseUser({ userId }: { userId: string }) {
   const entitlement = useCached<ReturnType<typeof toEntitlement>>(queryKeys.entitlement);
   const photos = useCached<MyPhotos>(accountKeys.photos);
   const stats = useCached<ProfileStats>(accountKeys.stats);
+  const styleProfile = useCached<StyleProfile | null>(queryKeys.styleProfile);
 
   useEffect(() => {
     if (!tenantId) return;
@@ -89,6 +91,7 @@ function FirebaseUser({ userId }: { userId: string }) {
   const hasBody = photos ? photos.body.length > 0 : null;
   const hasFace = photos ? photos.face !== null : null;
   const bucket = wardrobeSizeBucket(stats?.itemCount);
+  const segment = styleProfile ? (styleProfile.segment === 'men' ? 'men' : 'women') : null;
   useEffect(() => {
     if (!firebaseCollecting()) return;
     setFirebaseUserProperties(
@@ -99,9 +102,10 @@ function FirebaseUser({ userId }: { userId: string }) {
         has_body_photo: hasBody,
         has_face_photo: hasFace,
         wardrobe_size_bucket: bucket,
+        segment,
       }),
     );
-  }, [plan, language, onboardingDone, hasBody, hasFace, bucket]);
+  }, [plan, language, onboardingDone, hasBody, hasFace, bucket, segment]);
 
   useEffect(() => () => setFirebaseUserId(null), []);
   return null;

@@ -5,6 +5,8 @@ export const queryKeys = {
   entitlement: ['tenant', 'entitlement'] as const,
   today: ['tenant', 'today'] as const,
   library: ['catalog', 'library'] as const,
+  /** The ready-made library of one segment (canvas 17: the men's set is its own list). */
+  libraryFor: (segment: 'women' | 'men') => ['catalog', 'library', segment] as const,
   storeProducts: ['store', 'products'] as const,
 };
 
