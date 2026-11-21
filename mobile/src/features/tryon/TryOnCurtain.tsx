@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -35,11 +35,18 @@ const CURTAIN = {
 
 /** At most this many rows; the rest is "ve N parça daha". */
 export const CURTAIN_MAX_ROWS = 4;
-/** Hold on the all-✓ "Hazır" card before the curtain opens. */
-const READY_HOLD_MS = 700;
-const OPEN_MS = 1100;
+/** Hold on the all-✓ "Hazır" card before the curtain opens (canvas n_ux1 B: "Hazır" + opening ~1.2 s in all). */
+const READY_HOLD_MS = 400;
+const OPEN_MS = 800;
 /** Hold on the open curtain before the result screen takes over. */
-const OPEN_HOLD_MS = 450;
+const OPEN_HOLD_MS = 0;
+const CARD_FADE_MS = 200;
+const REDUCED_OPEN_MS = 300;
+
+/** From "Hazır" to `onRevealed` (exported for tests): ~1.2 s, shorter with reduce motion (the curtain fades). */
+export function curtainRevealMs(reduceMotion: boolean): number {
+  return READY_HOLD_MS + (reduceMotion ? REDUCED_OPEN_MS : OPEN_MS) + OPEN_HOLD_MS;
+}
 
 /**
  * How long each piece is "being put on": the pieces share ~24 s (the usual try-on takes 20–40 s), 3–7 s each.
@@ -83,7 +90,7 @@ type Props = {
   reveal?: boolean;
   /** What is behind the curtain once it opens (the result image). */
   revealImage?: ReactNode;
-  /** Called once the curtain has opened and held. */
+  /** Called once the curtain has opened and held — or at once when the curtain is tapped during the reveal. */
   onRevealed?: () => void;
   /** The wait stopped (error): the curtain stands still, no card. */
   stopped?: boolean;
@@ -94,7 +101,8 @@ type Props = {
  * "Üzerimde gör" wait (canvas 21e): a closed linen curtain on a rail; the card in the middle says "Hazırlanıyor…" and
  * puts the outfit's pieces on one by one by their own names ("Lacivert blazer giyiliyor…" → "… giyildi"). When the
  * result is in, the card reads "Hazır", fades, and the curtain draws to both sides over the image. Nothing behind the
- * curtain shows while it is closed. Reduce motion: no sway or pulse; the curtain fades instead of drawing.
+ * curtain shows while it is closed. A tap anywhere during the reveal skips straight to the result. Reduce motion: no
+ * sway or pulse; the curtain fades instead of drawing.
  */
 export function TryOnCurtain({ pieces, startedAt, reveal = false, revealImage, onRevealed, stopped = false, className }: Props) {
   const { t } = useTranslation();
@@ -128,21 +136,29 @@ export function TryOnCurtain({ pieces, startedAt, reveal = false, revealImage, o
   // Card fade + curtain opening.
   const open = useSharedValue(0);
   const card = useSharedValue(1);
+  // `onRevealed` runs once per reveal: after the sequence, or on a tap that skips it.
+  const revealed = useRef(false);
+  const finish = () => {
+    if (revealed.current) return;
+    revealed.current = true;
+    onRevealed?.();
+  };
   useEffect(() => {
     if (!reveal) {
+      revealed.current = false;
       open.value = 0;
       card.value = 1;
       return;
     }
-    card.value = withDelay(READY_HOLD_MS, withTiming(0, { duration: 220 }));
+    card.value = withDelay(READY_HOLD_MS, withTiming(0, { duration: CARD_FADE_MS }));
     open.value = withDelay(
-      READY_HOLD_MS + 200,
+      READY_HOLD_MS,
       withTiming(1, {
-        duration: reduceMotion ? 300 : OPEN_MS,
+        duration: reduceMotion ? REDUCED_OPEN_MS : OPEN_MS,
         easing: Easing.bezier(0.6, 0, 0.3, 1),
       }),
     );
-    const id = setTimeout(() => onRevealed?.(), READY_HOLD_MS + 200 + (reduceMotion ? 300 : OPEN_MS) + OPEN_HOLD_MS);
+    const id = setTimeout(finish, curtainRevealMs(reduceMotion));
     return () => clearTimeout(id);
     // onRevealed is a callback of the screen; the sequence runs once per reveal.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -213,6 +229,16 @@ export function TryOnCurtain({ pieces, startedAt, reveal = false, revealImage, o
           </Animated.View>
         </View>
       )}
+
+      {reveal && onRevealed ? (
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={finish}
+          accessibilityRole="button"
+          accessibilityLabel={t('ai.tryOnCurtain.skip')}
+          testID="tryon.curtain.skip"
+        />
+      ) : null}
     </View>
   );
 }
