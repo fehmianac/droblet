@@ -2,7 +2,8 @@ import type { ErrorBoundaryProps } from 'expo-router';
 import { CircleAlert, RotateCcw } from 'lucide-react-native';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View } from 'react-native';
+import Constants from 'expo-constants';
+import { Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { StateMessage } from '@/components/ui/StateMessage';
@@ -13,6 +14,17 @@ import { StateMessage } from '@/components/ui/StateMessage';
  * it (`export { ScreenErrorBoundary as ErrorBoundary }`): every tab exports it, so a render error in one
  * tab leaves the tab bar and the other tabs working; the root layout exports it as the last resort.
  */
+/**
+ * Test builds only (extra.showErrorDetail, set while the app is in TestFlight / Play internal testing): one muted line
+ * with the error so a tester's screenshot says what broke. Not part of the design; off for the store release.
+ */
+function errorDetail(error: Error): string | null {
+  const extra = Constants.expoConfig?.extra as { showErrorDetail?: boolean } | undefined;
+  if (!__DEV__ && !extra?.showErrorDetail) return null;
+  const text = `${error?.name ?? 'Error'}: ${error?.message ?? ''}`.replace(/\s+/g, ' ').trim();
+  return text.length > 180 ? `${text.slice(0, 180)}…` : text;
+}
+
 export function ScreenErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   const { t } = useTranslation();
   useEffect(() => {
@@ -32,6 +44,11 @@ export function ScreenErrorBoundary({ error, retry }: ErrorBoundaryProps) {
           actionVariant="primary"
           onAction={() => void retry()}
         />
+        {errorDetail(error) ? (
+          <Text selectable testID="screen-error-detail" className="mt-4 px-6 text-center text-[11px] text-muted">
+            {errorDetail(error)}
+          </Text>
+        ) : null}
       </View>
     </SafeAreaView>
   );

@@ -15,7 +15,8 @@
         "DROBLET_TERMS_URL": "https://droblet.alatech.co/terms",
         "DROBLET_PRIVACY_URL": "https://droblet.alatech.co/privacy",
         "DROBLET_GOOGLE_IOS_CLIENT_ID": "246101741985-hka3auqnqlnlu891bt4g1jcbdr6q212t.apps.googleusercontent.com",
-        "DROBLET_GOOGLE_ANDROID_CLIENT_ID": "246101741985-1lsr1d53gkivi11q791t6a75ikjsogdr.apps.googleusercontent.com"
+        "DROBLET_GOOGLE_ANDROID_CLIENT_ID": "246101741985-1lsr1d53gkivi11q791t6a75ikjsogdr.apps.googleusercontent.com",
+        "DROBLET_SHOW_ERROR_DETAIL": "1"
       }
     },
     "production": {
@@ -26,7 +27,8 @@
         "DROBLET_TERMS_URL": "https://droblet.alatech.co/terms",
         "DROBLET_PRIVACY_URL": "https://droblet.alatech.co/privacy",
         "DROBLET_GOOGLE_IOS_CLIENT_ID": "246101741985-hka3auqnqlnlu891bt4g1jcbdr6q212t.apps.googleusercontent.com",
-        "DROBLET_GOOGLE_ANDROID_CLIENT_ID": "246101741985-1lsr1d53gkivi11q791t6a75ikjsogdr.apps.googleusercontent.com"
+        "DROBLET_GOOGLE_ANDROID_CLIENT_ID": "246101741985-1lsr1d53gkivi11q791t6a75ikjsogdr.apps.googleusercontent.com",
+        "DROBLET_SHOW_ERROR_DETAIL": "1"
       }
     }
   },

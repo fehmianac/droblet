@@ -100,9 +100,10 @@ export default function AuthStartScreen() {
     }
   };
 
+  const { mutate: googleMutate } = google;
   const onGoogleToken = useCallback(
-    (idToken: string) => google.mutate({ idToken }, { onError: showServerError }),
-    [google, showServerError],
+    (idToken: string) => googleMutate({ idToken }, { onError: showServerError }),
+    [googleMutate, showServerError],
   );
   const onGoogleError = useCallback(() => setErrors({ form: t('errors.socialFailed') }), [t]);
   const onGoogleUnavailable = useCallback(() => setErrors({ form: t('errors.googleUnavailable') }), [t]);

@@ -1,6 +1,6 @@
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Platform } from 'react-native';
 
@@ -33,8 +33,13 @@ function ConfiguredGoogleButton({ onIdToken, onError, loading, disabled }: Omit<
     webClientId: ids.web ?? undefined,
   });
 
+  // Each Google answer is handled once. The callbacks change identity on every render (the sign-in mutation re-renders
+  // the screen), and re-running this effect for the same answer sent the token again and again until React gave up —
+  // the crash screen right after a successful Google sign-in.
+  const handled = useRef<typeof response>(null);
   useEffect(() => {
-    if (!response) return;
+    if (!response || handled.current === response) return;
+    handled.current = response;
     if (response.type === 'success') {
       const idToken = response.params.id_token;
       if (idToken) onIdToken(idToken);

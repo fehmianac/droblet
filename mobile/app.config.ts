@@ -194,6 +194,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ...config.extra,
     ...(easProjectId ? { eas: { ...(config.extra?.eas as Record<string, unknown> | undefined), projectId: easProjectId } } : {}),
     apiBaseUrl: process.env.DROBLET_API_BASE_URL ?? null,
+    // Test builds: show the error text on the crash screen (ScreenErrorBoundary). Unset for the store release.
+    showErrorDetail: process.env.DROBLET_SHOW_ERROR_DETAIL === '1',
     linkDomain: LINK_DOMAIN,
     termsUrl: process.env.DROBLET_TERMS_URL ?? null,
     privacyUrl: process.env.DROBLET_PRIVACY_URL ?? null,
