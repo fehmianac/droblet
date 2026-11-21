@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { router, useIsFocused, useLocalSearchParams } from 'expo-router';
 import { Camera, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,7 +9,7 @@ import Svg, { Rect } from 'react-native-svg';
 
 import { tryOnImageSource, viewerSourceOf } from '@/api/imageSources';
 import type { TryOnTarget } from '@/api/contracts/tryon';
-import { AiBackgroundAction, AiFailure, AiProgressLines, AiTryOnStage } from '@/components/ui/ai';
+import { AiBackgroundAction, AiFailure } from '@/components/ui/ai';
 import { Badge } from '@/components/ui/Bits';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
@@ -23,6 +23,8 @@ import { PhotoRejected } from '@/features/requirements/PhotoRejected';
 import { requirementsFlow } from '@/features/requirements/store';
 import { isTryOnTargetKind, TRY_ON_CREDIT_COST, useStartTryOn, useTryOnJob } from '@/features/tryon/api';
 import { TryOnResultImage } from '@/features/tryon/TryOnResultImage';
+import { TryOnCurtain } from '@/features/tryon/TryOnCurtain';
+import { tryOnPieces } from '@/features/tryon/pieces';
 import { CachedTryOnNote, isCachedTryOnJob } from '@/features/tryon/cached';
 import { useOutfitPhotoPicker } from '@/features/tryon/OutfitPhotoPicker';
 import { PhotoResultActions, ReferenceRejected, referenceViewerImage, shareTryOnImage, SourcePhotoThumb } from '@/features/tryon/PhotoTryOnParts';
@@ -87,6 +89,14 @@ export default function TryOnScreen() {
   const otherPhoto = useOutfitPhotoPicker({ replace: true });
   const startDrafts = useStartItemDrafts();
   const [sharing, setSharing] = useState(false);
+  // Curtain wait (21e): the pieces this app started the job with. A result that arrives while the curtain is showing is
+  // revealed by opening it before the result layout; a result that was already there (cache, reopened screen) opens at once.
+  const pieces = useMemo(() => tryOnPieces.get(params.jobId), [params.jobId]);
+  const [startedAt] = useState(() => Date.now());
+  const [phase, setPhase] = useState<'unknown' | 'waiting' | 'revealing' | 'revealed'>('unknown');
+  const settledNow = job.isDone || job.isFailed;
+  if (phase === 'unknown') setPhase(settledNow ? 'revealed' : 'waiting');
+  else if (phase === 'waiting' && job.isDone) setPhase('revealing');
 
   const settled = job.isDone || job.isFailed;
   useEffect(() => {
@@ -153,7 +163,7 @@ export default function TryOnScreen() {
     return (
       <Screen top={false} bottom>
         <View>
-          <AiTryOnStage className="h-[470px] w-full" active={false} tag={null} />
+          <TryOnCurtain className="h-[470px] w-full" pieces={pieces} startedAt={startedAt} stopped />
           <View className="absolute left-gutter right-gutter flex-row items-center justify-between" style={{ top: insets.top + 6 }}>
             <IconButton icon={ChevronLeft} variant="inverse" onPress={close} accessibilityLabel={t('a11y.back')} />
           </View>
@@ -165,6 +175,8 @@ export default function TryOnScreen() {
       </Screen>
     );
   }
+
+  if (job.isDone && phase !== 'revealed') return renderWait(true);
 
   if (job.isDone) {
     const remaining = job.result?.creditsRemaining ?? credits.remaining;
@@ -262,35 +274,55 @@ export default function TryOnScreen() {
     );
   }
 
-  const lines = [t('ai.tryOnLines.pieces'), t('ai.tryOnLines.colors'), t('ai.tryOnLines.placing'), t('ai.tryOnLines.finishing')];
-  const cost = TRY_ON_CREDIT_COST;
-  return (
-    <Screen top={false} bottom>
-      <View>
-        <AiTryOnStage className="h-[470px] w-full" />
-        <View className="absolute left-gutter right-gutter flex-row items-center justify-between" style={{ top: insets.top + 6 }}>
-          <IconButton icon={ChevronLeft} variant="inverse" onPress={close} accessibilityLabel={t('a11y.back')} />
-          <StageBadge label={t('ai.previewBadge')} />
+  return renderWait(false);
+
+  function renderWait(reveal: boolean) {
+    const cost = TRY_ON_CREDIT_COST;
+    const revealImage = reveal ? (
+      <TryOnResultImage
+        tryOnId={job.result?.tryOnId ?? null}
+        url={job.result?.imageUrl ?? null}
+        className="h-full w-full"
+        accessibilityLabel={title ? t('tryOn.imageA11yNamed', { name: title }) : t('tryOn.imageA11y')}
+      />
+    ) : null;
+    return (
+      <Screen top={false} bottom>
+        <View>
+          <TryOnCurtain
+            className="h-[470px] w-full"
+            pieces={pieces}
+            startedAt={startedAt}
+            reveal={reveal}
+            revealImage={revealImage}
+            onRevealed={() => setPhase('revealed')}
+          />
+          <View className="absolute left-gutter right-gutter flex-row items-center justify-between" style={{ top: insets.top + 6 }}>
+            <IconButton icon={ChevronLeft} variant="inverse" onPress={close} accessibilityLabel={t('a11y.back')} />
+            <StageBadge label={t('ai.previewBadge')} />
+          </View>
         </View>
-      </View>
-      <View className="flex-1 gap-3.5 px-6 pt-[22px]">
-        <Text variant="eyebrow">{t('ai.tryOnEyebrow')}</Text>
-        <AiProgressLines lines={lines} />
-        <Text variant="body" tone="muted">
-          {title ? t('ai.tryOnBody', { name: title }) : t('ai.usuallyTakes')}
-        </Text>
-        <View className="flex-row items-center gap-1.5">
-          <CreditGlyph color={colors.muted} />
-          <Text variant="caption" tone="muted" className="flex-1">
-            {credits.remaining !== null
-              ? t('tryOn.creditLine', { count: cost, remaining: credits.remaining })
-              : t('tryOn.creditCostOnly', { count: cost })}
+        <View className="flex-1 gap-3.5 px-6 pt-[22px]">
+          <Text variant="eyebrow">{t('ai.tryOnEyebrow')}</Text>
+          <Text variant="h3" numberOfLines={2}>
+            {title ? t('ai.tryOnCurtain.heading', { name: title }) : t('ai.tryOnCurtain.headingFallback')}
           </Text>
+          <Text variant="body" tone="muted">
+            {t('ai.tryOnCurtain.body')}
+          </Text>
+          <View className="flex-row items-center gap-1.5">
+            <CreditGlyph color={colors.muted} />
+            <Text variant="caption" tone="muted" className="flex-1">
+              {credits.remaining !== null
+                ? t('tryOn.creditLine', { count: cost, remaining: credits.remaining })
+                : t('tryOn.creditCostOnly', { count: cost })}
+            </Text>
+          </View>
         </View>
-      </View>
-      <View className="px-6 pb-4">
-        <AiBackgroundAction onPress={close} />
-      </View>
-    </Screen>
-  );
+        <View className="px-6 pb-4">
+          <AiBackgroundAction onPress={close} />
+        </View>
+      </Screen>
+    );
+  }
 }

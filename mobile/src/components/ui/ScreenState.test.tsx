@@ -1,8 +1,8 @@
 import { onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { Shirt } from 'lucide-react-native';
+import { Shirt, type LucideIcon } from 'lucide-react-native';
 import type { ReactElement } from 'react';
-import { Text } from 'react-native';
+import { Text, View } from 'react-native';
 
 import '@/i18n';
 import { ApiError } from '@/api/errors';
@@ -16,6 +16,10 @@ const base: Query = { data: undefined, status: 'pending', fetchStatus: 'fetching
 const client = new QueryClient();
 const show = (ui: ReactElement) => render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
 const list = (items: string[]) => <Text>{items.join(', ')}</Text>;
+/** The empty-state drawing is decorative (hidden from screen readers), so queries must look at hidden elements. */
+const HIDDEN = { includeHiddenElements: true };
+/** A glyph that can be found by test id (stands in for a Lucide icon in the 96 circle). */
+const Glyph = (() => <View testID="state-icon" />) as unknown as LucideIcon;
 
 afterEach(() => {
   onlineManager.setOnline(true);
@@ -197,5 +201,34 @@ describe('StateMessage', () => {
     expect(screen.getByText('This piece is gone.')).toBeTruthy();
     await fireEvent.press(screen.getByLabelText('Back'));
     expect(onAction).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId(/^empty-illustration-/, HIDDEN)).toBeNull();
+  });
+
+  it('without `illustration` the icon circle is drawn as before', async () => {
+    await render(<StateMessage icon={Glyph} title="Your wardrobe is empty" message="Add your first piece." />);
+    expect(screen.getByTestId('state-icon')).toBeTruthy();
+    expect(screen.queryByTestId(/^empty-illustration-/, HIDDEN)).toBeNull();
+    expect(screen.getByText('Your wardrobe is empty')).toBeTruthy();
+  });
+
+  it('22d–22e: `illustration` replaces the icon circle with the drawing, text unchanged', async () => {
+    await render(<StateMessage icon={Glyph} illustration="cart" title="Your cart is empty" message="Pieces gather here." />);
+    expect(screen.getByTestId('empty-illustration-cart', HIDDEN)).toBeTruthy();
+    expect(screen.queryByTestId('state-icon')).toBeNull();
+    expect(screen.getByText('Your cart is empty')).toBeTruthy();
+    expect(screen.getByText('Pieces gather here.')).toBeTruthy();
+  });
+
+  it('ScreenState passes the empty state\'s illustration through', async () => {
+    await show(
+      <ScreenState
+        query={{ ...base, data: [], status: 'success', fetchStatus: 'idle' }}
+        isEmpty={(items) => items.length === 0}
+        empty={{ illustration: 'looks', title: 'Your lookbook is empty', message: 'Create your first look.', actionLabel: 'Create', onAction: jest.fn() }}
+      >
+        {list}
+      </ScreenState>,
+    );
+    expect(screen.getByTestId('empty-illustration-looks', HIDDEN)).toBeTruthy();
   });
 });

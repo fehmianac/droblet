@@ -40,6 +40,20 @@
     "paletteLines": {
       "tones": "Sana yakışan tonlar seçiliyor…",
       "wardrobe": "Gardırobunla eşleştiriliyor…"
+    },
+    "tryOnCurtain": {
+      "preparing": "Hazırlanıyor",
+      "ready": "Hazır",
+      "wearing": "{{name}} giyiliyor…",
+      "worn": "{{name}} giyildi",
+      "adding": "{{name}} takılıyor…",
+      "added": "{{name}} takıldı",
+      "outfit": "Kombin",
+      "more_one": "ve {{count}} parça daha",
+      "more_other": "ve {{count}} parça daha",
+      "body": "Senin fotoğrafında hazırlanıyor. Genelde 20–40 saniye sürer; bitince perde açılır.",
+      "heading": "{{name}} kabinde",
+      "headingFallback": "Kombinin kabinde"
     }
   },
   "creditConfirm": {

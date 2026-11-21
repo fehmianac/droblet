@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
-import { Camera, Check, Frame, MoveVertical, Sun, WifiOff, X } from 'lucide-react-native';
+import { Camera, Check, Frame, MoveVertical, Sun, WifiOff } from 'lucide-react-native';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, View } from 'react-native';
@@ -9,9 +9,9 @@ import type { PhotoKind } from '@/api/contracts';
 import { DropLoader } from '@/components/brand/DropLoader';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
-import { Silhouette } from '@/components/ui/Silhouette';
 import { Text } from '@/components/ui/Text';
 import { accountKeys } from '@/features/account/queries';
+import { PhotoGuideStrip } from '@/features/photos/PhotoGuideStrip';
 import type { PreparedPhoto } from '@/features/photos/preparePhoto';
 import { usePhotoPicker } from '@/features/photos/usePhotoPicker';
 import { newClientMutation } from '@/sync/clientMutation';
@@ -41,27 +41,8 @@ function Tip({ icon, title, body }: { icon: typeof Sun; title: string; body?: st
   );
 }
 
-/** One of the three examples (Böyle · tam boy / Yarım boy / Karanlık), a check or a cross in the corner. */
-function Example({ label, ok, dark = false, cropped = false }: { label: string; ok: boolean; dark?: boolean; cropped?: boolean }) {
-  return (
-    <View className="flex-1 gap-1.5">
-      <View
-        className={`h-36 items-center overflow-hidden rounded-[12px] ${dark ? 'bg-[#3A342E] justify-center' : 'bg-sand'} ${cropped ? 'justify-start pt-2' : 'justify-center'} ${ok ? 'border-[1.5px] border-ink' : ''}`}
-      >
-        <Silhouette height={cropped ? 184 : 94} opacity={dark ? 0.35 : 0.3} />
-        <View className={`absolute right-1.5 top-1.5 h-5 w-5 items-center justify-center rounded-pill ${ok ? 'bg-ink' : 'bg-danger'}`}>
-          <Icon icon={ok ? Check : X} size={11} tone={ok ? 'cream' : 'paper'} />
-        </View>
-      </View>
-      <Text variant="caption" tone={ok ? 'ink' : 'muted'} className={ok ? 'font-sans-medium' : ''}>
-        {label}
-      </Text>
-    </View>
-  );
-}
-
 /**
- * Canvas 11d / 11e photo step — guide (examples + tips), upload, "Fotoğraf hazır". The upload is the queued,
+ * Canvas 11d / 11e photo step — guide (the 22c example strip + tips), upload, "Fotoğraf hazır". The upload is the queued,
  * persisted photo upload: offline, the photo waits on the phone ("Fotoğrafın telefonda bekliyor") and goes up
  * when the connection is back. The step is done when the user continues from "Fotoğraf hazır".
  */
@@ -121,11 +102,7 @@ export function StepPhoto({ kind, onDone, onLeave }: StepProps & { kind: PhotoKi
           </View>
         ) : (
           <>
-            <View className="flex-row gap-2" accessible={false}>
-              <Example label={t('req.photo.good')} ok />
-              <Example label={t('req.photo.half')} ok={false} cropped />
-              <Example label={t('req.photo.dark')} ok={false} dark />
-            </View>
+            <PhotoGuideStrip />
             <View className="gap-3">
               <Tip icon={Frame} title={t('req.photo.tipBackground')} body={t('req.photo.tipBackgroundBody')} />
               <Tip icon={MoveVertical} title={t('req.photo.tipFrame')} body={t('req.photo.tipFrameBody')} />

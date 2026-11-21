@@ -76,7 +76,9 @@ describe('18 Bavullar', () => {
   it('shows one sentence when there is no suitcase yet, with the form still usable', async () => {
     resetFixtureDb({ empty: true });
     await renderRouter('./src/app', { initialUrl: '/wardrobe/trips' });
-    await waitFor(() => expect(screen.getByText(/No suitcases yet/)).toBeTruthy(), { timeout: 3000 });
+    await waitFor(() => expect(screen.getByText('No suitcases yet')).toBeTruthy(), { timeout: 3000 });
+    expect(screen.getByText("Pick the city and dates; we'll prepare the list.")).toBeTruthy();
+    expect(screen.getByTestId('empty-illustration-trips', { includeHiddenElements: true })).toBeTruthy();
     expect(screen.getByTestId('trip-submit')).toBeTruthy();
   });
 });

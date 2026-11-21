@@ -64,6 +64,11 @@ describe('04 Beden ve fotoğraf', () => {
     expect(screen.getByLabelText('Add face photo')).toBeTruthy();
     expect(screen.getByText('0 / 3')).toBeTruthy();
     expect(screen.getByText(/visible only to you/)).toBeTruthy();
+    // 22c: the "A good full-length photo" strip, one right and two wrong examples, each with its own label.
+    expect(screen.getByText('A good full-length photo')).toBeTruthy();
+    expect(screen.getByLabelText('Right: full length, in front of a plain wall, in good light')).toBeTruthy();
+    expect(screen.getByLabelText('Wrong: too dark')).toBeTruthy();
+    expect(screen.getByLabelText('Wrong: upper body only')).toBeTruthy();
 
     // Size is a field that opens the size sheet.
     await fireEvent.press(screen.getByTestId('body.size'));

@@ -111,6 +111,21 @@ export const placeholderTones = {
 } as const;
 export type PlaceholderTone = keyof typeof placeholderTones;
 
+/** The "Üzerimde gör" curtain (canvas 21e): linen stripes, rail and the card on it — fixed tones in both themes. */
+export const curtainTones = {
+  ground: '#3A342E',
+  rail: '#6E5640',
+  stripeA: '#D8CBBA',
+  stripeB: '#E6DCCF',
+  stripeC: '#CDBFAD',
+  stripeD: '#DED3C4',
+  ink: '#1C1A17',
+  cream: '#F4F1EC',
+  muted: '#8A8178',
+  ring: '#CFC5B8',
+  accent: '#6E5640',
+} as const;
+
 /**
  * Two surfaces the canvas draws outside the palette: the ground of the camera screen (board 12) and the
  * warm "check this" badge on an uncertain AI guess (board 13 "Kategoriyi kontrol et"; ink text on it).
@@ -118,6 +133,18 @@ export type PlaceholderTone = keyof typeof placeholderTones;
 export const surfaceTones = {
   camera: '#2A2622',
   caution: '#F3E3CF',
+} as const;
+
+/**
+ * The editorial photos of section 22 (canvas 22a-22c): the ink veil at the top of the paywall photo and its dark
+ * "Önce üzerinde gör" badge, the shade under the name on a segment card, and the dim of the "too dark" guide example.
+ */
+export const visualTones = {
+  inkTop: 'rgba(28, 26, 23, 0.28)',
+  inkClear: 'rgba(28, 26, 23, 0)',
+  badge: 'rgba(28, 26, 23, 0.72)',
+  cardShade: 'rgba(21, 18, 15, 0.78)',
+  dim: 'rgba(0, 0, 0, 0.62)',
 } as const;
 
 /** Swatches for wardrobe colour families (filter sheet, colour picker). Keys = `ItemColor` in api/contracts/wardrobe. */
@@ -294,4 +321,29 @@ export const sizes = {
   tabBarCenterRaise: 18,
   iconStroke: 1.5,
   icon: 22,
+} as const;
+
+/**
+ * The empty-state drawings (canvas 22d–22e `GorselBos*`: 160 × 120, sand ground, flat-lay pieces). Fixed tones, like
+ * `placeholderTones`: the drawing carries its own ground, so it reads the same whatever the screen behind it.
+ */
+export const illustrationTones = {
+  /** The sand ground (= palette `sand`). */
+  ground: '#E8E1D7',
+  /** Rail and stands of the rack, the shoes, the price-tag string (= palette `accent`). */
+  wood: '#6E5640',
+  /** Outlines, the "+" disc, the bag's rivets (= palette `ink`). */
+  ink: '#1C1A17',
+  /** Shirts, tag, folded top, the "+" (= palette `cream`). */
+  cream: '#F4F1EC',
+  /** The dashed outline of the empty look draft. */
+  dash: '#A69B8E',
+  /** The suitcase body. */
+  suitcase: '#A89582',
+  /** The navy folded piece in the suitcase. */
+  navy: '#2F3A4F',
+  /** The folded knit in the suitcase and the shopping bag. */
+  oat: '#D6CBBE',
+  /** The tick on the price tag (= palette `danger`). */
+  tick: '#9A3B2E',
 } as const;

@@ -290,6 +290,7 @@
   },
   "paywall": {
     "eyebrow": "DROBLET MEMBERSHIP",
+    "heroBadge": "See it on you first",
     "title": "Droblet Membership",
     "tagline": "An outfit ready every morning. A suitcase ready for every trip.",
     "benefitAiTitle": "30 AI images a month",
@@ -455,6 +456,16 @@
   "profile": {
     "logout": "Sign out",
     "components": "Component showcase"
+  },
+  "photoGuide": {
+    "title": "A good full-length photo",
+    "listLabel": "Full-length photo examples",
+    "good": "Full length, plain wall, daylight",
+    "dark": "Dark or blurry",
+    "half": "Half length or selfie",
+    "goodA11y": "Right: full length, in front of a plain wall, in good light",
+    "darkA11y": "Wrong: too dark",
+    "halfA11y": "Wrong: upper body only"
   },
   "photoSource": {
     "library": "Choose from library",

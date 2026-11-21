@@ -16,7 +16,6 @@ import { Text } from '@/components/ui/Text';
 import { TextField } from '@/components/ui/TextField';
 import { FilterSheet } from '@/features/wardrobe/FilterSheet';
 import { applyFilters, BRAND_OTHER, DEFAULT_FILTERS, isFiltering, sheetFilterCount, toggleIn, type ItemFilters } from '@/features/wardrobe/filters';
-import { HangerGlyph } from '@/features/wardrobe/HangerGlyph';
 import { useDeleteItems, useUpdateItem } from '@/features/wardrobe/mutations';
 import { DeleteConfirmSheet, ItemTile, OutlineBadge, padToColumns, SeasonSheet } from '@/features/wardrobe/parts';
 import { useItems } from '@/features/wardrobe/queries';
@@ -293,7 +292,7 @@ export default function WardrobeItemsScreen() {
         error={{ title: t('items.errorTitle'), message: t('items.errorBody') }}
         isEmpty={(list) => list.length === 0}
         empty={{
-          icon: HangerGlyph,
+          illustration: 'wardrobe',
           title: t('items.emptyTitle'),
           message: t('items.emptyBody'),
           actionLabel: t('items.emptyAction'),

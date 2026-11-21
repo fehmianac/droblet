@@ -24,6 +24,7 @@ import { PlaceholderImage } from '@/components/ui/PlaceholderImage';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { TextField } from '@/components/ui/TextField';
+import { PhotoGuideStrip } from '@/features/photos/PhotoGuideStrip';
 import { deleteLocalPhoto, type PreparedPhoto } from '@/features/photos/preparePhoto';
 import { PhotoSourceSheet } from '@/features/photos/PhotoSourceSheet';
 import { usePhotoPicker } from '@/features/photos/usePhotoPicker';
@@ -66,8 +67,8 @@ function PhotoTile({ photo, label, removeLabel, onRemove }: { photo: PreparedPho
 }
 
 /**
- * 04 Beden ve fotoğraf (2/3). Height, optional weight and size in one row; four photo slots (three
- * full-length, one face). Photos stay on the device until "Devam et", then go into the persisted upload
+ * 04 Beden ve fotoğraf (2/3). Height, optional weight and size in one row; the "İyi bir boy fotoğrafı" example strip
+ * (canvas 22c); four photo slots (three full-length, one face). Photos stay on the device until "Devam et", then go into the persisted upload
  * queue. When the camera permission is blocked the board's inline card offers Settings or the library.
  * The privacy note is always visible. "Atla" skips everything.
  */
@@ -197,7 +198,7 @@ export default function BodyScreen() {
     <Screen>
       <KeyboardAvoider>
         <StepHeader step={3} total={4} onSkip={skip} skipTestID="body.skip" />
-        <ScrollView className="flex-1" contentContainerClassName="gap-4 px-6 pb-6 pt-[18px]" keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
+        <ScrollView className="flex-1" contentContainerClassName="gap-3.5 px-6 pb-6 pt-[18px]" keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
           <View className="gap-2">
             <Text variant="display" className="text-[32px] leading-[34px]">
               {t('body.title')}
@@ -280,7 +281,8 @@ export default function BodyScreen() {
             ) : null}
           </View>
 
-          {/* Canvas 18: until the parent approves, a teen's photo slots are left out (the step goes on without them). */}
+          {/* Canvas 18: until the parent approves, a teen's photo guide and slots are left out (the step goes on without them). */}
+          {teenLimited ? null : <PhotoGuideStrip />}
           {teenLimited ? null : (
           <View className="gap-2">
             <View className="flex-row items-center justify-between gap-3">

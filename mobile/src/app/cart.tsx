@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { Bookmark, CircleAlert, ExternalLink, ShoppingBag, Trash2 } from 'lucide-react-native';
+import { Bookmark, CircleAlert, ExternalLink, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { RefreshControl, ScrollView, View } from 'react-native';
@@ -28,12 +28,12 @@ import { suffixed } from '@/lib/trSuffix';
 import { useIsOnline } from '@/sync/network';
 import { useThemeColors } from '@/theme/useThemeColors';
 
-/** `SepetBos` — the 96 sand circle with the bag, "Sepetin boş", one sentence and "Ürünleri keşfet". */
+/** `SepetBos` (22e) — the bag drawing, "Sepetin boş", one sentence and "Ürünleri keşfet". */
 function EmptyCart() {
   const { t } = useTranslation();
   return (
     <StateMessage
-      icon={ShoppingBag}
+      illustration="cart"
       title={t('cart.emptyTitle')}
       message={t('cart.emptyBody')}
       actionLabel={t('cart.emptyAction')}

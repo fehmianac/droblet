@@ -106,7 +106,7 @@ export default function WardrobeLooksScreen() {
       <ScreenState
         query={looks}
         isEmpty={(data) => data.length === 0}
-        empty={{ message: t('looks.empty'), actionLabel: t('looks.create'), onAction: createLook }}
+        empty={{ illustration: 'looks', title: t('looks.emptyTitle'), message: t('looks.emptyBody'), actionLabel: t('looks.create'), onAction: createLook }}
       >
         {(data) => {
           const shown = filterLooks(data, filter);

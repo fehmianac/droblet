@@ -8,6 +8,7 @@ import { extractApiError, isNotFound } from '@/api/errors';
 import { DropLoader } from '@/components/brand/DropLoader';
 import { useIsOnline } from '@/sync/network';
 
+import type { EmptyIllustrationKind } from './illustrations/EmptyIllustration';
 import { StateMessage } from './StateMessage';
 
 type QueryLike<T> = {
@@ -27,6 +28,8 @@ type EmptyState = {
   onAction: () => void;
   /** `DurumBos`: line glyph in the 96 sand circle and the serif headline above the sentence. */
   icon?: LucideIcon;
+  /** Canvas 22d–22e: the empty list's drawing in place of the icon circle. */
+  illustration?: EmptyIllustrationKind;
   title?: string;
   actionDisabled?: boolean;
   /** Outlined second way in, under the action (`DurumBos`: "Hazır kütüphaneden seç"). */
@@ -86,6 +89,7 @@ export function ScreenState<T>({ query, isEmpty, empty, error, notFound, loading
           testID="state-empty"
           role="status"
           icon={empty.icon}
+          illustration={empty.illustration}
           title={empty.title}
           message={empty.message}
           actionLabel={empty.actionLabel}
@@ -105,6 +109,7 @@ export function ScreenState<T>({ query, isEmpty, empty, error, notFound, loading
           testID="state-empty"
           role="status"
           icon={empty.icon}
+          illustration={empty.illustration}
           title={empty.title}
           message={empty.message}
           actionLabel={empty.actionLabel}

@@ -32,6 +32,7 @@ public sealed class TryOnService(
     ICatalogProductLookup products,
     IEditLookLookup editLooks,
     ILibraryCatalog library,
+    IRequestLanguage requestLanguage,
     IOptionsMonitor<PhotoOptions> photoOptions,
     TimeProvider timeProvider,
     ILogger<TryOnService> logger) : ITryOnService
@@ -57,8 +58,53 @@ public sealed class TryOnService(
                 ? ServiceResult.Invalid<TryOnStartDto>(error)
                 : ServiceResult.NotFound<TryOnStartDto>(error);
 
-        return await StartResolvedAsync(tenantId, body, resolved, command.RequestId, ct);
+        var result = await StartResolvedAsync(tenantId, body, resolved, command.RequestId, ct);
+        return result.Value is { Status: StartStatus.Queued } queued && resolved.Pieces.Count > 0
+            ? result with { Value = queued with { Pieces = await PiecesAsync(tenantId, resolved.Pieces, ct) } }
+            : result;
     }
+
+    /// <summary>
+    /// Names and categories of the pieces being rendered, for the wait screen. Order: tops and outerwear, then bottoms and
+    /// dresses, shoes, bags and accessories — the order the screen "dresses" them in.
+    /// </summary>
+    private async Task<IReadOnlyList<TryOnPieceDto>> PiecesAsync(string tenantId, IReadOnlyList<OutfitPiece> pieces, CancellationToken ct)
+    {
+        var list = new List<TryOnPieceDto>();
+        IReadOnlyList<LibraryItemEntity>? catalog = null;
+        string? language = null;
+        foreach (var piece in pieces)
+        {
+            if (piece.ItemId is not null)
+            {
+                if (await repository.GetAsync<ItemEntity>(ItemEntity.GetPk(tenantId), ItemEntity.GetSk(piece.ItemId), ct) is { } item)
+                    list.Add(new TryOnPieceDto(string.IsNullOrWhiteSpace(item.Name) ? null : item.Name.Trim(), item.Category));
+            }
+            else if (piece.ProductId is not null)
+            {
+                if (await products.GetAsync(piece.ProductId, ct) is { } product)
+                    list.Add(new TryOnPieceDto(string.IsNullOrWhiteSpace(product.Name) ? null : product.Name.Trim(), product.Category));
+            }
+            else if (piece.LibraryItemId is not null)
+            {
+                catalog ??= await library.GetAllAsync(ct);
+                language ??= await requestLanguage.GetAsync(ct);
+                if (catalog.FirstOrDefault(l => l.Id == piece.LibraryItemId) is { } entry)
+                    list.Add(new TryOnPieceDto(LocalizedText.Resolve(entry.Name, language, requestLanguage.Default), entry.Category));
+            }
+        }
+        return list.OrderBy(p => DressOrder(p.Category)).ToList();
+    }
+
+    private static int DressOrder(ItemCategory category) => category switch
+    {
+        ItemCategory.Top or ItemCategory.Beachwear or ItemCategory.Skiwear => 0,
+        ItemCategory.Outerwear => 1,
+        ItemCategory.Bottom or ItemCategory.Dress => 2,
+        ItemCategory.Shoes => 3,
+        ItemCategory.Bag => 4,
+        _ => 5,
+    };
 
     public async Task<ServiceResult<TryOnImageDto>> FindAsync(string tenantId, TryOnTargetInput target, CancellationToken ct)
     {

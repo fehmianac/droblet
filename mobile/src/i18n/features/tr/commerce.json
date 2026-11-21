@@ -177,7 +177,8 @@
     "fromEdit": "Haftanın edit'inden",
     "addToCart": "Sepete ekle",
     "viewProduct": "Ürünü gör",
-    "empty": "İzleme listen boş. Beğendiğin bir ürünü izlemeye al, fiyatı düşünce haber verelim.",
+    "emptyTitle": "İzleme listen boş",
+    "emptyBody": "Beğendiğin bir ürünü izlemeye al, fiyatı düşünce haber verelim.",
     "emptyAction": "Ürünleri keşfet",
     "fromBrandVisit": "Markaya gittin, satın almadın; senin için takipte tutuyoruz"
   },

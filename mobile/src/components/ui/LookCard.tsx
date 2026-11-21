@@ -13,7 +13,7 @@ type Props = {
   /** Occasion / day label shown above the name. */
   tag: string;
   imageUri?: string | null;
-  /** The look's pieces: drawn as a collage while there is no rendered image. */
+  /** The look's pieces: laid out flat (21c) while there is no rendered image. */
   pieces?: Piece[];
   /** Stable id of the look: picks the ground of the figure placeholder when there are no pieces either. */
   seed?: string;
@@ -35,7 +35,7 @@ export function LookCard({ name, tag, imageUri, pieces, seed, rating, onPress, c
       accessibilityLabel={[tag, name, ratingText ? t('a11y.rating', { rating: ratingText }) : null].filter(Boolean).join(', ')}
       className={`gap-2 ${className ?? ''}`}
     >
-      <ImageSlot uri={imageUri} className="aspect-[4/5] w-full rounded-image-lg" placeholder={{ kind: 'look', pieces: pieces ?? [], seed: seed ?? name }} />
+      <ImageSlot uri={imageUri} className="aspect-[4/5] w-full rounded-image-lg" placeholder={{ kind: 'look', pieces: pieces ?? [], seed: seed ?? name, layout: 'flatlay' }} />
       <View className="gap-0.5">
         <Text variant="caption" tone="muted" numberOfLines={1}>
           {tag}

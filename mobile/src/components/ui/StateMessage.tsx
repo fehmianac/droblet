@@ -3,6 +3,7 @@ import { View } from 'react-native';
 
 import { Button, type ButtonVariant } from './Button';
 import { Icon } from './Icon';
+import { EmptyIllustration, type EmptyIllustrationKind } from './illustrations/EmptyIllustration';
 import { Text } from './Text';
 
 type Props = {
@@ -17,6 +18,8 @@ type Props = {
    * action as a full-width button. All optional — without them the message stays the plain sentence + action.
    */
   icon?: LucideIcon;
+  /** Canvas 22d–22e: the 160 × 120 drawing of an empty list, in place of the icon circle. */
+  illustration?: EmptyIllustrationKind;
   title?: string;
   /** Glyph inside the action button (the "Tekrar dene" arrow). */
   actionIcon?: LucideIcon;
@@ -38,6 +41,7 @@ export function StateMessage({
   onAction,
   actionLoading,
   icon,
+  illustration,
   title,
   actionIcon,
   actionVariant = 'secondary',
@@ -57,7 +61,9 @@ export function StateMessage({
       accessibilityRole={role === 'alert' ? 'alert' : undefined}
       accessibilityLiveRegion={role === 'alert' ? 'assertive' : role === 'status' ? 'polite' : undefined}
     >
-      {icon ? (
+      {illustration ? (
+        <EmptyIllustration kind={illustration} />
+      ) : icon ? (
         <View className="h-24 w-24 items-center justify-center rounded-pill bg-sand">
           <Icon icon={icon} size={40} />
         </View>

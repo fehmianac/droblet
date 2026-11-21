@@ -50,8 +50,9 @@ describe('14 Looklar', () => {
     expect(screen.getAllByText('OFFICE').length).toBe(2);
     expect(screen.getByText('EVENING')).toBeTruthy();
     expect(screen.getByText('WEEKEND')).toBeTruthy();
-    // No rendered image in the fixtures: every card shows the collage of its pieces (glyph on the piece's colour), never an empty box.
-    expect(screen.getAllByTestId('image-slot-collage').length).toBe(4);
+    // No rendered image in the fixtures: every card lays its pieces out flat (21c, glyph on the piece's colour), never an empty box.
+    expect(screen.getAllByTestId('image-slot-flatlay').length).toBe(4);
+    expect(screen.queryByTestId('image-slot-collage')).toBeNull();
     expect(screen.getAllByTestId('image-slot-garment').length).toBeGreaterThanOrEqual(8);
     expect(screen.queryByText('ON YOU')).toBeNull();
     // A look nobody rated shows no rating.
@@ -72,7 +73,10 @@ describe('14 Looklar', () => {
   it('shows the empty state with one action', async () => {
     resetFixtureDb({ empty: true });
     await renderRouter('./src/app', { initialUrl: '/wardrobe/looks' });
-    await waitFor(() => expect(screen.getByText(/Your lookbook is empty/)).toBeTruthy(), { timeout: 3000 });
+    await waitFor(() => expect(screen.getByText('Your lookbook is empty')).toBeTruthy(), { timeout: 3000 });
+    expect(screen.getByText('Put your pieces together and create your first look.')).toBeTruthy();
+    expect(screen.getByTestId('empty-illustration-looks', { includeHiddenElements: true })).toBeTruthy();
+    expect(screen.getByText('Create a look')).toBeTruthy();
     expect(screen.getByText('0 looks')).toBeTruthy();
   });
 });

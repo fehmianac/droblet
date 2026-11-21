@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Briefcase, Palette, Sparkles, X, type LucideIcon } from 'lucide-react-native';
@@ -7,6 +8,7 @@ import { Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { track } from '@/analytics/track';
+import type { AppSegment } from '@/api/contracts';
 import { onboardingStore } from '@/auth/onboarding';
 import { useSession } from '@/auth/session';
 import { openPrivacy, openTerms } from '@/components/LegalLinks';
@@ -14,28 +16,31 @@ import { Badge } from '@/components/ui/Bits';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
-import { Silhouette } from '@/components/ui/Silhouette';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { useSelfPremium } from '@/entitlement/selfPremium';
 import { useEntitlement } from '@/entitlement/useEntitlement';
 import { useStoreProducts } from '@/entitlement/useStoreProducts';
 import { CanvasGlyph } from '@/features/account/rows';
+import { useSegment } from '@/features/segment/store';
 import type { StoreProduct } from '@/fixtures/storeProducts';
 import { PurchaseStatus } from '@/purchases/PurchaseStatus';
 import { paywallCompact, paywallHeroHeight } from '@/purchases/paywallLayout';
 import { purchaseFlow, usePurchaseState } from '@/purchases/purchaseFlow';
-import { placeholderTones, type PlaceholderTone } from '@/theme/tokens';
+import { visualTones } from '@/theme/tokens';
 import { useThemeColors } from '@/theme/useThemeColors';
 
 type Plan = 'year' | 'month';
 
-/** The three look tiles at the top of `Paywall.dc.html`. */
-const TILES: { tone: PlaceholderTone; figure: 'ink' | 'cream' }[] = [
-  { tone: 'camel', figure: 'ink' },
-  { tone: 'dark', figure: 'cream' },
-  { tone: 'clay', figure: 'ink' },
-];
+/** The editorial photo at the top of 05 by segment (canvas 22a), framed like the board; no segment yet = women. */
+const HERO_PHOTOS: Record<AppSegment, { source: number; top: `${number}%` }> = {
+  women: { source: require('../../assets/visuals/paywall-woman.webp'), top: '18%' },
+  men: { source: require('../../assets/visuals/paywall-man.webp'), top: '14%' },
+};
+/** The "Önce üzerinde gör" badge: 26 high, centred on the 44 pt close button beside it. */
+const BADGE_HEIGHT = 26;
+/** The board's photo height (22a); the strip grows to it when the offer leaves room. */
+const HERO_MAX_HEIGHT = 300;
 
 const BENEFITS: { title: 'paywall.benefitAiTitle' | 'paywall.benefitStylistTitle' | 'paywall.benefitPackingTitle' | 'paywall.benefitPaletteTitle'; body: 'paywall.benefitAiBody' | 'paywall.benefitStylistBody' | 'paywall.benefitPackingBody' | 'paywall.benefitPaletteBody'; icon: LucideIcon | 'mirror' }[] = [
   { title: 'paywall.benefitAiTitle', body: 'paywall.benefitAiBody', icon: 'mirror' },
@@ -124,7 +129,7 @@ function Dot() {
 }
 
 /**
- * 05 Üyelik. Look tiles fading into cream, the promise as the headline, four benefits ("Ayda 30 AI görseli",
+ * 05 Üyelik. The segment's editorial photo fading into cream with the "Önce üzerinde gör" badge (canvas 22a), the promise as the headline, four benefits ("Ayda 30 AI görseli",
  * not unlimited — README §9), two plan cards and the fixed footer. Price, period and trial length always come
  * from the store products (useStoreProducts) — the canvas prices are representative and nothing is stored in
  * the app. The close (×) is always visible; restore, terms and privacy are always present. Buying goes
@@ -136,7 +141,14 @@ export default function PaywallScreen() {
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const [screenHeight, setScreenHeight] = useState(windowHeight);
-  const hero = paywallHeroHeight(windowHeight, screenHeight);
+  const base = paywallHeroHeight(windowHeight, screenHeight);
+  // 22a: the photo takes whatever height the offer leaves free above the footer (up to the board's 300), never less than
+  // the strip that keeps both plans visible — measured from the content and footer, so no price moves under the CTA.
+  const [contentHeight, setContentHeight] = useState(0);
+  const [footerHeight, setFooterHeight] = useState(0);
+  const baseOverlap = base < 136 ? 24 : 36;
+  const free = contentHeight && footerHeight ? screenHeight - footerHeight - contentHeight + baseOverlap - 16 : 0;
+  const hero = Math.max(base, Math.min(HERO_MAX_HEIGHT, Math.floor(free / 4) * 4));
   const compact = paywallCompact(windowHeight);
   const { from } = useLocalSearchParams<{ from?: string }>();
   const session = useSession();
@@ -144,6 +156,14 @@ export default function PaywallScreen() {
   const entitlement = useEntitlement();
   const [plan, setPlan] = useState<Plan>('year');
   const flow = usePurchaseState();
+  const segment = useSegment();
+  const heroPhoto = HERO_PHOTOS[segment];
+  const closeTop = Platform.OS === 'ios' ? 16 : insets.top + 4;
+  // The text overlaps the fade by 36 pt (canvas -44 on a 300 strip); a short strip keeps the old 24 so nothing crowds.
+  const overlap = hero < 136 ? 24 : 36;
+  const badgeTop = closeTop + (44 - BADGE_HEIGHT) / 2;
+  // The badge only shows where it clears the text below (not on the 76 pt compact strip).
+  const showBadge = badgeTop + BADGE_HEIGHT + 6 <= hero - overlap;
 
   useEffect(() => {
     track('paywall_viewed', { from: from ?? 'unknown' });
@@ -247,27 +267,39 @@ export default function PaywallScreen() {
       {/* The footer below is laid out after the scroll view (not over it): the scroll area ends where the footer
           starts, so the bottom padding of the content is exactly the footer's height and nothing hides under it. */}
       <ScrollView className="flex-1" contentContainerClassName="pb-4" testID="paywall.scroll">
-        <View style={{ height: hero }} accessible={false} importantForAccessibility="no-hide-descendants">
-          <View style={StyleSheet.absoluteFill} className="flex-row gap-1.5 p-1.5">
-            {TILES.map((tile) => (
-              <View
-                key={tile.tone}
-                className="flex-1 items-center justify-center overflow-hidden rounded-[16px]"
-                style={{ backgroundColor: placeholderTones[tile.tone] }}
-              >
-                <Silhouette height={Math.round(hero * 0.64)} tone={tile.figure} opacity={0.16} />
-              </View>
-            ))}
-          </View>
+        <View style={{ height: hero }} className="overflow-hidden bg-sand">
+          <Image
+            source={heroPhoto.source}
+            contentFit="cover"
+            contentPosition={{ left: '50%', top: heroPhoto.top }}
+            style={StyleSheet.absoluteFill}
+            accessible={false}
+            testID={`paywall.hero.${segment}`}
+          />
           <LinearGradient
-            colors={[colors.creamClear, colors.cream]}
-            locations={[0.45, 1]}
+            colors={[visualTones.inkTop, visualTones.inkClear, colors.creamClear, colors.cream]}
+            locations={[0, 0.26, 0.58, 1]}
             style={StyleSheet.absoluteFill}
             pointerEvents="none"
           />
+          {showBadge ? (
+            <View
+              className="absolute left-5 flex-row items-center gap-1 rounded-pill px-2.5"
+              style={{ top: badgeTop, height: BADGE_HEIGHT, backgroundColor: visualTones.badge }}
+              testID="paywall.heroBadge"
+            >
+              <Icon icon={Sparkles} size={12} tone="cream" />
+              <Text variant="badge" tone="cream" numberOfLines={1}>
+                {t('paywall.heroBadge')}
+              </Text>
+            </View>
+          ) : null}
         </View>
 
-        <View className={`-mt-6 px-6 ${compact ? 'gap-2' : 'gap-3'}`}>
+        <View
+          className={`px-6 ${overlap === 36 ? '-mt-9' : '-mt-6'} ${compact ? 'gap-2' : 'gap-3'}`}
+          onLayout={(e) => setContentHeight(e.nativeEvent.layout.height)}
+        >
           <Text variant="eyebrow" tone="accent">
             {t('paywall.eyebrow')}
           </Text>
@@ -314,11 +346,16 @@ export default function PaywallScreen() {
       </ScrollView>
 
       {/* iOS presents 05 as a page sheet (below the status bar), so the × sits in the strip's top corner; elsewhere it is full screen. */}
-      <View className="absolute right-5" style={{ top: Platform.OS === 'ios' ? 16 : insets.top + 4 }}>
+      <View className="absolute right-5" style={{ top: closeTop }}>
         <IconButton icon={X} onPress={() => void close()} variant="inverse" accessibilityLabel={t('a11y.close')} className="border border-line" testID="paywall.close" />
       </View>
 
-      <View className="gap-1 px-6 pt-3" style={{ paddingBottom: Math.max(insets.bottom, 12) }} testID="paywall.footer">
+      <View
+        className="gap-1 px-6 pt-3"
+        style={{ paddingBottom: Math.max(insets.bottom, 12) }}
+        onLayout={(e) => setFooterHeight(e.nativeEvent.layout.height)}
+        testID="paywall.footer"
+      >
         {action}
         {/* Each separator travels with the link after it, so a wrapped line never ends on a lone "·". */}
         <View className={`flex-row flex-wrap items-center justify-center ${compact ? 'gap-x-0.5' : 'gap-x-1'}`} testID="paywall.legal">

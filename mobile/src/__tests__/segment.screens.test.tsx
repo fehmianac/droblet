@@ -107,6 +107,35 @@ describe('03a Reyon — onboarding segment choice', () => {
     expect(screen.getByTestId('segment.option.men').props.accessibilityState).toMatchObject({ checked: true });
     expect(screen.getByTestId('segment.continue').props.accessibilityState).toMatchObject({ disabled: false });
   });
+
+  it('22b: each card shows its welcome photo instead of a silhouette', async () => {
+    mockSegments.list = ['women', 'men'];
+    await openOnboarding();
+    await waitFor(() => expect(screen.getByTestId('segment.screen')).toBeTruthy(), WAIT);
+    expect(screen.getByTestId('segment.photo.women')).toBeTruthy();
+    expect(screen.getByTestId('segment.photo.men')).toBeTruthy();
+    expect(screen.queryByTestId('silhouette-women')).toBeNull();
+    expect(screen.queryByTestId('silhouette-men')).toBeNull();
+    expect(screen.getByLabelText("Women, Women's collections")).toBeTruthy();
+  });
+});
+
+describe('22a Üyelik — the hero photo follows the segment', () => {
+  it('women (and no segment yet): the women photo with the "See it on you first" badge', async () => {
+    await openSignedIn('/paywall');
+    await waitFor(() => expect(screen.getByTestId('paywall.hero.women')).toBeTruthy(), WAIT);
+    expect(screen.queryByTestId('paywall.hero.men')).toBeNull();
+    expect(screen.getByText('See it on you first')).toBeTruthy();
+    expect(screen.queryByTestId('silhouette-women')).toBeNull();
+  });
+
+  it('men: the men photo', async () => {
+    mockSegments.list = ['women', 'men'];
+    mockStyle.data = { segment: 'men', styleTags: ['minimal', 'tailored', 'street'], budget: 'mixed', baseVersion: 2 };
+    await openSignedIn('/paywall');
+    await waitFor(() => expect(screen.getByTestId('paywall.hero.men')).toBeTruthy(), WAIT);
+    expect(screen.queryByTestId('paywall.hero.women')).toBeNull();
+  });
 });
 
 describe('28f Profil › Stil profili', () => {

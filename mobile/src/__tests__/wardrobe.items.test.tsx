@@ -151,6 +151,8 @@ describe('10 Parçalar', () => {
     expect(screen.getByText('Choose from the ready-made library')).toBeTruthy();
     // Through the shared ScreenState; no search / select while there is nothing to search.
     expect(screen.getByTestId('state-empty')).toBeTruthy();
+    // 22d: the rack drawing in place of the hanger circle.
+    expect(screen.getByTestId('empty-illustration-wardrobe', { includeHiddenElements: true })).toBeTruthy();
     expect(screen.queryByText('Select')).toBeNull();
     expect(screen.queryByTestId('wardrobe.searchToggle')).toBeNull();
     await fireEvent.press(screen.getByText('Choose from the ready-made library'));

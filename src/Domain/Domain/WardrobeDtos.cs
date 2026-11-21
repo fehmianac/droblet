@@ -225,7 +225,11 @@ public enum StartStatus { Cached, Queued }
 public record TryOnImageDto(string Id, string Url, DateTime UrlExpiresAt, DateTime CreatedAt, TryOnSource Source = TryOnSource.Body, string? ReferenceUrl = null);
 
 /// <param name="Status">cached = image already exists (no credit charged); queued = a job is running (1 credit reserved).</param>
-public record TryOnStartDto(StartStatus Status, TryOnImageDto? Image, JobDto? Job);
+/// <param name="Pieces">Queued only: the outfit's pieces in render order, for the wait screen ("Lacivert blazer giyiliyor…"). Empty for a photo try-on.</param>
+public record TryOnStartDto(StartStatus Status, TryOnImageDto? Image, JobDto? Job, IReadOnlyList<TryOnPieceDto>? Pieces = null);
+
+/// <param name="Name">The piece's own name (wardrobe item, product, library piece); null when the item has none.</param>
+public record TryOnPieceDto(string? Name, ItemCategory Category);
 
 public record TryOnQuoteItemDto(string Date, string LookId, bool Cached, string? TryOnImageId);
 

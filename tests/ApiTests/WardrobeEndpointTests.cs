@@ -1028,6 +1028,25 @@ public class TryOnAndPaletteEndpointTests(ApiFactory factory) : IClassFixture<Ap
         var job = (await factory.Repository.GetAsync<JobEntity>(JobEntity.GetPk(tenant), JobEntity.GetSk(started.Job.Id)))!;
         Assert.Equal(message.CreditIdempotencyKey, job.CreditIdempotencyKey); // the worker refunds through this key on failure
         Assert.Equal(2, StylingJson.TryDeserialize<TryOnJobInput>(job.Input)!.Pieces.Count);
+        Assert.Equal(["Top:Top", "Bottom:Bottom"], started.Pieces!.Select(p => $"{p.Name}:{p.Category}"));
+    }
+
+    [Fact]
+    public async Task Start_Queued_ListsThePiecesInDressingOrder_ForTheWaitScreen()
+    {
+        var (client, auth) = await factory.RegisterAsync();
+        await factory.PremiumAsync(auth.TenantId);
+        await factory.PhotoAsync(auth.TenantId, PhotoKind.Body);
+        var shoes = await factory.ItemAsync(auth.TenantId, ItemCategory.Shoes);
+        var bag = await factory.ItemAsync(auth.TenantId, ItemCategory.Bag);
+        var bottom = await factory.ItemAsync(auth.TenantId, ItemCategory.Bottom);
+        var top = await factory.ItemAsync(auth.TenantId, ItemCategory.Top);
+        var look = await factory.LookAsync(auth.TenantId, (OutfitSlot.Shoes, shoes.Id), (OutfitSlot.BagAccessory, bag.Id), (OutfitSlot.Bottom, bottom.Id), (OutfitSlot.Top, top.Id));
+
+        var started = await (await client.PostJsonAsync("v1/tenant/tryon", TryOn(look.Id))).ReadAsync<TryOnStartDto>();
+
+        Assert.Equal(StartStatus.Queued, started.Status);
+        Assert.Equal([ItemCategory.Top, ItemCategory.Bottom, ItemCategory.Shoes, ItemCategory.Bag], started.Pieces!.Select(p => p.Category));
     }
 
     [Fact]

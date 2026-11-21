@@ -40,6 +40,20 @@
     "paletteLines": {
       "tones": "Choosing the tones that suit you…",
       "wardrobe": "Matching them with your wardrobe…"
+    },
+    "tryOnCurtain": {
+      "preparing": "Getting ready",
+      "ready": "Ready",
+      "wearing": "Putting on {{name}}…",
+      "worn": "{{name}} on",
+      "adding": "Adding {{name}}…",
+      "added": "{{name}} added",
+      "outfit": "Outfit",
+      "more_one": "and {{count}} more piece",
+      "more_other": "and {{count}} more pieces",
+      "body": "Being made on your photo. It usually takes 20–40 seconds; the curtain opens when it's ready.",
+      "heading": "{{name}} is in the fitting room",
+      "headingFallback": "Your outfit is in the fitting room"
     }
   },
   "creditConfirm": {
