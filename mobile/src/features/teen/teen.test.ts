@@ -148,6 +148,12 @@ describe('useTeenRules — states and hidden surfaces', () => {
     });
   });
 
+  it("the server's try-on verdict wins over a cached config", () => {
+    const verdictOpen = teen({ status: 'active', parentAllowedTryOn: true, tryOn: { available: false, reason: 'own_consent_missing' } });
+    expect(teenRules(verdictOpen, OFF)).toMatchObject({ tryOn: 'open', needsOwnTryOnConsent: true });
+    expect(teenRules(teen({ status: 'active', parentAllowedTryOn: true, tryOn: { available: false, reason: 'feature_off' } }), ON).tryOn).toBe('unavailable');
+  });
+
   it('the gate of a gated action: hidden social, locked AI, try-on lock and the 22t explainer', () => {
     const pending = teenRules(teen({ status: 'pendingParentalConsent' }), ON);
     const approvedNoBox = teenRules(teen({ status: 'active', parentAllowedTryOn: false }), ON);

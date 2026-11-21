@@ -50,14 +50,17 @@ export function teenRules(state: TeenState | null, config: TeenConfig, sessionBa
   let tryOn: TryOnAccess = 'open';
   let needsOwnTryOnConsent = false;
   if (isTeen) {
-    const reason = teen?.tryOn?.available ? null : (teen?.tryOn?.reason ?? null);
+    const verdict = teen?.tryOn ?? null;
+    const reason = verdict?.available ? null : (verdict?.reason ?? null);
     if (limited || reason === 'consent_not_active') tryOn = 'limited';
-    else if (reason === 'feature_off' || !config.tryOnEnabled) tryOn = 'unavailable';
-    else if (reason === 'parent_not_allowed' || !teen?.parentAllowedTryOn) tryOn = 'needsParent';
-    else {
-      tryOn = 'open';
-      needsOwnTryOnConsent = reason === 'own_consent_missing' || !teen?.ownTryOnConsent;
-    }
+    else if (verdict) {
+      // The server's verdict wins over the (cached) config: it already combines the flag, the parent box and the own consent.
+      if (reason === 'feature_off') tryOn = 'unavailable';
+      else if (reason === 'parent_not_allowed') tryOn = 'needsParent';
+      else needsOwnTryOnConsent = reason === 'own_consent_missing';
+    } else if (!config.tryOnEnabled) tryOn = 'unavailable';
+    else if (!teen?.parentAllowedTryOn) tryOn = 'needsParent';
+    else needsOwnTryOnConsent = !teen.ownTryOnConsent;
   }
 
   return {
