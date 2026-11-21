@@ -49,6 +49,24 @@ export const palettes: { light: ColorPalette } = {
 };
 
 /**
+ * The welcome screen's dark photo ground (canvas 20 · Karşılama, direction A): the ground the photo fades into,
+ * the fades themselves, the soft cream text and the outlined button on the photo.
+ */
+export const onPhotoTones = {
+  ground: '#15120F',
+  groundClear: 'rgba(21, 18, 15, 0)',
+  groundTop: 'rgba(21, 18, 15, 0.55)',
+  groundMid: 'rgba(21, 18, 15, 0.62)',
+  groundDeep: 'rgba(21, 18, 15, 0.94)',
+  /** The one-line value prop (cream 80%). */
+  text: 'rgba(244, 241, 236, 0.8)',
+  /** The legal line (cream 72%). */
+  legal: 'rgba(244, 241, 236, 0.72)',
+  outline: 'rgba(244, 241, 236, 0.72)',
+  glass: 'rgba(20, 17, 14, 0.18)',
+} as const;
+
+/**
  * Colours that only live on the ink ground of the toast (canvas 13b): the action label and the error glyph.
  * The palette's accent / danger are too dark to read on ink.
  */

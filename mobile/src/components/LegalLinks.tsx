@@ -9,18 +9,20 @@ function open(url: string | null) {
   if (url) void WebBrowser.openBrowserAsync(url);
 }
 
-/** "Devam ederek Kullanım Koşulları ve Gizlilik Politikası'nı kabul edersin." with tappable links. */
-export function LegalConsent() {
+/**
+ * "Devam ederek Kullanım Koşulları ve Gizlilik Politikası'nı kabul edersin." with tappable links.
+ * `onPhoto`: cream on the welcome screen's dark photo (canvas 20).
+ */
+export function LegalConsent({ onPhoto = false }: { onPhoto?: boolean }) {
   const { terms, privacy } = legalUrls();
+  const link = 'text-[11px] leading-[16.5px] underline';
   return (
-    <Text variant="caption" tone="muted" className="text-center text-[11px] leading-[16.5px]">
+    <Text variant="caption" tone={onPhoto ? 'onPhotoSoft' : 'muted'} className="text-center text-[11px] leading-[16.5px]">
       <Trans
         i18nKey="welcome.legal"
         components={{
-          terms: <Text variant="caption" tone="ink" className="text-[11px] leading-[16.5px] underline" accessibilityRole="link" onPress={() => open(terms)} />,
-          privacy: (
-            <Text variant="caption" tone="ink" className="text-[11px] leading-[16.5px] underline" accessibilityRole="link" onPress={() => open(privacy)} />
-          ),
+          terms: <Text variant="caption" tone={onPhoto ? 'cream' : 'ink'} className={link} accessibilityRole="link" onPress={() => open(terms)} />,
+          privacy: <Text variant="caption" tone={onPhoto ? 'cream' : 'ink'} className={link} accessibilityRole="link" onPress={() => open(privacy)} />,
         }}
       />
     </Text>

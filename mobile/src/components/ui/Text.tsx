@@ -2,7 +2,8 @@ import { Text as RNText, type TextProps as RNTextProps } from 'react-native';
 
 import { maxFontScale, type TypeVariant } from '@/theme/tokens';
 
-export type TextTone = 'ink' | 'muted' | 'accent' | 'danger' | 'paper' | 'cream';
+/** onPhoto / onPhotoSoft: cream at 80% / 72% on the welcome photo (canvas 20). */
+export type TextTone = 'ink' | 'muted' | 'accent' | 'danger' | 'paper' | 'cream' | 'onPhoto' | 'onPhotoSoft';
 
 const variantClass: Record<TypeVariant, string> = {
   display: 'text-display font-display',
@@ -35,6 +36,8 @@ const toneClass: Record<TextTone, string> = {
   danger: 'text-danger',
   paper: 'text-paper',
   cream: 'text-cream',
+  onPhoto: 'text-onPhoto-text',
+  onPhotoSoft: 'text-onPhoto-legal',
 };
 
 export type TextProps = RNTextProps & {

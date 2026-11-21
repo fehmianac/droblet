@@ -98,8 +98,8 @@
     "account_suspended": "This account has been suspended, so you can’t sign in right now. Please contact our support team."
   },
   "welcome": {
-    "eyebrow": "PERSONAL WARDROBE · STYLE ASSISTANT · PACKING",
-    "promise": "No more “what do I wear” mornings or hours of packing. Your wardrobe now thinks for you.",
+    "headline": "Try everything on before you wear it.",
+    "value": "Wardrobe, AI stylist and packing in one app.",
     "start": "Get started",
     "haveAccount": "I already have an account",
     "legal": "By continuing you accept the <terms>Terms of Use</terms> and <privacy>Privacy Policy</privacy>."

@@ -1,6 +1,6 @@
 import type { Config } from 'tailwindcss';
 
-import { fontFamilies, palettes, radii, sizes, spacing, typeScale } from './src/theme/tokens';
+import { fontFamilies, onPhotoTones, palettes, radii, sizes, spacing, typeScale } from './src/theme/tokens';
 
 const c = palettes.light;
 
@@ -28,6 +28,11 @@ export default {
         sand: c.sand,
         danger: c.danger,
         scrim: c.scrim,
+        'onPhoto-ground': onPhotoTones.ground,
+        'onPhoto-text': onPhotoTones.text,
+        'onPhoto-legal': onPhotoTones.legal,
+        'onPhoto-outline': onPhotoTones.outline,
+        'onPhoto-glass': onPhotoTones.glass,
       },
       fontSize,
       fontFamily: {
