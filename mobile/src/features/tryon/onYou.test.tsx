@@ -83,7 +83,7 @@ describe('placeholders by kind', () => {
 
   it('a look card without an image shows the collage of its pieces, or the figure when it has none', async () => {
     await render(<LookCard name="Lacivert Blazer" tag="Office" pieces={[{ category: 'top' }, { category: 'bottom' }]} onPress={() => undefined} />);
-    expect(screen.getByTestId('image-slot-collage')).toBeTruthy();
+    expect(screen.getByTestId('image-slot-flatlay')).toBeTruthy();
     await render(<LookCard name="Tüvit" tag="Weekend" seed="look_2" onPress={() => undefined} />);
     expect(screen.getByTestId('image-slot-figure')).toBeTruthy();
   });

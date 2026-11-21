@@ -50,8 +50,9 @@ describe('14 Looklar', () => {
     expect(screen.getAllByText('OFFICE').length).toBe(2);
     expect(screen.getByText('EVENING')).toBeTruthy();
     expect(screen.getByText('WEEKEND')).toBeTruthy();
-    // No rendered image in the fixtures: every card shows the collage of its pieces (glyph on the piece's colour), never an empty box.
-    expect(screen.getAllByTestId('image-slot-collage').length).toBe(4);
+    // No rendered image in the fixtures: every card lays its pieces out flat (21c, glyph on the piece's colour), never an empty box.
+    expect(screen.getAllByTestId('image-slot-flatlay').length).toBe(4);
+    expect(screen.queryByTestId('image-slot-collage')).toBeNull();
     expect(screen.getAllByTestId('image-slot-garment').length).toBeGreaterThanOrEqual(8);
     expect(screen.queryByText('ON YOU')).toBeNull();
     // A look nobody rated shows no rating.
