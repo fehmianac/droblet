@@ -3,6 +3,8 @@ export const queryKeys = {
   styleProfile: ['tenant', 'style-profile'] as const,
   bodyProfile: ['tenant', 'body-profile'] as const,
   entitlement: ['tenant', 'entitlement'] as const,
+  /** `GET v1/config` (anonymous): open segments. */
+  config: ['config'] as const,
   today: ['tenant', 'today'] as const,
   library: ['catalog', 'library'] as const,
   /** The ready-made library of one segment (canvas 17: the men's set is its own list). */

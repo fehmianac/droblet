@@ -52,8 +52,8 @@ export function bodyTypeForSegment(type: BodyType | null | undefined, segment: A
 }
 
 /**
- * 12c "Tür" suggestions per category (server `SubcategoryCatalog` ids, names in `wire/subcategories`).
- * Typing stays free; the chips only fill the field.
+ * 12c "Tür" suggestions per category (server `SubcategoryCatalog` ids, names in `wire/subcategories`; men's ids
+ * from docs/api/segments.md §3, women-only ids never in the men's lists). Typing stays free; the chips fill the field.
  */
 const SUBCATEGORY_SUGGESTIONS: Record<AppSegment, Partial<Record<ItemCategory, string[]>>> = {
   women: {
@@ -68,12 +68,12 @@ const SUBCATEGORY_SUGGESTIONS: Record<AppSegment, Partial<Record<ItemCategory, s
     skiwear: ['ski-jacket', 'ski-pants'],
   },
   men: {
-    top: ['t-shirt', 'shirt', 'polo', 'sweater', 'hoodie', 'cardigan'],
-    bottom: ['jeans', 'chinos', 'trousers', 'shorts'],
-    outerwear: ['suit-jacket', 'blazer', 'jacket', 'coat', 'puffer', 'vest'],
-    shoes: ['sneakers', 'loafers', 'oxfords', 'boots', 'sandals'],
-    bag: ['backpack', 'crossbody', 'tote'],
-    accessory: ['watch', 'tie', 'belt', 'cap', 'sunglasses', 'scarf'],
+    top: ['t-shirt', 'shirt', 'oxford-shirt', 'polo', 'sweater', 'hoodie'],
+    bottom: ['jeans', 'chinos', 'suit-trousers', 'trousers', 'shorts'],
+    outerwear: ['suit-jacket', 'blazer', 'jacket', 'overshirt', 'coat', 'puffer'],
+    shoes: ['sneakers', 'loafers', 'derbies', 'oxford-shoes', 'chelsea-boots'],
+    bag: ['backpack', 'briefcase', 'messenger-bag'],
+    accessory: ['watch', 'tie', 'belt', 'cap', 'sunglasses', 'pocket-square'],
     beachwear: ['swim-shorts'],
     skiwear: ['ski-jacket', 'ski-pants'],
   },

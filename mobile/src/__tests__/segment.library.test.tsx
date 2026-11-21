@@ -22,7 +22,7 @@ jest.mock('expo-secure-store', () => ({
 jest.mock('expo-font', () => ({ ...jest.requireActual('expo-font'), useFonts: () => [true, null] }));
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageCode: 'en' }] }));
 
-// Server configuration: which segments are open (entitlement `availableSegments`).
+// Server configuration: which segments are open (`GET v1/config` → `segments.available`).
 const mockSegments: { list: AppSegment[] } = { list: ['women'] };
 jest.mock('@/features/segment/useAvailableSegments', () => ({
   useAvailableSegments: () => ({ segments: mockSegments.list, choice: mockSegments.list.length > 1, loading: false }),

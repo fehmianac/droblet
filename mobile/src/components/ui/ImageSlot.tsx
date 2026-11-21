@@ -55,8 +55,12 @@ export const FINE_GLYPHS: Record<string, string> = {
 /** Other spellings (catalogue categories, near sub-types) of the fine glyphs. */
 const FINE_ALIAS: Record<string, string> = {
   suit: 'suit-jacket',
-  'suit-jacket': 'suit-jacket',
+  waistcoat: 'suit-jacket',
   oxfords: 'loafers',
+  'oxford-shoes': 'loafers',
+  derbies: 'loafers',
+  'boat-shoes': 'loafers',
+  'suit-trousers': 'chinos',
   'polo-shirt': 'polo',
   necktie: 'tie',
   watches: 'watch',

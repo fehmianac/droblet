@@ -40,7 +40,7 @@ const auth = () => ({
 
 const PROFILES = {
   women: { displayName: 'Damla', handle: 'damla', email: 'damla@example.com', styleTags: ['minimal', 'classic'], heightCm: 168, size: 'm', bodyType: 'hourglass' },
-  men: { displayName: 'Emre', handle: 'emre', email: 'emre@example.com', styleTags: ['minimal', 'smartCasual', 'business'], heightCm: 180, size: 'l', bodyType: 'trapezoid' },
+  men: { displayName: 'Emre', handle: 'emre', email: 'emre@example.com', styleTags: ['minimal', 'smartCasual', 'tailored'], heightCm: 180, size: 'l', bodyType: 'trapezoid' },
 };
 const who = () => PROFILES[persona];
 
@@ -76,8 +76,9 @@ const routes = {
     expiresAt: iso(now + 300 * 24 * 3600 * 1000),
     credits: { monthlyAllowance: 30, allowanceRemaining: 24, packRemaining: 0, totalRemaining: 24, resetsAt: null },
     itemRecognition: { limit: null, used: 14, remaining: null },
-    availableSegments: persona === 'women' && !fresh ? ['women'] : ['women', 'men'],
   }),
+  // docs/api/segments.md §1: open segments (the app reads the ids only).
+  'GET /v1/config': () => ({ segments: { available: persona === 'women' && !fresh ? ['women'] : ['women', 'men'], all: ['women', 'men', 'teen'] } }),
   'GET /v1/tenant/profile': (req) => ({
     tenantId: 'tenant_capture',
     displayName: fresh ? 'Deniz' : who().displayName,

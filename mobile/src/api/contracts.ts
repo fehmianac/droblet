@@ -69,7 +69,7 @@ export type ResetPasswordRequest = { token: string; newPassword: string };
 export type Segment = 'women' | 'men' | 'teen';
 /**
  * The segments the app can serve (men opened after phase 1). Which of them a user may pick is server
- * configuration: `availableSegments` on the entitlement (absent on an older server = women only).
+ * configuration: `segments.available` of `GET v1/config` (docs/api/segments.md §1; absent = women only).
  */
 export const APP_SEGMENTS = ['women', 'men'] as const;
 export type AppSegment = (typeof APP_SEGMENTS)[number];
@@ -87,16 +87,15 @@ export const WOMEN_STYLE_TAGS = [
   'colorful',
   'vintage',
 ] as const;
-/** Men's style tags (canvas 17 · 03): shared ids where the meaning is the same. */
+/** Men's style tags (docs/api/segments.md §2, canvas 17 · 03): shared ids where the meaning is the same. */
 export const MEN_STYLE_TAGS = [
   'minimal',
   'classic',
   'smart_casual',
+  'tailored',
+  'quiet_luxury',
   'street',
   'sporty',
-  'outdoor',
-  'business',
-  'quiet_luxury',
   'vintage',
   'colorful',
 ] as const;
@@ -185,12 +184,13 @@ export type Entitlement = {
    * 2026-11-19). Absent on an older server — the session answer (`maxPhotos`) brings it then.
    */
   outfitImportMaxPhotos?: number | null;
-  /**
-   * Segments a user may choose (server configuration, men opened after phase 1). One entry = no choice is
-   * shown (onboarding skips "Reyon", Profil › Stil profili has no segment row). Absent = women only.
-   */
-  availableSegments?: AppSegment[];
 };
+
+/**
+ * `GET v1/config` (anonymous, docs/api/segments.md §1) — the app keeps its own labels and reads the ids only.
+ * One open segment = no choice is shown (onboarding skips 03a, Profil › Stil profili has no segment row).
+ */
+export type AppConfig = { availableSegments: AppSegment[] };
 
 export type ItemRecognitionQuota = { limit: number | null; used: number; remaining: number | null };
 

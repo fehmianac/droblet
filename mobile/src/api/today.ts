@@ -12,7 +12,7 @@ import { mutationKeys, queryKeys } from '@/sync/queryKeys';
 
 import { apiRequest } from './client';
 import type { LibraryItem, TodayResponse, WearLogRequest } from './contracts';
-import { DATA_SOURCE, fromSource, queryString } from './dataSource';
+import { DATA_SOURCE, fromSource } from './dataSource';
 import type { ProfileWire } from './wire/core';
 import { firstNameOf, toToday, toWeeklyEditCards, type EditWire, type TodayWire } from './wire/today';
 import { ITEMS_QUERY_KEY, loadLookContext, toItemColor, type ItemWire } from './wire/wardrobe';
@@ -117,7 +117,10 @@ export function toLibraryItem(wire: LibraryItemWire): LibraryItem {
   };
 }
 
-/** Ready-made piece library (04b / 12b) — `GET v1/tenant/library/item?segment=` (the user's segment, canvas 17). */
+/**
+ * Ready-made piece library (04b / 12b) — `GET v1/tenant/library/item`: the server returns the user's segment plus
+ * unisex pieces (docs/api/segments.md §4). The key carries the segment, so a segment change reads it again.
+ */
 export function useItemLibrary() {
   const segment = useSegment();
   return useQuery({
@@ -127,7 +130,7 @@ export function useItemLibrary() {
         'library',
         () => withLatency(segment === 'men' ? menLibraryFixture : libraryFixture),
         async () =>
-          (await apiRequest<LibraryItemWire[]>(`v1/tenant/library/item${queryString({ segment })}`)).map(toLibraryItem),
+          (await apiRequest<LibraryItemWire[]>('v1/tenant/library/item')).map(toLibraryItem),
       ),
   });
 }

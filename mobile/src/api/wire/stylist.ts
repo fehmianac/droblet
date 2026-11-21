@@ -210,8 +210,8 @@ function storePiece(slot: OutfitSlotWire, product: ProductWire, category: ItemCa
 
 type LibraryRowWire = { id: string; name: string; category: string; subcategory?: string | null; colorIds: string[]; imageUrl: string | null };
 
-async function requestLibrary(segment: 'women' | 'men'): Promise<LibraryItem[]> {
-  const rows = await apiRequest<LibraryRowWire[]>(`v1/tenant/library/item?segment=${segment}`);
+async function requestLibrary(): Promise<LibraryItem[]> {
+  const rows = await apiRequest<LibraryRowWire[]>('v1/tenant/library/item');
   return rows.map((w) => ({
     id: w.id,
     name: w.name,
@@ -227,8 +227,8 @@ export async function fetchLibraryMap(): Promise<Map<string, LibraryItem>> {
   const client = getActiveQueryClient();
   const segment = segmentStore.get();
   const list = client
-    ? await client.fetchQuery({ queryKey: queryKeys.libraryFor(segment), queryFn: () => requestLibrary(segment), staleTime: 5 * 60_000 })
-    : await requestLibrary(segment);
+    ? await client.fetchQuery({ queryKey: queryKeys.libraryFor(segment), queryFn: requestLibrary, staleTime: 5 * 60_000 })
+    : await requestLibrary();
   return new Map(list.map((i) => [i.id, i]));
 }
 

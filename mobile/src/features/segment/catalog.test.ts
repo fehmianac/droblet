@@ -1,5 +1,5 @@
 import { MEN_STYLE_TAGS, WOMEN_STYLE_TAGS } from '@/api/contracts';
-import { toAvailableSegments, toBodyProfile, toEntitlement, type EntitlementWire } from '@/api/wire/core';
+import { toAppConfig, toAvailableSegments, toBodyProfile } from '@/api/wire/core';
 import { toSubcategoryId, toSubcategoryLabel } from '@/api/wire/subcategories';
 import { SILHOUETTE_BODY_PATH, SILHOUETTE_BODY_PATH_MEN, silhouetteBodyPath } from '@/components/brand/logoPaths';
 import { FINE_GLYPHS, GARMENT_GLYPHS, garmentGlyphPath } from '@/components/ui/ImageSlot';
@@ -29,21 +29,14 @@ describe('segment availability (server configuration)', () => {
     expect(showSegmentChoice(undefined)).toBe(false);
   });
 
-  it('reads `availableSegments` from the entitlement; absent or unknown = women only', () => {
+  it('reads `segments.available` from GET v1/config; absent or unknown = women only', () => {
     expect(toAvailableSegments(undefined)).toEqual(['women']);
     expect(toAvailableSegments(null)).toEqual(['women']);
     expect(toAvailableSegments(['teen'])).toEqual(['women']);
     expect(toAvailableSegments(['men', 'women'])).toEqual(['women', 'men']);
-    const wire: EntitlementWire = {
-      tier: 'free',
-      productId: null,
-      platform: null,
-      expiresAt: null,
-      credits: { monthlyAllowance: 0, allowanceRemaining: 0, packRemaining: 0, totalRemaining: 0, resetsAt: null },
-      itemRecognition: { limit: 20, used: 0, remaining: 20 },
-    };
-    expect(toEntitlement(wire).availableSegments).toEqual(['women']);
-    expect(toEntitlement({ ...wire, availableSegments: ['women', 'men'] }).availableSegments).toEqual(['women', 'men']);
+    expect(toAppConfig({}).availableSegments).toEqual(['women']);
+    expect(toAppConfig({ segments: { available: ['women'], all: ['women', 'men', 'teen'] } }).availableSegments).toEqual(['women']);
+    expect(toAppConfig({ segments: { available: ['women', 'men', 'teen'] } }).availableSegments).toEqual(['women', 'men']);
   });
 
   it('serves the women set for anything that is not men (teen is not open)', () => {
@@ -55,11 +48,10 @@ describe('segment availability (server configuration)', () => {
 });
 
 describe('style tags per segment (03)', () => {
-  it('has ten tags per segment, the men set with Smart casual, Outdoor and Business', () => {
+  it('women keep the ten phase-1 tags; men get the server set (docs/api/segments.md §2)', () => {
     expect(styleTagsFor('women')).toEqual(WOMEN_STYLE_TAGS);
     expect(styleTagsFor('men')).toEqual(MEN_STYLE_TAGS);
-    expect(styleTagsFor('men')).toHaveLength(10);
-    expect(styleTagsFor('men')).toEqual(expect.arrayContaining(['minimal', 'classic', 'smart_casual', 'street', 'sporty', 'outdoor', 'business']));
+    expect(styleTagsFor('men')).toEqual(['minimal', 'classic', 'smart_casual', 'tailored', 'quiet_luxury', 'street', 'sporty', 'vintage', 'colorful']);
     expect(styleTagsFor('men')).not.toContain('boho');
     expect(styleTagsFor('men')).not.toContain('romantic');
   });
@@ -161,7 +153,8 @@ describe('placeholders (canvas 17 "Yer tutucular")', () => {
     expect(garmentGlyphPath('accessory', 'Saat')).toBe(FINE_GLYPHS.watch);
     expect(garmentGlyphPath('outerwear', 'Takım ceketi')).toBe(FINE_GLYPHS['suit-jacket']);
     expect(garmentGlyphPath('bottom', 'chinos')).toBe(FINE_GLYPHS.chinos);
-    expect(garmentGlyphPath('shoes', 'oxfords')).toBe(FINE_GLYPHS.loafers);
+    expect(garmentGlyphPath('shoes', 'oxford-shoes')).toBe(FINE_GLYPHS.loafers);
+    expect(garmentGlyphPath('shoes', 'derbies')).toBe(FINE_GLYPHS.loafers);
     expect(garmentGlyphPath('loafers')).toBe(FINE_GLYPHS.loafers);
     expect(garmentGlyphPath('suit')).toBe(FINE_GLYPHS['suit-jacket']);
     // Anything else keeps its family glyph.

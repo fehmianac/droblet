@@ -22,7 +22,7 @@ jest.mock('expo-secure-store', () => ({
 jest.mock('expo-font', () => ({ ...jest.requireActual('expo-font'), useFonts: () => [true, null] }));
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageCode: 'en' }] }));
 
-// Server configuration: which segments are open (entitlement `availableSegments`).
+// Server configuration: which segments are open (`GET v1/config` → `segments.available`).
 const mockSegments: { list: AppSegment[] } = { list: ['women'] };
 jest.mock('@/features/segment/useAvailableSegments', () => ({
   useAvailableSegments: () => ({ segments: mockSegments.list, choice: mockSegments.list.length > 1, loading: false }),
@@ -89,19 +89,19 @@ describe('03a Reyon — onboarding segment choice', () => {
     expect(segmentStore.get()).toBe('men');
     expect(screen.getByTestId('style.tags.men')).toBeTruthy();
     expect(screen.getByText('Smart casual')).toBeTruthy();
-    expect(screen.getByText('Business')).toBeTruthy();
+    expect(screen.getByText('Tailored')).toBeTruthy();
     expect(screen.queryByTestId('style.tag.boho')).toBeNull();
 
-    for (const tag of ['minimal', 'smart_casual', 'business']) await fireEvent.press(screen.getByTestId(`style.tag.${tag}`));
+    for (const tag of ['minimal', 'smart_casual', 'tailored']) await fireEvent.press(screen.getByTestId(`style.tag.${tag}`));
     await fireEvent.press(screen.getByTestId('style.budget.mixed'));
     await fireEvent.press(screen.getByTestId('style.continue'));
     await waitFor(() => expect(mockStyle.saved).toHaveLength(1), WAIT);
-    expect(mockStyle.saved[0]).toMatchObject({ segment: 'men', styleTags: ['minimal', 'smart_casual', 'business'], budget: 'mixed' });
+    expect(mockStyle.saved[0]).toMatchObject({ segment: 'men', styleTags: ['minimal', 'smart_casual', 'tailored'], budget: 'mixed' });
   });
 
   it('starts from the saved segment of a returning account', async () => {
     mockSegments.list = ['women', 'men'];
-    mockStyle.data = { segment: 'men', styleTags: ['minimal', 'outdoor', 'street'], budget: 'mixed', baseVersion: 2 };
+    mockStyle.data = { segment: 'men', styleTags: ['minimal', 'tailored', 'street'], budget: 'mixed', baseVersion: 2 };
     await openOnboarding();
     await waitFor(() => expect(screen.getByTestId('segment.screen')).toBeTruthy(), WAIT);
     expect(screen.getByTestId('segment.option.men').props.accessibilityState).toMatchObject({ checked: true });
@@ -155,10 +155,10 @@ describe('28f Profil › Stil profili', () => {
     expect(screen.getByText('2 / 3')).toBeTruthy();
     expect(screen.getByTestId('styleProfile.save').props.accessibilityState).toMatchObject({ disabled: true });
 
-    await fireEvent.press(screen.getByTestId('styleProfile.tag.outdoor'));
+    await fireEvent.press(screen.getByTestId('styleProfile.tag.tailored'));
     await fireEvent.press(screen.getByTestId('styleProfile.save'));
     await waitFor(() => expect(mockStyle.saved).toHaveLength(1), WAIT);
-    expect(mockStyle.saved[0]).toMatchObject({ segment: 'men', styleTags: ['minimal', 'classic', 'outdoor'], budget: 'mixed', baseVersion: 3 });
+    expect(mockStyle.saved[0]).toMatchObject({ segment: 'men', styleTags: ['minimal', 'classic', 'tailored'], budget: 'mixed', baseVersion: 3 });
     expect(segmentStore.get()).toBe('men');
   });
 });

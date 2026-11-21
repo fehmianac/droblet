@@ -7,7 +7,7 @@
  * request / response is converted here, at the boundary. Wire JSON is camelCase with camelCase enum
  * strings (`quietLuxury`, `highStreet`); the app keeps its snake_case keys (they are i18n keys).
  */
-import { APP_SEGMENTS, type AppSegment, type BodyProfile, type BodyType, type Budget, type Entitlement, type Segment, type Size, type StyleProfile, type StyleTag } from '../contracts';
+import { APP_SEGMENTS, type AppConfig, type AppSegment, type BodyProfile, type BodyType, type Budget, type Entitlement, type Segment, type Size, type StyleProfile, type StyleTag } from '../contracts';
 import type { Job, JobKind, JobStatus } from '../contracts/jobs';
 
 // ---------- enum spelling ----------
@@ -175,9 +175,14 @@ export type EntitlementWire = {
   selfServePremium?: { enabled: boolean; active: boolean } | null;
   /** Photos per outfit import for the caller's plan (Entitlements:Free|Premium:OutfitImportMaxPhotos). Older servers omit it. */
   outfitImport?: { maxPhotos: number } | null;
-  /** Segments open to users (server configuration, e.g. `["women","men"]`). Older servers omit it: women only. */
-  availableSegments?: string[] | null;
 };
+
+/** `GET v1/config` — only what the app reads (names stay the app's own; docs/api/segments.md §1). */
+export type ConfigWire = { segments?: { available?: string[] | null; all?: string[] } | null };
+
+export function toAppConfig(wire: ConfigWire): AppConfig {
+  return { availableSegments: toAvailableSegments(wire.segments?.available) };
+}
 
 /** `POST v1/tenant/entitlement/purchase`. Apple: signedTransaction = StoreKit 2 JWS; Google: transactionId = purchaseToken. */
 export type PurchaseRequestWire = {
@@ -229,7 +234,6 @@ export function toEntitlement(wire: EntitlementWire): Entitlement {
     inGracePeriod: wire.state === 'gracePeriod',
     selfServePremium: { enabled: wire.selfServePremium?.enabled ?? false, active: wire.selfServePremium?.active ?? false },
     outfitImportMaxPhotos: wire.outfitImport?.maxPhotos ?? null,
-    availableSegments: toAvailableSegments(wire.availableSegments),
   };
 }
 
