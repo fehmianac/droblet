@@ -93,9 +93,13 @@ public sealed class NotificationJobs(
     {
         var today = DateOnly.FromDateTime(now);
         var edits = await repository.GetAllAsync<WeeklyEditEntity>(WeeklyEditEntity.GetPk(), ct);
-        var edit = WeeklyEditRules.PickCurrent(edits, today, Segment.Women);
-        // Only a newly published edit of this week is news.
-        if (edit is null || edit.WeekStart != WeeklyEditRules.Format(WeeklyEditRules.WeekStartOf(today)))
+        // Each segment has its own edit; only a newly published edit of this week is news.
+        var thisWeek = WeeklyEditRules.Format(WeeklyEditRules.WeekStartOf(today));
+        var bySegment = new[] { Segment.Women, Segment.Men }
+            .Select(s => (Segment: s, Edit: WeeklyEditRules.PickCurrent(edits, today, s)))
+            .Where(x => x.Edit is not null && x.Edit.WeekStart == thisWeek)
+            .ToDictionary(x => x.Segment, x => x.Edit!);
+        if (bySegment.Count == 0)
             return (0, 0);
 
         int candidates = 0, sent = 0;
@@ -108,6 +112,9 @@ public sealed class NotificationJobs(
             {
                 if (!await HasMarketingConsentAsync(subscriber.SubscriberTenantId, ct))
                     continue; // switched on before consents existed, or the consent text changed: nothing goes out
+                // The subscriber's segment (style profile; women when never chosen) picks the edit; none this week = nothing.
+                if (!bySegment.TryGetValue(await repository.UserSegmentAsync(subscriber.SubscriberTenantId, ct), out var edit))
+                    continue;
                 candidates++;
                 await inbox.AddAsync(subscriber.SubscriberTenantId, NotificationType.WeeklyEdit, edit.Id, new Dictionary<string, string> { ["editId"] = edit.Id }, now, ct);
                 if (await SendOnceAsync(subscriber.SubscriberTenantId, NotificationType.WeeklyEdit, edit.Id, new() { ["editId"] = edit.Id }, now, ct))

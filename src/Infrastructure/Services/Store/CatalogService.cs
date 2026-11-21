@@ -250,6 +250,8 @@ public sealed class CatalogService(
             AffiliateUrl = NullIfEmpty(input.AffiliateUrl),
             AffiliateSource = input.AffiliateSource ?? brand.Source,
             Retired = input.Retired,
+            // Omitted = unchanged on an update (feeds without the column keep the admin's choice), women on create.
+            Segment = input.Segment ?? existing?.Segment ?? CatalogSegment.Women,
             CreatedAt = existing?.CreatedAt ?? now,
             UpdatedAt = now,
         };

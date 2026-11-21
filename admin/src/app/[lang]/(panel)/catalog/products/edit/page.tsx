@@ -10,11 +10,13 @@ import { api } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
 import { resolveText } from '@/lib/text';
 import {
+  CATALOG_SEGMENTS,
   PRICE_BANDS,
   PRODUCT_CATEGORIES,
   type AdminBrand,
   type AdminProduct,
   type AffiliateSource,
+  type CatalogSegment,
   type Localized,
   type PriceBand,
   type ProductCategory,
@@ -35,6 +37,7 @@ interface Form {
   affiliateUrl: string;
   affiliateSource: AffiliateSource | '';
   retired: boolean;
+  segment: CatalogSegment;
 }
 
 const blank: Form = {
@@ -51,6 +54,7 @@ const blank: Form = {
   affiliateUrl: '',
   affiliateSource: '',
   retired: false,
+  segment: 'women',
 };
 
 function toForm(p: AdminProduct): Form {
@@ -68,6 +72,7 @@ function toForm(p: AdminProduct): Form {
     affiliateUrl: p.affiliateUrl ?? '',
     affiliateSource: p.affiliateSource,
     retired: p.retired,
+    segment: p.segment ?? 'women',
   };
 }
 
@@ -111,6 +116,7 @@ function ProductForm() {
         affiliateUrl: form.affiliateUrl.trim() || null,
         affiliateSource: form.affiliateSource || null,
         retired: form.retired,
+        segment: form.segment,
       });
       if (result.priceDropped) toast.info(fmt(t.productForm.priceDropped, { count: result.watchersFlagged }));
       toast.success(result.created ? t.productForm.created : t.common.saved);
@@ -195,6 +201,15 @@ function ProductForm() {
                   {PRODUCT_CATEGORIES.map((c) => (
                     <option key={c} value={c}>
                       {t.enums.productCategory[c]}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label={t.products.segment} htmlFor="p-segment" required error={errors.segment}>
+                <Select id="p-segment" value={form.segment} onChange={(e) => set('segment', e.target.value as CatalogSegment)}>
+                  {CATALOG_SEGMENTS.map((s) => (
+                    <option key={s} value={s}>
+                      {t.enums.catalogSegment[s]}
                     </option>
                   ))}
                 </Select>

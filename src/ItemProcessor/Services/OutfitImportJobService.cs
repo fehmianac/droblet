@@ -154,8 +154,9 @@ public sealed class OutfitImportJobService(
         await storage.PutAsync(photoKey, clean.Data, clean.ContentType, ct);
         var image = new ImageInput(clean.Data, clean.ContentType);
         var language = Localized.Language(session.Language);
+        var segment = await repository.UserSegmentAsync(tenantId, ct);
         var found = ItemDetectionGuard.Filter(
-            await detector.DetectItemsAsync(image, language, Options.UseFastTextModel, ct),
+            await detector.DetectItemsAsync(image, language, Options.UseFastTextModel, segment, ct),
             Math.Min(wardrobeOptions.CurrentValue.MaxDetectedItems, OutfitImportRules.MaxPiecesPerPhoto));
 
         var size = cropper.Measure(image);

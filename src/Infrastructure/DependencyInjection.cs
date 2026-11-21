@@ -34,6 +34,7 @@ public static class DependencyInjection
         services.Configure<AffiliateOptions>(configuration.GetSection(AffiliateOptions.Section));
         services.Configure<CatalogImageOptions>(configuration.GetSection(CatalogImageOptions.Section));
         services.Configure<ConsentOptions>(configuration.GetSection(ConsentOptions.Section));
+        services.Configure<SegmentOptions>(configuration.GetSection(SegmentOptions.Section));
         // Secrets created by deploy-infra hold the literal CHANGE_ME until the owner fills them in: bind that as "not set".
         services.PostConfigure<AiOptions>(o => o.ApiKey = ConfigSecret.OrNull(o.ApiKey));
         services.Configure<CloudflareOptions>(configuration.GetSection(CloudflareOptions.Section));

@@ -221,3 +221,22 @@ later: set `PublicImagesOrigin=cloudflare` for dev and change dev's `PublicBaseU
 
 Ops (dev only): `public-urls [--enable|--disable]` switches `api/Photos/PublicUrlsEnabled`; `cdn-check [--base URL]`
 fetches a few published images through the configured host.
+
+## 13. Men's library images — plan, waiting for the owner's approval
+
+The men's starter set (27 pieces, `lib-men-*`, docs/api/segments.md §4) ships **without images**: the API returns
+`imageUrl: null` and the app shows the garment placeholder. Nothing has been generated. When the owner approves,
+one run of the existing Ops command makes them — **exactly 27 image calls** (one per piece; `--max-image-calls`
+default 30 covers it; ≈ 27 × $0.25 ≈ **$6.75** at the command's high-quality estimate). The prompt is the house
+style with "men's" instead of "women's" (`LibraryImagePlan.Prompt`). Dry-run first (no call), then the real run:
+
+```bash
+ONLY=lib-men-white-oxford-shirt,lib-men-blue-oxford-shirt,lib-men-white-tshirt,lib-men-black-tshirt,lib-men-navy-polo,lib-men-beige-linen-shirt,lib-men-grey-crewneck,lib-men-navy-quarter-zip,lib-men-beige-chinos,lib-men-navy-chinos,lib-men-dark-jeans,lib-men-charcoal-trousers,lib-men-navy-shorts,lib-men-navy-suit-jacket,lib-men-olive-overshirt,lib-men-black-bomber,lib-men-camel-coat,lib-men-navy-puffer,lib-men-white-sneakers,lib-men-brown-loafers,lib-men-black-derbies,lib-men-brown-chelsea-boots,lib-men-black-backpack,lib-men-brown-belt,lib-men-steel-watch,lib-men-navy-tie,lib-men-navy-swim-shorts
+gh workflow run ops-dev.yml --ref main -f command=generate-library-images -f args="--only $ONLY --dry-run"
+gh workflow run ops-dev.yml --ref main -f command=generate-library-images -f args="--only $ONLY"
+```
+
+The run writes each image to the catalog bucket and sets the piece's `imageUrl` through the admin library service
+(audited as `library.upsert`), which also stores the piece in the library partition. Pieces that already have an
+image are skipped (idempotent), so a re-run after a partial failure only pays for the missing ones. Prod uses the
+same command with the prod keys once dev looks right (another 27 calls if prod has its own catalog bucket).

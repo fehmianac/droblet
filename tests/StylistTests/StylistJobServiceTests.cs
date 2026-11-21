@@ -893,4 +893,56 @@ public class StylistJobServiceTests
         Assert.All(result.Days, d => Assert.All(d.Outfit!.Slots, s => Assert.DoesNotMatch("^i[0-9]+$", s.ItemId ?? "")));
         Assert.Contains(result.Days, d => d.Outfit!.Slots.Any(s => s.ItemId == "top1"));
     }
+
+    // ── Men (segment) ─────────────────────────────────────────────────────────────────────────────────────────────
+
+    private static Task SetSegmentAsync(WorkerTestHost host, Segment segment) =>
+        host.Repository.SaveAsync(new StyleProfileEntity { TenantId = Tenant, Segment = segment, StyleTags = [StyleTag.Minimal, StyleTag.Classic, StyleTag.Tailored], Budget = Budget.Mixed, Version = 1 });
+
+    [Fact]
+    public async Task Outfit_Man_EmptyWardrobe_IsFilledFromTheMensLibrary_NeverADress()
+    {
+        var model = new FixedModel(Outfits());
+        var host = Host(model); // the real (embedded) library seed: women's pieces and the men's starter set
+        await SetSegmentAsync(host, Segment.Men);
+        var job = await QueueAsync(host, JobKind.StylistOutfit, OutfitInput());
+
+        var result = StylingJson.TryDeserialize<OutfitResult>((await RunAsync(host, job)).Result)!;
+
+        Assert.Null(result.Refusal);
+        Assert.Equal(3, result.Suggestions.Count);
+        var picks = result.Suggestions.SelectMany(s => s.Missing).ToList();
+        Assert.All(picks, m => Assert.StartsWith("lib-men-", m.LibraryItemId));
+        Assert.DoesNotContain(picks, m => m.Category == ItemCategory.Dress);
+        Assert.All(result.Suggestions, s => Assert.True(Complete(s)));
+        // Office: the tailored outer layer (suit jacket) finishes the look.
+        Assert.All(result.Suggestions, s => Assert.Contains(s.Missing, m => m.Slot == OutfitSlot.Outerwear));
+    }
+
+    [Fact]
+    public async Task Outfit_Woman_EmptyWardrobe_NeverGetsMensPieces()
+    {
+        var host = Host(new FixedModel(Outfits()));
+        var job = await QueueAsync(host, JobKind.StylistOutfit, OutfitInput());
+
+        var result = StylingJson.TryDeserialize<OutfitResult>((await RunAsync(host, job)).Result)!;
+
+        Assert.DoesNotContain(result.Suggestions.SelectMany(s => s.Missing), m => m.LibraryItemId!.StartsWith("lib-men-", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(Segment.Men)]
+    [InlineData(Segment.Women)]
+    public async Task Prompts_CarryTheUsersSegment(Segment segment)
+    {
+        var model = new FixedModel(Outfits(Suggestion("top1", "bot1", "shoe1"), Suggestion("top2", "bot2", "shoe2"), Suggestion("top1", "bot2", "shoe1")));
+        var host = Host(model);
+        await SeedWardrobeAsync(host);
+        await SetSegmentAsync(host, segment);
+        var job = await QueueAsync(host, JobKind.StylistOutfit, OutfitInput());
+
+        await RunAsync(host, job);
+
+        Assert.Equal(segment, Assert.Single(model.Prompts).Segment);
+    }
 }

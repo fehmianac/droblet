@@ -40,7 +40,8 @@ public sealed class TryOnService(
     private sealed record Resolved(TryOnTarget Target, IReadOnlyList<OutfitPiece> Pieces, StrippedImage? Reference = null);
 
     /// <summary>What a try-on renders on: Key = cache / credit subject (body photo id or the face subject key).</summary>
-    private sealed record Subject(TryOnSource Source, string Key, PhotoEntity Photo, BodyType? BodyType, int? HeightCm, ClothingSize? Size);
+    private sealed record Subject(TryOnSource Source, string Key, PhotoEntity Photo, BodyType? BodyType, int? HeightCm, ClothingSize? Size,
+        Segment Segment = Segment.Women);
 
     private DateTime Now => timeProvider.GetUtcNow().UtcDateTime;
 
@@ -186,7 +187,8 @@ public sealed class TryOnService(
         try
         {
             await events.PublishAsync(body.Source == TryOnSource.Face
-                ? new TryOnRequestedEvent(tenantId, job.Id, target, body.Key, key, TryOnSource.Face, body.Photo.Id, body.BodyType ?? BodyType.Unsure, body.HeightCm, body.Size)
+                ? new TryOnRequestedEvent(tenantId, job.Id, target, body.Key, key, TryOnSource.Face, body.Photo.Id, body.BodyType ?? BodyType.Unsure, body.HeightCm, body.Size,
+                    body.Segment)
                 : new TryOnRequestedEvent(tenantId, job.Id, target, body.Key, key), ct);
         }
         catch
@@ -399,9 +401,13 @@ public sealed class TryOnService(
             case TryOnSource.Body:
                 return new Subject(TryOnSource.Body, body!.Id, body, null, null, null);
             case TryOnSource.Face:
-                var profile = await repository.GetAsync<BodyProfileEntity>(BodyProfileEntity.GetPk(tenantId), BodyProfileEntity.GetSk(), ct);
-                return new Subject(TryOnSource.Face, TryOnRules.FaceSubjectKey(face!.Id, profile?.BodyType, profile?.HeightCm, profile?.Size),
-                    face, profile?.BodyType, profile?.HeightCm, profile?.Size);
+                var profileRead = repository.GetAsync<BodyProfileEntity>(BodyProfileEntity.GetPk(tenantId), BodyProfileEntity.GetSk(), ct);
+                var styleRead = repository.GetAsync<StyleProfileEntity>(StyleProfileEntity.GetPk(tenantId), StyleProfileEntity.GetSk(), ct);
+                var (profile, style) = (await profileRead, await styleRead);
+                // The face path builds the figure, so the segment decides it (an adult man's build for men).
+                var segment = style?.Segment ?? Segment.Women;
+                return new Subject(TryOnSource.Face, TryOnRules.FaceSubjectKey(face!.Id, profile?.BodyType, profile?.HeightCm, profile?.Size, segment),
+                    face, profile?.BodyType, profile?.HeightCm, profile?.Size, segment);
             default:
                 return null;
         }

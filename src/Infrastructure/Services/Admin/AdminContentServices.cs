@@ -30,8 +30,9 @@ public sealed partial class AdminLibraryService(
     public async Task<IReadOnlyList<AdminLibraryItemDto>> ListAsync(CancellationToken ct)
     {
         var stored = await repository.GetAllAsync<LibraryItemEntity>(LibraryItemEntity.GetPk(), ct);
-        var items = stored.Count > 0 ? stored : LibraryCatalog.Seed;
-        return items.OrderBy(i => i.SortOrder).ThenBy(i => i.Id, StringComparer.Ordinal).Select(i => ToDto(i, stored.Count > 0)).ToList();
+        var storedIds = stored.Select(i => i.Id).ToHashSet(StringComparer.Ordinal);
+        return LibraryCatalog.WithSeed(stored).OrderBy(i => i.SortOrder).ThenBy(i => i.Id, StringComparer.Ordinal)
+            .Select(i => ToDto(i, storedIds.Contains(i.Id))).ToList();
     }
 
     public async Task<LibraryItemEntity?> GetAsync(string id, CancellationToken ct) =>
@@ -56,6 +57,7 @@ public sealed partial class AdminLibraryService(
             ImageKey = string.IsNullOrWhiteSpace(input.ImageUrl) ? null : input.ImageUrl.Trim(),
             SortOrder = input.SortOrder,
             Retired = input.Retired,
+            Segment = input.Segment ?? CatalogSegment.Women,
         };
         await repository.SaveAsync(entity, ct);
         return (errors, ToDto(entity, true));
@@ -66,7 +68,9 @@ public sealed partial class AdminLibraryService(
         if (await GetAsync(id, ct) is null)
             return false;
         await MaterializeSeedAsync(ct);
-        var entity = await repository.GetAsync<LibraryItemEntity>(LibraryItemEntity.GetPk(), LibraryItemEntity.GetSk(id), ct);
+        // A seed piece added after the partition was written (not stored yet) is stored on its first retire.
+        var entity = await repository.GetAsync<LibraryItemEntity>(LibraryItemEntity.GetPk(), LibraryItemEntity.GetSk(id), ct)
+                     ?? LibraryCatalog.Seed.FirstOrDefault(i => i.Id == id);
         if (entity is null)
             return false;
         entity.Retired = true;
@@ -83,7 +87,7 @@ public sealed partial class AdminLibraryService(
 
     private AdminLibraryItemDto ToDto(LibraryItemEntity i, bool stored) => new(
         i.Id, i.Name, i.Category, i.ColorIds, i.Fabric, i.Seasons, GlobalAssets.PublicUrl(i.ImageKey, wardrobe.CurrentValue.PublicAssetBaseUrl),
-        i.SortOrder, i.Retired, stored);
+        i.SortOrder, i.Retired, stored, i.Segment, LibraryItemImageRules.NeedsImage(i));
 
     public static Dictionary<string, string[]> Validate(LibraryItemInput input, LocalizationOptions languages)
     {
@@ -104,6 +108,8 @@ public sealed partial class AdminLibraryService(
             errors["imageUrl"] = ["image_url_invalid"];
         if (input.SortOrder is < 0 or > 100_000)
             errors["sortOrder"] = ["sort_order_invalid"];
+        if (input.Segment is { } segment && !System.Enum.IsDefined(segment))
+            errors["segment"] = ["segment_invalid"];
         return errors;
     }
 }

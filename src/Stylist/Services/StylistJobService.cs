@@ -103,9 +103,10 @@ public sealed class StylistJobService(
             new(input.Date, input.Occasion, input.OnlyMyWardrobe, refusal, suggestions, language, suggestions.Any(GapFill.HasPicks));
 
         var wantsOuter = WantsOuterLayer(forecast, settings);
-        var ruleOptions = new RuleOutfitOptions(input.PinnedItemId, wantsOuter, input.OnlyMyWardrobe);
         var fill = await GapFillAsync(job.TenantId, new HashSet<Season> { season }, input.Occasion,
             forecast is null ? null : WeatherRules.WholeDegrees(forecast.MaxC), false, wantsOuter, ct);
+        // The segment (style profile) shapes the rules (menswear), the picks and the prompt.
+        var ruleOptions = new RuleOutfitOptions(input.PinnedItemId, wantsOuter, input.OnlyMyWardrobe, Segment: fill.Segment, Occasion: input.Occasion);
         if (RuleBasedOutfit.Build(candidates, 1, ruleOptions).Count == 0)
         {
             // Thin wardrobe (owner decision 3): Droblet picks the missing pieces itself — no model call, no dead end.
@@ -119,14 +120,15 @@ public sealed class StylistJobService(
             await dislikedRead, input.Date, season, input.Occasion, Weather(forecast), input.FreeText, input.PinnedItemId);
 
         var output = StylingJson.TryDeserialize<ModelOutfitOutput>(aliases.Restore(
-            await model.GenerateAsync(new StylistPrompt(JobKind.StylistOutfit, prompt, language, aliases.Compact), ct)));
+            await model.GenerateAsync(new StylistPrompt(JobKind.StylistOutfit, prompt, language, aliases.Compact, fill.Segment), ct)));
         if (StylistOutputGuard.ViolatesContentPolicy(StylistOutputGuard.Texts(output)))
             return Outcome.Fail(JobFailure.GuardRejected);
         if (output?.Refusal == StylistRefusals.OutOfScope)
             return new Outcome(StylingJson.Serialize(Result(StylistRefusals.OutOfScope, [])));
 
         var context = GuardContext.For(candidates, input.OnlyMyWardrobe, input.PinnedItemId, settings.MaxTitleLength, settings.MaxExplanationLength);
-        var suggestions = StylistOutputGuard.AcceptDistinct(output?.Suggestions, context, settings.SuggestionCount).ToList();
+        var suggestions = StylistOutputGuard.AcceptDistinct(output?.Suggestions, context, settings.SuggestionCount)
+            .Select(s => WithoutForeignMissing(s, fill.Segment)).ToList();
         if (suggestions.Count < settings.SuggestionCount)
         {
             var taken = suggestions.Select(s => StylistOutputGuard.Signature(s.Slots)).ToHashSet(StringComparer.Ordinal);
@@ -141,6 +143,12 @@ public sealed class StylistJobService(
 
         return new Outcome(StylingJson.Serialize(Result(null, Indexed(WithShoes(suggestions, candidates, fill)))));
     }
+
+    /// <summary>Menswear: the model may suggest a missing piece only for a slot a man would fill — never a dress.</summary>
+    private static SuggestedOutfit WithoutForeignMissing(SuggestedOutfit outfit, Segment segment) =>
+        segment == Segment.Men && outfit.Missing.Any(m => m.Category == ItemCategory.Dress)
+            ? outfit with { Missing = outfit.Missing.Where(m => m.Category != ItemCategory.Dress).ToList() }
+            : outfit;
 
     private static List<SuggestedOutfit> Indexed(IEnumerable<SuggestedOutfit> suggestions) => suggestions.Select((s, i) => s with { Index = i }).ToList();
 
@@ -181,7 +189,7 @@ public sealed class StylistJobService(
         SuggestedOutfit? Filled(int i, string? previous, DailyForecast? day) =>
             GapFill.Outfits(candidates, fill with { WantsOuterLayer = WantsOuterLayer(day, settings) }, 1,
                 new RuleOutfitOptions(null, WantsOuterLayer(day, settings), true, i,
-                    previous is null ? null : new HashSet<string>(StringComparer.Ordinal) { previous })).FirstOrDefault();
+                    previous is null ? null : new HashSet<string>(StringComparer.Ordinal) { previous }, fill.Segment, input.Days[i].Occasion)).FirstOrDefault();
 
         if (RuleBasedOutfit.Build(candidates, 1).Count == 0)
         {
@@ -209,7 +217,7 @@ public sealed class StylistJobService(
         // A batch that fails is dressed by the rules below; only when every batch fails does the job fail (or retry).
         var batches = WeekPlanning.Split(dates, settings.WeekBatchDays);
         var calls = batches.Select(async batch => aliases.Restore(
-            await model.GenerateAsync(new StylistPrompt(JobKind.StylistWeek, Prompt(batch), language, aliases.Compact), ct))).ToList();
+            await model.GenerateAsync(new StylistPrompt(JobKind.StylistWeek, Prompt(batch), language, aliases.Compact, fill.Segment), ct))).ToList();
         try
         {
             await Task.WhenAll(calls);
@@ -237,13 +245,13 @@ public sealed class StylistJobService(
             var wantsOuter = WantsOuterLayer(forecast.GetValueOrDefault(day.Date), settings);
             if (repeated.Contains(day.Date)
                 && RuleBasedOutfit.Build(candidates, 1, new RuleOutfitOptions(null, wantsOuter, true, i,
-                    new HashSet<string>(used.Append(previous ?? ""), StringComparer.Ordinal))).FirstOrDefault() is { } fresh)
+                    new HashSet<string>(used.Append(previous ?? ""), StringComparer.Ordinal), fill.Segment, day.Occasion)).FirstOrDefault() is { } fresh)
                 accepted = new Dictionary<string, SuggestedOutfit>(accepted, StringComparer.Ordinal) { [day.Date] = fresh };
             // A replaced day can make the next model look a repeat of the day before: that one is replaced too.
             if (!accepted.TryGetValue(day.Date, out var outfit) || GapFill.RawSignature(outfit) == previous)
             {
                 var exclude = previous is null ? null : new HashSet<string>(StringComparer.Ordinal) { previous };
-                outfit = RuleBasedOutfit.Build(candidates, 1, new RuleOutfitOptions(null, wantsOuter, true, i, exclude)).FirstOrDefault()
+                outfit = RuleBasedOutfit.Build(candidates, 1, new RuleOutfitOptions(null, wantsOuter, true, i, exclude, fill.Segment, day.Occasion)).FirstOrDefault()
                          ?? Filled(i, previous, forecast.GetValueOrDefault(day.Date));
             }
 
@@ -349,7 +357,7 @@ public sealed class StylistJobService(
             PackingRules.RequiresMinWears(dates.Count) ? CapsuleRules.MinRewearRatio : 1.0);
 
         var output = StylingJson.TryDeserialize<ModelPackOutput>(aliases.Restore(
-            await model.GenerateAsync(new StylistPrompt(JobKind.StylistPack, prompt, language, aliases.Compact), ct)));
+            await model.GenerateAsync(new StylistPrompt(JobKind.StylistPack, prompt, language, aliases.Compact, fill.Segment), ct)));
         if (StylistOutputGuard.ViolatesContentPolicy(StylistOutputGuard.Texts(output?.Days)))
             return Outcome.Fail(JobFailure.GuardRejected);
 
@@ -415,7 +423,8 @@ public sealed class StylistJobService(
             seasons, occasion, maxTempC, settings.HotFromC, isTrip, wantsOuterLayer,
             (palette?.FlatteringColorIds ?? []).ToHashSet(StringComparer.Ordinal),
             (palette?.AvoidColorIds ?? []).ToHashSet(StringComparer.Ordinal),
-            band);
+            band,
+            Segment: style?.Segment ?? Segment.Women);
     }
 
     private async Task<object?> PaletteAsync(string tenantId, CancellationToken ct)

@@ -61,7 +61,7 @@ internal static class LibraryImagePlan
         var fabric = string.IsNullOrWhiteSpace(item.Fabric) ? "" : $"Material: {item.Fabric}, with a true-to-life {item.Fabric} texture. ";
 
         return
-            $"Professional e-commerce product photograph of a single women's {name.ToLowerInvariant()}. {colour}{fabric}" +
+            $"Professional e-commerce product photograph of a single {AudienceFor(item.Segment, name)}{name.ToLowerInvariant()}. {colour}{fabric}" +
             Presentation(item.Category) + " " +
             $"Seamless, perfectly uniform solid sand-coloured studio background, exact colour {Background}, edge to edge, no gradient, no floor line. " +
             "Soft diffused studio lighting from the upper left, a very subtle soft contact shadow under the product, true colours, crisp fabric detail. " +
@@ -70,6 +70,17 @@ internal static class LibraryImagePlan
             "Plain, unbranded design: no logos, no brand marks, no labels or tags visible, no text, no watermark. " +
             "No people, no hands, no visible mannequin, no hanger, no props.";
     }
+
+    /// <summary>"women's " (the phase 1 text), "men's " or nothing for a unisex piece. A name that already says "men's" keeps one.</summary>
+    public static string Audience(CatalogSegment segment) => segment switch
+    {
+        CatalogSegment.Men => "men's ",
+        CatalogSegment.Unisex => "",
+        _ => "women's ",
+    };
+
+    private static string AudienceFor(CatalogSegment segment, string name) =>
+        Audience(segment) is { Length: > 0 } audience && name.StartsWith(audience.TrimEnd(), StringComparison.OrdinalIgnoreCase) ? "" : Audience(segment);
 
     public static string Presentation(ItemCategory category) => category switch
     {
@@ -228,7 +239,7 @@ internal static class LibraryImagesCommand
                 var url = $"{baseUrl}/{key}?v={DateTime.UtcNow:yyyyMMddHHmmss}";
                 var before = new { item.Id, imageUrl = item.ImageKey };
                 var (errors, saved) = await library.UpsertAsync(new LibraryItemInput(
-                    item.Id, item.Name, item.Category, item.ColorIds, item.Fabric, item.Seasons, url, item.SortOrder, item.Retired), ct);
+                    item.Id, item.Name, item.Category, item.ColorIds, item.Fabric, item.Seasons, url, item.SortOrder, item.Retired, item.Segment), ct);
                 if (errors.Count > 0 || saved is null)
                     throw new InvalidOperationException("library upsert rejected: " + string.Join(", ", errors.Select(e => $"{e.Key}={string.Join('/', e.Value)}")));
                 await audit.WriteAsync(OpsHost.Actor, "library.upsert", "library", item.Id, before, new { item.Id, imageUrl = url, generatedBy = "ops generate-library-images" }, null, ct);

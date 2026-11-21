@@ -45,8 +45,9 @@ Not in this document: wardrobe items, looks, today/plan/calendar, stylist/trips,
 | device `platform` | `ios`, `android` |
 | weather `condition` | `clear`, `partlyCloudy`, `cloudy`, `fog`, `drizzle`, `rain`, `snow`, `showers`, `thunderstorm`, `unknown` |
 | content collection `kind` | `creator`, `series` |
-| `segment` | `women` (phase 1; `men`, `teen` rejected) |
-| `styleTags` | `minimal`, `classic`, `quietLuxury`, `street`, `boho`, `sporty`, `romantic`, `officeChic`, `colorful`, `vintage` |
+| `segment` | `women` · `men` (`teen` rejected, `segment_not_available`) — [G](segments.md) |
+| `styleTags` | women: `minimal`, `classic`, `quietLuxury`, `street`, `boho`, `sporty`, `romantic`, `officeChic`, `colorful`, `vintage`; men: `minimal`, `classic`, `smartCasual`, `tailored`, `quietLuxury`, `street`, `sporty`, `vintage`, `colorful` ([G §2](segments.md)) |
+| product / library `segment` | `women`, `men`, `unisex` ([G](segments.md)) |
 
 ### Shared shapes
 
@@ -60,7 +61,8 @@ Not in this document: wardrobe items, looks, today/plan/calendar, stylist/trips,
   "previousPriceMinor": 120000,                                // only when the last price change was a drop, else null
   "priceBand": "highStreet", "images": ["https://…"],
   "available": true,                                           // false = retired ("stokta yok"); still resolvable
-  "createdAt": "2026-11-18T09:00:00Z" }
+  "createdAt": "2026-11-18T09:00:00Z",
+  "segment": "women" }                                         // women | men | unisex; lists show the user's segment + unisex (G §5)
 
 // LookRef — where an add-to-cart / watch / checkout came from (optional everywhere)
 { "kind": "edit", "id": "edit-sample-2026-w47-d1" }
@@ -432,9 +434,9 @@ deleted: `DELETE` retires (ids are never reused). Ids: `^[a-z0-9][a-z0-9-]{1,62}
 | GET | `v1/admin/brand` | — | `AdminBrandDto[]` (retired included) |
 | PUT | `v1/admin/brand/{id}` | `{ "name", "websiteUrl"?, "logoUrl"?, "source", "network"?, "checkoutUrl"?, "clickIdParameter"?, "commissionRateBps"? (0–5000), "retired"? }` | `AdminBrandDto` = body + `id`, `createdAt`, `updatedAt` |
 | DELETE | `v1/admin/brand/{id}` | — | `204`. `404 brand_not_found`. |
-| GET | `v1/admin/product` | `brand`, `q`, `includeRetired` (default true), `pageToken`, `limit` (≤ 200) | `{ "items": [AdminProductDto], "pageToken", "count" }` |
+| GET | `v1/admin/product` | `brand`, `q`, `includeRetired` (default true), `segment` (`women` · `men` · `unisex`), `pageToken`, `limit` (≤ 200) | `{ "items": [AdminProductDto], "pageToken", "count" }` |
 | GET | `v1/admin/product/{id}` | — | `AdminProductDto`. `404 product_not_found`. |
-| PUT | `v1/admin/product/{id}` | `{ "brandId", "name": L, "description"?: L, "category", "colors"?: [slug ≤ 8], "sizes"?: [≤ 30], "priceMinor" (> 0), "currency"?: "TRY", "priceBand", "images"?: [https ≤ 12], "affiliateUrl"? (https), "affiliateSource"?, "retired"? }` | `{ "product": AdminProductDto, "created": bool, "priceDropped": bool, "watchersFlagged": 0 }`. `422 brand_not_found`. |
+| PUT | `v1/admin/product/{id}` | `{ "brandId", "name": L, "description"?: L, "category", "colors"?: [slug ≤ 8], "sizes"?: [≤ 30], "priceMinor" (> 0), "currency"?: "TRY", "priceBand", "images"?: [https ≤ 12], "affiliateUrl"? (https), "affiliateSource"?, "retired"?, "segment"? (women · men · unisex; omitted = unchanged on update, women on create; `segment_invalid`) }` | `{ "product": AdminProductDto, "created": bool, "priceDropped": bool, "watchersFlagged": 0 }`. `422 brand_not_found`. |
 | DELETE | `v1/admin/product/{id}` | — | `204`. `404 product_not_found`. |
 | POST | `v1/admin/product/bulk` | `{ "products": [ { "id", …same as PUT } ] }` (1–200) | `{ "created", "updated", "failed", "rows": [{ "index", "id", "outcome": "created"|"updated"|"invalid"|"brand_not_found"|"duplicate_id", "errors"?: { field: [code] } }] }`. Valid rows are written even when others fail. |
 | GET | `v1/admin/edit` | — | `AdminEditDto[]`, newest week first (drafts and retired included) |

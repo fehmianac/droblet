@@ -8,7 +8,10 @@ using Domain.Enum;
 using Domain.Manager;
 using Domain.Services;
 using FluentValidation;
+using Domain.Options;
+using FluentValidation.Results;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace Api.Endpoints.V1.Tenant.StyleProfile;
 
@@ -20,14 +23,18 @@ public class Put : IEndpoint
         [FromServices] IRepository repository,
         [FromServices] IValidator<UpdateStyleProfileRequest> validator,
         [FromServices] TimeProvider timeProvider,
+        [FromServices] IOptionsMonitor<SegmentOptions> segments,
         CancellationToken cancellationToken)
     {
         var validation = await validator.ValidateAsync(request, cancellationToken);
         if (!validation.IsValid)
             return Results.BadRequest(validation.Errors.ToProblemDetails());
 
-        if (!SegmentPolicy.IsAvailable(request.Segment))
+        if (!SegmentPolicy.IsAvailable(request.Segment, segments.CurrentValue))
             return ApiResults.Problem(StatusCodes.Status422UnprocessableEntity, ErrorCodes.SegmentNotAvailable);
+        // Style tags are per segment (SegmentTaxonomy): e.g. romantic is a women's tag, tailored a men's one.
+        if (request.StyleTags.Any(t => !SegmentTaxonomy.AllowsStyleTag(request.Segment, t)))
+            return Results.BadRequest(new[] { new ValidationFailure(nameof(request.StyleTags), "style tag not offered for this segment") { ErrorCode = "style_tag_not_in_segment" } }.ToProblemDetails());
 
         var pk = StyleProfileEntity.GetPk(apiContext.TenantId);
         var entity = await repository.GetAsync<StyleProfileEntity>(pk, StyleProfileEntity.GetSk(), cancellationToken);
@@ -49,7 +56,22 @@ public class Put : IEndpoint
         }
 
         await SyncTenantSegmentAsync(repository, apiContext.TenantId, request.Segment, entity.UpdatedAt, cancellationToken);
+        await ClearForeignBodyTypeAsync(repository, apiContext.TenantId, request.Segment, entity.UpdatedAt, cancellationToken);
         return Results.Ok(entity.ToDto());
+    }
+
+    /// <summary>
+    /// A segment change leaves a body type of the other segment (e.g. hourglass for a man): it is cleared, so the app asks for it
+    /// again on the next face try-on. The wardrobe is never touched. One attempt — a concurrent body profile edit wins.
+    /// </summary>
+    private static async Task ClearForeignBodyTypeAsync(IRepository repository, string tenantId, Segment segment, DateTime now, CancellationToken ct)
+    {
+        var body = await repository.GetAsync<BodyProfileEntity>(BodyProfileEntity.GetPk(tenantId), BodyProfileEntity.GetSk(), ct);
+        if (body?.BodyType is not { } bodyType || SegmentTaxonomy.AllowsBodyType(segment, bodyType))
+            return;
+        body.BodyType = null;
+        body.UpdatedAt = now;
+        await repository.SaveIfVersionAsync(body, body.Version, ct);
     }
 
     // TenantEntity.segment drives discovery (PublicProfileIndex by segment). Single field, so retry on version conflict.
@@ -78,7 +100,9 @@ public class Put : IEndpoint
             .ProducesProblem(StatusCodes.Status500InternalServerError)
             .RequireAuthorization(ClaimNames.TenantUserPolicy)
             .WithSummary("Create or update style profile")
-            .WithDescription("Exactly 3 distinct style tags. Phase 1 accepts segment = women only (422 segment_not_available). baseVersion 0 creates.")
+            .WithDescription("Exactly 3 distinct style tags, all offered for the segment (GET v1/config styleTags; else 400 style_tag_not_in_segment). " +
+                             "segment must be open (Segments:Available, GET v1/config; else 422 segment_not_available; teen never). " +
+                             "Changing the segment re-filters the library and the catalog and clears a body type of the other segment; the wardrobe is untouched. baseVersion 0 creates.")
             .WithTags("Tenant StyleProfile");
     }
 }

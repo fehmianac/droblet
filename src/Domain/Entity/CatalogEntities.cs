@@ -54,6 +54,8 @@ public class CatalogProductEntity : IEntity
     [JsonPropertyName("affiliateUrl")] public string? AffiliateUrl { get; set; }
     [JsonPropertyName("affiliateSource")] public AffiliateSource AffiliateSource { get; set; }
     [JsonPropertyName("retired")] public bool Retired { get; set; }
+    /// <summary>Who the product is for (women | men | unisex — unisex is listed to both). Rows from before the men launch have none = women.</summary>
+    [JsonPropertyName("segment")] public CatalogSegment Segment { get; set; }
     [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; }
     [JsonPropertyName("updatedAt")] public DateTime UpdatedAt { get; set; }
 

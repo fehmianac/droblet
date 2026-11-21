@@ -610,9 +610,12 @@ public sealed class WardrobeService(
     {
         var items = await library.GetAllAsync(ct);
         var language = await LanguageAsync(tenantId, requestLanguage, ct);
+        // The user's segment and unisex pieces only; a segment change re-filters on the next read (adding by id stays open).
+        var segment = await repository.UserSegmentAsync(tenantId, ct);
         return items
+            .Where(i => SegmentPolicy.Shows(i.Segment, segment))
             .OrderBy(i => i.SortOrder).ThenBy(i => i.Id, StringComparer.Ordinal)
-            .Select(i => new LibraryItemDto(i.Id, Localized.Resolve(i.Name, language), i.Category, i.ColorIds, i.Fabric, i.Seasons, PublicUrl(i.ImageKey)))
+            .Select(i => new LibraryItemDto(i.Id, Localized.Resolve(i.Name, language), i.Category, i.ColorIds, i.Fabric, i.Seasons, PublicUrl(i.ImageKey), i.Segment))
             .ToList();
     }
 

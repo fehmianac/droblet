@@ -9,6 +9,8 @@ namespace Infrastructure.Services;
 /// Ready-made library: the global "library#item" partition (written by the seed tool from seed/library/items.json).
 /// Until that partition is seeded, the seed file embedded in this assembly is served, so onboarding step 04b works on
 /// a fresh stage. Cached per container for <see cref="CacheLifetime"/> (the admin panel edits the partition).
+/// Seed pieces added after the partition was written (the men's starter set) are served from the seed until the admin first
+/// edits them: ids are never removed or reused, so a seed id missing from the partition is a new piece, not a deleted one.
 /// </summary>
 public sealed class LibraryCatalog(IRepository repository) : ILibraryCatalog
 {
@@ -27,9 +29,18 @@ public sealed class LibraryCatalog(IRepository repository) : ILibraryCatalog
             return cache.Items;
 
         var stored = await repository.GetAllAsync<LibraryItemEntity>(LibraryItemEntity.GetPk(), ct);
-        var items = (stored.Count > 0 ? stored : EmbeddedSeed.Value).Where(i => !i.Retired).ToList();
+        var items = WithSeed(stored).Where(i => !i.Retired).ToList();
         _cache = (items, Environment.TickCount64);
         return items;
+    }
+
+    /// <summary>The stored pieces plus every seed piece whose id the partition does not hold yet (the whole seed while it is empty).</summary>
+    public static IReadOnlyList<LibraryItemEntity> WithSeed(IReadOnlyList<LibraryItemEntity> stored)
+    {
+        if (stored.Count == 0)
+            return EmbeddedSeed.Value;
+        var ids = stored.Select(i => i.Id).ToHashSet(StringComparer.Ordinal);
+        return [.. stored, .. EmbeddedSeed.Value.Where(i => !ids.Contains(i.Id))];
     }
 
     public static IReadOnlyList<LibraryItemEntity> LoadEmbeddedSeed()

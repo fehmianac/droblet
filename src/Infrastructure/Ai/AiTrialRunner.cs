@@ -89,6 +89,7 @@ public sealed class AiTrialRunner(IRepository repository, OpenAiProvider provide
         foreach (var url in trial.ImageUrls)
             images.Add(await DownloadAsync(url, ct));
         var language = PromptCatalog.SampleLanguage(trial.Input);
+        var segment = PromptCatalog.SampleSegment(definition, trial.Input);
 
         using var run = PromptDryRun.Begin(new Dictionary<string, string>(StringComparer.Ordinal) { [definition.Key] = trial.Text! });
         try
@@ -97,7 +98,7 @@ public sealed class AiTrialRunner(IRepository repository, OpenAiProvider provide
             {
                 case PromptTrialTarget.StylistOutfit or PromptTrialTarget.StylistWeek or PromptTrialTarget.StylistPack:
                     var kind = PromptCatalog.StylistKind(definition.Trial)!.Value;
-                    var content = await provider.GenerateAsync(new StylistPrompt(kind, trial.Input!, language), ct);
+                    var content = await provider.GenerateAsync(new StylistPrompt(kind, trial.Input!, language, Segment: segment), ct);
                     trial.Parsed = OpenAiProvider.StylistAnswerParses(kind, content);
                     if (trial.Parsed == false)
                         trial.ParseError = "The answer does not deserialize into the stylist DTO.";
@@ -107,7 +108,7 @@ public sealed class AiTrialRunner(IRepository repository, OpenAiProvider provide
                     trial.Parsed = true;
                     break;
                 case PromptTrialTarget.ItemDetect:
-                    await provider.DetectItemsAsync(images[0], language, ct);
+                    await provider.DetectItemsAsync(images[0], language, false, segment, ct);
                     trial.Parsed = true;
                     break;
                 case PromptTrialTarget.ItemMatch:

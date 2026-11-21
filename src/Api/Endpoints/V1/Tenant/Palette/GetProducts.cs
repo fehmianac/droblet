@@ -1,3 +1,4 @@
+using Domain.Manager;
 using Api.Contracts;
 using Api.Infrastructure.Contract;
 using Api.Infrastructure.Extensions;
@@ -24,6 +25,7 @@ public class GetProducts : IEndpoint
         [FromServices] IPaletteService palette,
         [FromServices] ICatalogService catalog,
         [FromServices] IOptionsMonitor<CatalogOptions> options,
+        [FromServices] IRepository repository,
         CancellationToken cancellationToken)
     {
         if (!QueryParsing.TryEnum<ProductCategory>(category, out var categoryValue)
@@ -37,7 +39,8 @@ public class GetProducts : IEndpoint
 
         var settings = options.CurrentValue;
         var pageSize = Math.Clamp(limit ?? settings.PageSize, 1, settings.MaxPageSize);
-        var query = new CatalogQuery(categoryValue, PriceBand: bandValue, Sort: sortValue ?? ProductSort.Newest);
+        var segment = await repository.UserSegmentAsync(apiContext.TenantId, cancellationToken);
+        var query = new CatalogQuery(categoryValue, PriceBand: bandValue, Sort: sortValue ?? ProductSort.Newest, Segment: segment);
         var matching = (await catalog.GetProductsAsync(cancellationToken)).Where(p => CatalogRules.MatchesPalette(p, tones.Flattering, tones.Avoid));
         var page = CatalogRules.Query(matching, query, pageToken, pageSize);
 

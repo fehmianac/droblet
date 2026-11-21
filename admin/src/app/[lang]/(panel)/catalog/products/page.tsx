@@ -9,7 +9,7 @@ import { Badge, Button, Card, ConfirmModal, DataTable, ErrorState, Input, PageHe
 import { api } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
 import { resolveText } from '@/lib/text';
-import type { AdminBrand, AdminProduct, Paged } from '@/lib/types';
+import { CATALOG_SEGMENTS, type AdminBrand, type AdminProduct, type CatalogSegment, type Paged } from '@/lib/types';
 
 const PAGE = 25;
 
@@ -21,6 +21,7 @@ function ProductsInner() {
   const [q, setQ] = useState(params.get('q') ?? '');
   const [query, setQuery] = useState(params.get('q') ?? '');
   const [brand, setBrand] = useState(params.get('brand') ?? '');
+  const [segment, setSegment] = useState<CatalogSegment | ''>((params.get('segment') as CatalogSegment | null) ?? '');
   const [includeRetired, setIncludeRetired] = useState(false);
   const [tokens, setTokens] = useState<(string | null)[]>([null]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -30,14 +31,14 @@ function ProductsInner() {
   const brands = useAsync(() => api.get<AdminBrand[]>('v1/admin/brand'), []);
   const pageToken = tokens[tokens.length - 1] ?? null;
   const page = useAsync(
-    () => api.get<Paged<AdminProduct>>('v1/admin/product', { query: { q: query, brand, includeRetired, pageToken, limit: PAGE } }),
-    [query, brand, includeRetired, pageToken],
+    () => api.get<Paged<AdminProduct>>('v1/admin/product', { query: { q: query, brand, segment, includeRetired, pageToken, limit: PAGE } }),
+    [query, brand, segment, includeRetired, pageToken],
   );
 
   useEffect(() => {
     setTokens([null]);
     setSelected(new Set());
-  }, [query, brand, includeRetired]);
+  }, [query, brand, segment, includeRetired]);
 
   // Debounced search box.
   useEffect(() => {
@@ -88,6 +89,11 @@ function ProductsInner() {
       ),
     },
     { key: 'brand', header: t.products.brand, sortValue: (p) => brandName(p.brandId), render: (p) => brandName(p.brandId) },
+    {
+      key: 'segment',
+      header: t.products.segment,
+      render: (p) => <Badge tone={p.segment === 'men' ? 'blue' : p.segment === 'unisex' ? 'neutral' : 'brand'}>{t.enums.catalogSegment[p.segment ?? 'women']}</Badge>,
+    },
     { key: 'category', header: t.products.category, render: (p) => t.enums.productCategory[p.category] ?? p.category },
     {
       key: 'price',
@@ -137,6 +143,14 @@ function ProductsInner() {
             {(brands.data ?? []).map((b) => (
               <option key={b.id} value={b.id}>
                 {b.name}
+              </option>
+            ))}
+          </Select>
+          <Select value={segment} onChange={(e) => setSegment(e.target.value as CatalogSegment | '')} aria-label={t.products.segment} className="w-44">
+            <option value="">{t.products.allSegments}</option>
+            {CATALOG_SEGMENTS.map((s) => (
+              <option key={s} value={s}>
+                {t.enums.catalogSegment[s]}
               </option>
             ))}
           </Select>

@@ -37,7 +37,8 @@ public record ProductInput(
     IReadOnlyList<string>? Images,
     string? AffiliateUrl,
     AffiliateSource? AffiliateSource,
-    bool Retired = false);
+    bool Retired = false,
+    CatalogSegment? Segment = null);
 
 public record EditLookVariantInput(PriceBand PriceBand, IReadOnlyList<string>? ProductIds);
 
@@ -138,6 +139,7 @@ public class ProductInputValidator : AbstractValidator<ProductInput>
             .WithErrorCode("images_invalid");
         RuleFor(x => x.AffiliateUrl).OptionalHttps("affiliate_url_invalid");
         RuleFor(x => x.AffiliateSource).Must(s => s is null || System.Enum.IsDefined(s.Value)).WithErrorCode("affiliate_source_invalid");
+        RuleFor(x => x.Segment).Must(s => s is null || System.Enum.IsDefined(s.Value)).WithErrorCode("segment_invalid");
     }
 }
 
@@ -147,7 +149,8 @@ public class WeeklyEditInputValidator : AbstractValidator<WeeklyEditInput>
     {
         var languages = localization.Value;
         RuleFor(x => x.Id).EntityId();
-        RuleFor(x => x.Segment).Must(SegmentPolicy.IsAvailable).WithErrorCode("segment_not_available");
+        // Women and men edits may be prepared before a segment opens to users (Segments:Available); teen never.
+        RuleFor(x => x.Segment).Must(s => s is Segment.Women or Segment.Men).WithErrorCode("segment_not_available");
         RuleFor(x => x.WeekStart).Must(WeeklyEditRules.IsWeekStart).WithErrorCode("week_start_invalid");
         RuleFor(x => x.Title).Localized(languages, required: true, 120, "title_invalid");
         RuleFor(x => x.Subtitle).Localized(languages, required: false, 240, "subtitle_invalid");
