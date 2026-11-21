@@ -142,6 +142,21 @@ public static partial class StylistOutputGuard
     public static bool ViolatesContentPolicy(IEnumerable<string?> texts) =>
         texts.Any(t => !string.IsNullOrWhiteSpace(t) && BodyTalk().IsMatch(t));
 
+    /// <summary>
+    /// Teen accounts (docs/api/teen.md §4): body talk, and also suggestive / revealing wording ("seksi", "dekolte", "sexy",
+    /// "revealing"…), fails the job.
+    /// </summary>
+    public static bool ViolatesContentPolicy(IEnumerable<string?> texts, bool teen)
+    {
+        var list = texts.ToList();
+        return ViolatesContentPolicy(list) || (teen && list.Any(t => !string.IsNullOrWhiteSpace(t) && SuggestiveTalk().IsMatch(t)));
+    }
+
+    [GeneratedRegex(
+        @"(?<![\p{L}])(seksi\w*|çekici\w*|cezbedici\w*|ba[şs]tan [çc][ıi]kar\w*|dekolte\w*|g[öo]ğ[üu]s\w*|transparan\w*|i[çc] g[öo]steren|sexy|sultry|seductive|revealing|cleavage|plunging|sheer|lingerie|provocative|flirty|hot look)",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex SuggestiveTalk();
+
     public static IEnumerable<string?> Texts(ModelOutfitOutput? output) =>
         (output?.Suggestions ?? []).SelectMany(s => new[] { s.Title, s.Explanation });
 

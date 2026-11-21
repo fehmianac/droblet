@@ -16,6 +16,8 @@ public class TenantEntity : IVersionedEntity, IModeratedEntity
     [JsonPropertyName("handle")] public string? Handle { get; set; }
     [JsonPropertyName("closetVisibility")] public ClosetVisibility ClosetVisibility { get; set; }
     [JsonPropertyName("segment")] public Segment? Segment { get; set; }
+    // Mirror of the user's age band (social reads load only the tenant). Teen = invisible to others (docs/api/teen.md §4).
+    [JsonPropertyName("ageBand")] public AgeBand? AgeBand { get; set; }
     [JsonPropertyName("language")] public string Language { get; set; } = "tr";
     [JsonPropertyName("cityId")] public string? CityId { get; set; }
 
@@ -27,6 +29,9 @@ public class TenantEntity : IVersionedEntity, IModeratedEntity
     [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; }
     [JsonPropertyName("updatedAt")] public DateTime UpdatedAt { get; set; }
     [JsonPropertyName("version")] public long Version { get; set; }
+
+    /// <summary>A teen account (or a stored segment teen from before the age band existed): the social rules hide it.</summary>
+    [JsonIgnore] public bool IsTeen => AgeBand == Enum.AgeBand.Teen || Segment == Enum.Segment.Teen;
 
     public static string GetPk() => "tenant";
     public static string GetSk(string tenantId) => tenantId;

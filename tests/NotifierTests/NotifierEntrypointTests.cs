@@ -9,7 +9,12 @@ namespace NotifierTests;
 public class NotifierEntrypointTests
 {
     private static Entrypoint Create() =>
-        new(new WorkerTestHost(s => s.AddSingleton<INotificationJobs, NotificationJobs>()).Services);
+        new(new WorkerTestHost(s =>
+        {
+            s.AddSingleton<INotificationJobs, NotificationJobs>();
+            s.AddSingleton<Domain.Services.IPhotoService, Infrastructure.Services.PhotoService>();
+            s.AddSingleton<Domain.Services.ITeenMaintenance, Infrastructure.Services.TeenMaintenance>();
+        }).Services);
 
     [Fact]
     public async Task EveryHandler_DelegatesWithItsJobAndScheduledTime_NobodyToNotifyYet()

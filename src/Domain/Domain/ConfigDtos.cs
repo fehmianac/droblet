@@ -8,6 +8,13 @@ namespace Domain.Domain;
 /// <param name="All">Every segment the app knows (women, men, teen), in display order.</param>
 public record SegmentsDto(IReadOnlyList<Segment> Available, IReadOnlyList<Segment> All);
 
+/// <summary>Teen mode (docs/api/teen.md §2): whether 16–17 may sign up, the age limits, whether teen try-on exists at all.</summary>
+public record TeenConfigDto(bool Enabled, int MinimumAge, int AdultAge, bool TryOnEnabled)
+{
+    public static TeenConfigDto From(TeenOptions? options) =>
+        new(options?.Enabled == true, AgeRules.MinimumAge, AgeRules.AdultAge, options?.TryOnEnabled == true);
+}
+
 public record ChoiceDto(string Id, string Name);
 
 public record SubcategoryDto(string Id, ItemCategory Category, string Name);
@@ -20,7 +27,8 @@ public record AppConfigDto(
     SegmentsDto Segments,
     IReadOnlyDictionary<string, IReadOnlyList<ChoiceDto>> BodyTypes,
     IReadOnlyDictionary<string, IReadOnlyList<ChoiceDto>> StyleTags,
-    IReadOnlyDictionary<string, IReadOnlyList<SubcategoryDto>> Subcategories)
+    IReadOnlyDictionary<string, IReadOnlyList<SubcategoryDto>> Subcategories,
+    TeenConfigDto? Teen = null)
 {
     /// <summary>Segments with their own lists (teen is never open and has none).</summary>
     public static readonly IReadOnlyList<Segment> ListedSegments = [Segment.Women, Segment.Men];

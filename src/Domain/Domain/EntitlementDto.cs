@@ -18,6 +18,8 @@ public record EntitlementDto(Tier Tier, string? ProductId, StorePlatform? Platfo
     public SelfServePremiumDto? SelfServePremium { get; init; }
     /// <summary>"Kombinlerini içe aktar" limits of this plan (maxPhotos per session; server configuration, never hard-coded in the app).</summary>
     public OutfitImportLimitsDto? OutfitImport { get; init; }
+    /// <summary>Teen accounts (docs/api/teen.md §4): free tier, no paywall, no purchase — the app hides every upgrade entry.</summary>
+    public bool PaywallHidden { get; init; }
 }
 
 public record OutfitImportLimitsDto(int MaxPhotos);

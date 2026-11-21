@@ -53,10 +53,16 @@ public sealed record AuthResult(AuthOutcome Outcome, AuthTokens? Tokens = null)
     public static AuthResult Fail(AuthOutcome outcome) => new(outcome);
 }
 
+/// <summary>The age the sign-up form gave (docs/api/teen.md §3). Teen: birth year (+ month) kept for the 18th birthday.</summary>
+public sealed record RegisterAge(Enum.AgeBand Band, int? BirthYear = null, int? BirthMonth = null);
+
 public interface IAuthService
 {
-    /// <summary>Callers have checked the 18+ confirmation: the new user is stored with AgeConfirmedAt = now.</summary>
-    Task<AuthResult> RegisterAsync(string name, string email, string password, string language, string? clientIp, CancellationToken ct);
+    /// <summary>
+    /// Callers have checked the age (18+ box, or the band from the birth year): the new user is stored with AgeConfirmedAt = now.
+    /// A teen <paramref name="age"/> creates the account in the pending parental consent state, closet private.
+    /// </summary>
+    Task<AuthResult> RegisterAsync(string name, string email, string password, string language, string? clientIp, CancellationToken ct, RegisterAge? age = null);
     Task<AuthResult> LoginAsync(string email, string password, string? clientIp, CancellationToken ct);
     /// <summary>Always completes quietly (202 regardless of whether the account exists).</summary>
     Task RequestPasswordResetAsync(string email, string language, CancellationToken ct);

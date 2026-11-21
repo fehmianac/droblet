@@ -355,6 +355,7 @@ public class ProviderReadsThroughRegistryTests
             await provider.GenerateAsync(new StylistPrompt(kind, "{}", "en"), default);
         await provider.GenerateAsync(new StylistPrompt(JobKind.StylistOutfit, "{}", "en", CompactCandidates: true), default);
         await provider.GenerateAsync(new StylistPrompt(JobKind.StylistWeek, "{}", "en", Segment: Segment.Men), default);
+        await provider.GenerateAsync(new StylistPrompt(JobKind.StylistOutfit, "{}", "en", Teen: true), default);
         await provider.DescribeAsync(Photo, "en", default);
         await provider.DetectItemsAsync(Photo, "en", default);
         await provider.DetectItemsAsync(Photo, "en", Segment.Men, default);
@@ -371,6 +372,7 @@ public class ProviderReadsThroughRegistryTests
         await provider.RenderOutfitPhotoAsync(Photo, Photo, null, default);
         await provider.RenderOutfitPhotoAsync(Photo, Photo, new TryOnFigure(BodyType.Pear, 170, ClothingSize.M), default);
         await provider.RenderFromFaceAsync(Photo, [Photo], new TryOnFigure(BodyType.Trapezoid, 182, ClothingSize.L, Segment.Men), default);
+        await provider.RenderTeenAsync(Photo, [Photo], null, default);
     }
 
     [Fact]

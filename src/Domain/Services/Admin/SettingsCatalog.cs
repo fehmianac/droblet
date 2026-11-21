@@ -141,6 +141,15 @@ public static partial class SettingsCatalog
                 new("LoginPerEmailPer15Minutes", SettingFieldType.Int, 1, 1000), new("LoginPerIpPer15Minutes", SettingFieldType.Int, 1, 10000),
                 new("RegisterPerIpPerHour", SettingFieldType.Int, 1, 10000), new("ForgotPerEmailPerHour", SettingFieldType.Int, 1, 100),
             ]),
+        // Teen mode (docs/api/teen.md §2). TryOnEnabled is deliberately NOT here: it changes only through template.yaml
+        // (a reviewed deploy) until OpenAI's usage policy is confirmed and a lawyer approves (coordinator safety condition).
+        new("teen",
+            [new("api", "Teen"), new("worker", "Teen"), new("notifier", "Teen")],
+            [
+                new("Enabled", SettingFieldType.Bool), new("ConsentLinkDays", SettingFieldType.Int, 1, 30),
+                new("ConsentRequestsPerDay", SettingFieldType.Int, 1, 50), new("ConsentRequestsPerParentPerDay", SettingFieldType.Int, 1, 50),
+                new("PhotoRetentionInactiveDays", SettingFieldType.Int, 7, 365), new("LegacyAgeCheckbox", SettingFieldType.Bool),
+            ]),
         AiModels,
         AiLimits,
     ];

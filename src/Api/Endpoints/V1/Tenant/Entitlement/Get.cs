@@ -12,9 +12,13 @@ public class Get : IEndpoint
     private static async Task<IResult> Handler(
         [FromServices] IApiContext apiContext,
         [FromServices] SelfServePremiumService selfPremium,
+        HttpContext httpContext,
         CancellationToken cancellationToken)
     {
-        return Results.Ok(await selfPremium.EntitlementAsync(apiContext.TenantId, cancellationToken));
+        var entitlement = await selfPremium.EntitlementAsync(apiContext.TenantId, cancellationToken);
+        return Results.Ok((await Api.Infrastructure.Extensions.TeenGuard.AccessAsync(httpContext)).IsTeen
+            ? entitlement with { PaywallHidden = true, SelfServePremium = null }
+            : entitlement);
     }
 
     public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints)

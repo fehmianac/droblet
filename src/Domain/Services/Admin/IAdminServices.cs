@@ -103,7 +103,9 @@ public interface IAdminSettingsService
 
 // ── App users (support / moderation) ─────────────────────────────────────────────────────────────────────────────
 
-public sealed record AdminAppUserSummaryDto(string Id, string TenantId, string? Email, string? DisplayName, string? Handle, DateTime CreatedAt, bool Suspended);
+/// <param name="AgeBand">Teen badge (docs/api/teen.md §10): adult | teen | null (age not given yet).</param>
+public sealed record AdminAppUserSummaryDto(string Id, string TenantId, string? Email, string? DisplayName, string? Handle, DateTime CreatedAt, bool Suspended,
+    AgeBand? AgeBand = null);
 
 public sealed record AdminAppUserCounts(int Items, int Looks, int Trips, int Followers, int Following);
 
@@ -119,7 +121,10 @@ public sealed record AdminAppUserDetailDto(
     string Id, string TenantId, string? Email, string? DisplayName, string? Handle, DateTime CreatedAt, string? Language, ClosetVisibility? ClosetVisibility,
     IReadOnlyList<string> Providers, bool Suspended, DateTime? SuspendedAt, string? SuspendReason,
     AdminAppUserCounts Counts, AdminAppUserEntitlement Entitlement, AdminAppUserCredits Credits, AdminAppUserRecognition ItemRecognition,
-    IReadOnlyList<AdminAppUserDevice> Devices);
+    IReadOnlyList<AdminAppUserDevice> Devices,
+    // Teen mode (docs/api/teen.md §10): the band, and the parental consent status with its history (null when there never was one).
+    AgeBand? AgeBand = null,
+    AdminTeenDto? Teen = null);
 
 public sealed record AdminAppUserPageDto(IReadOnlyList<AdminAppUserSummaryDto> Items, string? PageToken);
 

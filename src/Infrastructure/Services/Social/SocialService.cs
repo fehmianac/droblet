@@ -125,7 +125,7 @@ public sealed class SocialService(
                 continue;
             var context = ContextOf(viewerTenantId, tenant, relations);
             var visible = requestParties
-                ? !context.Blocked && tenant.Segment != Segment.Teen
+                ? !context.Blocked && !tenant.IsTeen
                 : context.CanView(VisibleResource.ProfileCard);
             if (!visible)
                 continue;
@@ -710,7 +710,8 @@ public sealed class SocialService(
         var items = new List<ModerationReportDto>(reports.Count);
         foreach (var report in reports)
             items.Add(await ToDtoAsync(report, ct));
-        return new PagedDto<ModerationReportDto>(items, next);
+        // Any report involving a teen comes first in the page (moderation priority, docs/api/teen.md §10).
+        return new PagedDto<ModerationReportDto>(items.OrderByDescending(i => i.InvolvesTeen).ToList(), next);
     }
 
     public async Task<ModerationReportDto?> GetReportAsync(string reportId, CancellationToken ct)
@@ -762,13 +763,17 @@ public sealed class SocialService(
 
     private async Task<ModerationReportDto> ToDtoAsync(ReportEntity report, CancellationToken ct)
     {
-        async Task<string?> HandleOf(string? tenantId) => tenantId is null
+        async Task<TenantEntity?> TenantOf(string? tenantId) => tenantId is null
             ? null
-            : (await repository.GetAsync<TenantEntity>(TenantEntity.GetPk(), TenantEntity.GetSk(tenantId), ct))?.Handle;
+            : await repository.GetAsync<TenantEntity>(TenantEntity.GetPk(), TenantEntity.GetSk(tenantId), ct);
 
-        return new ModerationReportDto(report.Id, report.Status, report.ReporterTenantId, await HandleOf(report.ReporterTenantId),
-            report.TargetTenantId, await HandleOf(report.TargetTenantId), report.TargetKind, report.TargetId, report.Reason, report.Note,
-            report.CreatedAt, report.Resolution, report.ResolutionNote, report.ResolvedByUserId, report.ResolvedAt, report.ContentRemovedAt, report.ContentRestoredAt, report.ContentRestoredByUserId);
+        var reporter = await TenantOf(report.ReporterTenantId);
+        var target = await TenantOf(report.TargetTenantId);
+        var teen = reporter?.IsTeen == true || target?.IsTeen == true;
+        return new ModerationReportDto(report.Id, report.Status, report.ReporterTenantId, reporter?.Handle,
+            report.TargetTenantId, target?.Handle, report.TargetKind, report.TargetId, report.Reason, report.Note,
+            report.CreatedAt, report.Resolution, report.ResolutionNote, report.ResolvedByUserId, report.ResolvedAt, report.ContentRemovedAt, report.ContentRestoredAt, report.ContentRestoredByUserId,
+            teen, teen ? "high" : "normal");
     }
 }
 

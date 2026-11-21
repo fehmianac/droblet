@@ -22,6 +22,7 @@ public sealed class AdminAppUserService(
     IProfileStatsService stats,
     IAccountDeletionService deletion,
     IAuditLog audit,
+    ITeenService teens,
     IOptionsMonitor<EntitlementOptions> entitlementOptions,
     TimeProvider timeProvider,
     ILogger<AdminAppUserService> logger) : IAdminAppUserService
@@ -77,7 +78,8 @@ public sealed class AdminAppUserService(
     private async Task<AdminAppUserSummaryDto> SummaryAsync(UserEntity user, CancellationToken ct)
     {
         var tenant = await repository.GetAsync<TenantEntity>(TenantEntity.GetPk(), TenantEntity.GetSk(user.TenantId), ct);
-        return new AdminAppUserSummaryDto(user.Id, user.TenantId, user.Email, user.DisplayName ?? tenant?.DisplayName, tenant?.Handle, user.CreatedAt, user.SuspendedAt is not null);
+        return new AdminAppUserSummaryDto(user.Id, user.TenantId, user.Email, user.DisplayName ?? tenant?.DisplayName, tenant?.Handle, user.CreatedAt, user.SuspendedAt is not null,
+            user.AgeBand ?? (user.AgeConfirmedAt is null ? null : AgeBand.Adult));
     }
 
     public async Task<AdminAppUserDetailDto?> GetAsync(string userId, CancellationToken ct)
@@ -104,7 +106,9 @@ public sealed class AdminAppUserService(
             new AdminAppUserEntitlement(snapshot.Active.Tier, snapshot.Active.Source?.Source, snapshot.Active.Source?.ExpiresAt, test?.ExpiresAt),
             new AdminAppUserCredits(snapshot.Credits.MonthlyAllowance, snapshot.Credits.AllowanceRemaining, snapshot.Credits.PackRemaining),
             new AdminAppUserRecognition(recognition?.Used ?? 0, recognition?.Limit ?? entitlementOptions.CurrentValue.Free.ItemRecognitionLimit, recognition?.Unlimited ?? false),
-            devices.OrderByDescending(d => d.UpdatedAt).Select(d => new AdminAppUserDevice(d.DeviceId, d.Platform, d.UpdatedAt, !string.IsNullOrEmpty(d.PushToken))).ToList());
+            devices.OrderByDescending(d => d.UpdatedAt).Select(d => new AdminAppUserDevice(d.DeviceId, d.Platform, d.UpdatedAt, !string.IsNullOrEmpty(d.PushToken))).ToList(),
+            user.AgeBand ?? (user.AgeConfirmedAt is null ? null : AgeBand.Adult),
+            await teens.AdminAsync(user.TenantId, ct));
     }
 
     public async Task<AdminAppUserDetailDto?> SuspendAsync(AdminUserEntity actor, string userId, string reason, string? ip, CancellationToken ct)
