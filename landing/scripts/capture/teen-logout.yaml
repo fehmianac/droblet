@@ -1,0 +1,18 @@
+# Ayarlar › Çıkış yap (the same phone keeps the per-account "seen" state, so the next persona's change shows its notice).
+appId: com.alatech.droplet
+---
+- runFlow:
+    file: open.yaml
+    env:
+      URL: droplet://settings
+- scrollUntilVisible:
+    element:
+      id: "settings.logout"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "settings.logout"
+- extendedWaitUntil:
+    visible:
+      id: "welcome.login"
+    timeout: 15000

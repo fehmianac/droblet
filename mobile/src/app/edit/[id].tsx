@@ -30,6 +30,7 @@ import { useAddToWatchlist, useSaveEditLook, useWeeklyEdit } from '@/features/to
 import { EditHeroInvite } from '@/features/today/EditHeroInvite';
 import { EditProductRow } from '@/features/today/EditProductRow';
 import { editSummary } from '@/features/today/logic';
+import { useTeenRules } from '@/features/teen/store';
 import { OnYouImage } from '@/features/today/OnYouImage';
 import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { formatDate, formatIsoDateRange, formatMoney, parseLocalDate, toIsoDate } from '@/lib/format';
@@ -69,6 +70,9 @@ export default function WeeklyEditScreen() {
   const watchlist = useAddToWatchlist();
   const saveLook = useSaveEditLook();
   const pager = useRef<ScrollViewInstance>(null);
+  // Canvas 18 · 20: a teen sees the looks and their notes — no products, price bands, cart, watch list or share.
+  const teen = useTeenRules();
+  const commerce = !teen.hide.commerce;
 
   const [picked, setPicked] = useState<number | null>(null);
   const [band, setBand] = useState<PriceBand>('high_street');
@@ -101,13 +105,15 @@ export default function WeeklyEditScreen() {
   const actions = (variant: 'inverse' | 'outline') =>
     look && !noPhoto ? (
       <View className="flex-row gap-2">
-        <IconButton
-          icon={Share}
-          iconSize={19}
-          variant={variant}
-          accessibilityLabel={t('weekEdit.share')}
-          onPress={() => void NativeShare.share({ message: t('weekEdit.shareMessage', { name: look.name }) }).catch(() => undefined)}
-        />
+        {teen.hide.social ? null : (
+          <IconButton
+            icon={Share}
+            iconSize={19}
+            variant={variant}
+            accessibilityLabel={t('weekEdit.share')}
+            onPress={() => void NativeShare.share({ message: t('weekEdit.shareMessage', { name: look.name }) }).catch(() => undefined)}
+          />
+        )}
         <IconButton
           icon={Heart}
           iconSize={19}
@@ -191,7 +197,12 @@ export default function WeeklyEditScreen() {
                             />
                           ) : (
                             // No image yet: the 06 / 14b card (invitation left, pieces right) — never a CTA over a collage.
-                            <EditHeroInvite lookId={l.id} name={l.name} products={l.products[band]} topInset={overlay ? insets.top + 52 : 8} />
+                            <EditHeroInvite
+                              lookId={l.id}
+                              name={l.name}
+                              products={commerce ? l.products[band] : []}
+                              topInset={overlay ? insets.top + 52 : 8}
+                            />
                           )}
                         </View>
                       ))}
@@ -234,86 +245,92 @@ export default function WeeklyEditScreen() {
                       {t('weekEdit.sponsoredBy', { brand: data.sponsoredBy })}
                     </Text>
                   ) : null}
-                  {data.hasBodyPhoto ? (
+                  {data.hasBodyPhoto || !commerce ? (
                     <Text variant="body" tone="muted" className="text-[13.5px] leading-[20px]">
                       {current.styleNote}
                     </Text>
                   ) : null}
 
-                  <SegmentedControl
-                    accessibilityLabel={t('weekEdit.bandLabel')}
-                    segments={PRICE_BANDS.map((b) => ({ value: b, label: t(`weekEdit.band.${b}`) }))}
-                    value={band}
-                    onChange={(b) => {
-                      setBand(b);
-                      setJustWatched(false);
-                    }}
-                  />
-
-                  <View>
-                    {summary.ownedCount > 0 ? (
-                      <View className="flex-row items-center justify-between gap-2">
-                        <Text variant="caption" tone="muted" className="flex-1">
-                          <Text variant="label">{t('weekEdit.ownedCount', { count: summary.ownedCount })}</Text>
-                          {showOwned ? null : t('weekEdit.hiddenSuffix')}
-                        </Text>
-                        <Pressable
-                          onPress={() => setShowOwned(!showOwned)}
-                          accessibilityRole="button"
-                          accessibilityLabel={t(showOwned ? 'weekEdit.hide' : 'weekEdit.show')}
-                          hitSlop={8}
-                          className="min-h-icon-btn justify-center active:opacity-70"
-                        >
-                          <Text variant="caption" className="underline">
-                            {t(showOwned ? 'weekEdit.hide' : 'weekEdit.show')}
-                          </Text>
-                        </Pressable>
-                      </View>
-                    ) : null}
-                    {summary.visible.map((p) => (
-                      <EditProductRow
-                        key={p.id}
-                        product={p}
-                        onPress={() => router.push({ pathname: '/shop/product/[id]', params: { id: p.id } })}
-                        trailing={
-                          p.ownedItemId ? (
-                            <Badge label={t('weekEdit.ownedBadge')} />
-                          ) : (
-                            <IconButton
-                              icon={p.inWatchlist ? BookmarkCheck : BookmarkPlus}
-                              iconSize={18}
-                              accessibilityLabel={t(p.inWatchlist ? 'weekEdit.watching' : 'weekEdit.watch', { name: p.name })}
-                              onPress={() => {
-                                if (p.inWatchlist) return;
-                                watchlist.add(p.id, current.id);
-                                setJustWatched(true);
-                              }}
-                            />
-                          )
-                        }
+                  {commerce ? (
+                    <>
+                      <SegmentedControl
+                        accessibilityLabel={t('weekEdit.bandLabel')}
+                        segments={PRICE_BANDS.map((b) => ({ value: b, label: t(`weekEdit.band.${b}`) }))}
+                        value={band}
+                        onChange={(b) => {
+                          setBand(b);
+                          setJustWatched(false);
+                        }}
                       />
-                    ))}
-                    {justWatched ? (
-                      <Text variant="caption" tone="accent" accessibilityLiveRegion="polite" className="pt-2">
-                        {t('weekEdit.watchAdded')}
-                      </Text>
-                    ) : null}
-                  </View>
+
+                      <View>
+                        {summary.ownedCount > 0 ? (
+                          <View className="flex-row items-center justify-between gap-2">
+                            <Text variant="caption" tone="muted" className="flex-1">
+                              <Text variant="label">{t('weekEdit.ownedCount', { count: summary.ownedCount })}</Text>
+                              {showOwned ? null : t('weekEdit.hiddenSuffix')}
+                            </Text>
+                            <Pressable
+                              onPress={() => setShowOwned(!showOwned)}
+                              accessibilityRole="button"
+                              accessibilityLabel={t(showOwned ? 'weekEdit.hide' : 'weekEdit.show')}
+                              hitSlop={8}
+                              className="min-h-icon-btn justify-center active:opacity-70"
+                            >
+                              <Text variant="caption" className="underline">
+                                {t(showOwned ? 'weekEdit.hide' : 'weekEdit.show')}
+                              </Text>
+                            </Pressable>
+                          </View>
+                        ) : null}
+                        {summary.visible.map((p) => (
+                          <EditProductRow
+                            key={p.id}
+                            product={p}
+                            onPress={() => router.push({ pathname: '/shop/product/[id]', params: { id: p.id } })}
+                            trailing={
+                              p.ownedItemId ? (
+                                <Badge label={t('weekEdit.ownedBadge')} />
+                              ) : (
+                                <IconButton
+                                  icon={p.inWatchlist ? BookmarkCheck : BookmarkPlus}
+                                  iconSize={18}
+                                  accessibilityLabel={t(p.inWatchlist ? 'weekEdit.watching' : 'weekEdit.watch', { name: p.name })}
+                                  onPress={() => {
+                                    if (p.inWatchlist) return;
+                                    watchlist.add(p.id, current.id);
+                                    setJustWatched(true);
+                                  }}
+                                />
+                              )
+                            }
+                          />
+                        ))}
+                        {justWatched ? (
+                          <Text variant="caption" tone="accent" accessibilityLiveRegion="polite" className="pt-2">
+                            {t('weekEdit.watchAdded')}
+                          </Text>
+                        ) : null}
+                      </View>
+                    </>
+                  ) : null}
                 </View>
               </ScrollView>
-              <BottomActionBar
-                actionFill
-                totalLabel={summary.missing.length > 0 ? t('weekEdit.missing', { count: summary.missing.length }) : t('weekEdit.nothingMissing')}
-                totalValue={summary.missingTotal ? formatMoney(summary.missingTotal) : undefined}
-              >
-                <Button
-                  size="bar"
-                  label={t('weekEdit.completeLook')}
-                  icon={data.hasBodyPhoto ? ShoppingBag : undefined}
-                  disabled={summary.missing.length === 0}
-                  onPress={() => router.push({ pathname: '/cart', params: { editLookId: current.id, band } })}
-                />
-              </BottomActionBar>
+              {commerce ? (
+                <BottomActionBar
+                  actionFill
+                  totalLabel={summary.missing.length > 0 ? t('weekEdit.missing', { count: summary.missing.length }) : t('weekEdit.nothingMissing')}
+                  totalValue={summary.missingTotal ? formatMoney(summary.missingTotal) : undefined}
+                >
+                  <Button
+                    size="bar"
+                    label={t('weekEdit.completeLook')}
+                    icon={data.hasBodyPhoto ? ShoppingBag : undefined}
+                    disabled={summary.missing.length === 0}
+                    onPress={() => router.push({ pathname: '/cart', params: { editLookId: current.id, band } })}
+                  />
+                </BottomActionBar>
+              ) : null}
             </>
           );
         }}

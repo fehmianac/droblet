@@ -1,5 +1,5 @@
 import { skipToken, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import Constants from 'expo-constants';
 import { useSegments } from 'expo-router';
 import { AppState, Platform } from 'react-native';
@@ -13,11 +13,12 @@ import type { toEntitlement } from '@/api/wire/core';
 import { useOnboardingStatus } from '@/auth/onboarding';
 import { useSession } from '@/auth/session';
 import { accountKeys } from '@/features/account/queries';
+import { useTeenRules } from '@/features/teen/store';
 import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { queryKeys } from '@/sync/queryKeys';
 
 import { analyticsActor } from './actor';
-import { firebaseCollecting, setFirebaseUserId, setFirebaseUserProperties } from './firebase';
+import { firebaseAgeGate, firebaseCollecting, setFirebaseAgeGate, setFirebaseUserId, setFirebaseUserProperties, subscribeFirebaseAgeGate } from './firebase';
 import { toFirebaseUserProperties, wardrobeSizeBucket } from './firebaseEvents';
 import { useProductAnalyticsEnabled } from './preference';
 import { bindAnalyticsSink, flushAnalytics, trackScreen } from './track';
@@ -137,11 +138,20 @@ export function AnalyticsHost({ userId }: { userId: string | null }) {
     };
   }, [client, userId]);
 
+  // Canvas 18: a teen account never reports to Firebase (no events, no user id, no user properties). The gate is
+  // applied before the Firebase user mounts, so its first effect already sees the right state.
+  const teen = useTeenRules().hide.analytics;
+  const gate = teen ? 'blocked' : 'open';
+  useEffect(() => {
+    setFirebaseAgeGate(gate);
+  }, [gate]);
+  const appliedGate = useSyncExternalStore(subscribeFirebaseAgeGate, firebaseAgeGate, firebaseAgeGate);
+
   const productAnalytics = useProductAnalyticsEnabled();
   return (
     <>
       <ScreenViews />
-      {userId && productAnalytics ? <FirebaseUser key={userId} userId={userId} /> : null}
+      {userId && productAnalytics && appliedGate === 'open' && !teen ? <FirebaseUser key={userId} userId={userId} /> : null}
     </>
   );
 }

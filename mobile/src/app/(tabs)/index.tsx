@@ -27,6 +27,8 @@ import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { formatLongDate, formatTemperature, parseLocalDate, seasonOf, weekdayShort } from '@/lib/format';
 import { toDisplayUpper } from '@/lib/upper';
 import { useThemeColors } from '@/theme/useThemeColors';
+import { TeenBanner } from '@/features/teen/TeenLocks';
+import { useTeenRules } from '@/features/teen/store';
 
 /**
  * 06 Bugün — logo + notifications, date · season + weather, greeting + today's occasion, 7-day strip,
@@ -36,6 +38,7 @@ import { useThemeColors } from '@/theme/useThemeColors';
 export default function TodayScreen() {
   const language = useAppLanguage();
   const { t } = useTranslation();
+  const teen = useTeenRules();
   const verifyBanner = useVerifyEmailBanner();
   const colors = useThemeColors();
   const today = useToday();
@@ -111,12 +114,14 @@ export default function TodayScreen() {
 
               {/* "Profilini tamamla": ready before it is needed (canvas 11), dismissible to one row. */}
               <View className="gap-2.5 px-gutter">
+                {/* Canvas 18 · 06: "Velinin onayı bekleniyor" while a teen has no approval. */}
+                <TeenBanner />
                 <VerifyEmailBanner banner={verifyBanner} testID="today.verifyEmail" />
                 <ProfileCompleteCard testID="today.profileComplete" hideEmailRow={verifyBanner.visible} />
               </View>
 
               {/* Marketing notifications are opt-in (explicit consent 5): one card, once. */}
-              <MarketingOptInCard className="mx-gutter" />
+              {teen.hide.marketing ? null : <MarketingOptInCard className="mx-gutter" />}
 
               <View className="gap-2 px-gutter">
                 {look ? (

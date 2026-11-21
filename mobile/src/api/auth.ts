@@ -4,6 +4,8 @@ import { track } from '@/analytics/track';
 import { onboardingStore } from '@/auth/onboarding';
 import { sessionStore } from '@/auth/session';
 import { peekDeviceId } from '@/features/account/device';
+import { teenStateOfProfile } from '@/features/teen/api';
+import { teenStore } from '@/features/teen/store';
 
 import { apiRequest } from './client';
 import type {
@@ -16,6 +18,7 @@ import type {
   RegisterRequest,
   ResetPasswordRequest,
 } from './contracts';
+import type { AgeBand } from './contracts/teen';
 import { ApiError } from './errors';
 import type { AppleAuthRequestWire, ProfileWire } from './wire/core';
 
@@ -63,7 +66,7 @@ async function signIn(
   path: string,
   body: unknown,
   method: Method,
-  known: { name?: string; email?: string },
+  known: { name?: string; email?: string; ageBand?: AgeBand },
 ): Promise<AuthResponse> {
   const res = await apiRequest<AuthResponse>(path, { method: 'POST', body, auth: false });
 
@@ -73,6 +76,11 @@ async function signIn(
   const viaRegister = path === 'v1/auth/register';
   const [pending, profile] = await Promise.all([needsOnboarding(res), viaRegister ? null : readProfile(res)]);
   const ageConfirmed = viaRegister ? true : ageConfirmedOf(profile);
+  // Canvas 18: the band is known before the session flips, so a teen never sees an adult-only surface or reports to
+  // Firebase. A new e-mail account takes the band its birth year gave (TeenHost confirms it with the server).
+  const teenState = profile ? teenStateOfProfile(profile) : null;
+  const ageBand = viaRegister ? known.ageBand : (teenState?.ageBand ?? undefined);
+  if (teenState) teenStore.setState(teenState);
   if (pending === true) await onboardingStore.markPending(res.userId);
   else if (pending === false) await onboardingStore.markDone(res.userId);
   else await onboardingStore.load(res.userId);
@@ -84,13 +92,15 @@ async function signIn(
     name: known.name ?? profile?.displayName ?? undefined,
     email: known.email ?? profile?.email ?? undefined,
     ...(ageConfirmed === undefined ? {} : { ageConfirmed }),
+    ...(ageBand ? { ageBand } : {}),
   });
   return res;
 }
 
 export function useRegister() {
   return useMutation({
-    mutationFn: (body: RegisterRequest) => signIn('v1/auth/register', body, 'email', { name: body.name, email: body.email }),
+    mutationFn: ({ ageBand, ...body }: RegisterRequest & { ageBand: AgeBand }) =>
+      signIn('v1/auth/register', body, 'email', { name: body.name, email: body.email, ageBand }),
   });
 }
 

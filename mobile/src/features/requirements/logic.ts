@@ -200,8 +200,12 @@ export const FIRST_ITEMS_TARGET = 5;
  * The six items of the card, in the board's order; unknown values count as not done. "E-postanı doğrula" comes
  * first, and only while the address is unverified (it never blocks anything, so others never see a seventh item).
  */
-export function profileCompletion(input: RequirementInput): ProfileItem[] {
-  return [
+/**
+ * The "Profilini tamamla" items. Canvas 18: a teen has no @username (no social), and while the parent's approval is
+ * missing the photo items are left out (they cannot be done yet).
+ */
+export function profileCompletion(input: RequirementInput, teen: { social: boolean; photos: boolean } = { social: true, photos: true }): ProfileItem[] {
+  const items: ProfileItem[] = [
     ...(input.emailVerified === false ? [{ key: 'verifyEmail' as const, done: false }] : []),
     { key: 'bodyPhoto', done: input.hasBodyPhoto === true },
     { key: 'facePhoto', done: input.hasFacePhoto === true },
@@ -210,6 +214,7 @@ export function profileCompletion(input: RequirementInput): ProfileItem[] {
     { key: 'handle', done: Boolean(input.handle) },
     { key: 'firstItems', done: (input.itemCount ?? 0) >= FIRST_ITEMS_TARGET },
   ];
+  return items.filter((i) => (teen.social || i.key !== 'handle') && (teen.photos || (i.key !== 'bodyPhoto' && i.key !== 'facePhoto')));
 }
 
 /** True while any input the card needs is still loading (it does not flash a wrong count). */

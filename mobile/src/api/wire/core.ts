@@ -10,6 +10,8 @@
 import { APP_SEGMENTS, type AppConfig, type AppSegment, type BodyProfile, type BodyType, type Budget, type Entitlement, type Segment, type Size, type StyleProfile, type StyleTag } from '../contracts';
 import type { Job, JobKind, JobStatus } from '../contracts/jobs';
 
+import { toTeenConfig, type TeenConfigWire, type TeenWire } from './teen';
+
 // ---------- enum spelling ----------
 
 /** `quietLuxury` → `quiet_luxury` (wire → app). */
@@ -66,6 +68,10 @@ export type ProfileWire = {
   emailVerifiedAt?: string | null;
   /** Owner-only: `{ hidden: true, reason }` while a moderator hides the public profile fields. */
   moderation?: { hidden: boolean; reason?: string | null } | null;
+  /** Teen mode (docs/api/teen.md §3): `adult` · `teen` · null (Apple / Google before the age step). Older servers omit it. */
+  ageBand?: 'adult' | 'teen' | null;
+  /** The teen status object (§5); null for adults. */
+  teen?: TeenWire | null;
 };
 
 // ---------- style / body profile ----------
@@ -178,10 +184,10 @@ export type EntitlementWire = {
 };
 
 /** `GET v1/config` — only what the app reads (names stay the app's own; docs/api/segments.md §1). */
-export type ConfigWire = { segments?: { available?: string[] | null; all?: string[] } | null };
+export type ConfigWire = { segments?: { available?: string[] | null; all?: string[] } | null; teen?: TeenConfigWire };
 
 export function toAppConfig(wire: ConfigWire): AppConfig {
-  return { availableSegments: toAvailableSegments(wire.segments?.available) };
+  return { availableSegments: toAvailableSegments(wire.segments?.available), teen: toTeenConfig(wire.teen) };
 }
 
 /** `POST v1/tenant/entitlement/purchase`. Apple: signedTransaction = StoreKit 2 JWS; Google: transactionId = purchaseToken. */

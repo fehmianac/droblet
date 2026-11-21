@@ -1,7 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
 
 import { apiRequest } from '@/api/client';
 import type {
@@ -45,6 +44,7 @@ import { registerVersionedWrite } from '@/sync/versionedWrite';
 import { removeAvatar, uploadAvatar, type PickedAvatar } from './avatar';
 import { DEVICE_ID_KEY } from './device';
 import { accountKeys, profileFromWire } from './queries';
+import { openPaywall } from '@/features/teen/TeenLocks';
 
 export const accountMutationKeys = {
   putVisibility: ['tenant', 'profile', 'visibility', 'put'] as const,
@@ -222,7 +222,7 @@ export function registerAccountMutations(client: QueryClient): void {
       // 403 premium_required → paywall; 422 face_photo_required → back to "upload a face photo".
       if (isPaywallError(error)) {
         client.setQueryData<Palette | null>(accountKeys.palette, null);
-        router.push({ pathname: '/paywall', params: { from: 'palette' } });
+        openPaywall({ from: 'palette' });
         return;
       }
       if (apiErrorCode(error) === 'face_photo_required') {

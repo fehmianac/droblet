@@ -1,5 +1,4 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { router } from 'expo-router';
 
 import { apiRequest } from '@/api/client';
 import type { Entitlement } from '@/api/contracts';
@@ -7,6 +6,7 @@ import { fromSource } from '@/api/dataSource';
 import { ApiError } from '@/api/errors';
 import { toEntitlement, type EntitlementWire } from '@/api/wire/core';
 import { clone, fixtureDb } from '@/fixtures/db';
+import { openPaywall } from '@/features/teen/TeenLocks';
 
 /**
  * AI recognition of garment photos (12, 13) — owner decision 2026-11-18: free for non-members up to
@@ -46,7 +46,7 @@ export function fitToRecognitionQuota<T>(photos: T[], remaining: number | null):
 
 /** The paywall for the recognition quota; the screen underneath keeps its "Elle gir" action. */
 export function openRecognitionPaywall(): void {
-  router.push({ pathname: '/paywall', params: { from: 'item_recognition' } });
+  openPaywall({ from: 'item_recognition' });
 }
 
 export function useItemRecognition() {

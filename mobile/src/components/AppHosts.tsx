@@ -10,19 +10,25 @@ import { InviteHost } from '@/features/social/InviteHost';
 import { SegmentHost } from '@/features/segment/SegmentHost';
 import { PurchasePromptHost } from '@/features/store/PurchasePromptHost';
 import { PurchaseHost } from '@/purchases/PurchaseHost';
+import { TeenGateHost } from '@/features/teen/gate';
+import { useTeenRules } from '@/features/teen/store';
 
 /**
  * App-wide hosts that live inside the QueryProvider next to the navigator: analytics batching,
  * the pending-invite applier, the 05b extra-credit sheet and the profile-language sync (signed-in users only).
  */
 export function AppHosts({ userId }: { userId: string | null }) {
+  // Canvas 18: invites, purchases and the credit-pack sheet do not exist for a teen.
+  const teen = useTeenRules().isTeen;
   return (
     <>
       <AnalyticsHost userId={userId} />
       {/* Canvas 17: the user's segment ("reyon") for copy, choices, placeholders and catalogue queries. */}
       {userId ? <SegmentHost key={`segment-${userId}`} /> : null}
-      <InviteHost userId={userId} />
-      {userId ? <CreditSheetHost /> : null}
+      {teen ? null : <InviteHost userId={userId} />}
+      {userId && !teen ? <CreditSheetHost /> : null}
+      {/* Canvas 18: the teen lock sheet and the 22t explainer of gated actions. */}
+      {userId ? <TeenGateHost /> : null}
       {/* Just-in-time consent sheet: feature gates and 403 `consent_required` answers open it. */}
       {userId ? <ConsentHost /> : null}
       {/* Consents never answered (a new purpose): the all-in-one screen once on the next app open. */}
@@ -36,9 +42,9 @@ export function AppHosts({ userId }: { userId: string | null }) {
       {/* Registers this installation (`PUT v1/tenant/user/me/device`) once per sign-in / app start. */}
       {userId ? <DeviceHost key={`device-${userId}`} /> : null}
       {/* "Gardıroba ekleyelim mi?" after a purchase on a brand site, on the next app open. */}
-      {userId ? <PurchasePromptHost key={`purchase-${userId}`} /> : null}
+      {userId && !teen ? <PurchasePromptHost key={`purchase-${userId}`} /> : null}
       {/* StoreKit / Play Billing listener: verifies late or unfinished purchases with the server. */}
-      {userId ? <PurchaseHost key={`iap-${userId}`} /> : null}
+      {userId && !teen ? <PurchaseHost key={`iap-${userId}`} /> : null}
     </>
   );
 }

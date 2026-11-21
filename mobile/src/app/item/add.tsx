@@ -26,6 +26,8 @@ import { useManualEntry } from '@/features/wardrobe/useManualEntry';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { useIsOnline } from '@/sync/network';
 import { placeholderTones, spacing, surfaceTones } from '@/theme/tokens';
+import { stopIfTeenLimited } from '@/features/teen/TeenLocks';
+import { useTeenRules } from '@/features/teen/store';
 
 type Notice = 'none' | 'offline' | 'photoFailed' | 'startFailed' | 'recognitionLimit';
 
@@ -90,6 +92,7 @@ export default function ItemAddScreen() {
   const insets = useSafeAreaInsets();
   const [frameWidth, setFrameWidth] = useState(VIEWFINDER_MAX_WIDTH);
   const online = useIsOnline();
+  const teen = useTeenRules();
   const focused = useIsFocused();
   const reduceMotion = useReduceMotion();
   const startDrafts = useStartItemDrafts();
@@ -189,6 +192,11 @@ export default function ItemAddScreen() {
   const offer = (photo: PreparedPhoto, entry: TryFirstEntry) => {
     setCaptured(photo);
     setNotice('none');
+    // Canvas 18: "Önce üzerimde dene" is an outfit-photo try-on entry, hidden for a teen — the photo is split at once.
+    if (teen.hide.outfitPhotoTryOn) {
+      send(photo);
+      return;
+    }
     pickEntry.current = entry;
     setSheetEntry(entry);
     setChoosing(entry);
@@ -264,6 +272,8 @@ export default function ItemAddScreen() {
   // AI processing needs a connection: say so instead of taking a photo that cannot be analysed.
   const blocked = () => {
     if (busy) return true;
+    // Canvas 18: adding from a photo waits for the parent's approval ("Elle gir" and the library stay open).
+    if (stopIfTeenLimited()) return true;
     if (!online) {
       setNotice('offline');
       return true;
@@ -372,7 +382,7 @@ export default function ItemAddScreen() {
       {/* "Toplu" and, next to it, "Kombinlerini içe aktar" (canvas 12, chip row under the header). */}
       <View className="flex-row justify-center gap-2 px-gutter pt-1">
         <Pressable
-          onPress={() => router.push('/item/bulk')}
+          onPress={() => (stopIfTeenLimited() ? undefined : router.push('/item/bulk'))}
           accessibilityRole="button"
           accessibilityLabel={t('itemAdd.bulkA11y')}
           className="h-icon-btn flex-row items-center gap-1.5 rounded-pill border border-cream/45 px-[15px] active:opacity-70"
@@ -384,7 +394,7 @@ export default function ItemAddScreen() {
           </Text>
         </Pressable>
         <Pressable
-          onPress={() => router.push('/import')}
+          onPress={() => (stopIfTeenLimited() ? undefined : router.push('/import'))}
           accessibilityRole="button"
           accessibilityLabel={t('outfitImport.title')}
           className="h-icon-btn shrink flex-row items-center gap-1.5 rounded-pill border border-cream/45 px-[15px] active:opacity-70"

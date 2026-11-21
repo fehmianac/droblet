@@ -229,6 +229,6 @@ export function useFollowRequests(direction: FollowRequestDirection, enabled = t
 }
 
 /** Number of people waiting for my approval (badge on Profil / Arkadaşlar); 0 while unknown. */
-export function useIncomingRequestCount(): number {
-  return useFollowRequests('incoming').data?.length ?? 0;
+export function useIncomingRequestCount(enabled = true): number {
+  return useFollowRequests('incoming', enabled).data?.length ?? 0;
 }

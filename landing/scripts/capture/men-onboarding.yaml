@@ -47,8 +47,25 @@ env:
 - inputText: "showcase1"
 - tapOn:
     point: "50%,14%"
+# Canvas 18: the birth year replaced the 18+ box — an adult year.
 - tapOn:
-    id: "age.checkbox"
+    id: "birth.year"
+- extendedWaitUntil:
+    visible:
+      id: "birth.yearSheet.list"
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      id: "birth.yearSheet.option.1996"
+    direction: DOWN
+    timeout: 20000
+    centerElement: true
+- waitForAnimationToEnd
+- tapOn:
+    id: "birth.yearSheet.option.1996"
+- tapOn:
+    id: "birth.yearSheet.select"
+- waitForAnimationToEnd
 - tapOn:
     id: "auth.submit"
 # iOS "Save password?" (TR "Sonra" / EN "Not Now") may cover the next screen.

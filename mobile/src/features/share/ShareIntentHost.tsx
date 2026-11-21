@@ -17,8 +17,11 @@ const MAX_EDGE = 2048;
  * Android: ACTION_SEND / ACTION_SEND_MULTIPLE `image/*`, the first image) — prepares it into the cache, and opens 16g
  * once the user is signed in and onboarded. Signed out, the photo waits ("Fotoğrafın hazır", 16h) and 16g opens right
  * after sign-in. No network here: nothing leaves the phone until the user chooses on 16g.
+ *
+ * Teen accounts (canvas 18): the share target is one of the outfit-photo try-on entries hidden for them — a shared
+ * image is dropped with one calm sentence and 16g never opens (its route is closed to teens too).
  */
-export function ShareIntentHost({ signedIn, ready }: { signedIn: boolean; ready: boolean }) {
+export function ShareIntentHost({ signedIn, ready, teen = false }: { signedIn: boolean; ready: boolean; teen?: boolean }) {
   const { t } = useTranslation();
   const pathname = usePathname();
   const { hasShareIntent, shareIntent, resetShareIntent } = useShareIntent({ resetOnBackground: false, disabled: Platform.OS === 'web' });
@@ -52,8 +55,15 @@ export function ShareIntentHost({ signedIn, ready }: { signedIn: boolean; ready:
     })();
   }, [hasShareIntent, shareIntent, resetShareIntent, signedIn, t]);
 
+  // A teen: the waiting photo is deleted from the cache, never shown.
+  useEffect(() => {
+    if (!teen || pending === null) return;
+    void sharedPhotoStore.clear();
+    showToast({ message: t('teen.shareDiscarded') });
+  }, [teen, pending, t]);
+
   // Signed in and onboarded (also right after a sign-in): open 16g with the waiting photo.
-  const step = shareStep({ pending: pending !== null, ready, atShare: pathname === '/share' });
+  const step = shareStep({ pending: pending !== null && !teen, ready, atShare: pathname === '/share' });
   useEffect(() => {
     if (step === 'open') router.push('/share');
   }, [step]);

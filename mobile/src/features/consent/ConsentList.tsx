@@ -15,6 +15,7 @@ import { Text } from '@/components/ui/Text';
 import { useRemovePhoto } from '@/features/account/mutations';
 import { useMyPhotos } from '@/features/account/queries';
 import { RowCard } from '@/features/account/rows';
+import { useTeenRules } from '@/features/teen/store';
 import { formatDate } from '@/lib/format';
 
 import { useConsents, useSaveConsents } from './api';
@@ -69,6 +70,8 @@ type Offer = 'body' | 'face' | null;
  * Withdrawing the photo consents then offers to delete the photo and what was made from it.
  */
 export function ConsentList() {
+  // Canvas 18: rehber and pazarlama cannot be granted by a teen (docs/api/teen.md §4) — not listed.
+  const hideForTeen = useTeenRules().isTeen;
   const { t } = useTranslation();
   const consents = useConsents();
   const save = useSaveConsents();
@@ -104,7 +107,7 @@ export function ConsentList() {
         <SectionState query={consents} inset={false} errorText={t('consent.listError')} skeleton={<Skeleton className="my-3.5 h-40 rounded-image" />}>
           {(data) => (
             <View testID="consent-list">
-              {CONSENT_TYPES.map((type: ConsentType, index) => {
+              {CONSENT_TYPES.filter((type) => !hideForTeen || (type !== 'contacts' && type !== 'marketingNotifications')).map((type: ConsentType, index) => {
                 const record = data.consents.find((c) => c.type === type);
                 return record ? <ConsentRow key={type} record={record} first={index === 0} busy={save.isPending} onToggle={() => toggle(record)} /> : null;
               })}

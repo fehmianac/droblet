@@ -27,6 +27,7 @@ import { TextField } from '@/components/ui/TextField';
 import { deleteLocalPhoto, type PreparedPhoto } from '@/features/photos/preparePhoto';
 import { PhotoSourceSheet } from '@/features/photos/PhotoSourceSheet';
 import { usePhotoPicker } from '@/features/photos/usePhotoPicker';
+import { useTeenRules } from '@/features/teen/store';
 
 const MAX_BODY_PHOTOS = 3;
 const BODY_SLOTS = [0, 1, 2] as const;
@@ -72,6 +73,7 @@ function PhotoTile({ photo, label, removeLabel, onRemove }: { photo: PreparedPho
  */
 export default function BodyScreen() {
   const { t } = useTranslation();
+  const teenLimited = useTeenRules().limited;
   const insets = useSafeAreaInsets();
   const existing = useBodyProfile();
   const save = useSaveBodyProfile();
@@ -278,6 +280,8 @@ export default function BodyScreen() {
             ) : null}
           </View>
 
+          {/* Canvas 18: until the parent approves, a teen's photo slots are left out (the step goes on without them). */}
+          {teenLimited ? null : (
           <View className="gap-2">
             <View className="flex-row items-center justify-between gap-3">
               <Text variant="bodyMedium" className="flex-1">
@@ -339,6 +343,7 @@ export default function BodyScreen() {
               )}
             </View>
           </View>
+          )}
 
           {cameraBlocked ? (
             <View className="gap-2 rounded-card border border-danger bg-paper px-3.5 py-3" accessibilityRole="alert">

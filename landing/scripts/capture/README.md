@@ -37,6 +37,16 @@ library and profile, and leaves his body type unset so Profil › "Profilini tam
 landing captures above do not change. Flows: `men.yaml` (Bugün, Gardırop, 12b, Profil, Stil profili + segment
 confirmation, 11e) and `men-onboarding.yaml` (03a, 03, 04); neither starts an AI step.
 
+## Teen showcase accounts (canvas 18)
+
+`mock-auth.mjs` answers `GET v1/tenant/teen`, the parent e-mail calls and `GET v1/config` → `teen`. The e-mail picks
+the persona: `ece@…` waits for the parent (limited mode), `ece.onay@…` is approved (try-on box ticked, flag off),
+`ece.dene@…` the same with the flag on, `ece.ret@…` declined, `ece.geri@…` withdrawn, `ece.18@…` turned 18. "Kayıt ol"
+with a 16–17 birth year is a new teen without a parent e-mail. Signing out and in on the same phone keeps the "seen"
+state, so each next persona shows its one-time notice. Flows: `teen-signup.yaml` (02, year sheet, 02g, 02h, 02i, 02j)
+and `teen.yaml` (limited mode, notices, Keşfet / Profil / Ayarlar / Stilist, try-on locks, the 22t explainer — closed
+without starting anything). `men-onboarding.yaml` picks an adult birth year.
+
 ## Refresh
 
 Use a separate checkout of the branch whose UI should be shown (do not build from your working copy):

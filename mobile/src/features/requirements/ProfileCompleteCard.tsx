@@ -9,6 +9,7 @@ import { useSession } from '@/auth/session';
 import { Icon } from '@/components/ui/Icon';
 import { Text } from '@/components/ui/Text';
 import { useAccountSettings } from '@/features/account/queries';
+import { useTeenRules } from '@/features/teen/store';
 
 import { completionKnown, profileCompletion, type ProfileItemKey } from './logic';
 import { requirementsFlow } from './store';
@@ -43,6 +44,7 @@ export function ProfileCompleteCard({ testID = 'profile-complete', hideEmailRow 
   const { t } = useTranslation();
   const session = useSession();
   const input = useRequirementInput();
+  const teen = useTeenRules();
   const settings = useAccountSettings();
   const userId = session.status === 'signedIn' ? session.user.id : null;
   const [collapsed, setCollapsed] = useState<boolean | null>(null);
@@ -62,7 +64,7 @@ export function ProfileCompleteCard({ testID = 'profile-complete', hideEmailRow 
   };
 
   if (!completionKnown(input) || collapsed === null) return null;
-  const items = profileCompletion(input);
+  const items = profileCompletion(input, { social: !teen.hide.social, photos: !teen.limited });
   const done = items.filter((i) => i.done);
   const open = items.filter((i) => !i.done);
   if (open.length === 0) return null;

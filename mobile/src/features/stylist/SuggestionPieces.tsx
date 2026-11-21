@@ -11,6 +11,7 @@ import { ItemThumb } from '@/features/wardrobe/ItemThumb';
 import { formatMoney } from '@/lib/format';
 
 import { useAddSuggestedPieces } from './gapFill';
+import { useTeenRules } from '@/features/teen/store';
 
 type Props = {
   pieces: StylistPiece[];
@@ -23,6 +24,7 @@ type Props = {
  */
 export function SuggestionPieces({ pieces }: Props) {
   const { t } = useTranslation();
+  const hideCommerce = useTeenRules().hide.commerce;
   const suggested = useAddSuggestedPieces();
   return (
     <View>
@@ -91,7 +93,7 @@ export function SuggestionPieces({ pieces }: Props) {
                 </Text>
               )}
             </View>
-            {missing ? (
+            {missing && !hideCommerce ? (
               <Pressable
                 onPress={() => router.push({ pathname: '/shop/product/[id]', params: { id: piece.refId } })}
                 accessibilityRole="button"

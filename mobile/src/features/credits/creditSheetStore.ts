@@ -2,6 +2,9 @@ import { useSyncExternalStore } from 'react';
 
 import { ApiError } from '@/api/errors';
 import { track } from '@/analytics/track';
+import { showToast } from '@/components/ui/toast/store';
+import { currentTeenRules } from '@/features/teen/store';
+import i18n from '@/i18n';
 
 /**
  * 05b Ek kredi paketi — opened from anywhere: when a write comes back `credits_exhausted`
@@ -15,6 +18,11 @@ const emit = () => listeners.forEach((l) => l());
 
 export const creditSheetStore = {
   open(next: CreditSheetReason) {
+    // Canvas 18: no purchases for a teen — one calm sentence instead of 05b.
+    if (currentTeenRules().hide.paywall) {
+      if (next === 'exhausted') showToast({ message: i18n.t('teen.creditsOut') });
+      return;
+    }
     reason = next;
     emit();
   },

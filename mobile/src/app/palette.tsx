@@ -34,6 +34,7 @@ import { formatPercent } from '@/lib/format';
 import type { ImageSource } from '@/lib/images';
 import { suffixed } from '@/lib/trSuffix';
 import { mutationKeys } from '@/sync/queryKeys';
+import { useTeenRules } from '@/features/teen/store';
 
 type ReadyPalette = Extract<Palette, { status: 'ready' }>;
 
@@ -64,6 +65,7 @@ function ToneBlock({ tone, className }: { tone: PaletteTone; className: string }
 
 function ReadyView({ palette, face }: { palette: ReadyPalette; face: ImageSource }) {
   const { t } = useTranslation();
+  const hideCommerce = useTeenRules().hide.commerce;
   const language = useAppLanguage();
   const [mismatchOpen, setMismatchOpen] = useState(false);
   const mismatch = usePaletteMismatch(mismatchOpen);
@@ -134,10 +136,10 @@ function ReadyView({ palette, face }: { palette: ReadyPalette; face: ImageSource
           </Pressable>
         ) : null}
 
-        <Button
-          label={t('palette.products')}
-          onPress={() => router.push({ pathname: '/shop', params: { colors: colors.join(',') } })}
-        />
+        {/* Store products in the palette's colours — not for a teen (canvas 18). */}
+        {hideCommerce ? null : (
+          <Button label={t('palette.products')} onPress={() => router.push({ pathname: '/shop', params: { colors: colors.join(',') } })} />
+        )}
       </ScrollView>
 
       <BottomSheet visible={mismatchOpen} onClose={() => setMismatchOpen(false)} title={t('palette.mismatchTitle')}>

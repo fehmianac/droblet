@@ -50,6 +50,7 @@ import { formatDateRange, formatTemperature, parseLocalDate, weekdayShort } from
 import { toDisplayUpper } from '@/lib/upper';
 import { useIsOnline } from '@/sync/network';
 import { placeholderTones } from '@/theme/tokens';
+import { useTeenRules } from '@/features/teen/store';
 
 const WEATHER_ICON: Record<WeatherCondition, LucideIcon> = { sun: Sun, cloud: Cloud, rain: CloudRain, snow: Snowflake };
 
@@ -189,6 +190,7 @@ function CheckBox({ checked, size }: { checked: boolean; size: 18 | 20 }) {
 
 function MissingCard({ piece }: { piece: TripMissingPiece }) {
   const { t } = useTranslation();
+  const hideCommerce = useTeenRules().hide.commerce;
   const suggested = useAddSuggestedPieces();
   const productId = piece.productId;
   const libraryItemId = piece.libraryItemId ?? null;
@@ -216,7 +218,8 @@ function MissingCard({ piece }: { piece: TripMissingPiece }) {
     );
   }
   // A catalog pick (gap filling from the store): the same "Önerilen · Mağaza" + "Gör" as the stylist results.
-  if (productId) {
+  // Canvas 18: no store picks for a teen (the server fills gaps from the library only).
+  if (productId && !hideCommerce) {
     const open = () => router.push({ pathname: '/shop/product/[id]', params: { id: productId } });
     return (
       <View className="flex-row items-center gap-2.5 rounded-card border border-accent bg-paper px-3 py-2.5" testID={`trip-store-${productId}`}>
@@ -249,9 +252,9 @@ function MissingCard({ piece }: { piece: TripMissingPiece }) {
   const line = t('tripDetail.missingLine', { name: piece.name, reason: piece.reason });
   return (
     <Pressable
-      onPress={productId ? () => router.push({ pathname: '/shop/product/[id]', params: { id: productId } }) : undefined}
-      disabled={!productId}
-      accessibilityRole={productId ? 'button' : undefined}
+      onPress={productId && !hideCommerce ? () => router.push({ pathname: '/shop/product/[id]', params: { id: productId } }) : undefined}
+      disabled={!productId || hideCommerce}
+      accessibilityRole={productId && !hideCommerce ? 'button' : undefined}
       accessibilityLabel={t('tripDetail.missingNoteLine', { name: piece.name, reason: piece.reason })}
       accessibilityHint={productId ? t('tripDetail.missingOpenHint') : undefined}
       className="flex-row items-center gap-2.5 rounded-card border border-accent bg-paper px-3 py-2.5 active:opacity-80"
@@ -451,6 +454,7 @@ function PackedTrip({ trip }: { trip: TripDetail }) {
 export default function TripDetailScreen() {
   const language = useAppLanguage();
   const { t } = useTranslation();
+  const hideCommerce = useTeenRules().hide.commerce;
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const trip = useTrip(id);
@@ -524,13 +528,15 @@ export default function TripDetailScreen() {
                 {t('tripDetail.missingNote')}
               </Text>
             </View>
-            <View className="flex-1">
-              <Button
-                label={t('tripDetail.completeMissing')}
-                onPress={() => router.push({ pathname: '/shop', params: { tripId: data.id } })}
-                testID="trip-complete-missing"
-              />
-            </View>
+            {hideCommerce ? null : (
+              <View className="flex-1">
+                <Button
+                  label={t('tripDetail.completeMissing')}
+                  onPress={() => router.push({ pathname: '/shop', params: { tripId: data.id } })}
+                  testID="trip-complete-missing"
+                />
+              </View>
+            )}
           </View>
         </BottomActionBar>
       ) : null}

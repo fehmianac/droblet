@@ -19,6 +19,7 @@ import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { toDisplayUpper } from '@/lib/upper';
 
 import { OnYouImage } from './OnYouImage';
+import { useTeenRules } from '@/features/teen/store';
 
 type Props = {
   look: TodayLook;
@@ -44,6 +45,7 @@ export function TodayLookCard({ look, onWear, onRefresh, onToggleFavorite, refre
   const language = useAppLanguage();
   const { t } = useTranslation();
   const hasMissing = look.pieces.some((p) => p.source === 'store');
+  const hideCommerce = useTeenRules().hide.commerce;
   // An image the plan already carries wins; otherwise the existing-image check and this session's run (14b's rules).
   const lookTryOn = useLookTryOn(look.id, { enabled: !look.tryOnImageUrl });
   // The run / check result carries its id: stable cache key `tryon:{id}` and a fresh URL once when it expired.
@@ -114,7 +116,8 @@ export function TodayLookCard({ look, onWear, onRefresh, onToggleFavorite, refre
               {look.name}
             </Text>
           </View>
-          {hasMissing ? (
+          {/* Canvas 18: a store link — not drawn for a teen. */}
+          {hasMissing && !hideCommerce ? (
             <Pressable
               onPress={() => router.push({ pathname: '/shop/builder', params: { lookId: look.id } })}
               accessibilityRole="link"

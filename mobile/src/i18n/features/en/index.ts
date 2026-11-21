@@ -18,9 +18,10 @@ import social from './social.json';
 import stylist from './stylist.json';
 import today from './today.json';
 import share from './share.json';
+import teen from './teen.json';
 import tryonPhoto from './tryonPhoto.json';
 import wardrobe from './wardrobe.json';
 
-const features = { ai, today, wardrobe, looks, outfitImport, stylist, commerce, social, account, friends, purchase, consent, detect, requirements, feedback, tryonPhoto, share };
+const features = { ai, today, wardrobe, looks, outfitImport, stylist, commerce, social, account, friends, purchase, consent, detect, requirements, feedback, tryonPhoto, share, teen };
 
 export default features;

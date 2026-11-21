@@ -1,5 +1,4 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { router } from 'expo-router';
 import { Check, MapPin, Search } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -21,6 +20,7 @@ import { useThemeColors } from '@/theme/useThemeColors';
 
 import { requirementsFlow } from '../store';
 import { StepBar, type StepProps } from './StepBar';
+import { openPaywall } from '@/features/teen/TeenLocks';
 
 function Heading({ title, body }: { title: string; body: string }) {
   return (
@@ -62,7 +62,7 @@ export function StepPremium({ onDone }: StepProps) {
           label={t('req.premium.plans')}
           onPress={() => {
             requirementsFlow.close();
-            router.push({ pathname: '/paywall', params: { from: 'requirements' } });
+            openPaywall({ from: 'requirements' });
           }}
           testID="requirements.premium.plans"
         />

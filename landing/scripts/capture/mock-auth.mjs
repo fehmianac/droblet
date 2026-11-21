@@ -15,6 +15,42 @@ const iso = (ms) => new Date(ms).toISOString();
 let persona = 'women';
 let fresh = false;
 let savedStyle = null;
+// Teen showcase accounts (canvas 18, "Ece", 16): an e-mail starting with "ece" signs in as a teen whose parent has not
+// answered yet (limited mode); "ece.onay…" as an approved teen (try-on box ticked, Teen:TryOnEnabled off → "Şu an
+// kullanılamıyor"); "ece.dene…" the same with the flag on (the 22t explainer). "Kayıt ol" with a 16–17 birth year is a
+// new teen with no parent e-mail yet (02i). No e-mail is sent anywhere.
+let teen = null; // null = adult; else { status, requestState, parentAllowedTryOn, ownTryOnConsent, tryOnEnabled }
+const iso2 = (ms) => new Date(ms).toISOString();
+const teenWire = () =>
+  teen
+    ? {
+        status: teen.status,
+        request: {
+          state: teen.requestState,
+          parentEmailMasked: teen.requestState === 'none' ? null : 'a***@o***.com',
+          sentAt: teen.requestState === 'none' ? null : iso2(now - 3600_000),
+          expiresAt: teen.requestState === 'none' ? null : iso2(now + 6 * 24 * 3600_000),
+          resendAvailableAt: teen.resendAt ?? null,
+        },
+        approvedAt: teen.status === 'active' ? iso2(now - 600_000) : null,
+        parentAllowedTryOn: teen.parentAllowedTryOn,
+        ownTryOnConsent: teen.ownTryOnConsent,
+        ownTryOnConsentVersion: '2026-11-21',
+        tryOn:
+          teen.status !== 'active'
+            ? { available: false, reason: 'consent_not_active' }
+            : !teen.tryOnEnabled
+              ? { available: false, reason: 'feature_off' }
+              : !teen.parentAllowedTryOn
+                ? { available: false, reason: 'parent_not_allowed' }
+                : teen.ownTryOnConsent
+                  ? { available: true, reason: null }
+                  : { available: false, reason: 'own_consent_missing' },
+        adultFrom: '2028-05-01',
+        restrictions: ['social', 'commerce', 'paywall', 'firebaseAnalytics', 'firstPartyAnalytics', 'marketingNotifications', 'outfitPhotoTryOn'],
+      }
+    : null;
+const teenState = () => ({ ageBand: teen ? 'teen' : 'adult', teen: teenWire() });
 const readBody = (req) =>
   new Promise((resolve) => {
     let data = '';
@@ -50,13 +86,42 @@ const routes = {
     persona = email.startsWith('emre') ? 'men' : 'women';
     fresh = false;
     savedStyle = null;
+    teen = null;
+    if (email.startsWith('ece.ret')) {
+      teen = { status: 'declined', requestState: 'sent', parentAllowedTryOn: false, ownTryOnConsent: false, tryOnEnabled: false };
+    } else if (email.startsWith('ece.geri')) {
+      teen = { status: 'withdrawn', requestState: 'sent', parentAllowedTryOn: false, ownTryOnConsent: false, tryOnEnabled: false };
+    } else if (email.startsWith('ece.18')) {
+      teen = null; // turned 18: the same account, now adult
+      persona = 'women';
+    } else if (email.startsWith('ece.onay') || email.startsWith('ece.dene')) {
+      teen = { status: 'active', requestState: 'sent', parentAllowedTryOn: true, ownTryOnConsent: false, tryOnEnabled: email.startsWith('ece.dene') };
+    } else if (email.startsWith('ece')) {
+      teen = { status: 'pendingParentalConsent', requestState: 'sent', parentAllowedTryOn: false, ownTryOnConsent: false, tryOnEnabled: false, resendAt: iso2(Date.now() + 42_000) };
+    }
     return auth();
   },
-  'POST /v1/auth/register': () => {
+  'POST /v1/auth/register': (req, body) => {
     persona = 'women';
     fresh = true;
     savedStyle = null;
+    const age = new Date().getFullYear() - Number(body.birthYear ?? 0);
+    teen = age >= 16 && age <= 17 ? { status: 'pendingParentalConsent', requestState: 'none', parentAllowedTryOn: false, ownTryOnConsent: false, tryOnEnabled: false } : null;
     return auth();
+  },
+  // docs/api/teen.md §5 — the teen side of the parental consent.
+  'GET /v1/tenant/teen': () => teenState(),
+  'POST /v1/tenant/teen/parental-consent': () => {
+    if (teen) Object.assign(teen, { status: 'pendingParentalConsent', requestState: 'sent', resendAt: iso2(Date.now() + 60_000) });
+    return teenState();
+  },
+  'POST /v1/tenant/teen/parental-consent/resend': () => {
+    if (teen) teen.resendAt = iso2(Date.now() + 60_000);
+    return teenState();
+  },
+  'PUT /v1/tenant/consents': (req, body) => {
+    if (teen && (body.consents ?? []).some((c) => c.type === 'teenTryOn' && c.granted)) teen.ownTryOnConsent = true;
+    return { consents: [] };
   },
   'POST /v1/auth/refresh': auth,
   'GET /v1/tenant/style-profile': () =>
@@ -80,13 +145,19 @@ const routes = {
     itemRecognition: { limit: null, used: 14, remaining: null },
   }),
   // docs/api/segments.md §1: open segments (the app reads the ids only).
-  'GET /v1/config': () => ({ segments: { available: persona === 'women' && !fresh ? ['women'] : ['women', 'men'], all: ['women', 'men', 'teen'] } }),
+  'GET /v1/config': () => ({
+    segments: { available: persona === 'women' && !fresh ? ['women'] : ['women', 'men'], all: ['women', 'men', 'teen'] },
+    teen: { enabled: true, minimumAge: 16, adultAge: 18, tryOnEnabled: Boolean(teen?.tryOnEnabled) },
+  }),
   'GET /v1/tenant/profile': (req) => ({
     tenantId: 'tenant_capture',
-    displayName: fresh ? 'Deniz' : who().displayName,
-    handle: fresh ? null : who().handle,
-    email: fresh ? 'deniz@example.com' : who().email,
-    closetVisibility: 'followersOnly',
+    displayName: teen && !fresh ? 'Ece' : fresh ? 'Deniz' : who().displayName,
+    handle: fresh || teen ? null : who().handle,
+    email: teen && !fresh ? 'ece@example.com' : fresh ? 'deniz@example.com' : who().email,
+    closetVisibility: teen ? 'private' : 'followersOnly',
+    ageConfirmedAt: iso(now),
+    ageBand: teen ? 'teen' : 'adult',
+    teen: teenWire(),
     // The capture language (the app sends it as Accept-Language), so the profile never switches the app back.
     language: process.env.CAPTURE_LANG ?? ((req.headers['accept-language'] ?? '').toLowerCase().startsWith('en') ? 'en' : 'tr'),
     cityId: null,

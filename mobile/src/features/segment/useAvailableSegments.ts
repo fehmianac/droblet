@@ -1,9 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
-
-import { apiRequest } from '@/api/client';
+import { useAppConfig } from '@/api/appConfig';
 import type { AppSegment } from '@/api/contracts';
-import { toAppConfig, type ConfigWire } from '@/api/wire/core';
-import { queryKeys } from '@/sync/queryKeys';
 
 import { showSegmentChoice } from './catalog';
 
@@ -18,14 +14,7 @@ export type AvailableSegments = {
   loading: boolean;
 };
 
-/** `GET v1/config` — anonymous app configuration; cached for an hour. */
-export function useAppConfig() {
-  return useQuery({
-    queryKey: queryKeys.config,
-    staleTime: 60 * 60_000,
-    queryFn: async () => toAppConfig(await apiRequest<ConfigWire>('v1/config')),
-  });
-}
+export { useAppConfig };
 
 /** Server configuration: which segments users may pick (`segments.available`; absent = women only, phase 1). */
 export function useAvailableSegments(): AvailableSegments {

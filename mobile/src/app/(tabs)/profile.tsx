@@ -10,6 +10,7 @@ import {
   Palette as PaletteIcon,
   Pencil,
   Settings,
+  ShieldCheck,
   Tag,
   UserCheck,
   UserPlus,
@@ -40,6 +41,8 @@ import { useAvailableSegments } from '@/features/segment/useAvailableSegments';
 import { useIncomingRequestCount } from '@/features/social/queries';
 import { priceDropPercent } from '@/features/store/cartMath';
 import { useWatchlist } from '@/features/store/queries';
+import { openParentStatus } from '@/features/teen/TeenLocks';
+import { useTeenRules } from '@/features/teen/store';
 import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { formatDayMonth, formatMonthName } from '@/lib/format';
 import { suffixed } from '@/lib/trSuffix';
@@ -50,7 +53,7 @@ import { useThemeColors } from '@/theme/useThemeColors';
  * AI credit counter, drawn as on 28: an ink card with cream text, the month's allowance bar, the photo
  * status and "Kredi yükle" (→ 05b). Every number comes from `GET v1/tenant/entitlement`; nothing is fixed in the app.
  */
-function CreditCard({ entitlement, hasBodyPhoto }: { entitlement: Entitlement; hasBodyPhoto: boolean | null }) {
+function CreditCard({ entitlement, hasBodyPhoto, teen = false }: { entitlement: Entitlement; hasBodyPhoto: boolean | null; teen?: boolean }) {
   const { t } = useTranslation();
   const colors = useThemeColors();
   const language = useAppLanguage();
@@ -92,6 +95,8 @@ function CreditCard({ entitlement, hasBodyPhoto }: { entitlement: Entitlement; h
       >
         <View className="h-full rounded-pill bg-cream" style={{ width: `${Math.round(share * 100)}%` }} />
       </View>
+      {/* Canvas 18 · 28 Profil · genç: the counter only — no photo line, no "Kredi yükle". */}
+      {teen ? null : (
       <View className="flex-row items-center justify-between gap-2.5">
         {hasBodyPhoto === null ? (
           <View className="flex-1" />
@@ -115,6 +120,7 @@ function CreditCard({ entitlement, hasBodyPhoto }: { entitlement: Entitlement; h
           </Text>
         </Pressable>
       </View>
+      )}
     </View>
   );
 }
@@ -172,14 +178,17 @@ export default function ProfileTab() {
   const entitlement = useEntitlement();
   const photos = useMyPhotos();
   const palette = usePalette();
-  const watchlist = useWatchlist();
-  const requestCount = useIncomingRequestCount();
+  const teen = useTeenRules();
+  // Canvas 18: a teen's profile asks nothing of the store or social APIs (closed to them, docs/api/teen.md §4.1).
+  const watchlist = useWatchlist(!teen.hide.commerce);
+  const requestCount = useIncomingRequestCount(!teen.hide.social);
   const segment = useSegment();
   const segments = useAvailableSegments();
 
   const name = profile.data?.displayName ?? (session.status === 'signedIn' ? session.user.name : '');
   const tags = (profile.data?.styleTags ?? []).slice(0, 2).map((tag) => t(`style.tags.${tag}`));
-  const identity = [profile.data?.handle ? `@${profile.data.handle}` : null, ...tags].filter(Boolean).join(' · ');
+  // Canvas 18: a teen has no @username (no social); "Genç hesap" takes its place.
+  const identity = [teen.isTeen ? t('teen.profile.subtitle') : profile.data?.handle ? `@${profile.data.handle}` : null, ...tags].filter(Boolean).join(' · ');
   const drops = (watchlist.data?.items ?? []).filter((i) => priceDropPercent(i.price, i.previousPrice) !== null).length;
   const isMember = entitlement.data?.tier === 'member';
   const membership = !entitlement.data
@@ -234,8 +243,12 @@ export default function ProfileTab() {
                 <Stat label={t('me.items', { count: stats.data.itemCount })} />
                 {' · '}
                 <Stat label={t('me.looks', { count: stats.data.lookCount })} />
-                {' · '}
-                <Stat label={t('me.followers', { count: stats.data.followerCount })} />
+                {teen.hide.social ? null : (
+                  <>
+                    {' · '}
+                    <Stat label={t('me.followers', { count: stats.data.followerCount })} />
+                  </>
+                )}
               </Text>
             ) : stats.isPending ? (
               <Skeleton className="mt-1 h-4 w-40 rounded-field" />
@@ -247,7 +260,11 @@ export default function ProfileTab() {
         {/* "Profilini tamamla" (canvas 11) — the @username is one of its six items. */}
         <ProfileCompleteCard testID="profile.profileComplete" />
 
-        {entitlement.data ? (
+        {teen.hide.paywall ? (
+          entitlement.data && entitlement.data.credits.monthlyAllowance > 0 ? (
+            <CreditCard entitlement={entitlement.data} hasBodyPhoto={null} teen />
+          ) : null
+        ) : entitlement.data ? (
           isMember ? (
             <CreditCard entitlement={entitlement.data} hasBodyPhoto={photos.data ? photos.data.body.length > 0 : null} />
           ) : (
@@ -265,8 +282,18 @@ export default function ProfileTab() {
         )}
 
         <RowCard>
+          {teen.isTeen ? (
+            <ProfileMenuRow
+              first
+              icon={ShieldCheck}
+              label={t('teen.profile.consentRow')}
+              trailing={<Badge label={t(`teen.profile.status.${teen.consent}`)} />}
+              onPress={() => openParentStatus(teen.consent !== 'pending' && teen.consent !== 'approved')}
+              testID="profile.parentConsent"
+            />
+          ) : null}
           <ProfileMenuRow
-            first
+            first={!teen.isTeen}
             icon={Tag}
             label={t('me.menu.styleProfile')}
             value={segments.choice ? t(`style.segment.${segment}`) : undefined}
@@ -275,34 +302,44 @@ export default function ProfileTab() {
           />
           <ProfileMenuRow icon="hanger" label={t('me.menu.wardrobeStats')} onPress={() => router.navigate('/wardrobe')} />
           <ProfileMenuRow icon={Briefcase} label={t('me.menu.tripArchive')} onPress={() => router.navigate('/wardrobe/trips')} />
-          <ProfileMenuRow
-            icon={UserCheck}
-            label={t('friends.menuRequests')}
-            trailing={requestCount > 0 ? <Badge tone="accent" label={String(requestCount)} /> : undefined}
-            onPress={() => router.push('/friends/requests')}
-          />
-          <ProfileMenuRow icon={BookmarkCheck} label={t('friends.menuSaved')} onPress={() => router.push('/friends/saved')} />
-          <ProfileMenuRow icon={Users} label={t('friends.followersTitle')} onPress={() => router.push('/friends/followers')} />
-          <ProfileMenuRow icon={UserPlus} label={t('friends.followingTitle')} onPress={() => router.push('/friends/following')} />
+          {teen.hide.social ? null : (
+            <>
+              <ProfileMenuRow
+                icon={UserCheck}
+                label={t('friends.menuRequests')}
+                trailing={requestCount > 0 ? <Badge tone="accent" label={String(requestCount)} /> : undefined}
+                onPress={() => router.push('/friends/requests')}
+              />
+              <ProfileMenuRow icon={BookmarkCheck} label={t('friends.menuSaved')} onPress={() => router.push('/friends/saved')} />
+              <ProfileMenuRow icon={Users} label={t('friends.followersTitle')} onPress={() => router.push('/friends/followers')} />
+              <ProfileMenuRow icon={UserPlus} label={t('friends.followingTitle')} onPress={() => router.push('/friends/following')} />
+            </>
+          )}
           <ProfileMenuRow
             icon={PaletteIcon}
             label={t('me.menu.palette')}
             value={palette.data?.status === 'ready' ? t(`palette.season.${palette.data.seasonType}`) : undefined}
             onPress={() => router.push('/palette')}
           />
-          <ProfileMenuRow
-            icon={Bookmark}
-            label={t('me.menu.watchlist')}
-            trailing={drops > 0 ? <Badge tone="accent" label={t('me.menu.priceDrops', { count: drops })} /> : undefined}
-            onPress={() => router.push('/watchlist')}
-          />
-          <ProfileMenuRow
-            icon={Crown}
-            label={t('me.menu.membership')}
-            value={membership}
-            onPress={() => (isMember ? router.push('/subscription') : router.push({ pathname: '/paywall', params: { from: 'profile' } }))}
-          />
-          <ProfileMenuRow icon={Users} label={t('me.menu.family')} disabled trailing={<Badge label={t('common.comingSoon')} />} />
+          {teen.hide.commerce ? null : (
+            <ProfileMenuRow
+              icon={Bookmark}
+              label={t('me.menu.watchlist')}
+              trailing={drops > 0 ? <Badge tone="accent" label={t('me.menu.priceDrops', { count: drops })} /> : undefined}
+              onPress={() => router.push('/watchlist')}
+            />
+          )}
+          {teen.hide.paywall ? null : (
+            <>
+              <ProfileMenuRow
+                icon={Crown}
+                label={t('me.menu.membership')}
+                value={membership}
+                onPress={() => (isMember ? router.push('/subscription') : router.push({ pathname: '/paywall', params: { from: 'profile' } }))}
+              />
+              <ProfileMenuRow icon={Users} label={t('me.menu.family')} disabled trailing={<Badge label={t('common.comingSoon')} />} />
+            </>
+          )}
           <ProfileMenuRow icon={Lock} label={t('me.menu.settings')} onPress={() => router.push('/settings')} />
         </RowCard>
 

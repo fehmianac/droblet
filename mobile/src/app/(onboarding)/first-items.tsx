@@ -19,6 +19,9 @@ import { Text } from '@/components/ui/Text';
 import { libraryCategory } from '@/features/wardrobe/form';
 import { asGarmentColor } from '@/components/ui/ImageSlot';
 import { ItemThumb } from '@/features/wardrobe/ItemThumb';
+import { openPaywall } from '@/features/teen/TeenLocks';
+import { currentTeenRules } from '@/features/teen/store';
+import { onboardingStore } from '@/auth/onboarding';
 
 /** The board shows a 3 × 3 selection; the whole library is one tap away. */
 const GRID_SIZE = 9;
@@ -84,7 +87,11 @@ export default function FirstItemsScreen() {
       void AsyncStorage.setItem(`droblet.firstItems.${session.user.id}`, JSON.stringify(selected));
     }
     track('signup_step', { step: 'first_items', count: selected.length });
-    const goToPaywall = () => router.push({ pathname: '/paywall', params: { from: 'onboarding' } });
+    // Canvas 18: a teen never sees 05 Üyelik — onboarding ends here and Bugün opens (the guards follow the store).
+    const goToPaywall = () =>
+      currentTeenRules().hide.paywall
+        ? void (session.status === 'signedIn' ? onboardingStore.markDone(session.user.id) : Promise.resolve())
+        : openPaywall({ from: 'onboarding' });
     // The user is never held on this step: a failed add is not fatal, 12b offers the same pieces later.
     if (selected.length === 0) goToPaywall();
     else addItems.mutate(selected, { onSettled: goToPaywall });

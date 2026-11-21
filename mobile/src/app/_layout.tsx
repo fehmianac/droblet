@@ -21,6 +21,8 @@ import { AnimatedSplash } from '@/components/brand/AnimatedSplash';
 import { sessionStore, useSession } from '@/auth/session';
 import { AppHosts } from '@/components/AppHosts';
 import { ShareIntentHost } from '@/features/share/ShareIntentHost';
+import { useTeenRules } from '@/features/teen/store';
+import { TeenHost } from '@/features/teen/TeenHost';
 import { SyncPill } from '@/components/ui/SyncPill';
 import { ToastHost } from '@/components/ui/toast';
 import { restoreLanguagePreference } from '@/i18n/preference';
@@ -47,6 +49,7 @@ export default function RootLayout() {
   const session = useSession();
   const userId = session.status === 'signedIn' ? session.user.id : null;
   const onboarding = useOnboardingStatus(userId);
+  const teenRules = useTeenRules();
 
   useEffect(() => {
     void sessionStore.hydrate();
@@ -70,11 +73,18 @@ export default function RootLayout() {
   const signedIn = session.status === 'signedIn';
   /** 18+ not confirmed (Apple / Google account): the confirmation comes before anything else. */
   const ageBlocked = signedIn && session.user.ageConfirmed === false;
-  const allowed = signedIn && !ageBlocked;
+  const signedInAllowed = signedIn && !ageBlocked;
+  /** Canvas 18: a teen account. Social, the store, the paywall and the outfit-photo try-on routes are closed to it. */
+  const teen = signedInAllowed && teenRules.isTeen;
+  /** A teen who never sent the parent e-mail: 02i comes before onboarding and the app. */
+  const needsParent = teen && teenRules.needsParentEmail;
+  const allowed = signedInAllowed && !needsParent;
   const onboarded = allowed && onboarding === 'done';
   /** Where a guarded route sends the user right now. */
   // Onboarding starts at 03a Reyon, which hands over to 03 at once while only one segment is open (canvas 17).
-  const home = !signedIn ? '/welcome' : ageBlocked ? '/age-confirm' : onboarded ? '/' : '/segment';
+  const home = !signedIn ? '/welcome' : ageBlocked ? '/age-confirm' : needsParent ? '/teen/parent' : onboarded ? '/' : '/segment';
+  /** Deep links into the store land on Keşfet for a teen (canvas 18 · rota korumaları). */
+  const shopHome = onboarded ? '/discover' : home;
 
   return (
     <QueryProvider userId={userId}>
@@ -123,11 +133,28 @@ export default function RootLayout() {
           <Stack.Screen name="trip/new" options={{ presentation: 'modal' }} />
           <Stack.Screen name="stylist/[jobId]" />
           <Stack.Screen name="palette" />
+          <Stack.Screen name="settings" />
+          <Stack.Screen name="edit-profile" />
+          <Stack.Screen name="style-profile" />
+          <Stack.Screen name="notifications" />
+          <Stack.Screen name="delete-account" />
+          <Stack.Screen name="data-export" />
+          <Stack.Screen name="tryon/[jobId]" options={{ presentation: 'modal' }} />
+          {/* Consents never answered (a new purpose): the all-in-one screen, once, on the next app open. */}
+          <Stack.Screen name="consent-review" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
+          <Stack.Screen name="dev/components" />
+        </Stack.Protected>
+
+        {/* Canvas 18 · rota korumaları: closed to teens, deep links included (store → Keşfet, the rest → home). */}
+        <Stack.Protected guard={onboarded && !teen} redirectTo={shopHome}>
           <Stack.Screen name="shop/index" />
           <Stack.Screen name="shop/product/[id]" />
           <Stack.Screen name="shop/builder" />
           <Stack.Screen name="cart" />
           <Stack.Screen name="watchlist" />
+        </Stack.Protected>
+
+        <Stack.Protected guard={onboarded && !teen} redirectTo={home}>
           <Stack.Screen name="friends/feed" />
           <Stack.Screen name="friends/find" />
           <Stack.Screen name="friends/requests" />
@@ -137,25 +164,26 @@ export default function RootLayout() {
           <Stack.Screen name="friends/blocked" />
           <Stack.Screen name="friends/contacts" />
           <Stack.Screen name="u/[handle]" />
-          <Stack.Screen name="settings" />
-          <Stack.Screen name="edit-profile" />
-          <Stack.Screen name="style-profile" />
           <Stack.Screen name="subscription" />
-          <Stack.Screen name="notifications" />
-          <Stack.Screen name="delete-account" />
-          <Stack.Screen name="data-export" />
           <Stack.Screen name="tryon/photo" />
           {/* 16g Share › Droblet: the shared image and "Önce üzerimde dene" / "Parçalarına ayır". */}
           <Stack.Screen name="share" />
-          <Stack.Screen name="tryon/[jobId]" options={{ presentation: 'modal' }} />
-          {/* Consents never answered (a new purpose): the all-in-one screen, once, on the next app open. */}
-          <Stack.Screen name="consent-review" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
-          <Stack.Screen name="dev/components" />
+        </Stack.Protected>
+
+        {/* 02i / 02j — any signed-in teen (forced first while no e-mail was sent). The one-time notices of canvas 18. */}
+        <Stack.Protected guard={teen} redirectTo={home}>
+          <Stack.Screen name="teen/parent" options={{ gestureEnabled: !needsParent }} />
+        </Stack.Protected>
+        <Stack.Protected guard={signedInAllowed} redirectTo={home}>
+          <Stack.Screen name="teen/notice" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
+        </Stack.Protected>
+
+        <Stack.Protected guard={allowed && !teen} redirectTo={home}>
+          {/* 05 — after onboarding (04b) and from locked features. Never for a teen (docs/api/teen.md §4 paywallHidden). */}
+          <Stack.Screen name="paywall" options={{ presentation: 'modal', gestureEnabled: false }} />
         </Stack.Protected>
 
         <Stack.Protected guard={allowed} redirectTo={home}>
-          {/* 05 — after onboarding (04b) and from locked features. */}
-          <Stack.Screen name="paywall" options={{ presentation: 'modal', gestureEnabled: false }} />
           {/* 12 Parça ekle — also the camera shortcut on onboarding 04b. */}
           <Stack.Screen name="item/add" options={{ presentation: 'fullScreenModal' }} />
         </Stack.Protected>
@@ -169,8 +197,10 @@ export default function RootLayout() {
       {/* Floating offline / sync status under the header: overlaid, never pushes a screen's content. */}
       {signedIn ? <SyncPill /> : null}
       <AppHosts userId={userId} />
+      {/* Canvas 18: the age band and the parent's approval, from the server; one-time notices once in the app. */}
+      {userId && !ageBlocked ? <TeenHost key={`teen-${userId}`} userId={userId} ready={onboarded} /> : null}
       {/* Share › Droblet (cold and warm start): keeps the image, opens 16g once signed in and onboarded. */}
-      <ShareIntentHost signedIn={signedIn} ready={onboarded} />
+      <ShareIntentHost signedIn={signedIn} ready={onboarded} teen={teen} />
       {/* Canvas 13b: the one toast — every write that changes something says so. */}
       <ToastHost />
       {splashDone ? null : <AnimatedSplash onDone={finishSplash} />}
