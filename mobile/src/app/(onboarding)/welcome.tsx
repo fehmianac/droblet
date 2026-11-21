@@ -1,8 +1,8 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
-import { setStatusBarStyle } from 'expo-status-bar';
-import { useCallback } from 'react';
+import { StatusBar } from 'expo-status-bar';
+import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -36,19 +36,24 @@ export default function WelcomeScreen() {
   const { segments, loading } = useAvailableSegments();
   const compact = isCompactWelcome(height);
   // Never wait for the config: the screen works at once; the photo fades in when the segments are known
-  // (a failed request settles at once as women only). SE-class phones always show the group.
+  // (a failed request settles at once as women only). SE-class phones show the group when both segments are open.
   const hero = loading ? null : welcomeHero(segments, height);
   const photoHeight = Math.round(height * (compact ? PHOTO_SHARE_COMPACT : PHOTO_SHARE));
 
+  // Light status bar over the photo. A mounted <StatusBar> (not the imperative setter) so it outranks the root
+  // layout's <StatusBar style="dark" />, which re-applied dark on every render; unmounted when the screen loses
+  // focus, so the stack falls back to dark.
+  const [focused, setFocused] = useState(true);
   useFocusEffect(
     useCallback(() => {
-      setStatusBarStyle('light');
-      return () => setStatusBarStyle('dark');
+      setFocused(true);
+      return () => setFocused(false);
     }, []),
   );
 
   return (
     <View className="flex-1 bg-onPhoto-ground">
+      {focused ? <StatusBar style="light" /> : null}
       <View style={[styles.photo, { height: photoHeight }]} accessible={false} importantForAccessibility="no-hide-descendants">
         {hero ? (
           <Image
