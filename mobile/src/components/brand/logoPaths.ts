@@ -40,4 +40,11 @@ export const D_LENGTH = 76;
 export const SILHOUETTE_VIEWBOX = '0 0 60 100';
 export const SILHOUETTE_BODY_PATH = 'M17 30c4-4 22-4 26 0l4 32h-7l-2 34h-6l-2-30-2 30h-6l-2-34h-7z';
 export const SILHOUETTE_HEAD = { cx: 30, cy: 13, r: 8 } as const;
+/** The men's figure of canvas 17 (broad shoulders, arms, trousers) in the same box, head and opacity. */
+export const SILHOUETTE_BODY_PATH_MEN = 'M15 31c5-5 25-5 30 0L47 61h-4.5L41 42v18l-1.5 36h-7L30 66l-2.5 30h-7L19 60V42l-1.5 19H13z';
+
+/** The standing figure of a segment (canvas 17 "Yer tutucular"): women's A-line, men's broad-shouldered. */
+export function silhouetteBodyPath(segment: 'women' | 'men'): string {
+  return segment === 'men' ? SILHOUETTE_BODY_PATH_MEN : SILHOUETTE_BODY_PATH;
+}
 export const SILHOUETTE_LENGTH = 250;

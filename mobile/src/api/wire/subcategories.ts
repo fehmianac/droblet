@@ -62,6 +62,12 @@ const SUBCATEGORIES: Record<string, { tr: string; en: string }> = {
   kaftan: { tr: 'Kaftan', en: 'Kaftan' },
   'ski-jacket': { tr: 'Kayak montu', en: 'Ski jacket' },
   'ski-pants': { tr: 'Kayak pantolonu', en: 'Ski pants' },
+  // Men's set (canvas 17).
+  polo: { tr: 'Polo tişört', en: 'Polo shirt' },
+  chinos: { tr: 'Chino pantolon', en: 'Chinos' },
+  'suit-jacket': { tr: 'Takım ceketi', en: 'Suit jacket' },
+  oxfords: { tr: 'Oxford ayakkabı', en: 'Oxford shoes' },
+  'swim-shorts': { tr: 'Deniz şortu', en: 'Swim shorts' },
 };
 
 const fold = (value: string) => value.trim().toLocaleLowerCase('tr').replace(/ı/g, 'i').normalize('NFD').replace(/[̀-ͯ]/g, '');

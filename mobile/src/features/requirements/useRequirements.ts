@@ -5,6 +5,8 @@ import { useSession } from '@/auth/session';
 import { useMyPhotos, useMyProfile } from '@/features/account/queries';
 import { useConsents } from '@/features/consent/api';
 import { useAiCredits } from '@/features/credits/useAiCredits';
+import { bodyTypeForSegment } from '@/features/segment/catalog';
+import { useSegment } from '@/features/segment/store';
 import { useItems } from '@/features/wardrobe/queries';
 
 import { computeRequirements, singleStepRequirements, type PhotoPath, type RequirementAction, type RequirementInput, type Requirements } from './logic';
@@ -20,6 +22,7 @@ export function useRequirementInput(): RequirementInput {
   const profile = useMyProfile();
   const items = useItems();
   const flow = useRequirementsFlow();
+  const segment = useSegment();
 
   const bodyKnown = body.status === 'success';
   return {
@@ -27,7 +30,8 @@ export function useRequirementInput(): RequirementInput {
     validConsents: consents.data ? consents.data.consents.filter((c) => c.valid).map((c) => c.type) : null,
     hasBodyPhoto: photos.data ? photos.data.body.length > 0 : null,
     hasFacePhoto: photos.data ? photos.data.face !== null : null,
-    bodyType: bodyKnown ? (body.data?.bodyType ?? null) : undefined,
+    // A body type of the other segment's set (after a segment change) counts as not chosen: asked once more.
+    bodyType: bodyKnown ? bodyTypeForSegment(body.data?.bodyType ?? null, segment) : undefined,
     hasBodyProfile: bodyKnown ? body.data !== null : null,
     isMember: credits.remaining !== null ? credits.isMember : null,
     creditsRemaining: credits.remaining,

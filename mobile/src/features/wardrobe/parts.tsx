@@ -77,7 +77,9 @@ export function OutlineBadge({ label }: { label: string }) {
 }
 
 type TileProps = {
-  item: Pick<Item, 'name' | 'category' | 'color' | 'imageUrl' | 'originalImageUrl' | 'useOriginalImage' | 'thumbUrl' | 'mediumUrl' | 'imageCacheKey' | 'imageUrlExpiresAt'>;
+  item: Pick<Item, 'name' | 'category' | 'color' | 'imageUrl' | 'originalImageUrl' | 'useOriginalImage' | 'thumbUrl' | 'mediumUrl' | 'imageCacheKey' | 'imageUrlExpiresAt'> & {
+    subcategory?: string | null;
+  };
   /** undefined = not in selection mode. */
   selected?: boolean;
   onPress: () => void;
@@ -109,6 +111,7 @@ export function ItemTile({ item, selected, onPress, onLongPress, mark = 'select'
       <View>
         <ItemThumb
           category={item.category}
+          subcategory={item.subcategory}
           color={item.color}
           {...itemImageSource(item, 'thumb')}
           glyphSize={size === 'library' ? 44 : 48}

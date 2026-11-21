@@ -12,6 +12,8 @@ export { GarmentGlyph };
 
 type Props = {
   category: ItemCategory;
+  /** Sub-type (id or name): its finer glyph when there is one (tie, watch, loafers…, canvas 17). */
+  subcategory?: string | null;
   color?: ItemColor;
   uri?: string | null;
   /** expo-image cache key (`itemImageSource(item, 'thumb')` gives uri + cacheKey + onExpired: spread it). */
@@ -30,7 +32,7 @@ type Props = {
  * fails to load) a ground tinted from the colour with the category's line glyph. Use this wherever an
  * Item (or a look slot pointing at one) is shown.
  */
-export function ItemThumb({ category, color = 'other', uri, cacheKey, onExpired, className, glyphSize = 32, accessibilityLabel }: Props) {
+export function ItemThumb({ category, subcategory, color = 'other', uri, cacheKey, onExpired, className, glyphSize = 32, accessibilityLabel }: Props) {
   return (
     <ImageSlot
       uri={uri}
@@ -38,7 +40,7 @@ export function ItemThumb({ category, color = 'other', uri, cacheKey, onExpired,
       onExpired={onExpired}
       className={className}
       accessibilityLabel={accessibilityLabel}
-      placeholder={{ kind: 'garment', category, color, glyphSize }}
+      placeholder={{ kind: 'garment', category, subcategory, color, glyphSize }}
     />
   );
 }

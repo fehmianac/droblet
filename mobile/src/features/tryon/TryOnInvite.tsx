@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
-import { SILHOUETTE_BODY_PATH, SILHOUETTE_HEAD, SILHOUETTE_VIEWBOX } from '@/components/brand/logoPaths';
+import { SILHOUETTE_HEAD, SILHOUETTE_VIEWBOX, silhouetteBodyPath } from '@/components/brand/logoPaths';
+import { useSegment } from '@/features/segment/store';
 import { Icon } from '@/components/ui/Icon';
 import { Text } from '@/components/ui/Text';
 import type { Requirements } from '@/features/requirements/logic';
@@ -40,11 +41,12 @@ export function useTryOnInviteFooter(req: Pick<Requirements, 'ready' | 'hint'>):
 /** Dashed standing figure of the invitation (canvas 14b): the brand silhouette, outline in the accent. */
 function InviteFigure({ height }: { height: number }) {
   const colors = useThemeColors();
+  const segment = useSegment();
   return (
-    <Svg width={(height * 78) / 130} height={height} viewBox={SILHOUETTE_VIEWBOX} accessible={false}>
+    <Svg width={(height * 78) / 130} height={height} viewBox={SILHOUETTE_VIEWBOX} accessible={false} testID={`try-on-invite-figure-${segment}`}>
       <Circle {...SILHOUETTE_HEAD} fill={colors.ink} opacity={0.1} />
-      <Path d={SILHOUETTE_BODY_PATH} fill={colors.ink} opacity={0.1} />
-      <Path d={SILHOUETTE_BODY_PATH} fill="none" stroke={colors.accent} strokeWidth={1} strokeDasharray="3 2.4" strokeLinejoin="round" />
+      <Path d={silhouetteBodyPath(segment)} fill={colors.ink} opacity={0.1} />
+      <Path d={silhouetteBodyPath(segment)} fill="none" stroke={colors.accent} strokeWidth={1} strokeDasharray="3 2.4" strokeLinejoin="round" />
       <Circle {...SILHOUETTE_HEAD} fill="none" stroke={colors.accent} strokeWidth={1} strokeDasharray="3 2.4" />
     </Svg>
   );
