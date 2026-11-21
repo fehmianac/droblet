@@ -65,7 +65,7 @@ internal sealed record MarketingImageSpec(
 /// <summary>
 /// generate-marketing-images: one image-model call per entry of a checked-in prompt file (default
 /// ops-presets/welcome-images.json) with the configured image model → the run's output folder (workflow artifact) and
-/// the private photo bucket under marketing/{file}/{id}.{ext}, with a 7-day presigned URL. Hard cap
+/// the private photo bucket under marketing/{file}/{id}.{ext}, with a 6-day presigned URL (SigV4 allows at most 7). Hard cap
 /// <see cref="OpsArguments.MaxMarketingImageCalls"/> calls per run, never retried. Dev only, no user content.
 /// </summary>
 internal static class MarketingImagesCommand
@@ -127,7 +127,7 @@ internal static class MarketingImagesCommand
                     InputStream = new MemoryStream(result.Data),
                     ContentType = file.Format == "jpeg" ? "image/jpeg" : $"image/{file.Format}",
                 }, ct);
-                var url = await s3.GetPreSignedURLAsync(new GetPreSignedUrlRequest { BucketName = bucket, Key = key, Verb = HttpVerb.GET, Expires = DateTime.UtcNow.AddDays(7) });
+                var url = await s3.GetPreSignedURLAsync(new GetPreSignedUrlRequest { BucketName = bucket, Key = key, Verb = HttpVerb.GET, Expires = DateTime.UtcNow.AddDays(6) });
                 rows.Add([image.Id, "ok", $"{result.Data.Length / 1024} KB · {watch.Elapsed.TotalSeconds:0}s", url]);
             }
             catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
