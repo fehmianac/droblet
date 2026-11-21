@@ -15,9 +15,10 @@ import { deleteLocalPhoto, preparePhoto, type PreparedPhoto } from '@/features/p
 import { usePhotoPicker } from '@/features/photos/usePhotoPicker';
 import { VIEWFINDER_MAX_WIDTH, viewfinderWidth } from '@/features/photos/viewfinder';
 import { SHEET_DISMISS_MS } from '@/features/tryon/OutfitPhotoPicker';
-import type { TryFirstChoice, TryFirstEntry } from '@/features/tryon/tryFirst';
+import { asksFirst, type TryFirstChoice, type TryFirstEntry } from '@/features/tryon/tryFirst';
 import { TryFirstSheet } from '@/features/tryon/TryFirstSheet';
 import { useTryFirstPhoto } from '@/features/tryon/useTryFirstPhoto';
+import { detectedLine as detectedSummary } from '@/features/wardrobe/detectedLine';
 import { GarmentGlyph } from '@/features/wardrobe/ItemThumb';
 import { useStartItemDrafts } from '@/features/wardrobe/mutations';
 import { useItemDrafts } from '@/features/wardrobe/queries';
@@ -31,8 +32,6 @@ import { useTeenRules } from '@/features/teen/store';
 
 type Notice = 'none' | 'offline' | 'photoFailed' | 'startFailed' | 'recognitionLimit';
 
-/** How long "Gömlek algılandı · Beyaz · Pamuk" stays before the review form opens. */
-const DETECTED_MS = 1400;
 /** A slower recognition is not waited for here: the form (12c) has its own loading state. */
 const RECOGNITION_WAIT_MS = 6000;
 
@@ -77,10 +76,11 @@ function FrameAction({ label, onPress, testID }: { label: string; onPress: () =>
 /**
  * 12 Parça ekle — the live camera on the dark ground of the board: the framed viewfinder with its four
  * corners, the shutter, and the shortcuts to the gallery, the ready-made library and bulk add. A shot (or a
- * gallery pick) is downscaled and stripped of EXIF on the device, then 12+ asks "Bu fotoğrafla ne yapalım?":
- * "Önce üzerimde dene" (16d the first time, else the credit confirmation over this photo; the result's "Parçalara
- * ayır" reuses the upload) or "Parçalarına ayır" — only then is it sent for AI recognition, and the pill under the
- * frame says what was found ("Gömlek algılandı · Beyaz · Pamuk") before the review form (12c) opens.
+ * gallery pick) is downscaled and stripped of EXIF on the device. A camera shot goes straight to AI recognition
+ * (canvas n_ux1 A1); a gallery pick or a shared image first gets 12+ "Bu fotoğrafla ne yapalım?": "Önce üzerimde
+ * dene" (16d the first time, else the credit confirmation over this photo; the result's "Parçalara ayır" reuses the
+ * upload) or "Parçalarına ayır". The review form (12c) opens as soon as the piece is recognised, with what was found
+ * ("Gömlek algılandı · Beyaz · Pamuk") as a pill on top of it; a piece saved from a camera shot returns here.
  *
  * Camera permission: asked from the frame with our reason first; when denied the frame explains and links
  * to Settings while gallery / library / "Elle gir" keep working. Without a camera (simulator, web) the
@@ -110,6 +110,8 @@ export default function ItemAddScreen() {
   const [draftId, setDraftId] = useState<string | null>(null);
   /** When the photo went to the AI: the chooser's stage sentences continue from there. */
   const sentAt = useRef(0);
+  /** `camera`: the photo was shot here, so the saved piece comes back to the camera (12′); `add`: gallery / share. */
+  const origin = useRef<'camera' | 'add'>('add');
 
   const drafts = useItemDrafts({ enabled: draftId !== null && focused });
   const draft = draftId ? drafts.data?.find((d) => d.id === draftId) : undefined;
@@ -123,21 +125,27 @@ export default function ItemAddScreen() {
   /** The photo is with the AI (upload + request, then the job): the scan line sweeps over it until a result or an error. */
   const recognising = captured !== null && (phase === 'sending' || (draftId !== null && !detected && !failed));
 
-  // Recognised → show the pill for a moment, then the review form (one piece) or the chooser (several).
-  // Failed → the form (manual fill) or, when nothing was found, the chooser's empty state. Slow → the
+  // Recognised → the review form at once (one piece; the form carries the "Gömlek algılandı" pill) or the chooser
+  // (several). Failed → the form (manual fill) or, when nothing was found, the chooser's empty state. Slow → the
   // chooser screen waits with its own loading state and opens the form itself for a single piece.
   useEffect(() => {
     if (!draftId) return;
-    const toForm = () => router.replace({ pathname: '/item/form', params: { draftId } });
+    const from = origin.current;
+    const toForm = () => router.replace({ pathname: '/item/form', params: { draftId, from } });
     // The chooser continues with the same photo, scan line and wait (canvas 15), not a fresh placeholder.
     const carried = captured ? { photo: captured.localUri, w: String(captured.width), h: String(captured.height), since: String(sentAt.current) } : {};
-    const toChooser = () => router.replace({ pathname: '/item/detect', params: { draftId, ...carried } });
+    const toChooser = () => router.replace({ pathname: '/item/detect', params: { draftId, from, ...carried } });
     if (failed) {
       if (empty) toChooser();
       else toForm();
       return;
     }
-    const timer = setTimeout(detected && !group ? toForm : toChooser, detected ? DETECTED_MS : RECOGNITION_WAIT_MS);
+    if (detected) {
+      if (group) toChooser();
+      else toForm();
+      return;
+    }
+    const timer = setTimeout(toChooser, RECOGNITION_WAIT_MS);
     return () => clearTimeout(timer);
   }, [draftId, detected, failed, group, empty, captured]);
 
@@ -152,7 +160,8 @@ export default function ItemAddScreen() {
   const manual = useManualEntry();
   const enterManually = () => manual.enter(captured && !draftId ? captured.localUri : null);
 
-  const send = (photo: PreparedPhoto) => {
+  const send = (photo: PreparedPhoto, from: 'camera' | 'add' = 'add') => {
+    origin.current = from;
     setCaptured(photo);
     if (recognition.exhausted) {
       setPhase('idle');
@@ -177,8 +186,8 @@ export default function ItemAddScreen() {
       .finally(() => setPhase('idle'));
   };
 
-  // 12+ "Bu fotoğrafla ne yapalım?": a picked or taken photo first offers "Önce üzerimde dene" / "Parçalarına ayır".
-  // Nothing is uploaded and no recognition runs before the choice.
+  // 12+ "Bu fotoğrafla ne yapalım?": a picked or shared photo first offers "Önce üzerimde dene" / "Parçalarına ayır"
+  // (nothing is uploaded and no recognition runs before the choice); a camera shot is split at once.
   const [choosing, setChoosing] = useState<TryFirstEntry | null>(null);
   /** The entry of the last choice: keeps the sheet's highlight while it fades out. */
   const [sheetEntry, setSheetEntry] = useState<TryFirstEntry>('gallery');
@@ -190,6 +199,10 @@ export default function ItemAddScreen() {
     onCancel: () => setTimeout(() => setChoosing((current) => current ?? pickEntry.current), SHEET_DISMISS_MS),
   });
   const offer = (photo: PreparedPhoto, entry: TryFirstEntry) => {
+    if (!asksFirst(entry)) {
+      send(photo, 'camera');
+      return;
+    }
     setCaptured(photo);
     setNotice('none');
     // Canvas 18: "Önce üzerimde dene" is an outfit-photo try-on entry, hidden for a teen — the photo is split at once.
@@ -303,17 +316,7 @@ export default function ItemAddScreen() {
   const close = () => (router.canGoBack() ? router.back() : router.replace('/wardrobe'));
 
   const suggestion = draft?.suggestion;
-  const detectedLine = group
-    ? t('itemDetect.foundPill', { count: draft?.itemCount ?? 2 })
-    : detected
-    ? [
-        t('itemAdd.detected', { type: suggestion?.subcategory?.trim() || (suggestion?.category ? t(`itemCategory.${suggestion.category}`) : t('itemAdd.detectedPiece')) }),
-        suggestion?.color ? t(`itemColor.${suggestion.color}`) : null,
-        suggestion?.fabric?.trim() || null,
-      ]
-        .filter(Boolean)
-        .join(' · ')
-    : null;
+  const detectedLine = group ? t('itemDetect.foundPill', { count: draft?.itemCount ?? 2 }) : detected ? detectedSummary(t, suggestion) : null;
   const pill = detectedLine ?? (draftId ? t('itemAdd.recognising') : phase === 'sending' ? t('itemAdd.sending') : null);
 
   let frame;

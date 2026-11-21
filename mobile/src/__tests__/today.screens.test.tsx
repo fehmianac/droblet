@@ -85,8 +85,9 @@ describe('07 Haftalık plan', () => {
     // The bottom menu stays on this list screen (canvas 07).
     expect(screen.getAllByText('Today').length).toBe(1);
 
-    // 07b: the cost is shown before anything is spent.
-    await fireEvent.press(screen.getByText('Try it on me'));
+    // 07b: the cost is shown before anything is spent — on the button ("· 7 credits") and, for a batch, on the sheet.
+    expect(screen.getByTestId('week-tryon').props.accessibilityLabel).toMatch(/^Try it on me · \d+ credits?$/);
+    await fireEvent.press(screen.getByTestId('week-tryon'));
     await waitFor(() => expect(screen.getByText(/credits? will be used/)).toBeTruthy(), WAIT);
     expect(screen.getByText('TRY IT ON ME · WHOLE WEEK')).toBeTruthy();
     await fireEvent.press(screen.getByText('Cancel'));

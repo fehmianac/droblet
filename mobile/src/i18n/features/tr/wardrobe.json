@@ -204,6 +204,8 @@
     "typePlaceholder": "Örn. gömlek, blazer",
     "pickColor": "Renk seç",
     "draftGone": "Bu taslak artık yok.",
+    "savedToast": "{{type}} kaydedildi",
+    "savedToastAction": "Gör",
     "failedManual": "Bilgileri kendin de doldurabilirsin.",
     "manual": "Elle doldur",
     "processingClean": "Arka plan temizleniyor…",

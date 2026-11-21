@@ -26,6 +26,7 @@ import { accountKeys } from '@/features/account/queries';
 import { getActiveQueryClient } from '@/sync/activeClient';
 import { ensureConsents } from '@/features/consent/store';
 import { routeAiStartError } from '@/features/credits/aiErrors';
+import { markTriedOn } from '@/features/credits/spendConfirm';
 import { aiCreditsKey } from '@/features/credits/useAiCredits';
 import { fixtureDb } from '@/fixtures/db';
 import { fixtureJobOptions, startFixtureJob } from '@/fixtures/jobs';
@@ -168,6 +169,8 @@ export function useStartTryOn() {
       await requireTryOnConsent();
       const accepted = await mutation.mutateAsync({ requestId: ulid(), target });
       trackTryOnStarted(accepted.jobId, target.kind, tryOnPath());
+      // From now on a single "Üzerimde gör · 1 kredi" starts without the confirmation (unless the balance runs low).
+      void markTriedOn();
       // The curtain wait (21e) lists these pieces by name.
       tryOnPieces.record(accepted.jobId, accepted.pieces);
       // 14b's hero shows "Hazırlanıyor…" for this target until the job ends.
@@ -178,13 +181,15 @@ export function useStartTryOn() {
     startMany: async (targets: TryOnTarget[]) => {
       await requireTryOnConsent();
       const path = tryOnPath();
-      return Promise.all(
+      const accepted = await Promise.all(
         targets.map(async (target) => {
-          const accepted = await mutation.mutateAsync({ requestId: ulid(), target });
-          trackTryOnStarted(accepted.jobId, target.kind, path);
-          return accepted;
+          const one = await mutation.mutateAsync({ requestId: ulid(), target });
+          trackTryOnStarted(one.jobId, target.kind, path);
+          return one;
         }),
       );
+      void markTriedOn();
+      return accepted;
     },
   };
 }
@@ -332,7 +337,9 @@ export function useWeekTryOn() {
     /** The `requestId` is created here, once per confirmation. */
     start: async (confirmed: TryOnWeekQuote) => {
       await requireTryOnConsent();
-      return start.mutateAsync({ requestId: ulid(), quote: confirmed });
+      const jobs = await start.mutateAsync({ requestId: ulid(), quote: confirmed });
+      void markTriedOn();
+      return jobs;
     },
   };
 }

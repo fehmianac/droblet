@@ -44,6 +44,7 @@
     "tryOnCurtain": {
       "preparing": "Hazırlanıyor",
       "ready": "Hazır",
+      "skip": "Sonucu hemen göster",
       "wearing": "{{name}} giyiliyor…",
       "worn": "{{name}} giyildi",
       "adding": "{{name}} takılıyor…",

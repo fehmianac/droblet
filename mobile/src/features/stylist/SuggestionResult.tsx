@@ -31,6 +31,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { CreditConfirmSheet } from '@/features/credits/CreditConfirmSheet';
+import { useSpendConfirm } from '@/features/credits/spendConfirm';
 import { aiCreditsKey, openCreditTopUp, useAiCredits } from '@/features/credits/useAiCredits';
 import { RequirementHint } from '@/features/requirements/RequirementHint';
 import { useGate } from '@/features/requirements/useRequirements';
@@ -111,16 +112,33 @@ export function SuggestionResult({ jobId, title, result, focused, onAskAgain, as
   const [dismissed, setDismissed] = useState<number[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const [sheet, setSheet] = useState<Sheet>('none');
-  // Missing photo / consent / membership: the requirements flow, which then opens the credit confirmation (canvas 11).
-  const tryOnGate = useGate('tryOn', () => void ensureTryOnConsent().then((ok) => ok && setSheet('credit')), { origin: title });
-  // The invitation tile says what a tap does: the cost, or the missing photo / membership.
-  const invite = useTryOnInviteFooter(tryOnGate.req);
-  const [titleTops, setTitleTops] = useState<Record<number, number>>({});
-
   const suggestions = result.suggestions;
   const open = suggestions.filter((s) => !dismissed.includes(s.index));
   const suggestion = open.find((s) => s.index === current) ?? open[0] ?? null;
   const index = suggestion?.index ?? -1;
+
+  const beginTryOn = () => {
+    void startTryOn
+      .start({ kind: 'suggestion', id: `${jobId}:${index}` })
+      .then(({ jobId: started }) => {
+        tryOns.set(index, started);
+        setSheet('none');
+      })
+      .catch(() => setSheet('none'));
+  };
+
+  // Missing photo / consent / membership: the requirements flow (canvas 11), then the credit confirmation only when it
+  // has something to say (first try-on, low balance) — otherwise the image starts at once.
+  const spend = useSpendConfirm();
+  const tryOnGate = useGate(
+    'tryOn',
+    () => void ensureTryOnConsent().then((ok) => ok && spend(TRY_ON_CREDIT_COST, { confirm: () => setSheet('credit'), start: beginTryOn })),
+    { origin: title },
+  );
+  // The invitation tile says what a tap does: the cost, or the missing photo / membership.
+  const invite = useTryOnInviteFooter(tryOnGate.req);
+  const [titleTops, setTitleTops] = useState<Record<number, number>>({});
+
   const page = Math.max(0, open.findIndex((s) => s.index === index));
 
   const tryOnJobId = index >= 0 ? (tryOns.jobs[index] ?? null) : null;
@@ -230,16 +248,6 @@ export function SuggestionResult({ jobId, title, result, focused, onAskAgain, as
     if (Math.abs(dx) < SWIPE_MIN_DX || Math.abs(dx) < Math.abs(dy) * 2) return;
     const next = open[page + (dx < 0 ? 1 : -1)];
     if (next) goTo(next.index);
-  };
-
-  const beginTryOn = () => {
-    void startTryOn
-      .start({ kind: 'suggestion', id: `${jobId}:${index}` })
-      .then(({ jobId: started }) => {
-        tryOns.set(index, started);
-        setSheet('none');
-      })
-      .catch(() => setSheet('none'));
   };
 
   const submitFeedback = (reasons: StylistDislikeReason[], note: string) => {

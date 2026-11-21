@@ -1,8 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
+import { act, fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 import { Share } from 'react-native';
 
+import { triedOnKey } from '@/features/credits/spendConfirm';
+import { tryOnRuns } from '@/features/tryon/runs';
 import { fixtureDb, resetFixtureDb } from '@/fixtures/db';
+import { resetFixtureJobs } from '@/fixtures/jobs';
 
 const mockSession = {
   accessToken: 'a',
@@ -19,8 +22,21 @@ jest.mock('expo-secure-store', () => ({
 }));
 jest.mock('expo-font', () => ({ ...jest.requireActual('expo-font'), useFonts: () => [true, null] }));
 
+/** The stored "tried on" flag, once the start's write has landed (an async waitFor callback would overlap act scopes). */
+async function triedOnFlag(): Promise<string | null> {
+  for (let i = 0; i < 20; i += 1) {
+    const value = await AsyncStorage.getItem(triedOnKey('u1'));
+    if (value) return value;
+    await act(async () => undefined);
+  }
+  return AsyncStorage.getItem(triedOnKey('u1'));
+}
+
 beforeEach(async () => {
   resetFixtureDb();
+  // A try-on started by an earlier test would show this look as "Preparing image…".
+  resetFixtureJobs();
+  tryOnRuns.reset();
   await AsyncStorage.clear();
   await AsyncStorage.setItem('droblet.onboarding.u1', 'done');
 });
@@ -205,6 +221,30 @@ describe('Look detail (derived from 17)', () => {
     await waitFor(() => expect(screen.queryByTestId('look-try-on')).toBeNull(), { timeout: 3000 });
     expect(screen).not.toHavePathname('/look/look_lacivert_blazer');
     expect(fixtureDb.entitlement.credits.remaining).toBe(10);
+    // The first try-on ever is remembered: the next one starts without the sheet.
+    expect(await triedOnFlag()).toBe('yes');
+  });
+
+  it('after the first try-on, "Try it on me · 1 credit" starts at once — no credit confirmation', async () => {
+    await AsyncStorage.setItem(triedOnKey('u1'), 'yes');
+    await renderRouter('./src/app', { initialUrl: '/look/look_lacivert_blazer' });
+    await waitFor(() => expect(screen.getByTestId('look-try-on')).toBeTruthy(), { timeout: 3000 });
+    expect(screen.getByTestId('look-try-on').props.accessibilityLabel).toBe('Try it on me · 1 credit');
+    await fireEvent.press(screen.getByTestId('look-try-on'));
+    await waitFor(() => expect(screen.queryByTestId('look-try-on')).toBeNull(), { timeout: 3000 });
+    expect(screen.queryByText('1 credit will be used')).toBeNull();
+    expect(screen).not.toHavePathname('/look/look_lacivert_blazer');
+    expect(fixtureDb.entitlement.credits.remaining).toBe(10);
+  });
+
+  it('asks again when the balance after the spend would be 2 or less', async () => {
+    await AsyncStorage.setItem(triedOnKey('u1'), 'yes');
+    fixtureDb.entitlement.credits.remaining = 3;
+    await renderRouter('./src/app', { initialUrl: '/look/look_lacivert_blazer' });
+    await waitFor(() => expect(screen.getByTestId('look-try-on')).toBeTruthy(), { timeout: 3000 });
+    await fireEvent.press(screen.getByTestId('look-try-on'));
+    await waitFor(() => expect(screen.getByText('1 credit will be used')).toBeTruthy(), { timeout: 3000 });
+    expect(fixtureDb.entitlement.credits.remaining).toBe(3);
   });
 
   it('marks the look as worn today from the menu', async () => {

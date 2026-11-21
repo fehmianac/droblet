@@ -28,6 +28,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { useMyPhotos } from '@/features/account/queries';
 import { CreditConfirmSheet } from '@/features/credits/CreditConfirmSheet';
+import { useSpendConfirm } from '@/features/credits/spendConfirm';
 import { openCreditSheetIfExhausted } from '@/features/credits/creditSheetStore';
 import { aiCreditsKey } from '@/features/credits/useAiCredits';
 import { preferredSize } from '@/features/store/cartMath';
@@ -114,10 +115,6 @@ function ProductBody({ product }: { product: ProductDetail }) {
 
   const favorite = favorites.data?.productIds.includes(product.id) ?? false;
   const watching = watchlist.data?.items.some((i) => i.productId === product.id) ?? false;
-  // Canvas 11: no usable picture (no body photo and the face path is not complete) → the requirements flow.
-  const tryOnGate = useGate('tryOn', () => void ensureTryOnConsent().then((ok) => ok && setConfirmOpen(true)), { origin: product.name });
-  const needsPhoto = photos.data !== undefined && photos.data.body.length === 0 && tryOnGate.req.choosePath;
-
   const startTryOn = async () => {
     try {
       const started = await tryOn.start({ kind: 'product', id: product.id });
@@ -131,6 +128,17 @@ function ProductBody({ product }: { product: ProductDetail }) {
       setConfirmOpen(false);
     }
   };
+
+  // Canvas 11: no usable picture (no body photo and the face path is not complete) → the requirements flow. Then the
+  // credit confirmation only when it has something to say (first try-on, low balance), else the job starts.
+  const spend = useSpendConfirm();
+  const tryOnGate = useGate(
+    'tryOn',
+    () =>
+      void ensureTryOnConsent().then((ok) => ok && spend(TRY_ON_CREDIT_COST, { confirm: () => setConfirmOpen(true), start: () => void startTryOn() })),
+    { origin: product.name },
+  );
+  const needsPhoto = photos.data !== undefined && photos.data.body.length === 0 && tryOnGate.req.choosePath;
 
   const showOnMe = () => {
     // An image (or a wait) from this session, or the "add a photo first" panel: nothing is spent.

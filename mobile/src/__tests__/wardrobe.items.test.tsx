@@ -35,12 +35,6 @@ const settle = () => waitFor(() => new Promise<void>((resolve) => setTimeout(res
 jest.mock('expo-font', () => ({ ...jest.requireActual('expo-font'), useFonts: () => [true, null] }));
 
 const WAIT = { timeout: 4000 };
-/** 12+: a photo first offers "Try it on me first" / "Split into pieces" (nothing is recognised before) — these tests split. */
-async function chooseSplit() {
-  await waitFor(() => expect(screen.getByTestId('tryFirst.split')).toBeTruthy(), WAIT);
-  await fireEvent.press(screen.getByTestId('tryFirst.split'));
-}
-
 
 async function open(initialUrl: string) {
   // A fresh persisted cache per test (same user id): otherwise the previous test's wardrobe is restored.
@@ -318,7 +312,6 @@ describe('AI recognition quota (12, 13)', () => {
     await waitFor(() => expect(screen.getByTestId('item-add-manual')).toBeTruthy(), WAIT);
     await settle();
     await fireEvent.press(screen.getByTestId('item-add-shutter'));
-    await chooseSplit();
     await waitFor(() => expect(screen).toHavePathname('/paywall'), WAIT);
     expect(fixtureListDrafts()).toHaveLength(0);
 
@@ -339,7 +332,6 @@ describe('AI recognition quota (12, 13)', () => {
     // The last free recognition is used elsewhere: the app still believes one is left, the server says 402.
     setFixtureItemRecognition(3, 3);
     await fireEvent.press(screen.getByTestId('item-add-shutter'));
-    await chooseSplit();
     await waitFor(() => expect(screen).toHavePathname('/paywall'), WAIT);
     expect(fixtureListDrafts()).toHaveLength(0);
 
