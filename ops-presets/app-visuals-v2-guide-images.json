@@ -1,0 +1,19 @@
+{
+  "purpose": "In-app visuals v2, canvas 22c (04 Beden ve fotoğraf, full-length photo guide). v1 notes: the woman's cream top blended into the cream wall, the man's head sat close to the top edge and both held their arms against the body, which is the pose try-on handles worst. v2: clothes contrast with the wall, generous even margins, arms clearly away from the body. 2 image calls; the 'wrong' examples are still derived on device.",
+  "size": "1024x1536",
+  "quality": "high",
+  "format": "jpeg",
+  "style": "Photograph for a premium wardrobe app, shot on a full-frame camera, soft natural daylight, subtle film grain, true-to-life skin texture, no retouched plastic look. Warm neutral colour palette: cream, sand, warm beige, deep ink navy and a single terracotta accent. Fictional people only, not resembling any celebrity. Plain unbranded clothing with no logos, no lettering, no text, no signs, no screens showing content, no watermark anywhere in the image. Tasteful, confident and natural, not a cheesy stock photo, no big smile at the camera. Vertical portrait composition. Seamless backdrop: the wall and floor are the same warm off-white tone with only a soft contact shadow under the feet, no visible floor line.",
+  "images": [
+    {
+      "id": "photo-guide-woman",
+      "segment": "women",
+      "prompt": "A full-length reference photo for virtual try-on: a woman in her early thirties with shoulder-length dark hair tucked behind her shoulders, in a bright room against a plain, smooth warm off-white wall, nothing else in the frame. She wears simple fitted clothes that show her shape and stand out clearly from the wall: a plain ink-navy fitted long-sleeve top, straight mid-blue jeans and plain white sneakers. Her whole body is visible and centred: about 10% empty space above the head and 6% below the shoes, the body filling roughly 84% of the frame height, equal space on both sides. She stands straight facing the camera, arms relaxed and held clearly away from the body at about 20 degrees so a gap shows between arms and waist, hands open, feet hip-width apart, neutral calm expression, looking at the camera. Even, soft, bright frontal daylight, no harsh shadows, sharp focus from head to toe, camera at waist height, straight-on, no tilt, no lens distortion. Clean catalogue style, not glamorous."
+    },
+    {
+      "id": "photo-guide-man",
+      "segment": "men",
+      "prompt": "A full-length reference photo for virtual try-on: a man in his early thirties with short dark hair, in a bright room against a plain, smooth warm off-white wall, nothing else in the frame. He wears simple fitted clothes that show his shape and stand out clearly from the wall: a plain muted terracotta fitted crew-neck t-shirt, straight dark-blue jeans and plain white sneakers. Her whole body is visible and centred: about 10% empty space above the head and 6% below the shoes, the body filling roughly 84% of the frame height, equal space on both sides. He stands straight facing the camera, arms relaxed and held clearly away from the body at about 20 degrees so a gap shows between arms and waist, hands open, feet hip-width apart, neutral calm expression, looking at the camera. Even, soft, bright frontal daylight, no harsh shadows, sharp focus from head to toe, camera at waist height, straight-on, no tilt, no lens distortion. Clean catalogue style, not glamorous."
+    }
+  ]
+}
