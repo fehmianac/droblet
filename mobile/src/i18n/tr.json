@@ -290,6 +290,7 @@
   },
   "paywall": {
     "eyebrow": "DROBLET ÜYELİK",
+    "heroBadge": "Önce üzerinde gör",
     "title": "Droblet Üyelik",
     "tagline": "Her sabah hazır bir kombin. Her seyahatte hazır bir bavul.",
     "benefitAiTitle": "Ayda 30 AI görseli",
@@ -455,6 +456,16 @@
   "profile": {
     "logout": "Çıkış yap",
     "components": "Bileşen vitrini"
+  },
+  "photoGuide": {
+    "title": "İyi bir boy fotoğrafı",
+    "listLabel": "Boy fotoğrafı örnekleri",
+    "good": "Tam boy, düz duvar, gün ışığı",
+    "dark": "Karanlık ya da bulanık",
+    "half": "Yarım beden ya da selfie",
+    "goodA11y": "Doğru örnek: tam boy, düz duvar önünde, iyi ışıkta",
+    "darkA11y": "Yanlış örnek: çok karanlık",
+    "halfA11y": "Yanlış örnek: yalnız üst beden"
   },
   "photoSource": {
     "library": "Galeriden seç",

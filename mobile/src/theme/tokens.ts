@@ -135,6 +135,18 @@ export const surfaceTones = {
   caution: '#F3E3CF',
 } as const;
 
+/**
+ * The editorial photos of section 22 (canvas 22a-22c): the ink veil at the top of the paywall photo and its dark
+ * "Önce üzerinde gör" badge, the shade under the name on a segment card, and the dim of the "too dark" guide example.
+ */
+export const visualTones = {
+  inkTop: 'rgba(28, 26, 23, 0.28)',
+  inkClear: 'rgba(28, 26, 23, 0)',
+  badge: 'rgba(28, 26, 23, 0.72)',
+  cardShade: 'rgba(21, 18, 15, 0.78)',
+  dim: 'rgba(0, 0, 0, 0.62)',
+} as const;
+
 /** Swatches for wardrobe colour families (filter sheet, colour picker). Keys = `ItemColor` in api/contracts/wardrobe. */
 export const garmentColors = {
   black: '#1C1A17',
