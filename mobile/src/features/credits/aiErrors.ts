@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 
 import { track } from '@/analytics/track';
 import { apiErrorCode, isCreditsExhausted, isPaywallError } from '@/api/errors';
@@ -6,6 +5,7 @@ import { apiErrorCode, isCreditsExhausted, isPaywallError } from '@/api/errors';
 import { requirementsFlow } from '@/features/requirements/store';
 
 import { creditSheetStore } from './creditSheetStore';
+import { openPaywall } from '@/features/teen/TeenLocks';
 
 /**
  * What the server's answer to an AI start request means for the user (README §9.1):
@@ -21,7 +21,7 @@ export function routeAiStartError(error: unknown, feature: string): boolean {
     return true;
   }
   if (isPaywallError(error)) {
-    router.push({ pathname: '/paywall', params: { from: feature } });
+    openPaywall({ from: feature });
     return true;
   }
   if (isCreditsExhausted(error)) {

@@ -7,6 +7,8 @@ import { useConsents } from '@/features/consent/api';
 import { useAiCredits } from '@/features/credits/useAiCredits';
 import { bodyTypeForSegment } from '@/features/segment/catalog';
 import { useSegment } from '@/features/segment/store';
+import { teenGate, teenGateStop } from '@/features/teen/gate';
+import { useTeenRules } from '@/features/teen/store';
 import { useItems } from '@/features/wardrobe/queries';
 
 import { computeRequirements, singleStepRequirements, type PhotoPath, type RequirementAction, type RequirementInput, type Requirements } from './logic';
@@ -74,13 +76,19 @@ export function useRequirementHint(req: Requirements): string | null {
 export function useGate(action: RequirementAction, onRun: () => void, options: { origin?: string | null } = {}) {
   const req = useRequirements(action);
   const hint = useRequirementHint(req);
+  const teen = useTeenRules();
+  const proceed = () => {
+    if (req.ready) onRun();
+    else requirementsFlow.open({ action, onResume: onRun, origin: options.origin ?? null });
+  };
   return {
     req,
     hint,
     count: req.count,
     run: () => {
-      if (req.ready) onRun();
-      else requirementsFlow.open({ action, onResume: onRun, origin: options.origin ?? null });
+      // Canvas 18: a teen's locked or not-yet-explained action stops here first (the server enforces the same).
+      if (teenGate.apply(teenGateStop(action, teen), proceed)) return;
+      proceed();
     },
   };
 }

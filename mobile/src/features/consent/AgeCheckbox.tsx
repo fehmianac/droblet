@@ -51,3 +51,18 @@ export function AgeCheckbox({ checked, onToggle, error }: { checked: boolean; on
     </View>
   );
 }
+
+/** "Kullanım Koşulları · Gizlilik Politikası" under the birth year (canvas 18 · 02 / 02f). */
+export function LegalLinksLine() {
+  return (
+    <Text variant="caption" tone="muted" testID="legal.links">
+      <Trans
+        i18nKey="age.links"
+        components={{
+          terms: <Text variant="caption" tone="ink" className="underline" accessibilityRole="link" onPress={openTerms} />,
+          privacy: <Text variant="caption" tone="ink" className="underline" accessibilityRole="link" onPress={openPrivacy} />,
+        }}
+      />
+    </Text>
+  );
+}

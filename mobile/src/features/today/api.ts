@@ -45,6 +45,7 @@ import { queryKeys } from '@/sync/queryKeys';
 import { monthBounds } from './dates';
 import { planKeys, todayMutationKeys } from './keys';
 import type { AddWatchlistVariables, PutPlanDayVariables, SaveEditLookVariables, SetLookFavoriteVariables } from './mutations';
+import { openPaywall } from '@/features/teen/TeenLocks';
 
 /** GET v1/tenant/plan-day?from=&to= (inclusive, ≤ 62 days) → only days that have a record. */
 export async function requestPlanDays(from: string, to: string): Promise<PlanDay[]> {
@@ -191,7 +192,7 @@ export function useRefreshTodayLook() {
             router.push({ pathname: '/stylist/[jobId]', params: { jobId: job.id } });
           } catch (e) {
             if (!isPaywallError(e)) throw e;
-            router.push({ pathname: '/paywall', params: { from: 'stylist' } });
+            openPaywall({ from: 'stylist' });
           }
           return null;
         },
@@ -269,7 +270,7 @@ export function useStartPlanWeek() {
     },
     // 403 `premium_required`: the weekly planner is a member feature.
     onError: (error) => {
-      if (isPaywallError(error)) router.push({ pathname: '/paywall', params: { from: 'stylist' } });
+      if (isPaywallError(error)) openPaywall({ from: 'stylist' });
     },
   });
 }

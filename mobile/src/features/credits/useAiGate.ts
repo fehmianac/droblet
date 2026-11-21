@@ -1,10 +1,10 @@
-import { router } from 'expo-router';
 
 import { track } from '@/analytics/track';
 import type { Entitlement } from '@/api/contracts';
 import { useEntitlement } from '@/entitlement/useEntitlement';
 
 import { creditSheetStore } from './creditSheetStore';
+import { openPaywall } from '@/features/teen/TeenLocks';
 
 export type AiGateDecision = 'allow' | 'paywall' | 'credits';
 
@@ -27,7 +27,7 @@ export function useAiGate() {
   return (feature: string, action: () => void, options: { costsCredit?: boolean } = {}): boolean => {
     const decision = decideAiGate(entitlement.data, options.costsCredit ?? true);
     if (decision === 'paywall') {
-      router.push({ pathname: '/paywall', params: { from: feature } });
+      openPaywall({ from: feature });
       return false;
     }
     if (decision === 'credits') {

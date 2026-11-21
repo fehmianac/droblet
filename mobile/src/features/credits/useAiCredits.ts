@@ -1,5 +1,4 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { router } from 'expo-router';
 
 import { apiRequest } from '@/api/client';
 import type { Entitlement } from '@/api/contracts';
@@ -8,6 +7,7 @@ import { toEntitlement, type EntitlementWire } from '@/api/wire/core';
 import { clone, fixtureDb } from '@/fixtures/db';
 
 import { creditSheetStore } from './creditSheetStore';
+import { openPaywall } from '@/features/teen/TeenLocks';
 
 /** Separate from `queryKeys.entitlement` (the paywall's live query) so fixture data never lands in that cache entry. */
 export const aiCreditsKey = ['tenant', 'entitlement', 'ai-credits'] as const;
@@ -55,5 +55,5 @@ export function useAiCredits(): AiCredits {
  */
 export function openCreditTopUp(isMember: boolean): void {
   if (isMember) creditSheetStore.open('topUp');
-  else router.push('/paywall');
+  else openPaywall();
 }

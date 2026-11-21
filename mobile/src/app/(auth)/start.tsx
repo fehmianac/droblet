@@ -5,13 +5,18 @@ import { Pressable, ScrollView, View, type TextInputInstance } from 'react-nativ
 
 import { KeyboardAvoider } from '@/components/ui/KeyboardAvoider';
 import { useAppleSignIn, useGoogleSignIn, useLogin, useRegister } from '@/api/auth';
-import { extractApiError, fieldErrors, type KnownErrorCode } from '@/api/errors';
+import { DEFAULT_TEEN_CONFIG } from '@/api/contracts/teen';
+import { apiErrorCode, extractApiError, fieldErrors, type KnownErrorCode } from '@/api/errors';
 import { useSession } from '@/auth/session';
 import { requestAppleCredential } from '@/auth/apple';
 import { AppleButton } from '@/components/auth/AppleButton';
 import { GoogleSignIn } from '@/components/auth/GoogleSignIn';
 import { Button } from '@/components/ui/Button';
-import { AgeCheckbox } from '@/features/consent/AgeCheckbox';
+import { LegalLinksLine } from '@/features/consent/AgeCheckbox';
+import { useAppConfig } from '@/api/appConfig';
+import { ageOutcome, bandOf } from '@/features/teen/age';
+import { BirthYearField } from '@/features/teen/BirthYearField';
+import { TeenIntro, UnderAge } from '@/features/teen/TeenScreens';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
@@ -20,7 +25,9 @@ import { TextField } from '@/components/ui/TextField';
 import { isValidEmail, isValidPassword } from '@/lib/validation';
 
 type Mode = 'register' | 'login';
-type Field = 'name' | 'email' | 'password' | 'age';
+type Field = 'name' | 'email' | 'password' | 'age' | 'month';
+/** Canvas 18: the form, 02h (teen explainer before the account exists) or 02g (under 16 / teen sign-up closed). */
+type Step = 'form' | 'intro' | 'underage' | 'closed';
 type Errors = Partial<Record<Field | 'form', string>>;
 
 /**
@@ -34,8 +41,17 @@ export default function AuthStartScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  /** 18+ — required on sign-up, never pre-ticked. */
-  const [adult, setAdult] = useState(false);
+  /** Canvas 18 · 02: the birth year (and the month when the year alone cannot tell the band) instead of the 18+ box. */
+  const [birthYear, setBirthYear] = useState<number | null>(null);
+  const [birthMonth, setBirthMonth] = useState<number | null>(null);
+  /** The server asked for the month (`birth_month_required`) although the app did not think it was needed. */
+  const [monthAsked, setMonthAsked] = useState(false);
+  const [step, setStep] = useState<Step>('form');
+  const config = useAppConfig();
+  // Config unknown (offline): let the server decide whether teen sign-up is open (`teen_not_available`).
+  const teenConfig = config.data?.teen ?? { ...DEFAULT_TEEN_CONFIG, enabled: true };
+  const outcome = birthYear ? ageOutcome(birthYear, birthMonth, teenConfig) : null;
+  const showMonth = outcome === 'needsMonth' || monthAsked || (birthMonth !== null && birthYear !== null && ageOutcome(birthYear, null, teenConfig) === 'needsMonth');
   const session = useSession();
   // Signed out because the account was suspended (403 `account_suspended` on refresh): say so at once.
   const [errors, setErrors] = useState<Errors>(() =>
@@ -54,6 +70,20 @@ export default function AuthStartScreen() {
     (error: unknown) => {
       const code: KnownErrorCode = extractApiError(error);
       const fields = fieldErrors(error);
+      const raw = apiErrorCode(error);
+      // docs/api/teen.md §3 — nothing is stored for these: the kind screens, or the month.
+      if (raw === 'age_under_minimum') return setStep('underage');
+      if (raw === 'teen_not_available') return setStep('closed');
+      if (raw === 'birth_month_required') {
+        setStep('form');
+        setMonthAsked(true);
+        return setErrors({ month: t('teen.birth.monthRequired') });
+      }
+      if (raw === 'birth_year_invalid' || raw === 'birth_month_invalid') {
+        setStep('form');
+        return setErrors({ age: t('teen.birth.invalid') });
+      }
+      if (step === 'intro') setStep('form');
       if (code === 'email_taken') setErrors({ email: t('errors.email_taken') });
       else if (code === 'invalid_credentials') setErrors({ password: t('errors.invalid_credentials') });
       else if (Object.keys(fields).length > 0) {
@@ -62,11 +92,11 @@ export default function AuthStartScreen() {
           name: fields.name ? t('errors.nameRequired') : undefined,
           email: fields.email ? t('errors.emailInvalid') : undefined,
           password: fields.password ? t('errors.passwordTooShort') : undefined,
-          age: fields.ageConfirmed ? t('age.required') : undefined,
+          age: fields.ageConfirmed || fields.birthYear ? t('teen.birth.required') : undefined,
         });
       } else setErrors({ form: t(`errors.${code}`) });
     },
-    [t],
+    [t, step],
   );
 
   const validate = (): Errors => {
@@ -74,8 +104,26 @@ export default function AuthStartScreen() {
     if (mode === 'register' && name.trim().length === 0) next.name = t('errors.nameRequired');
     if (!isValidEmail(email)) next.email = t('errors.emailInvalid');
     if (!isValidPassword(password)) next.password = t('errors.passwordTooShort');
-    if (mode === 'register' && !adult) next.age = t('age.required');
+    if (mode === 'register' && !birthYear) next.age = t('teen.birth.required');
+    else if (mode === 'register' && outcome === 'needsMonth') next.month = t('teen.birth.monthRequired');
     return next;
+  };
+
+  const register_ = () => {
+    if (!birthYear) return;
+    const band = bandOf(outcome ?? 'adult') ?? 'adult';
+    register.mutate(
+      {
+        name: name.trim(),
+        email: email.trim(),
+        password,
+        birthYear,
+        ...(birthMonth ? { birthMonth } : {}),
+        ...(band === 'adult' ? { ageConfirmed: true as const } : {}),
+        ageBand: band,
+      },
+      { onError: showServerError },
+    );
   };
 
   const submit = () => {
@@ -84,7 +132,11 @@ export default function AuthStartScreen() {
     if (Object.keys(next).length > 0) return;
     const trimmedEmail = email.trim();
     if (mode === 'register') {
-      register.mutate({ name: name.trim(), email: trimmedEmail, password, ageConfirmed: true }, { onError: showServerError });
+      // Under 16 never reaches the server: nothing about the child is sent or kept (02g).
+      if (outcome === 'underage') return setStep('underage');
+      if (outcome === 'teenClosed') return setStep('closed');
+      if (outcome === 'teen') return setStep('intro');
+      register_();
     } else {
       login.mutate({ email: trimmedEmail, password }, { onError: showServerError });
     }
@@ -109,6 +161,23 @@ export default function AuthStartScreen() {
   const onGoogleUnavailable = useCallback(() => setErrors({ form: t('errors.googleUnavailable') }), [t]);
 
   const clear = (field: Field) => setErrors((e) => ({ ...e, [field]: undefined, form: undefined }));
+
+  if (step === 'intro') {
+    return <TeenIntro onContinue={register_} onFix={() => setStep('form')} loading={register.isPending} error={errors.form} />;
+  }
+  if (step === 'underage' || step === 'closed') {
+    return (
+      <UnderAge
+        variant={step === 'closed' ? 'closed' : 'email'}
+        onPrimary={() => router.replace('/welcome')}
+        onFix={() => {
+          setStep('form');
+          setBirthYear(null);
+          setBirthMonth(null);
+        }}
+      />
+    );
+  }
 
   return (
     <Screen bottom>
@@ -226,14 +295,28 @@ export default function AuthStartScreen() {
               </Pressable>
             ) : null}
             {mode === 'register' ? (
-              <AgeCheckbox
-                checked={adult}
-                onToggle={() => {
-                  setAdult((a) => !a);
-                  clear('age');
-                }}
-                error={errors.age}
-              />
+              <>
+                <BirthYearField
+                  year={birthYear}
+                  month={birthMonth}
+                  showMonth={showMonth}
+                  onYear={(y) => {
+                    setBirthYear(y);
+                    setBirthMonth(null);
+                    setMonthAsked(false);
+                    clear('age');
+                    clear('month');
+                  }}
+                  onMonth={(m) => {
+                    setBirthMonth(m);
+                    clear('month');
+                  }}
+                  hint={!birthYear ? t('teen.birth.hintEmpty') : outcome === 'teen' ? t('teen.birth.hintTeen') : null}
+                  yearError={errors.age}
+                  monthError={errors.month}
+                />
+                <LegalLinksLine />
+              </>
             ) : null}
           </View>
 
