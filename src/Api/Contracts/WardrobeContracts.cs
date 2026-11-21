@@ -29,12 +29,19 @@ public static class WardrobeApi
             ? Results.Conflict(result.Value)
             : ApiResults.Problem(StatusCodes.Status409Conflict, result.Code ?? ErrorCodes.VersionConflict),
         ResultKind.Invalid => ApiResults.Problem(StatusCodes.Status422UnprocessableEntity, result.Code ?? ErrorCodes.ValidationFailed),
-        ResultKind.Forbidden => ApiResults.Problem(StatusCodes.Status403Forbidden, result.Code ?? ErrorCodes.PremiumRequired),
+        ResultKind.Forbidden => WithExtensions(ApiResults.Problem(StatusCodes.Status403Forbidden, result.Code ?? ErrorCodes.PremiumRequired), result.Extensions),
         // 402: the client opens the credit-pack sheet (not the paywall) on credits_exhausted.
         ResultKind.PaymentRequired => ApiResults.Problem(StatusCodes.Status402PaymentRequired, result.Code ?? ErrorCodes.CreditsExhausted),
-        ResultKind.TooManyRequests => ApiResults.Problem(StatusCodes.Status429TooManyRequests, result.Code ?? ErrorCodes.TooManyRequests),
+        ResultKind.TooManyRequests => WithExtensions(ApiResults.Problem(StatusCodes.Status429TooManyRequests, result.Code ?? ErrorCodes.TooManyRequests), result.Extensions),
         _ => ApiResults.Problem(StatusCodes.Status500InternalServerError, "internal_error"),
     };
+
+    private static IResult WithExtensions(Microsoft.AspNetCore.Http.HttpResults.ProblemHttpResult problem, IReadOnlyDictionary<string, object?>? extensions)
+    {
+        foreach (var (key, value) in extensions ?? new Dictionary<string, object?>())
+            problem.ProblemDetails.Extensions[key] = value;
+        return problem;
+    }
 
     /// <summary>Raw Accept-Language (or null): the fallback when the profile has no supported language.</summary>
     public static string? RequestLanguage(this HttpContext context) =>

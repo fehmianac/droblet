@@ -35,6 +35,6 @@ public class PostPack : IEndpoint
             .Produces<JobDto>(StatusCodes.Status202Accepted)
             .Problems(StatusCodes.Status403Forbidden, StatusCodes.Status404NotFound, StatusCodes.Status409Conflict)
             .Validated()
-            .Tenant("Tenant Trip", "Build the suitcase", "Queues a job that drafts the packing list and the daily looks (PackingRules: every piece worn at least twice except on 1-day trips; cabin limit). Membership required. Poll GET v1/tenant/job/{requestId}.");
+            .Tenant("Tenant Trip", "Build the suitcase", "Queues a job that drafts the packing list and the daily looks (PackingRules: every piece worn at least twice except on 1-day trips; cabin limit). Membership required — teens: Teen:Stylist:TripPackPerWeek (0 by default → 403 teen_stylist_unavailable). Poll GET v1/tenant/job/{requestId}.");
     }
 }

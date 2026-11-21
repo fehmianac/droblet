@@ -107,3 +107,38 @@ public class TeenAccountIndexEntity : IEntity
     public static string GetPk() => "teenaccounts";
     public static string GetSk(string tenantId) => tenantId;
 }
+
+/// <summary>A teen stylist job holding an allowance slot until the worker settles it (TeenStylistUsageEntity).</summary>
+public class TeenStylistPending
+{
+    [JsonPropertyName("jobId")] public string JobId { get; set; } = null!;
+    [JsonPropertyName("kind")] public TeenStylistKind Kind { get; set; }
+    // The Istanbul day / week the reservation was made in: a completed job is charged to that period.
+    [JsonPropertyName("day")] public string Day { get; set; } = null!;
+    [JsonPropertyName("week")] public string Week { get; set; } = null!;
+    [JsonPropertyName("at")] public DateTime At { get; set; }
+}
+
+/// <summary>
+/// The free-tier teen stylist allowance (Teen:Stylist): one row per tenant, optimistic versioning (conditional write).
+/// Counters belong to the stored day / week and restart when the Istanbul day / week changes. A job holds a pending slot
+/// from the start; completed → counted, failed → given back (JobLifecycle). Server-side only; removed with the account.
+/// </summary>
+public class TeenStylistUsageEntity : IVersionedEntity
+{
+    [JsonPropertyName("pk")] public string Pk => GetPk(TenantId);
+    [JsonPropertyName("sk")] public string Sk => GetSk();
+
+    [JsonPropertyName("tenantId")] public string TenantId { get; set; } = null!;
+    [JsonPropertyName("day")] public string? Day { get; set; }
+    [JsonPropertyName("outfitsUsed")] public int OutfitsUsed { get; set; }
+    [JsonPropertyName("week")] public string? Week { get; set; }
+    [JsonPropertyName("weekPlansUsed")] public int WeekPlansUsed { get; set; }
+    [JsonPropertyName("tripPacksUsed")] public int TripPacksUsed { get; set; }
+    [JsonPropertyName("pending")] public List<TeenStylistPending> Pending { get; set; } = [];
+    [JsonPropertyName("updatedAt")] public DateTime UpdatedAt { get; set; }
+    [JsonPropertyName("version")] public long Version { get; set; }
+
+    public static string GetPk(string tenantId) => $"tenant#{tenantId}#teenstylist";
+    public static string GetSk() => "usage";
+}

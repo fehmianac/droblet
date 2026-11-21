@@ -73,6 +73,7 @@ public static class DeletionPlan
         // AccountDeletionService first, found through the consent row).
         typeof(ParentalConsentEntity),
         typeof(ParentalConsentEventEntity),
+        typeof(TeenStylistUsageEntity),
         // Profile picture (own prefix tenant/{id}/avatar/, removed with TenantRoot).
         typeof(AvatarEntity),
         typeof(AvatarUploadEntity),

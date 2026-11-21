@@ -138,7 +138,8 @@ public sealed partial class TeenService(
             consent?.RequestExpiresAt, consent?.RequestSentAt?.Add(ResendInterval));
         var reason = TeenRules.TryOnBlockReason(options.CurrentValue.TryOnEnabled, status, consent?.ParentAllowedTryOn == true, ownValid);
         return new TeenStatusDto(AgeBand.Teen, new TeenStateDto(status, request, consent?.ApprovedAt, consent?.ParentAllowedTryOn == true, ownValid,
-            ownVersion, new TeenTryOnDto(reason is null, reason), AdultFromOf(user)?.ToString("yyyy-MM-dd"), TeenRules.Restrictions));
+            ownVersion, new TeenTryOnDto(reason is null, reason), AdultFromOf(user)?.ToString("yyyy-MM-dd"), TeenRules.Restrictions,
+            TeenStylistQuota.Of(await StylistAllowanceService.LoadAsync(repository, user.TenantId, ct), options.CurrentValue.Stylist, now).ToDto()));
     }
 
     // ── Teen side: request / resend ────────────────────────────────────────────────────────────────────────────────

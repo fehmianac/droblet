@@ -18,7 +18,7 @@ namespace Infrastructure.Services;
 public sealed class TripService(
     IRepository repository,
     IEventManager events,
-    IEntitlementService entitlements,
+    IStylistAllowanceService allowance,
     IWeatherService weather,
     IOptionsMonitor<PackingOptions> packingOptions,
     TimeProvider timeProvider,
@@ -144,11 +144,15 @@ public sealed class TripService(
         if (trip is null)
             return ServiceResult.NotFound<JobDto>(ErrorCodes.TripNotFound);
 
-        var decision = await entitlements.CheckAsync(tenantId, Capability.SmartSuitcase, ct);
+        // Members, or an approved teen with a Teen:Stylist:TripPackPerWeek slot (0 by default = off for teens).
+        var decision = await allowance.ReserveAsync(tenantId, command.RequestId, TeenStylistKind.TripPack, ct);
         if (!decision.Allowed)
-            return ServiceResult.Forbidden<JobDto>(decision.Reason ?? ErrorCodes.PremiumRequired);
+            return ServiceResult.Denied<JobDto>(decision);
         if (!await aiLimits.AllowAsync(tenantId, AiCap.Stylist, 1, ct))
+        {
+            await allowance.ReleaseAsync(tenantId, command.RequestId, ct);
             return ServiceResult.TooManyRequests<JobDto>(ErrorCodes.AiLimitReached);
+        }
 
         var tenant = await repository.GetAsync<TenantEntity>(TenantEntity.GetPk(), TenantEntity.GetSk(tenantId), ct);
         var job = JobStarter.New(tenantId, command.RequestId, JobKind.StylistPack, StylingJson.Serialize(new PackJobInput(id, Localized.Language(tenant?.Language, requestLanguage))), Now);

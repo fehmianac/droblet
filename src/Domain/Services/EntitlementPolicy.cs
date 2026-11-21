@@ -6,6 +6,12 @@ namespace Domain.Services;
 
 public sealed record EntitlementDecision(bool Allowed, string? Reason, int CreditCost)
 {
+    /// <summary>A period allowance ran out (teen_stylist_daily_limit / teen_stylist_weekly_limit): when it comes back (UTC).</summary>
+    public DateTime? ResetsAt { get; init; }
+
+    /// <summary>Allowed through the teen stylist allowance: the caller reserves a slot for the job.</summary>
+    public bool UsesTeenAllowance { get; init; }
+
     public static EntitlementDecision Allow(int creditCost = 0) => new(true, null, creditCost);
     public static EntitlementDecision Deny(string reason) => new(false, reason, 0);
 }
@@ -83,6 +89,31 @@ public static class EntitlementPolicy
             return EntitlementDecision.Deny(ErrorCodes.CreditsExhausted);
 
         return EntitlementDecision.Allow(cost);
+    }
+
+    /// <summary>The capability a teen stylist allowance kind stands for (outfit / week plan: DailyStylist, packing: SmartSuitcase).</summary>
+    public static Capability CapabilityOf(TeenStylistKind kind) => kind == TeenStylistKind.TripPack ? Capability.SmartSuitcase : Capability.DailyStylist;
+
+    /// <summary>
+    /// Owner decision 2026-11-21 (Teen:Stylist): an approved teen on the free tier gets a limited stylist instead of the paywall
+    /// (teens never see it). Order: member → the normal check; no active parental consent → parental_consent_required;
+    /// Teen:Stylist:Enabled off or the kind's limit 0 → teen_stylist_unavailable; allowance used → teen_stylist_daily_limit
+    /// (outfit) / teen_stylist_weekly_limit (week plan, packing) with ResetsAt; otherwise allowed (UsesTeenAllowance).
+    /// </summary>
+    public static EntitlementDecision CheckTeenStylist(Tier tier, TeenStylistKind kind, CreditBalance? credits, bool consentActive,
+        TeenStylistQuota quota)
+    {
+        if (tier == Tier.Premium)
+            return Check(tier, CapabilityOf(kind), credits);
+        if (!consentActive)
+            return EntitlementDecision.Deny(ErrorCodes.ParentalConsentRequired);
+        var limit = quota.Limit(kind);
+        if (!quota.Enabled || limit <= 0)
+            return EntitlementDecision.Deny(ErrorCodes.TeenStylistUnavailable);
+        if (quota.Used(kind) >= limit)
+            return EntitlementDecision.Deny(kind == TeenStylistKind.Outfit ? ErrorCodes.TeenStylistDailyLimit : ErrorCodes.TeenStylistWeeklyLimit)
+                with { ResetsAt = quota.ResetsAtOf(kind) };
+        return EntitlementDecision.Allow() with { UsesTeenAllowance = true };
     }
 }
 

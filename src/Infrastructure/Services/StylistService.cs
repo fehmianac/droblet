@@ -33,12 +33,13 @@ internal static class JobStarter
 
 /// <summary>
 /// E5 stylist (Api side): starts outfit / week jobs and turns a draft into Look / PlanDay — only when the user accepts.
-/// Text stylist never costs a credit (EntitlementPolicy.CreditCost), it only needs the membership.
+/// Text stylist never costs a credit (EntitlementPolicy.CreditCost), it only needs the membership — or, for an approved teen,
+/// a slot of the Teen:Stylist allowance (IStylistAllowanceService).
 /// </summary>
 public sealed class StylistService(
     IRepository repository,
     IEventManager events,
-    IEntitlementService entitlements,
+    IStylistAllowanceService allowance,
     ILookService looks,
     TimeProvider timeProvider,
     IAiUsageGuard aiLimits) : IStylistService
@@ -198,11 +199,14 @@ public sealed class StylistService(
     {
         if (await JobStarter.ExistingAsync(repository, tenantId, requestId, kind, ct) is { } existing)
             return existing;
-        var decision = await entitlements.CheckAsync(tenantId, Capability.DailyStylist, ct);
+        var decision = await allowance.ReserveAsync(tenantId, requestId, kind == JobKind.StylistWeek ? TeenStylistKind.WeekPlan : TeenStylistKind.Outfit, ct);
         if (!decision.Allowed)
-            return ServiceResult.Forbidden<JobDto>(decision.Reason ?? ErrorCodes.PremiumRequired);
+            return ServiceResult.Denied<JobDto>(decision);
         // Text stylist costs no credit: a per-tenant daily cap (AiLimits) keeps one account from running up the bill.
-        return await aiLimits.AllowAsync(tenantId, AiCap.Stylist, 1, ct) ? null : ServiceResult.TooManyRequests<JobDto>(ErrorCodes.AiLimitReached);
+        if (await aiLimits.AllowAsync(tenantId, AiCap.Stylist, 1, ct))
+            return null;
+        await allowance.ReleaseAsync(tenantId, requestId, ct);   // refused before the job exists: the teen keeps the slot
+        return ServiceResult.TooManyRequests<JobDto>(ErrorCodes.AiLimitReached);
     }
 
     private async Task<ServiceResult<JobDto>> QueueAsync(string tenantId, string requestId, JobKind kind, string input, CancellationToken ct)

@@ -98,7 +98,8 @@ public sealed record TeenStateDto(
     string OwnTryOnConsentVersion,
     TeenTryOnDto TryOn,
     string? AdultFrom,
-    IReadOnlyList<string> Restrictions);
+    IReadOnlyList<string> Restrictions,
+    TeenStylistDto? Stylist = null);
 
 /// <summary>GET v1/tenant/teen and the profile's ageBand / teen. AgeBand null = not given yet (Apple / Google before the age step).</summary>
 public sealed record TeenStatusDto(AgeBand? AgeBand, TeenStateDto? Teen);

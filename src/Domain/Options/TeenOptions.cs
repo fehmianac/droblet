@@ -31,5 +31,26 @@ public sealed class TeenOptions
     /// <summary>Version of the parent-facing text (landing /parent-consent/); the page sends it back with the decision.</summary>
     public string ParentalConsentTextVersion { get; set; } = "2026-11-21";
 
+    /// <summary>The limited stylist of approved teens on the free tier (docs/api/teen.md §4.2). Editable in the panel.</summary>
+    public TeenStylistOptions Stylist { get; set; } = new();
+
     public TimeSpan ConsentLinkLifetime => TimeSpan.FromDays(Math.Clamp(ConsentLinkDays, 1, 30));
+}
+
+/// <summary>
+/// Teen:Stylist — owner decision 2026-11-21: an approved teen (free tier, paywall hidden) gets a limited text stylist.
+/// Days and weeks are Europe/Istanbul (week = Monday 00:00). Every number 0 = that capability is off for teens.
+/// </summary>
+public sealed class TeenStylistOptions
+{
+    public bool Enabled { get; set; } = true;
+
+    /// <summary>Outfit suggestion jobs (POST v1/tenant/stylist/outfit) per Istanbul day.</summary>
+    public int DailyLimit { get; set; } = 3;
+
+    /// <summary>Week plans (POST v1/tenant/stylist/week) per Istanbul week.</summary>
+    public int WeekPlanPerWeek { get; set; } = 1;
+
+    /// <summary>AI trip packing (POST v1/tenant/trip/{id}/pack) per Istanbul week; 0 (default) = off for teens.</summary>
+    public int TripPackPerWeek { get; set; }
 }

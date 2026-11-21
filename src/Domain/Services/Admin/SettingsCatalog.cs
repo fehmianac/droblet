@@ -149,6 +149,9 @@ public static partial class SettingsCatalog
                 new("Enabled", SettingFieldType.Bool), new("ConsentLinkDays", SettingFieldType.Int, 1, 30),
                 new("ConsentRequestsPerDay", SettingFieldType.Int, 1, 50), new("ConsentRequestsPerParentPerDay", SettingFieldType.Int, 1, 50),
                 new("PhotoRetentionInactiveDays", SettingFieldType.Int, 7, 365), new("LegacyAgeCheckbox", SettingFieldType.Bool),
+                // The free-tier teen stylist allowance (owner decision 2026-11-21, docs/api/teen.md §4.2): 0 = off.
+                new("Stylist.Enabled", SettingFieldType.Bool), new("Stylist.DailyLimit", SettingFieldType.Int, 0, 50),
+                new("Stylist.WeekPlanPerWeek", SettingFieldType.Int, 0, 14), new("Stylist.TripPackPerWeek", SettingFieldType.Int, 0, 14),
             ]),
         AiModels,
         AiLimits,
