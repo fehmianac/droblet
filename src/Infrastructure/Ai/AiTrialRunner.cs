@@ -98,7 +98,7 @@ public sealed class AiTrialRunner(IRepository repository, OpenAiProvider provide
             {
                 case PromptTrialTarget.StylistOutfit or PromptTrialTarget.StylistWeek or PromptTrialTarget.StylistPack:
                     var kind = PromptCatalog.StylistKind(definition.Trial)!.Value;
-                    var content = await provider.GenerateAsync(new StylistPrompt(kind, trial.Input!, language, Segment: segment), ct);
+                    var content = await provider.GenerateAsync(new StylistPrompt(kind, trial.Input!, language, Segment: segment, Teen: definition.Key == PromptCatalog.StylistTeen), ct);
                     trial.Parsed = OpenAiProvider.StylistAnswerParses(kind, content);
                     if (trial.Parsed == false)
                         trial.ParseError = "The answer does not deserialize into the stylist DTO.";

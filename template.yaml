@@ -635,6 +635,36 @@ Resources:
       Type: String
       Description: AI cost accounting only (never changes a request) - USD per 1M tokens per model (OpenAI standard rates 2026-11, docs/ai-cost.md), tier multipliers, per-image fallback and USD/TRY (assumptions).
       Value: '{"Models":{"gpt-6-astra":{"Input":10,"CachedInput":1.0,"Output":50},"gpt-6.2-astra":{"Input":8,"CachedInput":0.4,"Output":40},"gpt-6.2-sol":{"Input":2,"CachedInput":0.1,"Output":10},"gpt-6.1-sol":{"Input":2,"CachedInput":0.1,"Output":10},"gpt-6.1-terra":{"Input":1,"CachedInput":0.05,"Output":5},"gpt-6-sol":{"Input":2,"CachedInput":0.2,"Output":10},"gpt-6-luna":{"Input":0.1,"CachedInput":0.01,"Output":0.5},"gpt-5.6-sol":{"Input":4,"CachedInput":0.4,"Output":20},"gpt-5.6-terra":{"Input":2,"CachedInput":0.2,"Output":12},"gpt-5.6-luna":{"Input":0.2,"CachedInput":0.02,"Output":1.2},"gpt-5.4-mini":{"Input":0.75,"CachedInput":0.075,"Output":4.5},"gpt-5-mini":{"Input":0.25,"CachedInput":0.025,"Output":2},"gpt-5-nano":{"Input":0.05,"CachedInput":0.005,"Output":0.4},"gpt-image-2.5-sunburst":{"Input":5,"CachedInput":1.25,"ImageInput":8,"ImageCachedInput":2,"ImageOutput":30},"gpt-image-2.5-flare":{"Input":5,"CachedInput":1.25,"ImageInput":8,"ImageCachedInput":2,"ImageOutput":30},"gpt-image-2":{"Input":5,"CachedInput":1.25,"ImageInput":8,"ImageCachedInput":2,"ImageOutput":30},"gpt-image-1-mini":{"Input":2,"CachedInput":0.2,"ImageInput":2.5,"ImageCachedInput":0.25,"ImageOutput":8}},"TierMultipliers":{"flex":0.5,"batch":0.5,"priority":2,"fast":2},"ImageFallback":{"low/1024x1024":0.006,"medium/1024x1024":0.013,"high/1024x1024":0.053},"UsdTry":43}'
+  SsmApiTeen:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/api/Teen
+      Type: String
+      Description: Teen mode 16-17 (docs/api/teen.md). Enabled - dev true, prod false. TryOnEnabled stays false on every stage until OpenAI policy and lawyer approval (not editable in the panel).
+      Value: !If
+        - IsProd
+        - '{"Enabled":false,"TryOnEnabled":false,"ConsentLinkDays":7,"ConsentRequestsPerDay":5,"ConsentRequestsPerParentPerDay":3,"PhotoRetentionInactiveDays":90,"LegacyAgeCheckbox":true,"ParentConsentUrl":"https://droblet.alatech.co/parent-consent/","ParentalConsentTextVersion":"2026-11-21"}'
+        - '{"Enabled":true,"TryOnEnabled":false,"ConsentLinkDays":7,"ConsentRequestsPerDay":5,"ConsentRequestsPerParentPerDay":3,"PhotoRetentionInactiveDays":90,"LegacyAgeCheckbox":true,"ParentConsentUrl":"https://droblet.alatech.co/parent-consent/","ParentalConsentTextVersion":"2026-11-21"}'
+  SsmWorkerTeen:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/worker/Teen
+      Type: String
+      Description: Same values as api/Teen (the try-on worker re-checks TryOnEnabled).
+      Value: !If
+        - IsProd
+        - '{"Enabled":false,"TryOnEnabled":false,"ConsentLinkDays":7,"ConsentRequestsPerDay":5,"ConsentRequestsPerParentPerDay":3,"PhotoRetentionInactiveDays":90,"LegacyAgeCheckbox":true,"ParentConsentUrl":"https://droblet.alatech.co/parent-consent/","ParentalConsentTextVersion":"2026-11-21"}'
+        - '{"Enabled":true,"TryOnEnabled":false,"ConsentLinkDays":7,"ConsentRequestsPerDay":5,"ConsentRequestsPerParentPerDay":3,"PhotoRetentionInactiveDays":90,"LegacyAgeCheckbox":true,"ParentConsentUrl":"https://droblet.alatech.co/parent-consent/","ParentalConsentTextVersion":"2026-11-21"}'
+  SsmNotifierTeen:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/notifier/Teen
+      Type: String
+      Description: Same values as api/Teen (daily teen run - retention days).
+      Value: !If
+        - IsProd
+        - '{"Enabled":false,"TryOnEnabled":false,"ConsentLinkDays":7,"ConsentRequestsPerDay":5,"ConsentRequestsPerParentPerDay":3,"PhotoRetentionInactiveDays":90,"LegacyAgeCheckbox":true,"ParentConsentUrl":"https://droblet.alatech.co/parent-consent/","ParentalConsentTextVersion":"2026-11-21"}'
+        - '{"Enabled":true,"TryOnEnabled":false,"ConsentLinkDays":7,"ConsentRequestsPerDay":5,"ConsentRequestsPerParentPerDay":3,"PhotoRetentionInactiveDays":90,"LegacyAgeCheckbox":true,"ParentConsentUrl":"https://droblet.alatech.co/parent-consent/","ParentalConsentTextVersion":"2026-11-21"}'
   SsmNotifierLocalization:
     Type: AWS::SSM::Parameter
     Properties:
@@ -734,6 +764,9 @@ Resources:
                   - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/notifier/Notifications
                   - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/api/AuthRateLimits
                   - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/api/AiLimits
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/api/Teen
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/worker/Teen
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/droblet/${Stage}/notifier/Teen
 
   ItemProcessorLambdaRole:
     Type: AWS::IAM::Role
@@ -959,9 +992,22 @@ Resources:
             Version: '2012-10-17'
             Statement:
               - Effect: Allow
-                Action: [dynamodb:Query, dynamodb:GetItem, dynamodb:PutItem, dynamodb:DeleteItem]
+                # BatchWriteItem: the daily teen run removes a teen's photo rows (retention, docs/api/teen.md §7).
+                Action: [dynamodb:Query, dynamodb:GetItem, dynamodb:PutItem, dynamodb:DeleteItem, dynamodb:BatchWriteItem]
                 Resource: !GetAtt DrobletTable.Arn
-              # No S3: notifications never carry photos or try-on images.
+              # Notifications never carry photos. S3 is only for the teen retention run: delete a teen's personal photos
+              # (body / face photos, try-on images, avatar under tenant/, pending photo uploads under uploads/tmp/).
+              - Effect: Allow
+                Action: s3:DeleteObject
+                Resource:
+                  - !Sub '${PhotoBucket.Arn}/tenant/*'
+                  - !Sub '${PhotoBucket.Arn}/uploads/tmp/*'
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource: !GetAtt PhotoBucket.Arn
+                Condition:
+                  StringLike:
+                    's3:prefix': ['tenant/*', 'uploads/tmp/*']
               - Effect: Allow
                 Action: [ssm:GetParameter, ssm:GetParameters, ssm:GetParametersByPath]
                 Resource:

@@ -56,6 +56,31 @@ public static partial class ErrorCodes
     /// <summary>400 (register): the "I am 18 or older" box was not ticked.</summary>
     public const string AgeConfirmationRequired = "age_confirmation_required";
 
+    // Teen mode (docs/api/teen.md §11)
+    public const string BirthYearInvalid = "birth_year_invalid";
+    public const string BirthMonthInvalid = "birth_month_invalid";
+    /// <summary>422: the birth year alone cannot tell the age band (could be 15/16 or 17/18): send birthMonth too.</summary>
+    public const string BirthMonthRequired = "birth_month_required";
+    /// <summary>422: under 16 — nothing stored (or, after an Apple / Google sign-in, the new account deleted).</summary>
+    public const string AgeUnderMinimum = "age_under_minimum";
+    /// <summary>422: 16–17 while Teen:Enabled is off.</summary>
+    public const string TeenNotAvailable = "teen_not_available";
+    /// <summary>403 with `feature`: something a teen account may never do.</summary>
+    public const string TeenRestricted = "teen_restricted";
+    /// <summary>403 with `status`: the feature waits for the parent's approval (limited mode).</summary>
+    public const string ParentalConsentRequired = "parental_consent_required";
+    /// <summary>403 with `reason`: teen try-on is not available (flag, parent's box, own consent).</summary>
+    public const string TeenTryOnNotAvailable = "teen_try_on_not_available";
+    public const string NotATeenAccount = "not_a_teen_account";
+    public const string ParentEmailInvalid = "parent_email_invalid";
+    public const string ParentEmailSameAsTeen = "parent_email_same_as_teen";
+    public const string ParentalConsentAlreadyGiven = "parental_consent_already_given";
+    public const string ParentalConsentNotRequested = "parental_consent_not_requested";
+    public const string ParentalConsentLinkInvalid = "parental_consent_link_invalid";
+    public const string ParentalConsentLinkExpired = "parental_consent_link_expired";
+    public const string ParentalConsentAlreadyDecided = "parental_consent_already_decided";
+    public const string ParentalConsentConfirmationsRequired = "parental_consent_confirmations_required";
+
     // Consents (docs/legal consents 1–6)
     /// <summary>403 with `missing` (camelCase consent types): the feature needs an explicit consent on the current text version.</summary>
     public const string ConsentRequired = "consent_required";

@@ -39,7 +39,7 @@ Information you give us:
 
 - Account: your name, e-mail address and a one-way hash of your password (the password itself is never stored). If you sign in with Apple or Google, the account id, e-mail address (with Apple this may be a private relay address) and name those services provide; with Sign in with Apple, an Apple refresh token stored encrypted so that we can revoke the link with Apple when you delete your account.
 - Profile: your username (@handle), display name, language, the city you choose for weather, and your closet visibility setting.
-- Style profile: who it is for (women or men), the three style tags you choose and your budget range.
+- Style profile: who it is for (currently Women), the three style tags you choose and your budget range.
 - Body profile: your height, your size and, optionally, your weight.
 - Photos: your full-body photo and your face photo; the item and outfit photos you take or upload for your wardrobe.
 - Wardrobe and planning: your items and their details (type, colour, fabric, season, brand, size), your looks, calendar plans, what you wore, your trips (city and dates), the occasions and free-text requests you send to the stylist, and your “Not for me” feedback.

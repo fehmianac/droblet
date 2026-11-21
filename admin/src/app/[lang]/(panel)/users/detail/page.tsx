@@ -10,7 +10,7 @@ import { Badge, Button, Card, ConfirmModal, ErrorState, Field, Input, PageHeader
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
-import type { AppUserDetail } from '@/lib/types';
+import type { AdminTeenStatus, AppUserDetail, TeenStatus } from '@/lib/types';
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -28,6 +28,67 @@ function Meter({ value, max }: { value: number; max: number }) {
       <rect width="100" height="6" rx="3" fill="#f0ece6" />
       <rect width={pct} height="6" rx="3" fill="#6e5640" />
     </svg>
+  );
+}
+
+const teenTone: Record<TeenStatus, 'green' | 'amber' | 'red' | 'neutral'> = { active: 'green', pendingParentalConsent: 'amber', declined: 'red', withdrawn: 'neutral' };
+
+/** Teen mode (docs/api/teen.md §10): parental consent state and its audit history. */
+function TeenCard({ teen }: { teen: AdminTeenStatus }) {
+  const { t, date, dateTime } = useI18n();
+  const d = t.userDetail;
+  const yesNo = (value: boolean) => (value ? <Badge tone="green">{t.common.yes}</Badge> : <Badge>{t.common.no}</Badge>);
+  // `adultFrom` is a calendar date: noon UTC keeps it on the same day in every time zone.
+  const day = (value: string | null) => (value ? date(/^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T12:00:00Z` : value) : '—');
+  return (
+    <Card title={d.teenTitle} subtitle={d.teenHint} padded={false}>
+      <dl className="px-5 py-2">
+        <Row label={d.teenStatus}>
+          <Badge tone={teenTone[teen.status] ?? 'neutral'}>{t.enums.teenStatus[teen.status] ?? teen.status}</Badge>
+        </Row>
+        <Row label={d.parentEmail}>
+          <span className="font-mono text-xs">{teen.parentEmailMasked ?? '—'}</span>
+        </Row>
+        <Row label={d.requestSentAt}>{dateTime(teen.requestSentAt)}</Row>
+        <Row label={d.requestExpiresAt}>{dateTime(teen.requestExpiresAt)}</Row>
+        <Row label={d.approvedAt}>{dateTime(teen.approvedAt)}</Row>
+        <Row label={d.parentAllowedTryOn}>{yesNo(teen.parentAllowedTryOn)}</Row>
+        <Row label={d.ownTryOnConsent}>{yesNo(teen.ownTryOnConsent)}</Row>
+        <Row label={d.adultFrom}>{day(teen.adultFrom)}</Row>
+        <Row label={d.photosPurgedAt}>{dateTime(teen.photosPurgedAt)}</Row>
+      </dl>
+      <div className="border-t border-line">
+        <p className="px-5 pt-3 pb-2 text-xs font-medium text-muted">{d.teenHistory}</p>
+        {teen.history.length === 0 ? (
+          <p className="px-5 pb-4 text-sm text-muted">{d.teenNoHistory}</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-y border-line bg-stone-50/60 text-left text-xs text-muted">
+                  <th className="px-5 py-2.5 font-medium">{d.historyAt}</th>
+                  <th className="px-5 py-2.5 font-medium">{d.historyEvent}</th>
+                  <th className="px-5 py-2.5 font-medium">{d.historyTextVersion}</th>
+                  <th className="px-5 py-2.5 font-medium">{d.historyTryOn}</th>
+                  <th className="px-5 py-2.5 font-medium">{d.historyIpHash}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {teen.history.map((h, i) => (
+                  <tr key={`${h.at}-${h.event}-${i}`} className="border-b border-line last:border-b-0">
+                    <td className="px-5 py-2.5 whitespace-nowrap text-muted">{dateTime(h.at)}</td>
+                    <td className="px-5 py-2.5">{t.enums.teenEvent[h.event] ?? h.event}</td>
+                    <td className="px-5 py-2.5 font-mono text-xs">{h.textVersion ?? '—'}</td>
+                    <td className="px-5 py-2.5">{h.tryOnAllowed ? t.common.yes : t.common.no}</td>
+                    <td className="px-5 py-2.5 font-mono text-xs">{h.ipHash ?? '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </Card>
   );
 }
 
@@ -109,6 +170,11 @@ function UserDetailInner() {
             <span>
               {u.displayName || u.email || u.id}
               <span className="ml-2 align-middle">{u.suspended ? <Badge tone="red">{t.users.suspended}</Badge> : <Badge tone="green">{t.common.active}</Badge>}</span>
+              {u.ageBand === 'teen' && (
+                <span className="ml-1.5 align-middle">
+                  <Badge tone="brand">{t.users.teenBadge}</Badge>
+                </span>
+              )}
             </span>
           </span>
         }
@@ -190,6 +256,7 @@ function UserDetailInner() {
                 <Row label={t.common.createdAt}>{dateTime(u.createdAt)}</Row>
               </dl>
             </Card>
+            {u.teen && <TeenCard teen={u.teen} />}
             <Card title={t.userDetail.devices} padded={u.devices.length === 0}>
               {u.devices.length === 0 ? (
                 <p className="text-sm text-muted">{t.userDetail.noDevices}</p>

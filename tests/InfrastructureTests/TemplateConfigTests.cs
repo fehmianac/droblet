@@ -164,6 +164,31 @@ public partial class TemplateConfigTests
     }
 
     [Fact]
+    public void Teen_IsOnInDev_OffInProd_TryOnOffOnEveryStage_SameValueInEveryLambda()
+    {
+        var template = Template();
+        foreach (var scope in new[] { "api", "worker", "notifier" })
+        {
+            // The checked literal is the prod one.
+            var prod = Bind<TeenOptions>(scope, TeenOptions.Section);
+            Assert.False(prod.Enabled);
+            Assert.False(prod.TryOnEnabled);
+            Assert.Equal((7, 5, 3, 90), (prod.ConsentLinkDays, prod.ConsentRequestsPerDay, prod.ConsentRequestsPerParentPerDay, prod.PhotoRetentionInactiveDays));
+            Assert.EndsWith("/parent-consent/", prod.ParentConsentUrl);   // trailing slash: S3 keeps the query
+
+            var dev = Regex.Match(template, scope + @"/Teen[\s\S]*?- IsProd\s*\n\s*- '[^']*'\s*\n\s*- '(?<dev>[^']*)'").Groups["dev"].Value;
+            var devOptions = System.Text.Json.JsonSerializer.Deserialize<TeenOptions>(dev)!;
+            Assert.True(devOptions.Enabled);
+            Assert.False(devOptions.TryOnEnabled);   // coordinator safety condition: off on every stage
+        }
+
+        var values = Parameters().SelectMany(p => p.Value.Where(v => v.Section == "Teen").Select(v => v.Value)).Distinct().ToList();
+        Assert.Single(values);
+        // Not editable from the panel.
+        Assert.DoesNotContain(Domain.Services.Admin.SettingsCatalog.Find("teen")!.Fields, f => f.Key == "TryOnEnabled");
+    }
+
+    [Fact]
     public void Admin_TheOldConfigListIsGone_AndSsmWritesAreExactlyTheEditableParameters()
     {
         var template = Template();

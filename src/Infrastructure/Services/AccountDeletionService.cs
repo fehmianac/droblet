@@ -68,6 +68,14 @@ public sealed class AccountDeletionService(
         if (indexKeys.Count > 0)
             await repository.BatchDeleteKeysAsync(indexKeys, ct);
 
+        // Teen mode: the parental link tokens and the teen index row (global), found through the consent row (removed below).
+        var parental = await repository.GetAsync<ParentalConsentEntity>(ParentalConsentEntity.GetPk(tenantId), ParentalConsentEntity.GetSk(), ct);
+        var teenKeys = (parental?.TokenHashes ?? []).Distinct()
+            .Select(h => (ParentalConsentTokenEntity.GetPk(), ParentalConsentTokenEntity.GetSk(h)))
+            .Append((TeenAccountIndexEntity.GetPk(), TeenAccountIndexEntity.GetSk(tenantId)))
+            .ToList();
+        await repository.BatchDeleteKeysAsync(teenKeys, ct);
+
         foreach (var pk in DeletionPlan.TenantPartitionKeys(tenantId))
         {
             var keys = await repository.GetKeysAsync(pk, ct);

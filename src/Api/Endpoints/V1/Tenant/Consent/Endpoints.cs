@@ -15,14 +15,20 @@ namespace Api.Endpoints.V1.Tenant.Consent;
 
 public class Get : IEndpoint
 {
-    private static async Task<IResult> Handler([FromServices] IApiContext apiContext, [FromServices] IConsentService consents, CancellationToken cancellationToken) =>
-        Results.Ok(await consents.GetAsync(apiContext.TenantId, cancellationToken));
+    private static async Task<IResult> Handler([FromServices] IApiContext apiContext, [FromServices] IConsentService consents, HttpContext httpContext,
+        CancellationToken cancellationToken)
+    {
+        var all = await consents.GetAsync(apiContext.TenantId, cancellationToken);
+        // teenTryOn (docs/api/teen.md §6) is a teen's own consent: listed for teen accounts only.
+        var teen = (await TeenGuard.AccessAsync(httpContext)).IsTeen;
+        return Results.Ok(teen ? all : all with { Consents = all.Consents.Where(c => c.Type != ConsentType.TeenTryOn).ToList() });
+    }
 
     public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints) =>
         endpoints.MapGet("v1/tenant/consents", Handler)
             .Produces<ConsentsDto>(StatusCodes.Status200OK)
             .Tenant("Tenant Consent", "Get my consents",
-                "All seven types (bodyPhotoAi, facePhotoPalette, weight, contacts, marketingNotifications, crossBorderTransfer, facePhotoTryOn) with the stored decision, " +
+                "All seven types (bodyPhotoAi, facePhotoPalette, weight, contacts, marketingNotifications, crossBorderTransfer, facePhotoTryOn; teen accounts also teenTryOn) with the stored decision, " +
                 "the text version it was made on, the current text version (Consents:Versions) and `valid` = granted on the current version — what the guards enforce.");
 }
 
@@ -67,13 +73,26 @@ public class Put : IEndpoint
         [FromServices] IConsentService consents,
         [FromServices] IValidator<PutConsentsRequest> validator,
         [FromServices] IRequestLanguage requestLanguage,
+        HttpContext httpContext,
         CancellationToken cancellationToken)
     {
         var validation = await validator.ValidateAsync(request, cancellationToken);
         if (!validation.IsValid)
             return Results.BadRequest(validation.Errors.ToProblemDetails());
 
-        var decisions = request.Consents!.Select(d => new ConsentDecision(d.Type, d.Granted, d.Version?.Trim() ?? "")).ToList();
+        // Teen rules (docs/api/teen.md §4): a teen cannot give marketing / contacts; teenTryOn is for teens only.
+        var teen = (await TeenGuard.AccessAsync(httpContext)).IsTeen;
+        foreach (var grant in request.Consents!.Where(d => d.Granted))
+        {
+            if (teen && TeenRules.ConsentClosedToTeens(grant.Type) is { } feature)
+                return TeenGuard.Restricted(feature);
+            if (!teen && grant.Type == ConsentType.TeenTryOn)
+                return TeenGuard.Problem(StatusCodes.Status403Forbidden, ErrorCodes.TeenRestricted, "feature", "teenTryOn");
+        }
+
+        // An adult's "no" to teenTryOn (e.g. the all-in-one step sending every type) is not a decision worth recording.
+        var decisions = request.Consents!.Where(d => teen || d.Type != ConsentType.TeenTryOn)
+            .Select(d => new ConsentDecision(d.Type, d.Granted, d.Version?.Trim() ?? "")).ToList();
         var locale = request.Locale ?? await requestLanguage.GetAsync(cancellationToken);
         var (outcome, result) = await consents.SetAsync(apiContext.TenantId, apiContext.UserId, decisions, request.Source, locale, cancellationToken);
         return outcome == ConsentUpdateOutcome.Ok
@@ -85,10 +104,11 @@ public class Put : IEndpoint
         endpoints.MapPut("v1/tenant/consents", Handler)
             .Produces<ConsentsDto>(StatusCodes.Status200OK)
             .Validated()
-            .Problems(StatusCodes.Status409Conflict)
+            .Problems(StatusCodes.Status403Forbidden, StatusCodes.Status409Conflict)
             .Tenant("Tenant Consent", "Give or withdraw consents",
                 "Each decision { type, granted, version } is appended to the audit log and becomes the current state. A grant must carry the CURRENT text " +
                 "version (409 consent_version_outdated otherwise; nothing is written). source = where it happened (snake_case, e.g. tryon, body_photo, settings); " +
                 "locale defaults to the profile language. Withdrawing marketingNotifications switches the weekly edit and price-drop pushes off; withdrawing " +
-                "weight clears the stored weight. Returns the same shape as GET.");
+                "weight clears the stored weight. Teen accounts: marketingNotifications / contacts → 403 teen_restricted; teenTryOn is a teen's own try-on " +
+                "consent (adults: 403 teen_restricted). Returns the same shape as GET.");
 }

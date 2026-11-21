@@ -6,7 +6,8 @@ export const dynamic = 'force-static';
 
 /**
  * Indexable pages only. Legal drafts and the deep-link fallbacks are `noindex` and stay out;
- * add the legal routes here when the reviewed texts go live.
+ * add the legal routes here when the reviewed texts go live. `/parent-consent/` (teen parental consent) is a private
+ * e-mailed link and never belongs here (`npm run check` fails if it appears).
  */
 const pages = ['/', '/delete-account/'];
 

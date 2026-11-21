@@ -32,7 +32,7 @@ public sealed class AuthService(
 
     private DateTime Now => timeProvider.GetUtcNow().UtcDateTime;
 
-    public async Task<AuthResult> RegisterAsync(string name, string email, string password, string language, string? clientIp, CancellationToken ct)
+    public async Task<AuthResult> RegisterAsync(string name, string email, string password, string language, string? clientIp, CancellationToken ct, RegisterAge? age = null)
     {
         if (clientIp is not null
             && !await rateLimiter.TryAcquireAsync("register-ip", clientIp, rateLimits.Value.RegisterPerIpPerHour, TimeSpan.FromHours(1), ct))
@@ -52,9 +52,16 @@ public sealed class AuthService(
             Email = normalizedEmail,
             CreatedAt = now,
             Identities = [identity.Sk],
-            // The endpoint only registers with the 18+ box ticked (ageConfirmed: true is required).
+            // The endpoint only registers with the age checked (18+ box, or a birth year of 16+).
             AgeConfirmedAt = now,
+            AgeBand = age?.Band ?? AgeBand.Adult,
         };
+        var teen = age is { Band: AgeBand.Teen, BirthYear: not null };
+        if (teen)
+        {
+            user.BirthYear = age!.BirthYear;
+            user.BirthMonth = age.BirthMonth;
+        }
 
         var operations = new List<TransactWriteOperation>
         {
@@ -62,6 +69,8 @@ public sealed class AuthService(
             TransactWriteOperation.Create(new CredentialEntity { UserId = userId, PasswordHash = passwordHasher.Hash(password), UpdatedAt = now }),
         };
         operations.AddRange(NewAccountOperations(user, language, now));
+        if (teen)
+            operations.AddRange(TeenService.NewTeenOperations(user, language, now));
 
         var result = await repository.TransactWriteAsync(operations, ct);
         if (result.Outcome == TransactOutcome.ConditionFailed && result.FailedIndex == 0)
@@ -69,7 +78,7 @@ public sealed class AuthService(
         if (!result.Applied)
             throw new InvalidOperationException($"Registration transaction failed: {result.Outcome}.");
 
-        logger.LogInformation("Registered user {UserId} tenant {TenantId} via {Provider}", userId, tenantId, AuthProvider.Email);
+        logger.LogInformation("Registered user {UserId} tenant {TenantId} via {Provider}{Teen}", userId, tenantId, AuthProvider.Email, teen ? " (teen)" : "");
         // The code + link e-mail; the app works meanwhile ("E-postanı doğrula" until then). Never fails the sign-up.
         await emailVerification.SendAsync(user, language, ct);
         return AuthResult.Ok(await IssueAsync(user, familyId: null, isNewUser: true, ct));
@@ -106,6 +115,7 @@ public sealed class AuthService(
         if (user.SuspendedAt is not null)
             return AuthResult.Fail(AuthOutcome.Suspended);
 
+        await repository.TouchTeenAsync(user, Now, ct);
         if (verification == PasswordVerification.SuccessRehashNeeded)
         {
             credential.PasswordHash = passwordHasher.Hash(password);
@@ -212,6 +222,7 @@ public sealed class AuthService(
         if (!result.Applied)
             return AuthResult.Fail(AuthOutcome.InvalidToken);
 
+        await repository.TouchTeenAsync(user, now, ct);
         var access = tokenService.CreateAccessToken(user.Id, user.TenantId);
         return AuthResult.Ok(new AuthTokens(access.Value, access.ExpiresAt, value, next.ExpiresAt, user.Id, user.TenantId, false));
     }
@@ -252,6 +263,7 @@ public sealed class AuthService(
                     return AuthResult.Fail(AuthOutcome.Suspended);
                 if (ProviderVouchesFor(external, known.Email))
                     await emailVerification.MarkVerifiedAsync(known, ct);
+                await repository.TouchTeenAsync(known, now, ct);
                 return AuthResult.Ok(await IssueAsync(known, null, false, ct));
             }
         }
@@ -316,13 +328,16 @@ public sealed class AuthService(
     private static IEnumerable<TransactWriteOperation> NewAccountOperations(UserEntity user, string language, DateTime now)
     {
         yield return TransactWriteOperation.Create(user);
+        var teen = user.AgeBand == AgeBand.Teen;
         yield return TransactWriteOperation.PutVersioned(new TenantEntity
         {
             Id = user.TenantId,
             OwnerUserId = user.Id,
             DisplayName = user.DisplayName,
-            // Owner decision 7 (2026-11-19): followers only; the profile card stays searchable.
-            ClosetVisibility = ClosetVisibility.FollowersOnly,
+            // Owner decision 7 (2026-11-19): followers only; the profile card stays searchable. A teen's closet is forced
+            // private and the account invisible to others (docs/api/teen.md §4).
+            ClosetVisibility = teen ? ClosetVisibility.Private : ClosetVisibility.FollowersOnly,
+            AgeBand = user.AgeBand,
             Language = language,
             CreatedAt = now,
             UpdatedAt = now,

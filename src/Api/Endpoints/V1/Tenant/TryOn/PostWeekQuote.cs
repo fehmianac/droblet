@@ -30,6 +30,7 @@ public class PostWeekQuote : IEndpoint
     public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints)
     {
         return endpoints.MapPost("v1/tenant/tryon/plan-week/quote", Handler)
+            .RequireTeenTryOn()
             .Produces<TryOnQuoteDto>(StatusCodes.Status200OK)
             .Problems(StatusCodes.Status422UnprocessableEntity)
             .Validated()

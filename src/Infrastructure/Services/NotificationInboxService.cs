@@ -131,6 +131,9 @@ public static class NotificationCodes
         NotificationType.DataExportReady => "data_export_ready",
         NotificationType.ContentRemoved => "content_removed",
         NotificationType.OutfitImportReady => "outfit_import_ready",
+        NotificationType.ParentalConsentApproved => "parental_consent_approved",
+        NotificationType.ParentalConsentWithdrawn => "parental_consent_withdrawn",
+        NotificationType.TeenBecameAdult => "teen_became_adult",
         _ => "friend_ratings",
     };
 }

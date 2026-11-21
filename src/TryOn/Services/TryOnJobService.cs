@@ -23,6 +23,9 @@ public interface ITryOnJobService
 /// Photo try-on (input.ReferenceKey): the outfit photo replaces the garment images. It passes its own check (one person,
 /// clothing visible, no minor) on every job — a rejected one fails the job with GuardRejected and its referenceIssue — and
 /// is kept next to the image ("Kaynak fotoğraf", TryOnImageEntity.ReferenceKey).
+/// Teen accounts (docs/api/teen.md §6), re-checked here (the parent may have withdrawn meanwhile): only with all three
+/// conditions (Teen:TryOnEnabled, the parent's try-on box, the teen's own consent), never a photo try-on; the photo check's
+/// appearsMinor rule is relaxed for such an account only, and the render carries the teen guard (RenderTeenAsync).
 /// </summary>
 public sealed class TryOnJobService(
     IJobLifecycle jobs,
@@ -33,6 +36,8 @@ public sealed class TryOnJobService(
     ICatalogProductLookup products,
     ILibraryCatalog library,
     Microsoft.Extensions.Options.IOptionsMonitor<Domain.Options.AiOptions> aiOptions,
+    Microsoft.Extensions.Options.IOptionsMonitor<Domain.Options.TeenOptions> teenOptions,
+    Microsoft.Extensions.Options.IOptionsMonitor<Domain.Options.ConsentOptions> consentOptions,
     TimeProvider timeProvider,
     ILogger<TryOnJobService> logger) : ITryOnJobService
 {
@@ -54,6 +59,13 @@ public sealed class TryOnJobService(
             // A photo try-on reads its outfit photo instead (tenant uploads only) and checks it in parallel too.
             var input = StylingJson.TryDeserialize<TryOnJobInput>(job.Input);
             var referenceKey = input?.ReferenceKey is { } refKey && StorageKeys.BelongsToTenant(refKey, job.TenantId) ? refKey : null;
+            var (teen, teenBlock) = await repository.TeenTryOnAsync(message.TenantId, teenOptions.CurrentValue, consentOptions.CurrentValue, ct);
+            if (teen && (teenBlock is not null || referenceKey is not null))
+            {
+                logger.LogInformation("Try-on job {JobId}: teen try-on refused ({Reason})", job.Id, referenceKey is not null ? "outfit_photo" : teenBlock);
+                await jobs.FailAsync(job, JobFailure.GuardRejected, ct);
+                return;
+            }
             var garmentsRead = referenceKey is null ? GarmentsAsync(job, ct) : Task.FromResult<IReadOnlyList<ImageInput>?>([]);
             var referenceRead = referenceKey is null ? Task.FromResult<ImageInput?>(null) : ReferenceAsync(referenceKey, input!.ReferenceContentType, ct);
             var referenceCheck = referenceKey is null ? Task.FromResult<ReferenceIssue?>(null) : InspectReferenceAsync(job, referenceRead, ct);
@@ -68,7 +80,7 @@ public sealed class TryOnJobService(
             }
 
             var photo = new ImageInput(bytes, source.ContentType);
-            var inspection = InspectAsync(job, source, photo, ct);
+            var inspection = InspectAsync(job, source, photo, teen, ct);
             await Task.WhenAll(inspection, garmentsRead, referenceCheck);
             if (inspection.Result is { } rejected)
             {
@@ -93,7 +105,9 @@ public sealed class TryOnJobService(
             // Ai:Image:TryOnPreview: a fast low-quality image first (the job completes with it), the full one replaces it after.
             var preview = aiOptions.CurrentValue.Image is { TryOnPreview: true } imageOptions ? imageOptions.PreviewQuality : null;
             var figure = new TryOnFigure(message.BodyType ?? BodyType.Unsure, message.HeightCm, message.Size, message.Segment ?? Segment.Women);
-            Task<ImageInput> Render(string? quality) => reference is not null
+            Task<ImageInput> Render(string? quality) => teen
+                ? renderer.RenderTeenAsync(photo, garments, face ? figure : null, ct, quality)
+                : reference is not null
                 ? renderer.RenderOutfitPhotoAsync(photo, reference, face ? figure : null, ct, quality)
                 : face
                     ? renderer.RenderFromFaceAsync(photo, garments, figure, ct, quality)
@@ -278,13 +292,15 @@ public sealed class TryOnJobService(
     /// result, so no credit is charged. A photo of someone who appears to be under 18 fails the job (GuardRejected).
     /// Returns null when the photo may be used.
     /// </summary>
-    private async Task<JobFailure?> InspectAsync(JobEntity job, PhotoEntity photo, ImageInput image, CancellationToken ct)
+    /// <param name="teenAllowed">A teen account that passed all three try-on conditions: the minor rule does not apply to
+    /// the teen's own photo (docs/api/teen.md §6). Everyone else is refused when the person appears under 18.</param>
+    private async Task<JobFailure?> InspectAsync(JobEntity job, PhotoEntity photo, ImageInput image, bool teenAllowed, CancellationToken ct)
     {
         if (photo.InspectedAt is not null || !inspector.IsConfigured)
             return null;
 
         var inspection = await inspector.InspectAsync(image, photo.Kind, ct);
-        if (inspection.AppearsMinor)
+        if (inspection.AppearsMinor && !teenAllowed)
             return JobFailure.GuardRejected;
 
         if (TryOnRules.IssueOf(photo.Kind, inspection) is { } issue)

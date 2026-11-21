@@ -1,6 +1,22 @@
 namespace Domain.Enum;
 
+/// <summary>
+/// The clothing segment ("reyon"): which content a user sees. Teen is DEPRECATED as a reyon (docs/api/teen.md §1): age rules
+/// live in <see cref="AgeBand"/>; the value stays for old clients and is never open.
+/// </summary>
 public enum Segment { Women, Men, Teen }
+
+/// <summary>Age band of an account (docs/api/teen.md): Teen = 16–17 with the teen rules on top of the chosen segment.</summary>
+public enum AgeBand { Adult, Teen }
+
+/// <summary>Verified parental consent of a teen account. Only Active lifts the limited mode.</summary>
+public enum ParentalConsentStatus { PendingParentalConsent, Active, Declined, Withdrawn }
+
+/// <summary>History rows of the parental consent (admin, audit).</summary>
+public enum ParentalConsentEvent { Requested, Resent, Approved, Declined, Withdrawn, Expired, Ended }
+
+/// <summary>Request = the 7-day approval link; Manage = the withdrawal link of the confirmation e-mail (until 18).</summary>
+public enum ParentalTokenKind { Request, Manage }
 
 /// <summary>
 /// Who a ready-library piece or a catalog product is for. Unisex is shown to every segment. Rows written before the men
@@ -81,8 +97,10 @@ public enum PushTokenType { Fcm, Apns }
 
 /// <summary>DataExportReady: inbox only (with the e-mail), never pushed. ContentRemoved: inbox only, written when a moderator
 /// removes a look / item / the profile's public fields (report resolved as contentRemoved). OutfitImportReady: inbox only,
-/// written when every uploaded photo of an outfit import session was processed (ready for review).</summary>
-public enum NotificationType { MorningOutfit, WeeklyEdit, FriendRatings, PriceDrop, FollowRequest, DataExportReady, ContentRemoved, OutfitImportReady }
+/// written when every uploaded photo of an outfit import session was processed (ready for review). ParentalConsentApproved /
+/// ParentalConsentWithdrawn / TeenBecameAdult: inbox only (teen mode, docs/api/teen.md).</summary>
+public enum NotificationType { MorningOutfit, WeeklyEdit, FriendRatings, PriceDrop, FollowRequest, DataExportReady, ContentRemoved, OutfitImportReady,
+    ParentalConsentApproved, ParentalConsentWithdrawn, TeenBecameAdult }
 
 public enum AuthProvider { Email, Apple, Google }
 
@@ -123,6 +141,7 @@ public enum AdminRole { SuperAdmin, ContentEditor, Moderator }
 /// <summary>
 /// The seven separate explicit consents of docs/legal (landing `/consents`). Wire names are camelCase
 /// (bodyPhotoAi, facePhotoPalette, weight, contacts, marketingNotifications, crossBorderTransfer, facePhotoTryOn).
-/// FacePhotoTryOn (consent 7) = the face photo used to create try-on images when there is no body photo; appended last.
+/// FacePhotoTryOn (consent 7) = the face photo used to create try-on images when there is no body photo.
+/// TeenTryOn = a teen's own consent to try-on (docs/api/teen.md §6); listed for teen accounts only; appended last.
 /// </summary>
-public enum ConsentType { BodyPhotoAi, FacePhotoPalette, Weight, Contacts, MarketingNotifications, CrossBorderTransfer, FacePhotoTryOn }
+public enum ConsentType { BodyPhotoAi, FacePhotoPalette, Weight, Contacts, MarketingNotifications, CrossBorderTransfer, FacePhotoTryOn, TeenTryOn }

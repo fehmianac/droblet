@@ -54,7 +54,7 @@ public static class VisibilityPolicy
         if (NeverShared.Contains(request.Resource))
             return false;
 
-        // A-5: Teen accounts stay out of every social read until the decision lands.
+        // Teen accounts (age band teen — passed as OwnerSegment Teen — docs/api/teen.md §4) stay out of every social read.
         if (request.OwnerSegment == Segment.Teen)
             return false;
 

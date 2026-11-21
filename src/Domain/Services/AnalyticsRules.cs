@@ -20,6 +20,8 @@ public sealed record FunnelReport(string From, string To, long TotalEvents, int 
 public static partial class AnalyticsRules
 {
     public const int MaxBatch = 50;
+    /// <summary>Rejection code of every event of a teen account (forced opt-out, docs/api/teen.md §4).</summary>
+    public const string OptedOut = "analytics_opted_out";
     public const int MaxProps = 8;
     public static readonly TimeSpan MaxEventAge = TimeSpan.FromDays(7);
     public static readonly TimeSpan MaxClockSkew = TimeSpan.FromMinutes(10);

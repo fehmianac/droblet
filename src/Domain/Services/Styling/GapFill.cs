@@ -23,7 +23,8 @@ public sealed record GapFillContext(
     IReadOnlySet<string> Avoid,
     PriceBand? PriceBand,
     int PerSlot = 3,
-    Segment Segment = Segment.Women);
+    Segment Segment = Segment.Women,
+    bool Teen = false);
 
 /// <summary>
 /// "Parça yetersiz" is no longer a dead end (owner decision 3): when the wardrobe is too thin, Droblet picks the missing

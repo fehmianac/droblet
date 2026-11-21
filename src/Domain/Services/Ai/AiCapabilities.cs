@@ -53,6 +53,14 @@ public interface ITryOnRenderer
     /// </summary>
     /// <param name="figure">Face path only (null = body path: <paramref name="subject"/> is the body photo).</param>
     Task<ImageInput> RenderOutfitPhotoAsync(ImageInput subject, ImageInput outfitPhoto, TryOnFigure? figure, CancellationToken ct, string? quality = null);
+
+    /// <summary>
+    /// Teen try-on (docs/api/teen.md §6): the body path (<paramref name="figure"/> null) or the face path, with the extra-strict
+    /// guard tryon.guard.teen (fully clothed, neutral pose, no body comments, school-appropriate, the real age kept). The default
+    /// refuses: a renderer that does not implement the guard never renders a teen.
+    /// </summary>
+    Task<ImageInput> RenderTeenAsync(ImageInput photo, IReadOnlyList<ImageInput> garments, TryOnFigure? figure, CancellationToken ct, string? quality = null) =>
+        throw new NotSupportedException("This renderer has no teen guard.");
 }
 
 /// <summary>Server-side check of a body / face photo before its first try-on (people, framing, light, sharpness). No identification.</summary>
@@ -70,7 +78,9 @@ public interface IPhotoInspector
 /// <param name="Language">Language of every generated text (tr | en …) — always passed explicitly, never guessed by the model.</param>
 /// <param name="CompactCandidates">The candidates are descriptor strings with short aliases (CandidateAliases, Ai:CompactStylistPrompt).</param>
 /// <param name="Segment">Men: the menswear fragment (stylist.segment.men) follows the instructions; women's prompts are unchanged.</param>
-public sealed record StylistPrompt(JobKind Kind, string InputJson, string Language = "tr", bool CompactCandidates = false, Segment Segment = Segment.Women);
+/// <param name="Teen">Teen account (docs/api/teen.md §4): the stylist.age.teen fragment is appended.</param>
+public sealed record StylistPrompt(JobKind Kind, string InputJson, string Language = "tr", bool CompactCandidates = false, Segment Segment = Segment.Women,
+    bool Teen = false);
 
 public interface IStylistModel
 {

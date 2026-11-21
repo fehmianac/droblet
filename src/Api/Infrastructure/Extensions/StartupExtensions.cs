@@ -67,7 +67,8 @@ public static class StartupExtensions
 
             var endpoint = Activator.CreateInstance(endpointType);
             if (endpoint is IEndpoint endpointItem)
-                endpointItem.MapEndpoint(endpoints);
+                // Every endpoint passes the teen guard (docs/api/teen.md §4): a no-op outside TeenRouteRules.
+                endpointItem.MapEndpoint(endpoints).AddTeenGuard();
         }
 
         return endpoints;

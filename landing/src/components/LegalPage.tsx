@@ -35,7 +35,7 @@ export function legalMetadata(locale: Locale, doc: LegalDoc): Metadata {
  * Paragraphs that start with "- " are list items; consecutive items form one list. The dictionary stays a plain
  * list of strings (same shape in every language), the page still gets real <ul> markup.
  */
-function Blocks({ paragraphs }: { paragraphs: readonly string[] }) {
+export function Blocks({ paragraphs }: { paragraphs: readonly string[] }) {
   const blocks: ReactNode[] = [];
   let items: string[] = [];
   const flush = () => {

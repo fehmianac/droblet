@@ -75,6 +75,7 @@ public class PutAvatar : IEndpoint
         [FromServices] IValidator<ActivateAvatarRequest> validator,
         [FromServices] IApiContext apiContext,
         [FromServices] IAvatarService avatars,
+        [FromServices] ITeenService teens,
         [FromServices] IRepository repository,
         CancellationToken cancellationToken)
     {
@@ -99,7 +100,7 @@ public class PutAvatar : IEndpoint
         if (tenant is null)
             return Results.NotFound();
         var user = await repository.GetAsync<UserEntity>(UserEntity.GetPk(), UserEntity.GetSk(apiContext.UserId), cancellationToken);
-        return Results.Ok(await tenant.ToProfileDtoAsync(user, avatars, cancellationToken));
+        return Results.Ok(await tenant.ToProfileDtoAsync(user, avatars, teens, cancellationToken));
     }
 
     public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints) =>

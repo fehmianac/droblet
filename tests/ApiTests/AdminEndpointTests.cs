@@ -278,7 +278,7 @@ public class AdminEndpointTests(StoreSocialApiFactory factory) : IClassFixture<S
 
         var all = await (await admin.GetAsync("v1/admin/setting")).JsonAsync();
         var groups = all.EnumerateArray().Select(g => g.GetProperty("group").GetString()).ToList();
-        Assert.Equal(["entitlements", "packing", "ai", "notifications", "notifierSchedule", "authRateLimits"], groups);
+        Assert.Equal(["entitlements", "packing", "ai", "notifications", "notifierSchedule", "authRateLimits", "teen"], groups);
         Assert.DoesNotContain("Jwt", all.GetRawText());
         Assert.DoesNotContain("ApiKey", all.GetRawText());
 

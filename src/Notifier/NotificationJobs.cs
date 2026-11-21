@@ -200,8 +200,10 @@ public sealed class NotificationJobs(
         }
     }
 
+    /// <summary>Marketing needs consent 5 — and never reaches a teen account (docs/api/teen.md §4), whatever is stored.</summary>
     private async Task<bool> HasMarketingConsentAsync(string tenantId, CancellationToken ct) =>
-        (await consents.MissingAsync(tenantId, ConsentRules.Marketing, ct)).Count == 0;
+        (await consents.MissingAsync(tenantId, ConsentRules.Marketing, ct)).Count == 0
+        && !await repository.IsTeenTenantAsync(tenantId, ct);
 
     /// <summary>The per-product bell of the watch list (screen 24b).</summary>
     private static bool WantsPriceDropPush(WatchItemEntity item) => item.NotifyEnabled;
@@ -298,6 +300,22 @@ public static class NotificationTexts
         {
             ["tr"] = ("Kombinlerin hazır", "İçe aktardığın fotoğraflardan look'lar oluşturuldu. Kontrol edip onayla."),
             ["en"] = ("Your outfits are ready", "Looks were drafted from the photos you imported. Review and approve them."),
+        },
+        // Teen mode, inbox only (docs/api/teen.md §5, §8); kept here so every type has its text.
+        [NotificationType.ParentalConsentApproved] = new()
+        {
+            ["tr"] = ("Velin onay verdi", "Fotoğraf ve stil önerisi özellikleri artık açık."),
+            ["en"] = ("Your parent approved", "Photo and style suggestion features are now open."),
+        },
+        [NotificationType.ParentalConsentWithdrawn] = new()
+        {
+            ["tr"] = ("Veli onayı geri alındı", "Fotoğraf özellikleri kapandı ve kişisel fotoğrafların silindi."),
+            ["en"] = ("Parental approval was withdrawn", "Photo features are off and your personal photos were deleted."),
+        },
+        [NotificationType.TeenBecameAdult] = new()
+        {
+            ["tr"] = ("Hesabın artık yetişkin hesabı", "18 yaşına girdin: genç modu kısıtlamaları kalktı, veli bağlantısı sona erdi."),
+            ["en"] = ("Your account is now an adult account", "You turned 18: the teen mode limits are lifted and the parental link has ended."),
         },
     };
 

@@ -69,6 +69,10 @@ public static class DeletionPlan
         // Consent records (current + append-only audit log): kept until the account is deleted (legal: consents §1).
         typeof(ConsentEntity),
         typeof(ConsentHistoryEntity),
+        // Teen mode: the parental consent and its history (the global token rows and the teen index row are removed by
+        // AccountDeletionService first, found through the consent row).
+        typeof(ParentalConsentEntity),
+        typeof(ParentalConsentEventEntity),
         // Profile picture (own prefix tenant/{id}/avatar/, removed with TenantRoot).
         typeof(AvatarEntity),
         typeof(AvatarUploadEntity),

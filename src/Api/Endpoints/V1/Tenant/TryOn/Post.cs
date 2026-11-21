@@ -30,6 +30,7 @@ public class Post : IEndpoint
     public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints)
     {
         return endpoints.MapPost("v1/tenant/tryon", Handler)
+            .RequireTeenTryOn()
             .RequireTryOnConsent()
             .Produces<TryOnStartDto>(StatusCodes.Status200OK)
             .Produces<TryOnStartDto>(StatusCodes.Status202Accepted)
