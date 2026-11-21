@@ -96,6 +96,7 @@ const pages = [
   'verify-email',
   'invite',
   'l',
+  'parent-consent',
 ];
 const legalPages = ['terms', 'privacy', 'kvkk', 'consents', 'subscription-terms', 'cookies', 'community-guidelines'];
 
@@ -130,6 +131,48 @@ for (const locale of locales) {
 
 for (const file of ['404.html', 'robots.txt', 'sitemap.xml', 'og.png']) {
   expect(existsSync(join(out, file)), `out/${file} is missing`);
+}
+
+// ── 2b. Teen parental-consent page behind the draft flag (docs/api/teen.md §9) ───────────────────
+// Its wording is a legal draft: without NEXT_PUBLIC_TEEN_PARENT_CONSENT=1 none of `parentConsent.draft` may reach out/
+// (HTML, RSC payload or scripts). Run the check with the same value of the flag as the build.
+const teenFlagOn = (process.env.NEXT_PUBLIC_TEEN_PARENT_CONSENT ?? '').trim() === '1';
+const outText = walk(out)
+  .filter((path) => /\.(html|txt|js|json)$/.test(path))
+  .map((path) => [relative(root, path), readFileSync(path, 'utf8')]);
+// Long runs without characters that HTML / JSON escaping changes, so a match is found in any encoding.
+const fragments = (value) =>
+  (typeof value === 'string' ? [value] : Object.values(value ?? {}).flatMap(fragments))
+    .flatMap((text) => (typeof text === 'string' ? text.split(/[{}"'&<>\\]/) : []))
+    .map((part) => part.trim())
+    .filter((part) => part.length >= 24);
+for (const locale of locales) {
+  const t = dictionaries[locale].parentConsent;
+  const file = join(out, locale === defaultLocale ? '' : locale, 'parent-consent', 'index.html');
+  if (!t || !existsSync(file)) continue;
+  const label = relative(root, file);
+  const html = readFileSync(file, 'utf8');
+  expect(/<meta name="robots" content="noindex/.test(html), `${label}: must be noindex`);
+  const bannerShown = html.includes(t.draft.draftTitle);
+  if (teenFlagOn) {
+    expect(bannerShown, `${label}: flag is on but the draft banner "${t.draft.draftTitle}" is missing`);
+  } else {
+    expect(!bannerShown, `${label}: shows the draft banner although NEXT_PUBLIC_TEEN_PARENT_CONSENT is not "1" (build and check must see the same flag)`);
+    expect(html.includes(t.unavailableTitle), `${label}: flag is off but "${t.unavailableTitle}" is missing`);
+    const { draftNote, ...draft } = t.draft;
+    void draftNote;
+    // Generic sentences shared with other pages (network errors…) are not draft wording.
+    const elsewhere = JSON.stringify({ ...dictionaries[locale], parentConsent: { ...t, draft: null } });
+    for (const fragment of new Set(fragments(draft).filter((part) => !elsewhere.includes(part)))) {
+      const leak = outText.find(([, text]) => text.includes(fragment));
+      expect(!leak, `draft text "${fragment.slice(0, 40)}…" is in ${leak?.[0]} although the draft flag is off`);
+    }
+  }
+}
+const sitemapFile = join(out, 'sitemap.xml');
+if (existsSync(sitemapFile)) expect(!readFileSync(sitemapFile, 'utf8').includes('parent-consent'), 'sitemap.xml must not list /parent-consent/');
+for (const [label, text] of outText.filter(([path]) => path.endsWith('.html') && !path.includes('parent-consent'))) {
+  expect(!/href="[^"]*parent-consent/.test(text), `${label}: links to /parent-consent/ (the page must not be linked from anywhere)`);
 }
 
 // ── 3. .well-known ─────────────────────────────────────────────────────────────────────────────────

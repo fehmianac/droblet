@@ -74,6 +74,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     `lookMetadata('${locale}')`,
     `<LookPage locale="${locale}" />`,
   ),
+  'parent-consent/page.tsx': page(
+    "import { ParentConsentPage, parentConsentMetadata } from '@/components/ParentConsentPage';",
+    `parentConsentMetadata('${locale}')`,
+    `<ParentConsentPage locale="${locale}" />`,
+  ),
 };
 
 for (const [name, content] of Object.entries(files)) {
