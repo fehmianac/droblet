@@ -7,6 +7,7 @@ import type { Trip } from '@/api/contracts/trips';
 import { extractApiError } from '@/api/errors';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
+import { EmptyIllustration } from '@/components/ui/illustrations/EmptyIllustration';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { useTrips, useTripWrites } from '@/features/trips/api';
@@ -68,9 +69,16 @@ export default function WardrobeTripsScreen() {
     const { upcoming, past } = splitTrips(trips.data, today);
     list =
       trips.data.length === 0 ? (
-        <Text variant="body" tone="muted" className="py-2 text-center">
-          {t('trips.empty')}
-        </Text>
+        // 22e Bavul: the drawing, headline and sentence; the "Yeni bavul" form above stays the action.
+        <View testID="trips-empty" className="items-center gap-3 px-4 py-4">
+          <EmptyIllustration kind="trips" />
+          <Text variant="h3" className="text-center" accessibilityRole="header">
+            {t('trips.emptyTitle')}
+          </Text>
+          <Text variant="body" tone="muted" className="text-center">
+            {t('trips.emptyBody')}
+          </Text>
+        </View>
       ) : (
         <>
           {upcoming.length > 0 ? (

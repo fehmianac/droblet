@@ -73,7 +73,10 @@ describe('14 Looklar', () => {
   it('shows the empty state with one action', async () => {
     resetFixtureDb({ empty: true });
     await renderRouter('./src/app', { initialUrl: '/wardrobe/looks' });
-    await waitFor(() => expect(screen.getByText(/Your lookbook is empty/)).toBeTruthy(), { timeout: 3000 });
+    await waitFor(() => expect(screen.getByText('Your lookbook is empty')).toBeTruthy(), { timeout: 3000 });
+    expect(screen.getByText('Put your pieces together and create your first look.')).toBeTruthy();
+    expect(screen.getByTestId('empty-illustration-looks', { includeHiddenElements: true })).toBeTruthy();
+    expect(screen.getByText('Create a look')).toBeTruthy();
     expect(screen.getByText('0 looks')).toBeTruthy();
   });
 });
