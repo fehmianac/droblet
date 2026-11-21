@@ -181,11 +181,9 @@ env:
     env:
       URL: droplet://look/look_lacivert_blazer
 - extendedWaitUntil:
-    visible:
-      id: "look-hero-invite"
+    visible: "Üzerimde gör|Try on me"
     timeout: 10000
-- tapOn:
-    id: "look-hero-invite"
+- tapOn: "Üzerimde gör|Try on me"
 - extendedWaitUntil:
     visible:
       id: "teen.tryOnExplainer"

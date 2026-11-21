@@ -76,7 +76,8 @@ function ChoiceSheet<T extends number>({
 }) {
   const { t } = useTranslation();
   const [selected, setSelected] = useState<T | null>(initial);
-  const start = Math.max(0, options.indexOf((selected ?? initial ?? options[0]) as T) - 2);
+  // Opens around the starting value only; a tap never moves the list under the finger.
+  const [start] = useState(() => Math.max(0, options.indexOf((initial ?? options[0]) as T) - 2));
   return (
     <BottomSheet visible={visible} onClose={onClose} title={title}>
       <View className="gap-3">

@@ -244,6 +244,8 @@ describe('try-on for teens', () => {
     await open('/look/look_lacivert_blazer', APPROVED);
     await waitFor(() => expect(screen.getByTestId('teen.tryOnLock.unavailable')).toBeTruthy(), WAIT);
     expect(screen.getByText('Not available right now')).toBeTruthy();
+    // Sharing a look is social: no share button for a teen.
+    expect(screen.queryByTestId('look-share')).toBeNull();
   });
 
   it('parent did not tick try-on: "Opens with your parent\'s approval" + send again', async () => {

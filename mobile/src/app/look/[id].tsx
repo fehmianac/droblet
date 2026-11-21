@@ -208,6 +208,8 @@ export default function LookScreen() {
   const writes = useLookWrites();
   const tryOn = useStartTryOn();
   const wear = useWearToday();
+  // Canvas 18: sharing a look is social — not for a teen.
+  const hideShare = useTeenRules().hide.social;
   const [menu, setMenu] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -297,7 +299,7 @@ export default function LookScreen() {
         right={
           look ? (
             <>
-              <IconButton icon={ShareIcon} onPress={share} accessibilityLabel={t('lookDetail.share')} testID="look-share" />
+              {hideShare ? null : <IconButton icon={ShareIcon} onPress={share} accessibilityLabel={t('lookDetail.share')} testID="look-share" />}
               <IconButton icon={Ellipsis} variant="plain" onPress={() => setMenu(true)} accessibilityLabel={t('lookEditor.more')} />
             </>
           ) : undefined

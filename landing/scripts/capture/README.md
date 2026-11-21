@@ -45,7 +45,7 @@ the persona: `ece@…` waits for the parent (limited mode), `ece.onay@…` is ap
 with a 16–17 birth year is a new teen without a parent e-mail. Signing out and in on the same phone keeps the "seen"
 state, so each next persona shows its one-time notice. Flows: `teen-signup.yaml` (02, year sheet, 02g, 02h, 02i, 02j)
 and `teen.yaml` (limited mode, notices, Keşfet / Profil / Ayarlar / Stilist, try-on locks, the 22t explainer — closed
-without starting anything). `pick-year.yaml` chooses a birth year (also used by `men-onboarding.yaml`).
+without starting anything). `men-onboarding.yaml` picks an adult birth year.
 
 ## Refresh
 

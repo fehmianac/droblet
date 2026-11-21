@@ -43,9 +43,10 @@ env:
       visible: "Not Now"
     commands:
       - tapOn: "Not Now"
+# Bugün, or a one-time notice laid over it (canvas 18).
 - extendedWaitUntil:
     visible:
-      id: "tab.today"
+      id: "tab.today|teen.notice.*"
     timeout: 30000
 - waitForAnimationToEnd:
     timeout: 4000
