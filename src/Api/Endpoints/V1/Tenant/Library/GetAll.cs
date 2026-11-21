@@ -26,6 +26,6 @@ public class GetAll : IEndpoint
     {
         return endpoints.MapGet("v1/tenant/library/item", Handler)
             .Produces<List<LibraryItemDto>>(StatusCodes.Status200OK)
-            .Tenant("Tenant Library", "Get the ready-made library", "Global library pieces (screen 12b, onboarding 04b). Names are resolved in the profile language (Accept-Language fallback, then tr).");
+            .Tenant("Tenant Library", "Get the ready-made library", "Global library pieces (screen 12b, onboarding 04b) of the user's segment plus unisex ones (style profile; women when never chosen). Names are resolved in the profile language (Accept-Language fallback, then tr). imageUrl null = no image yet (men's starter set): show the garment placeholder.");
     }
 }

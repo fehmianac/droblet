@@ -154,6 +154,8 @@ public class LibraryItemEntity : IEntity
     [JsonPropertyName("imageKey")] public string? ImageKey { get; set; }
     [JsonPropertyName("sortOrder")] public int SortOrder { get; set; }
     [JsonPropertyName("retired")] public bool Retired { get; set; }
+    // Who the piece is for (women | men | unisex). Rows from before the men launch have none = women.
+    [JsonPropertyName("segment")] public CatalogSegment Segment { get; set; }
 
     public static string GetPk() => "library#item";
     public static string GetSk(string id) => id;

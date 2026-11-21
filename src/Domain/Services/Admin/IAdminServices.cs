@@ -154,11 +154,12 @@ public interface IAdminDashboardService
 
 public sealed record LibraryItemInput(
     string Id, IReadOnlyDictionary<string, string>? Name, ItemCategory? Category, IReadOnlyList<string>? ColorIds, string? Fabric,
-    IReadOnlyList<Season>? Seasons, string? ImageUrl, int SortOrder, bool Retired = false);
+    IReadOnlyList<Season>? Seasons, string? ImageUrl, int SortOrder, bool Retired = false, CatalogSegment? Segment = null);
 
 public sealed record AdminLibraryItemDto(
     string Id, IReadOnlyDictionary<string, string> Name, ItemCategory Category, IReadOnlyList<string> ColorIds, string? Fabric,
-    IReadOnlyList<Season> Seasons, string? ImageUrl, int SortOrder, bool Retired, bool Stored);
+    IReadOnlyList<Season> Seasons, string? ImageUrl, int SortOrder, bool Retired, bool Stored,
+    CatalogSegment Segment = CatalogSegment.Women, bool NeedsImage = false);
 
 public interface IAdminLibraryService
 {

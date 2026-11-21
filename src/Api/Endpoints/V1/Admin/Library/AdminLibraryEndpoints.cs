@@ -33,7 +33,7 @@ public class Put : IEndpoint
         CancellationToken ct)
     {
         var (errors, item) = await library.UpsertAsync(new LibraryItemInput(id, request.Name, request.Category, request.ColorIds, request.Fabric,
-            request.Seasons, request.ImageUrl, request.SortOrder, request.Retired), ct);
+            request.Seasons, request.ImageUrl, request.SortOrder, request.Retired, request.Segment), ct);
         return errors.Count > 0 ? AdminResults.ValidationErrors(errors) : Results.Ok(item);
     }
 
@@ -47,7 +47,7 @@ public class Put : IEndpoint
             .RequireAdmin(AdminPermissions.ContentManage)
             .Audited("library.upsert", "library", "id", Before)
             .WithSummary("Create or update a library item")
-            .WithDescription("Id ^lib-[a-z0-9-]+$; name L (tr required); known colour ids and fabric; at least one season; imageUrl https.")
+            .WithDescription("Id ^lib-[a-z0-9-]+$; name L (tr required); known colour ids and fabric; at least one season; imageUrl https; segment women | men | unisex (omitted = women).")
             .WithTags("Admin Content");
 }
 

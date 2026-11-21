@@ -14,7 +14,8 @@ public sealed record CatalogQuery(
     string? Size = null,
     string? Text = null,
     PriceBand? PriceBand = null,
-    ProductSort Sort = ProductSort.Newest);
+    ProductSort Sort = ProductSort.Newest,
+    Segment? Segment = null);
 
 public sealed record CatalogPage(IReadOnlyList<CatalogProductEntity> Items, string? PageToken, int Total);
 
@@ -91,6 +92,9 @@ public static class CatalogRules
     public static bool Matches(CatalogProductEntity product, CatalogQuery query, IReadOnlyDictionary<string, string>? brandNames = null)
     {
         if (product.Retired)
+            return false;
+        // The user's segment: products of that segment and unisex ones (null = every product, e.g. the admin list).
+        if (query.Segment is { } segment && !SegmentPolicy.Shows(product.Segment, segment))
             return false;
         if (query.Category is { } category && product.Category != category)
             return false;
@@ -174,6 +178,10 @@ public static class CatalogRules
             return null;
         }
     }
+
+    /// <summary>The products a user of <paramref name="segment"/> may be shown (their segment and unisex).</summary>
+    public static IEnumerable<CatalogProductEntity> ForSegment(IEnumerable<CatalogProductEntity> products, Segment segment) =>
+        products.Where(p => SegmentPolicy.Shows(p.Segment, segment));
 
     /// <summary>True when the price went down — the only change that flags watch-list rows.</summary>
     public static bool IsPriceDrop(long previousMinor, long currentMinor) => currentMinor > 0 && currentMinor < previousMinor;
