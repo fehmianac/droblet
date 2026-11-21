@@ -1,4 +1,4 @@
-import { Check, CircleCheck, CircleAlert, X } from 'lucide-react-native';
+import { Check, CircleAlert, X } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, View } from 'react-native';
@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { Text } from '@/components/ui/Text';
+import { toast } from '@/components/ui/toast';
 import { useAiCredits } from '@/features/credits/useAiCredits';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 
@@ -18,9 +19,6 @@ import { StepAge, StepCity, StepCredits, StepHandle, StepPremium } from './steps
 import { StepPhoto } from './steps/StepPhoto';
 import { requirementsFlow, useRequirementsFlow, type FlowRequest } from './store';
 import { useRequirements } from './useRequirements';
-
-/** How long "Hazır" stays before the original action resumes (canvas 11f). */
-export const READY_HOLD_MS = 1800;
 
 type Phase = 'sheet' | 'steps' | 'done';
 
@@ -143,42 +141,14 @@ function ExitConfirm({ completed, next, hint, onContinue, onLeave }: { completed
   );
 }
 
-/** Canvas 11f "Hazır": what was done, then back to the original action on its own. */
-function Ready({ completed, origin }: { completed: StepKind[]; origin: string | null }) {
+/** Canvas 11f: no separate "Hazır" page. The last step hands straight back to the action; a toast says what was kept. */
+function Finished() {
   const { t } = useTranslation();
   useEffect(() => {
-    const timer = setTimeout(() => requirementsFlow.finish(), READY_HOLD_MS);
-    return () => clearTimeout(timer);
-  }, []);
-  return (
-    <View className="flex-1 justify-center gap-6 px-6" accessibilityLiveRegion="polite" testID="requirements.ready">
-      <View className="h-16 w-16 items-center justify-center rounded-pill bg-ink">
-        <Icon icon={Check} size={30} tone="cream" />
-      </View>
-      <View className="gap-2">
-        <Text variant="eyebrow">{t('req.done.eyebrow')}</Text>
-        <Text variant="display">{t('req.done.title')}</Text>
-        <Text variant="body" tone="muted">
-          {t('req.done.body')}
-        </Text>
-      </View>
-      <View className="gap-2.5">
-        {completed.map((kind) => (
-          <View key={kind} className="flex-row items-center gap-2.5">
-            <Icon icon={CircleCheck} size={18} />
-            <Text variant="body">{t(`req.done.item.${kind}`)}</Text>
-          </View>
-        ))}
-        <View className="flex-row items-center gap-2.5">
-          <Icon icon={CircleCheck} size={18} />
-          <Text variant="body">{t('req.done.saved')}</Text>
-        </View>
-      </View>
-      <Text variant="caption" tone="muted">
-        {origin ? t('req.done.returning', { origin }) : t('req.done.returningPlain')}
-      </Text>
-    </View>
-  );
+    toast.success(t('req.done.saved'), { testID: 'requirements.saved' });
+    requirementsFlow.finish();
+  }, [t]);
+  return null;
 }
 
 function Flow({ request }: { request: FlowRequest }) {
@@ -194,7 +164,7 @@ function Flow({ request }: { request: FlowRequest }) {
   const remaining = req.steps.filter((s) => !completed.includes(s.kind));
   const current = remaining[0] ?? null;
 
-  // Nothing left (the last step finished, or the data says so): "Hazır".
+  // Nothing left (the last step finished, or the data says so): back to the action at once.
   const phase: Phase = chosenPhase === 'steps' && current === null ? 'done' : chosenPhase;
 
   useEffect(() => {
@@ -224,11 +194,7 @@ function Flow({ request }: { request: FlowRequest }) {
   }
 
   if (phase === 'done') {
-    return (
-      <View className="flex-1 bg-cream" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
-        <Ready completed={completed} origin={request.origin ?? null} />
-      </View>
-    );
+    return <Finished />;
   }
 
   // The bar keeps the shape the flow started with; a step that appeared later (path switch) is appended.
@@ -261,7 +227,7 @@ function ReadyNow() {
 }
 
 /**
- * Canvas 11 host: the requirements sheet, the stepper and "Hazır" for the action `requirementsFlow` was opened
+ * Canvas 11 host: the requirements sheet, the stepper and the hand-back for the action `requirementsFlow` was opened
  * for. Mounted once in `AppHosts`; the screen under it stays mounted, so the original action resumes in place.
  */
 export function RequirementsHost() {

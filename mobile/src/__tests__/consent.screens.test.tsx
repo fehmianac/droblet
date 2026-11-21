@@ -79,8 +79,7 @@ describe('Açık rıza — just in time', () => {
     await fireEvent.press(screen.getByTestId('consent.check.crossBorderTransfer'));
     await fireEvent.press(screen.getByTestId('requirements.consent.confirm'));
 
-    // "Ready", then back on the look: the credit confirmation of the try-on opens by itself.
-    await waitFor(() => expect(screen.getByTestId('requirements.ready')).toBeTruthy(), WAIT);
+    // Straight back on the look (no "Ready" page, canvas 11f): the credit confirmation of the try-on opens by itself.
     await waitFor(() => expect(screen.getByText('1 credit will be used')).toBeTruthy(), WAIT);
     expect(consentFixtures.isValid('bodyPhotoAi') && consentFixtures.isValid('crossBorderTransfer')).toBe(true);
     expect(consentFixtures.requests()[0]).toEqual({
