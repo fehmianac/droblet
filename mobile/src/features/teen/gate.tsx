@@ -9,6 +9,7 @@ import i18n from '@/i18n';
 
 import type { TeenRules } from './rules';
 import { TeenLockedState, TeenTryOnExplainer, TeenTryOnLock } from './TeenLocks';
+import { TeenStylistLimitState } from './TeenStylist';
 
 /**
  * What a gated action (canvas 11 `useGate`) does for a teen before the normal requirements flow:
@@ -16,9 +17,14 @@ import { TeenLockedState, TeenTryOnExplainer, TeenTryOnLock } from './TeenLocks'
  * - `locked`: limited mode (no approval yet) — the "Velinin onayıyla açılır" sheet;
  * - `tryOnLocked`: try-on closed (limited, flag off, parent did not tick it) — the 14b lock card in a sheet;
  * - `explainer`: try-on open but the teen's own consent missing — 22t, then the normal flow;
+ * - approved teen's stylist (`Teen:Stylist`, canvas 18 · 16t–16w): `unavailable` (switched off by the server — the one
+ *   "genç hesaplarda şimdilik açık değil" sentence), `stylistLimit` (16u sheet), `weekLimit` / `packLimit` (one calm line);
  * - null: go on as for anyone.
  */
-export type TeenGateStop = 'hidden' | 'locked' | 'tryOnLocked' | 'explainer' | null;
+export type TeenGateStop = 'hidden' | 'locked' | 'tryOnLocked' | 'explainer' | 'unavailable' | 'stylistLimit' | 'weekLimit' | 'packLimit' | null;
+
+const STYLIST_PART = { stylist: 'outfit', week: 'week', pack: 'pack' } as const;
+const LIMIT_STOP = { outfit: 'stylistLimit', week: 'weekLimit', pack: 'packLimit' } as const;
 
 export function teenGateStop(action: RequirementAction, rules: TeenRules): TeenGateStop {
   if (!rules.isTeen) return null;
@@ -27,10 +33,17 @@ export function teenGateStop(action: RequirementAction, rules: TeenRules): TeenG
     if (rules.tryOn !== 'open') return 'tryOnLocked';
     return rules.needsOwnTryOnConsent ? 'explainer' : null;
   }
-  return rules.limited ? 'locked' : null;
+  if (rules.limited) return 'locked';
+  if ((action === 'stylist' || action === 'week' || action === 'pack') && rules.stylist) {
+    const part = STYLIST_PART[action];
+    const state = rules.stylist[part];
+    if (state === 'unavailable') return 'unavailable';
+    if (state === 'limitReached') return LIMIT_STOP[part];
+  }
+  return null;
 }
 
-type Open = { stop: 'locked' | 'tryOnLocked' | 'explainer'; onResume: (() => void) | null };
+type Open = { stop: 'locked' | 'tryOnLocked' | 'explainer' | 'stylistLimit'; onResume: (() => void) | null };
 
 let current: Open | null = null;
 const listeners = new Set<() => void>();
@@ -51,8 +64,12 @@ export const teenGate = {
   /** Applies a stop: shows the sheet / the sentence. Returns true when the action must not go on now. */
   apply(stop: TeenGateStop, onResume: () => void): boolean {
     if (stop === null) return false;
-    if (stop === 'hidden') {
+    if (stop === 'hidden' || stop === 'unavailable') {
       showToast({ message: i18n.t('teen.unavailable') });
+      return true;
+    }
+    if (stop === 'weekLimit' || stop === 'packLimit') {
+      showToast({ message: i18n.t(stop === 'weekLimit' ? 'teen.stylist.weekDone' : 'teen.stylist.packDone') });
       return true;
     }
     emit({ stop, onResume: stop === 'explainer' ? onResume : null });
@@ -83,6 +100,8 @@ export function TeenGateHost() {
       <View testID={`teen.gate.${open.stop}`}>
         {open.stop === 'tryOnLocked' ? (
           <TeenTryOnLock onLeave={teenGate.close} />
+        ) : open.stop === 'stylistLimit' ? (
+          <TeenStylistLimitState compact onLeave={teenGate.close} testID="teen.gate.stylistLimitState" />
         ) : (
           <TeenLockedState compact body={t('teen.locked.stylist')} onLeave={teenGate.close} testID="teen.gate.lockedState" />
         )}

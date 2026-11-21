@@ -32,6 +32,26 @@ export type TeenAccount = {
   tryOn: { available: boolean; reason: TeenTryOnReason | null } | null;
   /** The day the account becomes adult (YYYY-MM-DD). */
   adultFrom: string | null;
+  /** The free-tier stylist allowance of an approved teen (`Teen:Stylist`, §4.2); null = the server did not say. */
+  stylist: TeenStylistAllowance | null;
+};
+
+/**
+ * `teen.stylist` (docs/api/teen.md §4.2). Days and weeks are Europe/Istanbul; `resetsAt` / `weekResetsAt` are UTC
+ * instants. A limit of 0 (or `enabled: false`) = that part of the stylist is off for teens. `used*` include running jobs.
+ */
+export type TeenStylistAllowance = {
+  enabled: boolean;
+  dailyLimit: number;
+  usedToday: number;
+  remainingToday: number;
+  resetsAt: string | null;
+  weekPlanLimit: number;
+  weekPlanUsed: number;
+  weekPlanRemaining: number;
+  weekResetsAt: string | null;
+  tripPackLimit: number;
+  tripPackRemaining: number;
 };
 
 /** `GET v1/tenant/teen` and the profile's `ageBand` + `teen`. `ageBand: null` = not given yet (Apple / Google before the age step). */

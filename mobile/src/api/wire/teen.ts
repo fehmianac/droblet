@@ -5,6 +5,7 @@ import {
   type TeenAccount,
   type TeenConfig,
   type TeenState,
+  type TeenStylistAllowance,
   type TeenTryOnReason,
 } from '../contracts/teen';
 
@@ -26,7 +27,41 @@ export type TeenWire = {
   tryOn?: { available: boolean; reason?: TeenTryOnReason | null } | null;
   adultFrom?: string | null;
   restrictions?: string[];
+  /** §4.2 the free-tier teen stylist allowance; older servers omit it. */
+  stylist?: TeenStylistWire | null;
 };
+
+export type TeenStylistWire = {
+  enabled?: boolean;
+  dailyLimit?: number;
+  usedToday?: number;
+  remainingToday?: number;
+  resetsAt?: string | null;
+  weekPlanLimit?: number;
+  weekPlanUsed?: number;
+  weekPlanRemaining?: number;
+  weekResetsAt?: string | null;
+  tripPackLimit?: number;
+  tripPackUsed?: number;
+  tripPackRemaining?: number;
+};
+
+export function toTeenStylist(wire: TeenStylistWire): TeenStylistAllowance {
+  const n = (v: number | undefined) => Math.max(0, v ?? 0);
+  return {
+    enabled: wire.enabled ?? false,
+    dailyLimit: n(wire.dailyLimit),
+    usedToday: n(wire.usedToday),
+    remainingToday: n(wire.remainingToday),
+    resetsAt: wire.resetsAt ?? null,
+    weekPlanLimit: n(wire.weekPlanLimit),
+    weekPlanUsed: n(wire.weekPlanUsed),
+    weekPlanRemaining: n(wire.weekPlanRemaining),
+    weekResetsAt: wire.weekResetsAt ?? null,
+    tripPackLimit: n(wire.tripPackLimit),
+    tripPackRemaining: n(wire.tripPackRemaining),
+  };
+}
 
 /** `GET v1/tenant/teen`, `POST v1/tenant/teen/parental-consent(/resend)` (202). */
 export type TeenStateWire = { ageBand: AgeBand | null; teen: TeenWire | null };
@@ -56,6 +91,7 @@ export function toTeenAccount(wire: TeenWire): TeenAccount {
     ownTryOnConsentVersion: wire.ownTryOnConsentVersion ?? null,
     tryOn: wire.tryOn ? { available: wire.tryOn.available, reason: wire.tryOn.reason ?? null } : null,
     adultFrom: wire.adultFrom ?? null,
+    stylist: wire.stylist ? toTeenStylist(wire.stylist) : null,
   };
 }
 

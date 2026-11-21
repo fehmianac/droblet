@@ -9,6 +9,8 @@ import { GapFillBanner, useAddSuggestedPieces } from '@/features/stylist/gapFill
 import { RequirementHint } from '@/features/requirements/RequirementHint';
 import { requirementsFlow } from '@/features/requirements/store';
 import { useGate } from '@/features/requirements/useRequirements';
+import { useTeenRules } from '@/features/teen/store';
+import { TeenStylistQuotaLine } from '@/features/teen/TeenStylist';
 import { ApiError, extractApiError, isCreditsExhausted, isPaywallError } from '@/api/errors';
 import type { TryOnWeekQuote } from '@/api/wire/tryon';
 import { AiDropPulse, AiFailure, AiProgressLines } from '@/components/ui/ai';
@@ -73,6 +75,8 @@ export default function PlanWeekScreen() {
   const tryOn = useStartTryOn();
   const weekTryOn = useWeekTryOn();
   const startPlanWeek = useStartPlanWeek();
+  // Canvas 18 · 16v: an approved teen's weekly plan allowance; used up → a quiet button and "Pazartesi yenilenir".
+  const teenWeekUsed = useTeenRules().stylist?.week === 'limitReached';
   const acceptPlanWeek = useAcceptPlanWeek();
 
   const [menu, setMenu] = useState<{ date: string; top: number } | null>(null);
@@ -235,6 +239,8 @@ export default function PlanWeekScreen() {
                           label={t('weekPlan.planWeek')}
                           icon={Sparkles}
                           loading={startPlanWeek.isPending}
+                          disabled={teenWeekUsed}
+                          testID="week-plan"
                           onPress={() => {
                             if (toPlan.length === 0) return setHint('nothingToPlan');
                             setHint(null);
@@ -267,6 +273,7 @@ export default function PlanWeekScreen() {
                       {t(`weekPlan.${hint}`)}
                     </Text>
                   ) : null}
+                  <TeenStylistQuotaLine kind="week" testID="week.teenQuota" />
                   <RequirementHint hint={planGate.hint} onPress={planGate.run} className="self-start" testID="week-plan-hint" />
                   <RequirementHint hint={tryOnGate.hint} onPress={tryOnGate.run} className="self-start" testID="week-tryon-hint" />
                   {weekNote === 'bodyPhoto' ? (

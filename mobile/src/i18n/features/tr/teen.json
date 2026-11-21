@@ -182,6 +182,22 @@
     },
     "unavailable": "Bu özellik genç hesaplarda şimdilik açık değil.",
     "shareDiscarded": "Paylaşılan fotoğrafla deneme genç hesaplarda kapalı.",
-    "creditsOut": "Bu ayın AI görselleri bitti; ayın başında yenilenir."
+    "creditsOut": "Bu ayın AI görselleri bitti; ayın başında yenilenir.",
+    "stylist": {
+      "quotaLeft_one": "Bugün {{count}} öneri hakkın kaldı",
+      "quotaLeft_other": "Bugün {{count}} öneri hakkın kaldı",
+      "quotaDone": "Bugünlük hakkın doldu · Yarın yenilenir",
+      "limitTitle": "Bugünlük bu kadar",
+      "limitBody_one": "Bugünkü {{count}} öneri hakkını kullandın. Yarın yenilenir; bu arada kaydettiğin look'lara göz atabilirsin.",
+      "limitBody_other": "Bugünkü {{count}} öneri hakkını kullandın. Yarın yenilenir; bu arada kaydettiğin look'lara göz atabilirsin.",
+      "limitReset": "Yarın yenilenir",
+      "limitAction": "Look'larıma git",
+      "weekLeft_one": "Bu hafta {{count}} plan hakkın var",
+      "weekLeft_other": "Bu hafta {{count}} plan hakkın var",
+      "weekDone": "Bu haftaki planını yaptın · Pazartesi yenilenir",
+      "packOff": "Bavul hazırlama genç hesaplarda şimdilik kapalı. Parçaları kendin ekleyebilirsin.",
+      "packCard": "Listeni kendin hazırla",
+      "packDone": "Bu haftaki bavul hakkını kullandın · Pazartesi yenilenir"
+    }
   }
 }

@@ -8,6 +8,7 @@ import type { JobWire } from '@/api/wire/core';
 import { mapPackResult, toTrip, toTripDetailAsync, type TripDetailWire, type TripWire } from '@/api/wire/trips';
 import { toCity, type CityWire } from '@/api/wire/weather';
 import { routeAiStartError } from '@/features/credits/aiErrors';
+import { refreshTeenStylist } from '@/features/teen/store';
 import { fixtureGetTrip, fixtureListTrips, fixtureSearchCities, fixtureStartPack } from '@/fixtures/trips';
 import { ulid } from '@/lib/ids';
 import { newClientMutation } from '@/sync/clientMutation';
@@ -182,6 +183,7 @@ export function useStartPack(tripId: string) {
     onSuccess: ({ jobId }) => {
       client.setQueryData<string | null>(tripKeys.packJob(tripId), jobId);
       client.setQueryData<TripDetail>(tripKeys.trip(tripId), (prev) => (prev ? { ...prev, packJobId: jobId } : prev));
+      refreshTeenStylist();
     },
     onError: (error) => void routeAiStartError(error, 'suitcase'),
   });
