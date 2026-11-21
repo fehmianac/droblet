@@ -13,7 +13,8 @@ public record AdminBrandDto(
 public record AdminProductDto(
     string Id, string BrandId, IReadOnlyDictionary<string, string> Name, IReadOnlyDictionary<string, string>? Description, ProductCategory Category, IReadOnlyList<string> Colors,
     IReadOnlyList<string> Sizes, long PriceMinor, string Currency, long? PreviousPriceMinor, DateTime? PriceChangedAt, PriceBand PriceBand,
-    IReadOnlyList<string> Images, string? AffiliateUrl, AffiliateSource AffiliateSource, bool Retired, DateTime CreatedAt, DateTime UpdatedAt);
+    IReadOnlyList<string> Images, string? AffiliateUrl, AffiliateSource AffiliateSource, bool Retired, DateTime CreatedAt, DateTime UpdatedAt,
+    CatalogSegment Segment = CatalogSegment.Women);
 
 public record AdminProductWriteDto(AdminProductDto Product, bool Created, bool PriceDropped, int WatchersFlagged);
 
@@ -37,7 +38,7 @@ public static class AdminDtoMapper
 
     public static AdminProductDto ToAdminDto(this CatalogProductEntity p) => new(
         p.Id, p.BrandId, p.Name, p.Description, p.Category, p.Colors, p.Sizes, p.PriceMinor, p.Currency, p.PreviousPriceMinor, p.PriceChangedAt,
-        p.PriceBand, p.Images, p.AffiliateUrl, p.AffiliateSource, p.Retired, p.CreatedAt, p.UpdatedAt);
+        p.PriceBand, p.Images, p.AffiliateUrl, p.AffiliateSource, p.Retired, p.CreatedAt, p.UpdatedAt, p.Segment);
 
     public static AdminEditDto ToAdminDto(this WeeklyEditEntity e) => new(
         e.Id, e.Segment, e.WeekStart, e.Title, e.Subtitle, e.CoverImageUrl,

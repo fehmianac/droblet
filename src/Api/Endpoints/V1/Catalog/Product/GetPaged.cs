@@ -31,6 +31,8 @@ public class GetPaged : IEndpoint
         [FromQuery] int? limit,
         [FromServices] ICatalogService catalog,
         [FromServices] IOptionsMonitor<CatalogOptions> options,
+        [FromServices] IApiContext apiContext,
+        [FromServices] IRepository repository,
         CancellationToken cancellationToken)
     {
 
@@ -42,7 +44,8 @@ public class GetPaged : IEndpoint
 
         var settings = options.CurrentValue;
         var pageSize = Math.Clamp(limit ?? settings.PageSize, 1, settings.MaxPageSize);
-        var query = new CatalogQuery(categoryValue, brand, color, sizeFilter, q, bandValue, sortValue ?? ProductSort.Newest);
+        var segment = await repository.UserSegmentAsync(apiContext.TenantId, cancellationToken);
+        var query = new CatalogQuery(categoryValue, brand, color, sizeFilter, q, bandValue, sortValue ?? ProductSort.Newest, segment);
         var page = CatalogRules.Query(await catalog.GetProductsAsync(cancellationToken), query, pageToken, pageSize, await catalog.GetBrandNamesAsync(cancellationToken));
 
         var items = new List<ProductDto>(page.Items.Count);
@@ -59,7 +62,7 @@ public class GetPaged : IEndpoint
             .ProducesProblem(StatusCodes.Status500InternalServerError)
             .RequireAuthorization(ClaimNames.TenantUserPolicy)
             .WithSummary("Products (paged)")
-            .WithDescription("Filters: category, brand (id), color, size, priceBand, q (name / brand, every language, Turkish letters folded). sort = newest (default) | priceAsc | priceDesc. Cursor paging with pageToken; count = total matches.")
+            .WithDescription("Only products of the user's segment and unisex ones (style profile; women when never chosen). Filters: category, brand (id), color, size, priceBand, q (name / brand, every language, Turkish letters folded). sort = newest (default) | priceAsc | priceDesc. Cursor paging with pageToken; count = total matches.")
             .WithTags("Catalog");
     }
 }

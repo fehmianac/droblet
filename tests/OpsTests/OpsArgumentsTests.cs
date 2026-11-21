@@ -189,6 +189,36 @@ public class LibraryImagePlanTests
         Assert.Contains("No people", prompt);
         Assert.Contains("no text", prompt);
     }
+
+    [Fact]
+    public void Prompt_NamesTheSegment_WomenUnchanged_MenOnce_UnisexNone()
+    {
+        Assert.Contains("of a single women's navy blazer.", LibraryImagePlan.Prompt(Item("lib-navy-blazer", 1)));
+        var men = Item("lib-men-navy-suit-jacket", 1);
+        men.Segment = CatalogSegment.Men;
+        Assert.Contains("of a single men's navy blazer.", LibraryImagePlan.Prompt(men));
+        men.Name["en"] = "Men's camel coat";
+        Assert.Contains("of a single men's camel coat.", LibraryImagePlan.Prompt(men));   // never "men's men's"
+        men.Segment = CatalogSegment.Unisex;
+        Assert.Contains("of a single men's camel coat.", LibraryImagePlan.Prompt(men));
+        men.Name["en"] = "Steel watch";
+        Assert.Contains("of a single steel watch.", LibraryImagePlan.Prompt(men));
+    }
+
+    [Fact]
+    public void MensStarterSet_IsOneRun_OfExactlyItsImageCalls()
+    {
+        var seed = Infrastructure.Services.LibraryCatalog.LoadEmbeddedSeed();
+        var menIds = seed.Where(i => i.Segment == CatalogSegment.Men).Select(i => i.Id).ToList();
+
+        var plan = LibraryImagePlan.Select(seed, menIds, force: false, budget: OpsArguments.MaxImageCallsPerRun);
+
+        // docs/images.md: the owner approves this many image calls (one per piece, none has an image yet).
+        Assert.Equal(27, menIds.Count);
+        Assert.Equal(menIds.Count, plan.ToGenerate.Count);
+        Assert.Empty(plan.Skipped);
+        Assert.True(menIds.Count <= OpsArguments.MaxImageCallsPerRun);
+    }
 }
 
 public class WebpImageTests

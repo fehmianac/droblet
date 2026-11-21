@@ -38,7 +38,7 @@ public record AdminAiTrialRequest(Domain.Entity.AiTrialType Type, string? Key, s
 
 public record AdminLibraryItemRequest(
     IReadOnlyDictionary<string, string>? Name, ItemCategory? Category, IReadOnlyList<string>? ColorIds, string? Fabric,
-    IReadOnlyList<Season>? Seasons, string? ImageUrl, int SortOrder, bool Retired = false);
+    IReadOnlyList<Season>? Seasons, string? ImageUrl, int SortOrder, bool Retired = false, CatalogSegment? Segment = null);
 
 public static class AdminPasswordRules
 {

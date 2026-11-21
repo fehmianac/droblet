@@ -29,7 +29,8 @@ the listing: they come from StoreKit. `[ASSUMPTION]` marks a value the owner has
 `Kıyafetlerini fotoğrafla; Droblet her sabah hava durumuna ve gününe göre kombinini hazırlasın. Seyahatte bavul listesini de o yapar.` (132)
 
 **Anahtar kelimeler (≤ 100, virgülle, boşluksuz):**
-`kombin,dolap,kıyafet,moda,stilist,giyim,outfit,look,renk paleti,seyahat,hava durumu,kapsül,elbise` (97)
+`kombin,dolap,kıyafet,moda,stilist,giyim,outfit,look,renk paleti,seyahat,hava durumu,kapsül,erkek` (96)
+<!-- OWNER REVIEW: men launch --> was `…,kapsül,elbise` (97): "elbise" is a women-only term; "erkek" makes the men's launch searchable.
 
 **Açıklama:**
 
@@ -71,8 +72,9 @@ Kullanım Koşulları: https://droblet.alatech.co/terms
 Abonelik Koşulları: https://droblet.alatech.co/subscription-terms
 Gizlilik Politikası: https://droblet.alatech.co/privacy
 
-18 yaş ve üzeri için. Şimdilik kadın gardırobu; erkek ve genç yakında.
+18 yaş ve üzeri için. Kadın ve erkek gardırobu; genç yakında.
 ```
+<!-- OWNER REVIEW: men launch --> was "Şimdilik kadın gardırobu; erkek ve genç yakında." Only true once api/Segments:Available includes men on prod.
 
 **Bu sürümdeki yenilikler:** `Droblet'in ilk sürümü. Gardırobunu ekle, günün kombinini al, bir sonraki seyahatin için bavulunu hazırla.`
 
@@ -126,8 +128,9 @@ Terms of Use: https://droblet.alatech.co/en/terms
 Subscription Terms: https://droblet.alatech.co/en/subscription-terms
 Privacy Policy: https://droblet.alatech.co/en/privacy
 
-For ages 18 and over. Women's wardrobe for now; men's and teens' coming soon.
+For ages 18 and over. Women's and men's wardrobes; teens' coming soon.
 ```
+<!-- OWNER REVIEW: men launch --> was "Women's wardrobe for now; men's and teens' coming soon." Only true once api/Segments:Available includes men on prod.
 
 **What's New:** `The first release of Droblet. Add your wardrobe, get your outfit of the day and pack for your next trip.`
 

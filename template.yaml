@@ -521,6 +521,16 @@ Resources:
         - IsProd
         - '{"SuggestionCount":3,"MaxCandidates":60,"MaxTitleLength":40,"MaxExplanationLength":280,"FreeTextMaxLength":200,"HotFromC":26,"ColdBelowC":12,"DislikeMemory":10}'
         - '{"SuggestionCount":3,"MaxCandidates":60,"MaxTitleLength":40,"MaxExplanationLength":280,"FreeTextMaxLength":200,"HotFromC":26,"ColdBelowC":12,"DislikeMemory":10,"WeekBatchDays":0}'
+  SsmApiSegments:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/api/Segments
+      Type: String
+      Description: Open user segments (style profile; GET v1/config). dev opens men; prod stays women only until the owner decides. Teen is never open (legal). Same value as worker/Segments.
+      Value: !If
+        - IsProd
+        - '{"Available":["women"]}'
+        - '{"Available":["women","men"]}'
   SsmApiPacking:
     Type: AWS::SSM::Parameter
     Properties:
@@ -594,6 +604,16 @@ Resources:
         - IsProd
         - '{"SuggestionCount":3,"MaxCandidates":60,"MaxTitleLength":40,"MaxExplanationLength":280,"FreeTextMaxLength":200,"HotFromC":26,"ColdBelowC":12,"DislikeMemory":10}'
         - '{"SuggestionCount":3,"MaxCandidates":60,"MaxTitleLength":40,"MaxExplanationLength":280,"FreeTextMaxLength":200,"HotFromC":26,"ColdBelowC":12,"DislikeMemory":10,"WeekBatchDays":0}'
+  SsmWorkerSegments:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/worker/Segments
+      Type: String
+      Description: Same values as api/Segments.
+      Value: !If
+        - IsProd
+        - '{"Available":["women"]}'
+        - '{"Available":["women","men"]}'
   SsmWorkerPacking:
     Type: AWS::SSM::Parameter
     Properties:

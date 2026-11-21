@@ -23,7 +23,8 @@ public record ProductDto(
     PriceBand PriceBand,
     IReadOnlyList<string> Images,
     bool Available,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    CatalogSegment Segment = CatalogSegment.Women);
 
 public record LookRefDto(LookRefKind Kind, string Id);
 
@@ -97,7 +98,7 @@ public static class StoreDtoMapper
         p.Category, CatalogRules.SlotOf(p.Category),
         p.Colors, p.Sizes, p.PriceMinor, p.Currency,
         p.PreviousPriceMinor is { } previous && previous > p.PriceMinor ? previous : null,
-        p.PriceBand, p.Images, !p.Retired, p.CreatedAt);
+        p.PriceBand, p.Images, !p.Retired, p.CreatedAt, p.Segment);
 
     public static ClosetItemDto ToDto(this ClosetItem item) => new(item.Id, item.Name, item.Category, item.Colors, item.ImageUrl);
 

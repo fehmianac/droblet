@@ -24,16 +24,20 @@ public class GetPaged : IEndpoint
         [FromQuery] string? brand,
         [FromQuery] string? q,
         [FromQuery] bool? includeRetired,
+        [FromQuery] string? segment,
         [FromQuery] string? pageToken,
         [FromQuery] int? limit,
         [FromServices] ICatalogService catalog,
         CancellationToken cancellationToken)
     {
+        if (!QueryParsing.TryEnum<CatalogSegment>(segment, out var segmentValue))
+            return StoreResults.BadQuery();
 
         var text = CatalogRules.NormalizeText(q);
         var products = (await catalog.GetProductsAsync(cancellationToken))
             .Where(p => includeRetired != false || !p.Retired)
             .Where(p => string.IsNullOrEmpty(brand) || p.BrandId == brand)
+            .Where(p => segmentValue is null || p.Segment == segmentValue)
             .Where(p => text.Length == 0 || CatalogRules.NormalizeText($"{p.Id} {string.Join(' ', p.Name.Values)}").Contains(text, StringComparison.Ordinal));
 
         var page = CatalogRules.Page(CatalogRules.Sort(products, ProductSort.Newest), pageToken, Math.Clamp(limit ?? 50, 1, 200));
@@ -47,7 +51,7 @@ public class GetPaged : IEndpoint
             .ProducesProblem(StatusCodes.Status500InternalServerError)
             .RequireAdmin(AdminPermissions.CatalogManage)
             .WithSummary("Products (admin, paged)")
-            .WithDescription("Newest first, retired included unless includeRetired=false. Filters: brand, q (id or any-language name).")
+            .WithDescription("Newest first, retired included unless includeRetired=false. Filters: brand, q (id or any-language name), segment (women | men | unisex: exactly that value).")
             .WithTags("Admin Catalog");
     }
 }

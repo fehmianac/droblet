@@ -92,6 +92,7 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
     {
         var used = new List<PromptOverride>();
         var system = await PromptAsync(PromptCatalog.StylistInstructions(prompt.Kind), OpenAiPrompts.StylistInstructions(prompt.Kind), used, ct)
+                     + (prompt.Segment == Segment.Men ? await PromptAsync(PromptCatalog.StylistMenswear, OpenAiPrompts.StylistMenswear, used, ct) : "")
                      + (prompt.CompactCandidates ? await PromptAsync(PromptCatalog.CompactCandidates, OpenAiPrompts.CompactCandidates, used, ct) : "")
                      + await LanguageAsync(prompt.Language, used, ct);
         var content = await ChatAsync(system, prompt.InputJson, [], AiSchemas.NameFor(prompt.Kind), AiSchemas.For(prompt.Kind), used, ct);
@@ -120,13 +121,24 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
     }
 
     public Task<IReadOnlyList<DetectedItem>> DetectItemsAsync(ImageInput photo, string language, CancellationToken ct) =>
-        DetectItemsAsync(photo, language, false, ct);
+        DetectItemsAsync(photo, language, false, Segment.Women, ct);
 
-    /// <summary>The same detection; <paramref name="fast"/> = Ai:FastTextModel when it is set (outfit import).</summary>
-    public async Task<IReadOnlyList<DetectedItem>> DetectItemsAsync(ImageInput photo, string language, bool fast, CancellationToken ct)
+    public Task<IReadOnlyList<DetectedItem>> DetectItemsAsync(ImageInput photo, string language, Segment segment, CancellationToken ct) =>
+        DetectItemsAsync(photo, language, false, segment, ct);
+
+    public Task<IReadOnlyList<DetectedItem>> DetectItemsAsync(ImageInput photo, string language, bool fast, CancellationToken ct) =>
+        DetectItemsAsync(photo, language, fast, Segment.Women, ct);
+
+    /// <summary>
+    /// The same detection; <paramref name="fast"/> = Ai:FastTextModel when it is set (outfit import). Men: the menswear
+    /// sub-type hint (item.detect.segment.men) follows the instructions; women's prompt is unchanged.
+    /// </summary>
+    public async Task<IReadOnlyList<DetectedItem>> DetectItemsAsync(ImageInput photo, string language, bool fast, Segment segment, CancellationToken ct)
     {
         var used = new List<PromptOverride>();
-        var system = await PromptAsync(PromptCatalog.DetectInstructions, OpenAiPrompts.ItemDetectionBase, used, ct) + await LanguageAsync(language, used, ct);
+        var system = await PromptAsync(PromptCatalog.DetectInstructions, OpenAiPrompts.ItemDetectionBase, used, ct)
+                     + (segment == Segment.Men ? await PromptAsync(PromptCatalog.DetectMenswear, OpenAiPrompts.ItemDetectionMenswear, used, ct) : "")
+                     + await LanguageAsync(language, used, ct);
         var user = await PromptAsync(PromptCatalog.DetectRequest, OpenAiPrompts.ItemDetectionRequest, used, ct);
         var content = await ChatAsync(system, user, [photo], AiSchemas.ItemDetection, AiSchemas.ItemDetectionSchema(), used, ct, highDetail: true, fast: fast);
         return await ParseAsync(OpenAiPayloads.ParseDetection, content, used, ct);
@@ -856,8 +868,19 @@ public static class OpenAiPrompts
     public static string WriteIn(string? language) =>
         PromptTemplate.Render(LanguageTemplate, ("languageName", LanguageName(language)), ("languageCode", Localized.Language(language)));
 
-    public static string Stylist(JobKind kind, string? language, bool compactCandidates = false) =>
-        StylistInstructions(kind) + (compactCandidates ? CompactCandidates : "") + WriteIn(language);
+    public static string Stylist(JobKind kind, string? language, bool compactCandidates = false, Segment segment = Segment.Women) =>
+        StylistInstructions(kind) + (segment == Segment.Men ? StylistMenswear : "") + (compactCandidates ? CompactCandidates : "") + WriteIn(language);
+
+    /// <summary>
+    /// Registry key stylist.segment.men: appended to the outfit, week and suitcase system prompts of a man's request (after the
+    /// instructions, before the compact-candidates and language suffixes). Women's requests never get it, so their prompts are unchanged.
+    /// </summary>
+    public const string StylistMenswear =
+        " The user is a man: dress him in menswear. A base is a top (shirt, polo, t-shirt, knitwear) with a bottom (chinos, jeans, tailored or suit trousers); " +
+        "use a dress, a skirt or another womenswear piece only when it is among the candidates, and never name one as a missing piece. " +
+        "The outer layer may be an overshirt, blazer, suit jacket, bomber or coat; shoes may be loafers, derbies, boots or sneakers; bagAccessory may be a belt, watch, tie or bag. " +
+        "Office, dinner and wedding: a smart top with tailored trousers or chinos, leather shoes and, when there is one, a blazer or suit jacket even in mild weather. " +
+        "Weekend, travel and sport stay relaxed (t-shirt or polo, jeans or chinos, sneakers). Keep colours calm — navy, grey, white, beige, olive, brown — with at most one strong colour per look.";
 
     /// <summary>The stylist system prompt without the language suffix (registry keys stylist.*.instructions).</summary>
     public static string StylistInstructions(JobKind kind) => kind switch
@@ -895,7 +918,15 @@ public static class OpenAiPrompts
 
     public static string GarmentVision(string? language) => GarmentVisionBase + WriteIn(language);
 
-    public static string ItemDetection(string? language) => ItemDetectionBase + WriteIn(language);
+    public static string ItemDetection(string? language, Segment segment = Segment.Women) =>
+        ItemDetectionBase + (segment == Segment.Men ? ItemDetectionMenswear : "") + WriteIn(language);
+
+    /// <summary>Registry key item.detect.segment.men: appended to the detection system prompt of a man's photo (women's prompt unchanged).</summary>
+    public const string ItemDetectionMenswear =
+        " The pieces belong to a man's wardrobe: prefer the menswear sub-types when they fit (oxford-shirt, dress-shirt, polo, henley, quarter-zip, chinos, " +
+        "suit-trousers, suit-jacket, overshirt, waistcoat, bomber, derbies, oxford-shoes, chelsea-boots, boat-shoes, briefcase, messenger-bag, tie, bow-tie, " +
+        "pocket-square, cufflinks, suspenders, swim-shorts). A tailored jacket with matching trousers is two pieces: suit-jacket (outerwear) and suit-trousers (bottom). " +
+        "An overshirt worn open over a t-shirt is outerwear.";
 
     public const string ItemDetectionRequest = "List every wearable piece in this photo, jewellery and small accessories included, each with its box.";
 
@@ -971,27 +1002,45 @@ public static class OpenAiPrompts
     public static string TryOnFromFace(int garmentCount, TryOnFigure figure) =>
         PromptTemplate.Render(TryOnFromFaceTemplate, TryOnFromFaceValues(garmentCount, figure));
 
-    /// <summary>{{garmentCount}}, {{bodyShape}}, {{height}} (" about 170 cm tall," or ""), {{size}} (" wearing clothing size M," or "").</summary>
+    /// <summary>
+    /// {{garmentCount}}, {{bodyShape}}, {{height}} (" about 170 cm tall," or ""), {{size}} (" wearing clothing size M," or ""),
+    /// {{personNoun}} ("person" for women — the phase 1 text, byte-identical — "man" for men).
+    /// </summary>
     public static IReadOnlyDictionary<string, string> TryOnFromFaceValues(int garmentCount, TryOnFigure figure)
     {
-        var shape = figure.BodyType switch
-        {
-            BodyType.Hourglass => "an hourglass body shape (shoulders and hips about the same width, a defined waist)",
-            BodyType.Pear => "a pear body shape (hips wider than the shoulders)",
-            BodyType.Apple => "an apple body shape (volume around the midsection)",
-            BodyType.Rectangle => "a rectangle body shape (shoulders, waist and hips about the same width)",
-            BodyType.InvertedTriangle => "an inverted-triangle body shape (shoulders wider than the hips)",
-            _ => "a balanced, average body shape",
-        };
         var height = figure.HeightCm is { } cm ? $" about {cm} cm tall," : "";
         var size = figure.Size is { } s ? $" wearing clothing size {s}," : "";
-        return new Dictionary<string, string> { ["garmentCount"] = Count(garmentCount), ["bodyShape"] = shape, ["height"] = height, ["size"] = size };
+        return new Dictionary<string, string>
+        {
+            ["garmentCount"] = Count(garmentCount), ["bodyShape"] = BodyShape(figure), ["height"] = height, ["size"] = size,
+            ["personNoun"] = figure.Segment == Segment.Men ? "man" : "person",
+        };
     }
+
+    /// <summary>
+    /// {{bodyShape}} of the face path: the women's phrases are the phase 1 texts; men get their own build wording. A body type of the
+    /// other segment (left from before a segment change) reads as "not sure".
+    /// </summary>
+    public static string BodyShape(TryOnFigure figure) => (figure.Segment == Segment.Men, figure.BodyType) switch
+    {
+        (false, BodyType.Hourglass) => "an hourglass body shape (shoulders and hips about the same width, a defined waist)",
+        (false, BodyType.Pear) => "a pear body shape (hips wider than the shoulders)",
+        (false, BodyType.Apple) => "an apple body shape (volume around the midsection)",
+        (false, BodyType.Rectangle) => "a rectangle body shape (shoulders, waist and hips about the same width)",
+        (false, BodyType.InvertedTriangle) => "an inverted-triangle body shape (shoulders wider than the hips)",
+        (false, _) => "a balanced, average body shape",
+        (true, BodyType.Rectangle) => "a rectangle build (shoulders, waist and hips about the same width, a straight torso)",
+        (true, BodyType.InvertedTriangle) => "an inverted-triangle, V-shaped build (broad shoulders and chest tapering to narrower hips)",
+        (true, BodyType.Triangle) => "a triangle build (hips and waist wider than the shoulders)",
+        (true, BodyType.Oval) => "an oval build (a fuller, rounded midsection, the waist wider than the chest and hips)",
+        (true, BodyType.Trapezoid) => "a trapezoid, athletic build (broad shoulders and chest, a slightly narrower waist, balanced proportions)",
+        (true, _) => "a balanced, average build",
+    };
 
     /// <summary>Registry key tryon.image.face (the face path).</summary>
     public const string TryOnFromFaceTemplate =
-               "The first image is a photo of an adult person's face. The following {{garmentCount}} image(s) are garments. " +
-               "Create a realistic full-length photo of this same adult person with {{bodyShape}},{{height}}{{size}} standing in a relaxed, neutral pose. " +
+               "The first image is a photo of an adult {{personNoun}}'s face. The following {{garmentCount}} image(s) are garments. " +
+               "Create a realistic full-length photo of this same adult {{personNoun}} with {{bodyShape}},{{height}}{{size}} standing in a relaxed, neutral pose. " +
                "Keep the face, facial features, skin tone, hair and apparent age exactly as in the face photo — do not change, beautify or replace the person's identity. " +
                "The face must be the same face as in the photo: the same face shape, eyes, nose, mouth, eyebrows, skin texture and expression. Never redraw, retouch, slim, age or de-age it; render it at a natural size for a full-length photo. " +
                "The person is fully clothed, wearing exactly these garments, keeping each garment's colour, pattern, cut and every brand logo, monogram, print and lettering exactly as on the garment; add plain neutral basics only where a garment is missing so the person is never undressed. " +
@@ -1011,18 +1060,22 @@ public static class OpenAiPrompts
     /// <summary>Photo try-on on the face path (no body photo): the face-path figure, dressed in the outfit of the reference photo.</summary>
     public static string TryOnOutfitPhotoFromFace(TryOnFigure figure) => PromptTemplate.Render(TryOnOutfitPhotoFromFaceTemplate, FigureValues(figure));
 
-    /// <summary>{{bodyShape}}, {{height}}, {{size}} of the face-path figure (the same texts as tryon.image.face).</summary>
+    /// <summary>
+    /// {{bodyShape}}, {{height}}, {{size}} of the face-path figure (the same texts as tryon.image.face); {{personNoun}} = "user" for
+    /// women (the phase 1 text, byte-identical), "man" for men.
+    /// </summary>
     public static IReadOnlyDictionary<string, string> FigureValues(TryOnFigure figure)
     {
         var values = new Dictionary<string, string>(TryOnFromFaceValues(0, figure));
         values.Remove("garmentCount");
+        values["personNoun"] = figure.Segment == Segment.Men ? "man" : "user";
         return values;
     }
 
     /// <summary>Registry key tryon.image.photo.face.</summary>
     public const string TryOnOutfitPhotoFromFaceTemplate =
-        "The first image is a photo of an adult user's face. The second image is a reference photo of another person wearing a complete outfit. " +
-        "Create a realistic full-length photo of this same adult user with {{bodyShape}},{{height}}{{size}} standing in a relaxed, neutral pose. " +
+        "The first image is a photo of an adult {{personNoun}}'s face. The second image is a reference photo of another person wearing a complete outfit. " +
+        "Create a realistic full-length photo of this same adult {{personNoun}} with {{bodyShape}},{{height}}{{size}} standing in a relaxed, neutral pose. " +
         "Keep the face, facial features, skin tone, hair and apparent age exactly as in the face photo — do not change, beautify or replace the user's identity. " +
         "Dress the user in exactly the outfit worn in the reference photo: every visible garment, the shoes, the bag and every accessory, keeping each one's colour, pattern, fabric, cut and every brand logo, monogram, print and lettering exactly as in the reference; " +
         "add plain neutral basics only where the reference shows no garment so the user is never undressed. " +

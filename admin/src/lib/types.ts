@@ -85,6 +85,14 @@ export interface AdminBrand {
   updatedAt: string;
 }
 
+/** Who a library piece / product is for (wire `segment`). Unisex shows to every user segment. */
+export type CatalogSegment = 'women' | 'men' | 'unisex';
+export const CATALOG_SEGMENTS: CatalogSegment[] = ['women', 'men', 'unisex'];
+
+/** User / weekly edit segment that admins may author (teen stays closed). */
+export type EditSegment = 'women' | 'men';
+export const EDIT_SEGMENTS: EditSegment[] = ['women', 'men'];
+
 export interface AdminProduct {
   id: string;
   brandId: string;
@@ -101,6 +109,8 @@ export interface AdminProduct {
   images: string[];
   affiliateUrl: string | null;
   affiliateSource: AffiliateSource;
+  /** Older rows without a value are women. */
+  segment: CatalogSegment;
   retired: boolean;
   createdAt: string;
   updatedAt: string;
@@ -143,7 +153,7 @@ export interface EditLook {
 
 export interface AdminEdit {
   id: string;
-  segment: 'women';
+  segment: EditSegment;
   weekStart: string;
   title: Localized;
   subtitle: Localized | null;
@@ -195,6 +205,9 @@ export interface AdminLibraryItem {
   sortOrder: number;
   retired: boolean;
   stored: boolean;
+  segment: CatalogSegment;
+  /** True when no https image is stored (the app shows the garment placeholder). */
+  needsImage: boolean;
 }
 
 export interface UploadSlot {

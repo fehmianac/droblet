@@ -92,7 +92,7 @@ public sealed class TryOnJobService(
 
             // Ai:Image:TryOnPreview: a fast low-quality image first (the job completes with it), the full one replaces it after.
             var preview = aiOptions.CurrentValue.Image is { TryOnPreview: true } imageOptions ? imageOptions.PreviewQuality : null;
-            var figure = new TryOnFigure(message.BodyType ?? BodyType.Unsure, message.HeightCm, message.Size);
+            var figure = new TryOnFigure(message.BodyType ?? BodyType.Unsure, message.HeightCm, message.Size, message.Segment ?? Segment.Women);
             Task<ImageInput> Render(string? quality) => reference is not null
                 ? renderer.RenderOutfitPhotoAsync(photo, reference, face ? figure : null, ct, quality)
                 : face

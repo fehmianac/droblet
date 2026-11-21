@@ -26,7 +26,17 @@ import {
 import { api } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
 import { resolveText } from '@/lib/text';
-import { FABRICS, ITEM_CATEGORIES, SEASONS, type AdminLibraryItem, type ItemCategory, type Localized, type Season } from '@/lib/types';
+import {
+  CATALOG_SEGMENTS,
+  FABRICS,
+  ITEM_CATEGORIES,
+  SEASONS,
+  type AdminLibraryItem,
+  type CatalogSegment,
+  type ItemCategory,
+  type Localized,
+  type Season,
+} from '@/lib/types';
 
 interface Form {
   id: string;
@@ -38,6 +48,7 @@ interface Form {
   imageUrl: string | null;
   sortOrder: string;
   retired: boolean;
+  segment: CatalogSegment;
 }
 
 function LibraryInner() {
@@ -45,6 +56,7 @@ function LibraryInner() {
   const toast = useToast();
   const list = useAsync(() => api.get<AdminLibraryItem[]>('v1/admin/library'), []);
   const [category, setCategory] = useState<ItemCategory | ''>('');
+  const [segment, setSegment] = useState<CatalogSegment | ''>('');
   const [q, setQ] = useState('');
   const [form, setForm] = useState<Form | null>(null);
   const [isNew, setIsNew] = useState(false);
@@ -55,9 +67,12 @@ function LibraryInner() {
   const rows = useMemo(() => {
     const text = q.trim().toLocaleLowerCase();
     return (list.data ?? []).filter(
-      (i) => (!category || i.category === category) && (!text || `${i.id} ${Object.values(i.name).join(' ')}`.toLocaleLowerCase().includes(text)),
+      (i) =>
+        (!category || i.category === category) &&
+        (!segment || (i.segment ?? 'women') === segment) &&
+        (!text || `${i.id} ${Object.values(i.name).join(' ')}`.toLocaleLowerCase().includes(text)),
     );
-  }, [list.data, category, q]);
+  }, [list.data, category, segment, q]);
   const hasSeed = (list.data ?? []).some((i) => !i.stored);
 
   const set = <K extends keyof Form>(key: K, value: Form[K]) => setForm((f) => (f ? { ...f, [key]: value } : f));
@@ -76,8 +91,20 @@ function LibraryInner() {
             imageUrl: i.imageUrl,
             sortOrder: String(i.sortOrder),
             retired: i.retired,
+            segment: i.segment ?? 'women',
           }
-        : { id: 'lib-', name: {}, category: 'top', colorIds: '', fabric: '', seasons: [], imageUrl: null, sortOrder: '0', retired: false },
+        : {
+            id: 'lib-',
+            name: {},
+            category: 'top',
+            colorIds: '',
+            fabric: '',
+            seasons: [],
+            imageUrl: null,
+            sortOrder: '0',
+            retired: false,
+            segment: segment || 'women',
+          },
     );
   };
 
@@ -95,6 +122,7 @@ function LibraryInner() {
         imageUrl: form.imageUrl,
         sortOrder: Number(form.sortOrder) || 0,
         retired: form.retired,
+        segment: form.segment,
       });
       toast.success(t.common.saved);
       setForm(null);
@@ -144,6 +172,12 @@ function LibraryInner() {
         </div>
       ),
     },
+    {
+      key: 'segment',
+      header: t.library.segment,
+      sortValue: (i) => i.segment ?? 'women',
+      render: (i) => <Badge tone={i.segment === 'men' ? 'blue' : i.segment === 'unisex' ? 'neutral' : 'brand'}>{t.enums.catalogSegment[i.segment ?? 'women']}</Badge>,
+    },
     { key: 'category', header: t.library.category, sortValue: (i) => i.category, render: (i) => t.enums.itemCategory[i.category] ?? i.category },
     { key: 'colors', header: t.library.colors, render: (i) => <span className="text-xs text-muted">{i.colorIds.join(', ')}</span> },
     { key: 'fabric', header: t.library.fabric, render: (i) => (i.fabric ? ((t.enums.fabric as Record<string, string>)[i.fabric] ?? i.fabric) : '—') },
@@ -156,6 +190,7 @@ function LibraryInner() {
         <div className="flex gap-1">
           {i.retired ? <Badge>{t.common.retired}</Badge> : <Badge tone="green">{t.common.active}</Badge>}
           {!i.stored && <Badge tone="blue">{t.library.seed}</Badge>}
+          {i.needsImage && <Badge tone="amber">{t.library.needsImage}</Badge>}
         </div>
       ),
     },
@@ -200,6 +235,14 @@ function LibraryInner() {
               </option>
             ))}
           </Select>
+          <Select value={segment} onChange={(e) => setSegment(e.target.value as CatalogSegment | '')} aria-label={t.library.segment} className="w-44">
+            <option value="">{t.library.allSegments}</option>
+            {CATALOG_SEGMENTS.map((s) => (
+              <option key={s} value={s}>
+                {t.enums.catalogSegment[s]}
+              </option>
+            ))}
+          </Select>
         </div>
         {list.loading ? <TableSkeleton /> : list.error ? <ErrorState error={list.error} onRetry={list.reload} /> : <DataTable columns={columns} rows={rows} rowKey={(i) => i.id} />}
       </Card>
@@ -224,6 +267,15 @@ function LibraryInner() {
               <Input id="li-id" value={form.id} disabled={!isNew} onChange={(e) => set('id', e.target.value.toLowerCase())} className="font-mono" />
             </Field>
             <LocalizedField id="li-name" label={t.common.name} required value={form.name} onChange={(v) => set('name', v)} maxLength={80} error={errors.name} />
+            <Field label={t.library.segment} htmlFor="li-segment" required hint={t.library.segmentHint} error={errors.segment}>
+              <Select id="li-segment" value={form.segment} onChange={(e) => set('segment', e.target.value as CatalogSegment)}>
+                {CATALOG_SEGMENTS.map((s) => (
+                  <option key={s} value={s}>
+                    {t.enums.catalogSegment[s]}
+                  </option>
+                ))}
+              </Select>
+            </Field>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label={t.library.category} htmlFor="li-cat" required error={errors.category}>
                 <Select id="li-cat" value={form.category} onChange={(e) => set('category', e.target.value as ItemCategory)}>
@@ -267,6 +319,7 @@ function LibraryInner() {
               </div>
             </Field>
             <ImageField id="li-img" label={t.common.image} value={form.imageUrl} onChange={(v) => set('imageUrl', v)} purpose="library" error={errors.imageUrl} />
+            {!form.imageUrl && <p className="text-xs text-amber-800">{t.library.needsImageHint}</p>}
             <Field label={t.common.sortOrder} htmlFor="li-order">
               <Input id="li-order" type="number" value={form.sortOrder} onChange={(e) => set('sortOrder', e.target.value)} />
             </Field>

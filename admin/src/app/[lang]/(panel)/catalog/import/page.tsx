@@ -7,12 +7,12 @@ import { Badge, Button, Card, DataTable, EmptyState, KpiTile, PageHeader, useToa
 import { api } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
 import { downloadText, parseCsv, toCsv } from '@/lib/text';
-import { PRICE_BANDS, PRODUCT_CATEGORIES, type BulkResult, type BulkRow } from '@/lib/types';
+import { CATALOG_SEGMENTS, PRICE_BANDS, PRODUCT_CATEGORIES, type BulkResult, type BulkRow } from '@/lib/types';
 
 const MAX_ROWS = 200;
 const COLUMNS = [
   'id', 'brandId', 'name_tr', 'name_en', 'description_tr', 'description_en', 'category', 'colors', 'sizes', 'priceMinor',
-  'priceBand', 'images', 'affiliateUrl', 'affiliateSource', 'retired',
+  'priceBand', 'images', 'affiliateUrl', 'affiliateSource', 'retired', 'segment',
 ] as const;
 const REQUIRED = ['id', 'brandId', 'name_tr', 'category', 'priceMinor', 'priceBand'];
 
@@ -40,6 +40,9 @@ function rowToProduct(row: Record<string, string>, index: number): Parsed {
   if (!(PRICE_BANDS as string[]).includes(row.priceBand ?? '')) problems.push('price_band_invalid');
   const images = list(row.images);
   if (images.some((u) => !u.startsWith('https://'))) problems.push('images_invalid');
+  // Optional column: empty = women (older files without the column keep working).
+  const segment = (row.segment ?? '').trim().toLowerCase();
+  if (segment && !(CATALOG_SEGMENTS as string[]).includes(segment)) problems.push('segment_invalid');
   return {
     index,
     problems,
@@ -58,6 +61,7 @@ function rowToProduct(row: Record<string, string>, index: number): Parsed {
       affiliateUrl: row.affiliateUrl?.trim() || null,
       affiliateSource: row.affiliateSource?.trim() || null,
       retired: ['true', '1', 'yes', 'evet'].includes((row.retired ?? '').trim().toLowerCase()),
+      segment: segment || null,
     },
   };
 }
@@ -144,7 +148,7 @@ function ImportInner() {
       'products-template.csv',
       toCsv([
         [...COLUMNS],
-        ['hs-white-shirt', 'gap', 'Beyaz Poplin Gömlek', 'White Poplin Shirt', '', '', 'shirt', 'white', 'S|M|L', '129990', 'highStreet', 'https://example.com/1.jpg', 'https://shop.example/p', '', 'false'],
+        ['hs-white-shirt', 'gap', 'Beyaz Poplin Gömlek', 'White Poplin Shirt', '', '', 'shirt', 'white', 'S|M|L', '129990', 'highStreet', 'https://example.com/1.jpg', 'https://shop.example/p', '', 'false', 'unisex'],
       ]),
     );
 

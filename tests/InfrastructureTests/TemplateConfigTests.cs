@@ -144,8 +144,23 @@ public partial class TemplateConfigTests
         var api = Parameters()["api"].ToDictionary(p => p.Section, p => p.Value);
         var worker = Parameters()["worker"].ToDictionary(p => p.Section, p => p.Value);
 
-        foreach (var section in new[] { "Entitlements", "Localization", "Wardrobe", "Weather", "Stylist", "Packing", "Catalog" })
+        foreach (var section in new[] { "Entitlements", "Localization", "Wardrobe", "Weather", "Stylist", "Packing", "Catalog", "Segments" })
             Assert.Equal(api[section], worker[section]);
+    }
+
+    [Fact]
+    public void Segments_AreWomenOnlyInProd_WomenAndMenInDev_TeenNever()
+    {
+        foreach (var scope in new[] { "api", "worker" })
+        {
+            // The checked literal is the prod one.
+            Assert.Equal([Segment.Women], SegmentPolicy.Available(Bind<SegmentOptions>(scope, SegmentOptions.Section)));
+
+            var dev = Regex.Match(Template(), scope + @"/Segments[\s\S]*?- IsProd\s*\n\s*- '[^']*'\s*\n\s*- '(?<dev>[^']*)'").Groups["dev"].Value;
+            var devOptions = System.Text.Json.JsonSerializer.Deserialize<SegmentOptions>(dev)!;
+            Assert.Equal([Segment.Women, Segment.Men], SegmentPolicy.Available(devOptions));
+            Assert.DoesNotContain("teen", dev, StringComparison.OrdinalIgnoreCase);
+        }
     }
 
     [Fact]

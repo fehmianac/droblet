@@ -505,6 +505,22 @@ public class LibraryCatalogTests
 
         var seeded = await new LibraryCatalog(repository).GetAllAsync(default);
 
-        Assert.Equal(["lib-a"], seeded.Select(i => i.Id));
+        // The stored row wins and a retired one is hidden; seed pieces the partition does not hold yet (the men's set added
+        // after the first admin write) are still served — ids are never removed, so a missing id is a new piece.
+        Assert.Contains("lib-a", seeded.Select(i => i.Id));
+        Assert.DoesNotContain("lib-b", seeded.Select(i => i.Id));
+        Assert.Equal(1 + LibraryCatalog.LoadEmbeddedSeed().Count(i => !i.Retired), seeded.Count);
+    }
+
+    [Fact]
+    public async Task GetAll_AStoredSeedId_WinsOverTheSeed_AndCanRetireIt()
+    {
+        var repository = new Tests.Shared.InMemoryRepository();
+        await repository.SaveAsync(new Domain.Entity.LibraryItemEntity { Id = "lib-men-navy-tie", Name = new() { ["tr"] = "X" }, Category = ItemCategory.Accessory, ColorIds = ["navy"], Retired = true, Segment = CatalogSegment.Men });
+
+        var items = await new LibraryCatalog(repository).GetAllAsync(default);
+
+        Assert.DoesNotContain(items, i => i.Id == "lib-men-navy-tie");
+        Assert.Contains(items, i => i.Id == "lib-men-navy-chinos" && i.Segment == CatalogSegment.Men);
     }
 }

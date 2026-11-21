@@ -9,6 +9,7 @@ namespace Domain.Services.Styling;
 /// <param name="Catalog">Shop products, used only for a slot the wardrobe and the library cannot fill ("Önerilen · Mağaza").</param>
 /// <param name="PriceBand">The user's budget band for catalog picks (null = mixed / unknown: any band).</param>
 /// <param name="PerSlot">How many library pieces per slot group become candidates (variety between suggestions).</param>
+/// <param name="Segment">The user's segment: only library pieces and products of that segment (or unisex) are picked; a man never gets a dress picked.</param>
 public sealed record GapFillContext(
     IReadOnlyList<LibraryItemEntity> Library,
     IReadOnlyList<CatalogProductEntity> Catalog,
@@ -21,7 +22,8 @@ public sealed record GapFillContext(
     IReadOnlySet<string> Flattering,
     IReadOnlySet<string> Avoid,
     PriceBand? PriceBand,
-    int PerSlot = 3);
+    int PerSlot = 3,
+    Segment Segment = Segment.Women);
 
 /// <summary>
 /// "Parça yetersiz" is no longer a dead end (owner decision 3): when the wardrobe is too thin, Droblet picks the missing
@@ -55,7 +57,7 @@ public static class GapFill
         // a wardrobe that dresses the day just once or twice still yields different looks.
         var ownGroups = own.Select(c => OutfitSlotRules.DefaultSlot(c.Category)).ToHashSet();
         var library = context.Library
-            .Where(l => !l.Retired && Allowed(l.Category, context))
+            .Where(l => !l.Retired && SegmentPolicy.Shows(l.Segment, context.Segment) && Allowed(l.Category, context))
             .Select(l => (Item: l, Group: OutfitSlotRules.DefaultSlot(l.Category)))
             .Where(x => x.Group is OutfitSlot.Top or OutfitSlot.Bottom || !ownGroups.Contains(x.Group))
             .GroupBy(x => x.Group);
@@ -79,7 +81,7 @@ public static class GapFill
         foreach (var slot in NeededSlots(context).Where(s => !filled.Contains(s)))
         {
             var products = context.Catalog
-                .Where(p => !p.Retired && (context.PriceBand is null || p.PriceBand == context.PriceBand))
+                .Where(p => !p.Retired && SegmentPolicy.Shows(p.Segment, context.Segment) && (context.PriceBand is null || p.PriceBand == context.PriceBand))
                 .Select(p => (Product: p, Category: CatalogRules.ItemCategoryOf(p.Category)))
                 .Where(x => OutfitSlotRules.DefaultSlot(x.Category) == slot && Allowed(x.Category, context))
                 .Where(x => own.All(o => WardrobeMatchRules.ColorsHarmonise(x.Product.Colors, o.ColorIds)))
@@ -182,6 +184,9 @@ public static class GapFill
     {
         if (category == ItemCategory.Outerwear && context.MaxTempC is { } max && max >= context.HotFromC)
             return false;
+        // Menswear: a dress is only ever worn when the user owns one — never picked for him.
+        if (category == ItemCategory.Dress && context.Segment == Segment.Men)
+            return false;
         return category switch
         {
             ItemCategory.Beachwear => context.Seasons.Contains(Season.Summer) && (context.IsTrip || context.Occasion is null or Occasion.Travel or Occasion.Weekend),
@@ -200,7 +205,10 @@ public static class GapFill
             score += 2;
         if (normalized.Any(context.Avoid.Contains))
             score -= 3;
-        if (category == ItemCategory.Dress && context.Occasion is Occasion.Dinner or Occasion.Wedding)
+        if (category == ItemCategory.Dress && context.Segment != Segment.Men && context.Occasion is Occasion.Dinner or Occasion.Wedding)
+            score += 1;
+        // Menswear: a tailored outer layer (blazer / suit jacket) finishes office, dinner and wedding looks.
+        if (category == ItemCategory.Outerwear && context.Segment == Segment.Men && context.Occasion is Occasion.Office or Occasion.Dinner or Occasion.Wedding)
             score += 1;
         return score;
     }

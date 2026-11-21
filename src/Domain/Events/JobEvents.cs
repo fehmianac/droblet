@@ -52,7 +52,8 @@ public sealed record TryOnRequestedEvent(
     string? FacePhotoId = null,
     BodyType? BodyType = null,
     int? HeightCm = null,
-    ClothingSize? Size = null) : IJobRequestedEvent
+    ClothingSize? Size = null,
+    Segment? Segment = null) : IJobRequestedEvent
 {
     public JobKind Kind => JobKind.TryOn;
 }

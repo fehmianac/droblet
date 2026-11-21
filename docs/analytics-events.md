@@ -153,7 +153,7 @@ start event (path unknown). The outfit-photo try-on (parallel work) will add `pa
 | `has_body_photo` | true \| false | my photos |
 | `has_face_photo` | true \| false | my photos |
 | `wardrobe_size_bucket` | 0 \| 1-9 \| 10-29 \| 30-99 \| 100_plus | profile stats `itemCount` |
-| `segment` | women \| men | style profile `segment` |
+| `segment` | women \| men | style profile (`GET v1/tenant/style-profile` → `segment`, cached); not set before the style profile exists; updated when the user changes it (Profil › Stil) |
 
 ## Retention
 

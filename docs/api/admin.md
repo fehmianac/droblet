@@ -116,8 +116,8 @@ Actions: `auth.login`, `auth.login_failed`, `auth.logout`, `auth.logout_all`, `a
 | PUT | `v1/admin/user/{id}/test-premium` | `users.grant` | `{ "days" (1–90), "note"? }` | `AdminAppUserDetailDto` — a **test** premium entitlement (source `admin`), replaces an earlier test grant. |
 | DELETE | `v1/admin/user/{id}/test-premium` | `users.grant` | — | `AdminAppUserDetailDto` |
 | POST | `v1/admin/user/{id}/credits` | `users.grant` | `{ "credits" (1–500), "note"? }` | `AdminAppUserDetailDto` — adds **test** pack credits. |
-| GET | `v1/admin/library` | `content.manage` | — | `AdminLibraryItemDto[]` (retired included; until the first write the built-in seed is listed with `stored: false`) |
-| PUT | `v1/admin/library/{id}` | `content.manage` | `{ "name": L, "category", "colorIds": [≥ 1], "fabric"?, "seasons": [≥ 1], "imageUrl"?, "sortOrder", "retired"? }` | `AdminLibraryItemDto`. Id `^lib-[a-z0-9-]{1,60}$`. Codes: `id_invalid`, `name_invalid`, `category_invalid`, `colors_invalid`, `fabric_invalid`, `seasons_invalid`, `image_url_invalid`. |
+| GET | `v1/admin/library` | `content.manage` | — | `AdminLibraryItemDto[]` (retired included; until the first write the built-in seed is listed with `stored: false`, and so are seed pieces added later — the men's set — until first edited) |
+| PUT | `v1/admin/library/{id}` | `content.manage` | `{ "name": L, "category", "colorIds": [≥ 1], "fabric"?, "seasons": [≥ 1], "imageUrl"?, "sortOrder", "retired"?, "segment"? (women · men · unisex, omitted = women) }` | `AdminLibraryItemDto`. Id `^lib-[a-z0-9-]{1,60}$`. Codes: `id_invalid`, `name_invalid`, `category_invalid`, `colors_invalid`, `fabric_invalid`, `seasons_invalid`, `image_url_invalid`, `segment_invalid`. |
 | DELETE | `v1/admin/library/{id}` | `content.manage` | — | `204` (retire). `404 not_found`. |
 | POST | `v1/admin/image/upload-url` | `image.upload` | `{ "purpose": "product|brand|edit|collection|library", "contentType": "image/jpeg|image/png|image/webp" }` | `{ "url", "fields": {…}, "key", "publicUrl", "expiresAt", "maxBytes" }` — presigned POST to the public catalog image bucket (5 MB, 5 min). After the upload `publicUrl` is the https URL to store in `images[]` / `imageUrl`. |
 | GET | `v1/admin/setting` | `settings.manage` | — | `SettingGroupDto[]` |
@@ -150,7 +150,9 @@ Actions: `auth.login`, `auth.login_failed`, `auth.logout`, `auth.logout_all`, `a
 // AdminLibraryItemDto
 { "id": "lib-white-tshirt", "name": { "tr": "Beyaz tişört", "en": "White T-shirt" }, "category": "top",
   "colorIds": ["white"], "fabric": "cotton", "seasons": ["spring", "summer"], "imageUrl": "https://…"|null,
-  "sortOrder": 10, "retired": false, "stored": true }
+  "sortOrder": 10, "retired": false, "stored": true,
+  "segment": "women",        // women | men | unisex (segments.md §4)
+  "needsImage": false }      // true = no https image yet: the app shows the garment placeholder
 
 // SettingGroupDto — the panel renders the form from this; secrets are never part of any group
 { "group": "entitlements", "parameters": ["/droblet/dev/api/Entitlements", "/droblet/dev/worker/Entitlements"],

@@ -104,7 +104,8 @@ public record LibraryItemDto(
     IReadOnlyList<string> ColorIds,
     string? Fabric,
     IReadOnlyList<Season> Seasons,
-    string? ImageUrl);
+    string? ImageUrl,
+    CatalogSegment Segment = CatalogSegment.Women);
 
 // ── E3 looks ──────────────────────────────────────────────────────────────────────────────────────────────────────
 

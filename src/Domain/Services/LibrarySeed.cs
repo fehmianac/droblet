@@ -22,7 +22,8 @@ public sealed record LibrarySeedItem(
     IReadOnlyList<Season>? Seasons,
     string? ImageKey,
     int SortOrder = 0,
-    bool Retired = false);
+    bool Retired = false,
+    CatalogSegment? Segment = null);
 
 public sealed record LibrarySeedFile(int Version, IReadOnlyList<LibrarySeedItem>? Items);
 
@@ -35,8 +36,10 @@ public sealed record LibrarySeedResult(IReadOnlyList<LibraryItemEntity> Items, I
 /// Seed format of seed/library/items.json (versioned in the repo; never typed into a console):
 /// { "version": 1, "items": [ { "id": "lib-white-tshirt", "name": { "tr": "…", "en": "…" }, "category": "top",
 ///   "colorIds": ["white"], "fabric": "cotton", "seasons": ["spring","summer"], "imageKey": "library/….webp",
-///   "sortOrder": 10, "retired": false } ] }
+///   "sortOrder": 10, "retired": false, "segment": "women" } ] }
 /// Ids are kebab-case, start with "lib-", are never reused and never removed (retire instead).
+/// segment = women | men | unisex (omitted = women). imageKey may be omitted: the piece then has no image yet (the app shows the
+/// garment placeholder; Ops generate-library-images --only fills it).
 /// name is a language map; "tr" is mandatory (fallback), other languages are data only; colours and fabric come from the fixed vocabularies; at least one season.
 /// </summary>
 public static partial class LibrarySeed
@@ -81,6 +84,8 @@ public static partial class LibrarySeed
                 Error("unknown fabric");
             if (item.Seasons is not { Count: > 0 } || item.Seasons.Any(s => !System.Enum.IsDefined(s)))
                 Error("at least one season is required");
+            if (item.Segment is { } segment && !System.Enum.IsDefined(segment))
+                Error("unknown segment");
 
             items.Add(new LibraryItemEntity
             {
@@ -93,6 +98,7 @@ public static partial class LibrarySeed
                 ImageKey = item.ImageKey,
                 SortOrder = item.SortOrder,
                 Retired = item.Retired,
+                Segment = item.Segment ?? CatalogSegment.Women,
             });
         }
 

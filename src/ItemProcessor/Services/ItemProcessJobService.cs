@@ -135,7 +135,9 @@ public sealed class ItemProcessJobService(
         IReadOnlyList<DetectedItem> items;
         try
         {
-            items = ItemDetectionGuard.Filter(await detector.DetectItemsAsync(photo, language, ct), wardrobeOptions.CurrentValue.MaxDetectedItems);
+            // The segment only adds the menswear sub-type hint for men (women's prompt unchanged).
+            var segment = await repository.UserSegmentAsync(job.TenantId, ct);
+            items = ItemDetectionGuard.Filter(await detector.DetectItemsAsync(photo, language, segment, ct), wardrobeOptions.CurrentValue.MaxDetectedItems);
         }
         catch
         {

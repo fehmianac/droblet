@@ -42,7 +42,27 @@ public class SegmentPolicyTests
     [InlineData(Segment.Women, true)]
     [InlineData(Segment.Men, false)]
     [InlineData(Segment.Teen, false)]
-    public void Phase1_WomenOnly(Segment segment, bool expected) => Assert.Equal(expected, SegmentPolicy.IsAvailable(segment));
+    public void CodeDefault_IsWomenOnly(Segment segment, bool expected) => Assert.Equal(expected, SegmentPolicy.IsAvailable(segment, new SegmentOptions()));
+
+    [Fact]
+    public void Configured_WomenAndMen_AreOpen_TeenNever_UnknownIgnored()
+    {
+        var options = new SegmentOptions { Available = ["Men", " women ", "teen", "kids"] };
+        Assert.Equal([Segment.Women, Segment.Men], SegmentPolicy.Available(options));
+        Assert.False(SegmentPolicy.IsAvailable(Segment.Teen, options));
+        // Nothing usable configured: women only, never an empty list.
+        Assert.Equal([Segment.Women], SegmentPolicy.Available(new SegmentOptions { Available = ["teen"] }));
+        Assert.Equal([Segment.Women], SegmentPolicy.Available(null));
+    }
+
+    [Theory]
+    [InlineData(CatalogSegment.Women, Segment.Women, true)]
+    [InlineData(CatalogSegment.Women, Segment.Men, false)]
+    [InlineData(CatalogSegment.Men, Segment.Men, true)]
+    [InlineData(CatalogSegment.Men, Segment.Women, false)]
+    [InlineData(CatalogSegment.Unisex, Segment.Women, true)]
+    [InlineData(CatalogSegment.Unisex, Segment.Men, true)]
+    public void Shows_SegmentAndUnisex(CatalogSegment item, Segment user, bool expected) => Assert.Equal(expected, SegmentPolicy.Shows(item, user));
 }
 
 public class StorageKeysTests

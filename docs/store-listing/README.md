@@ -44,6 +44,8 @@ CAPTURE_RAW_DIR=/tmp/droblet-raw landing/scripts/capture/capture-screens.sh <cap
 docs/store-listing/frames/render.sh /tmp/droblet-raw
 ```
 
+<!-- OWNER REVIEW: men launch --> The screenshots and feature graphics were captured from the women-only showcase build, so they most likely show women's pieces only (not re-checked image by image). Consider adding at least one men's wardrobe / men's try-on capture before the men's launch is advertised.
+
 Captions live in `frames/render.sh` (order, eyebrow and one short line per language). Look at every image before
 uploading: no empty boxes, loading or error states, debug UI.
 

@@ -14,6 +14,9 @@ public static class LibraryItemImageRules
     public static bool IsResolvable(string? globalImageKey) =>
         globalImageKey is not null && globalImageKey.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>A library item without a real image yet (the men's starter set until Ops generate-library-images --only runs): the app shows the garment placeholder.</summary>
+    public static bool NeedsImage(LibraryItemEntity item) => !IsResolvable(item.ImageKey);
+
     /// <summary>A library-sourced piece whose global image is still a placeholder (or missing).</summary>
     public static bool NeedsLibraryImage(ItemEntity item) =>
         !string.IsNullOrWhiteSpace(item.LibraryItemId) && !IsResolvable(item.GlobalImageKey);
