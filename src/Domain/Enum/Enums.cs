@@ -2,7 +2,14 @@ namespace Domain.Enum;
 
 public enum Segment { Women, Men, Teen }
 
-public enum StyleTag { Minimal, Classic, QuietLuxury, Street, Boho, Sporty, Romantic, OfficeChic, Colorful, Vintage }
+/// <summary>
+/// Who a ready-library piece or a catalog product is for. Unisex is shown to every segment. Rows written before the men
+/// launch carry no value = Women (the enum default).
+/// </summary>
+public enum CatalogSegment { Women, Men, Unisex }
+
+/// <summary>Per segment list: Domain.Services.SegmentTaxonomy.StyleTags. SmartCasual and Tailored were added for men (appended; values are names on the wire).</summary>
+public enum StyleTag { Minimal, Classic, QuietLuxury, Street, Boho, Sporty, Romantic, OfficeChic, Colorful, Vintage, SmartCasual, Tailored }
 
 public enum Budget { HighStreet, Mixed, LuxuryTouch }
 
@@ -24,8 +31,11 @@ public enum JobFailure { ProviderError, Timeout, GuardRejected, SourceDeleted, N
 /// <summary>
 /// Canvas 11 vücut tipi (face try-on path): the figure the image model builds when there is no body photo.
 /// Unsure = "Emin değilim" (a balanced figure from height and size).
+/// Women: Hourglass, Pear, Apple, Rectangle, InvertedTriangle, Unsure. Men: Rectangle, InvertedTriangle (V shape), Triangle
+/// (wider hips / waist), Oval (round midsection), Trapezoid (athletic), Unsure — Domain.Services.SegmentTaxonomy.BodyTypes.
+/// The men's values are appended so stored values keep their meaning.
 /// </summary>
-public enum BodyType { Hourglass, Pear, Apple, Rectangle, InvertedTriangle, Unsure }
+public enum BodyType { Hourglass, Pear, Apple, Rectangle, InvertedTriangle, Unsure, Triangle, Oval, Trapezoid }
 
 /// <summary>Which photo a try-on image was created from: the body photo, or the face photo + body type (no body photo).</summary>
 public enum TryOnSource { Body, Face }

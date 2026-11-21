@@ -3,45 +3,91 @@ using Domain.Services.Ai;
 
 namespace Domain.Services;
 
+/// <summary>One sub-type id: its category, who the pickers show it to (unisex = everyone) and its names.</summary>
+public sealed record SubcategoryEntry(string Id, ItemCategory Category, CatalogSegment Segment, TaxonomyLabel Name);
+
 /// <summary>
 /// Sub-type ids the vision model may suggest (ItemEntity.Subcategory, the "Tür" field of 12c). Each belongs to one category;
 /// the form keeps accepting any free id. Jewellery and other small pieces get a wider, upscaled crop (CropMath).
+/// The list the app offers is per segment (<see cref="ForSegment"/>): women-only ids (dress, skirt, heels …), men-only ids
+/// (suit jacket, chinos are unisex, derbies, bow tie …) and unisex ids. Detection and item writes accept every id: a man may
+/// own a dress and a woman derbies — the segment only filters the pickers.
 /// </summary>
 public static class SubcategoryCatalog
 {
-    private static readonly (string Id, ItemCategory Category)[] Entries =
+    private const CatalogSegment W = CatalogSegment.Women;
+    private const CatalogSegment M = CatalogSegment.Men;
+    private const CatalogSegment U = CatalogSegment.Unisex;
+
+    private static SubcategoryEntry E(string id, ItemCategory category, CatalogSegment segment, string tr, string en) => new(id, category, segment, new TaxonomyLabel(tr, en));
+
+    private static readonly SubcategoryEntry[] Entries =
     [
-        ("t-shirt", ItemCategory.Top), ("shirt", ItemCategory.Top), ("blouse", ItemCategory.Top), ("sweater", ItemCategory.Top),
-        ("cardigan", ItemCategory.Top), ("hoodie", ItemCategory.Top), ("tank-top", ItemCategory.Top), ("top", ItemCategory.Top),
-        ("jeans", ItemCategory.Bottom), ("trousers", ItemCategory.Bottom), ("skirt", ItemCategory.Bottom), ("shorts", ItemCategory.Bottom),
-        ("leggings", ItemCategory.Bottom),
-        ("dress", ItemCategory.Dress), ("jumpsuit", ItemCategory.Dress),
-        ("blazer", ItemCategory.Outerwear), ("jacket", ItemCategory.Outerwear), ("coat", ItemCategory.Outerwear),
-        ("trench-coat", ItemCategory.Outerwear), ("puffer", ItemCategory.Outerwear), ("vest", ItemCategory.Outerwear),
-        ("sneakers", ItemCategory.Shoes), ("boots", ItemCategory.Shoes), ("ankle-boots", ItemCategory.Shoes), ("heels", ItemCategory.Shoes),
-        ("flats", ItemCategory.Shoes), ("sandals", ItemCategory.Shoes), ("loafers", ItemCategory.Shoes),
-        ("handbag", ItemCategory.Bag), ("tote", ItemCategory.Bag), ("shoulder-bag", ItemCategory.Bag), ("crossbody", ItemCategory.Bag),
-        ("clutch", ItemCategory.Bag), ("backpack", ItemCategory.Bag),
-        ("belt", ItemCategory.Accessory), ("hat", ItemCategory.Accessory), ("cap", ItemCategory.Accessory), ("beanie", ItemCategory.Accessory),
-        ("scarf", ItemCategory.Accessory), ("sunglasses", ItemCategory.Accessory), ("glasses", ItemCategory.Accessory),
-        ("watch", ItemCategory.Accessory), ("gloves", ItemCategory.Accessory), ("tie", ItemCategory.Accessory),
-        ("hair-accessory", ItemCategory.Accessory),
-        ("ring", ItemCategory.Accessory), ("necklace", ItemCategory.Accessory), ("earrings", ItemCategory.Accessory),
-        ("bracelet", ItemCategory.Accessory), ("brooch", ItemCategory.Accessory), ("anklet", ItemCategory.Accessory),
-        ("bikini", ItemCategory.Beachwear), ("swimsuit", ItemCategory.Beachwear), ("kaftan", ItemCategory.Beachwear),
-        ("ski-jacket", ItemCategory.Skiwear), ("ski-pants", ItemCategory.Skiwear),
+        E("t-shirt", ItemCategory.Top, U, "Tişört", "T-shirt"), E("shirt", ItemCategory.Top, U, "Gömlek", "Shirt"),
+        E("blouse", ItemCategory.Top, W, "Bluz", "Blouse"), E("sweater", ItemCategory.Top, U, "Kazak", "Sweater"),
+        E("cardigan", ItemCategory.Top, U, "Hırka", "Cardigan"), E("hoodie", ItemCategory.Top, U, "Kapüşonlu sweatshirt", "Hoodie"),
+        E("tank-top", ItemCategory.Top, U, "Atlet", "Tank top"), E("top", ItemCategory.Top, W, "Üst", "Top"),
+        E("jeans", ItemCategory.Bottom, U, "Jean", "Jeans"), E("trousers", ItemCategory.Bottom, U, "Pantolon", "Trousers"),
+        E("skirt", ItemCategory.Bottom, W, "Etek", "Skirt"), E("shorts", ItemCategory.Bottom, U, "Şort", "Shorts"),
+        E("leggings", ItemCategory.Bottom, W, "Tayt", "Leggings"),
+        E("dress", ItemCategory.Dress, W, "Elbise", "Dress"), E("jumpsuit", ItemCategory.Dress, W, "Tulum", "Jumpsuit"),
+        E("blazer", ItemCategory.Outerwear, U, "Blazer", "Blazer"), E("jacket", ItemCategory.Outerwear, U, "Ceket", "Jacket"),
+        E("coat", ItemCategory.Outerwear, U, "Kaban", "Coat"), E("trench-coat", ItemCategory.Outerwear, U, "Trençkot", "Trench coat"),
+        E("puffer", ItemCategory.Outerwear, U, "Şişme mont", "Puffer"), E("vest", ItemCategory.Outerwear, U, "Yelek", "Vest"),
+        E("sneakers", ItemCategory.Shoes, U, "Spor ayakkabı", "Sneakers"), E("boots", ItemCategory.Shoes, U, "Çizme", "Boots"),
+        E("ankle-boots", ItemCategory.Shoes, U, "Bot", "Ankle boots"), E("heels", ItemCategory.Shoes, W, "Topuklu ayakkabı", "Heels"),
+        E("flats", ItemCategory.Shoes, W, "Babet", "Flats"), E("sandals", ItemCategory.Shoes, U, "Sandalet", "Sandals"),
+        E("loafers", ItemCategory.Shoes, U, "Loafer", "Loafers"),
+        E("handbag", ItemCategory.Bag, W, "El çantası", "Handbag"), E("tote", ItemCategory.Bag, U, "Tote çanta", "Tote"),
+        E("shoulder-bag", ItemCategory.Bag, W, "Omuz çantası", "Shoulder bag"), E("crossbody", ItemCategory.Bag, U, "Çapraz çanta", "Crossbody bag"),
+        E("clutch", ItemCategory.Bag, W, "Clutch", "Clutch"), E("backpack", ItemCategory.Bag, U, "Sırt çantası", "Backpack"),
+        E("belt", ItemCategory.Accessory, U, "Kemer", "Belt"), E("hat", ItemCategory.Accessory, U, "Şapka", "Hat"),
+        E("cap", ItemCategory.Accessory, U, "Kep", "Cap"), E("beanie", ItemCategory.Accessory, U, "Bere", "Beanie"),
+        E("scarf", ItemCategory.Accessory, U, "Şal / eşarp", "Scarf"), E("sunglasses", ItemCategory.Accessory, U, "Güneş gözlüğü", "Sunglasses"),
+        E("glasses", ItemCategory.Accessory, U, "Gözlük", "Glasses"), E("watch", ItemCategory.Accessory, U, "Saat", "Watch"),
+        E("gloves", ItemCategory.Accessory, U, "Eldiven", "Gloves"), E("tie", ItemCategory.Accessory, U, "Kravat", "Tie"),
+        E("hair-accessory", ItemCategory.Accessory, W, "Saç aksesuarı", "Hair accessory"),
+        E("ring", ItemCategory.Accessory, U, "Yüzük", "Ring"), E("necklace", ItemCategory.Accessory, U, "Kolye", "Necklace"),
+        E("earrings", ItemCategory.Accessory, W, "Küpe", "Earrings"), E("bracelet", ItemCategory.Accessory, U, "Bileklik", "Bracelet"),
+        E("brooch", ItemCategory.Accessory, W, "Broş", "Brooch"), E("anklet", ItemCategory.Accessory, W, "Halhal", "Anklet"),
+        E("bikini", ItemCategory.Beachwear, W, "Bikini", "Bikini"), E("swimsuit", ItemCategory.Beachwear, W, "Mayo", "Swimsuit"),
+        E("kaftan", ItemCategory.Beachwear, W, "Kaftan", "Kaftan"),
+        E("ski-jacket", ItemCategory.Skiwear, U, "Kayak montu", "Ski jacket"), E("ski-pants", ItemCategory.Skiwear, U, "Kayak pantolonu", "Ski pants"),
+
+        // Men's launch (appended: ids are never renamed or removed).
+        E("polo", ItemCategory.Top, U, "Polo yaka tişört", "Polo shirt"), E("oxford-shirt", ItemCategory.Top, M, "Oxford gömlek", "Oxford shirt"),
+        E("dress-shirt", ItemCategory.Top, M, "Klasik gömlek", "Dress shirt"), E("henley", ItemCategory.Top, M, "Henley tişört", "Henley"),
+        E("sweatshirt", ItemCategory.Top, U, "Sweatshirt", "Sweatshirt"), E("turtleneck", ItemCategory.Top, U, "Balıkçı yaka kazak", "Turtleneck"),
+        E("quarter-zip", ItemCategory.Top, M, "Yarım fermuarlı kazak", "Quarter-zip sweater"),
+        E("chinos", ItemCategory.Bottom, U, "Chino pantolon", "Chinos"), E("suit-trousers", ItemCategory.Bottom, M, "Takım pantolonu", "Suit trousers"),
+        E("cargo-trousers", ItemCategory.Bottom, U, "Kargo pantolon", "Cargo trousers"), E("joggers", ItemCategory.Bottom, U, "Jogger eşofman altı", "Joggers"),
+        E("suit-jacket", ItemCategory.Outerwear, M, "Takım ceketi", "Suit jacket"), E("overshirt", ItemCategory.Outerwear, U, "Gömlek ceket", "Overshirt"),
+        E("bomber", ItemCategory.Outerwear, U, "Bomber ceket", "Bomber jacket"), E("leather-jacket", ItemCategory.Outerwear, U, "Deri ceket", "Leather jacket"),
+        E("parka", ItemCategory.Outerwear, U, "Parka", "Parka"), E("waistcoat", ItemCategory.Outerwear, M, "Takım yeleği", "Waistcoat"),
+        E("derbies", ItemCategory.Shoes, M, "Derby ayakkabı", "Derby shoes"), E("oxford-shoes", ItemCategory.Shoes, M, "Oxford ayakkabı", "Oxford shoes"),
+        E("chelsea-boots", ItemCategory.Shoes, U, "Chelsea bot", "Chelsea boots"), E("boat-shoes", ItemCategory.Shoes, M, "Makosen", "Boat shoes"),
+        E("briefcase", ItemCategory.Bag, U, "Evrak çantası", "Briefcase"), E("messenger-bag", ItemCategory.Bag, U, "Postacı çanta", "Messenger bag"),
+        E("bow-tie", ItemCategory.Accessory, M, "Papyon", "Bow tie"), E("pocket-square", ItemCategory.Accessory, M, "Cep mendili", "Pocket square"),
+        E("cufflinks", ItemCategory.Accessory, M, "Kol düğmesi", "Cufflinks"), E("suspenders", ItemCategory.Accessory, M, "Pantolon askısı", "Suspenders"),
+        E("swim-shorts", ItemCategory.Beachwear, M, "Deniz şortu", "Swim shorts"),
     ];
 
-    private static readonly HashSet<string> JewelleryIds = ["ring", "necklace", "earrings", "bracelet", "brooch", "anklet"];
-    private static readonly HashSet<string> SmallIds = [.. JewelleryIds, "watch", "sunglasses", "glasses", "hair-accessory"];
+    private static readonly HashSet<string> JewelleryIds = ["ring", "necklace", "earrings", "bracelet", "brooch", "anklet", "cufflinks"];
+    private static readonly HashSet<string> SmallIds = [.. JewelleryIds, "watch", "sunglasses", "glasses", "hair-accessory", "bow-tie", "pocket-square"];
 
     public static IReadOnlyList<string> Ids { get; } = Entries.Select(e => e.Id).ToList();
 
+    public static IReadOnlyList<SubcategoryEntry> All { get; } = Entries;
+
+    /// <summary>The sub-types the app offers a segment, grouped by category in catalog order (women-only ids are left out for men and vice versa).</summary>
+    public static IReadOnlyList<SubcategoryEntry> ForSegment(Segment segment) =>
+        Entries.Where(e => SegmentPolicy.Shows(e.Segment, segment)).OrderBy(e => e.Category).ToList();
+
     public static ItemCategory? CategoryOf(string? id)
     {
-        foreach (var (entryId, category) in Entries)
-            if (entryId == id)
-                return category;
+        foreach (var entry in Entries)
+            if (entry.Id == id)
+                return entry.Category;
         return null;
     }
 
