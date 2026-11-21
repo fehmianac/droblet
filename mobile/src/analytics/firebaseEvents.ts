@@ -116,6 +116,7 @@ export const FIREBASE_RULES: Record<Exclude<AnalyticsEventName, 'signup_step'>, 
   view_item: { name: 'view_item', params: { productId: 'item_id', brandId: 'item_brand' } },
   search: { name: 'search', params: { surface: 'surface', filtered: 'filtered' } },
   select_content: { name: 'select_content', params: { contentType: 'content_type', source: 'source' } },
+  push_permission: { name: 'push_permission', params: { action: 'action', granted: 'granted', source: 'source', variant: 'variant' } },
 };
 
 function safeValue(value: AnalyticsParams[string]): string | number | null {
