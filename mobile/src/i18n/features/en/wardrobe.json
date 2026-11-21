@@ -211,7 +211,7 @@
     "processingBody": "Your photo is being processed; we'll suggest the type, colour and fabric in a moment. You can correct everything before saving.",
     "colorHex": "Colour code",
     "colorHexPlaceholder": "#A1B2C3",
-    "typeSuggestions": "Suggestions"
+    "typeSuggestions": "SUGGESTIONS"
   },
   "bulkAdd": {
     "title": "Bulk add",

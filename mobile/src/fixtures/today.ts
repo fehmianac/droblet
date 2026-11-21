@@ -119,7 +119,7 @@ export function buildTodayFixture(today: Date = new Date()): TodayResponse {
   return clone({
     date,
     weather: { temperatureC: 14, city: L('İstanbul') },
-    firstName: 'Damla',
+    firstName: fixturePersona() === 'men' ? 'Emre' : 'Damla',
     occasion: look ? (plan?.occasion ?? look.occasion) : null,
     look: look ? todayLook(look, date) : null,
     week: week.map((d) => ({ date: d, hasPlan: fixtureDb.planDays.some((p) => p.date === d && p.lookId !== null) })),

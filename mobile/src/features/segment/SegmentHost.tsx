@@ -2,7 +2,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 
 import { DATA_SOURCE } from '@/api/dataSource';
-import { useStyleProfile } from '@/api/profile';
+import { setBodyProfileFixture, useStyleProfile } from '@/api/profile';
+import { applyAccountPersona } from '@/fixtures/account';
 import { fixturePersona, resetFixtureDb } from '@/fixtures/db';
 import { SHOWCASE } from '@/fixtures/showcase';
 import { queryKeys } from '@/sync/queryKeys';
@@ -34,7 +35,15 @@ export function SegmentHost() {
   useEffect(() => {
     if (!saved || !SHOWCASE || DATA_SOURCE.wardrobe !== 'fixtures' || fixturePersona() === saved) return;
     resetFixtureDb({ persona: saved });
-    void client.invalidateQueries();
+    applyAccountPersona(saved);
+    // Emre has height and size but no body type yet: Profil › "Profilini tamamla" opens the men's 11e step.
+    setBodyProfileFixture(
+      saved === 'men'
+        ? { heightCm: 180, weightKg: null, size: 'L', bodyType: null, baseVersion: 1 }
+        : { heightCm: 168, weightKg: null, size: 'M', bodyType: 'hourglass', baseVersion: 1 },
+    );
+    // Drop every cached answer (not just mark it stale): screens mounted later must not show the women account.
+    void client.resetQueries();
   }, [client, saved]);
 
   useEffect(() => {

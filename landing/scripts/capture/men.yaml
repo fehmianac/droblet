@@ -1,0 +1,101 @@
+# Men's showcase account (canvas 17, "Emre"): signs in with an e-mail starting with "emre" (mock-auth.mjs)
+# and captures Bugün, Gardırop, the ready-made library, Profil, Profil › Stil profili (+ the segment change
+# confirmation) and the men's 11e body type step. No AI step is started.
+#   maestro --device <udid> test -e LANG=tr -e LOCALE=tr_TR --test-output-dir=/abs/dir landing/scripts/capture/men.yaml
+appId: com.alatech.droplet
+env:
+  LANG: ${LANG}
+  LOCALE: ${LOCALE}
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+    arguments:
+      AppleLanguages: "(${LANG})"
+      AppleLocale: ${LOCALE}
+- extendedWaitUntil:
+    visible:
+      id: "welcome.login"
+    timeout: 30000
+- extendedWaitUntil:
+    notVisible:
+      id: "animated-splash"
+    timeout: 10000
+- tapOn:
+    id: "welcome.login"
+- extendedWaitUntil:
+    visible:
+      id: "auth.email"
+    timeout: 10000
+- tapOn:
+    id: "auth.email"
+- inputText: "emre@example.com"
+- tapOn:
+    point: "50%,14%"
+- tapOn:
+    id: "auth.password"
+- inputText: "showcase"
+- tapOn:
+    point: "50%,14%"
+- tapOn:
+    id: "auth.submit"
+- extendedWaitUntil:
+    visible: "Sonra"
+    timeout: 6000
+    optional: true
+- runFlow:
+    when:
+      visible: "Sonra"
+    commands:
+      - tapOn: "Sonra"
+- extendedWaitUntil:
+    visible:
+      id: "tab.today"
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 4000
+- takeScreenshot: men-06-bugun
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://wardrobe"
+- takeScreenshot: men-10-gardirop
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://item/library"
+- takeScreenshot: men-12b-kutuphane
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://profile"
+- takeScreenshot: men-28-profil
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://style-profile"
+- takeScreenshot: men-28f-stil-profili
+- tapOn:
+    id: "styleProfile.segment.women"
+- extendedWaitUntil:
+    visible:
+      id: "styleProfile.confirm"
+    timeout: 5000
+- waitForAnimationToEnd
+- takeScreenshot: men-28f-reyon-onayi
+- tapOn:
+    id: "styleProfile.confirm.cancel"
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://profile"
+- tapOn:
+    id: "profile.profileComplete.item.bodyType"
+- extendedWaitUntil:
+    visible:
+      id: "requirements.bodyType.set.men"
+    timeout: 8000
+- tapOn:
+    id: "requirements.bodyType.trapezoid"
+- waitForAnimationToEnd
+- takeScreenshot: men-11e-vucut-tipi

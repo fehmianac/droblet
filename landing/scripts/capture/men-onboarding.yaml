@@ -1,0 +1,117 @@
+# Men's onboarding screenshots (canvas 17): a new account (mock "register") with both segments open walks
+# 03a Reyon → 03 Stil profili (men's tags) → 03b Açık rızalar → 04 Beden ve fotoğraf (men's figure).
+# Stops there: nothing here starts an AI step. Showcase build + mock-auth.mjs, see README.md.
+#   maestro --device <udid> test -e LANG=tr -e LOCALE=tr_TR --test-output-dir=/abs/dir landing/scripts/capture/men-onboarding.yaml
+appId: com.alatech.droplet
+env:
+  LANG: ${LANG}
+  LOCALE: ${LOCALE}
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+    arguments:
+      AppleLanguages: "(${LANG})"
+      AppleLocale: ${LOCALE}
+- runFlow:
+    when:
+      visible: "Cancel"
+    commands:
+      - tapOn: "Cancel"
+- extendedWaitUntil:
+    visible:
+      id: "welcome.start"
+    timeout: 30000
+- extendedWaitUntil:
+    notVisible:
+      id: "animated-splash"
+    timeout: 10000
+- tapOn:
+    id: "welcome.start"
+- extendedWaitUntil:
+    visible:
+      id: "auth.name"
+    timeout: 10000
+- tapOn:
+    id: "auth.name"
+- inputText: "Deniz"
+- tapOn:
+    point: "50%,14%"
+- tapOn:
+    id: "auth.email"
+- inputText: "deniz@example.com"
+- tapOn:
+    point: "50%,14%"
+- tapOn:
+    id: "auth.password"
+- inputText: "showcase1"
+- tapOn:
+    point: "50%,14%"
+- tapOn:
+    id: "age.checkbox"
+- tapOn:
+    id: "auth.submit"
+# iOS "Save password?" (TR "Sonra" / EN "Not Now") may cover the next screen.
+- extendedWaitUntil:
+    visible: "Sonra"
+    timeout: 6000
+    optional: true
+- runFlow:
+    when:
+      visible: "Sonra"
+    commands:
+      - tapOn: "Sonra"
+- runFlow:
+    when:
+      visible: "Not Now"
+    commands:
+      - tapOn: "Not Now"
+- runFlow:
+    when:
+      visible: "İzin Verme"
+    commands:
+      - tapOn: "İzin Verme"
+- runFlow:
+    when:
+      visible: "Don’t Allow"
+    commands:
+      - tapOn: "Don’t Allow"
+- extendedWaitUntil:
+    visible:
+      id: "segment.screen"
+    timeout: 20000
+- waitForAnimationToEnd
+- takeScreenshot: men-03a-reyon
+- tapOn:
+    id: "segment.option.men"
+- takeScreenshot: men-03a-erkek
+- tapOn:
+    id: "segment.continue"
+- extendedWaitUntil:
+    visible:
+      id: "style.tags.men"
+    timeout: 10000
+- tapOn:
+    id: "style.tag.minimal"
+- tapOn:
+    id: "style.tag.smart_casual"
+- tapOn:
+    id: "style.tag.tailored"
+- tapOn:
+    id: "style.budget.mixed"
+- waitForAnimationToEnd
+- takeScreenshot: men-03-stil
+- tapOn:
+    id: "style.continue"
+- extendedWaitUntil:
+    visible:
+      id: "consents.acceptAll"
+    timeout: 10000
+- tapOn:
+    id: "consents.acceptAll"
+- extendedWaitUntil:
+    visible: "Kombinleri senin üzerinde görelim"
+    timeout: 10000
+    optional: true
+- waitForAnimationToEnd
+- takeScreenshot: men-04-beden

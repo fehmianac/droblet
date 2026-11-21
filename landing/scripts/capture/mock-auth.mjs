@@ -46,7 +46,8 @@ const who = () => PROFILES[persona];
 
 const routes = {
   'POST /v1/auth/login': (req, body) => {
-    persona = String(body.email ?? '').toLowerCase().startsWith('emre') ? 'men' : 'women';
+    const email = String(body.email ?? '').toLowerCase();
+    persona = email.startsWith('emre') ? 'men' : 'women';
     fresh = false;
     savedStyle = null;
     return auth();
@@ -68,6 +69,7 @@ const routes = {
   },
   'GET /v1/tenant/body-profile': () =>
     fresh ? null : { heightCm: who().heightCm, weightKg: null, size: who().size, bodyType: who().bodyType, version: 1, updatedAt: iso(now) },
+  'PUT /v1/tenant/body-profile': (req, body) => ({ heightCm: body.heightCm, weightKg: body.weightKg ?? null, size: body.size, bodyType: body.bodyType ?? null, version: (body.baseVersion ?? 0) + 1, updatedAt: iso(Date.now()) }),
   // A member with most of this month's AI images left (the Profil credit counter).
   'GET /v1/tenant/entitlement': () => ({
     tier: 'premium',
