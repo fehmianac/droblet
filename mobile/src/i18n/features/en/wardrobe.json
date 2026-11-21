@@ -204,6 +204,8 @@
     "typePlaceholder": "E.g. shirt, blazer",
     "pickColor": "Choose a colour",
     "draftGone": "This draft no longer exists.",
+    "savedToast": "{{type}} saved",
+    "savedToastAction": "View",
     "failedManual": "You can also fill in the details yourself.",
     "manual": "Fill in manually",
     "processingClean": "Removing the background…",

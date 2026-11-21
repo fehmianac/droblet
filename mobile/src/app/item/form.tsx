@@ -1,27 +1,66 @@
+import type { TFunction } from 'i18next';
 import { router, useIsFocused, useLocalSearchParams } from 'expo-router';
+import { Check } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
-import type { ItemFields } from '@/api/contracts/wardrobe';
+import type { ItemDraft, ItemFields } from '@/api/contracts/wardrobe';
 import { AiChipReveal, AiFailure, AiProgressLines, AiShimmerImage } from '@/components/ui/ai';
 import { Button } from '@/components/ui/Button';
+import { Icon } from '@/components/ui/Icon';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
+import { toast } from '@/components/ui/toast';
 import { detectedEdits } from '@/features/wardrobe/detect';
+import { detectedLine, pieceTypeLabel } from '@/features/wardrobe/detectedLine';
 import { EMPTY_FORM, formFromDraft, formFromItem } from '@/features/wardrobe/form';
 import { ItemForm } from '@/features/wardrobe/ItemForm';
 import { useAddItems, useRetryDraft, useUpdateItem } from '@/features/wardrobe/mutations';
 import { useItemDetail, useItemDrafts } from '@/features/wardrobe/queries';
 
-/** Where the form returns to: back to the bulk review list, otherwise to the wardrobe grid. */
-function leave(from: string | undefined) {
+/**
+ * Where the form returns to: back to the bulk review list; a piece shot on the camera of 12 goes back to the camera
+ * for the next one with "Gömlek kaydedildi · Gör" (12′, canvas n_ux1 A3); otherwise to the wardrobe grid.
+ */
+function leave(t: TFunction, from: string | undefined, saved?: { id: string; fields: ItemFields }) {
   if (from === 'bulk' && router.canGoBack()) router.back();
-  else router.dismissTo('/wardrobe');
+  else if (from === 'camera' && saved) {
+    router.dismissTo('/item/add');
+    toast.success(t('itemForm.savedToast', { type: pieceTypeLabel(t, saved.fields) }), {
+      action: { label: t('itemForm.savedToastAction'), onPress: () => router.push({ pathname: '/item/[id]', params: { id: saved.id } }) },
+      testID: 'item-saved-toast',
+    });
+  } else router.dismissTo('/wardrobe');
+}
+
+/** "✓ Gömlek algılandı · Beyaz · Pamuk" on top of the review form, right after 12 recognised the piece (12c, ParcaBilgi). */
+function DetectedPill({ suggestion }: { suggestion: ItemDraft['suggestion'] }) {
+  const { t } = useTranslation();
+  const line = detectedLine(t, suggestion);
+  return (
+    <View className="px-gutter pb-2 pt-1">
+      <View
+        className="h-[30px] max-w-full flex-row items-center gap-1.5 self-start rounded-[15px] bg-ink pl-2 pr-3"
+        accessible
+        accessibilityRole="text"
+        accessibilityLiveRegion="polite"
+        accessibilityLabel={line}
+        testID="item-form-detected"
+      >
+        <View className="h-[18px] w-[18px] items-center justify-center rounded-pill bg-cream">
+          <Icon icon={Check} size={11} />
+        </View>
+        <Text variant="bodyMedium" tone="cream" className="shrink text-[12.5px]" numberOfLines={1}>
+          {line}
+        </Text>
+      </View>
+    </View>
+  );
 }
 
 function EditForm({ itemId }: { itemId: string }) {
@@ -67,8 +106,8 @@ function DraftForm({ draftId, from, startManual }: { draftId: string; from: stri
           return <StateMessage testID="state-not-found" role="status" {...draftGone} />;
         }
         const submit = (fields: ItemFields) => {
-          addItems.add([{ fields, draftId: draft.id, preview: fields.useOriginalImage ? draft.originalImageUrl : draft.imageUrl, reviewed: true }], 'photo');
-          leave(from);
+          const [id] = addItems.add([{ fields, draftId: draft.id, preview: fields.useOriginalImage ? draft.originalImageUrl : draft.imageUrl, reviewed: true }], 'photo');
+          leave(t, from, id ? { id, fields } : undefined);
         };
 
         // A piece found in a multi-item photo, not chosen yet: the form only edits it; the chooser adds it.
@@ -92,16 +131,21 @@ function DraftForm({ draftId, from, startManual }: { draftId: string; from: stri
         }
 
         if (draft.status === 'ready' || manual) {
+          // Recognised on 12 just now (camera, gallery or share): the pill says what was found.
+          const fromAdd = (from === 'camera' || from === 'add') && draft.status === 'ready' && draft.suggestion !== null;
           return (
-            <ItemForm
-              key={`${draft.id}-${draft.status === 'ready' ? 'ai' : 'manual'}`}
-              mode={draft.status === 'ready' ? 'draft' : 'manual'}
-              initial={draft.status === 'ready' ? formFromDraft(draft) : EMPTY_FORM}
-              imageUrl={draft.imageUrl}
-              originalImageUrl={draft.originalImageUrl}
-              lowConfidence={draft.lowConfidence}
-              onSubmit={submit}
-            />
+            <>
+              {fromAdd ? <DetectedPill suggestion={draft.suggestion} /> : null}
+              <ItemForm
+                key={`${draft.id}-${draft.status === 'ready' ? 'ai' : 'manual'}`}
+                mode={draft.status === 'ready' ? 'draft' : 'manual'}
+                initial={draft.status === 'ready' ? formFromDraft(draft) : EMPTY_FORM}
+                imageUrl={draft.imageUrl}
+                originalImageUrl={draft.originalImageUrl}
+                lowConfidence={draft.lowConfidence}
+                onSubmit={submit}
+              />
+            </>
           );
         }
 
@@ -174,7 +218,7 @@ export default function ItemFormScreen() {
           unprocessedPhoto={photoUri !== null}
           onSubmit={(fields) => {
             addItems.add([{ fields: photoUri ? { ...fields, useOriginalImage: true } : fields, draftId: null, photoUri, preview: photoUri }], 'manual');
-            leave(params.from);
+            leave(t, params.from);
           }}
         />
       </>

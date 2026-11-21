@@ -328,9 +328,12 @@ export function useAddItems() {
   const m = useMutation<ConfirmItemDraftsResponse, unknown, ConfirmDraftsVariables>({ mutationKey: wardrobeMutationKeys.confirmDrafts });
   return {
     ...m,
-    add: (inputs: NewItemInput[], source: ItemAddSource) => {
-      m.mutate(buildConfirmVariables(inputs));
+    /** Saves the pieces (optimistic, queued offline); returns their new ids in input order. */
+    add: (inputs: NewItemInput[], source: ItemAddSource): string[] => {
+      const vars = buildConfirmVariables(inputs);
+      m.mutate(vars);
       if (inputs.length > 0) track('item_added', { source, count: inputs.length });
+      return vars.request.items.map((item) => item.id);
     },
   };
 }

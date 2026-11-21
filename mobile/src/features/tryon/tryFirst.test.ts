@@ -1,13 +1,19 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { hasSeenPhotoExplainer, markPhotoExplainerSeen, photoExplainerKey } from './photoExplainer';
-import { choiceOrder, highlightedChoice, tryFirstStep } from './tryFirst';
+import { asksFirst, choiceOrder, highlightedChoice, tryFirstStep } from './tryFirst';
 
 describe('12+ / 16g — "Önce üzerimde dene" or "Parçalarına ayır"', () => {
   it('a camera shot keeps detection as the highlighted default; a gallery pick or a share highlights trying on', () => {
     expect(highlightedChoice('camera')).toBe('split');
     expect(highlightedChoice('gallery')).toBe('tryOn');
     expect(highlightedChoice('share')).toBe('tryOn');
+  });
+
+  it('a camera shot skips the choice and goes straight to recognition; a gallery pick or a share asks first', () => {
+    expect(asksFirst('camera')).toBe(false);
+    expect(asksFirst('gallery')).toBe(true);
+    expect(asksFirst('share')).toBe(true);
   });
 
   it('both options are always offered, the highlighted one first', () => {
