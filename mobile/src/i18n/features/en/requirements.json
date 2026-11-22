@@ -1,4 +1,7 @@
 {
+  "firstItemsSave": {
+    "failed": "Couldn't save your pieces"
+  },
   "req": {
     "hint": {
       "format": "{{what}} · {{steps}}",

@@ -118,7 +118,8 @@ public class UpdateStyleProfileRequestValidator : AbstractValidator<UpdateStyleP
         RuleFor(x => x.Segment).IsInEnum().WithErrorCode("segment_invalid");
         RuleFor(x => x.Budget).IsInEnum().WithErrorCode("budget_invalid");
         RuleFor(x => x.StyleTags).NotNull().WithErrorCode("style_tags_required")
-            .Must(t => t is not null && t.Count == RequiredTagCount).WithErrorCode("style_tags_exactly_three")
+            // None = the onboarding style step was skipped: the segment is still kept (it drives the lists and the try-on).
+            .Must(t => t is not null && (t.Count == 0 || t.Count == RequiredTagCount)).WithErrorCode("style_tags_exactly_three")
             .Must(t => t is null || t.Distinct().Count() == t.Count).WithErrorCode("style_tags_duplicate");
         RuleForEach(x => x.StyleTags).IsInEnum().WithErrorCode("style_tag_invalid");
         RuleFor(x => x.BaseVersion).GreaterThanOrEqualTo(0).WithErrorCode("base_version_invalid");

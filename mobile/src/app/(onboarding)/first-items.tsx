@@ -16,6 +16,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenState } from '@/components/ui/ScreenState';
 import { Text } from '@/components/ui/Text';
+import { toast } from '@/components/ui/toast';
 import { libraryCategory } from '@/features/wardrobe/form';
 import { asGarmentColor } from '@/components/ui/ImageSlot';
 import { ItemThumb } from '@/features/wardrobe/ItemThumb';
@@ -67,8 +68,9 @@ function LibraryTile({ item, selected, onToggle }: { item: LibraryItem; selected
 /**
  * 04b İlk 5 parça (3/3) — "Gardırobunda bunlardan hangileri var?": camera shortcut card, a 3 × 3 grid of
  * ready-made pieces, a link to the whole library and the bottom bar with the "N / 5 seçildi" counter.
- * Five is a recommendation, not a gate. "Devam et" adds the chosen pieces to the wardrobe
- * (`POST v1/tenant/item/from-library`), then 04d Bildirim izni (canvas 19) or 05 Üyelik.
+ * Five is a recommendation, not a gate. "Devam et" opens 04d Bildirim izni (canvas 19) at once and adds the chosen
+ * pieces to the wardrobe in the background (`POST v1/tenant/item/from-library`, UX turu 2 · 11c); a failure shows the
+ * global toast "Parçalar kaydedilemedi · Tekrar dene" on whatever screen the user is on by then.
  */
 export default function FirstItemsScreen() {
   const { t } = useTranslation();
@@ -80,6 +82,13 @@ export default function FirstItemsScreen() {
   const toggle = (id: string) =>
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
+  // `mutateAsync` outlives this screen (the per-call `mutate` callbacks would be dropped once it unmounts).
+  const saveInBackground = (ids: string[]) => {
+    addItems.mutateAsync(ids).catch(() =>
+      toast.error(t('firstItemsSave.failed'), { action: { label: t('common.retry'), onPress: () => saveInBackground(ids) }, testID: 'toast-first-items' }),
+    );
+  };
+
   const submit = () => {
     if (session.status === 'signedIn') {
       void AsyncStorage.setItem(`droblet.firstItems.${session.user.id}`, JSON.stringify(selected));
@@ -88,9 +97,10 @@ export default function FirstItemsScreen() {
     // Next: 04d Bildirim izni while the OS can still ask, then 05 Üyelik (canvas 18: a teen never sees it —
     // onboarding ends and Bugün opens; the guards follow the store).
     const next = () => void continueAfterFirstItems(session.status === 'signedIn' ? session.user.id : null);
-    // The user is never held on this step: a failed add is not fatal, 12b offers the same pieces later.
-    if (selected.length === 0) next();
-    else addItems.mutate(selected, { onSettled: next });
+    // The user is never held on this step: the add runs in the background and a failure only offers a retry
+    // (12b offers the same pieces later too).
+    if (selected.length > 0) saveInBackground(selected);
+    next();
   };
 
   const openCamera = () => router.push('/item/add');
@@ -171,7 +181,7 @@ export default function FirstItemsScreen() {
               {t('firstItems.counterHint')}
             </Text>
           </View>
-          <Button size="bar" label={t('common.continue')} onPress={submit} loading={addItems.isPending} testID="firstItems.continue" />
+          <Button size="bar" label={t('common.continue')} onPress={submit} testID="firstItems.continue" />
         </View>
       </BottomActionBar>
     </Screen>
