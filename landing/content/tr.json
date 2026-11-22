@@ -28,12 +28,7 @@
       "eyebrow": "KİŞİSEL GARDIROP · STİL ASİSTANI · BAVUL",
       "title": "Sabah \"ne giysem\" derdi ve saatler süren bavul hazırlığı bitti.",
       "body": "Dolabın artık senin için düşünüyor. Kıyafetlerini fotoğrafla; Droblet her gün ve her seyahat için kombinini hazırlasın.",
-      "platforms": "iOS ve Android · Türkçe ve İngilizce",
-      "chips": {
-        "onYou": "SENİN ÜZERİNDE",
-        "weather": "14° İstanbul",
-        "missing": "Eksik parça"
-      }
+      "platforms": "iOS ve Android · Türkçe ve İngilizce"
     },
     "how": {
       "eyebrow": "NASIL ÇALIŞIR",
@@ -146,6 +141,21 @@
     },
     "final": {
       "title": "Dolabın artık senin için düşünüyor."
+    },
+    "photos": {
+      "hero": {
+        "alt": "Gardırobunun önünde, elinde telefonla bej bir blazer seçen kadın"
+      },
+      "wardrobe": {
+        "alt": "Yatağa serdiği ceket ve pantolonun yanında gömleğinin manşetini ilikleyen erkek"
+      },
+      "tryOn": {
+        "alt": "Örnek: camel kaban, bordo triko ve siyah pantolonla kum rengi duvarın önünde duran kadın",
+        "tag": "SENİN ÜZERİNDE · ÖRNEK"
+      },
+      "trip": {
+        "alt": "Yatağın üzerindeki kabin bavuluna katlanmış kazakları yerleştiren kadın"
+      }
     },
     "screens": {
       "welcome": {

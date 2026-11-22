@@ -1,4 +1,6 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import type { ReactElement } from 'react';
 
 import { toLibraryItem } from '@/api/today';
 import { AiImage } from '@/components/ui/AiBadge';
@@ -12,6 +14,11 @@ import { OnYouImage } from '@/features/today/OnYouImage';
 import i18n from '@/i18n';
 
 import { TryOnInvite, tryOnInviteKind } from './TryOnInvite';
+
+/** The ready invitation reads the photo list (its own-photo layer). */
+const withClient = (children: ReactElement) => (
+  <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })}>{children}</QueryClientProvider>
+);
 
 beforeAll(async () => {
   await i18n.changeLanguage('en');
@@ -51,7 +58,7 @@ describe('"on you" areas without a generated image', () => {
 
   it('the invitation tile is one opaque, labelled button with a 44 pt target — never an outlined pill over a picture', async () => {
     const onPress = jest.fn();
-    await render(<TryOnInvite footer="Try it on me · 1 credit" ready onPress={onPress} className="h-60 w-40" />);
+    await render(withClient(<TryOnInvite footer="Try it on me · 1 credit" ready onPress={onPress} className="h-60 w-40" />));
     const tile = screen.getByRole('button');
     expect(tile).toHaveProp('accessibilityLabel', 'Try it on me. How would this look sit on you? Try it on me · 1 credit');
     // Opaque ground, no outline, no transparency: the classes that decide legibility.

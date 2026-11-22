@@ -19,6 +19,24 @@ const stepScreens: readonly ScreenName[] = ['wardrobe', 'looks', 'product'];
 /** Screenshot of each feature, in dictionary order. */
 const featureScreens: readonly ScreenName[] = ['stylist', 'suggestion', 'trip', 'palette', 'shop', 'friends'];
 
+/** Photographs (fictional, AI-made people) in `public/photos/`, with their pixel size. */
+const photos = {
+  hero: { src: '/photos/landing-hero.webp', width: 1536, height: 1024 },
+  wardrobe: { src: '/photos/landing-wardrobe.webp', width: 1536, height: 1024 },
+  tryOn: { src: '/photos/tryon-example-woman.webp', width: 800, height: 1200 },
+  trip: { src: '/photos/landing-trip.webp', width: 1536, height: 1024 },
+} as const;
+
+/**
+ * Features shown with a photograph instead of a screenshot (canvas `Landing`), by dictionary index; the
+ * rest keep their phone frame. `position` is the crop focus inside the 4/3 card.
+ */
+const featurePhotos: Partial<Record<number, { key: 'wardrobe' | 'tryOn' | 'trip'; src: string; width: number; height: number; position: string }>> = {
+  0: { key: 'wardrobe', ...photos.wardrobe, position: 'object-[60%_40%]' },
+  1: { key: 'tryOn', ...photos.tryOn, position: 'object-[50%_12%]' },
+  2: { key: 'trip', ...photos.trip, position: 'object-[60%_50%]' },
+};
+
 /** Index of the colour-palette feature: it also shows the sample tones as real swatches. */
 const paletteFeature = 3;
 
@@ -55,8 +73,9 @@ export function homeMetadata(locale: Locale): Metadata {
 }
 
 /**
- * Landing page — canvas `Landing` (fluid desktop) / `LandingMobil` (the same layout at phone width), with
- * the canvas' image placeholders replaced by real app screenshots in CSS phone frames.
+ * Landing page — canvas `Landing` (fluid desktop) / `LandingMobil` (the same layout at phone width): the
+ * canvas' photographs in the hero and three feature cards, and its remaining image placeholders replaced by
+ * real app screenshots in CSS phone frames.
  */
 export function HomePage({ locale }: { locale: Locale }) {
   const dictionary = getDictionary(locale);
@@ -80,31 +99,23 @@ export function HomePage({ locale }: { locale: Locale }) {
             <p className="small-text">{t.hero.platforms}</p>
           </div>
 
-          <div className="rise-late flex min-w-0 flex-[1_1_380px] justify-center">
-            <div className="relative w-full max-w-[460px] pb-4">
-              <div className="relative z-10 w-[64%] sm:w-[62%]">
-                <PhoneFrame locale={locale} screen="today" alt={screens.today.alt} className="w-full" eager />
+          <div className="rise-late flex min-w-0 flex-[1_1_320px] justify-center">
+            <div className="relative w-[min(460px,100%)] pb-6">
+              {/* eslint-disable-next-line @next/next/no-img-element -- static export: no image loader */}
+              <img
+                src={photos.hero.src}
+                width={photos.hero.width}
+                height={photos.hero.height}
+                alt={t.photos.hero.alt}
+                loading="eager"
+                decoding="async"
+                fetchPriority="high"
+                className="block aspect-[4/5] w-full rounded-[28px] bg-sand object-cover object-[74%_50%]"
+              />
+              {/* The app itself, over the photo's lower-left corner (curtain and floor, clear of the subject). */}
+              <div className="absolute bottom-0 -left-2 w-[34%] sm:-left-8">
+                <PhoneFrame locale={locale} screen="today" alt={screens.today.alt} className="w-full" />
               </div>
-              <div className="absolute top-[13%] right-0 w-[50%] sm:w-[48%]">
-                <PhoneFrame locale={locale} screen="suggestion" alt={screens.suggestion.alt} className="w-full" />
-              </div>
-              <ul aria-hidden="true" className="m-0 list-none p-0">
-                <li className="absolute top-[6%] right-[2%] z-20">
-                  <span className="tag">{t.hero.chips.onYou}</span>
-                </li>
-                <li className="absolute top-[44%] -left-1 z-20 sm:-left-6">
-                  <span className="chip">
-                    <Icon name="sun" size={16} className="text-accent" />
-                    {t.hero.chips.weather}
-                  </span>
-                </li>
-                <li className="absolute right-[4%] bottom-[10%] z-20">
-                  <span className="chip">
-                    <span className="chip-dot" />
-                    {t.hero.chips.missing}
-                  </span>
-                </li>
-              </ul>
             </div>
           </div>
         </section>
@@ -146,6 +157,7 @@ export function HomePage({ locale }: { locale: Locale }) {
           </div>
           {t.features.items.map((feature, index) => {
             const screen = featureScreens[index] ?? 'today';
+            const photo = featurePhotos[index];
             const flipped = index % 2 === 1;
             return (
               <article
@@ -171,11 +183,27 @@ export function HomePage({ locale }: { locale: Locale }) {
                     </div>
                   ) : null}
                 </div>
-                <div
-                  className={`stage h-[440px] items-start pt-10 sm:h-[520px] sm:pt-12 ${index % 2 === 0 ? 'bg-sand' : 'bg-stage'} ${flipped ? 'md:order-1' : ''}`}
-                >
-                  <PhoneFrame locale={locale} screen={screen} alt={screens[screen].alt} className="w-[250px] sm:w-[280px]" />
-                </div>
+                {photo ? (
+                  <div className={`relative aspect-[4/3] overflow-hidden rounded-card bg-sand ${flipped ? 'md:order-1' : ''}`}>
+                    {/* eslint-disable-next-line @next/next/no-img-element -- static export: no image loader */}
+                    <img
+                      src={photo.src}
+                      width={photo.width}
+                      height={photo.height}
+                      alt={t.photos[photo.key].alt}
+                      loading="lazy"
+                      decoding="async"
+                      className={`absolute inset-0 h-full w-full object-cover ${photo.position}`}
+                    />
+                    {photo.key === 'tryOn' ? <span className="tag absolute bottom-3.5 left-3.5">{t.photos.tryOn.tag}</span> : null}
+                  </div>
+                ) : (
+                  <div
+                    className={`stage h-[440px] items-start pt-10 sm:h-[520px] sm:pt-12 ${index % 2 === 0 ? 'bg-sand' : 'bg-stage'} ${flipped ? 'md:order-1' : ''}`}
+                  >
+                    <PhoneFrame locale={locale} screen={screen} alt={screens[screen].alt} className="w-[250px] sm:w-[280px]" />
+                  </div>
+                )}
               </article>
             );
           })}

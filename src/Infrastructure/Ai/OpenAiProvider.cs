@@ -905,13 +905,18 @@ public static class OpenAiPrompts
 
     /// <summary>
     /// Registry key look.cover.image; {{pieceCount}} = the number of piece images. Canvas 21c (owner decision 2026-11-22): one
-    /// casual top-down flat-lay on a cream linen bedsheet, soft daylight, the pieces exactly as photographed.
+    /// outfit thrown together on a bed (rumpled cream linen sheet, soft daylight), relaxed and slightly messy — the owner found the
+    /// first version too perfect — the pieces exactly as photographed.
     /// </summary>
     public const string LookCoverTemplate =
-        "The {{pieceCount}} image(s) are the pieces of one outfit. Create one realistic top-down flat-lay photo of exactly these pieces, laid out casually " +
-        "and naturally on a cream linen bedsheet with soft wrinkles, in soft natural daylight, as if someone laid out the outfit to wear it. " +
+        "The {{pieceCount}} image(s) are the pieces of one outfit. Create one realistic top-down photo of exactly these pieces thrown together on a bed, " +
+        "the way a person really lays out an outfit before getting dressed: relaxed and slightly messy, not styled and not a catalogue flat-lay. " +
+        "The bed has a rumpled cream linen sheet with real creases; soft natural window daylight with gentle shadows under the clothes. " +
+        "Lay the pieces loosely and close together, filling the frame: each at its own slight angle, never in a neat grid or symmetrical; " +
+        "fabric keeps its natural folds and wrinkles, a sleeve bent or pushed up, a collar or hem slightly turned, trouser legs or a skirt lying loosely and partly under the top, " +
+        "shoes set down casually at an angle, a bag strap falling where it lands. Pieces may overlap each other a little and a long piece may run off the edge of the frame, " +
+        "but every piece stays clearly recognisable. " +
         "Show every piece exactly as in its image: the same colour, pattern, fabric, texture, shape and every brand logo, monogram, print and lettering unchanged. " +
-        "Every piece fully visible inside the frame and none overlapping another so much that it is hidden. " +
         "Do not add, remove, replace or restyle anything: no other clothes, accessories, props or decorations, no person, no hands, no mannequin, no hanger, no text.";
 
     public const string TryOnTeenGuard =

@@ -71,13 +71,15 @@ Tokens are in `src/app/globals.css` (`@theme`): ink `#1C1A17`, cream `#F4F1EC`, 
 `#6E5640`, muted `#665F56`, line `#DCD4C9`, sand `#E8E1D7`, danger `#9A3B2E`. Cormorant Garamond 500/600 and
 Jost 400/500 are downloaded by `next/font` at build time and served from `/_next/static` — the browser makes no
 request to Google. The logo (direction A) is copied from `mobile/assets/brand/` (`src/app/icon.svg`,
-`public/brand/icon.svg`, inline paths in `src/components/Logo.tsx`). The canvas' image placeholders are replaced
-by **real app screenshots** (`public/screens/{tr,en}/*.webp`, each page shows its own language) in a CSS iPhone
-frame (`src/components/PhoneFrame.tsx`); there are no stock photos, statistics, testimonials or real people's
-names. How to regenerate the screenshots and `og.png`: [`scripts/capture/README.md`](scripts/capture/README.md).
+`public/brand/icon.svg`, inline paths in `src/components/Logo.tsx`). The hero and three feature rows (stylist, try-on, suitcase)
+show the canvas' **photographs** (`public/photos/*.webp` — fictional, AI-made people; the try-on one carries the
+"SENİN ÜZERİNDE · ÖRNEK" tag; alt texts in `home.photos`). The canvas' other image placeholders are replaced by
+**real app screenshots** (`public/screens/{tr,en}/*.webp`, each page shows its own language) in a CSS iPhone
+frame (`src/components/PhoneFrame.tsx`); there are no statistics, testimonials or real people's names.
+How to regenerate the screenshots and `og.png`: [`scripts/capture/README.md`](scripts/capture/README.md).
 Scroll-in motion (`RevealOnScroll`, opacity/transform only) is off under `prefers-reduced-motion` and leaves the
 page fully visible without JavaScript. Images are plain `<img>` with `width`/`height` (no `next/image` loader in
-a static export); only the hero image loads eagerly.
+a static export); only the hero photo loads eagerly.
 
 ## Legal pages are drafts
 

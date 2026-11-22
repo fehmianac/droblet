@@ -42,17 +42,17 @@ describe('placeholder figures follow the segment (canvas 17 "Yer tutucular")', (
     expect(screen.getByTestId('silhouette-women')).toBeTruthy();
   });
 
-  it('ImageSlot figure placeholder and the try-on invitation draw the men figure', async () => {
+  it("ImageSlot figure placeholder draws the men figure; the try-on invitation shows the men's sample photo", async () => {
     segmentStore.set('men');
     await render(
       <>
         <ImageSlot className="h-40 w-32" placeholder={{ kind: 'figure', figureHeight: 100 }} />
-        <TryOnInvite footer="Try on me" ready onPress={() => undefined} />
+        <TryOnInvite footer="Add your photo first" ready={false} onPress={() => undefined} />
       </>,
     );
     expect(screen.getByTestId('image-slot-figure')).toBeTruthy();
     expect(screen.getByTestId('silhouette-men')).toBeTruthy();
-    expect(screen.getByTestId('try-on-invite-figure-men')).toBeTruthy();
+    expect(screen.getByTestId('try-on-invite-sample-men')).toBeTruthy();
   });
 });
 
