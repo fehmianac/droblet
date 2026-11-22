@@ -9,6 +9,7 @@
  *   price_drop {productId}     → 22 Ürün; without an id the watch list
  *   data_export_ready          → Verilerimi indir (inbox only today)
  *   content_removed {targetKind, targetId} → the removed look / piece; the profile → Profili düzenle (inbox only)
+ *   feed_likes_digest          → the user's looks (Akış F2: the daily "Looklarını N kişi beğendi")
  *   outfit_import_ready {sessionId} → the import's review (31c); without an id the import entry (inbox only)
  * Unknown types or unusable ids open the home tab (Akış).
  */
@@ -57,6 +58,8 @@ export function routeForPush(data: PushData | null | undefined): PushRoute {
       const lookId = id(data, 'lookId');
       return lookId ? { pathname: '/look/[id]', params: { id: lookId } } : '/wardrobe/looks';
     }
+    case 'feed_likes_digest':
+      return '/wardrobe/looks';
     case 'data_export_ready':
       return '/data-export';
     case 'outfit_import_ready': {

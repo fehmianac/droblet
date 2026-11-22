@@ -111,6 +111,7 @@
     "timeBody": "Sabah kombin hatırlatması her gün bu saatte gelir.",
     "weeklyEdit": "Haftanın edit'i",
     "friendRatings": "Arkadaş puanları",
+    "feedLikesDigest": "Look beğenileri (günlük özet)",
     "notificationsError": "Bildirim ayarların şu an yüklenemedi.",
     "languageEyebrow": "DİL",
     "languageLabel": "Uygulama dili",
@@ -208,6 +209,12 @@
     "friendRatings": {
       "title": "Look’larına yeni puanlar var",
       "body": "Arkadaşların look’larını puanladı"
+    },
+    "feedLikes": {
+      "title_one": "Looklarını {{count}} kişi beğendi",
+      "title_other": "Looklarını {{count}} kişi beğendi",
+      "titlePlain": "Lookların beğenildi",
+      "body": "Akışta paylaştığın looklara gelen beğeniler."
     },
     "priceDrop": {
       "title": "İzleme listende fiyat düştü",

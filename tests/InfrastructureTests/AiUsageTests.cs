@@ -137,7 +137,7 @@ public class AiUsageTests
         await recorder.RecordAsync(Record("01JOTHERTENANT000000000000", "job3", Fixtures.Now), default);
 
         await new AccountDeletionService(repository, new FakeObjectStorage(),
-            new Infrastructure.Services.Social.CrossTenantCleanup(repository, TimeProvider.System, NullLogger<Infrastructure.Services.Social.CrossTenantCleanup>.Instance),
+            new Infrastructure.Services.Social.CrossTenantCleanup(repository, Fixtures.FeedShares(repository), TimeProvider.System, NullLogger<Infrastructure.Services.Social.CrossTenantCleanup>.Instance),
             new FakeCdnCache(), NullLogger<AccountDeletionService>.Instance).DeleteAccountAsync(User, Tenant, default);
 
         Assert.DoesNotContain(repository.Keys, k => k.Pk.Contains(Tenant, StringComparison.Ordinal) || k.Sk.Contains(Tenant, StringComparison.Ordinal));

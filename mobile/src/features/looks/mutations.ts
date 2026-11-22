@@ -1,7 +1,7 @@
 import type { QueryClient } from '@tanstack/react-query';
 
 import { apiRequest } from '@/api/client';
-import type { CreateLookRequest, Look, PutLookRequest } from '@/api/contracts/looks';
+import type { CreateLookRequest, FeedShareRequest, Look, PutLookRequest } from '@/api/contracts/looks';
 import { ApiError, isConflict, isGone } from '@/api/errors';
 import {
   fromOccasion,
@@ -15,7 +15,9 @@ import {
 import { fromSource } from '@/api/dataSource';
 import { registerTripMutations } from '@/features/trips/mutations';
 import { clone, fixtureDb } from '@/fixtures/db';
-import { fixtureCreateLook, fixtureDeleteLook, fixturePutLook } from '@/fixtures/looks';
+import { toast } from '@/components/ui/toast';
+import { fixtureCreateLook, fixtureDeleteLook, fixturePutLook, fixtureSetFeedShare } from '@/fixtures/looks';
+import i18n from '@/i18n';
 import { ulid } from '@/lib/ids';
 import { isModerationOnlyChange } from '@/features/moderation/logic';
 import { conflictStore } from '@/sync/conflicts';
@@ -28,7 +30,30 @@ export const lookMutationKeys = {
   create: ['tenant', 'look', 'create'] as const,
   put: ['tenant', 'look', 'put'] as const,
   remove: ['tenant', 'look', 'delete'] as const,
+  feedShare: ['tenant', 'look', 'feed-share'] as const,
 };
+
+/** The server's reasons for refusing "Akışta paylaş" that have their own calm sentence (`feedShare.errors.*`). */
+export const FEED_SHARE_ERROR_CODES = ['email_not_verified', 'handle_required', 'look_not_shareable', 'teen_restricted', 'too_many_attempts'] as const;
+export type FeedShareErrorCode = (typeof FEED_SHARE_ERROR_CODES)[number];
+
+/** Which sentence a failed feed-share write shows. */
+export function feedShareErrorKey(error: unknown, shared: boolean): FeedShareErrorCode | 'shareFailed' | 'removeFailed' {
+  const code = error instanceof ApiError ? error.code : null;
+  if (code && (FEED_SHARE_ERROR_CODES as readonly string[]).includes(code)) return code as FeedShareErrorCode;
+  if (error instanceof ApiError && error.status === 429) return 'too_many_attempts';
+  return shared ? 'shareFailed' : 'removeFailed';
+}
+
+/** The look as "Akışta paylaş" leaves it: on keeps what it already got (or starts at zero), off drops the numbers. */
+export function withFeedShare(look: Look, shared: boolean): Look {
+  return { ...look, sharedToFeed: shared, feedStats: shared ? (look.feedStats ?? { likeCount: 0, saveCount: 0 }) : null };
+}
+
+function patchLook(client: QueryClient, id: string, change: (look: Look) => Look): void {
+  client.setQueryData<Look[]>(lookKeys.looks, (prev) => prev?.map((l) => (l.id === id ? change(l) : l)));
+  client.setQueryData<Look>(lookKeys.look(id), (prev) => (prev ? change(prev) : prev));
+}
 
 /** `optimistic` is what the cache shows until the server answers; only `request` goes over the wire. */
 /** `source` (default `user`) says where the look came from: `builder` (23), `edit` (08). `stylist` is set by the server. */
@@ -213,6 +238,30 @@ export function registerLooksMutations(client: QueryClient): void {
     onError: (error: unknown) => {
       // Already deleted elsewhere = the outcome the user wanted.
       if (!isGone(error)) invalidate();
+    },
+  });
+
+  // PUT (share) / DELETE (remove) v1/tenant/look/{id}/feed-share → 204 (Akış F2, decision 21)
+  client.setMutationDefaults(lookMutationKeys.feedShare, {
+    scope: TENANT_WRITE_SCOPE,
+    mutationFn: (vars: FeedShareRequest) =>
+      fromSource<void>(
+        'wardrobe',
+        () => fixtureSetFeedShare(vars.id, vars.shared),
+        () => apiRequest<void>(`v1/tenant/look/${encodeURIComponent(vars.id)}/feed-share`, { method: vars.shared ? 'PUT' : 'DELETE' }),
+      ),
+    onMutate: async (vars: FeedShareRequest) => {
+      await client.cancelQueries({ queryKey: lookKeys.looks });
+      patchLook(client, vars.id, (l) => withFeedShare(l, vars.shared));
+    },
+    onError: (error: unknown, vars: FeedShareRequest) => {
+      // Removing a look that is already gone from Akış (or deleted) is the outcome the user wanted.
+      if (!vars.shared && isGone(error)) return;
+      // Back to what it was — unless a newer toggle already changed it again.
+      patchLook(client, vars.id, (l) => (Boolean(l.sharedToFeed) === vars.shared ? withFeedShare(l, !vars.shared) : l));
+      toast.error(i18n.t(`feedShare.errors.${feedShareErrorKey(error, vars.shared)}`), { testID: 'toast-feed-share-error' });
+      invalidate();
+      void client.invalidateQueries({ queryKey: lookKeys.look(vars.id) });
     },
   });
 

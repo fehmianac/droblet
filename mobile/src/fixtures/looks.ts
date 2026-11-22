@@ -1,6 +1,7 @@
 import type { CreateLookRequest, Look, LookSlot, LookSlotInput, PutLookRequest } from '@/api/contracts/looks';
 import { ApiError } from '@/api/errors';
 
+import { accountFixtures } from './account';
 import { clone, fixtureDb } from './db';
 import { localizedCatalogue } from './store';
 
@@ -65,4 +66,29 @@ export function fixturePutLook(id: string, request: PutLookRequest): Look {
 
 export function fixtureDeleteLook(id: string): void {
   fixtureDb.looks = fixtureDb.looks.filter((l) => l.id !== id);
+}
+
+/** Test switch: the next "Akışta paylaş" write fails with this server code (final answer, no retry). */
+export const feedShareFixtureOptions: { failNext: { status: number; code: string } | null } = { failNext: null };
+
+/**
+ * PUT / DELETE v1/tenant/look/{id}/feed-share (Akış F2) with the server's rules: a verified e-mail and an @handle
+ * are needed, and an imported look cannot be shared. Turning it off always works.
+ */
+export function fixtureSetFeedShare(id: string, shared: boolean): void {
+  const failure = feedShareFixtureOptions.failNext;
+  if (failure) {
+    feedShareFixtureOptions.failNext = null;
+    throw new ApiError('http', failure.status, { status: failure.status, code: failure.code });
+  }
+  const look = fixtureDb.looks.find((l) => l.id === id);
+  if (!look) throw new ApiError('http', 404, null);
+  if (shared) {
+    const profile = accountFixtures.profile();
+    if (profile.emailVerified === false) throw new ApiError('http', 422, { status: 422, code: 'email_not_verified' });
+    if (!profile.handle) throw new ApiError('http', 422, { status: 422, code: 'handle_required' });
+    if (look.imported) throw new ApiError('http', 422, { status: 422, code: 'look_not_shareable' });
+  }
+  look.sharedToFeed = shared;
+  look.feedStats = shared ? (look.feedStats ?? { likeCount: 0, saveCount: 0 }) : null;
 }

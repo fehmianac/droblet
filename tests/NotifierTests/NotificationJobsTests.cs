@@ -156,6 +156,52 @@ public class NotificationJobsTests
     }
 
     [Fact]
+    public async Task FeedLikesDigest_OnePushADay_CountsDistinctLikersOfTheLast24Hours_OnByDefault_OffWhenSwitchedOff_NeverToATeen()
+    {
+        var run = Now.AddHours(12);                                                    // the evening digest, 16:30 UTC
+        await AddTenantAsync("owner");                                                 // no preference row at all = on
+        await AddTenantAsync("owner-en", "en");
+        await AddTenantAsync("owner-off");
+        await AddTenantAsync("owner-teen");
+        await AddTenantAsync("owner-old");
+        await _host.Repository.SaveAsync(new NotificationPrefEntity { TenantId = "owner-off", UserId = "u-owner-off", FeedLikesDigestOff = true, Version = 1 });
+        await _host.Repository.SaveAsync(new NotificationPrefEntity { TenantId = "owner-en", UserId = "u-owner-en", Version = 1 });   // a row written before the field = on
+        var teen = (await _host.Repository.GetAsync<TenantEntity>(TenantEntity.GetPk(), TenantEntity.GetSk("owner-teen")))!;
+        teen.AgeBand = AgeBand.Teen;
+        await _host.Repository.SaveAsync(teen);
+        Task Like(string owner, string liker, DateTime at) => _host.Repository.SaveAsync(new FeedLikeDigestEntity
+        {
+            Day = WeeklyEditRules.Format(DateOnly.FromDateTime(at)), OwnerTenantId = owner, LikerTenantId = liker, CreatedAt = at,
+        });
+        await Like("owner", "a", run.AddHours(-1));
+        await Like("owner", "b", run.AddHours(-20));                                   // yesterday (UTC), inside the 24 hours
+        await Like("owner", "c", run.AddHours(-2));
+        await Like("owner", "d", run.AddHours(-30));                                   // older than 24 hours: told yesterday
+        await Like("owner-en", "a", run.AddHours(-3));
+        await Like("owner-off", "a", run.AddHours(-3));
+        await Like("owner-teen", "a", run.AddHours(-3));
+        await Like("owner-old", "a", run.AddHours(-40));
+
+        var first = await _jobs.RunAsync(NotificationJob.FriendRatings, run, default);
+        var again = await _jobs.RunAsync(NotificationJob.FriendRatings, run.AddHours(1), default);
+
+        Assert.Equal((2, 2), (first.Candidates, first.Sent));
+        Assert.Equal(0, again.Sent);                                                   // one push a day
+        Assert.Equal(2, _push.Sent.Count);
+        var tr = _push.Sent.Single(m => m.Token == "token-owner");
+        var en = _push.Sent.Single(m => m.Token == "token-owner-en");
+        Assert.Equal("Looklarını 3 kişi beğendi", tr.Title);
+        Assert.Equal(("feed_likes_digest", "3"), (tr.Data["type"], tr.Data["count"]));
+        Assert.Equal("People who liked the looks you shared today: 1.", en.Body);
+        Assert.Equal("1", en.Data["count"]);
+        // Switched off: no push, but the inbox row is there (a service message about her own looks). Never anything for a teen.
+        Assert.Contains(await _host.Repository.GetKeysAsync(NotificationInboxEntity.GetPk("owner-off")), k => k.Sk.Contains("FeedLikesDigest", StringComparison.OrdinalIgnoreCase) || k.Sk.Contains("feed", StringComparison.OrdinalIgnoreCase));
+        Assert.Empty(await _host.Repository.GetKeysAsync(NotificationInboxEntity.GetPk("owner-teen")));
+        Assert.Empty(await _host.Repository.GetKeysAsync(NotificationInboxEntity.GetPk("owner-old")));
+        Assert.Equal("feed_likes_digest", NotificationTexts.Code(NotificationType.FeedLikesDigest));
+    }
+
+    [Fact]
     public async Task Reminder_OnlyTheLocalSlotThatIsNow_AndOnlyWithAnOutfitForToday()
     {
         await AddTenantAsync("istanbul-planned", morningLocalTime: "07:30");

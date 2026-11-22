@@ -332,6 +332,30 @@ export interface AppUserDetail extends AppUserSummary {
 export type ReportStatus = 'open' | 'resolved';
 export type ReportResolution = 'dismissed' | 'contentRemoved' | 'userWarned' | 'userSuspended';
 
+export type ReportReason = 'spam' | 'inappropriate' | 'harassment' | 'impersonation' | 'minorSafety' | 'other';
+
+/** Akış F2: a look a user shared to the home feed that was reported or taken off the feed automatically (`GET v1/admin/feed-user-post`). */
+export interface FeedUserPost {
+  id: string;
+  ownerTenantId: string;
+  ownerHandle: string | null;
+  lookId: string;
+  lookName: string | null;
+  occasion: string | null;
+  /** The cover the feed showed (short-lived presigned URL); null when the look has no ready cover. */
+  imageUrl: string | null;
+  sharedAt: string;
+  /** `autoHidden` = off the feed after 3 distinct reporters, until restored or removed. */
+  status: 'reported' | 'autoHidden';
+  reporterCount: number;
+  reasons: { reason: ReportReason; count: number }[];
+  reports: { id: string; status: ReportStatus; reason: ReportReason; note: string | null; reporterTenantId: string | null; reporterHandle: string | null; createdAt: string }[];
+  hiddenAt: string | null;
+  restoredAt: string | null;
+  likeCount: number;
+  involvesTeen: boolean;
+}
+
 export interface ModerationReport {
   id: string;
   status: ReportStatus;

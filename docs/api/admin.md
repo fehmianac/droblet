@@ -31,7 +31,7 @@ keep the shapes of [store-social-settings.md §11](store-social-settings.md#11-a
 | `users.suspend` | ✓ | | ✓ | `POST v1/admin/user/{id}/suspend`, `…/unsuspend` |
 | `users.delete` | ✓ | | | `DELETE v1/admin/user/{id}` |
 | `users.grant` | ✓ | | | test premium, add credits |
-| `moderation.manage` | ✓ | | ✓ | `GET v1/admin/moderation/report`, `POST …/{id}/resolve`, `POST …/{id}/restore` |
+| `moderation.manage` | ✓ | | ✓ | `GET v1/admin/moderation/report`, `POST …/{id}/resolve`, `POST …/{id}/restore`; `GET v1/admin/feed-user-post`, `POST …/{id}/restore`, `POST …/{id}/remove` (Akış F2) |
 | `settings.manage` | ✓ | | | `GET/PUT v1/admin/setting…` |
 | `admins.manage` | ✓ | | | `v1/admin/admin-user…` |
 | `audit.view` | ✓ | | | `GET v1/admin/audit` |
@@ -100,6 +100,7 @@ Actions: `auth.login`, `auth.login_failed`, `auth.logout`, `auth.logout_all`, `a
 `brand.upsert`, `brand.retire`, `product.upsert`, `product.retire`, `product.bulk`, `image.upload_url`, `edit.upsert`,
 `edit.retire`, `collection.upsert`, `collection.retire`, `collection_look.upsert`, `collection_look.retire`,
 `feed_post.upsert`, `feed_post.retire`, `feed_story.upsert`, `feed_story.retire` (target types `feed_post`, `feed_story`),
+`feed_user_post.restore`, `feed_user_post.remove` (target type `feed_user_post`; Akış F2 shared looks),
 `library.upsert`, `library.retire`, `user.suspend`, `user.unsuspend`, `user.delete`, `user.test_premium_grant`,
 `user.test_premium_revoke`, `user.credits_add`, `report.resolve`, `setting.update`, `ai.prompt.publish`,
 `ai.prompt.rollback`, `ai.prompt.auto_fallback` (written by a worker, no admin), `ai.trial`, `ai.models.update`, `ai.limits.update`.
@@ -485,6 +486,15 @@ suspends the reported account (same effect as `POST v1/admin/user/{id}/suspend`,
 keeps its handle but shows others no name, avatar or style tags. The owner keeps it (read-only `moderation` field) and
 gets an inbox row `content_removed`. Audited as `report.resolve` + `report.contentRemove` (before / after = the target's
 moderation state). A target that no longer exists still resolves (audit outcome `targetMissing`).
+
+**Shared looks of the Akış (F2).** Panel: Moderation → "Shared looks" (`/moderation/feed`). `GET v1/admin/feed-user-post`
+(`moderation.manage`) lists the looks users shared to the home feed that have an open report or were taken off the feed
+automatically (`ContentFeed:ReportsToAutoHide` = 3 distinct reporters): cover image, owner, reporter count, reasons, the
+open reports. Two actions, both with an optional note and audited (`feed_user_post.restore` / `feed_user_post.remove`):
+**Restore** (`POST …/{id}/restore` → `204`) puts the look back in the feed and dismisses its open reports; **Remove**
+(`POST …/{id}/remove` → `{ reportId }`) is the look moderation above — the reports are resolved `contentRemoved`, the
+look is hidden from everyone but its owner, who gets `content_removed`; undo with the returned report's `…/restore`.
+`409 feed_post_not_reported` when no report is open. Shapes: [S §11](store-social-settings.md).
 
 A resolved report cannot be reopened, so the undo is `POST v1/admin/moderation/report/{id}/restore`
 (`moderation.manage`, no body): the content is visible again, the report keeps `status: resolved` and gains

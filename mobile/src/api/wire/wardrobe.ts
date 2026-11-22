@@ -241,6 +241,9 @@ export type LookWire = {
   coverImageUrl?: string | null;
   /** The AI flat-lay cover of the current pieces is queued or being made. */
   coverPending?: boolean;
+  /** Akış F2: the look is shared to the home feed (older servers omit it). */
+  sharedToFeed?: boolean;
+  feedStats?: { likeCount: number; saveCount: number } | null;
 };
 
 export type LookSlotInputWire = { slot: OutfitSlotWire; itemId?: string; productId?: string };
@@ -318,6 +321,9 @@ export function toLook(wire: LookWire, ctx: LookContext): Look {
     createdAt: wire.createdAt,
     baseVersion: wire.version,
     moderation: toModeration(wire.moderation),
+    imported: wire.source === 'import',
+    sharedToFeed: Boolean(wire.sharedToFeed),
+    feedStats: wire.feedStats ? { likeCount: Math.max(0, wire.feedStats.likeCount ?? 0), saveCount: Math.max(0, wire.feedStats.saveCount ?? 0) } : null,
   };
 }
 

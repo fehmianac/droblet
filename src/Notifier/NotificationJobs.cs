@@ -22,7 +22,8 @@ public interface INotificationJobs
 /// • Reminder (every 15 min): tenants whose LOCAL morning time is this slot and who have an outfit for today
 ///   (IMorningOutfitCheck — the plan slice: a look planned for the user's local day).
 /// • WeeklyEdit (weekly): subscribers, once per published edit of the current week.
-/// • FriendRatings (daily): subscribers whose looks were rated today, one digest per day.
+/// • FriendRatings (daily): subscribers whose looks were rated today, one digest per day; with it the Akış likes digest
+///   (feed_likes_digest: the looks a user shared were liked in the last 24 hours, one push, on by default).
 /// • Lifecycle: subscription expiry belongs to the entitlement slice — nothing to send here yet.
 /// • Outbox (with every Reminder run, i.e. every 15 min): event pushes queued by the Api — follow requests (decision 8) and
 ///   watch-list price drops (decision 9) — sent when the type is switched on and the reason still exists; then the
@@ -51,7 +52,7 @@ public sealed class NotificationJobs(
         {
             NotificationJob.Reminder => await RunReminderAsync(scheduledAtUtc, ct),
             NotificationJob.WeeklyEdit => await RunWeeklyEditAsync(scheduledAtUtc, ct),
-            NotificationJob.FriendRatings => await RunFriendRatingsAsync(scheduledAtUtc, ct),
+            NotificationJob.FriendRatings => Sum(await RunFriendRatingsAsync(scheduledAtUtc, ct), await RunFeedLikesDigestAsync(scheduledAtUtc, ct)),
             _ => (0, 0),
         };
 
@@ -144,6 +145,40 @@ public sealed class NotificationJobs(
         return (candidates, sent);
     }
 
+    private static (int, int) Sum((int Candidates, int Sent) a, (int Candidates, int Sent) b) => (a.Candidates + b.Candidates, a.Sent + b.Sent);
+
+    /// <summary>
+    /// Akış F2 (owner decision 21): ONE push a day about the likes on the looks a user shared — "Looklarını N kişi beğendi",
+    /// N = the distinct people who liked in the 24 hours before this run (markers written with each like, removed by an
+    /// un-like of the same day). Runs with the evening digest. Like the ratings digest it is a service message about the
+    /// user's own looks: always in the inbox; pushed unless the user switched feedLikesDigest off (on by default). Never to a teen.
+    /// </summary>
+    private async Task<(int, int)> RunFeedLikesDigestAsync(DateTime now, CancellationToken ct)
+    {
+        var today = DateOnly.FromDateTime(now);
+        var day = WeeklyEditRules.Format(today);
+        var since = now.AddDays(-1);
+        var markers = new List<FeedLikeDigestEntity>();
+        foreach (var partition in new[] { WeeklyEditRules.Format(today.AddDays(-1)), day })
+            markers.AddRange((await repository.GetAllAsync<FeedLikeDigestEntity>(FeedLikeDigestEntity.GetPk(partition), ct)).Where(m => m.CreatedAt > since && m.CreatedAt <= now));
+
+        int candidates = 0, sent = 0;
+        foreach (var owner in markers.GroupBy(m => m.OwnerTenantId, StringComparer.Ordinal))
+        {
+            var count = owner.Select(m => m.LikerTenantId).Distinct(StringComparer.Ordinal).Count().ToString(System.Globalization.CultureInfo.InvariantCulture);
+            if (await repository.IsTeenTenantAsync(owner.Key, ct))
+                continue;
+            await inbox.AddAsync(owner.Key, NotificationType.FeedLikesDigest, day, new Dictionary<string, string> { ["day"] = day, ["count"] = count }, now, ct);
+            var prefs = await repository.GetAllAsync<NotificationPrefEntity>(NotificationPrefEntity.GetPk(owner.Key), ct);
+            if (prefs.Any(p => p.FeedLikesDigestOff))
+                continue;
+            candidates++;
+            if (await SendOnceAsync(owner.Key, NotificationType.FeedLikesDigest, day, new() { ["day"] = day, ["count"] = count }, now, ct))
+                sent++;
+        }
+        return (candidates, sent);
+    }
+
     private static readonly NotificationType[] OutboxTypes = [NotificationType.FollowRequest, NotificationType.PriceDrop];
 
     /// <summary>Drains the event outbox. A row is removed once handled (sent, switched off, or its reason is gone).</summary>
@@ -225,6 +260,9 @@ public sealed class NotificationJobs(
             return false;
 
         var (title, body) = NotificationTexts.For(type, tenant.Language, localization.CurrentValue.DefaultLanguage);
+        // The only variable a sentence may carry is a number of the event itself ("{count}"): never a name, never content.
+        if (data.TryGetValue("count", out var countText))
+            (title, body) = (title.Replace("{count}", countText, StringComparison.Ordinal), body.Replace("{count}", countText, StringComparison.Ordinal));
         data["type"] = NotificationTexts.Code(type);
 
         var delivered = false;
@@ -316,6 +354,12 @@ public static class NotificationTexts
         {
             ["tr"] = ("Hesabın artık yetişkin hesabı", "18 yaşına girdin: genç modu kısıtlamaları kalktı, veli bağlantısı sona erdi."),
             ["en"] = ("Your account is now an adult account", "You turned 18: the teen mode limits are lifted and the parental link has ended."),
+        },
+        // Akış F2: the daily likes digest ({count} = distinct people, filled by the Notifier).
+        [NotificationType.FeedLikesDigest] = new()
+        {
+            ["tr"] = ("Looklarını {count} kişi beğendi", "Akışta paylaştığın looklar bugün beğeni aldı."),
+            ["en"] = ("New likes on your looks", "People who liked the looks you shared today: {count}."),
         },
     };
 

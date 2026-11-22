@@ -13,7 +13,7 @@ namespace Infrastructure.Services.Social;
 /// watcher index, public profile index, notification send lists, and the tenant id on clicks / conversions
 /// (revenue rows stay, without the person). Every step is idempotent — a failed deletion can be retried.
 /// </summary>
-public sealed class CrossTenantCleanup(IRepository repository, TimeProvider timeProvider, ILogger<CrossTenantCleanup> logger) : ICrossTenantCleanup
+public sealed class CrossTenantCleanup(IRepository repository, IFeedShareService feedShares, TimeProvider timeProvider, ILogger<CrossTenantCleanup> logger) : ICrossTenantCleanup
 {
     private const int SummaryRetries = 5;
 
@@ -52,9 +52,29 @@ public sealed class CrossTenantCleanup(IRepository repository, TimeProvider time
                 keys.Add((row.Pk, row.Sk));
         }
 
-        // Akış likes: take each one back off the post's counter (the like rows go with it).
+        // Akış F2, as an owner: the looks I shared leave the feed with everything other people left on them.
+        await feedShares.RemoveAllAsync(tenantId, ct);
+
+        // Akış likes: take each one back off the post's counter (the like rows go with it). On a shared look (F2) also my
+        // row in its reaction index and the owner's digest marker.
+        var feedNow = timeProvider.GetUtcNow().UtcDateTime;
         foreach (var like in await repository.GetAllAsync<FeedLikeEntity>(FeedLikeEntity.GetPk(tenantId), ct))
-            await Store.FeedLikeCounter.UnlikeAsync(repository, tenantId, like.PostId, timeProvider.GetUtcNow().UtcDateTime, SummaryRetries, ct);
+        {
+            var userPost = FeedRules.IsUserPostId(like.PostId)
+                ? await repository.GetAsync<FeedUserPostEntity>(FeedUserPostEntity.GetPk(), FeedUserPostEntity.GetSk(like.PostId), ct)
+                : null;
+            await Store.FeedLikeCounter.UnlikeAsync(repository, tenantId, like.PostId, feedNow, SummaryRetries, ct, userPost);
+        }
+        // Saves of shared looks are counted (the owner's feedStats); hides and report pointers leave the posts' reaction index.
+        foreach (var save in await repository.GetAllAsync<FeedSaveEntity>(FeedSaveEntity.GetPk(tenantId), ct))
+        {
+            if (FeedRules.IsUserPostId(save.PostId))
+                await Store.FeedLikeCounter.UnsaveAsync(repository, tenantId, save.PostId, feedNow, SummaryRetries, ct);
+        }
+        foreach (var hide in await repository.GetAllAsync<FeedHideEntity>(FeedHideEntity.GetPk(tenantId), ct))
+            keys.Add((FeedPostReactionEntity.GetPk(hide.PostId), FeedPostReactionEntity.GetSk(FeedReactionKind.Hide, tenantId)));
+        foreach (var report in await repository.GetAllAsync<FeedReportEntity>(FeedReportEntity.GetPk(tenantId), ct))
+            keys.Add((FeedPostReactionEntity.GetPk(report.PostId), FeedPostReactionEntity.GetSk(FeedReactionKind.Report, tenantId)));
 
         // Ratings I gave: remove from the owner's partition and correct the average.
         foreach (var given in await repository.GetAllAsync<RatingGivenEntity>(RatingGivenEntity.GetPk(tenantId), ct))

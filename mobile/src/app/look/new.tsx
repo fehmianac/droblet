@@ -6,7 +6,7 @@ import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { assignItemsToSlots, parseItemIds, slotMapFromLook } from '@/features/looks/logic';
+import { assignItemsToSlots, LOOK_OCCASIONS, parseItemIds, slotMapFromLook } from '@/features/looks/logic';
 import { LookEditor } from '@/features/looks/LookEditor';
 import { useLook } from '@/features/looks/queries';
 import { useItems } from '@/features/wardrobe/queries';
@@ -36,14 +36,16 @@ function leave() {
 
 /**
  * 15 Look oluştur. Params: `id` = edit a saved look; `itemIds` = comma-separated wardrobe item ids
- * preselected in the 10 multi-select (each goes to the slot its category fills).
+ * preselected in the 10 multi-select (each goes to the slot its category fills); `occasion` = the occasion a new look
+ * starts with ("Kendi parçalarımla kur" on an Akış post).
  * The editor mounts once its starting data is known, so its state is plain `useState`.
  */
 export default function LookNewScreen() {
   const { t } = useTranslation();
-  const params = useLocalSearchParams<{ id?: string; itemIds?: string; tryOn?: string }>();
+  const params = useLocalSearchParams<{ id?: string; itemIds?: string; tryOn?: string; occasion?: string }>();
   const id = typeof params.id === 'string' && params.id ? params.id : null;
   const itemIds = parseItemIds(params.itemIds);
+  const occasion = LOOK_OCCASIONS.find((o) => o === params.occasion) ?? null;
   const items = useItems();
   const look = useLook(id);
 
@@ -62,7 +64,7 @@ export default function LookNewScreen() {
   if (!id) {
     if (items.data !== undefined) {
       const { slots, skipped } = assignItemsToSlots(items.data, itemIds);
-      return <LookEditor look={null} initialSlots={slots} skippedCount={skipped.length} items={items.data} />;
+      return <LookEditor look={null} initialSlots={slots} skippedCount={skipped.length} items={items.data} initialOccasion={occasion} />;
     }
     return shell(t('lookEditor.titleNew'), <ScreenState query={items}>{() => null}</ScreenState>);
   }

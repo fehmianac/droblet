@@ -25,6 +25,11 @@ public class NotificationPrefEntity : IVersionedEntity
     [JsonPropertyName("priceDrop")] public bool PriceDrop { get; set; }
     /// <summary>New follow requests (decision 8; off by default like every type outside decision 9's list).</summary>
     [JsonPropertyName("followRequests")] public bool FollowRequests { get; set; }
+    /// <summary>
+    /// Akış F2: the daily digest of likes on my shared looks is ON by default (owner decision 21), so the stored flag is
+    /// the opt-out — a row written before the field, or no row at all, reads as on.
+    /// </summary>
+    [JsonPropertyName("feedLikesDigestOff")] public bool FeedLikesDigestOff { get; set; }
     [JsonPropertyName("timeZone")] public string TimeZone { get; set; } = "Europe/Istanbul";
     [JsonPropertyName("updatedAt")] public DateTime UpdatedAt { get; set; }
     [JsonPropertyName("version")] public long Version { get; set; }

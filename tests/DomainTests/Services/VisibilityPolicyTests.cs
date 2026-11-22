@@ -122,7 +122,7 @@ public class VisibilityPolicyTests
     [Fact]
     public void VisibilityPolicy_EveryResourceKindIsClassified()
     {
-        var shared = new[] { VisibleResource.ProfileCard, VisibleResource.Item, VisibleResource.Look, VisibleResource.LookRating };
+        var shared = new[] { VisibleResource.ProfileCard, VisibleResource.Item, VisibleResource.Look, VisibleResource.LookRating, VisibleResource.FeedSharedLook };
         foreach (var resource in System.Enum.GetValues<VisibleResource>())
             Assert.True(shared.Contains(resource) ^ VisibilityPolicy.IsNeverShared(resource), $"{resource} unclassified");
     }

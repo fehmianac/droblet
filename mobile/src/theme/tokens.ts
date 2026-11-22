@@ -168,6 +168,8 @@ export const feedTones = {
   storyTop: 'rgba(28, 26, 23, 0.5)',
   storyClear: 'rgba(28, 26, 23, 0)',
   storyBottom: 'rgba(28, 26, 23, 0.78)',
+  /** Track of the "Akışta paylaş" switch while off (canvas 14b · Akışta paylaş). */
+  switchOff: '#CFC6B9',
 } as const;
 
 /** Swatches for wardrobe colour families (filter sheet, colour picker). Keys = `ItemColor` in api/contracts/wardrobe. */

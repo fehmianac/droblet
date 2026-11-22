@@ -106,6 +106,8 @@ export type NotificationSettings = {
   priceDrop: boolean;
   /** Somebody asked to follow me. Off by default. */
   followRequests: boolean;
+  /** Akış F2: once a day, "Looklarını N kişi beğendi". On unless switched off. */
+  feedLikesDigest: boolean;
   baseVersion: number;
 };
 export type PutNotificationSettingsRequest = NotificationSettings & { clientMutationId: string };

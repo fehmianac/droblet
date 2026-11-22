@@ -134,6 +134,7 @@ public static class NotificationCodes
         NotificationType.ParentalConsentApproved => "parental_consent_approved",
         NotificationType.ParentalConsentWithdrawn => "parental_consent_withdrawn",
         NotificationType.TeenBecameAdult => "teen_became_adult",
+        NotificationType.FeedLikesDigest => "feed_likes_digest",
         _ => "friend_ratings",
     };
 }

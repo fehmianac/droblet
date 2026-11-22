@@ -49,6 +49,11 @@ public static class DeletionPlan
         // Akış F1: likes (taken back off the posts' counters by ICrossTenantCleanup first) and saves.
         typeof(FeedLikeEntity),
         typeof(FeedSaveEntity),
+        // Akış F2: my shares (their global posts and what others left on them are removed by ICrossTenantCleanup first),
+        // the posts I hid and my "I reported this post" pointers.
+        typeof(FeedShareEntity),
+        typeof(FeedHideEntity),
+        typeof(FeedReportEntity),
         typeof(FollowingEntity),
         typeof(FollowerEntity),
         typeof(FollowRequestEntity),

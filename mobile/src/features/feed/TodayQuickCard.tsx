@@ -1,4 +1,4 @@
-import { Check, ChevronRight } from 'lucide-react-native';
+import { CalendarPlus, Check, ChevronRight } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { Pressable, View } from 'react-native';
 
@@ -79,6 +79,44 @@ export function TodayQuickCard({ look, onOpen, onWear }: Props) {
         </Pressable>
       )}
       {look.wornToday ? <Icon icon={ChevronRight} size={18} tone="muted" /> : null}
+    </View>
+  );
+}
+
+/**
+ * The same row while today has no look ("Bugün için plan yok"): one quiet line and the "Look seç" pill, which opens
+ * 07c "Bu güne look seç" for today right on Akış — a saved look is planned in one tap, without AI. The line itself
+ * opens Bugün, like the row with a look.
+ */
+export function TodayEmptyRow({ onOpen, onPick }: { onOpen: () => void; onPick: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <View className="flex-row items-center gap-3 rounded-[18px] border border-line bg-paper p-2.5" testID="feed.todayEmpty">
+      <Pressable
+        onPress={onOpen}
+        accessibilityRole="button"
+        accessibilityLabel={t('homeFeed.todayEmptyA11y')}
+        className="min-h-icon-btn flex-1 flex-row items-center gap-3 active:opacity-80"
+        testID="feed.todayEmpty.open"
+      >
+        <View className="h-11 w-11 items-center justify-center rounded-[10px] bg-sand" accessible={false}>
+          <Icon icon={CalendarPlus} size={20} tone="muted" />
+        </View>
+        <Text variant="body" tone="muted" numberOfLines={1} className="flex-1">
+          {t('todayHome.noPlanTitle')}
+        </Text>
+      </Pressable>
+      <Pressable
+        onPress={onPick}
+        accessibilityRole="button"
+        accessibilityLabel={t('homeFeed.todayEmptyPickA11y')}
+        className="h-11 items-center justify-center rounded-pill border border-ink px-4 active:opacity-80"
+        testID="feed.todayEmpty.pick"
+      >
+        <Text variant="caption" tone="ink" className="font-sans-medium">
+          {t('todayHome.noPlanPick')}
+        </Text>
+      </Pressable>
     </View>
   );
 }

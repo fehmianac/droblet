@@ -16,7 +16,9 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { Text } from "@/components/ui/Text";
 import { BuySheet } from "@/features/feed/BuySheet";
 import { FeedPostCard, FeedPostSkeleton } from "@/features/feed/FeedPostCard";
+import { isHiddenThisSession } from "@/features/feed/logic";
 import { useSavedFeedPosts } from "@/features/feed/queries";
+import { useUserPostSheets } from "@/features/feed/useUserPostSheets";
 import { useSaveLook } from "@/features/social/mutations";
 import { useSavedLooks } from "@/features/social/queries";
 import { useTeenRules } from "@/features/teen/store";
@@ -72,13 +74,17 @@ function SavedCard({ look }: { look: FeedLook }) {
 
 type SavedTab = "looks" | "feed";
 
-/** Akış posts I saved (`GET v1/tenant/feed-post/saved`): the same cards as on Akış; "Kaydet" again removes one. */
+/**
+ * Akış posts I saved (`GET v1/tenant/feed-post/saved`): the same cards as on Akış — editor posts and (Akış F2) looks
+ * members shared, with their "⋯" and "Benzerlerini gör"; "Kaydet" again removes one.
+ */
 function SavedFeedPosts() {
   const { t } = useTranslation();
   const colors = useThemeColors();
   const teen = useTeenRules().hide.commerce;
   const saved = useSavedFeedPosts();
   const [buying, setBuying] = useState<FeedPost | null>(null);
+  const userPost = useUserPostSheets({ teen });
   return (
     <>
       <ScreenState
@@ -97,7 +103,7 @@ function SavedFeedPosts() {
       >
         {(list) => (
           <FlatList
-            data={list}
+            data={list.filter((p) => !isHiddenThisSession(p.id))}
             keyExtractor={(p) => p.id}
             contentContainerClassName="gap-8 px-gutter pb-8 pt-2"
             refreshControl={
@@ -108,13 +114,20 @@ function SavedFeedPosts() {
               />
             }
             renderItem={({ item }) => (
-              <FeedPostCard post={item} teen={teen} onBuy={setBuying} />
+              <FeedPostCard
+                post={item}
+                teen={teen}
+                onBuy={setBuying}
+                onMenu={userPost.openMenu}
+                onSimilar={userPost.openSimilar}
+              />
             )}
             testID="saved.feed"
           />
         )}
       </ScreenState>
       {teen ? null : <BuySheet post={buying} onClose={() => setBuying(null)} />}
+      {userPost.sheets}
     </>
   );
 }

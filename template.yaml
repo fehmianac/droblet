@@ -564,8 +564,8 @@ Resources:
     Properties:
       Name: !Sub /droblet/${Stage}/api/ContentFeed
       Type: String
-      Description: Akış (editor feed) — posts per page, max stories returned, retries of a contended like counter. Re-read every 60 s, no deploy needed.
-      Value: '{"PageSize":10,"MaxStories":20,"LikeRetries":8}'
+      Description: Akış — posts per page, max stories returned, retries of a contended like counter. F2 shared looks - MaxSharesPerDay (0 = unlimited), UserPostEvery (1 user look per N items), UserCandidateLimit, ReportsToAutoHide (distinct reporters), MaxSimilarProducts. Re-read every 60 s, no deploy needed.
+      Value: '{"PageSize":10,"MaxStories":20,"LikeRetries":8,"MaxSharesPerDay":0,"UserPostEvery":3,"UserCandidateLimit":300,"ReportsToAutoHide":3,"MaxSimilarProducts":12}'
   SsmApiAffiliate:
     Type: AWS::SSM::Parameter
     Properties:

@@ -42,6 +42,7 @@ export default {
         'feed-chip': feedTones.chipOnPhoto,
         'feed-pill': feedTones.pillOnPhoto,
         'feed-story-card': feedTones.storyCard,
+        'feed-switch-off': feedTones.switchOff,
         'feed-story-track': feedTones.storyTrack,
       },
       fontSize,

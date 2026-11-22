@@ -13,7 +13,9 @@ public record NotificationPrefsDto(
     long Version,
     DateTime? UpdatedAt,
     bool PriceDrop = false,
-    bool FollowRequests = false);
+    bool FollowRequests = false,
+    // Akış F2: one push a day about the likes on my shared looks. On by default; always false for a teen.
+    bool FeedLikesDigest = true);
 
 public record DeviceDto(string DeviceId, DevicePlatform Platform, bool PushEnabled, DateTime UpdatedAt);
 
@@ -29,7 +31,7 @@ public record SettingsDto(
     long ProfileVersion);
 
 public sealed record NotificationPrefsInput(bool MorningOutfit, string MorningOutfitLocalTime, bool WeeklyEdit, bool FriendRatings, string TimeZone, long BaseVersion,
-    bool? PriceDrop = null, bool? FollowRequests = null);
+    bool? PriceDrop = null, bool? FollowRequests = null, bool? FeedLikesDigest = null);
 
 public enum SettingsOutcome { Ok, NotFound, Conflict, LimitReached }
 

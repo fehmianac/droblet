@@ -75,6 +75,18 @@ export const ANALYTICS_EVENTS = [
   'feed_buy_click',
   /** Akış F1: "Üzerimde dene · 1 kredi" tapped; `source` post | story, `postId` (post) or `productId` (story). */
   'feed_tryon_start',
+  /** Akış F2: "Akışta paylaş" switched on for a look; `lookId`, `first` (the confirmation sheet was shown). */
+  'feed_share_on',
+  /** Akış F2: "Akışta paylaş" switched off; `lookId`. */
+  'feed_share_off',
+  /** Akış F2: "Bunu gösterme" on a member's post; `postId`. */
+  'feed_hide',
+  /** Akış F2: a member's post reported; `postId`, `reason`. */
+  'feed_report',
+  /** Akış F2: "Benzerlerini gör" opened; `postId`. */
+  'feed_similar_open',
+  /** Akış: "Kendi parçalarımla kur" on an editor post; `postId`, `count` (matching wardrobe pieces). */
+  'feed_build_with_mine',
 ] as const;
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];
 

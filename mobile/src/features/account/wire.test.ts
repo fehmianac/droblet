@@ -69,7 +69,7 @@ describe('account wire mappers', () => {
       version: 2,
       updatedAt: null,
     });
-    // A server without the newer switches reads as off.
+    // A server without the newer switches reads as off — except the like digest (Akış F2), on unless switched off.
     expect(settings).toEqual({
       morningReminder: true,
       morningTimeLocal: '07:30',
@@ -77,6 +77,7 @@ describe('account wire mappers', () => {
       friendRatings: false,
       priceDrop: false,
       followRequests: false,
+      feedLikesDigest: true,
       baseVersion: 2,
     });
     expect(fromNotificationSettings({ ...settings, priceDrop: true }, 'Europe/Istanbul')).toEqual({
@@ -86,6 +87,7 @@ describe('account wire mappers', () => {
       friendRatings: false,
       priceDrop: true,
       followRequests: false,
+      feedLikesDigest: true,
       timeZone: 'Europe/Istanbul',
       baseVersion: 2,
     });
@@ -97,11 +99,12 @@ describe('account wire mappers', () => {
         friendRatings: false,
         priceDrop: true,
         followRequests: true,
+        feedLikesDigest: false,
         timeZone: 'Europe/Istanbul',
         version: 3,
         updatedAt: null,
       }),
-    ).toMatchObject({ priceDrop: true, followRequests: true, baseVersion: 3 });
+    ).toMatchObject({ priceDrop: true, followRequests: true, feedLikesDigest: false, baseVersion: 3 });
     expect(toQuarterHour('07:37')).toBe('07:30');
     expect(toQuarterHour('23:55')).toBe('00:00');
   });

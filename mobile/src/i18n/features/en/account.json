@@ -111,6 +111,7 @@
     "timeBody": "The morning outfit reminder arrives at this time every day.",
     "weeklyEdit": "Edit of the week",
     "friendRatings": "Friend ratings",
+    "feedLikesDigest": "Look likes (daily summary)",
     "notificationsError": "Your notification settings couldn't be loaded right now.",
     "languageEyebrow": "LANGUAGE",
     "languageLabel": "App language",
@@ -208,6 +209,12 @@
     "friendRatings": {
       "title": "New ratings on your looks",
       "body": "Your friends rated your looks"
+    },
+    "feedLikes": {
+      "title_one": "{{count}} person liked your looks",
+      "title_other": "{{count}} people liked your looks",
+      "titlePlain": "Your looks got likes",
+      "body": "Likes on the looks you shared to the feed."
     },
     "priceDrop": {
       "title": "A price dropped on your watch list",

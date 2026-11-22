@@ -1,8 +1,11 @@
-import type { EditorStory, FeedPost, FeedPostPage, FeedProduct, FeedTab } from '@/api/contracts/feed';
+import type { EditorStory, FeedPiece, FeedPost, FeedPostPage, FeedProduct, FeedTab } from '@/api/contracts/feed';
 import { FEED_PAGE_SIZE } from '@/api/contracts/feed';
 import type { Occasion } from '@/api/contracts';
+import type { ReportReason } from '@/api/contracts/social';
+import type { ProductSummary } from '@/api/contracts/store';
 import { ApiError } from '@/api/errors';
 import { FEED_INVITE_OCCASIONS, feedTabOccasions } from '@/api/wire/feed';
+import { currentTeenRules } from '@/features/teen/store';
 
 import { onFixtureSeed } from './db';
 import { L } from './showcase';
@@ -13,17 +16,28 @@ import { productsFixture } from './store';
  * ("Droblet Edit", "@ornek_stilist") — no real people. Photos are left out (`images: []` or unreachable
  * sample keys), so the look placeholder is drawn; real photos come from the admin panel through the API.
  * The module keeps a small in-memory state (likes, saves) reset with `resetFixtureDb`.
+ *
+ * Akış F2: two looks shared by members ("@ornek_kullanici", "@ornek_dolap" — placeholders) sit between the editor
+ * posts (never more than one in three); "Bunu gösterme" and a report take a post out of this user's feed. Teen
+ * accounts get editor posts only, as from the server.
  */
 
 const HOUR = 60 * 60_000;
 
-function product(id: string, ownedSimilar = false): FeedProduct {
+function product(id: string, ownedSimilar = false, ownedItemId: string | null = null): FeedProduct {
   const found = productsFixture.find((p) => p.id === id);
   if (!found) throw new Error(`fixture product ${id}`);
-  return { ...found, name: L(found.name), ownedSimilar };
+  return { ...found, name: L(found.name), ownedSimilar, ownedItemId };
+}
+
+function summary(id: string): ProductSummary {
+  const found = productsFixture.find((p) => p.id === id);
+  if (!found) throw new Error(`fixture product ${id}`);
+  return { ...found, name: L(found.name) };
 }
 
 const EDIT = { kind: 'edit' as const, name: 'Droblet Edit', handle: null, imageUrl: null, verified: true };
+const member = (handle: string) => ({ kind: 'user' as const, name: `@${handle}`, handle, imageUrl: null, verified: false });
 const STYLIST = { kind: 'stylist' as const, name: '@ornek_stilist', handle: 'ornek_stilist', imageUrl: null, verified: false };
 
 type Seed = {
@@ -46,7 +60,8 @@ function seeds(): Seed[] {
       edit: true,
       hoursAgo: 3,
       imageCount: 4,
-      products: [product('prod_011', true), product('prod_022', true), product('prod_004'), product('prod_015')],
+      // Two owned pieces are known wardrobe items: "Kendi parçalarımla kur" shows.
+      products: [product('prod_011', true, 'item_beige_trench'), product('prod_022', true, 'item_cream_knit'), product('prod_004'), product('prod_015')],
       likeCount: 1284,
     },
     {
@@ -102,11 +117,82 @@ function seeds(): Seed[] {
   ];
 }
 
+type UserSeed = { id: string; handle: string; title: string; occasion: Occasion; hoursAgo: number; pieces: FeedPiece[]; hasSimilar: boolean; likeCount: number; similar: string[] };
+
+const piece = (category: string): FeedPiece => ({ category, imageUrl: null });
+
+/** Looks shared by members, and the editor post each one follows in the list. */
+function userSeeds(): { after: number; seed: UserSeed }[] {
+  return [
+    {
+      after: 1,
+      seed: {
+        id: 'upost_001',
+        handle: 'ornek_kullanici',
+        title: L('Desenli kazak'),
+        occasion: 'weekend',
+        hoursAgo: 1,
+        pieces: [piece('top'), piece('bottom'), piece('shoes'), piece('bag')],
+        hasSimilar: true,
+        likeCount: 38,
+        similar: ['prod_022', 'prod_020', 'prod_015'],
+      },
+    },
+    {
+      after: 4,
+      seed: {
+        id: 'upost_002',
+        handle: 'ornek_dolap',
+        title: L('Siyah ve bej'),
+        occasion: 'office',
+        hoursAgo: 14,
+        pieces: [piece('outerwear'), piece('bottom'), piece('shoes')],
+        hasSimilar: false,
+        likeCount: 7,
+        similar: [],
+      },
+    },
+  ];
+}
+
+function buildUser(now: number, s: UserSeed): FeedPost {
+  return {
+    id: s.id,
+    kind: 'user',
+    author: member(s.handle),
+    occasion: s.occasion,
+    publishedAt: new Date(now - s.hoursAgo * HOUR).toISOString(),
+    title: s.title,
+    note: null,
+    images: [`fixture://feed/${s.id}/cover`],
+    products: [],
+    pieces: s.pieces,
+    hasSimilar: s.hasSimilar,
+    canTryOn: false,
+    buyableCount: 0,
+    likeCount: s.likeCount,
+    liked: false,
+    saved: false,
+  };
+}
+
 function build(now: number): FeedPost[] {
+  const editor = buildEditor(now);
+  const out: FeedPost[] = [];
+  const users = userSeeds();
+  editor.forEach((post, index) => {
+    out.push(post);
+    for (const u of users) if (u.after === index + 1) out.push(buildUser(now, u.seed));
+  });
+  return out;
+}
+
+function buildEditor(now: number): FeedPost[] {
   return seeds().map((s, index) => {
     const id = `post_${String(index + 1).padStart(3, '0')}`;
     return {
       id,
+      kind: 'editor' as const,
       author: s.edit ? EDIT : STYLIST,
       occasion: s.occasion,
       publishedAt: new Date(now - s.hoursAgo * HOUR).toISOString(),
@@ -114,6 +200,9 @@ function build(now: number): FeedPost[] {
       note: s.note,
       images: Array.from({ length: s.imageCount }, (_, i) => `fixture://feed/${id}/${i + 1}`),
       products: s.products,
+      pieces: [],
+      hasSimilar: false,
+      canTryOn: true,
       buyableCount: s.products.filter((p) => !p.ownedSimilar && p.available !== false).length,
       likeCount: s.likeCount,
       liked: false,
@@ -139,11 +228,15 @@ function buildStories(now: number): EditorStory[] {
   ];
 }
 
-const state: { posts: FeedPost[]; stories: EditorStory[]; savedOrder: string[]; failNext: boolean } = {
+type FeedReport = { postId: string; reason: ReportReason; note: string | null };
+
+const state: { posts: FeedPost[]; stories: EditorStory[]; savedOrder: string[]; failNext: boolean; hidden: string[]; reports: FeedReport[] } = {
   posts: [],
   stories: [],
   savedOrder: [],
   failNext: false,
+  hidden: [],
+  reports: [],
 };
 
 export function resetFeedFixtures(options: { empty?: boolean } = {}): void {
@@ -152,6 +245,8 @@ export function resetFeedFixtures(options: { empty?: boolean } = {}): void {
   state.stories = options.empty ? [] : buildStories(now);
   state.savedOrder = [];
   state.failNext = false;
+  state.hidden = [];
+  state.reports = [];
 }
 
 onFixtureSeed((_db, { empty }) => resetFeedFixtures({ empty }));
@@ -180,7 +275,9 @@ export const feedFixtures = {
       throw new ApiError('http', 400, { code: 'bad_request', status: 400 });
     }
     const occasions: readonly string[] | null = feedTabOccasions(tab);
-    const all = occasions ? state.posts.filter((p) => p.occasion !== null && occasions.includes(p.occasion)) : state.posts;
+    // Teen accounts get editor content only (decision 17).
+    const visible = currentTeenRules().isTeen ? state.posts.filter((p) => p.kind !== 'user') : state.posts;
+    const all = occasions ? visible.filter((p) => p.occasion !== null && occasions.includes(p.occasion)) : visible;
     const start = pageToken ? Number(pageToken) : 0;
     const items = all.slice(start, start + FEED_PAGE_SIZE).map((p) => ({ ...p }));
     const next = start + FEED_PAGE_SIZE;
@@ -201,4 +298,23 @@ export const feedFixtures = {
   },
   saved: (): FeedPost[] =>
     state.savedOrder.map((id) => state.posts.find((p) => p.id === id)).filter((p): p is FeedPost => Boolean(p)).map((p) => ({ ...p })),
+  /** GET v1/tenant/feed-post/{id}/similar — catalogue products like the pieces of a member's look. */
+  similar: (id: string): ProductSummary[] => {
+    find(id);
+    return (userSeeds().find((u) => u.seed.id === id)?.seed.similar ?? []).map(summary);
+  },
+  /** PUT v1/tenant/feed-post/{id}/hide — the post leaves this user's feed (and their saved list). Idempotent. */
+  hide: (id: string): void => {
+    if (!state.hidden.includes(id)) state.hidden.push(id);
+    state.posts = state.posts.filter((p) => p.id !== id);
+    state.savedOrder = state.savedOrder.filter((s) => s !== id);
+  },
+  /** POST v1/tenant/feed-post/{id}/report */
+  report: (id: string, reason: ReportReason, note: string | null = null): { reportId: string } => {
+    state.reports.push({ postId: id, reason, note });
+    return { reportId: `report_${state.reports.length}` };
+  },
+  /** Test helpers: what "Bunu gösterme" and "Şikâyet et" sent. */
+  hiddenIds: (): string[] => [...state.hidden],
+  reports: (): FeedReport[] => state.reports.map((r) => ({ ...r })),
 };

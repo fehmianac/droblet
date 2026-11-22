@@ -41,6 +41,8 @@ type Props = {
   items: Item[] | undefined;
   /** "Üzerimde gör" failed just before this editor mounted (a new look's try-on, then edit mode). */
   initialTryOnNote?: 'failed' | null;
+  /** The occasion a new look starts with ("Kendi parçalarımla kur" on an Akış post); ignored when editing. */
+  initialOccasion?: Occasion | null;
 };
 
 function leave() {
@@ -52,7 +54,7 @@ function leave() {
  * 15 Look oluştur — name, occasion, five slots (min 2 pieces to save), slot picker sheet, and
  * "Üzerimde gör" behind the credit confirmation. Also the edit mode of a saved look.
  */
-export function LookEditor({ look, initialSlots, skippedCount = 0, items, initialTryOnNote }: Props) {
+export function LookEditor({ look, initialSlots, skippedCount = 0, items, initialTryOnNote, initialOccasion = null }: Props) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const online = useIsOnline();
@@ -60,7 +62,7 @@ export function LookEditor({ look, initialSlots, skippedCount = 0, items, initia
   const tryOn = useStartTryOn();
 
   const [name, setName] = useState(look?.name ?? '');
-  const [occasion, setOccasion] = useState<Occasion>(look?.occasion ?? 'office');
+  const [occasion, setOccasion] = useState<Occasion>(look?.occasion ?? initialOccasion ?? 'office');
   const [slots, setSlots] = useState<SlotMap>(initialSlots);
   const [sheetSlot, setSheetSlot] = useState<LookSlotKind | null>(null);
   const [menu, setMenu] = useState(false);

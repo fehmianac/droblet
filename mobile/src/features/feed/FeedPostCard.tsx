@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Bookmark, Heart, ShoppingBag, Sparkles } from 'lucide-react-native';
+import { Bookmark, Heart, Layers, ShoppingBag, Sparkles } from 'lucide-react-native';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, useWindowDimensions, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
@@ -18,7 +18,8 @@ import { toDisplayUpper } from '@/lib/upper';
 import { feedTones, spacing } from '@/theme/tokens';
 
 import { AuthorAvatar, VerifiedBadge } from './FeedBits';
-import { occasionLabel, postMeta } from './logic';
+import { FeedUserPostCard } from './FeedUserPostCard';
+import { BUILD_WITH_MINE_MIN, occasionLabel, ownedItemIds, postMeta } from './logic';
 import { useLikeFeedPost, useSaveFeedPost } from './mutations';
 
 type Props = {
@@ -26,6 +27,9 @@ type Props = {
   /** Teen account: no prices, no "Satın al", no buyable chip, pieces do not open the store (canvas 18). */
   teen: boolean;
   onBuy: (post: FeedPost) => void;
+  /** A member's post (Akış F2): its "⋯" menu and "Benzerlerini gör" — sheets owned by the list (`useUserPostSheets`). */
+  onMenu?: (post: FeedPost) => void;
+  onSimilar?: (post: FeedPost) => void;
 };
 
 /** Height of the photo area on the board: 410 on a full card, 400 on a card without pieces. */
@@ -168,8 +172,11 @@ function Toggle({ icon, on, size, label, onPress, testID }: { icon: typeof Heart
  * carousel, eyebrow + serif title, the piece strip, "Üzerimde dene · 1 kredi" + "Satın al", ♡ and Kaydet, the like
  * count and the editor's note. A post without products is the board's compact card: the try-on pill sits on the
  * photo, no title, no strip. No comments, share, follow or try-on counts (decisions 18–19).
+ *
+ * "Kendi parçalarımla kur" (under the strip, when two or more pieces are matched to wardrobe items): opens the look
+ * builder (15) with those pieces in their slots and the post's occasion — the look made from what the user owns.
  */
-export function FeedPostCard({ post, teen, onBuy }: Props) {
+function EditorPostCard({ post, teen, onBuy }: Pick<Props, 'post' | 'teen' | 'onBuy'>) {
   const { t } = useTranslation();
   const language = useAppLanguage();
   const like = useLikeFeedPost();
@@ -193,6 +200,11 @@ export function FeedPostCard({ post, teen, onBuy }: Props) {
     .filter(Boolean)
     .join(' · ');
   const showBuy = !teen && post.buyableCount > 0;
+  const mine = ownedItemIds(post);
+  const buildWithMine = () => {
+    track('feed_build_with_mine', { postId: post.id, count: mine.length });
+    router.push({ pathname: '/look/new', params: { itemIds: mine.join(','), ...(post.occasion ? { occasion: post.occasion } : {}) } });
+  };
   const likes = t('homeFeed.likes', { count: post.likeCount, formatted: formatNumber(post.likeCount) });
 
   const actions = (
@@ -259,7 +271,7 @@ export function FeedPostCard({ post, teen, onBuy }: Props) {
         teen={teen}
         height={compact ? COMPACT_IMAGE : FULL_IMAGE}
         overlay={
-          compact ? (
+          compact && post.canTryOn ? (
             <Pressable
               onPress={startTryOn}
               accessibilityRole="button"
@@ -305,16 +317,33 @@ export function FeedPostCard({ post, teen, onBuy }: Props) {
               <PieceChip key={p.id} product={p} teen={teen} />
             ))}
           </ScrollView>
+          {mine.length >= BUILD_WITH_MINE_MIN ? (
+            <Pressable
+              onPress={buildWithMine}
+              accessibilityRole="button"
+              accessibilityLabel={t('homeFeed.buildWithMineA11y', { count: mine.length })}
+              hitSlop={{ top: 6, bottom: 6 }}
+              testID={`feed.post.${post.id}.buildWithMine`}
+              className="-my-1 min-h-[36px] flex-row items-center gap-1.5 self-start active:opacity-70"
+            >
+              <Icon icon={Layers} size={16} tone="accent" />
+              <Text variant="label" tone="accent" className="text-[13px]">
+                {t('homeFeed.buildWithMine')}
+              </Text>
+            </Pressable>
+          ) : null}
           <View className="flex-row gap-2">
-            <Button
-              label={t('homeFeed.tryOn')}
-              detail={t('homeFeed.tryOnCost')}
-              icon={Sparkles}
-              size="bar"
-              onPress={startTryOn}
-              className="flex-1 px-2.5"
-              testID={`feed.post.${post.id}.tryOn`}
-            />
+            {post.canTryOn ? (
+              <Button
+                label={t('homeFeed.tryOn')}
+                detail={t('homeFeed.tryOnCost')}
+                icon={Sparkles}
+                size="bar"
+                onPress={startTryOn}
+                className="flex-1 px-2.5"
+                testID={`feed.post.${post.id}.tryOn`}
+              />
+            ) : null}
             {showBuy ? (
               <Button
                 label={t('homeFeed.buy')}
@@ -340,6 +369,15 @@ export function FeedPostCard({ post, teen, onBuy }: Props) {
       {tryOn.sheet}
     </View>
   );
+}
+
+/**
+ * One post of Akış: an editorial post (Droblet Edit, a stylist) or — Akış F2 — a look a member shared, which has its
+ * own card (no try-on, no buying; "⋯" and "Benzerlerini gör" instead).
+ */
+export function FeedPostCard({ post, teen, onBuy, onMenu, onSimilar }: Props) {
+  if (post.kind === 'user') return <FeedUserPostCard post={post} teen={teen} onMenu={onMenu} onSimilar={onSimilar} />;
+  return <EditorPostCard post={post} teen={teen} onBuy={onBuy} />;
 }
 
 /** Content-shaped loading card (canvas n_yukleme): author row, the photo, title and the two buttons as blocks. */

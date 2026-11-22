@@ -35,6 +35,7 @@ export function toNotification(wire: NotificationWire): AppNotification | null {
       ...(data.targetId ? { targetId: data.targetId } : {}),
       ...(data.reason ? { reason: data.reason } : {}),
       ...(data.sessionId ? { sessionId: data.sessionId } : {}),
+      ...(Number.isInteger(Number(data.count)) && Number(data.count) > 0 ? { count: Number(data.count) } : {}),
     },
   };
 }

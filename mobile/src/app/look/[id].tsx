@@ -22,6 +22,7 @@ import { Text } from '@/components/ui/Text';
 import { CreditConfirmSheet } from '@/features/credits/CreditConfirmSheet';
 import { useSpendConfirm } from '@/features/credits/spendConfirm';
 import { useLookWrites } from '@/features/looks/api';
+import { FeedShareCard } from '@/features/looks/FeedShareCard';
 import { indexItems, SlotThumb, type ItemsById } from '@/features/looks/LookCover';
 import { LookHero, useLookTryOn, type LookTryOn } from '@/features/looks/LookHero';
 import { lookPieceNames, missingPieceCount } from '@/features/looks/logic';
@@ -119,9 +120,9 @@ function PieceRow({ slot, itemsById }: { slot: LookSlot; itemsById: ItemsById })
   );
 }
 
-type BodyProps = { look: Look; itemsById: ItemsById; note: string | null; tryOn: LookTryOn; invite: ComponentProps<typeof LookHero>['invite'] };
+type BodyProps = { look: Look; preview: boolean; itemsById: ItemsById; note: string | null; tryOn: LookTryOn; invite: ComponentProps<typeof LookHero>['invite'] };
 
-function LookBody({ look, itemsById, note, tryOn, invite }: BodyProps) {
+function LookBody({ look, preview, itemsById, note, tryOn, invite }: BodyProps) {
   const language = useAppLanguage();
   const { t } = useTranslation();
   const occasion = t(`occasion.${look.occasion}`);
@@ -169,6 +170,9 @@ function LookBody({ look, itemsById, note, tryOn, invite }: BodyProps) {
           {t('lookDetail.noRating')}
         </Text>
       )}
+
+      {/* Akış F2 (canvas 14b · Akışta paylaş): off by default; not drawn for teens or imported looks. */}
+      <FeedShareCard look={look} disabled={preview} />
 
       {note ? (
         <View className="flex-row items-center gap-1.5" accessibilityLiveRegion="polite">
@@ -230,6 +234,7 @@ type Notice = 'tryOnOffline' | 'tryOnFailed' | 'worn' | null;
  * Look detail — no dedicated board; derived from 17 Kombin önerisi (the board a look card of 14 opens):
  * cover + piece column, occasion eyebrow and name, friends' rating, piece rows, and a bottom action bar
  * (favourite · "Üzerimde gör" · edit). Share and the ⋯ menu (wear today, edit, delete) sit in the header.
+ * "Akışta paylaş" (Akış F2, canvas 14b · Akışta paylaş) is the card above the pieces.
  */
 export default function LookScreen() {
   const { t } = useTranslation();
@@ -358,7 +363,7 @@ export default function LookScreen() {
         skeleton={<LookSkeleton />}
         notFound={{ message: t('lookDetail.notFound'), actionLabel: t('lookDetail.backToLooks'), onAction: () => router.replace('/wardrobe/looks') }}
       >
-        {(data) => <LookBody look={data} itemsById={itemsById} note={noteText} tryOn={lookTryOn} invite={invite} />}
+        {(data) => <LookBody look={data} preview={preview} itemsById={itemsById} note={noteText} tryOn={lookTryOn} invite={invite} />}
       </ScreenState>
 
       {look ? (

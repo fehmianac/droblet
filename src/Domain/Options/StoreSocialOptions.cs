@@ -52,6 +52,18 @@ public sealed class ContentFeedOptions
     public int MaxStories { get; set; } = 20;
     /// <summary>Versioned like-counter retries before the request fails (hot posts under concurrent likes).</summary>
     public int LikeRetries { get; set; } = 8;
+
+    // Akış F2 (shared looks of users, owner decision 21)
+    /// <summary>Looks one account may share per day (PUT look/{id}/feed-share → 429). 0 = unlimited (the owner's default).</summary>
+    public int MaxSharesPerDay { get; set; }
+    /// <summary>At most one of every this many feed items is a user look (3 = two editor posts, then one user look).</summary>
+    public int UserPostEvery { get; set; } = 3;
+    /// <summary>The newest shared looks considered per feed request (read-time ranking, phase-1 scale).</summary>
+    public int UserCandidateLimit { get; set; } = 300;
+    /// <summary>Distinct reporters after which a shared look leaves the feed until an admin decides.</summary>
+    public int ReportsToAutoHide { get; set; } = 3;
+    /// <summary>Most products GET feed-post/{id}/similar returns.</summary>
+    public int MaxSimilarProducts { get; set; } = 12;
 }
 
 /// <summary>Proposal (A-4 open): Open-Meteo, keyless. Owner confirms the provider and its licence terms.</summary>

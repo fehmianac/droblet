@@ -184,7 +184,8 @@ function seedLooks(items: Item[], persona: FixturePersona = 'women'): Look[] {
         ['shoes', 'item_croc_flats'],
         ['accessory', 'item_black_bag'],
       ],
-      { rating: 4.8, ratingCount: 9 },
+      // Shared to Akış (F2): the detail shows "Akışta yayında" and what it got there.
+      { rating: 4.8, ratingCount: 9, sharedToFeed: true, feedStats: { likeCount: 38, saveCount: 12 } },
     ),
     look('look_tuvit_jean', 'Tüvit & Jean', 'weekend', [
       ['top', 'item_cream_knit'],
