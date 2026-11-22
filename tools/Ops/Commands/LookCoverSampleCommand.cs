@@ -25,7 +25,8 @@ internal static class LookCoverSampleCommand
     {
         var max = Math.Clamp(args.IntOption("max", 0), 0, OpsArguments.MaxLookCoverSamples);
         var repository = services.GetRequiredService<IRepository>();
-        var renderer = services.GetRequiredService<ILookCoverRenderer>();
+        // The Ops host registers the provider itself, not its capability interfaces.
+        ILookCoverRenderer renderer = services.GetRequiredService<Infrastructure.Ai.OpenAiProvider>();
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
         var budget = new ImageCallBudget(max);
         var rows = new List<IReadOnlyList<string>>();
