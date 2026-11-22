@@ -1,4 +1,7 @@
 {
+  "firstItemsSave": {
+    "failed": "Parçalar kaydedilemedi"
+  },
   "req": {
     "hint": {
       "format": "{{what}} · {{steps}}",

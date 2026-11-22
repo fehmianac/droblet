@@ -23,7 +23,9 @@ const BUDGETS: Budget[] = ['high_street', 'mixed', 'luxury_touch'];
  * 03 Stil profili (1/4). Works offline: the PUT goes through the persisted write queue and the
  * user continues immediately. Prefills from the server profile when one exists (returning social sign-in).
  * With three tags chosen the other tags lock until one is removed. The segment ("reyon") is chosen on 03a
- * when the server opens more than one (canvas 17); the ten tags are that segment's.
+ * when the server opens more than one (canvas 17); the ten tags are that segment's. "Atla" (UX turu 2 · 11b) moves on
+ * without saving anything: no style profile is a valid state everywhere (GET → 404 → null), and Profil › Stil profili
+ * fills it later. The three-tag + budget rule only applies to "Devam et".
  */
 export default function StyleProfileScreen() {
   const { t } = useTranslation();
@@ -64,9 +66,14 @@ export default function StyleProfileScreen() {
     router.push('/consents');
   };
 
+  const skip = () => {
+    track('signup_step', { step: 'style_profile', skipped: true });
+    router.push('/consents');
+  };
+
   return (
     <Screen>
-      <StepHeader step={1} total={4} />
+      <StepHeader step={1} total={4} onSkip={skip} skipTestID="style.skip" />
       <ScrollView className="flex-1" contentContainerClassName="gap-6 px-6 pb-6 pt-6">
         <View className="gap-2.5">
           <Text variant="display">{t('style.title')}</Text>
