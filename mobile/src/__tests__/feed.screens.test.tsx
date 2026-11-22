@@ -197,6 +197,16 @@ describe('Akış F1 (canvas 06″)', () => {
     expect(track).toHaveBeenCalledWith('feed_tryon_start', { source: 'post', postId: 'post_001' });
   });
 
+  it('keeps today\'s look one tap from "I\'m wearing this": the row marks it worn and opens Bugün', async () => {
+    await renderRouter('./src/app', { initialUrl: '/' });
+    await waitFor(() => expect(screen.getByTestId('feed.todayCard')).toBeTruthy(), WAIT);
+    await fireEvent.press(screen.getByTestId('feed.todayCard.wear'));
+    await waitFor(() => expect(screen.getByTestId('feed.todayCard.worn')).toBeTruthy(), WAIT);
+    expect(screen.queryByTestId('feed.todayCard.wear')).toBeNull();
+    await fireEvent.press(screen.getByTestId('feed.todayCard.open'));
+    await waitFor(() => expect(screen).toHavePathname('/today'), WAIT);
+  });
+
   it('the calendar icon and the "Bugün" story open 06 Bugün at /today', async () => {
     await openFeed({ triedOn: true });
     await fireEvent.press(screen.getByTestId('feed.plan'));

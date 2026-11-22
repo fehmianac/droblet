@@ -11,6 +11,8 @@
     "todayStoryEmptyA11y": "Bugünün planı",
     "storyA11y": "{{name}} hikâyesi",
     "storySeenA11y": "{{name}} hikâyesi, izlendi",
+    "todayCardA11y": "Bugünün kombini: {{name}}. Bugün ekranını aç",
+    "todayCardWorn": "Giyildi",
     "firstStepEyebrow": "İLK ADIM",
     "firstStepTitle": "İlk look'unu dene",
     "firstStepBody": "Bir look seç, kendi fotoğrafında gör.",

@@ -6,7 +6,7 @@ import { FlatList, Pressable, RefreshControl, View } from 'react-native';
 
 import { track } from '@/analytics/track';
 import { FEED_TABS, type EditorStory, type FeedPost, type FeedTab } from '@/api/contracts/feed';
-import { useToday } from '@/api/today';
+import { useToday, useWearToday } from '@/api/today';
 import { Logo } from '@/components/brand/Logo';
 import { IconButton } from '@/components/ui/IconButton';
 import { Screen } from '@/components/ui/Screen';
@@ -18,6 +18,7 @@ import { FirstStepCard, useHasTriedOn } from '@/features/feed/FirstStepCard';
 import { firstViewThisSession } from '@/features/feed/logic';
 import { useEditorStories, useFeedPosts } from '@/features/feed/queries';
 import { StoriesRow } from '@/features/feed/StoriesRow';
+import { TodayQuickCard } from '@/features/feed/TodayQuickCard';
 import { storySeenStore, useSeenStories } from '@/features/feed/storySeen';
 import { useUnreadNotificationCount } from '@/features/notifications/queries';
 import { useTeenRules } from '@/features/teen/store';
@@ -100,6 +101,7 @@ export default function FeedScreen() {
   const posts = useFeedPosts(tab);
   const stories = useEditorStories();
   const today = useToday();
+  const wear = useWearToday();
   const unread = useUnreadNotificationCount();
   const seen = useSeenStories();
   const triedOn = useHasTriedOn();
@@ -129,6 +131,8 @@ export default function FeedScreen() {
     void today.refetch();
   };
 
+  const todayLook = today.data?.look ?? null;
+
   const header = (
     <View className="pb-4">
       <View className="gap-1.5 px-gutter pt-1.5">
@@ -149,6 +153,12 @@ export default function FeedScreen() {
           onOpenStory={openStory}
         />
       </View>
+      {/* Today's planned look stays one tap from "Bunu giyiyorum" now that Bugün is a screen away. */}
+      {todayLook ? (
+        <View className="px-gutter pt-[18px]">
+          <TodayQuickCard look={todayLook} onOpen={() => router.push('/today')} onWear={() => wear.wear(todayLook.id)} />
+        </View>
+      ) : null}
       {triedOn === false ? (
         <View className="px-gutter pt-[18px]">
           <FirstStepCard
