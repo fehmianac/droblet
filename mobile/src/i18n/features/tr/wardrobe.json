@@ -101,6 +101,7 @@
     "goneTitle": "Bu parça artık gardırobunda yok.",
     "goneAction": "Gardıroba dön",
     "metaLine": "{{category}} · {{seasons}}",
+    "metaCategory": "{{category}} ·",
     "size": "Beden",
     "color": "Renk",
     "fabric": "Kumaş",
@@ -121,7 +122,9 @@
     "deleteAction": "Gardıroptan sil",
     "deleteTitle": "Bu parça silinsin mi?",
     "deleteBody": "Parça gardırobundan kaldırılır ve looklarında silinmiş parça olarak görünür. Bu işlem geri alınamaz.",
-    "factA11y": "{{label}}: {{value}}"
+    "factA11y": "{{label}}: {{value}}",
+    "factLoadingA11y": "{{label}}: yükleniyor",
+    "loadingA11y": "Parça yükleniyor"
   },
   "itemAdd": {
     "title": "Parça ekle",

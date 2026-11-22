@@ -184,6 +184,41 @@ describe('11 Parça detayı', () => {
     expect(screen.getByText('Delete from wardrobe')).toBeTruthy();
   });
 
+  it('opened from the grid it draws at once from the list (11′): photo, name and main buttons, skeletons until the detail lands', async () => {
+    await open('/wardrobe');
+    await waitFor(() => expect(screen.getByLabelText('Lacivert yün blazer')).toBeTruthy(), WAIT);
+    await fireEvent.press(screen.getByLabelText('Lacivert yün blazer'));
+    await waitFor(() => expect(screen).toHavePathname('/item/item_navy_blazer'), WAIT);
+    // No full-screen loader: the known parts are there before the detail (fixture latency) has answered.
+    expect(screen.queryByTestId('state-loading')).toBeNull();
+    expect(screen.queryByTestId('state-skeleton')).toBeNull();
+    expect(screen.getByTestId('item-image-zoom')).toBeTruthy();
+    expect(screen.getByText('Lacivert yün blazer')).toBeTruthy();
+    expect(screen.getByText('OUTERWEAR ·')).toBeTruthy();
+    expect(screen.getByTestId('item-make-look')).toBeTruthy();
+    expect(screen.getByTestId('item-style')).toBeTruthy();
+    // Season, facts, looks and the edit / ⋯ / shop buttons are still skeletons.
+    expect(screen.getByTestId('item-facts-pending')).toBeTruthy();
+    expect(screen.getByLabelText('Size: loading')).toBeTruthy();
+    expect(screen.getByTestId('item-looks-pending')).toBeTruthy();
+    expect(screen.queryByLabelText('More')).toBeNull();
+    expect(screen.queryByLabelText('Products that complete this piece')).toBeNull();
+
+    await waitFor(() => expect(screen.getByText('OUTERWEAR · AUTUMN, WINTER')).toBeTruthy(), WAIT);
+    expect(screen.queryByTestId('item-facts-pending')).toBeNull();
+    expect(screen.queryByTestId('item-looks-pending')).toBeNull();
+    expect(screen.getByText('6 times')).toBeTruthy();
+    expect(screen.getByLabelText('More')).toBeTruthy();
+  });
+
+  it('opened with nothing known (deep link) it shows the page-shaped skeleton, not the drop loader', async () => {
+    await open('/item/item_navy_blazer');
+    expect(screen.getByTestId('state-skeleton')).toBeTruthy();
+    expect(screen.queryByTestId('state-loading')).toBeNull();
+    await waitFor(() => expect(screen.getByText('OUTERWEAR · AUTUMN, WINTER')).toBeTruthy(), WAIT);
+    expect(screen.queryByTestId('state-skeleton')).toBeNull();
+  });
+
   it('"Make a look with this" opens 15 with the piece already in its slot', async () => {
     await open('/item/item_navy_blazer');
     await waitFor(() => expect(screen.getByTestId('item-make-look')).toBeTruthy(), WAIT);

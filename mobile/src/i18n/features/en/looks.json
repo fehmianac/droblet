@@ -61,6 +61,7 @@
   },
   "lookDetail": {
     "eyebrow": "{{occasion}} · {{pieces}}",
+    "loadingA11y": "Loading the look",
     "share": "Share",
     "shareMessage": "{{name}} · {{occasion}}\n{{pieces}}\n\nFrom my Droblet lookbook.",
     "shareLine": "• {{name}}",

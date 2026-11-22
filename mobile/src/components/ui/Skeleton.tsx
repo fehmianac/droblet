@@ -3,16 +3,32 @@ import { Animated, View } from 'react-native';
 
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 
+import { AiShimmer } from './ai/AiShimmer';
+
+/** `sand` = the canvas `.skel`; `veil` = paper at 70 % for a button-shaped block sitting on a photo (11′ header). */
+const TONES = { sand: 'bg-sand', veil: 'bg-paper/70' } as const;
+
+type Props = {
+  className?: string;
+  /**
+   * Canvas `.shim` (11′ Parça detayı iskeleti): a light band sweeps across the block instead of the pulse; the
+   * block is static with reduce-motion. The block itself takes `className`, so it can flex in a row.
+   */
+  sweep?: boolean;
+  tone?: keyof typeof TONES;
+  testID?: string;
+};
+
 /**
  * Sand placeholder box (canvas `.skel`: sand, radius 12 unless `className` sets another) with a soft pulse
  * (static when reduce-motion is on). Loading = skeleton, never a spinner.
  */
-export function Skeleton({ className }: { className?: string }) {
+export function Skeleton({ className, sweep = false, tone = 'sand', testID }: Props) {
   const reduceMotion = useReduceMotion();
   const [opacity] = useState(() => new Animated.Value(1));
 
   useEffect(() => {
-    if (reduceMotion) {
+    if (reduceMotion || sweep) {
       opacity.setValue(1);
       return;
     }
@@ -24,11 +40,19 @@ export function Skeleton({ className }: { className?: string }) {
     );
     loop.start();
     return () => loop.stop();
-  }, [opacity, reduceMotion]);
+  }, [opacity, reduceMotion, sweep]);
+
+  if (sweep) {
+    return (
+      <View className={`overflow-hidden ${TONES[tone]} ${className ?? ''}`} testID={testID} accessible={false} importantForAccessibility="no-hide-descendants">
+        <AiShimmer band={0.6} from={-1.2} to={2.2} />
+      </View>
+    );
+  }
 
   return (
-    <Animated.View style={{ opacity }} accessible={false} importantForAccessibility="no-hide-descendants">
-      <View className={`bg-sand ${className ?? ''}`} />
+    <Animated.View style={{ opacity }} testID={testID} accessible={false} importantForAccessibility="no-hide-descendants">
+      <View className={`${TONES[tone]} ${className ?? ''}`} />
     </Animated.View>
   );
 }

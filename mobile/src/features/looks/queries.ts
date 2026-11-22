@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { apiRequest } from '@/api/client';
 import type { Look } from '@/api/contracts/looks';
@@ -27,10 +27,17 @@ export function useLooks() {
   });
 }
 
-export function useLook(id: string | null | undefined) {
+/**
+ * One look. `fromList`: 14b opened from the lookbook (canvas n_ux2) — until the detail arrives the query holds the
+ * look as the list has it (the same `Look` shape, same mapper; placeholder, never cached), so the screen draws at once.
+ */
+export function useLook(id: string | null | undefined, options: { fromList?: boolean } = {}) {
+  const client = useQueryClient();
+  const fromList = options.fromList ?? false;
   return useQuery({
     queryKey: lookKeys.look(id ?? 'none'),
     enabled: Boolean(id),
+    placeholderData: () => (fromList && id ? client.getQueryData<Look[]>(lookKeys.looks)?.find((l) => l.id === id) : undefined),
     queryFn: () =>
       fromSource<Look>(
         'wardrobe',

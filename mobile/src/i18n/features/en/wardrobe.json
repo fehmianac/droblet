@@ -101,6 +101,7 @@
     "goneTitle": "This piece is no longer in your wardrobe.",
     "goneAction": "Back to wardrobe",
     "metaLine": "{{category}} · {{seasons}}",
+    "metaCategory": "{{category}} ·",
     "size": "Size",
     "color": "Colour",
     "fabric": "Fabric",
@@ -121,7 +122,9 @@
     "deleteAction": "Delete from wardrobe",
     "deleteTitle": "Delete this piece?",
     "deleteBody": "The piece is removed from your wardrobe and shows as a deleted piece in your looks. This can't be undone.",
-    "factA11y": "{{label}}: {{value}}"
+    "factA11y": "{{label}}: {{value}}",
+    "factLoadingA11y": "{{label}}: loading",
+    "loadingA11y": "Loading the piece"
   },
   "itemAdd": {
     "title": "Add a piece",
