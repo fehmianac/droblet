@@ -16,6 +16,9 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
 
     /// <summary>generate-marketing-images: owner-approved ceiling of image calls in one run (--max can only lower it).</summary>
     public const int MaxMarketingImageCalls = 6;
+    /// <summary>Sample AI look covers from ready-library pieces (prompt check); hard cap <see cref="MaxLookCoverSamples"/>.</summary>
+    public const string LookCoverSample = "look-cover-sample";
+    public const int MaxLookCoverSamples = 3;
     public const string AiSmoke = "ai-smoke";
     public const string AiProbe = "ai-probe";
     public const string AiPerf = "ai-perf";
@@ -45,10 +48,10 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
     /// <summary>Hard ceiling of image-model calls in one run (library images and synthetic fixtures together).</summary>
     public const int MaxImageCallsPerRun = 30;
 
-    public static readonly IReadOnlyList<string> Commands = [GrantTestPremium, RevokeTestPremium, GenerateLibraryImages, GenerateMarketingImages, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, Logs, MigrateLibraryItemImages, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, AiUsageBackfill, PublishItemImages, CdnCheck, PublicUrls, GoogleAuth, PushTest];
+    public static readonly IReadOnlyList<string> Commands = [GrantTestPremium, RevokeTestPremium, GenerateLibraryImages, GenerateMarketingImages, LookCoverSample, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, Logs, MigrateLibraryItemImages, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, AiUsageBackfill, PublishItemImages, CdnCheck, PublicUrls, GoogleAuth, PushTest];
 
     /// <summary>Commands that create or change test accounts or spend AI credit on a throw-away user: never on prod.</summary>
-    public static readonly IReadOnlySet<string> DevOnly = new HashSet<string>(StringComparer.Ordinal) { GrantTestPremium, RevokeTestPremium, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, PublicUrls, GenerateMarketingImages };
+    public static readonly IReadOnlySet<string> DevOnly = new HashSet<string>(StringComparer.Ordinal) { GrantTestPremium, RevokeTestPremium, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, PublicUrls, GenerateMarketingImages, LookCoverSample };
 
     private static readonly IReadOnlyDictionary<string, string[]> AllowedOptions = new Dictionary<string, string[]>(StringComparer.Ordinal)
     {
@@ -56,6 +59,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [RevokeTestPremium] = ["email"],
         [GenerateLibraryImages] = ["only", "max-calls", "quality", "price-per-image"],
         [GenerateMarketingImages] = ["prompts", "only", "max"],
+        [LookCoverSample] = ["max"],
         [AiSmoke] = ["api-url", "price-per-image"],
         [AiProbe] = [],
         [AiPerf] = ["api-url", "runs", "flows"],
@@ -81,6 +85,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [RevokeTestPremium] = [],
         [GenerateLibraryImages] = ["dry-run", "force"],
         [GenerateMarketingImages] = ["dry-run"],
+        [LookCoverSample] = [],
         [AiSmoke] = ["keep-user", "items-only", "prereq-only", "photo-tryon"],
         [AiProbe] = [],
         [AiPerf] = ["keep-user", "face"],
@@ -222,6 +227,10 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
                     return "--prompts takes a prompt file from ops-presets/ (…-images.json)";
                 if (OnlyIds.FirstOrDefault(id => !MarketingIdPattern().IsMatch(id)) is { } badId)
                     return $"--only: '{badId}' is not an image id";
+                break;
+            case LookCoverSample:
+                if (Option("max") is not { } lc || !int.TryParse(lc, out var lcMax) || lcMax is < 1 or > MaxLookCoverSamples)
+                    return $"--max is required, 1–{MaxLookCoverSamples}";
                 break;
             case AiPerf:
                 if (Option("runs") is { } runs && (!int.TryParse(runs, out var r) || r is < 1 or > MaxPerfRuns))
