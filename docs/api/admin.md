@@ -1,7 +1,7 @@
 # Droblet API — Admin panel (`v1/admin/*`)
 
 Contract of the admin panel at `https://droblet-admin.alatech.co` (owner decisions 1–5, README §13). The mobile app
-never calls these routes. Content endpoints (brands, products, bulk, edits, collections, moderation, revenue, funnel)
+never calls these routes. Content endpoints (brands, products, bulk, edits, collections, Akış posts / stories, moderation, revenue, funnel)
 keep the shapes of [store-social-settings.md §11](store-social-settings.md#11-admin-api-v1admin); only their
 **authentication** changed (admin tokens, permission per route) — this document lists everything else.
 
@@ -26,7 +26,7 @@ keep the shapes of [store-social-settings.md §11](store-social-settings.md#11-a
 | `analytics.view` | ✓ | ✓ | | `GET v1/admin/report/revenue`, `GET v1/admin/report/funnel` |
 | `catalog.manage` | ✓ | ✓ | | brands, products, `product/bulk` |
 | `image.upload` | ✓ | ✓ | | `POST v1/admin/image/upload-url` |
-| `content.manage` | ✓ | ✓ | | weekly edits, content collections + looks, ready-made library |
+| `content.manage` | ✓ | ✓ | | weekly edits, content collections + looks, Akış posts + stories, ready-made library |
 | `users.read` | ✓ | | ✓ | `GET v1/admin/user`, `GET v1/admin/user/{id}` |
 | `users.suspend` | ✓ | | ✓ | `POST v1/admin/user/{id}/suspend`, `…/unsuspend` |
 | `users.delete` | ✓ | | | `DELETE v1/admin/user/{id}` |
@@ -99,6 +99,7 @@ Actions: `auth.login`, `auth.login_failed`, `auth.logout`, `auth.logout_all`, `a
 `auth.password_reset`, `admin.create`, `admin.update`, `admin.invite`, `admin.revoke_sessions`, `admin.delete`,
 `brand.upsert`, `brand.retire`, `product.upsert`, `product.retire`, `product.bulk`, `image.upload_url`, `edit.upsert`,
 `edit.retire`, `collection.upsert`, `collection.retire`, `collection_look.upsert`, `collection_look.retire`,
+`feed_post.upsert`, `feed_post.retire`, `feed_story.upsert`, `feed_story.retire` (target types `feed_post`, `feed_story`),
 `library.upsert`, `library.retire`, `user.suspend`, `user.unsuspend`, `user.delete`, `user.test_premium_grant`,
 `user.test_premium_revoke`, `user.credits_add`, `report.resolve`, `setting.update`, `ai.prompt.publish`,
 `ai.prompt.rollback`, `ai.prompt.auto_fallback` (written by a worker, no admin), `ai.trial`, `ai.models.update`, `ai.limits.update`.
@@ -119,7 +120,7 @@ Actions: `auth.login`, `auth.login_failed`, `auth.logout`, `auth.logout_all`, `a
 | GET | `v1/admin/library` | `content.manage` | — | `AdminLibraryItemDto[]` (retired included; until the first write the built-in seed is listed with `stored: false`, and so are seed pieces added later — the men's set — until first edited) |
 | PUT | `v1/admin/library/{id}` | `content.manage` | `{ "name": L, "category", "colorIds": [≥ 1], "fabric"?, "seasons": [≥ 1], "imageUrl"?, "sortOrder", "retired"?, "segment"? (women · men · unisex, omitted = women) }` | `AdminLibraryItemDto`. Id `^lib-[a-z0-9-]{1,60}$`. Codes: `id_invalid`, `name_invalid`, `category_invalid`, `colors_invalid`, `fabric_invalid`, `seasons_invalid`, `image_url_invalid`, `segment_invalid`. |
 | DELETE | `v1/admin/library/{id}` | `content.manage` | — | `204` (retire). `404 not_found`. |
-| POST | `v1/admin/image/upload-url` | `image.upload` | `{ "purpose": "product|brand|edit|collection|library", "contentType": "image/jpeg|image/png|image/webp" }` | `{ "url", "fields": {…}, "key", "publicUrl", "expiresAt", "maxBytes" }` — presigned POST to the public catalog image bucket (5 MB, 5 min). After the upload `publicUrl` is the https URL to store in `images[]` / `imageUrl`. |
+| POST | `v1/admin/image/upload-url` | `image.upload` | `{ "purpose": "product|brand|edit|collection|library|feed", "contentType": "image/jpeg|image/png|image/webp" }` | `{ "url", "fields": {…}, "key", "publicUrl", "expiresAt", "maxBytes" }` — presigned POST to the public catalog image bucket (5 MB, 5 min). After the upload `publicUrl` is the https URL to store in `images[]` / `imageUrl`. |
 | GET | `v1/admin/setting` | `settings.manage` | — | `SettingGroupDto[]` |
 | PUT | `v1/admin/setting/{group}` | `settings.manage` | `{ "values": { "<field>": value } }` (only the listed fields; omitted = unchanged) | `SettingGroupDto`. `400 validation_failed` (`errors: { field: ["out_of_range"|"invalid"|"unknown_field"] }`), `404 not_found`, `503 settings_unavailable` (Parameter Store unreachable). Takes effect within 60 s (config reload). |
 | GET | `v1/admin/report/revenue` | `analytics.view` | `from`, `to` | `RevenueReport` (+ `clicks`, `byDay`, `byNetwork`, see below) |
@@ -177,6 +178,16 @@ Setting groups (only these parameters are writable; IAM allows `ssm:PutParameter
 | `notifications` | `api/Notifications` | `DefaultMorningLocal` (time), `DefaultTimeZone` (IANA), `MaxDevicesPerTenant` 1–50 |
 | `notifierSchedule` | `notifier/Notifications` | `DefaultMorningLocal` (time), `DefaultWeeklyEditLocal` (weekdayTime), `DefaultFriendRatingsLocal` (time) |
 | `authRateLimits` | `api/AuthRateLimits` | `LoginPerEmailPer15Minutes` 1–1000, `LoginPerIpPer15Minutes` 1–10000, `RegisterPerIpPerHour` 1–10000, `ForgotPerEmailPerHour` 1–100 |
+
+### Akış (panel: İçerik → Akış gönderileri / Akış hikâyeleri)
+
+Akış F1 editor content ([store-social-settings.md §2b](store-social-settings.md), routes in §11 there):
+`GET/PUT/DELETE v1/admin/feed-post[/{id}]` and `v1/admin/feed-story[/{id}]`, permission `content.manage`, audited.
+The panel lists posts with status (draft · scheduled · live · retired), publish time and like count; the form has
+segment, author (Droblet Edit / stylist, name TR/EN, handle, image), occasion (Ofis · Hafta sonu · Davet = `dinner` or `wedding` · …),
+title / note TR/EN, 1–4 images (upload with purpose `feed` or https URL), product ids (0–8, checked against the catalog),
+publish time, sort order, published and retired. New ids are ULIDs generated by the panel. No comments, no sponsored
+posts (F3).
 
 ## 5b. AI prompts and models (`ai.manage`)
 

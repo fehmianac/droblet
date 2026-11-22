@@ -59,7 +59,7 @@ export type ProductWire = {
 };
 
 /** `{ kind, id }` — where an add-to-cart / watch / checkout came from. */
-export type LookRefWire = { kind: 'edit' | 'collection' | 'user'; id: string };
+export type LookRefWire = { kind: 'edit' | 'collection' | 'user' | 'feedPost'; id: string };
 
 export function toMoney(amountMinor: number | null | undefined, currency: string | null | undefined): Money | null {
   if (amountMinor === null || amountMinor === undefined || !currency) return null;

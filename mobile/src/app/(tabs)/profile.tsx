@@ -302,6 +302,15 @@ export default function ProfileTab() {
           />
           <ProfileMenuRow icon="hanger" label={t('me.menu.wardrobeStats')} onPress={() => router.navigate('/wardrobe')} />
           <ProfileMenuRow icon={Briefcase} label={t('me.menu.tripArchive')} onPress={() => router.navigate('/wardrobe/trips')} />
+          {/* Teen: social is closed, but its saved Akış posts (editor content) stay reachable. */}
+          {teen.hide.social ? (
+            <ProfileMenuRow
+              icon={BookmarkCheck}
+              label={t('friends.menuSaved')}
+              onPress={() => router.push({ pathname: '/friends/saved', params: { tab: 'feed' } })}
+              testID="profile.savedFeed"
+            />
+          ) : null}
           {teen.hide.social ? null : (
             <>
               <ProfileMenuRow

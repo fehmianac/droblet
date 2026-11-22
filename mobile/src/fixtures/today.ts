@@ -118,7 +118,7 @@ export function buildTodayFixture(today: Date = new Date()): TodayResponse {
   const look = plan?.lookId ? fixtureDb.looks.find((l) => l.id === plan.lookId) : undefined;
   return clone({
     date,
-    weather: { temperatureC: 14, city: L('İstanbul') },
+    weather: { temperatureC: 14, city: L('İstanbul'), condition: 'partlyCloudy' },
     firstName: fixturePersona() === 'men' ? 'Emre' : 'Damla',
     occasion: look ? (plan?.occasion ?? look.occasion) : null,
     look: look ? todayLook(look, date) : null,

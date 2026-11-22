@@ -95,7 +95,7 @@ export default function RootLayout() {
           contentStyle: { backgroundColor: palettes.light.cream },
         }}
       >
-        {/* Every guard redirects explicitly to the current home (welcome / onboarding / Bugün). */}
+        {/* Every guard redirects explicitly to the current home (welcome / onboarding / Akış). */}
         <Stack.Protected guard={!signedIn} redirectTo={home}>
           <Stack.Screen name="(onboarding)/welcome" />
           <Stack.Screen name="(auth)/start" />
@@ -117,6 +117,10 @@ export default function RootLayout() {
 
         <Stack.Protected guard={onboarded} redirectTo={home}>
           <Stack.Screen name="(tabs)" />
+          {/* 06 Bugün: a stack route since Akış is the first tab (decision 16). */}
+          <Stack.Screen name="today" />
+          {/* Akış F1: the full-screen editor story viewer. */}
+          <Stack.Screen name="feed/story" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
           <Stack.Screen name="plan/week" />
           <Stack.Screen name="plan/report" />
           <Stack.Screen name="edit/[id]" />

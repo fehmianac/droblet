@@ -58,7 +58,7 @@ The only prose the API returns is (a) AI-generated text and (b) reference names.
 | `BodyType` | `hourglass`, `pear`, `apple`, `rectangle`, `invertedTriangle`, `unsure` (body profile; face try-on path) |
 | `TryOnSource` | `body`, `face` |
 | `JobFailure` (added) | `photoUnsuitable` |
-| `TryOnTargetKind` | `item`, `look`, `product`, `editLook`, `suggestion`, `tripDay` |
+| `TryOnTargetKind` | `item`, `look`, `product`, `editLook`, `suggestion`, `tripDay`, `photo`, `importPhoto`, `feedPost` |
 | `StartStatus` | `cached`, `queued` |
 
 Colour ids, fabric ids and season type ids are fixed kebab-case strings; get them from `GET v1/tenant/reference/wardrobe`. The colour list ends with `other` ("Diğer" / "Other", family `other`): a colour outside the list, optionally with the user's own `colorHex` on the item.
@@ -474,9 +474,16 @@ someone wears in a photo** (a saved inspiration photo, an outfit import photo) w
 ```json
 { "requestId": "01J…", "target": { "kind": "look", "id": "01J…", "index": null } }
 ```
-`target.kind`: `item` · `look` · `product` · `editLook` · `suggestion` · `tripDay` · `photo` · `importPhoto` (outfit photo, above).
+`target.kind`: `item` · `look` · `product` · `editLook` · `suggestion` · `tripDay` · `photo` · `importPhoto` (outfit photo, above) · `feedPost`.
 `target.id`: item id · look id · product id (catalog) · edit look id · for `suggestion` the **stylist job id** with `index` · for `photo` an item upload / draft id · for `importPhoto` the import session id with `index` = the photo number · for `tripDay` `"{tripId}/{yyyy-MM-dd}"` (the look of that trip day, `TripDetailDto.days[]`; its existing pieces are the outfit, so the same pieces as a look or suggestion share one cached image and one credit; an unknown trip or day → 404 `target_not_found`, a day whose pieces are all gone → 422 `tryon_target_empty`).
 `editLook` ids: a weekly-edit look id (`EditDto.looks[].id`) renders its first price-band variant; `"{lookId}@{priceBand}"` (e.g. `edit-2026-w47-d1@luxuryTouch`) renders that variant; `"{collectionId}/{lookId}"` renders a creator / series collection look. Only published, non-retired content resolves. Product garments are rendered from the product's first catalog image.
+
+`feedPost` id = an Akış post id (`FeedPostDto.id`, "Üzerimde dene · 1 kredi"): the post's available catalog products are
+rendered as one outfit. Only a live post resolves (published, not retired, `publishAt` reached) — else `404
+target_not_found`; a post whose products are all retired → `422 tryon_target_empty`. Charged exactly like an `editLook` /
+`product` try-on (one credit per image, reserved on start, refunded on failure), and identified like every outfit by its
+set of pieces: the same products from an edit look, a saved look or another post share the image and are never charged
+twice. `GET v1/tenant/tryon?kind=feedPost&id=…` finds the cached image.
 
 | Status | Body | Meaning |
 |---|---|---|

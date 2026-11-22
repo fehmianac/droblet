@@ -193,7 +193,7 @@ describe('Pazarlama bildirimleri — explicit consent 5', () => {
   });
 
   it('the one opt-in card on Bugün: "Yes" records the consent and switches the weekly edit on', async () => {
-    await open('/');
+    await open('/today');
     await waitFor(() => expect(screen.getByTestId('marketing-opt-in')).toBeTruthy(), WAIT);
     await fireEvent.press(screen.getByTestId('marketing-opt-in.yes'));
     await waitFor(() => expect(screen.getByTestId('consent.block.marketingNotifications')).toBeTruthy(), WAIT);
@@ -205,7 +205,7 @@ describe('Pazarlama bildirimleri — explicit consent 5', () => {
   });
 
   it('"No, thanks" hides the card for good without a consent', async () => {
-    await open('/');
+    await open('/today');
     await waitFor(() => expect(screen.getByTestId('marketing-opt-in')).toBeTruthy(), WAIT);
     await fireEvent.press(screen.getByTestId('marketing-opt-in.no'));
     await waitFor(() => expect(screen.queryByTestId('marketing-opt-in')).toBeNull(), WAIT);

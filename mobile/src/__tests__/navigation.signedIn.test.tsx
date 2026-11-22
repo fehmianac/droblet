@@ -17,9 +17,17 @@ jest.mock('expo-secure-store', () => ({
 jest.mock('expo-font', () => ({ ...jest.requireActual('expo-font'), useFonts: () => [true, null] }));
 
 describe('navigation (signed in, onboarded)', () => {
-  it('lands on 06 Bugün with the tab bar and fixture data', async () => {
+  it('lands on Akış (the first tab, decision 16) with the tab bar', async () => {
     await AsyncStorage.setItem('droblet.onboarding.u1', 'done');
     await renderRouter('./src/app', { initialUrl: '/' });
+    await waitFor(() => expect(screen.getByText('What should I wear today?')).toBeTruthy(), { timeout: 3000 });
+    expect(screen.getByTestId('tab.feed').props.accessibilityState).toEqual({ selected: true });
+    expect(screen.getByLabelText('Stylist')).toBeTruthy();
+  });
+
+  it('opens 06 Bugün at /today with fixture data', async () => {
+    await AsyncStorage.setItem('droblet.onboarding.u1', 'done');
+    await renderRouter('./src/app', { initialUrl: '/today' });
     await waitFor(() => expect(screen.getByText("I'm wearing this")).toBeTruthy(), { timeout: 3000 });
     // Canvas 06: one line, "BUGÜNÜN KOMBİNİ · OFİS".
     expect(screen.getByText("TODAY'S OUTFIT · OFFICE")).toBeTruthy();

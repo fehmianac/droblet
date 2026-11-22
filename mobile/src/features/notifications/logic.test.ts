@@ -67,7 +67,7 @@ describe('notification targets and fixtures', () => {
     expect(targets).toEqual({
       price_drop: { pathname: '/shop/product/[id]', params: { id: 'prod_003' } },
       follow_request: '/friends/requests',
-      morning_outfit: '/',
+      morning_outfit: '/today',
       friend_ratings: '/wardrobe/looks',
       weekly_edit: { pathname: '/edit/[id]', params: { id: 'edit_current' } },
     });

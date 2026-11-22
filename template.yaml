@@ -559,6 +559,13 @@ Resources:
       Type: String
       Description: Social limits and the invite link base URL.
       Value: '{"MaxFollowing":500,"FeedPageSize":20,"SuggestedPageSize":20,"SuggestedCandidateLimit":100,"SearchPageSize":20,"InviteUrl":"https://droblet.alatech.co/invite","InviteAttributionWindowDays":30,"ReportsPerDay":20,"InviteResolvePerIpPerHour":60,"ContactMatchesPerDay":10,"ContactMatchMaxHashes":1000}'
+  SsmApiContentFeed:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /droblet/${Stage}/api/ContentFeed
+      Type: String
+      Description: Akış (editor feed) — posts per page, max stories returned, retries of a contended like counter. Re-read every 60 s, no deploy needed.
+      Value: '{"PageSize":10,"MaxStories":20,"LikeRetries":8}'
   SsmApiAffiliate:
     Type: AWS::SSM::Parameter
     Properties:

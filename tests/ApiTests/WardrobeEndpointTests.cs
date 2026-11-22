@@ -1105,6 +1105,49 @@ public class TryOnAndPaletteEndpointTests(ApiFactory factory) : IClassFixture<Ap
     }
 
     [Fact]
+    public async Task FeedPost_RendersThePostsAvailableProducts_OneCredit_DraftOrUnknown404()
+    {
+        var (client, tenant, _, _) = await ArrangeAsync();
+        var now = DateTime.UtcNow;
+        await factory.Repository.SaveAsync(new BrandEntity { Id = "feed-brand", Name = "Marka", CreatedAt = now, UpdatedAt = now });
+        async Task Product(string id, ProductCategory category, bool retired = false) => await factory.Repository.SaveAsync(new CatalogProductEntity
+        {
+            Id = id, BrandId = "feed-brand", Name = new() { ["tr"] = id }, Category = category, Colors = ["black"], PriceMinor = 1000,
+            Images = ["https://img.example/p.jpg"], Retired = retired, CreatedAt = now, UpdatedAt = now,
+        });
+        await Product("feed-shirt", ProductCategory.Shirt);
+        await Product("feed-trousers", ProductCategory.Trousers);
+        await Product("feed-old-bag", ProductCategory.Bag, retired: true);
+        factory.Services.GetRequiredService<ICatalogService>().InvalidateCache();
+        FeedPostEntity Post(string id, bool published) => new()
+        {
+            Id = id, Author = new FeedAuthor { Kind = FeedAuthorKind.Edit, Name = new() { ["tr"] = "Droblet Edit" } }, Occasion = Occasion.Office,
+            Title = new() { ["tr"] = "Ofis" }, ImageUrls = ["https://img.example/f.jpg"], ProductIds = ["feed-shirt", "feed-trousers", "feed-old-bag"],
+            PublishAt = now.AddMinutes(-1), Published = published, CreatedAt = now, UpdatedAt = now,
+        };
+        var live = Ulid.New();
+        var draft = Ulid.New();
+        await factory.Repository.SaveAsync(Post(live, published: true));
+        await factory.Repository.SaveAsync(Post(draft, published: false));
+
+        var started = await client.PostJsonAsync("v1/tenant/tryon", TryOn(live, "feedPost"));
+        var again = await client.PostJsonAsync("v1/tenant/tryon", TryOn(live, "feedPost"));
+        var unpublished = await client.PostJsonAsync("v1/tenant/tryon", TryOn(draft, "feedPost"));
+        var unknown = await client.PostJsonAsync("v1/tenant/tryon", TryOn(Ulid.New(), "feedPost"));
+
+        Assert.Equal(HttpStatusCode.Accepted, started.StatusCode);
+        var dto = await started.ReadAsync<TryOnStartDto>();
+        Assert.Equal(StartStatus.Queued, dto.Status);
+        Assert.Equal(dto.Job!.Id, (await again.ReadAsync<TryOnStartDto>()).Job!.Id);       // same outfit → same job, no second charge
+        Assert.Equal(29, await factory.CreditsAsync(tenant));
+        Assert.Equal([ItemCategory.Top, ItemCategory.Bottom], dto.Pieces!.Select(p => p.Category));   // the retired bag drops out
+        var message = Assert.Single(factory.Events.Of<TryOnRequestedEvent>(tenant));
+        Assert.Equal(TryOnTargetKind.Look, message.Target.Kind);                              // rendered and cached as an outfit
+        Assert.Equal((HttpStatusCode.NotFound, "target_not_found"), (unpublished.StatusCode, await unpublished.CodeAsync()));
+        Assert.Equal(HttpStatusCode.NotFound, unknown.StatusCode);
+    }
+
+    [Fact]
     public async Task CachedImage_IsReturnedWithoutACharge_AlsoForASuggestionOfTheSamePieces_OwnerOnly()
     {
         var (client, tenant, look, body) = await ArrangeAsync();

@@ -65,7 +65,7 @@ Not in this document: wardrobe items, looks, today/plan/calendar, stylist/trips,
   "segment": "women" }                                         // women | men | unisex; lists show the user's segment + unisex (G §5)
 
 // LookRef — where an add-to-cart / watch / checkout came from (optional everywhere)
-{ "kind": "edit", "id": "edit-sample-2026-w47-d1" }
+{ "kind": "edit", "id": "edit-sample-2026-w47-d1" }   // kind edit | collection | user | feedPost (an Akış post: its "Satın al" clicks and conversions are attributed to it)
 
 // LocalizedText (admin + seed only)
 { "tr": "Keten Gömlek", "en": "Linen Shirt" }                  // default language (tr) required where the text is required
@@ -105,6 +105,51 @@ Not in this document: wardrobe items, looks, today/plan/calendar, stylist/trips,
 
 `totalMinor` counts available products only. "Hide what I already own" (screen 08, Sunum) is done on the client with the
 wardrobe data or with the match endpoint below.
+
+## 2b. Akış F1 — editor posts and stories (canvas 06″, decisions 16–19)
+
+Akış is the app's first tab. F1 = **editor content only**, entered in the admin panel: posts by "Droblet Edit" or a
+selected stylist (placeholder names only, A-7) and editor stories. Interactions: ♡ like (with count), save, "Üzerimde dene"
+(try-on target `feedPost`, W §7), buy (each product opens the brand page through the existing checkout). **No comments
+(ever), no share, no follow, no sponsored content (F3), no user looks (F2).** Teens: every route here is open (decision 17);
+the app hides prices / buy for them (teen `commerce` restriction) — the server sends the same shape. Only the friends'
+feed `GET v1/tenant/feed` is closed to teens (`social`); it is unchanged.
+
+| Method | Path | Result |
+|---|---|---|
+| GET | `v1/content/feed?occasion=&pageToken=` | `{ "items": [FeedPostDto], "pageToken": "…"|null }`. Published, not retired, `publishAt` ≤ now, segment = the user's segment or none. Order: `publishAt` desc, then `sortOrder` asc (then id). Page size `ContentFeed:PageSize` (10). `occasion` (optional) = one or more comma-separated `Occasion` wire names; the app's tabs: Ofis = `office`, Hafta sonu = `weekend`, **Davet = `dinner,wedding`** (owner decision 2026-11-22). Any unknown part → `400 validation_failed`. The token is a position (a post retired meanwhile never shifts the next page); an unreadable token starts from the top. |
+| GET | `v1/content/feed/story` | `FeedStoryDto[]` — published, not retired, inside `[publishAt, expiresAt)`, the user's segment or none. Order: `sortOrder` asc (editors pin), then `publishAt` desc. At most `ContentFeed:MaxStories` (20). |
+| PUT | `v1/tenant/feed-post/{id}/like` | `{ "liked": true, "likeCount": 1284 }`. Idempotent. `404 not_found` when the post is unknown, a draft, scheduled or retired. |
+| DELETE | `v1/tenant/feed-post/{id}/like` | `{ "liked": false, "likeCount": 1283 }`. Idempotent. Same `404`. |
+| PUT | `v1/tenant/feed-post/{id}/save` | `204`. Idempotent (a repeat keeps the first save time). Same `404`. |
+| DELETE | `v1/tenant/feed-post/{id}/save` | `204`, always (idempotent). |
+| GET | `v1/tenant/feed-post/saved` | `FeedPostDto[]`, newest save first. Posts retired or unpublished since are left out. |
+
+```jsonc
+// FeedPostDto — text in the request language (profile → Accept-Language → default), like every content read
+{ "id": "01J…",
+  "author": { "kind": "edit", "name": "Droblet Edit", "handle": null, "imageUrl": null, "verified": true },  // kind edit | stylist; verified = true only for kind edit (Droblet Edit), never for stylists
+  "occasion": "office", "publishedAt": "2026-11-22T07:00:00Z",          // publishedAt = the post's publishAt
+  "title": "Ofiste bordo & camel", "note": "…" | null,
+  "images": ["https://…"],                                              // 1–4
+  "products": [ { /* ProductDto, every field */ "ownedSimilar": true } ],  // 0–8; retired products stay listed with available: false
+  "buyableCount": 2,                                                     // products that are available and not ownedSimilar
+  "likeCount": 1284, "liked": false, "saved": false }
+
+// FeedStoryDto
+{ "id": "…", "author": { "name": "Droblet Edit", "imageUrl": null }, "imageUrl": "https://…", "headline": "Ofiste bordo & camel",
+  "product": ProductDto | null, "publishedAt": "…" }
+```
+
+**`ownedSimilar`** ("benzeri gardırobunda var"). There is no server-side wardrobe ↔ product similarity yet (the edit
+screen's "hide what I already own" is client-side and exact), so the rule is: the caller has an item added from this
+product (`item.productId`), **or** an item of the same wardrobe category (`CatalogRules.ItemCategoryOf`) whose main
+colour (first colour id) is one of the product's colours. Rule-based, free, no AI.
+
+**Like count.** Kept in a counter row apart from the post (an admin edit never overwrites it), written in one
+transaction with the user's like row (versioned, retried on a lost race — `ContentFeed:LikeRetries`, 8): concurrent
+likes never lose a count, a repeat never counts twice. Account deletion takes the user's likes back off the counters
+(likes and saves are tenant rows: deleted with the account and included in "Verilerimi indir").
 
 ## 3. Catalog (screens 21, 22)
 
@@ -442,6 +487,12 @@ deleted: `DELETE` retires (ids are never reused). Ids: `^[a-z0-9][a-z0-9-]{1,62}
 | GET | `v1/admin/edit` | — | `AdminEditDto[]`, newest week first (drafts and retired included) |
 | PUT | `v1/admin/edit/{id}` | `{ "segment": "women", "weekStart" (a Monday), "title": L, "subtitle"?: L, "coverImageUrl"?, "looks": [{ "id"?, "day": 1–7, "title": L, "styleNote"?: L, "imageUrl"?, "variants": [{ "priceBand", "productIds": [1–10] }] }], "sponsorBrandId"?, "sponsorName"?: L, "published", "retired"? }` | `AdminEditDto`. `422 product_not_found` + `productIds: [...]`. |
 | DELETE | `v1/admin/edit/{id}` | — | `204`. `404 not_found`. |
+| GET | `v1/admin/feed-post` | — | `AdminFeedPostDto[]` (drafts, scheduled, retired included; feed order) |
+| PUT | `v1/admin/feed-post/{id}` | `{ "segment": "women"|"men"|null, "author": { "kind": "edit"|"stylist", "name": L (≤ 60), "handle"?, "imageUrl"? }, "occasion", "title": L (≤ 120), "note"?: L (≤ 600), "imageUrls": [https, 1–4], "productIds"?: [0–8, distinct], "publishAt" (UTC), "sortOrder" (0–100000), "published", "retired"? }` | `AdminFeedPostDto` = body + `likeCount`, `createdAt`, `updatedAt`. Id: a content id or a ULID (the panel generates ULIDs). `422 product_not_found` + `productIds`. Codes: `id_invalid`, `segment_invalid`, `author_required`, `author.kind` `author_kind_invalid`, `author.name` `author_name_invalid`, `author.handle` `author_handle_invalid`, `author.imageUrl` `author_image_url_invalid`, `occasion_invalid`, `title_invalid`, `note_invalid`, `image_urls_invalid`, `product_ids_invalid`, `publish_at_invalid`, `sort_order_invalid`. |
+| DELETE | `v1/admin/feed-post/{id}` | — | `204` (unpublished + retired). `404 not_found`. |
+| GET | `v1/admin/feed-story` | — | `AdminFeedStoryDto[]`, newest `publishAt` first |
+| PUT | `v1/admin/feed-story/{id}` | `{ "segment"?, "author": { "name": L, "imageUrl"? }, "imageUrl" (https, required), "headline": L (≤ 120), "productId"?, "publishAt", "expiresAt"? (> publishAt), "sortOrder", "published", "retired"? }` | `AdminFeedStoryDto`. `422 product_not_found`. Codes: `image_url_invalid`, `headline_invalid`, `product_id_invalid`, `expires_at_invalid` + the post codes above. |
+| DELETE | `v1/admin/feed-story/{id}` | — | `204`. `404 not_found`. |
 | GET | `v1/admin/collection/{kind}` | — | `AdminCollectionDto[]` |
 | PUT | `v1/admin/collection/{kind}/{id}` | `{ "title": L, "subtitle"?: L, "imageUrl"?, "sortOrder", "sponsorName"?: L, "handle"?: "@editor1", "retired"? }` | `AdminCollectionDto` (with `handle`). `handle` is stored normalised (no `@`, lower case); `400 handle_invalid` when it is not a valid handle format. |
 | DELETE | `v1/admin/collection/{kind}/{id}` | — | `204`. `404`. |
@@ -500,7 +551,8 @@ lead nowhere: share links open the app, whose reads above already leave it out.
 
 ### Seeding
 
-`seed/catalog/brands.json`, `seed/catalog/products.json`, `seed/content/weekly-edits.json` hold **placeholder** data
+`seed/catalog/brands.json`, `seed/catalog/products.json`, `seed/content/weekly-edits.json`, `seed/content/feed.json`
+(Akış posts + stories, same shapes as the admin `PUT` bodies) hold **placeholder** data
 (tr + en text, no real prices or links).
 
 ```bash
@@ -519,6 +571,7 @@ TABLE_NAME=droblet-dev-table dotnet run --project tools/Seed -- apply     # writ
 | `Localization` | `SupportedLanguages[]`, `DefaultLanguage` | `tr`, `en` / `tr` |
 | `Catalog` | `PageSize`, `MaxPageSize`, `CacheSeconds`, `MaxCartLines`, `MaxWatchItems`, `MaxFavoriteProducts` (code default 500; not in the SSM default yet), `BulkUpsertMax`, `ImageHosts[]` (hosts product images may be downloaded from for try-on; empty = any https host), `MaxImageBytes`, `WatchAutoAddHours` (decision 10; 0 = off) | 24, 60, 60, 100, 200, 200, empty, 10 MB, 48 |
 | `Social` | `MaxFollowing`, `FeedPageSize`, `SuggestedPageSize`, `SuggestedCandidateLimit`, `SearchPageSize`, `InviteUrl`, `InviteAttributionWindowDays`, `ReportsPerDay`, `InviteResolvePerIpPerHour`, `ContactMatchesPerDay`, `ContactMatchMaxHashes` | 500, 20, 20, 100, 20, `https://droblet.alatech.co/i`, 30, 20, 60, 10, 1000 |
+| `ContentFeed` | `PageSize`, `MaxStories`, `LikeRetries` (Akış F1, §2b) | 10, 20, 8 — SSM `/droblet/{stage}/api/ContentFeed` (template.yaml `SsmApiContentFeed`), re-read every 60 s |
 | `Weather` | `Provider`, `CacheMinutes`, `ForecastBaseUrl`, `GeocodingBaseUrl`, `TimeoutSeconds` | `OpenMeteo`, 60 |
 | `Notifications` | `DefaultMorningLocal`, `DefaultTimeZone`, `MaxDevicesPerTenant` | `07:30`, `Europe/Istanbul`, 10 |
 | `/droblet/{stage}/notifier/Push/ServiceAccountJson` (SecureString) | the Firebase service-account JSON file as downloaded (`project_id`, `client_email`, `private_key`) | `CHANGE_ME` or empty → push disabled |

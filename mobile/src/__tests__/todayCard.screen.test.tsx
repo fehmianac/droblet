@@ -59,7 +59,7 @@ beforeEach(async () => {
 });
 
 async function openToday() {
-  await renderRouter('./src/app', { initialUrl: '/' });
+  await renderRouter('./src/app', { initialUrl: '/today' });
   await waitFor(() => expect(screen.getByTestId('today-look-card')).toBeTruthy(), WAIT);
 }
 

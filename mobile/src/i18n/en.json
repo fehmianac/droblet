@@ -39,6 +39,7 @@
   },
   "tabs": {
     "today": "Today",
+    "feed": "Feed",
     "wardrobe": "Wardrobe",
     "stylist": "Stylist",
     "discover": "Discover",
@@ -59,7 +60,7 @@
     "offlineHeadline": "You're offline",
     "offlineNoCache": "You're offline. We'll fill this in once you're connected.",
     "placeholder": "This screen arrives in the next release.",
-    "placeholderAction": "Back to Today",
+    "placeholderAction": "Back to the feed",
     "pill": {
       "syncing": "Syncing…",
       "synced": "Synced",

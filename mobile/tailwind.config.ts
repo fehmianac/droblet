@@ -1,6 +1,6 @@
 import type { Config } from 'tailwindcss';
 
-import { fontFamilies, onPhotoTones, palettes, radii, sizes, spacing, typeScale } from './src/theme/tokens';
+import { feedTones, fontFamilies, onPhotoTones, palettes, radii, sizes, spacing, typeScale } from './src/theme/tokens';
 
 const c = palettes.light;
 
@@ -33,6 +33,16 @@ export default {
         'onPhoto-legal': onPhotoTones.legal,
         'onPhoto-outline': onPhotoTones.outline,
         'onPhoto-glass': onPhotoTones.glass,
+        'feed-line': feedTones.cardLine,
+        'feed-owned': feedTones.owned,
+        'feed-dot': feedTones.dotOff,
+        'feed-thumb': feedTones.thumb,
+        'feed-body': feedTones.body,
+        'feed-counter': feedTones.counter,
+        'feed-chip': feedTones.chipOnPhoto,
+        'feed-pill': feedTones.pillOnPhoto,
+        'feed-story-card': feedTones.storyCard,
+        'feed-story-track': feedTones.storyTrack,
       },
       fontSize,
       fontFamily: {

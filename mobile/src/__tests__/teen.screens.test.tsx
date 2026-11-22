@@ -1,3 +1,4 @@
+import { feedFixtures } from '@/fixtures/feed';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { act, fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 
@@ -103,7 +104,7 @@ beforeEach(async () => {
 
 describe('limited mode (pending)', () => {
   it('Bugün shows the band; it opens 02j with what works and what waits', async () => {
-    await open('/', PENDING);
+    await open('/today', PENDING);
     await waitFor(() => expect(screen.getByTestId('teen.banner.pending')).toBeTruthy(), WAIT);
     expect(screen.getByText('Waiting for your parent')).toBeTruthy();
     await fireEvent.press(screen.getByTestId('teen.banner.pending'));
@@ -126,7 +127,7 @@ describe('limited mode (pending)', () => {
   });
 
   it('withdrawn: the band says photos were deleted', async () => {
-    await open('/', { status: 'withdrawn', request: { state: 'sent' } });
+    await open('/today', { status: 'withdrawn', request: { state: 'sent' } });
     await waitFor(() => expect(screen.getByTestId('teen.banner.withdrawn')).toBeTruthy(), WAIT);
     expect(screen.getByText('Photo features are off; your photos were deleted.')).toBeTruthy();
   });
@@ -289,6 +290,42 @@ describe('deep-link guards', () => {
     await open('/', APPROVED);
     await waitFor(() => expect(sharedPhotoStore.get()).toBeNull(), WAIT);
     expect(screen).toHavePathname('/');
+  });
+});
+
+describe('Akış for teens (canvas 18)', () => {
+  it('shows the editorial posts without prices, "Satın al" or the buyable chip; everything else stays', async () => {
+    await open('/', APPROVED);
+    await waitFor(() => expect(screen.getByTestId('feed.post.post_001')).toBeTruthy(), WAIT);
+    expect(screen.queryByTestId('feed.post.post_001.buy')).toBeNull();
+    expect(screen.queryByTestId('feed.post.post_001.buyable')).toBeNull();
+    // Brand only, no price; the piece does not open the (closed) store.
+    expect(screen.getByLabelText('City Medium Siyah Çanta, Beymen Club')).toBeTruthy();
+    expect(screen.getByLabelText('Karamel Yün Kaban, in your wardrobe')).toBeTruthy();
+    expect(screen.queryByText(/₺|TRY/)).toBeNull();
+    expect(screen.getByTestId('feed.post.post_001.tryOn')).toBeTruthy();
+    expect(screen.getByTestId('feed.post.post_001.like')).toBeTruthy();
+    expect(screen.getByTestId('feed.post.post_001.save')).toBeTruthy();
+    expect(screen.getByTestId('feed.stories')).toBeTruthy();
+  });
+
+  it('the story viewer has no price and no "Satın al" for a teen', async () => {
+    await open('/', APPROVED);
+    await waitFor(() => expect(screen.getByTestId('feed.story.story_001')).toBeTruthy(), WAIT);
+    await fireEvent.press(screen.getByTestId('feed.story.story_001'));
+    await waitFor(() => expect(screen.getByTestId('feed.storyViewer')).toBeTruthy(), WAIT);
+    expect(screen.queryByTestId('feed.story.buy')).toBeNull();
+    expect(screen.queryByText(/₺|TRY/)).toBeNull();
+    expect(screen.getByTestId('feed.story.tryOn')).toBeTruthy();
+  });
+
+  it('saved Akış posts stay reachable from Profil: the list without the friends\' looks tab', async () => {
+    feedFixtures.save('post_003', true);
+    await open('/profile', APPROVED);
+    await waitFor(() => expect(screen.getByTestId('profile.savedFeed')).toBeTruthy(), WAIT);
+    await fireEvent.press(screen.getByTestId('profile.savedFeed'));
+    await waitFor(() => expect(screen.getByTestId('feed.post.post_003')).toBeTruthy(), WAIT);
+    expect(screen.queryByTestId('saved.tab')).toBeNull();
   });
 });
 

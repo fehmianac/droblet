@@ -168,6 +168,55 @@ export interface AdminEdit {
   updatedAt: string;
 }
 
+/** Akış F1 (wire names of the API's Occasion enum). The app's tabs: Ofis = office, Hafta sonu = weekend, Davet = dinner. */
+export type Occasion = 'office' | 'dinner' | 'weekend' | 'wedding' | 'travel' | 'sport';
+export const OCCASIONS: Occasion[] = ['office', 'weekend', 'dinner', 'wedding', 'travel', 'sport'];
+
+export type FeedAuthorKind = 'edit' | 'stylist';
+export const FEED_AUTHOR_KINDS: FeedAuthorKind[] = ['edit', 'stylist'];
+
+export interface FeedAuthor {
+  kind: FeedAuthorKind;
+  name: Localized;
+  handle: string | null;
+  imageUrl: string | null;
+}
+
+export interface AdminFeedPost {
+  id: string;
+  /** null = every segment. */
+  segment: EditSegment | null;
+  author: FeedAuthor;
+  occasion: Occasion;
+  title: Localized;
+  note: Localized | null;
+  imageUrls: string[];
+  productIds: string[];
+  publishAt: string;
+  sortOrder: number;
+  published: boolean;
+  retired: boolean;
+  likeCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminFeedStory {
+  id: string;
+  segment: EditSegment | null;
+  author: { name: Localized; imageUrl: string | null };
+  imageUrl: string;
+  headline: Localized;
+  productId: string | null;
+  publishAt: string;
+  expiresAt: string | null;
+  sortOrder: number;
+  published: boolean;
+  retired: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AdminCollection {
   id: string;
   kind: CollectionKind;

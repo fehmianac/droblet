@@ -8,7 +8,7 @@ import type { TryOnResult, TryOnTarget } from '../contracts/tryon';
 import { ApiError } from '../errors';
 import type { JobWire } from './core';
 
-export type TryOnTargetKindWire = 'item' | 'look' | 'product' | 'editLook' | 'suggestion' | 'tripDay' | 'photo' | 'importPhoto';
+export type TryOnTargetKindWire = 'item' | 'look' | 'product' | 'editLook' | 'suggestion' | 'tripDay' | 'photo' | 'importPhoto' | 'feedPost';
 /** `id`: item / look / product / edit look id; for `suggestion` the stylist job id with `index`; for `tripDay` `{tripId}/{yyyy-MM-dd}`. */
 export type TryOnTargetWire = { kind: TryOnTargetKindWire; id: string; index: number | null };
 
@@ -86,6 +86,8 @@ export async function toWireTarget(target: TryOnTarget): Promise<TryOnTargetWire
     }
     case 'photo':
       return { kind: 'photo', id: target.id, index: null };
+    case 'feed-post':
+      return { kind: 'feedPost', id: target.id, index: null };
     case 'import-photo': {
       const cut = target.id.lastIndexOf(':');
       const index = cut >= 0 ? Number(target.id.slice(cut + 1)) : Number.NaN;

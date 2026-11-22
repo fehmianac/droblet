@@ -264,7 +264,8 @@ export type WeeklyEditCard = {
 /** GET v1/tenant/today?date= as the Bugün card shows it (mapped in `./wire/today`; `weeklyEdit` from GET v1/content/edit/current). */
 export type TodayResponse = {
   date: string;
-  weather: { temperatureC: number; city: string } | null;
+  /** `condition`: the wire condition key (`partlyCloudy`…) for the Akış eyebrow; absent / null when unknown. */
+  weather: { temperatureC: number; city: string; condition?: string | null } | null;
   firstName: string;
   occasion: Occasion | null;
   look: TodayLook | null;

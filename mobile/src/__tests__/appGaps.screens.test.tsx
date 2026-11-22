@@ -50,7 +50,7 @@ beforeEach(async () => {
 describe('E-mail verification', () => {
   it('Today shows the dismissible banner (the profile card leaves its e-mail row out meanwhile); the code screen verifies with auto-submit', async () => {
     resetAccountFixtures({ emailVerified: false });
-    await open('/');
+    await open('/today');
     await waitFor(() => expect(screen.getByTestId('today.verifyEmail')).toBeTruthy(), WAIT);
     await waitFor(() => expect(screen.getByTestId('today.profileComplete')).toBeTruthy(), WAIT);
     // Canvas "06 Bugün · e-posta doğrula + profilini tamamla": the banner carries the e-mail step, not the card.
@@ -89,7 +89,7 @@ describe('E-mail verification', () => {
 
   it('the banner hides for good with ×; a verified account never sees it', async () => {
     resetAccountFixtures({ emailVerified: false });
-    await open('/');
+    await open('/today');
     await waitFor(() => expect(screen.getByTestId('today.verifyEmail')).toBeTruthy(), WAIT);
     await fireEvent.press(screen.getByTestId('today.verifyEmail.hide'));
     await waitFor(() => expect(screen.queryByTestId('today.verifyEmail')).toBeNull(), WAIT);

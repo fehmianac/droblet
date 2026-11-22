@@ -10,6 +10,7 @@ import consent from './consent.json';
 import detect from './detect.json';
 import feedback from './feedback.json';
 import friends from './friends.json';
+import homeFeed from './homeFeed.json';
 import looks from './looks.json';
 import outfitImport from './outfitImport.json';
 import purchase from './purchase.json';
@@ -22,6 +23,6 @@ import teen from './teen.json';
 import tryonPhoto from './tryonPhoto.json';
 import wardrobe from './wardrobe.json';
 
-const features = { ai, today, wardrobe, looks, outfitImport, stylist, commerce, social, account, friends, purchase, consent, detect, requirements, feedback, tryonPhoto, share, teen };
+const features = { ai, today, wardrobe, looks, outfitImport, stylist, commerce, social, account, friends, purchase, consent, detect, requirements, feedback, tryonPhoto, share, teen, homeFeed };
 
 export default features;

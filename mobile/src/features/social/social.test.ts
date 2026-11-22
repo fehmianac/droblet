@@ -22,7 +22,7 @@ describe('deep links', () => {
       inviteCode: 'DAMLA24',
     });
     expect(mapIncomingLink('droplet://u/selin?invite=DAMLA24')).toEqual({ path: '/u/selin', inviteCode: 'DAMLA24' });
-    expect(mapIncomingLink('droplet://today')).toEqual({ path: '/', inviteCode: null });
+    expect(mapIncomingLink('droplet://today')).toEqual({ path: '/today', inviteCode: null });
   });
 
   it('leaves other links untouched and rejects malformed codes', () => {

@@ -43,6 +43,17 @@ public sealed class SocialOptions
     public int ContactMatchMaxHashes { get; set; } = 1000;
 }
 
+/// <summary>Akış F1 (GET v1/content/feed, GET v1/content/feed/story).</summary>
+public sealed class ContentFeedOptions
+{
+    public const string Section = "ContentFeed";
+    public int PageSize { get; set; } = 10;
+    /// <summary>Most stories one strip returns.</summary>
+    public int MaxStories { get; set; } = 20;
+    /// <summary>Versioned like-counter retries before the request fails (hot posts under concurrent likes).</summary>
+    public int LikeRetries { get; set; } = 8;
+}
+
 /// <summary>Proposal (A-4 open): Open-Meteo, keyless. Owner confirms the provider and its licence terms.</summary>
 public sealed class WeatherOptions
 {

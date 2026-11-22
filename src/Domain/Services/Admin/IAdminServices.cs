@@ -175,7 +175,7 @@ public interface IAdminLibraryService
     Task<bool> RetireAsync(string id, CancellationToken ct);
 }
 
-public enum CatalogImagePurpose { Product, Brand, Edit, Collection, Library }
+public enum CatalogImagePurpose { Product, Brand, Edit, Collection, Library, Feed }
 
 public sealed record CatalogImageUploadDto(string Url, IReadOnlyDictionary<string, string> Fields, string Key, string PublicUrl, DateTime ExpiresAt, long MaxBytes);
 

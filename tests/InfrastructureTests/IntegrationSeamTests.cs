@@ -264,6 +264,30 @@ public class IntegrationSeamTests
         Assert.Null(await lookup.GetProductIdsAsync("", default));
     }
 
+    [Fact]
+    public async Task FeedPostLookup_OnlyLivePostsResolve()
+    {
+        var host = new WorkerTestHost(); // clock: 2026-11-18
+        async Task Post(string id, DateTime publishAt, bool published = true, bool retired = false) => await host.Repository.SaveAsync(new FeedPostEntity
+        {
+            Id = id, Author = new FeedAuthor { Kind = FeedAuthorKind.Edit, Name = new() { ["tr"] = "Droblet Edit" } }, Occasion = Occasion.Office,
+            Title = new() { ["tr"] = "Ofis" }, ImageUrls = ["https://img.example/f.jpg"], ProductIds = ["p1", "p2"], PublishAt = publishAt,
+            Published = published, Retired = retired, CreatedAt = Now, UpdatedAt = Now,
+        });
+        await Post("live", Now.AddHours(-1));
+        await Post("draft", Now.AddHours(-1), published: false);
+        await Post("scheduled", Now.AddHours(1));
+        await Post("gone", Now.AddHours(-1), retired: true);
+        var lookup = host.Get<IFeedPostLookup>();
+
+        Assert.Equal(["p1", "p2"], await lookup.GetProductIdsAsync("live", default));
+        Assert.Null(await lookup.GetProductIdsAsync("draft", default));
+        Assert.Null(await lookup.GetProductIdsAsync("scheduled", default));
+        Assert.Null(await lookup.GetProductIdsAsync("gone", default));
+        Assert.Null(await lookup.GetProductIdsAsync("nope", default));
+        Assert.Null(await lookup.GetProductIdsAsync("bad id#", default));
+    }
+
     // ── IMorningOutfitCheck on plan days ────────────────────────────────────────────────────────────────────────
 
     [Fact]

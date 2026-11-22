@@ -77,7 +77,7 @@ export type NotificationTarget = PushRoute;
 
 /** Where a notification takes the user — the same place its push opens (`notify/routes`). */
 export function targetOf(notification: AppNotification): NotificationTarget {
-  if (notification.kind === 'morning_outfit') return '/';
+  if (notification.kind === 'morning_outfit') return '/today';
   return routeForPush({ type: notification.kind, ...notification.data });
 }
 

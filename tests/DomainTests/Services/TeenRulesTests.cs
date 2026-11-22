@@ -71,6 +71,10 @@ public class TeenRulesTests
     [InlineData("GET", "v1/tenant/entitlement")]
     [InlineData("POST", "v1/auth/register")]
     [InlineData("GET", "v1/parent-consent")]
+    [InlineData("GET", "v1/content/feed")]
+    [InlineData("PUT", "v1/tenant/feed-post/{id}/like")]
+    [InlineData("PUT", "v1/tenant/feed-post/{id}/save")]
+    [InlineData("GET", "v1/tenant/feed-post/saved")]
     public void Routes_OpenToTeens(string method, string pattern) => Assert.Null(TeenRouteRules.Classify(method, pattern));
 
     [Theory]

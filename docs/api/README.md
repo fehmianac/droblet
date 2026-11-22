@@ -196,6 +196,8 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | GET | `v1/content/creator` | user | [S](store-social-settings.md) | Creator / influencer collections |
 | GET | `v1/content/creator/{id}/look` | user | [S](store-social-settings.md) | Creator / influencer looks |
 | GET | `v1/content/edit/current` | user | [S](store-social-settings.md) | Current weekly edit |
+| GET | `v1/content/feed` | user | [S](store-social-settings.md) | Akış: editor posts (paged, occasion filter) |
+| GET | `v1/content/feed/story` | user | [S](store-social-settings.md) | Akış: editor stories |
 | GET | `v1/content/edit/{id}` | user | [S](store-social-settings.md) | Weekly edit by id |
 | GET | `v1/content/series-outfit` | user | [S](store-social-settings.md) | Series outfit collections |
 | GET | `v1/content/series-outfit/{id}/look` | user | [S](store-social-settings.md) | Series outfit looks |
@@ -222,6 +224,11 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | GET | `v1/tenant/favorite/product` | user | [S](store-social-settings.md) | Favourite products |
 | PUT | `v1/tenant/favorite/product/{productId}` | user | [S](store-social-settings.md) | Favourite a product |
 | DELETE | `v1/tenant/favorite/product/{productId}` | user | [S](store-social-settings.md) | Remove a favourite product |
+| GET | `v1/tenant/feed-post/saved` | user | [S](store-social-settings.md) | Saved Akış posts |
+| PUT | `v1/tenant/feed-post/{id}/like` | user | [S](store-social-settings.md) | Like an Akış post |
+| DELETE | `v1/tenant/feed-post/{id}/like` | user | [S](store-social-settings.md) | Take back a like |
+| PUT | `v1/tenant/feed-post/{id}/save` | user | [S](store-social-settings.md) | Save an Akış post |
+| DELETE | `v1/tenant/feed-post/{id}/save` | user | [S](store-social-settings.md) | Remove an Akış post from saved |
 | GET | `v1/tenant/purchase-prompt` | user | [S](store-social-settings.md) | Pending "add to wardrobe?" prompts |
 | PUT | `v1/tenant/purchase-prompt/{id}` | user | [S](store-social-settings.md) | Answer a purchase prompt |
 | GET | `v1/tenant/watch-list` | user | [S](store-social-settings.md) | Watch list |
@@ -321,6 +328,12 @@ Admin panel at `https://droblet-admin.alatech.co` ([admin.md](admin.md)). Admin 
 | GET | `v1/admin/edit` | admin:content.manage | [S](store-social-settings.md) | Weekly edits (admin) |
 | PUT | `v1/admin/edit/{id}` | admin:content.manage | [S](store-social-settings.md) | Create or update a weekly edit |
 | DELETE | `v1/admin/edit/{id}` | admin:content.manage | [S](store-social-settings.md) | Retire a weekly edit |
+| GET | `v1/admin/feed-post` | admin:content.manage | [S](store-social-settings.md) | Akış posts (admin) |
+| PUT | `v1/admin/feed-post/{id}` | admin:content.manage | [S](store-social-settings.md) | Create or update an Akış post |
+| DELETE | `v1/admin/feed-post/{id}` | admin:content.manage | [S](store-social-settings.md) | Retire an Akış post |
+| GET | `v1/admin/feed-story` | admin:content.manage | [S](store-social-settings.md) | Akış stories (admin) |
+| PUT | `v1/admin/feed-story/{id}` | admin:content.manage | [S](store-social-settings.md) | Create or update an Akış story |
+| DELETE | `v1/admin/feed-story/{id}` | admin:content.manage | [S](store-social-settings.md) | Retire an Akış story |
 | GET | `v1/admin/moderation/report` | admin:moderation.manage | [S](store-social-settings.md) | Moderation queue |
 | POST | `v1/admin/moderation/report/{id}/resolve` | admin:moderation.manage | [S](store-social-settings.md) | Resolve a report (contentRemoved hides the content) |
 | POST | `v1/admin/moderation/report/{id}/restore` | admin:moderation.manage | [S](store-social-settings.md) | Restore content removed by a report |
@@ -390,7 +403,7 @@ Admin panel at `https://droblet-admin.alatech.co` ([admin.md](admin.md)). Admin 
 | Other people's closets | Feed, `people/{handle}/look`, `/item`, `/trip`, rating and save read the owner's real looks, items and trips, always behind `VisibilityPolicy` and block rules; trips stay owner-only; only cleaned item images are exposed | S §6 |
 | Wardrobe match / "Parçamı tamamla" | Run on the caller's real wardrobe items | S §3 |
 | Catalog products in the wardrobe | `POST v1/tenant/item/from-product` reads the real catalog; accepting a purchase prompt adds the purchased products server-side | W §3, S §4 |
-| Try-on of catalog products and edit looks | `product` and `editLook` targets resolve against the catalog and the weekly edit / collections | W §7 |
+| Try-on of catalog products and edit looks | `product`, `editLook` and `feedPost` targets resolve against the catalog, the weekly edit / collections and the Akış posts | W §7 |
 | Look ratings | Friends rate through `people/{handle}/look/{lookId}/rating`; the owner sees `rating { average, count }` on `GET v1/tenant/look` | W §4, S §6 |
 | Palette → shop | `GET v1/tenant/palette/products` = the catalog filtered by the palette colours | W §8 |
 | Morning reminder | The `morning_outfit` push is sent when a look is planned for the user's local day | S §9 |

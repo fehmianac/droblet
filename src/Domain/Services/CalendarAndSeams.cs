@@ -196,6 +196,12 @@ public interface IEditLookLookup
     Task<IReadOnlyList<string>?> GetProductIdsAsync(string editLookId, CancellationToken ct);
 }
 
+/// <summary>Akış editor post -> its catalog products (try-on target kind FeedPost). null = no live post (unknown, draft, scheduled, retired).</summary>
+public interface IFeedPostLookup
+{
+    Task<IReadOnlyList<string>?> GetProductIdsAsync(string postId, CancellationToken ct);
+}
+
 // ── Service result shared by the E2–E7 services (the Api maps Kind to an HTTP status in one place).
 
 public enum ResultKind { Ok, Created, Accepted, NoContent, NotFound, Conflict, Invalid, Forbidden, PaymentRequired, TooManyRequests }

@@ -48,13 +48,13 @@ describe('per-tab error boundary', () => {
     await renderRouter('./src/app', { initialUrl: '/discover' });
     await waitFor(() => expect(screen.getByTestId('screen-error-boundary')).toBeTruthy(), WAIT);
     expect(screen.getByText("This screen couldn't open")).toBeTruthy();
-    expect(screen.getByTestId('tab.today')).toBeTruthy();
+    expect(screen.getByTestId('tab.feed')).toBeTruthy();
 
     mockBreakDiscover = false;
     await fireEvent.press(screen.getByText('Try again'));
     await waitFor(() => expect(screen.queryByTestId('screen-error-boundary')).toBeNull(), WAIT);
 
-    await fireEvent.press(screen.getByTestId('tab.today'));
+    await fireEvent.press(screen.getByTestId('tab.feed'));
     await waitFor(() => expect(screen.getByLabelText(/^Notifications/)).toBeTruthy(), WAIT);
   });
 });

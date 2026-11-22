@@ -139,7 +139,7 @@ export function toToday(wire: TodayWire, extras: TodayExtras): TodayResponse {
   return {
     date: wire.date,
     // The card shows one temperature: the day's high.
-    weather: wire.weather ? { temperatureC: wire.weather.maxTempC, city: extras.cityName } : null,
+    weather: wire.weather ? { temperatureC: wire.weather.maxTempC, city: extras.cityName, condition: wire.weather.condition ?? null } : null,
     firstName: extras.firstName,
     occasion: toOccasion(wire.occasion),
     look: wire.look ? toTodayLook(wire.look, extras.ctx, { worn: wire.worn, tryOnImageUrl: extras.tryOnImageUrl }) : null,

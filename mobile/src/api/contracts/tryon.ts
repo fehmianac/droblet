@@ -5,7 +5,7 @@
 import type { JobAccepted } from './jobs';
 import type { ItemCategory } from './wardrobe';
 
-export type TryOnTargetKind = 'item' | 'look' | 'product' | 'edit-look' | 'suggestion' | 'plan-day' | 'trip-day' | 'photo' | 'import-photo';
+export type TryOnTargetKind = 'item' | 'look' | 'product' | 'edit-look' | 'suggestion' | 'plan-day' | 'trip-day' | 'photo' | 'import-photo' | 'feed-post';
 
 /**
  * App targets → wire `{ kind, id, index }`:
@@ -14,7 +14,7 @@ export type TryOnTargetKind = 'item' | 'look' | 'product' | 'edit-look' | 'sugge
  * day (404 `target_not_found` when none) · `trip-day` (`{tripId}:{date}`) → `tripDay` with id
  * `{tripId}/{date}` (the day's pieces of the packed trip) · `photo` (an item upload / draft id: a photo of someone
  * wearing a whole outfit, tried on without splitting it) → `photo` · `import-photo` (`{sessionId}:{index}`, an outfit
- * import photo) → `importPhoto` + `index`.
+ * import photo) → `importPhoto` + `index` · `feed-post` (an Akış post id) → `feedPost`.
  */
 export type TryOnTarget = { kind: TryOnTargetKind; id: string };
 

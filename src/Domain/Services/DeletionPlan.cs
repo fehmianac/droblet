@@ -46,6 +46,9 @@ public static class DeletionPlan
         typeof(WatchItemEntity),
         typeof(WatchRemovedEntity),
         typeof(FavoriteProductEntity),
+        // Akış F1: likes (taken back off the posts' counters by ICrossTenantCleanup first) and saves.
+        typeof(FeedLikeEntity),
+        typeof(FeedSaveEntity),
         typeof(FollowingEntity),
         typeof(FollowerEntity),
         typeof(FollowRequestEntity),

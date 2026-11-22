@@ -31,6 +31,7 @@ public sealed class TryOnService(
     ICreditService credits,
     ICatalogProductLookup products,
     IEditLookLookup editLooks,
+    IFeedPostLookup feedPosts,
     ILibraryCatalog library,
     IRequestLanguage requestLanguage,
     IOptionsMonitor<PhotoOptions> photoOptions,
@@ -321,6 +322,15 @@ public sealed class TryOnService(
             case TryOnTargetKind.EditLook:
             {
                 var productIds = await editLooks.GetProductIdsAsync(target.Id, ct);
+                return productIds is null
+                    ? (null, ErrorCodes.TargetNotFound)
+                    : await OutfitAsync(tenantId, productIds.Select(id => new OutfitPiece(null, id)), ct);
+            }
+            case TryOnTargetKind.FeedPost:
+            {
+                // "Üzerimde dene" on an Akış post: its available catalog products as one outfit (same identity, cache and
+                // single credit as any outfit of those products — retired products drop out in OutfitAsync).
+                var productIds = await feedPosts.GetProductIdsAsync(target.Id, ct);
                 return productIds is null
                     ? (null, ErrorCodes.TargetNotFound)
                     : await OutfitAsync(tenantId, productIds.Select(id => new OutfitPiece(null, id)), ct);
