@@ -1,0 +1,24 @@
+{
+  "purpose": "Web landing photos (owner approval 2026-11-22; this file 3 calls). The landing has no photograph today: hero, 'kendi dolabından kombin' section and 'akıllı bavul' section.",
+  "size": "1536x1024",
+  "quality": "high",
+  "format": "jpeg",
+  "style": "Photograph for a premium wardrobe app, shot on a full-frame camera, soft natural daylight, subtle film grain, true-to-life skin texture, no retouched plastic look. Warm neutral colour palette: cream, sand, warm beige, deep ink navy and a single terracotta accent. Fictional adult people only, not resembling any celebrity. Plain unbranded clothing with no logos, no lettering, no text, no signs, no screens showing content, no watermark anywhere in the image. Tasteful, confident and natural, not a cheesy stock photo, no big smile at the camera. Horizontal landscape composition with generous calm empty space on the left third for a headline, the person on the right half, nothing important at the very edges.",
+  "images": [
+    {
+      "id": "landing-hero",
+      "segment": "women",
+      "prompt": "Wide shot in a bright Istanbul apartment bedroom in the morning: a woman in her late twenties with a dark low bun stands on the right in front of an open wooden wardrobe with neatly hung clothes in cream, sand, ink navy and one terracotta piece. She holds her phone in one hand and with the other lifts a sand blazer on a hanger out of the wardrobe, looking at it with a quiet, decided expression. She wears a cream knit and wide ink-navy trousers. Sheer linen curtains and soft window light on the left. Editorial, calm, quietly luxurious."
+    },
+    {
+      "id": "landing-wardrobe",
+      "segment": "men",
+      "prompt": "Wide shot in a bright loft bedroom in the morning: a man in his early thirties with short dark hair and a trimmed beard stands on the right, buttoning the cuff of a light blue shirt, an outfit laid out neatly on the bed beside him: navy blazer, grey trousers, brown leather shoes on the floor. A slim clothing rail behind him. Soft window light from the left, calm and unhurried."
+    },
+    {
+      "id": "landing-trip",
+      "segment": "women",
+      "prompt": "Wide shot in a bright bedroom: a woman in her thirties with shoulder-length brown hair kneels on the right beside an open cabin suitcase on a linen-covered bed, placing a neatly folded camel knit into it; a few folded pieces in cream, navy and terracotta, a pair of loafers and a small toiletry bag are arranged in tidy order around the suitcase. She looks down at the suitcase, relaxed and organised. Soft daylight from a window on the left."
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "purpose": "In-app visuals v3 (owner approval 2026-11-22; this file 6 calls). Examples of outfit photos that work for 'Kombinlerini içe aktar' (31 giriş): mirror selfie, a photo taken by a friend, a street photo. Replaces the three silhouettes.",
+  "size": "1024x1536",
+  "quality": "high",
+  "format": "jpeg",
+  "style": "A casual but flattering everyday outfit photo as a real person would take it with a phone: natural indoor or street light, slightly imperfect framing, true colours, the whole outfit from head to shoes clearly visible and sharp, one adult person only. Fictional person, not resembling any celebrity. Plain unbranded clothing with no logos, no lettering, no text, no signs, no watermark anywhere in the image. Warm, calm colours.",
+  "images": [
+    {
+      "id": "import-example-woman-1",
+      "segment": "women",
+      "prompt": "Mirror selfie in a bright bedroom: a woman in her late twenties holds her phone at chest height in front of a tall floor mirror, the phone partly covering her face. She wears a white poplin shirt tucked into wide ink-navy trousers, black ankle boots and a small black handbag. A wardrobe and a linen-covered bed softly behind her."
+    },
+    {
+      "id": "import-example-woman-2",
+      "segment": "women",
+      "prompt": "Photo taken by a friend on a quiet Istanbul side street in autumn: a woman in her early thirties with shoulder-length brown hair walks towards the camera looking slightly aside. She wears a sand trench coat over a cream knit, straight mid-blue jeans and white sneakers, a tan leather tote on her shoulder. Old stone buildings softly out of focus."
+    },
+    {
+      "id": "import-example-woman-3",
+      "segment": "women",
+      "prompt": "Photo taken by a friend in the hallway of a flat before going out to dinner: a woman in her thirties with dark hair worn down stands by the door, one hand on her bag strap. She wears a black midi slip dress under a short camel blazer, black heeled sandals and a small terracotta clutch. Warm evening lamp light, a plain wall and a wooden coat rack behind her."
+    },
+    {
+      "id": "import-example-man-1",
+      "segment": "men",
+      "prompt": "Mirror selfie in a bright hallway: a man in his early thirties holds his phone at chest height in front of a tall wall mirror, the phone partly covering his face. He wears a navy overshirt over a white t-shirt, stone chinos and white leather sneakers. A wooden bench and a coat rack softly behind him."
+    },
+    {
+      "id": "import-example-man-2",
+      "segment": "men",
+      "prompt": "Photo taken by a friend on a quiet Istanbul street in autumn: a man in his late twenties with short dark hair walks towards the camera with a relaxed half smile, looking slightly aside. He wears a camel wool coat over a charcoal crew-neck, dark indigo jeans and brown suede chelsea boots. Old stone buildings softly out of focus."
+    },
+    {
+      "id": "import-example-man-3",
+      "segment": "men",
+      "prompt": "Photo taken by a colleague in a bright modern office lobby: a man in his mid thirties with a trimmed beard stands relaxed with a laptop bag over one shoulder. He wears an unstructured ink-navy blazer over a light blue oxford shirt, grey tailored trousers and dark brown leather loafers. Large windows and a plain wall behind him."
+    }
+  ]
+}
