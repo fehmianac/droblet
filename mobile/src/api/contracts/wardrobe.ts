@@ -77,6 +77,27 @@ export type LookRef = { id: string; name: string; occasion: string; imageUrl: st
 /** GET v1/tenant/item/{id} → `{ item, looks }` on the wire, flattened here. */
 export type ItemDetail = Item & { looks: LookRef[] };
 
+/**
+ * 11′ Parça detayı opened from the list: what the screen draws before the detail arrives (photo, category, name,
+ * brand). Season, facts, wear count and looks are not part of it, so the screen cannot show them stale.
+ */
+export type ItemPreview = Pick<
+  Item,
+  | 'id'
+  | 'name'
+  | 'category'
+  | 'subcategory'
+  | 'color'
+  | 'brand'
+  | 'imageUrl'
+  | 'thumbUrl'
+  | 'mediumUrl'
+  | 'imageCacheKey'
+  | 'imageUrlExpiresAt'
+  | 'originalImageUrl'
+  | 'useOriginalImage'
+>;
+
 export type ItemFields = Pick<
   Item,
   'name' | 'category' | 'subcategory' | 'brand' | 'size' | 'color' | 'colorIds' | 'colorHex' | 'fabric' | 'seasons' | 'useOriginalImage'

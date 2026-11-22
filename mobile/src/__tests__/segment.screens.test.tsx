@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
+import { AccessibilityInfo } from 'react-native';
 
 import type { AppSegment, StyleProfile } from '@/api/contracts';
 import { onboardingStore } from '@/auth/onboarding';
@@ -71,19 +72,20 @@ describe('03a Reyon — onboarding segment choice', () => {
     expect(screen.queryByTestId('style.tag.smart_casual')).toBeNull();
   });
 
-  it('comes before 03 when two are open: no default, Women / Men, then the men tags on 03', async () => {
+  it('comes before 03 when two are open: no default, no "Continue"; tapping Men opens 03 with the men tags', async () => {
     mockSegments.list = ['women', 'men'];
     await openOnboarding();
     await waitFor(() => expect(screen.getByTestId('segment.screen')).toBeTruthy(), WAIT);
     expect(screen.getByText('Which department should we style you from?')).toBeTruthy();
     expect(screen.getByText("This only shapes your suggestions; it isn't shown on your profile or shared with anyone. You can add anything to your wardrobe.")).toBeTruthy();
-    expect(screen.getByTestId('segment.option.women').props.accessibilityState).toMatchObject({ checked: false });
-    expect(screen.getByTestId('segment.option.men').props.accessibilityState).toMatchObject({ checked: false });
-    expect(screen.getByTestId('segment.continue').props.accessibilityState).toMatchObject({ disabled: true });
+    expect(screen.getByTestId('segment.option.women').props.accessibilityState).toMatchObject({ selected: false });
+    expect(screen.getByTestId('segment.option.men').props.accessibilityState).toMatchObject({ selected: false });
+    expect(screen.getByTestId('segment.option.men').props.accessibilityRole).toBe('button');
+    expect(screen.queryByTestId('segment.continue')).toBeNull();
 
+    // UX turu 2 · 11a: the tapped card shows its selected state, then 03 opens by itself (~250 ms).
     await fireEvent.press(screen.getByTestId('segment.option.men'));
-    expect(screen.getByTestId('segment.option.men').props.accessibilityState).toMatchObject({ checked: true });
-    await fireEvent.press(screen.getByTestId('segment.continue'));
+    expect(screen.getByTestId('segment.option.men').props.accessibilityState).toMatchObject({ selected: true });
 
     await waitFor(() => expect(screen.getByText("Let's get to know you")).toBeTruthy(), WAIT);
     expect(segmentStore.get()).toBe('men');
@@ -104,8 +106,24 @@ describe('03a Reyon — onboarding segment choice', () => {
     mockStyle.data = { segment: 'men', styleTags: ['minimal', 'tailored', 'street'], budget: 'mixed', baseVersion: 2 };
     await openOnboarding();
     await waitFor(() => expect(screen.getByTestId('segment.screen')).toBeTruthy(), WAIT);
-    expect(screen.getByTestId('segment.option.men').props.accessibilityState).toMatchObject({ checked: true });
-    expect(screen.getByTestId('segment.continue').props.accessibilityState).toMatchObject({ disabled: false });
+    expect(screen.getByTestId('segment.option.men').props.accessibilityState).toMatchObject({ selected: true });
+    expect(screen).toHavePathname('/segment');
+  });
+
+  it('with reduce motion on, a tap opens 03 at once', async () => {
+    mockSegments.list = ['women', 'men'];
+    // The React Native jest setup already mocks it: restore its implementation, not the (missing) original.
+    const original = AccessibilityInfo.isReduceMotionEnabled;
+    AccessibilityInfo.isReduceMotionEnabled = jest.fn(async () => true);
+    try {
+      await openOnboarding();
+      await waitFor(() => expect(screen.getByTestId('segment.screen')).toBeTruthy(), WAIT);
+      await fireEvent.press(screen.getByTestId('segment.option.women'));
+      expect(screen).toHavePathname('/style');
+      expect(segmentStore.get()).toBe('women');
+    } finally {
+      AccessibilityInfo.isReduceMotionEnabled = original;
+    }
   });
 
   it('22b: each card shows its welcome photo instead of a silhouette', async () => {

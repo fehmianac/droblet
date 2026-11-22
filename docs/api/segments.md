@@ -39,10 +39,10 @@ The app should read `segments.available` for the Profil › Stil / onboarding ch
 
 ## 2. Style profile and body profile
 
-**PUT `v1/tenant/style-profile`** `{ "segment", "styleTags": [3], "budget", "baseVersion" }`
+**PUT `v1/tenant/style-profile`** `{ "segment", "styleTags": [3 or none], "budget", "baseVersion" }`
 
 - `segment` must be open (§1) → else `422 segment_not_available`.
-- `styleTags`: exactly 3 distinct tags, **all offered for that segment** → else `400` with `style_tag_not_in_segment`.
+- `styleTags`: exactly 3 distinct tags, **all offered for that segment**, or none (the onboarding style step was skipped; the segment is still saved) → else `400` with `style_tag_not_in_segment`.
 - Changing the segment (Profil › Stil) re-filters the **library** and the **catalog** on the next read. The
   **wardrobe is never touched** (a man keeps his dress, a woman her derbies). A body type of the other segment
   (e.g. `hourglass` after switching to men) is **cleared** (`bodyType: null`): the app asks for it again before the

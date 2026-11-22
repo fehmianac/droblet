@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 
+import * as profileApi from '@/api/profile';
+import { onboardingStore } from '@/auth/onboarding';
 import i18n from '@/i18n';
 
 const mockSession = {
@@ -19,16 +21,40 @@ jest.mock('expo-secure-store', () => ({
 jest.mock('expo-font', () => ({ ...jest.requireActual('expo-font'), useFonts: () => [true, null] }));
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageCode: 'en' }] }));
 
+// 04b: the background add can be made to fail (`mockAdd.failures` times) to check the retry toast.
+const mockAdd: { failures: number; calls: string[][] } = { failures: 0, calls: [] };
+jest.mock('@/api/today', () => {
+  const actual = jest.requireActual('@/api/today');
+  return {
+    ...actual,
+    useAddLibraryItems: () => {
+      const real = actual.useAddLibraryItems();
+      const mutateAsync = async (ids: string[]) => {
+        mockAdd.calls.push(ids);
+        if (mockAdd.failures > 0) {
+          mockAdd.failures -= 1;
+          throw new Error('network');
+        }
+        return real.mutateAsync(ids);
+      };
+      return { ...real, mutateAsync };
+    },
+  };
+});
+
 const WAIT = { timeout: 5000 };
 
 async function open(url: string) {
-  await AsyncStorage.setItem('droblet.onboarding.u1', 'pending');
+  // Through the store, not only AsyncStorage: a previous test may have finished onboarding in memory.
+  await onboardingStore.markPending('u1');
   await renderRouter('./src/app', { initialUrl: url });
 }
 
 beforeEach(async () => {
   await AsyncStorage.clear();
   await i18n.changeLanguage('en');
+  mockAdd.failures = 0;
+  mockAdd.calls = [];
 });
 
 describe('03 Stil profili', () => {
@@ -50,6 +76,19 @@ describe('03 Stil profili', () => {
 
     await fireEvent.press(screen.getByTestId('style.budget.mixed'));
     await waitFor(() => expect(screen.getByTestId('style.continue').props.accessibilityState).toMatchObject({ disabled: false }), WAIT);
+  });
+
+  it('"Skip" (UX turu 2 · 11b) moves on to the consents without tags; only the segment is kept', async () => {
+    const save = jest.fn();
+    const real = profileApi.useSaveStyleProfile;
+    const spy = jest.spyOn(profileApi, 'useSaveStyleProfile').mockImplementation(() => ({ ...real(), save }));
+    await open('/style');
+    await waitFor(() => expect(screen.getByText("Let's get to know you")).toBeTruthy(), WAIT);
+    expect(screen.getByTestId('style.continue').props.accessibilityState).toMatchObject({ disabled: true });
+    await fireEvent.press(screen.getByTestId('style.skip'));
+    await waitFor(() => expect(screen).toHavePathname('/consents'), WAIT);
+    expect(save).toHaveBeenCalledWith({ segment: 'women', styleTags: [], budget: 'mixed', baseVersion: 0 });
+    spy.mockRestore();
   });
 });
 
@@ -127,5 +166,21 @@ describe('04b İlk 5 parça', () => {
     await fireEvent.press(screen.getByTestId('pushAsk.notNow'));
     await waitFor(() => expect(screen).toHavePathname('/'), WAIT);
     expect(await AsyncStorage.getItem('droblet.onboarding.u1')).toBe('done');
+  });
+
+  it('UX turu 2 · 11c: "Continue" does not wait for the save; a failure shows "Try again" on the next screen and retries', async () => {
+    mockAdd.failures = 1;
+    await open('/first-items');
+    await waitFor(() => expect(screen.getByTestId('firstItems.item.lib_white_shirt')).toBeTruthy(), WAIT);
+    await fireEvent.press(screen.getByTestId('firstItems.item.lib_white_shirt'));
+    await fireEvent.press(screen.getByTestId('firstItems.continue'));
+
+    await waitFor(() => expect(screen).toHavePathname('/push-permission'), WAIT);
+    await waitFor(() => expect(screen.getByTestId('toast-message')).toHaveTextContent("Couldn't save your pieces"), WAIT);
+    expect(mockAdd.calls).toEqual([['lib_white_shirt']]);
+
+    await fireEvent.press(screen.getByTestId('toast-action'));
+    await waitFor(() => expect(mockAdd.calls).toEqual([['lib_white_shirt'], ['lib_white_shirt']]), WAIT);
+    expect(screen).toHavePathname('/push-permission');
   });
 });

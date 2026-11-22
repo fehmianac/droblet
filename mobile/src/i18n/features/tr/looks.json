@@ -61,6 +61,7 @@
   },
   "lookDetail": {
     "eyebrow": "{{occasion}} · {{pieces}}",
+    "loadingA11y": "Look yükleniyor",
     "share": "Paylaş",
     "shareMessage": "{{name}} · {{occasion}}\n{{pieces}}\n\nDroblet lookbook'umdan.",
     "shareLine": "• {{name}}",

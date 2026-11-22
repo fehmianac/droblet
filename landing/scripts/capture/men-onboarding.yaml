@@ -99,11 +99,9 @@ env:
     timeout: 20000
 - waitForAnimationToEnd
 - takeScreenshot: men-03a-reyon
+# A tap on the card opens 03 by itself after ~250 ms (no "Devam et").
 - tapOn:
     id: "segment.option.men"
-- takeScreenshot: men-03a-erkek
-- tapOn:
-    id: "segment.continue"
 - extendedWaitUntil:
     visible:
       id: "style.tags.men"

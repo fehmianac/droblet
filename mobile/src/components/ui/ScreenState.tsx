@@ -64,6 +64,12 @@ type Props<T> = {
   notFound?: NotFoundState;
   /** Screen-reader name of the loading state ("Gardırop yükleniyor"). */
   loadingLabel?: string;
+  /**
+   * First load: the screen's own content-shaped skeleton (canvas n_durum / n_yukleme — rows, cards and buttons as
+   * shimmering blocks, laid out like the content so nothing moves when it arrives). Without it the drop loader,
+   * kept for screens where nothing at all is known yet.
+   */
+  skeleton?: ReactNode;
   children: (data: T) => ReactNode;
 };
 
@@ -71,12 +77,12 @@ type Props<T> = {
 const goBack = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
 /**
- * The five states of every list screen, drawn as on the `Durum*` boards (canvas note "Tüm liste ekranları
- * için ortak durumlar"): loading = skeleton boxes shaped like the content (never a spinner) · empty = one
+ * The five states of every list and detail screen, drawn as on the `Durum*` boards (canvas note n_durum): loading =
+ * the screen's `skeleton` shaped like its content (the drop loader only where none is given) · empty = one
  * sentence + one action · not found (404) = the screen's not-found sentence + the way back · error = "Tekrar dene" (network / 5xx) · offline = cached data (the root sync pill says so) or an explained
  * state when nothing is cached · success.
  */
-export function ScreenState<T>({ query, isEmpty, empty, error, notFound, loadingLabel, children }: Props<T>) {
+export function ScreenState<T>({ query, isEmpty, empty, error, notFound, loadingLabel, skeleton, children }: Props<T>) {
   const { t } = useTranslation();
   const online = useIsOnline();
   const retry = () => void query.refetch();
@@ -163,9 +169,23 @@ export function ScreenState<T>({ query, isEmpty, empty, error, notFound, loading
         onAction={retry}
       />
     );
+  } else if (skeleton) {
+    // First load: the screen's skeleton, busy and named for screen readers (its blocks are hidden from them).
+    body = (
+      <View
+        className="flex-1"
+        testID="state-skeleton"
+        accessible
+        accessibilityRole="progressbar"
+        accessibilityState={{ busy: true }}
+        accessibilityLabel={loadingLabel ?? t('a11y.loading')}
+      >
+        {skeleton}
+      </View>
+    );
   } else {
-    // First load with nothing cached: the drop loader holds the content's place (flex-1), so the header,
-    // chips and tab bar never move when the data arrives. Cached data is shown at once (no loader at all).
+    // First load with nothing known and no skeleton: the drop loader holds the content's place (flex-1), so the
+    // header, chips and tab bar never move when the data arrives. Cached data is shown at once (no loader at all).
     body = <DropLoader size="screen" testID="state-loading" accessibilityLabel={loadingLabel ?? t('a11y.loading')} />;
   }
 

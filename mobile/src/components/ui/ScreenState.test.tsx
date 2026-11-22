@@ -38,6 +38,19 @@ describe('the five list states (canvas `Durum*` boards)', () => {
     expect(loading.props.accessibilityRole).toBe('progressbar');
   });
 
+  it('first load with a screen skeleton: the content-shaped blocks instead of the drop loader, busy and named', async () => {
+    await show(
+      <ScreenState query={base} loadingLabel="Loading the piece" skeleton={<View testID="my-skeleton" />}>
+        {list}
+      </ScreenState>,
+    );
+    expect(screen.queryByTestId('state-loading')).toBeNull();
+    const loading = screen.getByTestId('state-skeleton');
+    expect(loading.props.accessibilityLabel).toBe('Loading the piece');
+    expect(loading.props.accessibilityState).toEqual({ busy: true });
+    expect(screen.getByTestId('my-skeleton')).toBeTruthy();
+  });
+
   it('empty: headline, one sentence, the action — and the optional second way in', async () => {
     const onAction = jest.fn();
     const onSecondary = jest.fn();

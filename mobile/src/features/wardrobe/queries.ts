@@ -1,7 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { apiRequest } from '@/api/client';
-import type { Item, ItemDetail, ItemDraft } from '@/api/contracts/wardrobe';
+import type { Item, ItemDetail, ItemDraft, ItemPreview } from '@/api/contracts/wardrobe';
 import { jobPollInterval } from '@/api/jobs';
 import { fromSource } from '@/api/dataSource';
 import {
@@ -45,18 +45,59 @@ export function useItems(options: { enabled?: boolean } = {}) {
   });
 }
 
+const fetchItemDetail = (id: string) =>
+  fromSource<ItemDetail>(
+    'wardrobe',
+    () => fixtureItemDetail(id),
+    // GET v1/tenant/item/{id} → { item, looks } · 404
+    async () => toItemDetail(await apiRequest<ItemDetailWire>(`v1/tenant/item/${id}`)),
+  );
+
 /** 11 Parça detayı — the piece + wear count + looks using it. */
 export function useItemDetail(id: string) {
   return useQuery({
     queryKey: wardrobeKeys.item(id),
     enabled: Boolean(id),
-    queryFn: () =>
-      fromSource<ItemDetail>(
-        'wardrobe',
-        () => fixtureItemDetail(id),
-        // GET v1/tenant/item/{id} → { item, looks } · 404
-        async () => toItemDetail(await apiRequest<ItemDetailWire>(`v1/tenant/item/${id}`)),
-      ),
+    queryFn: () => fetchItemDetail(id),
+  });
+}
+
+/** Only what the 11′ skeleton draws at once (photo, category, name): the facts and looks wait for the detail. */
+export function toItemPreview(item: Item): ItemPreview {
+  return {
+    id: item.id,
+    name: item.name,
+    category: item.category,
+    subcategory: item.subcategory,
+    color: item.color,
+    brand: item.brand,
+    imageUrl: item.imageUrl,
+    thumbUrl: item.thumbUrl,
+    mediumUrl: item.mediumUrl,
+    imageCacheKey: item.imageCacheKey,
+    imageUrlExpiresAt: item.imageUrlExpiresAt,
+    originalImageUrl: item.originalImageUrl,
+    useOriginalImage: item.useOriginalImage,
+  };
+}
+
+/** True once the whole detail is there (not only the list's preview). */
+export const isItemDetail = (data: ItemDetail | ItemPreview): data is ItemDetail => 'looks' in data;
+
+/**
+ * 11 Parça detayı opened from the grid (canvas 11′): until the detail arrives the query holds the piece as the
+ * wardrobe list knows it (placeholder, never cached), so the screen draws at once instead of a loader.
+ */
+export function useItemDetailWithPreview(id: string) {
+  const client = useQueryClient();
+  return useQuery<ItemDetail | ItemPreview>({
+    queryKey: wardrobeKeys.item(id),
+    enabled: Boolean(id),
+    queryFn: () => fetchItemDetail(id),
+    placeholderData: () => {
+      const listed = client.getQueryData<Item[]>(wardrobeKeys.items)?.find((i) => i.id === id);
+      return listed ? toItemPreview(listed) : undefined;
+    },
   });
 }
 
