@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 
+import * as profileApi from '@/api/profile';
 import { onboardingStore } from '@/auth/onboarding';
 import i18n from '@/i18n';
 
@@ -77,12 +78,17 @@ describe('03 Stil profili', () => {
     await waitFor(() => expect(screen.getByTestId('style.continue').props.accessibilityState).toMatchObject({ disabled: false }), WAIT);
   });
 
-  it('"Skip" (UX turu 2 · 11b) moves on to the consents without tags or budget and saves nothing', async () => {
+  it('"Skip" (UX turu 2 · 11b) moves on to the consents without tags; only the segment is kept', async () => {
+    const save = jest.fn();
+    const real = profileApi.useSaveStyleProfile;
+    const spy = jest.spyOn(profileApi, 'useSaveStyleProfile').mockImplementation(() => ({ ...real(), save }));
     await open('/style');
     await waitFor(() => expect(screen.getByText("Let's get to know you")).toBeTruthy(), WAIT);
     expect(screen.getByTestId('style.continue').props.accessibilityState).toMatchObject({ disabled: true });
     await fireEvent.press(screen.getByTestId('style.skip'));
     await waitFor(() => expect(screen).toHavePathname('/consents'), WAIT);
+    expect(save).toHaveBeenCalledWith({ segment: 'women', styleTags: [], budget: 'mixed', baseVersion: 0 });
+    spy.mockRestore();
   });
 });
 

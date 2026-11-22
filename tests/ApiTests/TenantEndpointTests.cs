@@ -123,6 +123,19 @@ public class StyleAndBodyProfileEndpointTests(ApiFactory factory) : IClassFixtur
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
+    [Fact]
+    public async Task StyleProfile_NoTags_KeepsTheSegment_ForASkippedStyleStep()
+    {
+        var (client, _) = await factory.RegisterAsync();
+
+        var response = await client.PutJsonAsync("v1/tenant/style-profile", new { segment = "women", styleTags = Array.Empty<string>(), budget = "mixed", baseVersion = 0 });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var dto = (await response.Content.ReadFromJsonAsync<StyleProfileDto>(ApiFactory.Json))!;
+        Assert.Equal(Segment.Women, dto.Segment);
+        Assert.Empty(dto.StyleTags);
+    }
+
     [Theory]
     [InlineData("men")]
     [InlineData("teen")]

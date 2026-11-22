@@ -67,6 +67,11 @@ export default function StyleProfileScreen() {
   };
 
   const skip = () => {
+    // No tags yet, but the segment (03a) is kept: it drives the lists and the try-on after a restart.
+    const saved = existing.data;
+    if (!saved || saved.segment !== segment) {
+      save.save({ segment, styleTags: [], budget: saved?.budget ?? 'mixed', baseVersion: saved?.baseVersion ?? 0 });
+    }
     track('signup_step', { step: 'style_profile', skipped: true });
     router.push('/consents');
   };
