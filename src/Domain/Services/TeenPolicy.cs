@@ -26,13 +26,18 @@ public static class TeenRouteRules
     [
         "v1/tenant/follow",        // follow/{handle}, follower(s), following, follow-request/*
         "v1/tenant/people",        // search, suggestions, profiles, closets, looks, trips, ratings, saves, reports
-        "v1/tenant/feed",
         "v1/tenant/saved-look",
         "v1/tenant/share",
         "v1/tenant/invite/",
         "v1/tenant/contacts/",
         "v1/tenant/profile/handle", // claim + availability: a handle is only for being found
     ];
+
+    /// <summary>
+    /// Exact social routes: the friends' feed. Exact, so the Akış editor routes next to it (v1/tenant/feed-post/…, decision
+    /// 17: teens see editor content) stay open.
+    /// </summary>
+    private static readonly string[] SocialRoutes = ["v1/tenant/feed"];
 
     private static readonly string[] CommercePrefixes =
     [
@@ -68,7 +73,7 @@ public static class TeenRouteRules
     {
         if (string.IsNullOrEmpty(pattern) || !pattern.StartsWith("v1/tenant/", StringComparison.Ordinal))
             return null;
-        if (SocialPrefixes.Any(p => pattern.StartsWith(p, StringComparison.Ordinal)))
+        if (SocialRoutes.Contains(pattern, StringComparer.Ordinal) || SocialPrefixes.Any(p => pattern.StartsWith(p, StringComparison.Ordinal)))
             return TeenRouteRule.Closed(TeenFeature.Social);
         if (CommercePrefixes.Any(p => pattern.StartsWith(p, StringComparison.Ordinal)))
             return TeenRouteRule.Closed(TeenFeature.Commerce);

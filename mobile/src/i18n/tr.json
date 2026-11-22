@@ -39,6 +39,7 @@
   },
   "tabs": {
     "today": "Bugün",
+    "feed": "Akış",
     "wardrobe": "Gardırop",
     "stylist": "Stilist",
     "discover": "Keşfet",
@@ -59,7 +60,7 @@
     "offlineHeadline": "Çevrimdışısın",
     "offlineNoCache": "Çevrimdışısın. Bağlantı gelince burayı dolduracağız.",
     "placeholder": "Bu ekran bir sonraki sürümde burada olacak.",
-    "placeholderAction": "Bugün'e dön",
+    "placeholderAction": "Akışa dön",
     "pill": {
       "syncing": "Senkronize ediliyor…",
       "synced": "Senkronize edildi",

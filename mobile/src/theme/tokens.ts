@@ -147,6 +147,27 @@ export const visualTones = {
   dim: 'rgba(0, 0, 0, 0.62)',
 } as const;
 
+/**
+ * Akış F1 (canvas 06″) surfaces outside the palette: the post card hairline, the green "Gardırobunda var", the
+ * carousel dots, the piece-thumbnail ground, the veils on photos (counter, chips, the story viewer) and the darker
+ * body text of the "İlk adım" card.
+ */
+export const feedTones = {
+  cardLine: '#E5DED4',
+  owned: '#3F6B4A',
+  dotOff: '#C9BFB2',
+  thumb: '#EDE7DF',
+  body: '#3D3832',
+  counter: 'rgba(28, 26, 23, 0.66)',
+  chipOnPhoto: 'rgba(251, 249, 245, 0.92)',
+  pillOnPhoto: 'rgba(251, 249, 245, 0.94)',
+  storyCard: 'rgba(251, 249, 245, 0.95)',
+  storyTrack: 'rgba(244, 241, 236, 0.4)',
+  storyTop: 'rgba(28, 26, 23, 0.5)',
+  storyClear: 'rgba(28, 26, 23, 0)',
+  storyBottom: 'rgba(28, 26, 23, 0.78)',
+} as const;
+
 /** Swatches for wardrobe colour families (filter sheet, colour picker). Keys = `ItemColor` in api/contracts/wardrobe. */
 export const garmentColors = {
   black: '#1C1A17',

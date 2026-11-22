@@ -84,7 +84,7 @@ describe('today wire mappers', () => {
       tryOnImageUrl: null,
       weeklyEdit: [],
     });
-    expect(today.weather).toEqual({ temperatureC: 14, city: 'İstanbul' });
+    expect(today.weather).toEqual({ temperatureC: 14, city: 'İstanbul', condition: 'rain' });
     expect(today.firstName).toBe('Damla');
     expect(today.week).toEqual([{ date: '2026-11-18', hasPlan: true }]);
     expect(today.look).toMatchObject({ id: '01LOOK', occasion: 'office', isFavorite: true, wornToday: true });

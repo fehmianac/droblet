@@ -217,7 +217,8 @@ export type CartGroup = { brandId: string; brandName: string; brandLogoUrl?: str
 export type Cart = { groups: CartGroup[]; total: Money | null; lineCount: number };
 
 /** Where an add-to-cart / watch / checkout came from (wire `LookRef`). */
-export type StoreLookRef = { kind: 'edit' | 'collection' | 'user'; id: string };
+/** Where a cart line / watch / checkout came from; `feedPost` = an Akış post (the click is attributed to it). */
+export type StoreLookRef = { kind: 'edit' | 'collection' | 'user' | 'feedPost'; id: string };
 
 /**
  * POST v1/tenant/cart/line (1–20 lines, all or nothing) → the cart. 404 `product_not_found`, 422

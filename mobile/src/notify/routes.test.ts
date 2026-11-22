@@ -8,7 +8,7 @@ describe('push notification routing', () => {
     expect(routeForPush({ type: 'weekly_edit', editId: 'edit-1' })).toEqual({ pathname: '/edit/[id]', params: { id: 'edit-1' } });
     expect(routeForPush({ type: 'friend_ratings', day: '2026-11-18' })).toBe('/wardrobe/looks');
     expect(routeForPush({ type: 'friend_rating', lookId: 'look-1' })).toEqual({ pathname: '/look/[id]', params: { id: 'look-1' } });
-    expect(routeForPush({ type: 'morning_outfit', day: '2026-11-18' })).toBe('/');
+    expect(routeForPush({ type: 'morning_outfit', day: '2026-11-18' })).toBe('/today');
   });
 
   it('falls back to Bugün for unknown or missing data, and never routes an unsafe id', () => {

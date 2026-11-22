@@ -36,7 +36,7 @@ beforeEach(async () => {
 
 describe('06 Bugün', () => {
   it('shows the logo header, the missing piece and saves the look to the lookbook', async () => {
-    await renderRouter('./src/app', { initialUrl: '/' });
+    await renderRouter('./src/app', { initialUrl: '/today' });
     await waitFor(() => expect(screen.getByText('Lacivert Blazer')).toBeTruthy(), WAIT);
     expect(screen.getByLabelText(/^Notifications/)).toBeTruthy();
     // One line above the name: "BUGÜNÜN KOMBİNİ · OFİS" (no separate badge).
@@ -63,7 +63,7 @@ describe('06 Bugün', () => {
 
   it('shows the no-plan state with one action when nothing is planned', async () => {
     resetFixtureDb({ empty: true });
-    await renderRouter('./src/app', { initialUrl: '/' });
+    await renderRouter('./src/app', { initialUrl: '/today' });
     await waitFor(() => expect(screen.getByText('Nothing planned for today')).toBeTruthy(), WAIT);
     // Canvas 06 · plan yok: a saved look (no AI) beside the stylist.
     expect(screen.getByText('Pick a look')).toBeTruthy();
@@ -80,7 +80,7 @@ describe('06 Bugün', () => {
   it('"Pick a look" plans a saved look for today without AI or membership, with the calendar toast', async () => {
     fixtureDb.planDays = fixtureDb.planDays.filter((p) => p.date !== today);
     fixtureDb.entitlement.tier = 'free';
-    await renderRouter('./src/app', { initialUrl: '/' });
+    await renderRouter('./src/app', { initialUrl: '/today' });
     await waitFor(() => expect(screen.getByTestId('today-plan-pick')).toBeTruthy(), WAIT);
     await fireEvent.press(screen.getByTestId('today-plan-pick'));
     await waitFor(() => expect(screen.getByText('Pick a look for this day')).toBeTruthy(), WAIT);
@@ -114,7 +114,8 @@ describe('07 Haftalık plan', () => {
     // The week's occasions are chips; the leading one is the filled one.
     expect(screen.getByLabelText(/^Office ×\d$/).props.accessibilityState).toMatchObject({ selected: true });
     // The bottom menu stays on this list screen (canvas 07).
-    expect(screen.getAllByText('Today').length).toBe(1);
+    expect(screen.getByTestId('tab-bar')).toBeTruthy();
+    expect(screen.getByText('Feed')).toBeTruthy();
 
     // 07b: the cost is shown before anything is spent — on the button ("· 7 credits") and, for a batch, on the sheet.
     expect(screen.getByTestId('week-tryon').props.accessibilityLabel).toMatch(/^Try it on me · \d+ credits?$/);
@@ -181,7 +182,7 @@ describe('06 Bugün — the "on you" area without a generated image', () => {
   it('asks for a full-length photo when there is none', async () => {
     resetAccountFixtures();
     accountFixtures.removePhoto('body', 'photo_body_1');
-    await renderRouter('./src/app', { initialUrl: '/' });
+    await renderRouter('./src/app', { initialUrl: '/today' });
     await waitFor(() => expect(screen.getByText('Lacivert Blazer')).toBeTruthy(), WAIT);
     await waitFor(() => expect(screen.getByTestId('today-look-invite-footer')).toHaveTextContent('Add your photo first'), WAIT);
     expect(screen.queryByText('ON YOU')).toBeNull();
@@ -197,7 +198,7 @@ describe('06 Bugün — the "on you" area without a generated image', () => {
   it('says "Unlocks with membership" without a membership, and the tap opens the steps', async () => {
     resetAccountFixtures();
     fixtureDb.entitlement.tier = 'free';
-    await renderRouter('./src/app', { initialUrl: '/' });
+    await renderRouter('./src/app', { initialUrl: '/today' });
     await waitFor(() => expect(screen.getByText('Lacivert Blazer')).toBeTruthy(), WAIT);
     await waitFor(() => expect(screen.getByTestId('today-look-invite-footer')).toHaveTextContent('Unlocks with membership'), WAIT);
     expect(screen.queryByText('ON YOU')).toBeNull();

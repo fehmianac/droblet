@@ -129,7 +129,9 @@ describe('Profili düzenle (derived)', () => {
     await fireEvent.changeText(screen.getByLabelText('Name'), 'Ayşe Kaya');
     await fireEvent.press(screen.getByTestId('profile-save'));
     await waitFor(() => expect(screen.getByText('Ayşe Kaya')).toBeTruthy(), WAIT);
-    await fireEvent.press(screen.getByTestId('tab.today'));
+    await fireEvent.press(screen.getByTestId('tab.feed'));
+    await waitFor(() => expect(screen.getByTestId('feed.plan')).toBeTruthy(), WAIT);
+    await fireEvent.press(screen.getByTestId('feed.plan'));
     await waitFor(() => expect(screen.getByText(/^Good (morning|afternoon|evening) Ayşe,/)).toBeTruthy(), WAIT);
     expect(screen.queryByText(/Damla/)).toBeNull();
   });

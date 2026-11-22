@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
-import { Compass, House, Sparkles, User, type LucideIcon } from 'lucide-react-native';
+import { Compass, Sparkles, User, type LucideIcon } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,12 +15,12 @@ import { useTabBarHidden } from './tabBarVisibility';
 
 export type TabName = 'index' | 'wardrobe' | 'stylist' | 'discover' | 'profile';
 
-type LabelKey = `tabs.${'today' | 'wardrobe' | 'stylist' | 'discover' | 'profile'}`;
+type LabelKey = `tabs.${'feed' | 'wardrobe' | 'stylist' | 'discover' | 'profile'}`;
 
 const ORDER: TabName[] = ['index', 'wardrobe', 'stylist', 'discover', 'profile'];
 
-const TABS: Record<TabName, { icon: LucideIcon | 'hanger'; labelKey: LabelKey; href: '/' | '/wardrobe' | '/stylist' | '/discover' | '/profile' }> = {
-  index: { icon: House, labelKey: 'tabs.today', href: '/' },
+const TABS: Record<TabName, { icon: LucideIcon | 'hanger' | 'home'; labelKey: LabelKey; href: '/' | '/wardrobe' | '/stylist' | '/discover' | '/profile' }> = {
+  index: { icon: 'home', labelKey: 'tabs.feed', href: '/' },
   wardrobe: { icon: 'hanger', labelKey: 'tabs.wardrobe', href: '/wardrobe' },
   stylist: { icon: Sparkles, labelKey: 'tabs.stylist', href: '/stylist' },
   discover: { icon: Compass, labelKey: 'tabs.discover', href: '/discover' },
@@ -38,6 +38,22 @@ function HangerIcon({ color }: { color: string }) {
       <Path d="M10 6.5a2 2 0 1 1 2.6 1.9c-.4.2-.6.6-.6 1V10.5" stroke={color} strokeWidth={sizes.iconStroke} strokeLinecap="round" strokeLinejoin="round" />
       <Path
         d="M12 10.5 3.4 17.4c-.6.5-.3 1.6.5 1.6h16.2c.8 0 1.1-1.1.5-1.6z"
+        stroke={color}
+        strokeWidth={sizes.iconStroke}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+/** The Akış glyph as on the canvas 06″ tab bar: the house, filled while the tab is active. */
+function HomeIcon({ color, filled }: { color: string; filled: boolean }) {
+  return (
+    <Svg width={sizes.icon} height={sizes.icon} viewBox="0 0 24 24" fill="none" accessible={false}>
+      <Path
+        d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z"
+        fill={filled ? color : 'none'}
         stroke={color}
         strokeWidth={sizes.iconStroke}
         strokeLinecap="round"
@@ -95,7 +111,7 @@ export function TabBarView({ active, onPress }: BarProps) {
         return (
           <Pressable
             key={name}
-            testID={`tab.${name === 'index' ? 'today' : name}`}
+            testID={`tab.${name === 'index' ? 'feed' : name}`}
             onPress={() => onPress(name)}
             accessibilityRole="tab"
             accessibilityLabel={label}
@@ -103,7 +119,13 @@ export function TabBarView({ active, onPress }: BarProps) {
             hitSlop={{ top: 8, bottom: 8 }}
             className="w-16 items-center gap-[3px] pt-1"
           >
-            {tab.icon === 'hanger' ? <HangerIcon color={colors[tone]} /> : <Icon icon={tab.icon} tone={tone} />}
+            {tab.icon === 'hanger' ? (
+              <HangerIcon color={colors[tone]} />
+            ) : tab.icon === 'home' ? (
+              <HomeIcon color={colors[tone]} filled={focused} />
+            ) : (
+              <Icon icon={tab.icon} tone={tone} />
+            )}
             <Text variant={focused ? 'tabActive' : 'tab'} tone={tone} numberOfLines={1}>
               {label}
             </Text>
@@ -136,7 +158,7 @@ export function TabBar({ state, emitter, navigateToTab }: BottomTabBarProps) {
 
 /**
  * The same bar on the list screens that live outside the tab navigator but keep the bottom menu on the
- * canvas: 07 Haftalık plan and 09 Takvim (Bugün), 21 Stil mağazası, 25 Arkadaş akışı and 27 Dolapları
+ * canvas: Bugün (`/today`), 07 Haftalık plan and 09 Takvim (Akış), 21 Stil mağazası, 25 Arkadaş akışı and 27 Dolapları
  * keşfet (Keşfet), 24b İzleme listem (Profil). `owner` is the tab the list belongs to; it stays highlighted.
  * Detail, create and checkout screens never render this — they use `BottomActionBar`.
  */

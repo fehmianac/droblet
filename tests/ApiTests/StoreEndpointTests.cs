@@ -454,7 +454,7 @@ public class CartAndAffiliateEndpointTests(StoreSocialApiFactory factory) : ICla
         var anonymous = factory.CreateClient();
 
         var directCheckout = await (await user.PostJsonAsync($"v1/tenant/catalog/product/{directProduct}/checkout", new { look = new { kind = "user", id = "LOOK1" } })).JsonAsync();
-        var networkCheckout = await (await user.PostAsync($"v1/tenant/catalog/product/{networkProduct}/checkout", null)).JsonAsync();
+        var networkCheckout = await (await user.PostJsonAsync($"v1/tenant/catalog/product/{networkProduct}/checkout", new { look = new { kind = "feedPost", id = "POST1" } })).JsonAsync();   // Akış "Satın al"
         var missingLink = await user.PostAsync($"v1/tenant/catalog/product/{noLink}/checkout", null);
         var directClick = directCheckout.GetProperty("clickId").GetString()!;
         var networkClick = networkCheckout.GetProperty("clickId").GetString()!;
@@ -478,7 +478,9 @@ public class CartAndAffiliateEndpointTests(StoreSocialApiFactory factory) : ICla
         var directConversion = conversions.Single(c => c.Source == AffiliateSource.Direct);
         Assert.Equal(60_000, directConversion.CommissionMinor);                      // brand override: 1200 bps
         Assert.Equal((LookRefKind.User, "LOOK1"), (directConversion.LookKind, directConversion.LookId));
-        Assert.Equal(8_000, conversions.Single(c => c.Source == AffiliateSource.Network).CommissionMinor);
+        var networkConversion = conversions.Single(c => c.Source == AffiliateSource.Network);
+        Assert.Equal(8_000, networkConversion.CommissionMinor);
+        Assert.Equal((LookRefKind.FeedPost, "POST1"), (networkConversion.LookKind, networkConversion.LookId));   // attributed to the Akış post
     }
 
     [Fact]

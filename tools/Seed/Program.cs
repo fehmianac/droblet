@@ -25,7 +25,8 @@ if (command is not ("validate" or "apply") || !Directory.Exists(seedDirectory))
 var localization = new LocalizationOptions();
 var bundle = SeedData.Load(seedDirectory);
 var errors = SeedData.Validate(bundle, localization);
-Console.WriteLine($"{bundle.Brands.Count} brands, {bundle.Products.Count} products, {bundle.Edits.Count} weekly edits in {seedDirectory}");
+Console.WriteLine($"{bundle.Brands.Count} brands, {bundle.Products.Count} products, {bundle.Edits.Count} weekly edits, " +
+                  $"{bundle.Posts.Count} feed posts, {bundle.Stories.Count} feed stories in {seedDirectory}");
 if (errors.Count > 0)
 {
     foreach (var error in errors)
@@ -52,6 +53,7 @@ services.AddDrobletCore(new ConfigurationBuilder().Build());
 await using var provider = services.BuildServiceProvider();
 var catalog = provider.GetRequiredService<ICatalogService>();
 var content = provider.GetRequiredService<IContentService>();
+var feed = provider.GetRequiredService<IFeedService>();
 
 foreach (var brand in bundle.Brands)
     await catalog.UpsertBrandAsync(brand, CancellationToken.None);
@@ -71,6 +73,26 @@ foreach (var edit in bundle.Edits)
     }
 }
 
+var feedFailures = 0;
+foreach (var post in bundle.Posts)
+{
+    var (outcome, _, missing) = await feed.UpsertPostAsync(post, CancellationToken.None);
+    if (outcome == CatalogWriteOutcome.ProductNotFound)
+    {
+        feedFailures++;
+        Console.Error.WriteLine($"  feed post {post.Id}: product_not_found ({string.Join(", ", missing)})");
+    }
+}
+foreach (var story in bundle.Stories)
+{
+    var (outcome, _, missing) = await feed.UpsertStoryAsync(story, CancellationToken.None);
+    if (outcome == CatalogWriteOutcome.ProductNotFound)
+    {
+        feedFailures++;
+        Console.Error.WriteLine($"  feed story {story.Id}: product_not_found ({string.Join(", ", missing)})");
+    }
+}
+
 Console.WriteLine($"Applied to {tableName}: {bundle.Brands.Count} brands, {products.Created} products created, {products.Updated} updated, {products.Failed} failed, " +
-                  $"{bundle.Edits.Count - editFailures} weekly edits.");
-return products.Failed == 0 && editFailures == 0 ? 0 : 1;
+                  $"{bundle.Edits.Count - editFailures} weekly edits, {bundle.Posts.Count + bundle.Stories.Count - feedFailures} feed posts / stories.");
+return products.Failed == 0 && editFailures == 0 && feedFailures == 0 ? 0 : 1;

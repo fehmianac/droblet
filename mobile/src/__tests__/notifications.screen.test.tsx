@@ -97,8 +97,16 @@ describe('Bildirim merkezi (inbox)', () => {
     await waitFor(() => expect(screen.getByText('NOTIFICATIONS')).toBeTruthy(), WAIT);
   });
 
-  it('the bell on 06 Bugün carries the unread badge and opens the notification centre', async () => {
+  it('the bell on Akış carries the unread dot (the count is in its label) and opens the notification centre', async () => {
     await open('/');
+    await waitFor(() => expect(screen.getByLabelText('Notifications, 3 unread')).toBeTruthy(), WAIT);
+    expect(screen.getByTestId('bell-badge')).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText('Notifications, 3 unread'));
+    await waitFor(() => expect(screen.getByText('TODAY')).toBeTruthy(), WAIT);
+  });
+
+  it('the bell on 06 Bugün carries the unread badge and opens the notification centre', async () => {
+    await open('/today');
     await waitFor(() => expect(screen.getByLabelText('Notifications, 3 unread')).toBeTruthy(), WAIT);
     expect(screen.getByTestId('bell-badge')).toBeTruthy();
     expect(screen.getByText('3')).toBeTruthy();

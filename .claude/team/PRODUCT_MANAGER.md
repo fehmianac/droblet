@@ -35,7 +35,7 @@
 
 **Teknik temel:** Backend .NET 10 Lambda + **DynamoDB** tek tablo + SQS + SAM; mobil React Native (Expo) + TanStack Query. Ayrıntılar §5 ve [TEAM_LEAD.md](TEAM_LEAD.md).
 
-**Tenant modeli:** kullanıcı = tenant (tek kişi, rol yok). Sosyal özellikler başka tenant'ın verisini **yalnızca** `VisibilityPolicy` üzerinden okur (Herkese açık / Yalnızca takipçiler / Gizli). Boy/yüz fotoğrafları ve try-on çıktıları hiçbir görünürlük ayarında paylaşılmaz. **Lambda'lar:** `Api`, `ItemProcessor` (SQS `item-process-request`), `Stylist` (SQS `stylist-request`), `TryOn` (SQS `tryon-request`), `Palette` (SQS `palette-request`), `Notifier` (EventBridge).
+**Tenant modeli:** kullanıcı = tenant (tek kişi, rol yok). Sosyal özellikler başka tenant'ın verisini **yalnızca** `VisibilityPolicy` üzerinden okur (Herkese açık / Yalnızca takipçiler / Gizli). Boy/yüz fotoğrafları hiçbir görünürlük ayarında paylaşılmaz; try-on çıktıları yalnız kullanıcı Akış'ta açıkça paylaşırsa görünür (karar 20). **Lambda'lar:** `Api`, `ItemProcessor` (SQS `item-process-request`), `Stylist` (SQS `stylist-request`), `TryOn` (SQS `tryon-request`), `Palette` (SQS `palette-request`), `Notifier` (EventBridge).
 
 **İş modeli:** Droblet Üyelik — aylık ve yıllık abonelik, ücretsiz deneme (05). Yetki kullanıcıdadır (aile/organizasyon paketi yok). Satın alma doğrudan StoreKit 2 / Play Billing, doğrulama sunucuda. Fiyatlar, deneme süresi ve ücretsiz paket sınırları **Açık karar — ürün sahibi (A-1)**. Mağaza ürünlerinin ödemesi Droblet'te alınmaz, marka sitesine yönlendirilir; affiliate geliri olup olmayacağı **Açık karar — ürün sahibi (A-2)**.
 
@@ -369,16 +369,21 @@ Sormadan yeniden açılmaz.
 | 3 | Dil ve pazar | Uygulama TR + EN; pazar Türkiye, para birimi ₺ |
 | 4 | Hedef segment | Onboarding'de Kadın · Erkek · Genç (13–18); Genç segmentinin kuralları A-5 |
 | 5 | Görsel yön ve ton | Tasarım sistemi token'ları (krem zemin, Cormorant Garamond + Jost); "Sakin, editoryal, kişisel", sen dili, kısa cümleler; büyük harf stil ile verilmez, metin kaynakta yazılır |
-| 6 | Gezinme | 5 sekme: Bugün · Gardırop · Stilist (orta) · Keşfet · Profil; Gardırop alt sekmeleri Parçalar / Looklar / Bavullar |
+| 6 | Gezinme | 5 sekme: Bugün · Gardırop · Stilist (orta) · Keşfet · Profil; Gardırop alt sekmeleri Parçalar / Looklar / Bavullar. **22 Kasım 2026 güncellemesi (karar 16):** ilk sekme Akış olur (Akış · Gardırop · Stilist · Keşfet · Profil); Bugün kaybolmaz, akışın ilk hikâyesi "Bugün" ve başlıktaki takvim ikonuyla açılır, sabah bildirimi de oraya gider (canvas 06′) |
 | 7 | Giriş | Apple, Google, e-posta + şifre |
 | 8 | Paketler | Droblet Üyelik: aylık + yıllık, ücretsiz deneme; fiyatlar ve deneme süresi A-1 |
 | 9 | Premium yetenekler | Sınırsız "üzerimde gör", kişisel stil danışmanı (günlük kombin), akıllı bavul, renk paleti analizi (05) |
 | 10 | Ödeme | Mağaza ürünlerinin ödemesi Droblet'te alınmaz; marka sitesine yönlendirilir; sepet markaya göre gruplanır |
-| 11 | Fotoğraf gizliliği | Boy/yüz fotoğrafları ve try-on çıktıları yalnız sahibine açık; hiçbir görünürlük ayarında paylaşılmaz; istenince hesap silmeden bağımsız silinir |
+| 11 | Fotoğraf gizliliği | Boy/yüz fotoğrafları ve try-on çıktıları yalnız sahibine açık; hiçbir görünürlük ayarında paylaşılmaz; istenince hesap silmeden bağımsız silinir. **Tek istisna (karar 20):** kullanıcı bir look'u Akış'ta paylaşırken o look'un try-on görselini açıkça seçerse yalnız o görsel paylaşılır; boy/yüz fotoğrafı asla |
 | 12 | AI taslağı | AI'ın algıladığı parça alanları kullanıcı onayı olmadan gardıroba kaydedilmez |
 | 13 | Dolap görünürlüğü | Herkese açık / Yalnızca takipçiler / Gizli — kullanıcı seçer; varsayılan A-6 |
 | 14 | North Star | Haftalık giyinen kullanıcı — **öneri, ürün sahibi onaylar** |
 | 15 | MVP kapsamı | Influencer içerikleri, Dizi outfitleri, rehberden bul, sana benzeyen dolaplar / stil uyumu %, takvim raporu, web profili MVP dışı (BACKLOG) — **öneri, ürün sahibi onaylar** |
+| 16 | Akış — yeri | Akış **ana sekme** (ilk sekme). Bugün içeriği akışın "Bugün" hikâyesi ve takvim ikonuyla açılır (22 Kasım 2026) |
+| 17 | Akış — kaynaklar ve fazlar | **F1:** yalnız editör içeriği (admin panelinden: Droblet Edit, seçili stilistler). **F2:** kullanıcıların look bazında "Akışta paylaş" dediği looklar (varsayılan kapalı, hesap görünürlüğünden bağımsız, ilk paylaşımda onay ekranı). **F3:** sponsorlu marka hikâyeleri ve gönderileri ("Sponsorlu · Reklam" etiketi). Genç hesaplar yalnız editör içeriğini görür (22 Kasım 2026) |
+| 18 | Akış — etkileşim | Yalnız **beğeni** (♡), kaydet, üzerimde dene, satın al / benzerlerini gör, şikâyet / gizle / engelle. Akışta 1–5 yıldız puan yok (22 Kasım 2026) |
+| 19 | Yorum | **Hiçbir fazda yorum yok** (Akış, hikâye, look, profil) (22 Kasım 2026) |
+| 20 | Akışta paylaşılan look'un görseli | Varsayılan: look'un tek parça AI flat-lay kapağı (paylaşılan looklarda herkese görünür; paylaşılmayanların kapağı yalnız sahibine). Kullanıcı isterse aynı look'un **kendi try-on görselini** de paylaşır: look başına açık onay, her an geri alınır, gençlerde kapalı, yalnız try-on görseli (kaynak fotoğraf asla). Gizlilik politikası metni güncellenir — hukuk kontrolü ürün sahibinde (22 Kasım 2026) |
 
 Paket/yetki matrisi (birebir uygulanır; sunucuda `EntitlementPolicy`, istemcide yalnız sunucunun verdiği yetki):
 

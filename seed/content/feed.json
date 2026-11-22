@@ -1,0 +1,70 @@
+{
+  "_comment": "PLACEHOLDER DATA. Akış F1 sample editor posts and stories (placeholder author names, no real people). Products only from seed/catalog/products.json. Each entry has the same shape as PUT v1/admin/feed-post/{id} / PUT v1/admin/feed-story/{id}.",
+  "posts": [
+    {
+      "id": "feed-sample-office-1",
+      "segment": null,
+      "author": { "kind": "edit", "name": { "tr": "Droblet Edit", "en": "Droblet Edit" }, "handle": null, "imageUrl": null },
+      "occasion": "office",
+      "title": { "tr": "Ofiste lacivert ve camel", "en": "Navy and camel at the office" },
+      "note": { "tr": "Ceketi düz bir gömlekle sadeleştir, rengi eteğe bırak.", "en": "Keep the blazer simple with a plain shirt; let the skirt carry the colour." },
+      "imageUrls": [ "https://example.com/placeholder/feed-sample-office-1a.jpg", "https://example.com/placeholder/feed-sample-office-1b.jpg" ],
+      "productIds": [ "hs-blazer", "hs-white-shirt", "hs-skirt", "hs-tote" ],
+      "publishAt": "2026-11-22T07:00:00Z",
+      "sortOrder": 0,
+      "published": true
+    },
+    {
+      "id": "feed-sample-weekend-1",
+      "segment": null,
+      "author": { "kind": "stylist", "name": { "tr": "Stilist 1", "en": "Stylist 1" }, "handle": null, "imageUrl": null },
+      "occasion": "weekend",
+      "title": { "tr": "Hafta sonu katmanları", "en": "Weekend layers" },
+      "note": null,
+      "imageUrls": [ "https://example.com/placeholder/feed-sample-weekend-1.jpg" ],
+      "productIds": [ "hs-striped-tee", "hs-jeans", "hs-sneakers" ],
+      "publishAt": "2026-11-21T09:00:00Z",
+      "sortOrder": 0,
+      "published": true
+    },
+    {
+      "id": "feed-sample-dinner-1",
+      "segment": null,
+      "author": { "kind": "edit", "name": { "tr": "Droblet Edit", "en": "Droblet Edit" }, "handle": null, "imageUrl": null },
+      "occasion": "dinner",
+      "title": { "tr": "Davette siyah elbise", "en": "A black dress for the evening" },
+      "note": { "tr": "Kahverengi aksesuarlar siyahı yumuşatır.", "en": "Brown accessories soften the black." },
+      "imageUrls": [ "https://example.com/placeholder/feed-sample-dinner-1.jpg" ],
+      "productIds": [ "lx-dress", "lx-loafers", "lx-bag" ],
+      "publishAt": "2026-11-20T17:00:00Z",
+      "sortOrder": 0,
+      "published": true
+    }
+  ],
+  "stories": [
+    {
+      "id": "story-sample-1",
+      "segment": null,
+      "author": { "name": { "tr": "Droblet Edit", "en": "Droblet Edit" }, "imageUrl": null },
+      "imageUrl": "https://example.com/placeholder/story-sample-1.jpg",
+      "headline": { "tr": "Bu hafta camel", "en": "Camel this week" },
+      "productId": "lx-coat",
+      "publishAt": "2026-11-22T06:00:00Z",
+      "expiresAt": "2026-11-29T06:00:00Z",
+      "sortOrder": 0,
+      "published": true
+    },
+    {
+      "id": "story-sample-2",
+      "segment": null,
+      "author": { "name": { "tr": "Stilist 1", "en": "Stylist 1" }, "imageUrl": null },
+      "imageUrl": "https://example.com/placeholder/story-sample-2.jpg",
+      "headline": { "tr": "Beyaz gömleğin üç hali", "en": "Three ways with a white shirt" },
+      "productId": null,
+      "publishAt": "2026-11-22T06:00:00Z",
+      "expiresAt": null,
+      "sortOrder": 1,
+      "published": true
+    }
+  ]
+}

@@ -66,8 +66,9 @@ public enum ReferenceIssue { NoPerson, MultiplePeople, NoClothing, Minor }
 /// TripDay id = "{tripId}/{yyyy-MM-dd}": the look of one trip day (BavulDetay). Photo id = an item upload / item draft id
 /// (a photo of someone wearing a whole outfit, tried on without splitting it into pieces); ImportPhoto id = an outfit
 /// import session id + index = the photo number. Both are stored as Photo with id = the reference image hash.
+/// FeedPost id = an Akış editor post id: its available catalog products, rendered (and cached) as an outfit like a look.
 /// </summary>
-public enum TryOnTargetKind { Item, Look, Product, EditLook, Suggestion, TripDay, Photo, ImportPhoto }
+public enum TryOnTargetKind { Item, Look, Product, EditLook, Suggestion, TripDay, Photo, ImportPhoto, FeedPost }
 
 public enum Tier { Free, Premium }
 

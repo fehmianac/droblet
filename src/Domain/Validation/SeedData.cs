@@ -6,8 +6,20 @@ using Microsoft.Extensions.Options;
 
 namespace Domain.Validation;
 
-/// <summary>seed/catalog/brands.json, seed/catalog/products.json, seed/content/weekly-edits.json — same shapes as the admin API bodies.</summary>
-public sealed record SeedBundle(IReadOnlyList<BrandInput> Brands, IReadOnlyList<ProductInput> Products, IReadOnlyList<WeeklyEditInput> Edits);
+/// <summary>
+/// seed/catalog/brands.json, seed/catalog/products.json, seed/content/weekly-edits.json, seed/content/feed.json (Akış posts
+/// and stories) — same shapes as the admin API bodies.
+/// </summary>
+public sealed record SeedBundle(
+    IReadOnlyList<BrandInput> Brands,
+    IReadOnlyList<ProductInput> Products,
+    IReadOnlyList<WeeklyEditInput> Edits,
+    IReadOnlyList<FeedPostInput>? FeedPosts = null,
+    IReadOnlyList<FeedStoryInput>? FeedStories = null)
+{
+    public IReadOnlyList<FeedPostInput> Posts => FeedPosts ?? [];
+    public IReadOnlyList<FeedStoryInput> Stories => FeedStories ?? [];
+}
 
 /// <summary>
 /// Seed validation shared by tools/Seed and the test that guards the files in the repo: schema (the admin validators),
@@ -29,10 +41,13 @@ public static class SeedData
             return File.Exists(path) ? JsonSerializer.Deserialize<T>(File.ReadAllText(path), Json) ?? new T() : new T();
         }
 
+        var feed = Read<FeedFile>(Path.Combine("content", "feed.json"));
         return new SeedBundle(
             Read<BrandFile>(Path.Combine("catalog", "brands.json")).Brands ?? [],
             Read<ProductFile>(Path.Combine("catalog", "products.json")).Products ?? [],
-            Read<EditFile>(Path.Combine("content", "weekly-edits.json")).Edits ?? []);
+            Read<EditFile>(Path.Combine("content", "weekly-edits.json")).Edits ?? [],
+            feed.Posts ?? [],
+            feed.Stories ?? []);
     }
 
     public static IReadOnlyList<string> Validate(SeedBundle bundle, LocalizationOptions localization)
@@ -93,7 +108,36 @@ public static class SeedData
             }
         }
 
+        var postValidator = new FeedPostInputValidator(options);
+        var storyValidator = new FeedStoryInputValidator(options);
+        Duplicates(bundle.Posts.Select(p => p.Id), "feed post");
+        Duplicates(bundle.Stories.Select(s => s.Id), "feed story");
+        foreach (var post in bundle.Posts)
+        {
+            var label = $"feed post {post.Id}";
+            Schema(postValidator, post, label);
+            Translations(post.Author?.Name, $"{label} author name");
+            Translations(post.Title, $"{label} title");
+            Translations(post.Note, $"{label} note");
+            errors.AddRange((post.ProductIds ?? []).Where(id => !productIds.Contains(id)).Select(id => $"{label}: product_not_found ({id})"));
+        }
+        foreach (var story in bundle.Stories)
+        {
+            var label = $"feed story {story.Id}";
+            Schema(storyValidator, story, label);
+            Translations(story.Author?.Name, $"{label} author name");
+            Translations(story.Headline, $"{label} headline");
+            if (!string.IsNullOrEmpty(story.ProductId) && !productIds.Contains(story.ProductId))
+                errors.Add($"{label}: product_not_found ({story.ProductId})");
+        }
+
         return errors;
+    }
+
+    private sealed class FeedFile
+    {
+        public List<FeedPostInput>? Posts { get; set; }
+        public List<FeedStoryInput>? Stories { get; set; }
     }
 
     private sealed class BrandFile { public List<BrandInput>? Brands { get; set; } }

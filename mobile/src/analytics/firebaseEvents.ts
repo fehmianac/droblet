@@ -117,6 +117,12 @@ export const FIREBASE_RULES: Record<Exclude<AnalyticsEventName, 'signup_step'>, 
   search: { name: 'search', params: { surface: 'surface', filtered: 'filtered' } },
   select_content: { name: 'select_content', params: { contentType: 'content_type', source: 'source' } },
   push_permission: { name: 'push_permission', params: { action: 'action', granted: 'granted', source: 'source', variant: 'variant' } },
+  feed_post_view: { name: 'feed_post_view', params: { postId: 'post_id', authorKind: 'author_kind' } },
+  feed_like: { name: 'feed_like', params: { postId: 'post_id', liked: 'liked' } },
+  feed_save: { name: 'feed_save', params: { postId: 'post_id', saved: 'saved' } },
+  feed_story_view: { name: 'feed_story_view', params: { storyId: 'story_id' } },
+  feed_buy_click: { name: 'feed_buy_click', params: { productId: 'item_id', brandId: 'item_brand', source: 'source', postId: 'post_id' } },
+  feed_tryon_start: { name: 'feed_tryon_start', params: { source: 'source', postId: 'post_id', productId: 'item_id' } },
 };
 
 function safeValue(value: AnalyticsParams[string]): string | number | null {

@@ -9,7 +9,7 @@ namespace Infrastructure.Services.Social;
 /// <summary>
 /// "Hesabımı sil", the part outside the account's own partitions (BACKEND_ENGINEER.md rule 22). Runs BEFORE the tenant
 /// partitions are deleted, because they are the only index of what the account left elsewhere:
-/// follow edges, ratings given (with summary correction) and received, saved looks (both directions), blocks, reports, invite code and edges,
+/// follow edges, Akış likes (counter correction), ratings given (with summary correction) and received, saved looks (both directions), blocks, reports, invite code and edges,
 /// watcher index, public profile index, notification send lists, and the tenant id on clicks / conversions
 /// (revenue rows stay, without the person). Every step is idempotent — a failed deletion can be retried.
 /// </summary>
@@ -51,6 +51,10 @@ public sealed class CrossTenantCleanup(IRepository repository, TimeProvider time
             foreach (var row in await repository.GetAllAsync<NotificationQueueEntity>(NotificationQueueEntity.GetPk(type), $"{tenantId}#", SkOperator.BeginsWith, ct))
                 keys.Add((row.Pk, row.Sk));
         }
+
+        // Akış likes: take each one back off the post's counter (the like rows go with it).
+        foreach (var like in await repository.GetAllAsync<FeedLikeEntity>(FeedLikeEntity.GetPk(tenantId), ct))
+            await Store.FeedLikeCounter.UnlikeAsync(repository, tenantId, like.PostId, timeProvider.GetUtcNow().UtcDateTime, SummaryRetries, ct);
 
         // Ratings I gave: remove from the owner's partition and correct the average.
         foreach (var given in await repository.GetAllAsync<RatingGivenEntity>(RatingGivenEntity.GetPk(tenantId), ct))

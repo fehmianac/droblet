@@ -42,6 +42,13 @@ export const NAV: NavGroup[] = [
     ],
   },
   {
+    key: 'feed',
+    items: [
+      { key: 'feedPosts', href: '/feed/posts/', icon: 'image', permission: 'content.manage' },
+      { key: 'feedStories', href: '/feed/stories/', icon: 'sparkle', permission: 'content.manage' },
+    ],
+  },
+  {
     key: 'community',
     items: [
       { key: 'users', href: '/users/', icon: 'users', permission: 'users.read' },

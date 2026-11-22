@@ -30,6 +30,9 @@ public class SeedFilesTests
         Assert.All(edit.Looks, look => Assert.Equal([PriceBand.HighStreet, PriceBand.LuxuryTouch], look.Variants!.Select(v => v.PriceBand).ToArray()));
         Assert.Contains(bundle.Brands, b => b.Source == AffiliateSource.Network);
         Assert.Contains(bundle.Brands, b => b.Source == AffiliateSource.Direct);
+        Assert.NotEmpty(bundle.Posts);
+        Assert.NotEmpty(bundle.Stories);
+        Assert.Contains(bundle.Posts, p => p.Occasion == Occasion.Dinner);   // the app's "Davet" tab
     }
 
     [Fact]
@@ -43,5 +46,22 @@ public class SeedFilesTests
         Assert.Contains("product p-1: duplicate_id", errors);
         Assert.Contains("product p-1: brand_not_found (no-such-brand)", errors);
         Assert.Contains("product p-1 name: translation_missing (en)", errors);
+    }
+
+    [Fact]
+    public void Validate_FeedPostsAndStories_ProductReferencesAndTranslations()
+    {
+        var post = new FeedPostInput("feed-1", null, new FeedAuthorInput(FeedAuthorKind.Edit, Sample.Text("Droblet Edit"), null, null), Occasion.Office,
+            Sample.Text("Ofis"), null, ["https://img.example/1.jpg"], ["no-such-product"], new DateTime(2026, 11, 22, 7, 0, 0, DateTimeKind.Utc), 0, true);
+        var story = new FeedStoryInput("story-1", null, new FeedStoryAuthorInput(Sample.Text("Droblet Edit"), null), null, Sample.Text("Başlık"), null,
+            new DateTime(2026, 11, 22, 7, 0, 0, DateTimeKind.Utc), null, 0, true);
+        var bundle = new SeedBundle([], [], [], [post, post], [story]);
+
+        var errors = SeedData.Validate(bundle, new LocalizationOptions());
+
+        Assert.Contains("feed post feed-1: duplicate_id", errors);
+        Assert.Contains("feed post feed-1: product_not_found (no-such-product)", errors);
+        Assert.Contains("feed post feed-1 title: translation_missing (en)", errors);
+        Assert.Contains("feed story story-1: ImageUrl image_url_invalid", errors);
     }
 }

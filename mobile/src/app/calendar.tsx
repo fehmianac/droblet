@@ -32,7 +32,7 @@ import { useThemeColors } from '@/theme/useThemeColors';
  * Explicit back: `ScreenHeader`'s default reads `router.canGoBack()` during render, which throws when
  * this screen is the first one rendered (deep link / cold start). Without history, go to Bugün.
  */
-const goBack = () => (router.canGoBack() ? router.back() : router.replace('/'));
+const goBack = () => (router.canGoBack() ? router.back() : router.replace('/today'));
 
 /**
  * 09 Takvim — "ne giyeceğim, ne giydim": a Monday-first month grid (the day number above a 52-high box:

@@ -73,7 +73,7 @@ type Props<T> = {
   children: (data: T) => ReactNode;
 };
 
-/** Without history (deep link / cold start), back goes to Bugün. */
+/** Without history (deep link / cold start), back goes to the home tab (Akış). */
 const goBack = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
 /**

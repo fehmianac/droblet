@@ -26,6 +26,7 @@ public static class StoreSocialDependencyInjection
     {
         services.Configure<CatalogOptions>(configuration.GetSection(CatalogOptions.Section));
         services.Configure<SocialOptions>(configuration.GetSection(SocialOptions.Section));
+        services.Configure<ContentFeedOptions>(configuration.GetSection(ContentFeedOptions.Section));
         services.Configure<WeatherOptions>(configuration.GetSection(WeatherOptions.Section));
         services.Configure<NotificationOptions>(configuration.GetSection(NotificationOptions.Section));
         services.Configure<AffiliatePostbackOptions>(configuration.GetSection(AffiliatePostbackOptions.Section));
@@ -44,6 +45,8 @@ public static class StoreSocialDependencyInjection
         services.TryAddSingleton<IValidator<WeeklyEditInput>, WeeklyEditInputValidator>();
         services.TryAddSingleton<IValidator<ContentCollectionInput>, ContentCollectionInputValidator>();
         services.TryAddSingleton<IValidator<ContentLookInput>, ContentLookInputValidator>();
+        services.TryAddSingleton<IValidator<FeedPostInput>, FeedPostInputValidator>();
+        services.TryAddSingleton<IValidator<FeedStoryInput>, FeedStoryInputValidator>();
 
         // Seams to the wardrobe / plan slices (real implementations: Infrastructure.Services.Integration).
         services.TryAddSingleton<IClosetReader, Infrastructure.Services.Integration.WardrobeClosetReader>();
@@ -53,6 +56,7 @@ public static class StoreSocialDependencyInjection
         services.TryAddSingleton<IAnalyticsService, AnalyticsService>();
         services.TryAddSingleton<ICatalogService, CatalogService>();
         services.TryAddSingleton<IContentService, ContentService>();
+        services.TryAddSingleton<IFeedService, FeedService>();
         services.TryAddSingleton<IWatchListAutoAdd, WatchListAutoAdd>();
         services.TryAddSingleton<INotificationInbox, NotificationInboxService>();
 

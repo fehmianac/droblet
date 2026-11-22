@@ -2,7 +2,7 @@
  * Where a tapped push notification opens (docs/api/store-social-settings.md §9 and purchases-push.md §5:
  * `data.type` + extra keys, all strings). Pure; `DeviceHost` calls `router.push(routeForPush(data))`.
  *
- *   morning_outfit             → 06 Bugün
+ *   morning_outfit             → 06 Bugün (`/today`)
  *   weekly_edit {editId}       → 08 Haftanın edit'i
  *   friend_rating(s) {lookId}  → the rated look; without an id the user's looks
  *   follow_request             → follow requests
@@ -10,12 +10,13 @@
  *   data_export_ready          → Verilerimi indir (inbox only today)
  *   content_removed {targetKind, targetId} → the removed look / piece; the profile → Profili düzenle (inbox only)
  *   outfit_import_ready {sessionId} → the import's review (31c); without an id the import entry (inbox only)
- * Unknown types or unusable ids open Bugün.
+ * Unknown types or unusable ids open the home tab (Akış).
  */
 export type PushData = Record<string, unknown>;
 
 export type PushRoute =
   | '/'
+  | '/today'
   | '/friends/requests'
   | '/watchlist'
   | '/wardrobe/looks'
@@ -39,6 +40,8 @@ function id(data: PushData, key: string): string | null {
 export function routeForPush(data: PushData | null | undefined): PushRoute {
   if (!data) return '/';
   switch (data.type) {
+    case 'morning_outfit':
+      return '/today';
     case 'follow_request':
       return '/friends/requests';
     case 'price_drop': {

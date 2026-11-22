@@ -493,6 +493,36 @@ public class TeenRestrictionEndpointTests(TeenApiFactory factory) : IClassFixtur
         var consents = await (await adult.GetAsync("v1/tenant/consents")).JsonAsync();
         Assert.DoesNotContain(consents.GetProperty("consents").EnumerateArray(), c => c.GetProperty("type").GetString() == "teenTryOn");
     }
+
+    [Fact]
+    public async Task Akis_EditorContent_IsOpenToTeens_FriendsFeedStaysClosed()
+    {
+        var (client, _, _) = await Teen.RegisterAsync(factory);
+        var now = DateTime.UtcNow;
+        var postId = Domain.Extensions.Ulid.New();
+        await factory.Repository.SaveAsync(new FeedPostEntity
+        {
+            Id = postId, Author = new FeedAuthor { Kind = FeedAuthorKind.Edit, Name = new() { ["tr"] = "Droblet Edit" } }, Occasion = Occasion.Office,
+            Title = new() { ["tr"] = "Ofis" }, ImageUrls = ["https://img.example/f.jpg"], PublishAt = now.AddMinutes(-1), Published = true, CreatedAt = now, UpdatedAt = now,
+        });
+
+        var feed = await client.GetAsync("v1/content/feed");
+        var stories = await client.GetAsync("v1/content/feed/story");
+        var like = await client.PutAsync($"v1/tenant/feed-post/{postId}/like", null);
+        var save = await client.PutAsync($"v1/tenant/feed-post/{postId}/save", null);
+        var saved = await client.GetAsync("v1/tenant/feed-post/saved");
+        var unknown = await client.PutAsync($"v1/tenant/feed-post/{Domain.Extensions.Ulid.New()}/like", null);
+        var friends = await client.GetAsync("v1/tenant/feed");
+
+        Assert.Equal(HttpStatusCode.OK, feed.StatusCode);
+        Assert.Contains((await feed.JsonAsync()).GetProperty("items").EnumerateArray(), p => p.GetProperty("id").GetString() == postId);
+        Assert.Equal(HttpStatusCode.OK, stories.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, like.StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, save.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, saved.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, unknown.StatusCode);                  // a plain 404, not teen_restricted
+        Assert.Equal("social", (await friends.JsonAsync()).GetProperty("feature").GetString());
+    }
 }
 
 /// <summary>Try-on gating: Teen:TryOnEnabled false (default) closes it outright; with it on, the parent's box and the teen's own consent both hold.</summary>

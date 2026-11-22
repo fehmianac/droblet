@@ -126,7 +126,7 @@ export function LocalizedField({
   );
 }
 
-export type UploadPurpose = 'product' | 'brand' | 'edit' | 'collection' | 'library';
+export type UploadPurpose = 'product' | 'brand' | 'edit' | 'collection' | 'library' | 'feed';
 const ACCEPT = 'image/jpeg,image/png,image/webp';
 
 export function useImageUpload(purpose: UploadPurpose) {

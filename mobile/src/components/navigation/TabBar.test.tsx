@@ -21,13 +21,13 @@ describe('tab bar (TasarimSistemi: 86 high, centre Stilist 56 raised 18)', () =>
     const onPress = jest.fn();
     await render(<TabBarView active="index" onPress={onPress} />);
 
-    for (const label of ['Today', 'Wardrobe', 'Discover', 'Profile']) expect(screen.getByText(label)).toBeTruthy();
+    for (const label of ['Feed', 'Wardrobe', 'Discover', 'Profile']) expect(screen.getByText(label)).toBeTruthy();
     // The centre button is announced but carries no visible label on the canvas.
     expect(screen.queryByText('Stylist')).toBeNull();
     const stylist = screen.getByLabelText('Stylist');
     expect(stylist.props.style).toEqual(expect.objectContaining({ marginTop: -18 }));
 
-    expect(screen.getByLabelText('Today').props.accessibilityState).toEqual({ selected: true });
+    expect(screen.getByLabelText('Feed').props.accessibilityState).toEqual({ selected: true });
     expect(screen.getByLabelText('Wardrobe').props.accessibilityState).toEqual({ selected: false });
 
     await fireEvent.press(stylist);

@@ -1,5 +1,6 @@
 using Domain.Entity;
 using Domain.Enum;
+using Domain.Manager;
 using Domain.Options;
 using Domain.Services;
 using Domain.Services.Ai;
@@ -135,5 +136,17 @@ public sealed class EditLookLookup(IContentService content) : IEditLookLookup
             .FirstOrDefault(l => l.Id == parts[0]);
         var variant = look?.Variants.OrderBy(v => v.PriceBand).FirstOrDefault(v => band is null || v.PriceBand == band);
         return variant?.ProductIds.ToList();
+    }
+}
+
+/// <summary>IFeedPostLookup on the Akış posts: only a live post (published, not retired, publish time come) resolves.</summary>
+public sealed class FeedPostLookup(IRepository repository, TimeProvider timeProvider) : IFeedPostLookup
+{
+    public async Task<IReadOnlyList<string>?> GetProductIdsAsync(string postId, CancellationToken ct)
+    {
+        if (!Domain.Validation.FeedInputRules.IsId(postId))
+            return null;
+        var post = await repository.GetAsync<FeedPostEntity>(FeedPostEntity.GetPk(), FeedPostEntity.GetSk(postId), ct);
+        return post is not null && FeedRules.IsLive(post, timeProvider.GetUtcNow().UtcDateTime) ? post.ProductIds.ToList() : null;
     }
 }

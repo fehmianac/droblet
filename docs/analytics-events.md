@@ -121,7 +121,13 @@ documented manual screen tracking).
 | `subscribed` | — (not sent; `purchase` covers it) | Paywall purchase succeeded | — | ✓ |
 | `credits_exhausted` | `credits_exhausted` | An AI action is refused for lack of credits | `feature` | ✓ |
 | `credit_spent` | `credit_spent` | (declared; not tracked by the app yet) | `feature`, `count` | ✓ |
-| `tryon_start` | `tryon_start` | "Üzerimde gör" accepted by the server | `path` body \| face, `cached` true \| false, `credit_cost` (0 when cached), `target` item \| look \| product \| edit-look \| suggestion \| plan-day \| trip-day | — |
+| `tryon_start` | `tryon_start` | "Üzerimde gör" accepted by the server | `path` body \| face, `cached` true \| false, `credit_cost` (0 when cached), `target` item \| look \| product \| edit-look \| feed-post \| suggestion \| plan-day \| trip-day | — |
+| `feed_post_view` | `feed_post_view` | Akış: a post card is half visible, once per post per session | `postId`, `authorKind` edit \| stylist | — |
+| `feed_like` | `feed_like` | Akış: ♡ toggled | `postId`, `liked` | — |
+| `feed_save` | `feed_save` | Akış: Kaydet toggled | `postId`, `saved` | — |
+| `feed_story_view` | `feed_story_view` | Akış: each story shown in the viewer | `storyId` | — |
+| `feed_buy_click` | `feed_buy_click` | Akış: a brand site opened from a post or a story | `productId`, `brandId`, `source` post \| story, `postId` | — |
+| `feed_tryon_start` | `feed_tryon_start` | Akış: "Üzerimde dene" tapped (intent; `tryon_start` still fires when the server accepts, target `feed-post`) | `source`, `postId` or `productId` | — |
 | `tryon_complete` | `tryon_complete` | The try-on job finished (or the image already existed) | `path`, `cached`, `credit_cost`, `target` | — |
 | `tryon_failed` | `tryon_failed` | The try-on job failed | `path`, `error_code`, `credit_refunded`, `target` | — |
 | `outfit_suggested` | `outfit_suggested` | A stylist job delivered suggestions | `source` stylist \| complete, `count` | — |

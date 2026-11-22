@@ -63,6 +63,18 @@ export const ANALYTICS_EVENTS = [
   'select_content',
   /** Canvas 19 · notification permission: `action` shown | allow | decline | result, `granted` (result), `source` onboarding | app_start, `variant` adult | teen. */
   'push_permission',
+  /** Akış F1: a post scrolled into view, once per post per app session; `postId`, `authorKind` edit | stylist. */
+  'feed_post_view',
+  /** Akış F1: ♡ toggled; `postId`, `liked`. */
+  'feed_like',
+  /** Akış F1: "Kaydet" toggled; `postId`, `saved`. */
+  'feed_save',
+  /** Akış F1: an editor story opened in the viewer; `storyId`. */
+  'feed_story_view',
+  /** Akış F1: a product opened on the brand site; `productId`, `brandId`, `source` post | story, `postId`. */
+  'feed_buy_click',
+  /** Akış F1: "Üzerimde dene · 1 kredi" tapped; `source` post | story, `postId` (post) or `productId` (story). */
+  'feed_tryon_start',
 ] as const;
 export type AnalyticsEventName = (typeof ANALYTICS_EVENTS)[number];
 

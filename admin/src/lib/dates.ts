@@ -24,3 +24,19 @@ export function daysBetween(from: string, to: string): string[] {
   for (let t = new Date(`${from}T00:00:00Z`).getTime(); t <= end && out.length < 400; t += 86_400_000) out.push(isoDay(new Date(t)));
   return out;
 }
+
+/** ISO (UTC) → the value of an `<input type="datetime-local">` in the browser's time zone. */
+export function toLocalInput(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** `<input type="datetime-local">` value (browser time zone) → ISO UTC, or null when empty / invalid. */
+export function fromLocalInput(value: string): string | null {
+  if (!value) return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}

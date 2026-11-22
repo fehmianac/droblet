@@ -91,7 +91,7 @@ export function mapIncomingLink(input: string): MappedLink {
     return { path: withQuery(`/${emailRoute}`), inviteCode };
   }
   if (first === 'today' && segments.length === 1) {
-    return { path: withQuery('/'), inviteCode };
+    return { path: withQuery('/today'), inviteCode };
   }
   // Not one of ours to rewrite: hand the link back untouched.
   return { path: input, inviteCode };
