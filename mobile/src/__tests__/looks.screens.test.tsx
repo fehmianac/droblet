@@ -174,6 +174,33 @@ describe('Look detail (derived from 17)', () => {
     await waitFor(() => expect(screen).toHavePathname('/item/item_navy_blazer'), { timeout: 3000 });
   });
 
+  it('opened from the lookbook it draws at once from the list; favourite, edit, share and ⋯ wait for the look', async () => {
+    await renderRouter('./src/app', { initialUrl: '/wardrobe/looks' });
+    await waitFor(() => expect(screen.getByText('Lacivert Blazer')).toBeTruthy(), { timeout: 3000 });
+    await fireEvent.press(screen.getByLabelText('Office, Lacivert Blazer, average rating 4.6'));
+    await waitFor(() => expect(screen).toHavePathname('/look/look_lacivert_blazer'), { timeout: 3000 });
+    // No full-screen loader: hero, name and the try-on button are there before the detail has answered.
+    expect(screen.queryByTestId('state-loading')).toBeNull();
+    expect(screen.queryByTestId('state-skeleton')).toBeNull();
+    expect(screen.getByTestId('look-hero')).toBeTruthy();
+    expect(screen.getAllByText('Lacivert Blazer').length).toBeGreaterThan(0);
+    expect(screen.getByTestId('look-try-on')).toBeTruthy();
+    expect(screen.getByTestId('look-actions-pending')).toBeTruthy();
+    expect(screen.queryByTestId('look-edit')).toBeNull();
+
+    await waitFor(() => expect(screen.getByTestId('look-edit')).toBeTruthy(), { timeout: 3000 });
+    expect(screen.queryByTestId('look-actions-pending')).toBeNull();
+    expect(screen.getByTestId('look-share')).toBeTruthy();
+  });
+
+  it('opened with nothing known (deep link) it shows the page-shaped skeleton, not the drop loader', async () => {
+    await renderRouter('./src/app', { initialUrl: '/look/look_lacivert_blazer' });
+    await waitFor(() => expect(screen.getByTestId('state-skeleton')).toBeTruthy(), { timeout: 3000 });
+    expect(screen.queryByTestId('state-loading')).toBeNull();
+    await waitFor(() => expect(screen.getByTestId('look-edit')).toBeTruthy(), { timeout: 3000 });
+    expect(screen.queryByTestId('state-skeleton')).toBeNull();
+  });
+
   it('marks a store piece as missing and offers to complete the look', async () => {
     const look = fixtureDb.looks.find((l) => l.id === 'look_lacivert_blazer');
     look?.slots.push({ slot: 'shoes', source: 'store', refId: 'prod_rain_boots', name: 'Yağmur botu', imageUrl: null, brand: 'Gap', price: null, deleted: false });

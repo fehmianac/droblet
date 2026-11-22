@@ -16,6 +16,7 @@ import { IconButton } from '@/components/ui/IconButton';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { CreditConfirmSheet } from '@/features/credits/CreditConfirmSheet';
@@ -192,6 +193,37 @@ function LookBody({ look, itemsById, note, tryOn, invite }: BodyProps) {
   );
 }
 
+/**
+ * 14b with nothing known yet (deep link, first load): the page's own shape — hero, eyebrow, name, piece rows — as
+ * shimmering blocks (canvas n_durum), never the full-screen loader.
+ */
+function LookSkeleton() {
+  return (
+    <View className="gap-3 px-gutter pb-6 pt-1">
+      <Skeleton sweep className="h-[266px] w-full rounded-card" />
+      <View className="gap-1.5">
+        <Skeleton sweep className="h-[11px] w-36 rounded-[5px]" />
+        <Skeleton sweep className="h-7 w-3/5 rounded-[6px]" />
+      </View>
+      <Skeleton sweep className="h-3 w-28 rounded-[5px]" />
+      <View>
+        {[0, 1, 2].map((row) => (
+          <View key={row} className="min-h-[62px] flex-row items-center gap-3 border-b border-line py-[7px]">
+            <Skeleton sweep className="h-12 w-10 rounded-[8px]" />
+            <View className="flex-1 gap-1.5">
+              <Skeleton sweep className={`h-3.5 rounded-[5px] ${row === 1 ? 'w-2/5' : 'w-1/2'}`} />
+              <Skeleton sweep className="h-[11px] w-1/4 rounded-[5px]" />
+            </View>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+/** 44 round block holding the place of a header / bar button until the look's own record has arrived. */
+const ButtonSkeleton = () => <Skeleton sweep className="h-11 w-11 rounded-pill" />;
+
 type Notice = 'tryOnOffline' | 'tryOnFailed' | 'worn' | null;
 
 /**
@@ -204,7 +236,8 @@ export default function LookScreen() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const online = useIsOnline();
-  const query = useLook(id);
+  // Opened from the lookbook: drawn at once from the list's copy (canvas n_ux2 · 8); the record's own writes wait for it.
+  const query = useLook(id, { fromList: true });
   const items = useItems();
   const writes = useLookWrites();
   const tryOn = useStartTryOn();
@@ -217,6 +250,8 @@ export default function LookScreen() {
   const [deleted, setDeleted] = useState(false);
   const [notice, setNotice] = useState<Notice>(null);
   const look = query.data;
+  // Only the list's copy so far: favourite, edit, share and ⋯ (they write or act on the record) are skeletons until it lands.
+  const preview = query.isPlaceholderData;
   const itemsById = indexItems(items.data);
   const startTryOn = () => {
     if (!look) return;
@@ -304,7 +339,12 @@ export default function LookScreen() {
         leading="back"
         onLeadingPress={leave}
         right={
-          look ? (
+          look && preview ? (
+            <View className="flex-row gap-2" testID="look-actions-pending">
+              {hideShare ? null : <ButtonSkeleton />}
+              <ButtonSkeleton />
+            </View>
+          ) : look ? (
             <>
               {hideShare ? null : <IconButton icon={ShareIcon} onPress={share} accessibilityLabel={t('lookDetail.share')} testID="look-share" />}
               <IconButton icon={Ellipsis} variant="plain" onPress={() => setMenu(true)} accessibilityLabel={t('lookEditor.more')} />
@@ -314,6 +354,8 @@ export default function LookScreen() {
       />
       <ScreenState
         query={query}
+        loadingLabel={t('lookDetail.loadingA11y')}
+        skeleton={<LookSkeleton />}
         notFound={{ message: t('lookDetail.notFound'), actionLabel: t('lookDetail.backToLooks'), onAction: () => router.replace('/wardrobe/looks') }}
       >
         {(data) => <LookBody look={data} itemsById={itemsById} note={noteText} tryOn={lookTryOn} invite={invite} />}
@@ -322,12 +364,16 @@ export default function LookScreen() {
       {look ? (
         <BottomActionBar>
           <View className="flex-row items-center gap-2.5">
-            <IconButton
-              icon={Heart}
-              active={look.isFavorite}
-              onPress={() => writes.toggleFavorite(look)}
-              accessibilityLabel={t(look.isFavorite ? 'looks.favoriteRemove' : 'looks.favoriteAdd', { name: look.name })}
-            />
+            {preview ? (
+              <ButtonSkeleton />
+            ) : (
+              <IconButton
+                icon={Heart}
+                active={look.isFavorite}
+                onPress={() => writes.toggleFavorite(look)}
+                accessibilityLabel={t(look.isFavorite ? 'looks.favoriteRemove' : 'looks.favoriteAdd', { name: look.name })}
+              />
+            )}
             <View className="flex-1">
               <Button
                 size="bar"
@@ -346,7 +392,7 @@ export default function LookScreen() {
                 </View>
               ) : null}
             </View>
-            <IconButton icon={Pencil} onPress={edit} accessibilityLabel={t('lookDetail.edit')} testID="look-edit" />
+            {preview ? <ButtonSkeleton /> : <IconButton icon={Pencil} onPress={edit} accessibilityLabel={t('lookDetail.edit')} testID="look-edit" />}
           </View>
           {hasImage ? (
             // The image exists on this photo: "Üzerimde gör" opens it, and nothing is charged (13d).
