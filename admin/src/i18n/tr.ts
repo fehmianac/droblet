@@ -762,6 +762,7 @@ export const tr: Dict = {
       palette: 'Renk analizi',
       tryon: 'Prova',
       cleanup: 'Arka plan temizleme',
+      look: 'Look kapağı',
       common: 'Ortak',
     },
     kinds: {
@@ -937,6 +938,9 @@ export const tr: Dict = {
       'Image.PreviewQuality': 'Önizleme kalitesi',
       'Image.CleanupSize': 'Temizleme boyutu',
       'Image.CleanupQuality': 'Temizleme kalitesi',
+      'LookCover.Enabled': 'Kaydedilen look\'lara AI flat-lay kapak (kapalı = yalnız çizili kapak, AI çağrısı yok)',
+      'Image.LookCoverSize': 'Look kapağı boyutu',
+      'Image.LookCoverQuality': 'Look kapağı kalitesi',
       'Prompts.Enabled': 'Yayınlanan promptları kullan (kapalı = her yerde kod varsayılanı)',
       'Prompts.CacheSeconds': 'Worker başına prompt önbelleği (saniye)',
       'Prompts.FailureThreshold': 'Otomatik geri dönüşten önce kullanılamaz yanıt sayısı (0 = kapalı)',
@@ -991,7 +995,7 @@ export const tr: Dict = {
     aiOperation: {
       stylist_outfit: 'Stilist · kombin', stylist_week: 'Stilist · haftalık plan', stylist_pack: 'Stilist · bavul', item_detection: 'Parça tanıma',
       cleanup: 'Arka plan temizleme', multi_item: 'Çoklu fotoğraf parçası', import_detect: 'İçe aktarma · tanıma', import_match: 'İçe aktarma · eşleştirme',
-      import_cleanup: 'İçe aktarma · temizleme', palette: 'Renk paleti', photo_check: 'Fotoğraf kontrolü', tryon: 'Üzerimde gör', admin_trial: 'Yönetici denemesi', other: 'Diğer',
+      import_cleanup: 'İçe aktarma · temizleme', palette: 'Renk paleti', photo_check: 'Fotoğraf kontrolü', tryon: 'Üzerimde gör', look_cover: 'Look kapağı', admin_trial: 'Yönetici denemesi', other: 'Diğer',
     },
   },
   aiUsage: {

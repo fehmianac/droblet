@@ -13,10 +13,33 @@ export const lookKeys = {
   look: (id: string) => ['tenant', 'look', id] as const,
 };
 
+/** While a look's AI flat-lay cover is being made (canvas 21c), the lookbook re-reads every few seconds… */
+export const COVER_POLL_MS = 4000;
+/** …for at most this long per look (a cover that never arrives keeps the drawn flat-lay; pull to refresh still works). */
+export const COVER_POLL_MAX_MS = 3 * 60_000;
+const pendingSince = new Map<string, number>();
+
+/** Poll interval for the looks list: while some look's cover is pending and has not been waited on too long. */
+export function coverPollInterval(looks: readonly Look[] | undefined, now = Date.now()): number | false {
+  let poll = false;
+  const pending = new Set<string>();
+  for (const look of looks ?? []) {
+    if (!look.coverPending || look.coverImageUrl) continue;
+    pending.add(look.id);
+    const since = pendingSince.get(look.id) ?? now;
+    pendingSince.set(look.id, since);
+    if (now - since < COVER_POLL_MAX_MS) poll = true;
+  }
+  for (const id of [...pendingSince.keys()]) if (!pending.has(id)) pendingSince.delete(id);
+  return poll ? COVER_POLL_MS : false;
+}
+
 /** 14 Looklar — the lookbook; favourite / occasion filters run on the device. */
 export function useLooks() {
   return useQuery({
     queryKey: lookKeys.looks,
+    refetchInterval: (query) => coverPollInterval(query.state.data),
+    refetchIntervalInBackground: false,
     queryFn: () =>
       fromSource<Look[]>(
         'wardrobe',

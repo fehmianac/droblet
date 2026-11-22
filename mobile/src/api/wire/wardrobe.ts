@@ -237,8 +237,10 @@ export type LookWire = {
   rating: { average: number | null; count: number } | null;
   /** Owner-only: `{ hidden: true, reason }` while a moderator hides the look from everybody else. */
   moderation?: ModerationWire | null;
-  /** Imported look: presigned GET of the outfit photo (GET look / look/{id} only). */
+  /** Presigned GET of the cover (GET look / look/{id} only): an imported look's outfit photo, else the AI flat-lay of its pieces. */
   coverImageUrl?: string | null;
+  /** The AI flat-lay cover of the current pieces is queued or being made. */
+  coverPending?: boolean;
 };
 
 export type LookSlotInputWire = { slot: OutfitSlotWire; itemId?: string; productId?: string };
@@ -312,6 +314,7 @@ export function toLook(wire: LookWire, ctx: LookContext): Look {
     // The cover falls back to the piece collage; an existing try-on is read on demand (`GET v1/tenant/tryon`).
     tryOnImageUrl: null,
     coverImageUrl: wire.coverImageUrl ?? null,
+    coverPending: Boolean(wire.coverPending),
     createdAt: wire.createdAt,
     baseVersion: wire.version,
     moderation: toModeration(wire.moderation),

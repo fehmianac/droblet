@@ -127,6 +127,7 @@ public static class DependencyInjection
         services.AddSingleton<IItemImageCleanup>(sp => sp.GetRequiredService<OpenAiProvider>());
         services.AddSingleton<IItemMatcher>(sp => sp.GetRequiredService<OpenAiProvider>());
         services.AddSingleton<IFastItemDetector>(sp => sp.GetRequiredService<OpenAiProvider>());
+        services.AddSingleton<ILookCoverRenderer>(sp => sp.GetRequiredService<OpenAiProvider>());
         return services;
     }
 

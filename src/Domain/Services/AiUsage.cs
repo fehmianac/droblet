@@ -61,6 +61,8 @@ public static class AiUsageOperations
     public const string PhotoCheck = "photo_check";
     public const string TryOn = "tryon";
     public const string AdminTrial = "admin_trial";
+    /// <summary>AI flat-lay cover of a saved look (no credit, operation cost only).</summary>
+    public const string LookCover = "look_cover";
     public const string Other = "other";
 
     /// <summary>ItemClean jobs queued by an outfit import commit carry this in their input (`usageSource`).</summary>
@@ -69,7 +71,7 @@ public static class AiUsageOperations
     public static readonly IReadOnlyList<string> All =
     [
         StylistOutfit, StylistWeek, StylistPack, ItemDetection, Cleanup, MultiItem, ImportDetect, ImportMatch, ImportCleanup,
-        Palette, PhotoCheck, TryOn, AdminTrial, Other,
+        Palette, PhotoCheck, TryOn, LookCover, AdminTrial, Other,
     ];
 
     /// <summary>The usage operation of one provider call (operation = the provider's call name, e.g. "image_cleanup").</summary>
@@ -89,6 +91,7 @@ public static class AiUsageOperations
             JobKind.ItemProcess or JobKind.ItemSplit => image ? Cleanup : ItemDetection,
             JobKind.Palette => Palette,
             JobKind.TryOn => TryOn,
+            JobKind.LookCover => LookCover,
             _ => callOperation switch
             {
                 "outfit" => StylistOutfit,
@@ -99,6 +102,7 @@ public static class AiUsageOperations
                 "item_match" => ImportMatch,
                 "palette_season" => Palette,
                 "image_tryon" => TryOn,
+                "image_look_cover" => LookCover,
                 _ => Other,
             },
         };
@@ -116,6 +120,7 @@ public static class AiUsageOperations
         JobKind.ItemProcess or JobKind.ItemSplit => ItemDetection,
         JobKind.Palette => Palette,
         JobKind.TryOn => TryOn,
+        JobKind.LookCover => LookCover,
         _ => Other,
     };
 

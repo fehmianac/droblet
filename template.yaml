@@ -926,14 +926,18 @@ Resources:
               - Effect: Allow
                 # A photo rejected by the server-side photo check (not full body, too dark, …) is removed, not kept;
                 # the job copy of an outfit photo is removed once it is kept next to the image (tenant/*/tryon/).
+                # look-cover/: the AI flat-lay cover of a saved look replaces its previous image (or drops a stale one).
                 Action: s3:DeleteObject
                 Resource:
                   - !Sub '${PhotoBucket.Arn}/tenant/*/body/*'
                   - !Sub '${PhotoBucket.Arn}/tenant/*/face/*'
                   - !Sub '${PhotoBucket.Arn}/uploads/tmp/*/tryonref-*'
+                  - !Sub '${PhotoBucket.Arn}/tenant/*/look-cover/*'
               - Effect: Allow
                 Action: s3:PutObject
-                Resource: !Sub '${PhotoBucket.Arn}/tenant/*/tryon/*'
+                Resource:
+                  - !Sub '${PhotoBucket.Arn}/tenant/*/tryon/*'
+                  - !Sub '${PhotoBucket.Arn}/tenant/*/look-cover/*'
               - Effect: Allow
                 Action: [ssm:GetParameter, ssm:GetParameters, ssm:GetParametersByPath]
                 Resource:

@@ -23,6 +23,7 @@ public class AiUsageRulesTests
     [InlineData(JobKind.Palette, "palette_season", null, AiUsageOperations.Palette)]
     [InlineData(JobKind.TryOn, "photo_check", null, AiUsageOperations.PhotoCheck)]
     [InlineData(JobKind.TryOn, "image_tryon", null, AiUsageOperations.TryOn)]
+    [InlineData(JobKind.LookCover, "image_look_cover", null, AiUsageOperations.LookCover)]
     [InlineData(JobKind.AiTrial, "outfit", null, AiUsageOperations.AdminTrial)]
     [InlineData(JobKind.AiTrial, "photo_check", null, AiUsageOperations.PhotoCheck)]
     public void Classify_EveryAiPath_HasItsOperation(JobKind kind, string call, string? source, string expected) =>

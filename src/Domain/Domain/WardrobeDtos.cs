@@ -129,9 +129,12 @@ public record LookDto(
     LookRatingSummaryDto? Rating = null,
     // Owner-only: { hidden: true, reason } when a moderator removed the look from everyone else; null otherwise.
     ModerationDto? Moderation = null,
-    // Imported look: presigned GET of the outfit photo it came from (GET look / look/{id}, owner only); null otherwise.
+    // Owner only (GET look, look/{id}, the create / update / accept responses): an imported look's outfit photo, else the AI
+    // flat-lay cover of the look's current pieces once it is ready (presigned GET); null otherwise (the app draws its cover).
     string? CoverImageUrl = null,
-    DateTime? CoverImageUrlExpiresAt = null);
+    DateTime? CoverImageUrlExpiresAt = null,
+    // True while the AI flat-lay cover of the look's current pieces is being made (the app shows its drawn cover meanwhile).
+    bool CoverPending = false);
 
 public record LookRatingSummaryDto(double Average, long Count);
 

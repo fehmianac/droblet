@@ -103,6 +103,8 @@ public static class PromptCatalog
     public const string TryOnPhotoFace = "tryon.image.photo.face";
     public const string ReferenceCheckInstructions = "photo_check.reference.instructions";
     public const string CleanupGarment = "cleanup.garment.image";
+    /// <summary>AI flat-lay cover of a saved look (canvas 21c).</summary>
+    public const string LookCover = "look.cover.image";
     public static string CleanupItem(bool jewellery) => jewellery ? "cleanup.item.jewellery.image" : "cleanup.item.image";
 
     private static readonly IReadOnlyList<PromptVariable> None = [];
@@ -243,6 +245,11 @@ public static class PromptCatalog
         new(CleanupGarment, "cleanup", "image_cleanup", PromptKind.Image,
             "Arka plan temizleme (tek parça fotoğrafı, eski akış): product photo of the garment.",
             None, () => OpenAiPrompts.Cleanup, ImageMaxLength, PromptTrialTarget.None),
+
+        new(LookCover, "look", "image_look_cover", PromptKind.Image,
+            "Look kapağı (AI flat-lay): the saved look's own pieces laid out top-down on a cream linen bedsheet, soft daylight, exactly as in their photos — nothing added, no person, no text.",
+            [new("pieceCount", true, "Number of piece images.", "3")],
+            () => OpenAiPrompts.LookCoverTemplate, ImageMaxLength, PromptTrialTarget.None),
     ];
 
     private static readonly Dictionary<string, PromptDefinition> ByKey = All.ToDictionary(d => d.Key, StringComparer.Ordinal);

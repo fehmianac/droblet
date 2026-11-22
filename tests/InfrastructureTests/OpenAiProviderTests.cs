@@ -364,6 +364,42 @@ public class OpenAiProviderTests
     }
 
     [Fact]
+    public async Task RenderFlatlay_PostsOneEdit_WithOnlyThePieces_PortraitLowQualityByDefault()
+    {
+        var (provider, handler) = Create(Image(Webp));
+        var piece = new ImageInput([0x89, (byte)'P', (byte)'N', (byte)'G'], "image/png");
+
+        var result = await provider.RenderFlatlayAsync([Photo, piece, piece], default);
+
+        var call = Assert.Single(handler.Calls);
+        Assert.EndsWith("/v1/images/edits", call.Request.RequestUri!.AbsolutePath);
+        Assert.Contains($"name=model\r\n\r\n{ImageModel}", call.Body);
+        Assert.Contains("name=size\r\n\r\n1024x1536", call.Body);
+        Assert.Contains("name=quality\r\n\r\nlow", call.Body);
+        Assert.Equal(3, call.Body.Split("name=\"image[]\"").Length - 1);
+        Assert.Contains("cream linen bedsheet", call.Body);
+        Assert.Contains("The 3 image(s)", call.Body);
+        Assert.Contains("no person", call.Body);
+        Assert.Equal(Webp, result.Data);
+    }
+
+    [Fact]
+    public async Task RenderFlatlay_UsesItsOwnConfiguredSizeAndQuality()
+    {
+        var options = Options();
+        options.Image.LookCoverQuality = "medium";
+        options.Image.LookCoverSize = "1024x1024";
+        options.Image.Quality = "high";
+        var (provider, handler) = Create(Image(Webp), options: options);
+
+        await provider.RenderFlatlayAsync([Photo], default);
+
+        var call = Assert.Single(handler.Calls);
+        Assert.Contains("name=size\r\n\r\n1024x1024", call.Body);
+        Assert.Contains("name=quality\r\n\r\nmedium", call.Body);
+    }
+
+    [Fact]
     public void TryOnPrompt_KeepsThePersonUnchanged() =>
         Assert.Contains("Do not change the person's body", OpenAiPrompts.TryOn(2));
 

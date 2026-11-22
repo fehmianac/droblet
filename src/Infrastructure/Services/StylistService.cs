@@ -42,7 +42,8 @@ public sealed class StylistService(
     IStylistAllowanceService allowance,
     ILookService looks,
     TimeProvider timeProvider,
-    IAiUsageGuard aiLimits) : IStylistService
+    IAiUsageGuard aiLimits,
+    ILookCoverService covers) : IStylistService
 {
     private const int MaxVersionRetries = 4;
 
@@ -118,6 +119,9 @@ public sealed class StylistService(
                 operations.Add(TransactWriteOperation.PutVersioned(await PlanAsync(tenantId, command.PlanDate, look.Id, result.Occasion, now, ct)));
 
             var write = await repository.TransactWriteAsync(operations, ct);
+            // A newly accepted look gets its AI flat-lay cover like any saved look (best effort, no credit).
+            if (write.Applied)
+                await covers.RequestAsync(look, ct);
             if (write.Applied || write.FailedIndex == 0)
                 return await AcceptedAsync(tenantId, lookId, command.PlanDate, ct);
             if (write.FailedIndex == 1)
@@ -153,16 +157,23 @@ public sealed class StylistService(
             {
                 TransactWriteOperation.Create(new MutationReceiptEntity { TenantId = tenantId, ClientMutationId = command.ClientMutationId, CreatedAt = now }),
             };
+            var looks = new List<LookEntity>(days.Count);
             foreach (var day in days)
             {
                 var look = await BuildLookAsync(tenantId, Ulid.New(now), day.Outfit!, null, day.Occasion, false, now, ct);
                 if (look is null)
                     return ServiceResult.Conflict<AcceptedWeekDto>(null, ErrorCodes.SuggestionStale);
+                looks.Add(look);
                 operations.Add(TransactWriteOperation.Create(look));
                 operations.Add(TransactWriteOperation.PutVersioned(await PlanAsync(tenantId, day.Date, look.Id, day.Occasion, now, ct)));
             }
 
             var write = await repository.TransactWriteAsync(operations, ct);
+            // Every accepted day's look gets its AI flat-lay cover like any saved look (owner decision 2026-11-22: all of
+            // them, up to 7 per week; best effort, no credit). Only when this write created them, never on a replay.
+            if (write.Applied)
+                foreach (var look in looks)
+                    await covers.RequestAsync(look, ct);
             if (write.Applied || write.FailedIndex == 0)
                 return await AcceptedWeekAsync(tenantId, days.Select(d => d.Date).ToList(), ct);
         }

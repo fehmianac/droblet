@@ -41,7 +41,8 @@ public sealed class TryOnJobService(
     TimeProvider timeProvider,
     ILogger<TryOnJobService> logger) : ITryOnJobService
 {
-    private const long MaxImageBytes = 15 * 1024 * 1024;
+    private const long MaxImageBytes = GarmentImageLoader.MaxImageBytes;
+    private readonly GarmentImageLoader garmentImages = new(repository, storage, products, library);
 
     public async Task ProcessAsync(TryOnRequestedEvent message, bool isLastAttempt, CancellationToken ct)
     {
@@ -226,56 +227,8 @@ public sealed class TryOnJobService(
     {
         var pieces = StylingJson.TryDeserialize<TryOnJobInput>(job.Input)?.Pieces ?? [];
         // Every piece in parallel (DynamoDB + S3 / https downloads); the order of the pieces is kept.
-        var images = await Task.WhenAll(pieces.Select(piece => GarmentAsync(job, piece, ct)));
+        var images = await Task.WhenAll(pieces.Select(piece => garmentImages.LoadAsync(job.TenantId, piece, ct)));
         return images.Any(i => i is null) ? null : images.Select(i => i!).ToList();
-    }
-
-    private async Task<ImageInput?> GarmentAsync(JobEntity job, OutfitPiece piece, CancellationToken ct)
-    {
-        {
-            ImageInput? image = null;
-            if (piece.ItemId is not null)
-            {
-                var item = await repository.GetAsync<ItemEntity>(ItemEntity.GetPk(job.TenantId), ItemEntity.GetSk(piece.ItemId), ct);
-                var key = item is { UseOriginalImage: true, OriginalImageKey: not null } ? item.OriginalImageKey : item?.ImageKey ?? item?.OriginalImageKey;
-                if (key is not null && StorageKeys.BelongsToTenant(key, job.TenantId) && await storage.ReadAsync(key, MaxImageBytes, ct) is { } data)
-                    image = new ImageInput(data, key.EndsWith(".webp", StringComparison.Ordinal) ? "image/webp" : key.EndsWith(".png", StringComparison.Ordinal) ? "image/png" : "image/jpeg");
-                // A piece added from the ready library or the catalog has no own photo: its image is the global
-                // https asset (GlobalImageKey), fetched with the same allow-listed downloader as catalog products.
-                else if (key is null && item is not null && await GlobalImageAsync(item, ct) is { } global)
-                    image = await products.ReadImageAsync(
-                        new ProductSnapshot(item.Id, item.Name ?? "", null, null, item.Category, item.ColorIds, item.Fabric, item.Seasons, global, false), ct);
-            }
-            else if (piece.ProductId is not null && await products.GetAsync(piece.ProductId, ct) is { } product)
-            {
-                image = await products.ReadImageAsync(product, ct);
-            }
-            else if (piece.LibraryItemId is not null
-                     && (await library.GetAllAsync(ct)).FirstOrDefault(l => l.Id == piece.LibraryItemId) is { } libraryItem
-                     && LibraryItemImageRules.IsResolvable(libraryItem.ImageKey))
-            {
-                // A ready-library piece the stylist picked for a thin wardrobe (not added yet): its global https image.
-                image = await products.ReadImageAsync(new ProductSnapshot(libraryItem.Id, libraryItem.Name.GetValueOrDefault("tr") ?? "", null, null,
-                    libraryItem.Category, libraryItem.ColorIds, libraryItem.Fabric, libraryItem.Seasons, libraryItem.ImageKey, false), ct);
-            }
-
-            return image;
-        }
-    }
-
-    /// <summary>
-    /// The piece's global https image. Run-on-read fallback for pieces added from the library before its images existed
-    /// (GlobalImageKey still the seed placeholder): the library item's current image is used instead. The stored piece is
-    /// not rewritten here (a worker never writes user items); ops migrate-library-item-images fixes the rows once.
-    /// </summary>
-    private async Task<string?> GlobalImageAsync(ItemEntity item, CancellationToken ct)
-    {
-        if (LibraryItemImageRules.IsResolvable(item.GlobalImageKey))
-            return item.GlobalImageKey;
-        if (!LibraryItemImageRules.NeedsLibraryImage(item))
-            return null;
-        var source = await repository.GetAsync<LibraryItemEntity>(LibraryItemEntity.GetPk(), LibraryItemEntity.GetSk(item.LibraryItemId!), ct);
-        return LibraryItemImageRules.CurrentImageFor(item, source);
     }
 
     private async Task<PhotoEntity?> ActivePhotoAsync(string tenantId, PhotoKind kind, string photoId, CancellationToken ct)

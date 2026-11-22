@@ -761,6 +761,7 @@ export const en = {
       palette: 'Colour analysis',
       tryon: 'Try-on',
       cleanup: 'Background cleanup',
+      look: 'Look cover',
       common: 'Common',
     },
     kinds: {
@@ -936,6 +937,9 @@ export const en = {
       'Image.PreviewQuality': 'Preview quality',
       'Image.CleanupSize': 'Cleanup size',
       'Image.CleanupQuality': 'Cleanup quality',
+      'LookCover.Enabled': 'AI flat-lay cover for saved looks (off = drawn cover only, no AI call)',
+      'Image.LookCoverSize': 'Look cover size',
+      'Image.LookCoverQuality': 'Look cover quality',
       'Prompts.Enabled': 'Use published prompts (off = code defaults everywhere)',
       'Prompts.CacheSeconds': 'Prompt cache per worker (seconds)',
       'Prompts.FailureThreshold': 'Unusable answers before the automatic fallback (0 = off)',
@@ -990,7 +994,7 @@ export const en = {
     aiOperation: {
       stylist_outfit: 'Stylist · outfit', stylist_week: 'Stylist · week plan', stylist_pack: 'Stylist · suitcase', item_detection: 'Item detection',
       cleanup: 'Background removal', multi_item: 'Multi-item piece', import_detect: 'Outfit import · detect', import_match: 'Outfit import · match',
-      import_cleanup: 'Outfit import · cleanup', palette: 'Colour palette', photo_check: 'Photo check', tryon: 'Try-on', admin_trial: 'Admin trial', other: 'Other',
+      import_cleanup: 'Outfit import · cleanup', palette: 'Colour palette', photo_check: 'Photo check', tryon: 'Try-on', look_cover: 'Look cover', admin_trial: 'Admin trial', other: 'Other',
     },
   },
   aiUsage: {

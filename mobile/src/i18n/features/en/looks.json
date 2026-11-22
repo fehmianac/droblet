@@ -8,6 +8,7 @@
     "create": "Create a look",
     "emptyTitle": "Your lookbook is empty",
     "emptyBody": "Put your pieces together and create your first look.",
+    "coverPending": "Preparing cover",
     "filteredEmpty": "No looks match this filter.",
     "showAll": "Show all",
     "cardLabel": "{{occasion}}, {{name}}",

@@ -9,7 +9,7 @@ import { api } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
 import type { AiPromptSummary } from '@/lib/types';
 
-const FEATURES = ['stylist', 'wardrobe', 'outfit_import', 'palette', 'tryon', 'cleanup', 'common'] as const;
+const FEATURES = ['stylist', 'wardrobe', 'outfit_import', 'palette', 'tryon', 'cleanup', 'look', 'common'] as const;
 
 function PromptsInner() {
   const { t, fmt, href, dateTime } = useI18n();

@@ -62,6 +62,9 @@ const IMAGE_FIELDS = [
   'Image.PreviewQuality',
   'Image.CleanupSize',
   'Image.CleanupQuality',
+  'LookCover.Enabled',
+  'Image.LookCoverSize',
+  'Image.LookCoverQuality',
 ];
 const SAFETY_FIELDS = ['Prompts.Enabled', 'Prompts.CacheSeconds', 'Prompts.FailureThreshold', 'Prompts.FailureWindowMinutes'];
 
