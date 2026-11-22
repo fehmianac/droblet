@@ -24,11 +24,11 @@ public class PromptCatalogTests
     public void Keys_AreUnique_AndEveryAiFeatureIsCovered()
     {
         Assert.Equal(PromptCatalog.All.Count, PromptCatalog.All.Select(d => d.Key).Distinct().Count());
-        foreach (var feature in new[] { "common", "stylist", "wardrobe", "outfit_import", "palette", "tryon", "cleanup" })
+        foreach (var feature in new[] { "common", "stylist", "wardrobe", "outfit_import", "palette", "tryon", "cleanup", "look" })
             Assert.Contains(PromptCatalog.All, d => d.Feature == feature);
         foreach (var key in new[] { "stylist.outfit.instructions", "stylist.week.instructions", "stylist.pack.instructions", "tryon.image.body", "tryon.image.face",
                      "item.detect.instructions", "item.match.instructions", "item.match.request", "palette.instructions", "photo_check.body.instructions",
-                     "cleanup.item.image", "cleanup.item.jewellery.image", "common.language" })
+                     "cleanup.item.image", "cleanup.item.jewellery.image", "common.language", "look.cover.image" })
             Assert.NotNull(PromptCatalog.Find(key));
     }
 
@@ -62,6 +62,16 @@ public class PromptCatalogTests
     {
         Assert.Equal(OpenAiPrompts.TryOn(garments),
             PromptTemplate.Render(PromptCatalog.Find("tryon.image.body")!.Default(), ("garmentCount", garments.ToString(System.Globalization.CultureInfo.InvariantCulture))));
+    }
+
+    [Theory]
+    [InlineData(2)]
+    [InlineData(5)]
+    public void LookCover_DefaultRendersExactlyLikeTheCode(int pieces)
+    {
+        Assert.Equal(OpenAiPrompts.LookCover(pieces),
+            PromptTemplate.Render(PromptCatalog.Find("look.cover.image")!.Default(), ("pieceCount", pieces.ToString(System.Globalization.CultureInfo.InvariantCulture))));
+        Assert.Equal("image_look_cover", PromptCatalog.Find("look.cover.image")!.Operation);
     }
 
     [Fact]
@@ -373,6 +383,7 @@ public class ProviderReadsThroughRegistryTests
         await provider.RenderOutfitPhotoAsync(Photo, Photo, new TryOnFigure(BodyType.Pear, 170, ClothingSize.M), default);
         await provider.RenderFromFaceAsync(Photo, [Photo], new TryOnFigure(BodyType.Trapezoid, 182, ClothingSize.L, Segment.Men), default);
         await provider.RenderTeenAsync(Photo, [Photo], null, default);
+        await provider.RenderFlatlayAsync([Photo, Photo, Photo], default);
     }
 
     [Fact]

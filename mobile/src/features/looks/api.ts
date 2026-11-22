@@ -10,9 +10,14 @@ import { ulid } from '@/lib/ids';
 import { newClientMutation } from '@/sync/clientMutation';
 
 import { slotList, toSlotInputs, type SlotMap } from './logic';
-import { lookMutationKeys, type CreateLookVariables, type DeleteLookVariables, type PutLookVariables } from './mutations';
+import { lookMutationKeys, pieceKey, type CreateLookVariables, type DeleteLookVariables, type PutLookVariables } from './mutations';
 
 export type LookDraft = { name: string; occasion: Occasion; slots: SlotMap };
+
+/** New pieces → the old cover shows other pieces: hidden, and a new AI flat-lay is on its way (21c). */
+function withPieces(before: Look, after: Look): Look {
+  return pieceKey(before) === pieceKey(after) ? after : { ...after, coverImageUrl: null, coverPending: true };
+}
 
 /**
  * Look writes (create / update / favourite / delete). All go through the offline queue with a stable
@@ -38,6 +43,8 @@ export function useLookWrites() {
         rating: null,
         ratingCount: 0,
         tryOnImageUrl: null,
+        // 21c: the server makes the AI flat-lay cover after the save; the drawn one shows meanwhile.
+        coverPending: true,
         createdAt: occurredAt,
         baseVersion: 0,
       },
@@ -53,7 +60,7 @@ export function useLookWrites() {
       baseVersion: look.baseVersion,
       clientMutationId: newClientMutation().clientMutationId,
     },
-    optimistic: { ...look, name: draft.name, occasion: draft.occasion, slots: slotList(draft.slots) },
+    optimistic: withPieces(look, { ...look, name: draft.name, occasion: draft.occasion, slots: slotList(draft.slots) }),
   });
 
   return {

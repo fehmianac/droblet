@@ -30,6 +30,10 @@ public static class StorageKeys
     public static string TryOnReferenceUpload(string tenantId, string referenceHash) => Upload(tenantId, $"tryonref-{Guard(referenceHash)}");
     /// <summary>The outfit photo kept with a finished "photo" try-on image ("Kaynak fotoğraf"); deleted with the image.</summary>
     public static string TryOnReference(string tenantId, string imageId, string extension) => $"{TryOnPrefix(tenantId)}{Guard(imageId)}-ref.{Guard(extension)}";
+    /// <summary>AI flat-lay covers of saved looks (private, owner only; deleted with the look or when replaced).</summary>
+    public static string LookCoverPrefix(string tenantId) => $"{TenantRoot(tenantId)}look-cover/";
+    /// <summary><c>tenant/{tenantId}/look-cover/{lookId}-{slotsHash}.webp</c>: one image per look and set of pieces.</summary>
+    public static string LookCover(string tenantId, string lookId, string slotsHash) => $"{LookCoverPrefix(tenantId)}{Guard(lookId)}-{Guard(slotsHash)}.webp";
     public static string ItemsPrefix(string tenantId) => $"{TenantRoot(tenantId)}items/";
     /// <summary>Cleaned (background removed) garment image of a draft / item.</summary>
     public static string ItemImage(string tenantId, string draftId) => $"{ItemsPrefix(tenantId)}{Guard(draftId)}.webp";

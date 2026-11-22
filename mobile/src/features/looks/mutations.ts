@@ -53,6 +53,22 @@ function upsert(list: Look[] | undefined, look: Look): Look[] | undefined {
   return list.some((l) => l.id === look.id) ? list.map((l) => (l.id === look.id ? look : l)) : [look, ...list];
 }
 
+/** The look's pieces, order-free: two looks with the same key show the same cover. */
+export const pieceKey = (look: Pick<Look, 'slots'>) => look.slots.map((s) => `${s.slot}:${s.source}:${s.refId}`).sort().join('|');
+
+/**
+ * The look a write answered, with the cover the cache already shows: POST / PUT answers carry no presigned cover URL
+ * (only GET does), so a favourite or rename must not drop it. A change of pieces does: the old cover shows other pieces.
+ */
+export function withKnownCover(saved: Look, known: Look | undefined): Look {
+  if (saved.coverImageUrl || !known?.coverImageUrl || pieceKey(known) !== pieceKey(saved)) return saved;
+  return { ...saved, coverImageUrl: known.coverImageUrl };
+}
+
+function writeSaved(client: QueryClient, saved: Look): void {
+  writeLook(client, withKnownCover(saved, client.getQueryData<Look>(lookKeys.look(saved.id)) ?? client.getQueryData<Look[]>(lookKeys.looks)?.find((l) => l.id === saved.id)));
+}
+
 function writeLook(client: QueryClient, look: Look): void {
   client.setQueryData<Look[]>(lookKeys.looks, (prev) => upsert(prev, look));
   client.setQueryData<Look>(lookKeys.look(look.id), look);
@@ -91,7 +107,7 @@ export function registerLooksMutations(client: QueryClient): void {
       writeLook(client, vars.optimistic);
     },
     onSuccess: (saved: Look | undefined) => {
-      if (saved) writeLook(client, saved);
+      if (saved) writeSaved(client, saved);
     },
     onError: invalidate,
   });
@@ -124,7 +140,7 @@ export function registerLooksMutations(client: QueryClient): void {
       writeLook(client, vars.optimistic);
     },
     onSuccess: (saved: Look | undefined) => {
-      if (saved) writeLook(client, saved);
+      if (saved) writeSaved(client, saved);
     },
     onError: async (error: unknown, vars: PutLookVariables) => {
       if (isConflict(error)) {

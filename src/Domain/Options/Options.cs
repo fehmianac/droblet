@@ -265,7 +265,8 @@ public sealed class QueueOptions
     {
         JobKind.ItemProcess or JobKind.ItemSplit or JobKind.ItemClean => ItemProcessRequest,
         JobKind.OutfitImport => OutfitImportRequest,
-        JobKind.TryOn => TryOnRequest,
+        // The look cover is an image edit like a try-on: same worker, same provider key, same concurrency cap.
+        JobKind.TryOn or JobKind.LookCover => TryOnRequest,
         JobKind.Palette => PaletteRequest,
         JobKind.DataExport => DataExportRequest,
         _ => StylistRequest,
@@ -330,6 +331,9 @@ public sealed class AiOptions
 
     /// <summary>Image output per use (Ai:Image:*).</summary>
     public AiImageOptions Image { get; set; } = new();
+
+    /// <summary>AI flat-lay cover of saved looks (Ai:LookCover:*).</summary>
+    public AiLookCoverOptions LookCover { get; set; } = new();
 
     /// <summary>
     /// Compact stylist prompt (CandidateAliases): short candidate aliases and one descriptor string per piece, null fields
@@ -396,6 +400,7 @@ public sealed class AiOptions
         {
             ImageUse.TryOn => (Image.TryOnSize, Image.TryOnQuality),
             ImageUse.Cleanup => (Image.CleanupSize, Image.CleanupQuality),
+            ImageUse.LookCover => (Image.LookCoverSize, Image.LookCoverQuality),
             _ => (null, null),
         };
         return (Blank(size) ?? Blank(Image.Size) ?? ImageSize, Blank(qualityOverride) ?? Blank(quality) ?? Blank(Image.Quality));
@@ -404,7 +409,7 @@ public sealed class AiOptions
     private static string? Blank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }
 
-public enum ImageUse { TryOn, Cleanup }
+public enum ImageUse { TryOn, Cleanup, LookCover }
 
 /// <summary>
 /// Ai:Pricing — USD per 1M tokens per model id (OpenAI's published standard rates), a multiplier per service tier, and
@@ -471,6 +476,19 @@ public sealed class AiImageOptions
     /// </summary>
     public bool TryOnPreview { get; set; }
     public string PreviewQuality { get; set; } = "low";
+    /// <summary>AI flat-lay cover of a saved look: portrait, low quality by default (owner decision 2026-11-22, cost first).</summary>
+    public string? LookCoverQuality { get; set; } = "low";
+    public string? LookCoverSize { get; set; } = "1024x1536";
+}
+
+/// <summary>
+/// Ai:LookCover — the AI flat-lay cover of a saved look (canvas 21c, owner decision 2026-11-22): one image edit per look and
+/// set of pieces, for every user, no credit. Enabled = false is the kill switch: queued jobs fail quietly without an AI
+/// call and the app keeps its drawn cover.
+/// </summary>
+public sealed class AiLookCoverOptions
+{
+    public bool Enabled { get; set; } = true;
 }
 
 /// <summary>

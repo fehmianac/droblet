@@ -28,7 +28,7 @@ namespace Infrastructure.Ai;
 /// </summary>
 public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> options, ILogger<OpenAiProvider> logger, IPromptRegistry? prompts = null)
     : IAiProvider, IImageCleanup, IGarmentVision, ITryOnRenderer, IStylistModel, IPaletteAnalyzer, IItemDetector, IItemImageCleanup, IPhotoInspector,
-      IItemMatcher, IFastItemDetector
+      IItemMatcher, IFastItemDetector, ILookCoverRenderer
 {
     public const string ProviderName = "OpenAI";
     public const string ChatPath = "/v1/chat/completions";
@@ -208,6 +208,14 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
             : await PromptAsync(PromptCatalog.TryOnFace, OpenAiPrompts.TryOnFromFace(garments.Count, figure), [], ct, OpenAiPrompts.TryOnFromFaceValues(garments.Count, figure));
         var guard = await PromptAsync(PromptCatalog.TryOnTeenGuard, OpenAiPrompts.TryOnTeenGuard, [], ct);
         return await EditImageAsync(OpenAiPrompts.ForTeen(basePrompt, guard), [photo, .. garments], ImageUse.TryOn, quality, "image_tryon", ct);
+    }
+
+    /// <summary>AI flat-lay cover of a saved look (canvas 21c): the pieces' images only — no photo of a person is ever sent.</summary>
+    public async Task<ImageInput> RenderFlatlayAsync(IReadOnlyList<ImageInput> pieces, CancellationToken ct)
+    {
+        var prompt = await PromptAsync(PromptCatalog.LookCover, OpenAiPrompts.LookCover(pieces.Count), [], ct,
+            new Dictionary<string, string> { ["pieceCount"] = pieces.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) });
+        return await EditImageAsync(prompt, pieces, ImageUse.LookCover, null, "image_look_cover", ct);
     }
 
     public async Task<ReferenceInspection> InspectReferenceAsync(ImageInput outfitPhoto, CancellationToken ct)
@@ -893,6 +901,19 @@ public static class OpenAiPrompts
         "Never comment on the body, weight or shape. Do not mention brands, prices, shopping or buying. Keep the tone friendly, simple and encouraging.";
 
     /// <summary>Registry key tryon.guard.teen: appended to every teen try-on image prompt (the extra-strict guard).</summary>
+    public static string LookCover(int pieceCount) => PromptTemplate.Render(LookCoverTemplate, ("pieceCount", Count(pieceCount)));
+
+    /// <summary>
+    /// Registry key look.cover.image; {{pieceCount}} = the number of piece images. Canvas 21c (owner decision 2026-11-22): one
+    /// casual top-down flat-lay on a cream linen bedsheet, soft daylight, the pieces exactly as photographed.
+    /// </summary>
+    public const string LookCoverTemplate =
+        "The {{pieceCount}} image(s) are the pieces of one outfit. Create one realistic top-down flat-lay photo of exactly these pieces, laid out casually " +
+        "and naturally on a cream linen bedsheet with soft wrinkles, in soft natural daylight, as if someone laid out the outfit to wear it. " +
+        "Show every piece exactly as in its image: the same colour, pattern, fabric, texture, shape and every brand logo, monogram, print and lettering unchanged. " +
+        "Every piece fully visible inside the frame and none overlapping another so much that it is hidden. " +
+        "Do not add, remove, replace or restyle anything: no other clothes, accessories, props or decorations, no person, no hands, no mannequin, no hanger, no text.";
+
     public const string TryOnTeenGuard =
         " The person is a teenager: keep their real apparent age exactly — never make them look older or younger. " +
         "They are fully clothed in modest, school-appropriate clothing from neck to knees at least, standing upright in a neutral, natural pose facing the camera. " +

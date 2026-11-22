@@ -146,6 +146,26 @@ public interface ILookService
     Task<IReadOnlyList<string>> ValidateSlotsAsync(string tenantId, IReadOnlyList<SlotRef> slots, CancellationToken ct);
 }
 
+/// <summary>
+/// AI flat-lay cover of saved looks, Api side (LookCoverRules; the TryOn worker renders it). Owner only: other tenants never
+/// see it. Every user, no credit.
+/// </summary>
+public interface ILookCoverService
+{
+    /// <summary>
+    /// Queues the cover when the look's current pieces never had one requested (create, update, stylist accept). Best effort:
+    /// never throws (the look is already saved). Returns the look's cover row as it is afterwards (null = none).
+    /// </summary>
+    Task<Entity.LookCoverEntity?> RequestAsync(Entity.LookEntity look, CancellationToken ct);
+    Task<Entity.LookCoverEntity?> GetAsync(string tenantId, string lookId, CancellationToken ct);
+    /// <summary>Every cover row of the tenant, by look id (one partition read).</summary>
+    Task<IReadOnlyDictionary<string, Entity.LookCoverEntity>> GetAllAsync(string tenantId, CancellationToken ct);
+    /// <summary>coverImageUrl = the imported look's photo, else the ready AI cover of the look's current pieces; coverPending.</summary>
+    Task<LookDto> WithCoverAsync(Entity.LookEntity look, LookDto dto, Entity.LookCoverEntity? cover, CancellationToken ct);
+    /// <summary>Removes the cover row and its image (look deleted).</summary>
+    Task DeleteAsync(string tenantId, string lookId, CancellationToken ct);
+}
+
 // ── E4 ────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 public sealed record PutPlanDayCommand(Occasion? Occasion, string? LookId, long BaseVersion);

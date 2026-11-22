@@ -61,10 +61,15 @@ export function photoImageSource(photo: { photoId: string; url: string | null } 
   return { uri: photo.url, cacheKey: `photo:${photo.photoId}`, onExpired: () => refreshImageQueries([IMAGE_QUERY_KEYS.photos]) };
 }
 
-/** An imported look's cover photo: keyed by the look id; an expired URL re-fetches the looks. */
+/**
+ * A look's cover (an imported look's photo, or the AI flat-lay of its pieces): keyed by the look id and the object's
+ * path, so a regenerated cover (new pieces → new object) is not served from the old cache entry while the signature of
+ * the same object may change freely. An expired URL re-fetches the looks.
+ */
 export function lookCoverSource(look: { id: string; coverImageUrl?: string | null } | null | undefined): ImageSource {
   if (!look?.coverImageUrl) return NONE;
-  return { uri: look.coverImageUrl, cacheKey: `look-cover:${look.id}`, onExpired: () => refreshImageQueries([IMAGE_QUERY_KEYS.looks]) };
+  const path = look.coverImageUrl.split('?')[0]?.split('/').pop() ?? '';
+  return { uri: look.coverImageUrl, cacheKey: `look-cover:${look.id}:${path}`, onExpired: () => refreshImageQueries([IMAGE_QUERY_KEYS.looks]) };
 }
 
 /** A wardrobe piece in the full-screen viewer: the full image, its key and refresh, the cached thumb as preview. */

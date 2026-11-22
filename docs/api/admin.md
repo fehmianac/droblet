@@ -323,9 +323,10 @@ The group is not on `v1/admin/setting` (that page keeps `ai.Enabled`, the kill s
 | `MaxOutputTokens.Default`, `MaxOutputTokens.{operation}` | 256–64 000 (optional) |
 | `CompactStylistPrompt` (bool) | |
 | `PromptCacheKey` (bool), `TimeoutSeconds` 10–110 | |
-| `ImageSize`; `Image.Size`, `Image.TryOnSize`, `Image.CleanupSize` | `1024x1024, 1024x1536, 1536x1024, auto` (the `Image.*` ones optional) |
-| `Image.Quality`, `Image.TryOnQuality`, `Image.CleanupQuality`, `Image.PreviewQuality` | `low, medium, high, auto` (optional) |
+| `ImageSize`; `Image.Size`, `Image.TryOnSize`, `Image.CleanupSize`, `Image.LookCoverSize` (default `1024x1536`) | `1024x1024, 1024x1536, 1536x1024, auto` (the `Image.*` ones optional) |
+| `Image.Quality`, `Image.TryOnQuality`, `Image.CleanupQuality`, `Image.PreviewQuality`, `Image.LookCoverQuality` (default `low`) | `low, medium, high, auto` (optional) |
 | `Image.TryOnInputFidelity` (`high, low`, optional), `Image.TryOnPreview` (bool) | |
+| `LookCover.Enabled` (bool, default on) — kill switch of the AI flat-lay look cover: off = queued covers fail quietly without an AI call, the app keeps its drawn cover | |
 | `Prompts.Enabled` (bool — off = every prompt is the code default), `Prompts.CacheSeconds` 10–600, `Prompts.FailureThreshold` 0–100, `Prompts.FailureWindowMinutes` 1–120 | |
 
 **Change delay:** every Lambda re-reads its SSM path every 60 s (`SsmConfigurationExtensions`, `ReloadAfter`). The

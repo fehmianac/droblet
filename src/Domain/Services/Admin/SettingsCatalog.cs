@@ -107,6 +107,10 @@ public static partial class SettingsCatalog
             new("Image.PreviewQuality", SettingFieldType.Choice, Options: ImageQualities, Nullable: true),
             new("Image.CleanupQuality", SettingFieldType.Choice, Options: ImageQualities, Nullable: true),
             new("Image.CleanupSize", SettingFieldType.Choice, Options: ImageSizes, Nullable: true),
+            // AI flat-lay cover of saved looks (owner decision 2026-11-22): kill switch + its own size / quality.
+            new("LookCover.Enabled", SettingFieldType.Bool),
+            new("Image.LookCoverQuality", SettingFieldType.Choice, Options: ImageQualities, Nullable: true),
+            new("Image.LookCoverSize", SettingFieldType.Choice, Options: ImageSizes, Nullable: true),
             new("Prompts.Enabled", SettingFieldType.Bool),
             new("Prompts.CacheSeconds", SettingFieldType.Int, 10, 600),
             new("Prompts.FailureThreshold", SettingFieldType.Int, 0, 100),

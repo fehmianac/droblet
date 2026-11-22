@@ -535,6 +535,7 @@ export type AiUsageOperation =
   | 'palette'
   | 'photo_check'
   | 'tryon'
+  | 'look_cover'
   | 'admin_trial'
   | 'other';
 

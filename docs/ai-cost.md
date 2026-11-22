@@ -164,6 +164,7 @@ Per-flow USD, synthetic p50. "Settings" = changes 1–6 and 8 (tuning of the cur
 | palette | $0.0176 | $0.0082 | $0.0008 | 53% / 95% |
 | try-on | $0.0525 | $0.0314 | $0.0314 | 40% |
 | first try-on (+ photo check) | $0.0747 | $0.0373 | $0.0320 | 50% / 57% |
+| look cover (`image_look_cover`, 1 image edit, low 1024×1536; not measured yet — expect ≈ the low try-on price) | – | ≈ $0.03 | ≈ $0.03 | – |
 
 **Monthly usage assumptions:**
 
@@ -195,6 +196,8 @@ The remaining cost is dominated by:
 1. **Outfit requests** — unlimited and free of credits: 30 × $0.027 = $0.82 for a typical user, $3.3 for a heavy one.
 2. **Try-ons** — credit-capped: 30 × $0.031 = $0.94.
 3. **Item and import photos** in the first month.
+
+**AI look cover** (owner decision 2026-11-22, canvas 21c): one `image_look_cover` edit per saved look and set of pieces, for every user incl. free, no credit; counted under the usage operation `look_cover` (operation cost). Not in the profiles above. Name / occasion / favourite edits never re-render; a failed cover is tried once more for the same pieces on the next save (any save, a rename too), then not again until the pieces change; existing looks are not backfilled. Kill switch `worker/Ai` `LookCover.Enabled`, size / quality `Image.LookCoverSize` / `Image.LookCoverQuality` (defaults `1024x1536` / `low`).
 
 ### Levers left for the owner (pricing and product, not engineering)
 

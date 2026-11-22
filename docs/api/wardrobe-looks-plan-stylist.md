@@ -271,10 +271,18 @@ Validation codes (400 `errors`): `category_required`, `color_required`, `color_u
   "createdAt": "…", "updatedAt": "…", "version": 1,
   "rating": { "average": 4.5, "count": 2 },
   "moderation": null,
-  "coverImageUrl": null, "coverImageUrlExpiresAt": null
+  "coverImageUrl": null, "coverImageUrlExpiresAt": null, "coverPending": true
 }
 ```
-`coverImageUrl`: an imported look (`source: "import"`, [O](outfit-import.md)) — presigned GET of the outfit photo it came from; filled by `GET v1/tenant/look` and `GET v1/tenant/look/{id}`, `null` elsewhere. Deleting the look deletes the photo.
+`coverImageUrl` (owner only; filled by `GET v1/tenant/look`, `GET v1/tenant/look/{id}`, the `POST` / `PUT v1/tenant/look` responses and the suggestion accept result; `null` in other embedded looks): presigned GET (expires at `coverImageUrlExpiresAt`) of
+- an imported look's (`source: "import"`, [O](outfit-import.md)) outfit photo, else
+- the look's **AI flat-lay cover** (canvas 21c, owner decision 2026-11-22) once it is ready for the look's **current pieces**: one portrait image of the look's own pieces laid out on a cream linen sheet. An image made for earlier pieces is never returned.
+
+`null` = no cover yet → the app draws its own cover. Deleting the look deletes the photo / the AI cover.
+
+`coverPending` (bool): the AI cover of the look's current pieces is being made (show the drawn cover meanwhile and refetch the look later; it typically takes 15–40 s). `false` once it is ready, when it failed (no user-facing error) and after 10 minutes at most.
+
+AI cover rules (server side, no client action): queued in the background when a look is saved — `POST v1/tenant/look`, a `PUT` that changes its pieces (slot item / product ids; name, occasion, favourite never do) and `POST …/suggestion/{jobId}/{index}/accept` — for every user incl. free, **no credit**. A failed cover is tried **once more** on the look's next save (any `PUT`, a rename too — owner decision 2026-11-22), then not again until the pieces change. Imported looks never get one. Existing looks are not backfilled. Week-plan accepts (`…/week/{jobId}/accept`) queue a cover for every look they create, up to 7 at once (owner decision 2026-11-22), never on a replay.
 `moderation`: as on `ItemDto` — `{ "hidden": true, "reason" }` while a moderator hides the look from everybody else.
 `rating` = what friends gave this look (`PUT v1/tenant/people/{handle}/look/{lookId}/rating`): average with one decimal and the number of ratings. It is filled by `GET v1/tenant/look` and `GET v1/tenant/look/{id}`; it is `null` while nobody rated the look and wherever a `LookDto` is embedded in another response (plan day, today, item detail, accept results). Deleting a look deletes its rating summary.
 `missing: true` = the slot is a catalog product the user does not own ("Eksik parça" → "Look'u tamamla"). `unavailable: true` = the wardrobe item was deleted.

@@ -36,6 +36,18 @@ public interface IGarmentVision
     Task<GarmentSuggestion> DescribeAsync(ImageInput garmentImage, string language, CancellationToken ct);
 }
 
+/// <summary>
+/// AI flat-lay cover of a saved look (canvas 21c): the pieces laid out on a cream linen sheet, top-down, exactly as in their
+/// photos — nothing added, no person, no text. One image edit (operation image_look_cover).
+/// </summary>
+public interface ILookCoverRenderer
+{
+    /// <summary>False when the provider is off or incomplete: the job fails quietly without a call.</summary>
+    bool IsConfigured { get; }
+
+    Task<ImageInput> RenderFlatlayAsync(IReadOnlyList<ImageInput> pieces, CancellationToken ct);
+}
+
 public interface ITryOnRenderer
 {
     /// <param name="quality">Image quality for this render (the try-on preview); null = the configured try-on quality.</param>

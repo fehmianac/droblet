@@ -52,6 +52,36 @@ public class LookEntity : IVersionedEntity, IModeratedEntity
     public static string GetSk(string id) => id;
 }
 
+/// <summary>
+/// AI flat-lay cover of one saved look (canvas 21c, owner decision 2026-11-22). Its own row next to the look on purpose:
+/// the worker writes it in the background, and a write to the look itself would bump the version the app edits against
+/// (409 on the user's next save) or be overwritten by a whole-row owner save. Owner-only, deleted with the look.
+/// SlotsHash / Status / JobId = the latest request (LookCoverRules.SlotsHash of the pieces); ImageKey / ImageHash = the
+/// latest image written (may belong to earlier pieces until the new one is ready).
+/// </summary>
+public class LookCoverEntity : IVersionedEntity
+{
+    [JsonPropertyName("pk")] public string Pk => GetPk(TenantId);
+    [JsonPropertyName("sk")] public string Sk => GetSk(LookId);
+
+    [JsonPropertyName("tenantId")] public string TenantId { get; set; } = null!;
+    [JsonPropertyName("lookId")] public string LookId { get; set; } = null!;
+    [JsonPropertyName("slotsHash")] public string SlotsHash { get; set; } = null!;
+    [JsonPropertyName("status")] public LookCoverStatus Status { get; set; }
+    [JsonPropertyName("jobId")] public string? JobId { get; set; }
+    [JsonPropertyName("requestedAt")] public DateTime RequestedAt { get; set; }
+    // Requests made for SlotsHash (1 = the first; a failed one is tried once more, LookCoverRules.MaxAttempts). 0 = rows written before the field.
+    [JsonPropertyName("attempts")] public int Attempts { get; set; }
+    // tenant/{tenantId}/look-cover/{lookId}-{hash}.webp (StorageKeys.LookCover); never client supplied.
+    [JsonPropertyName("imageKey")] public string? ImageKey { get; set; }
+    [JsonPropertyName("imageHash")] public string? ImageHash { get; set; }
+    [JsonPropertyName("updatedAt")] public DateTime UpdatedAt { get; set; }
+    [JsonPropertyName("version")] public long Version { get; set; }
+
+    public static string GetPk(string tenantId) => $"tenant#{tenantId}#lookcover";
+    public static string GetSk(string lookId) => lookId;
+}
+
 // Calendar day (the user's local day, no time). Never visible to another tenant.
 public class PlanDayEntity : IVersionedEntity
 {

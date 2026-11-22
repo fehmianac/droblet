@@ -68,3 +68,12 @@ public sealed record PaletteRequestedEvent(string TenantId, string JobId, string
 {
     public JobKind Kind => JobKind.Palette;
 }
+
+/// <summary>
+/// AI flat-lay cover of a saved look (JobKind.LookCover), routed to the TryOn worker. SlotsHash = LookCoverRules.SlotsHash of
+/// the pieces the cover was requested for: the worker renders nothing when the look's pieces changed meanwhile.
+/// </summary>
+public sealed record LookCoverRequestedEvent(string TenantId, string JobId, string LookId, string SlotsHash) : IJobRequestedEvent
+{
+    public JobKind Kind => JobKind.LookCover;
+}

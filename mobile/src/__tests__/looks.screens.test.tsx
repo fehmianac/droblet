@@ -86,6 +86,15 @@ describe('14 Looklar', () => {
     await waitFor(() => expect(fixtureDb.looks.find((l) => l.id === 'look_tuvit_jean')?.isFavorite).toBe(true), { timeout: 3000 });
   });
 
+  it('marks a look whose AI flat-lay cover is being made (21c) and drops the mark once the cover is there', async () => {
+    const look = fixtureDb.looks.find((l) => l.id === 'look_tuvit_jean')!;
+    look.coverPending = true;
+    await renderRouter('./src/app', { initialUrl: '/wardrobe/looks' });
+    await waitFor(() => expect(screen.getByText('Tüvit & Jean')).toBeTruthy(), { timeout: 3000 });
+    expect(screen.getAllByTestId('look-cover-pending')).toHaveLength(1);
+    expect(screen.getByText('Preparing cover')).toBeTruthy();
+  });
+
   it('shows the empty state with one action', async () => {
     resetFixtureDb({ empty: true });
     await renderRouter('./src/app', { initialUrl: '/wardrobe/looks' });

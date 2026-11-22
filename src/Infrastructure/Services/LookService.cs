@@ -2,14 +2,15 @@ using Domain.Domain;
 using Domain.Entity;
 using Domain.Enum;
 using Domain.Manager;
-using Domain.Options;
 using Domain.Services;
-using Microsoft.Extensions.Options;
 
 namespace Infrastructure.Services;
 
-/// <summary>E3 looks. Every write passes OutfitSlotRules; slot references are resolved only inside the caller's tenant (+ catalog).</summary>
-public sealed class LookService(IRepository repository, ICatalogProductLookup products, IObjectStorage storage, IOptionsMonitor<PhotoOptions> photoOptions,
+/// <summary>
+/// E3 looks. Every write passes OutfitSlotRules; slot references are resolved only inside the caller's tenant (+ catalog).
+/// A save queues the look's AI flat-lay cover when its pieces never had one (ILookCoverService, canvas 21c).
+/// </summary>
+public sealed class LookService(IRepository repository, ICatalogProductLookup products, IObjectStorage storage, ILookCoverService covers,
     TimeProvider timeProvider) : ILookService
 {
     private DateTime Now => timeProvider.GetUtcNow().UtcDateTime;
@@ -21,9 +22,11 @@ public sealed class LookService(IRepository repository, ICatalogProductLookup pr
         // One partition read for every look's rating summary (the owner always sees the ratings of their own looks).
         var ratings = (await repository.GetAllAsync<LookRatingSummaryEntity>(LookRatingSummaryEntity.GetPk(tenantId), ct))
             .ToDictionary(r => r.LookId, StringComparer.Ordinal);
+        var coverRows = await covers.GetAllAsync(tenantId, ct);
         var result = new List<LookDto>(looks.Count);
         foreach (var look in looks.OrderByDescending(l => l.CreatedAt).ThenByDescending(l => l.Id, StringComparer.Ordinal))
-            result.Add(await WithCoverAsync(look, look.ToDto(itemIds) with { Rating = ToRating(ratings.GetValueOrDefault(look.Id)) }, ct));
+            result.Add(await covers.WithCoverAsync(look, look.ToDto(itemIds) with { Rating = ToRating(ratings.GetValueOrDefault(look.Id)) },
+                coverRows.GetValueOrDefault(look.Id), ct));
         return result;
     }
 
@@ -33,16 +36,8 @@ public sealed class LookService(IRepository repository, ICatalogProductLookup pr
         if (look is null)
             return null;
         var rating = await repository.GetAsync<LookRatingSummaryEntity>(LookRatingSummaryEntity.GetPk(tenantId), LookRatingSummaryEntity.GetSk(id), ct);
-        return await WithCoverAsync(look, look.ToDto(await ItemIdsAsync(repository, tenantId, ct)) with { Rating = ToRating(rating) }, ct);
-    }
-
-    /// <summary>An imported look's cover photo as a presigned GET (only a key under the owner's prefix is ever signed).</summary>
-    private async Task<LookDto> WithCoverAsync(LookEntity look, LookDto dto, CancellationToken ct)
-    {
-        if (look.CoverImageKey is not { } key || !StorageKeys.BelongsToTenant(key, look.TenantId))
-            return dto;
-        var ttl = TimeSpan.FromSeconds(photoOptions.CurrentValue.ReadUrlTtlSeconds);
-        return dto with { CoverImageUrl = await storage.CreateReadUrlAsync(key, ttl, ct), CoverImageUrlExpiresAt = Now.Add(ttl) };
+        return await covers.WithCoverAsync(look, look.ToDto(await ItemIdsAsync(repository, tenantId, ct)) with { Rating = ToRating(rating) },
+            await covers.GetAsync(tenantId, id, ct), ct);
     }
 
     private static LookRatingSummaryDto? ToRating(LookRatingSummaryEntity? summary) =>
@@ -52,7 +47,8 @@ public sealed class LookService(IRepository repository, ICatalogProductLookup pr
     {
         // Same id sent twice (offline retry) returns the stored look instead of failing.
         if (await GetEntityAsync(tenantId, command.Id, ct) is { } existing)
-            return ServiceResult.Ok(existing.ToDto(await ItemIdsAsync(repository, tenantId, ct)));
+            return ServiceResult.Ok(await covers.WithCoverAsync(existing, existing.ToDto(await ItemIdsAsync(repository, tenantId, ct)),
+                await covers.GetAsync(tenantId, existing.Id, ct), ct));
 
         var slots = command.Slots.Select(s => new SlotRef(s.Slot, Blank(s.ItemId), Blank(s.ProductId))).ToList();
         var errors = await ValidateSlotsAsync(tenantId, slots, ct);
@@ -74,9 +70,18 @@ public sealed class LookService(IRepository repository, ICatalogProductLookup pr
             UpdatedAt = now,
         };
 
-        if (!await repository.SaveIfVersionAsync(look, 0, ct))
+        LookCoverEntity? cover;
+        if (await repository.SaveIfVersionAsync(look, 0, ct))
+        {
+            cover = await covers.RequestAsync(look, ct);
+        }
+        else
+        {
+            // Lost a race with the same id (offline retry): the stored look and whatever cover it has.
             look = await GetEntityAsync(tenantId, command.Id, ct) ?? look;
-        return ServiceResult.Created(look.ToDto(await ItemIdsAsync(repository, tenantId, ct)));
+            cover = await covers.GetAsync(tenantId, look.Id, ct);
+        }
+        return ServiceResult.Created(await covers.WithCoverAsync(look, look.ToDto(await ItemIdsAsync(repository, tenantId, ct)), cover, ct));
     }
 
     public async Task<ServiceResult<LookDto>> UpdateAsync(string tenantId, string id, UpdateLookCommand command, CancellationToken ct)
@@ -100,8 +105,9 @@ public sealed class LookService(IRepository repository, ICatalogProductLookup pr
         look.Favorite = command.Favorite;
         look.UpdatedAt = Now;
 
+        // Only a change of pieces asks for a new cover (RequestAsync compares the pieces' hash); name / occasion / favourite never do.
         if (await repository.SaveIfVersionAsync(look, command.BaseVersion, ct))
-            return ServiceResult.Ok(look.ToDto(itemIds));
+            return ServiceResult.Ok(await covers.WithCoverAsync(look, look.ToDto(itemIds), await covers.RequestAsync(look, ct), ct));
 
         var current = await GetEntityAsync(tenantId, id, ct);
         return current is null ? ServiceResult.NotFound<LookDto>() : ServiceResult.Conflict(current.ToDto(itemIds));
@@ -116,6 +122,8 @@ public sealed class LookService(IRepository repository, ICatalogProductLookup pr
         // An imported look's cover photo is its own (nothing else points to it).
         if (look.CoverImageKey is { } cover && StorageKeys.BelongsToTenant(cover, tenantId))
             await storage.DeleteAsync(cover, ct);
+        // …and so is its AI flat-lay cover (row + image).
+        await covers.DeleteAsync(tenantId, id, ct);
         // The look's rating summary goes with it (the raters' own rows are removed by their own account deletion / unsave).
         await repository.DeleteAsync(LookRatingSummaryEntity.GetPk(tenantId), LookRatingSummaryEntity.GetSk(id), ct);
         return true;

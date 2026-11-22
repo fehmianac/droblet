@@ -113,7 +113,7 @@ describe('image sources', () => {
     expect(photoImageSource({ photoId: 'p1', url: null })).toEqual({ uri: null, cacheKey: null });
 
     const cover = lookCoverSource({ id: 'L1', coverImageUrl: 'https://s3/cover.jpg' });
-    expect(cover).toMatchObject({ uri: 'https://s3/cover.jpg', cacheKey: 'look-cover:L1' });
+    expect(cover).toMatchObject({ uri: 'https://s3/cover.jpg', cacheKey: 'look-cover:L1:cover.jpg' });
     await cover.onExpired?.();
     expect(spy).toHaveBeenCalledWith({ queryKey: ['tenant', 'look'] }, { cancelRefetch: false });
     expect(lookCoverSource({ id: 'L1' })).toEqual({ uri: null, cacheKey: null });

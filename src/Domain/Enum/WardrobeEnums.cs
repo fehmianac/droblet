@@ -31,6 +31,12 @@ public enum ItemListingStatus { None, ForSale, ForRent, Sold, Rented }
 public enum LookSource { User, Stylist, Edit, Builder, Import }
 
 /// <summary>
+/// AI flat-lay cover of a saved look (LookCoverEntity): Pending = queued for the look's current pieces · Ready = the image
+/// is written · Failed = no image for these pieces (the app keeps its drawn cover; retried only when the pieces change).
+/// </summary>
+public enum LookCoverStatus { Pending, Ready, Failed }
+
+/// <summary>
 /// Outfit import photo: Pending = slot issued, not uploaded yet · Uploaded = queued · Detected = pieces found (stage A),
 /// waiting for matching · Ready = matched and its look draft built · Failed = nothing usable (failure says why).
 /// </summary>

@@ -86,8 +86,16 @@ public sealed class CapturingEventManager : Domain.Manager.IEventManager
 {
     public List<Domain.Events.IJobRequestedEvent> Published { get; } = [];
 
+    /// <summary>The next publish throws (queue unavailable), once.</summary>
+    public bool FailNext { get; set; }
+
     public Task PublishAsync(Domain.Events.IJobRequestedEvent jobEvent, CancellationToken ct = default)
     {
+        if (FailNext)
+        {
+            FailNext = false;
+            throw new InvalidOperationException("Queue unavailable (test).");
+        }
         lock (Published) Published.Add(jobEvent);
         return Task.CompletedTask;
     }

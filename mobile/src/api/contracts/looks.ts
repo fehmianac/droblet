@@ -53,6 +53,8 @@ export type Look = {
   tryOnImageUrl: string | null;
   /** Imported look ("Kombinlerini içe aktar"): the outfit photo it came from (private, signed URL). */
   coverImageUrl?: string | null;
+  /** The AI flat-lay cover of the current pieces is being made (canvas 21c, UX turu 3): the drawn flat-lay shows meanwhile. */
+  coverPending?: boolean;
   createdAt: string;
   baseVersion: number;
   /** Owner-only: set while a moderator hides the look from everybody else (`LookDto.moderation`). */
