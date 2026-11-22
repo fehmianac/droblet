@@ -11,6 +11,8 @@
     "todayStoryEmptyA11y": "Today's plan",
     "storyA11y": "{{name}} story",
     "storySeenA11y": "{{name}} story, seen",
+    "todayCardA11y": "Today's outfit: {{name}}. Open Today",
+    "todayCardWorn": "Worn",
     "firstStepEyebrow": "FIRST STEP",
     "firstStepTitle": "Try your first look",
     "firstStepBody": "Pick a look and see it on your own photo.",

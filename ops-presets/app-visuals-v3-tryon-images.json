@@ -1,0 +1,19 @@
+{
+  "purpose": "In-app visuals v3 (owner approval 2026-11-22, 15-image budget; this file 2 calls). Example of a try-on result for the 'Bu look senin üzerinde nasıl durur?' invitation (06 / 14b / 22) and the credit screens (05b, kredi bitti). Shown with an 'Örnek' label.",
+  "size": "1024x1536",
+  "quality": "high",
+  "format": "jpeg",
+  "style": "Photograph for a premium wardrobe app, shot on a full-frame camera, soft natural daylight, subtle film grain, true-to-life skin texture, no retouched plastic look. Warm neutral colour palette: cream, sand, warm beige, deep ink navy and a single terracotta accent. Fictional adult people only, not resembling any celebrity. Plain unbranded clothing with no logos, no lettering, no text, no signs, no screens showing content, no watermark anywhere in the image. Tasteful, confident and natural, not a cheesy stock photo, no big smile at the camera. Vertical composition: the whole body from head to shoes is visible and centred, about 8% empty space above the head and 5% below the shoes, a plain smooth warm sand studio wall and floor, nothing else in the frame.",
+  "images": [
+    {
+      "id": "tryon-example-woman",
+      "segment": "women",
+      "prompt": "Full-length photo of a woman in her late twenties with a dark low bun, standing relaxed and upright facing the camera, weight on one leg, one hand lightly in her trouser pocket, calm confident expression. She wears a camel wool long coat open over a fine burgundy knit and straight black tailored trousers with black leather loafers, a small burgundy leather shoulder bag. Soft even daylight from the left."
+    },
+    {
+      "id": "tryon-example-man",
+      "segment": "men",
+      "prompt": "Full-length photo of a man in his early thirties with short dark hair and a trimmed beard, standing relaxed and upright facing the camera, one hand in his trouser pocket, calm confident expression. He wears a navy wool overcoat open over a stone merino crew-neck, charcoal tailored trousers and dark brown leather derby shoes. Soft even daylight from the left."
+    }
+  ]
+}

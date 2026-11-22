@@ -145,6 +145,8 @@ export const visualTones = {
   badge: 'rgba(28, 26, 23, 0.72)',
   cardShade: 'rgba(21, 18, 15, 0.78)',
   dim: 'rgba(0, 0, 0, 0.62)',
+  /** Sand wash over the user's own blurred photo on the try-on invitation (Görseller v3). */
+  sandVeil: 'rgba(232, 225, 215, 0.45)',
 } as const;
 
 /**

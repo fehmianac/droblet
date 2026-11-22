@@ -1,12 +1,14 @@
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Check, CircleAlert, ImageOff, WifiOff } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import type { AppSegment } from '@/api/contracts';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
-import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Text } from '@/components/ui/Text';
+import { useSegment } from '@/features/segment/store';
 import { openRecognitionPaywall } from "@/features/wardrobe/recognition";
 import { surfaceTones } from "@/theme/tokens";
 
@@ -30,25 +32,58 @@ export function PieceTag({ kind }: { kind: 'match' | 'new' }) {
   );
 }
 
-/** 31 header picture: three outfit photos with their tags (decorative). */
-export function ImportPhotoCollage() {
+/** The three bundled outfit photos of 31 per segment (Görseller v3), in the board's order; fictional AI people. */
+export const IMPORT_EXAMPLE_PHOTOS: Record<AppSegment, readonly [number, number, number]> = {
+  women: [
+    require('../../../assets/visuals/import-example-woman-1.webp'),
+    require('../../../assets/visuals/import-example-woman-2.webp'),
+    require('../../../assets/visuals/import-example-woman-3.webp'),
+  ],
+  men: [
+    require('../../../assets/visuals/import-example-man-1.webp'),
+    require('../../../assets/visuals/import-example-man-2.webp'),
+    require('../../../assets/visuals/import-example-man-3.webp'),
+  ],
+};
+
+/** Canvas `object-position: 50% 20%`. */
+const EXAMPLE_POSITION = { left: '50%', top: '20%' } as const;
+
+function ExamplePhoto({ index, segment }: { index: 0 | 1 | 2; segment: AppSegment }) {
   return (
-    <View className="h-[176px] flex-row gap-2" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+    <View className="h-full w-full overflow-hidden rounded-image-lg bg-sand">
+      <Image
+        source={IMPORT_EXAMPLE_PHOTOS[segment][index]}
+        contentFit="cover"
+        contentPosition={EXAMPLE_POSITION}
+        style={StyleSheet.absoluteFill}
+        accessible={false}
+        testID={`import.example.${segment}.${index + 1}`}
+      />
+    </View>
+  );
+}
+
+/** 31 header picture: three outfit photos of the segment with their tags (decorative). */
+export function ImportPhotoCollage() {
+  const segment = useSegment();
+  return (
+    <View className="h-[176px] flex-row gap-2" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" testID="import.collage">
       <View className="flex-[1.15]">
-        <ImageSlot uri={null} className="h-full w-full rounded-image-lg" placeholder={{ kind: 'look', pieces: [], seed: 'import-a', figureHeight: 130 }} />
+        <ExamplePhoto index={0} segment={segment} />
         <View className="absolute left-2 top-2.5 gap-1.5">
           <PieceTag kind="match" />
           <PieceTag kind="new" />
         </View>
       </View>
       <View className="flex-1 pt-[18px]">
-        <ImageSlot uri={null} className="h-full w-full rounded-image-lg" placeholder={{ kind: 'look', pieces: [], seed: 'import-b', figureHeight: 110 }} />
+        <ExamplePhoto index={1} segment={segment} />
         <View className="absolute left-2 top-7">
           <PieceTag kind="new" />
         </View>
       </View>
       <View className="flex-1 pb-[18px]">
-        <ImageSlot uri={null} className="h-full w-full rounded-image-lg" placeholder={{ kind: 'look', pieces: [], seed: 'import-c', figureHeight: 110 }} />
+        <ExamplePhoto index={2} segment={segment} />
         <View className="absolute left-2 top-2.5">
           <PieceTag kind="match" />
         </View>

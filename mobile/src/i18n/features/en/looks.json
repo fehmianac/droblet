@@ -89,6 +89,7 @@
     "notFound": "This look is no longer in your lookbook.",
     "heroInvite": "How would this look sit on you?",
     "heroInviteA11y": "Try it on me. How would this look sit on you? {{detail}}",
+    "heroExample": "EXAMPLE",
     "heroAddPhoto": "Add your photo first",
     "heroMember": "Unlocks with membership",
     "heroPreparing": "Preparing…",

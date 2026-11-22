@@ -28,12 +28,7 @@
       "eyebrow": "PERSONAL WARDROBE · STYLE ASSISTANT · SUITCASE",
       "title": "No more \"what do I wear\" mornings or hours of packing.",
       "body": "Your wardrobe now thinks for you. Photograph your clothes; Droblet prepares your outfit for every day and every trip.",
-      "platforms": "iOS and Android · Turkish and English",
-      "chips": {
-        "onYou": "ON YOU",
-        "weather": "14° Istanbul",
-        "missing": "Missing piece"
-      }
+      "platforms": "iOS and Android · Turkish and English"
     },
     "how": {
       "eyebrow": "HOW IT WORKS",
@@ -146,6 +141,21 @@
     },
     "final": {
       "title": "Your wardrobe now thinks for you."
+    },
+    "photos": {
+      "hero": {
+        "alt": "A woman at her wardrobe, phone in hand, choosing a beige blazer"
+      },
+      "wardrobe": {
+        "alt": "A man buttoning his shirt cuff next to a jacket and trousers laid out on the bed"
+      },
+      "tryOn": {
+        "alt": "Example: a woman in a camel coat, burgundy knit and black trousers standing against a sand-coloured wall",
+        "tag": "ON YOU · EXAMPLE"
+      },
+      "trip": {
+        "alt": "A woman placing folded sweaters into a cabin suitcase on the bed"
+      }
     },
     "screens": {
       "welcome": {

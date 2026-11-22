@@ -308,30 +308,6 @@
     transform: translateX(-50%);
   }
 
-  /* A small piece of the app's own UI language, floating next to the hero phones. */
-  .chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 14px;
-    border: 1px solid var(--color-line);
-    border-radius: 9999px;
-    background-color: var(--color-paper);
-    color: var(--color-ink);
-    font-size: 13px;
-    line-height: 18px;
-    font-weight: 500;
-    white-space: nowrap;
-    box-shadow: 0 10px 24px -14px rgb(28 26 23 / 0.35);
-  }
-
-  .chip-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 9999px;
-    background-color: var(--color-accent);
-  }
-
   /* Panel a phone rises out of (cropped at the bottom edge). */
   .stage {
     position: relative;
