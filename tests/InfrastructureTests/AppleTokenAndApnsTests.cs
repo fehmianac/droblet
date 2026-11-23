@@ -174,6 +174,25 @@ public class ApnsPushProviderTests
     }
 
     [Fact]
+    public async Task SandboxOnlyKey_IsRetriedOnTheSandboxHost_AndADeviceItCannotReachStaysRegistered()
+    {
+        // A key Apple issued for the sandbox: production refuses the key, the sandbox accepts a development build's token.
+        var http = new StubHandler(r => r.RequestUri!.Host == "api.push.apple.com"
+            ? StubHandler.Json("""{"reason":"BadEnvironmentKeyInToken"}""", HttpStatusCode.Forbidden)
+            : new HttpResponseMessage(HttpStatusCode.OK));
+        var provider = new ApnsPushProvider(new HttpClient(http), Fixtures.Monitor(Configured()), Fixtures.Clock(), NullLogger<ApnsPushProvider>.Instance);
+        Assert.Equal(PushResult.Sent, await provider.SendAsync(Message, default));
+        Assert.Equal(["api.push.apple.com", "api.sandbox.push.apple.com"], http.Requests.Select(r => r.Uri.Host));
+
+        // A release build's token: the sandbox does not know it. That is a key problem — Failed, never Unregistered.
+        var release = new StubHandler(r => r.RequestUri!.Host == "api.push.apple.com"
+            ? StubHandler.Json("""{"reason":"BadEnvironmentKeyInToken"}""", HttpStatusCode.Forbidden)
+            : StubHandler.Json("""{"reason":"BadDeviceToken"}""", HttpStatusCode.BadRequest));
+        var blocked = new ApnsPushProvider(new HttpClient(release), Fixtures.Monitor(Configured()), Fixtures.Clock(), NullLogger<ApnsPushProvider>.Instance);
+        Assert.Equal(PushResult.Failed, await blocked.SendAsync(Message, default));
+    }
+
+    [Fact]
     public async Task Gone_IsUnregistered_AndNoKeyIsNotConfigured()
     {
         var http = new StubHandler(_ => StubHandler.Json("""{"reason":"Unregistered"}""", HttpStatusCode.Gone));

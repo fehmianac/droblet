@@ -38,12 +38,21 @@ public sealed class ApnsPushProvider(
         try
         {
             var result = await SendToAsync(apns.ApnsProductionUrl, apns, message, ct);
-            if (result == ApnsAnswer.BadDeviceToken)
-                result = await SendToAsync(apns.ApnsSandboxUrl, apns, message, ct);
+            // The other environment: a development build's token, or an auth key Apple issued for the sandbox only
+            // (403 BadEnvironmentKeyInToken on the production host).
+            if (result is ApnsAnswer.BadDeviceToken or ApnsAnswer.BadEnvironmentKey)
+            {
+                var sandbox = await SendToAsync(apns.ApnsSandboxUrl, apns, message, ct);
+                if (result == ApnsAnswer.BadEnvironmentKey && sandbox != ApnsAnswer.Sent)
+                    logger.LogWarning("APNs key {KeyId} is not valid for the production environment and the sandbox did not accept the device: create a key for 'Sandbox & Production'", apns.ApnsKeyId);
+                result = result == ApnsAnswer.BadEnvironmentKey && sandbox != ApnsAnswer.Sent ? ApnsAnswer.BadEnvironmentKey : sandbox;
+            }
             return result switch
             {
                 ApnsAnswer.Sent => PushResult.Sent,
                 ApnsAnswer.Unregistered or ApnsAnswer.BadDeviceToken => PushResult.Unregistered,
+                // A configuration problem, never the device's fault: its token must be kept.
+                ApnsAnswer.BadEnvironmentKey => PushResult.Failed,
                 _ => PushResult.Failed,
             };
         }
@@ -54,7 +63,7 @@ public sealed class ApnsPushProvider(
         }
     }
 
-    private enum ApnsAnswer { Sent, BadDeviceToken, Unregistered, Failed }
+    private enum ApnsAnswer { Sent, BadDeviceToken, Unregistered, BadEnvironmentKey, Failed }
 
     private async Task<ApnsAnswer> SendToAsync(string baseUrl, ApnsOptions apns, PushMessage message, CancellationToken ct)
     {
@@ -78,7 +87,7 @@ public sealed class ApnsPushProvider(
         if (reason is "BadDeviceToken" or "DeviceTokenNotForTopic")
             return ApnsAnswer.BadDeviceToken;
         logger.LogWarning("APNs answered {Status} {Reason}", (int)response.StatusCode, reason);
-        return ApnsAnswer.Failed;
+        return reason == "BadEnvironmentKeyInToken" ? ApnsAnswer.BadEnvironmentKey : ApnsAnswer.Failed;
     }
 
     /// <summary>The APNs request (public for the composition test): POST /3/device/{token}, HTTP/2, alert push.</summary>
