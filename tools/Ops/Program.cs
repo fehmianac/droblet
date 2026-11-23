@@ -65,6 +65,7 @@ try
             OpsArguments.PushTest => await PushTestCommand.RunAsync(services, arguments, output, cts.Token),
             OpsArguments.SeedFeedPosts => await SeedFeedPostsCommand.RunAsync(services, arguments, output, arguments.Stage, cts.Token),
             OpsArguments.SplitFeedPosts => await SplitFeedPostsCommand.RunAsync(services, arguments, output, cts.Token),
+            OpsArguments.ImportVakko => await ImportVakkoCommand.RunAsync(services, arguments, output, cts.Token),
             OpsArguments.SeedFeedStories => await SeedFeedStoriesCommand.RunAsync(services, arguments, output, cts.Token),
             OpsArguments.MigrateLibraryItemImages => await MigrateLibraryItemImagesCommand.RunAsync(services, arguments, output, cts.Token),
             OpsArguments.AccountSmoke => await new AccountSmokeCommand(services, arguments, output).RunAsync(cts.Token),
