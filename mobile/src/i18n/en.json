@@ -407,7 +407,9 @@
     "chipAll": "All",
     "fromStore": "From the store",
     "fromStoreAll": "See all products in the store",
-    "allEmpty": "Discover is being prepared."
+    "allEmpty": "Discover is being prepared.",
+    "allBrands": "All brands",
+    "brandEmpty": "No products from this brand right now."
   },
   "screens": {
     "weekPlan": "Weekly plan",

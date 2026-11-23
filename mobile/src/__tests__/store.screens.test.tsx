@@ -75,6 +75,13 @@ describe('Keşfet and the style store (20–24b, fixtures, EN)', () => {
     expect(screen.getByText('Net Ofis Klasikleri')).toBeTruthy();
     expect(screen.getByText('@ornek_stilist')).toBeTruthy();
 
+    // By brand: the brand chips narrow "From the store" to one brand, and "All brands" brings everything back.
+    const brand = storeFixtures.brands()[0]!;
+    await fireEvent.press(screen.getByTestId(`discover.all.brand.${brand.id}`));
+    await waitFor(() => expect(screen.getByTestId(`discover.all.brand.${brand.id}`).props.accessibilityState).toMatchObject({ selected: true }), WAIT);
+    await waitFor(() => expect(within(screen.getByTestId('discover.all.product.0')).getByText(brand.name.toUpperCase())).toBeTruthy(), WAIT);
+    await fireEvent.press(screen.getByTestId('discover.all.brand.all'));
+
     // A chip narrows it: Editor shows the edit without the store products.
     await fireEvent.press(screen.getByLabelText('Editor'));
     await waitFor(() => expect(screen.queryByTestId('discover.all')).toBeNull(), WAIT);

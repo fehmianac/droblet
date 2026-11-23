@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { ChevronRight, Search } from 'lucide-react-native';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, RefreshControl, ScrollView, useWindowDimensions, View } from 'react-native';
 
@@ -18,7 +18,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { CreatorCardView } from '@/features/store/CreatorCardView';
 import { useSetFavorite } from '@/features/store/mutations';
-import { EMPTY_PRODUCT_QUERY, useCreators, useCurrentEdit, useFavoriteProducts, useProducts, useSeriesOutfits } from '@/features/store/queries';
+import { EMPTY_PRODUCT_QUERY, useBrands, useCreators, useCurrentEdit, useFavoriteProducts, useProducts, useSeriesOutfits } from '@/features/store/queries';
 import { ShopProductCard } from '@/features/store/ShopProductCard';
 import { useTeenRules } from '@/features/teen/store';
 import { useWeeklyEdit } from '@/features/today/api';
@@ -208,14 +208,18 @@ function AdultDiscover() {
   const { width } = useWindowDimensions();
   const edit = useCurrentEdit();
   const creators = useCreators();
-  const products = useProducts(EMPTY_PRODUCT_QUERY, section === 'all');
+  // "Mağazadan" can be narrowed to one brand (owner request): the chips list the catalogue's brands.
+  const [brandId, setBrandId] = useState<string | null>(null);
+  const brands = useBrands();
+  const productQuery = useMemo(() => (brandId ? { ...EMPTY_PRODUCT_QUERY, brandIds: [brandId] } : EMPTY_PRODUCT_QUERY), [brandId]);
+  const products = useProducts(productQuery, section === 'all');
   const favorites = useFavoriteProducts();
   const setFavorite = useSetFavorite();
   const favoriteIds = favorites.data?.productIds ?? [];
   const newest = (products.data?.pages[0]?.items ?? []).slice(0, ALL_PRODUCT_COUNT);
   const cardWidth = (width - 20 * 2 - 12) / 2;
   const allLoading = edit.isPending || products.isPending;
-  const allEmpty = !allLoading && !edit.data && newest.length === 0 && (creators.data?.length ?? 0) === 0;
+  const allEmpty = !allLoading && !edit.data && newest.length === 0 && brandId === null && (creators.data?.length ?? 0) === 0;
   const series = useSeriesOutfits(section === 'series');
 
   const refresh = () => {
@@ -266,12 +270,12 @@ function AdultDiscover() {
           >
             {edit.data ? <EditCover edit={edit.data} /> : null}
 
-            {allLoading || newest.length > 0 ? (
+            {allLoading || newest.length > 0 || brandId !== null ? (
               <View className="gap-3.5">
                 <View className="flex-row items-center justify-between px-gutter">
                   <Text variant="h3">{t('discover.fromStore')}</Text>
                   <Pressable
-                    onPress={() => router.push('/shop')}
+                    onPress={() => router.push(brandId ? { pathname: '/shop', params: { brand: brandId } } : '/shop')}
                     accessibilityRole="link"
                     accessibilityLabel={t('discover.fromStoreAll')}
                     hitSlop={8}
@@ -282,6 +286,20 @@ function AdultDiscover() {
                     <Icon icon={ChevronRight} size={14} />
                   </Pressable>
                 </View>
+                {(brands.data?.length ?? 0) > 1 || brandId !== null ? (
+                  <ChipRow>
+                    <Chip testID="discover.all.brand.all" label={t('discover.allBrands')} selected={brandId === null} onPress={() => setBrandId(null)} />
+                    {(brands.data ?? []).map((brand) => (
+                      <Chip
+                        key={brand.id}
+                        testID={`discover.all.brand.${brand.id}`}
+                        label={brand.name}
+                        selected={brandId === brand.id}
+                        onPress={() => setBrandId(brand.id)}
+                      />
+                    ))}
+                  </ChipRow>
+                ) : null}
                 {newest.length > 0 ? (
                   <View className="flex-row flex-wrap gap-3 px-gutter">
                     {newest.map((item, index) => (
@@ -296,11 +314,15 @@ function AdultDiscover() {
                       </View>
                     ))}
                   </View>
-                ) : (
+                ) : products.isFetching ? (
                   <View className="flex-row gap-3 px-gutter">
                     <Skeleton className="h-[240px] flex-1 rounded-image-lg" />
                     <Skeleton className="h-[240px] flex-1 rounded-image-lg" />
                   </View>
+                ) : (
+                  <Text variant="caption" tone="muted" className="px-gutter" testID="discover.all.brandEmpty">
+                    {t('discover.brandEmpty')}
+                  </Text>
                 )}
               </View>
             ) : null}

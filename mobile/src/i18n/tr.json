@@ -407,7 +407,9 @@
     "chipAll": "Tümü",
     "fromStore": "Mağazadan",
     "fromStoreAll": "Mağazadaki tüm ürünleri gör",
-    "allEmpty": "Keşfet için içerik hazırlanıyor."
+    "allEmpty": "Keşfet için içerik hazırlanıyor.",
+    "allBrands": "Tüm markalar",
+    "brandEmpty": "Bu markada şu an ürün yok."
   },
   "screens": {
     "weekPlan": "Haftalık plan",

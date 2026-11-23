@@ -141,14 +141,19 @@ export default function ShopScreen() {
   const colors = useThemeColors();
   const { width, height } = useWindowDimensions();
   const cardWidth = (width - GUTTER * 2 - COLUMN_GAP) / 2;
-  const params = useLocalSearchParams<{ colors?: string }>();
+  // `brand`: Keşfet › "Mağazadan" opened with one brand chosen.
+  const params = useLocalSearchParams<{ colors?: string; brand?: string }>();
   const bodyProfile = useBodyProfile();
   // The category chips of the design, in order (canvas 17: the men's store has Jeanler instead of Elbiseler).
   // Shoes and bags are reached through search and the builder.
   const chipCategories = shopChipCategories(useSegment());
   const profileSize = bodyProfile.data?.size ?? null;
 
-  const [query, setQuery] = useState<ProductQuery>(() => ({ ...EMPTY_PRODUCT_QUERY, colors: parseColors(params.colors) }));
+  const [query, setQuery] = useState<ProductQuery>(() => ({
+    ...EMPTY_PRODUCT_QUERY,
+    colors: parseColors(params.colors),
+    brandIds: typeof params.brand === 'string' && params.brand ? [params.brand] : [],
+  }));
   const [search, setSearch] = useState('');
   const [filterOpen, setFilterOpen] = useState(false);
   const [completeOpen, setCompleteOpen] = useState(false);
