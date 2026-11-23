@@ -63,6 +63,7 @@ try
             OpsArguments.AiBench => await AiBenchCommand.RunAsync(services, arguments, output, cts.Token),
             OpsArguments.AiCost => await new AiCostCommand(services, arguments, output).RunAsync(cts.Token),
             OpsArguments.PushTest => await PushTestCommand.RunAsync(services, arguments, output, cts.Token),
+            OpsArguments.SeedFeedPosts => await SeedFeedPostsCommand.RunAsync(services, arguments, output, arguments.Stage, cts.Token),
             OpsArguments.MigrateLibraryItemImages => await MigrateLibraryItemImagesCommand.RunAsync(services, arguments, output, cts.Token),
             OpsArguments.AccountSmoke => await new AccountSmokeCommand(services, arguments, output).RunAsync(cts.Token),
             OpsArguments.AiAdminSmoke => await new AiAdminSmokeCommand(services, arguments, output).RunAsync(cts.Token),

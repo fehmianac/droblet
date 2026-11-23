@@ -33,6 +33,8 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
     public const string PublicUrls = "public-urls";
     public const string GoogleAuth = "google-auth";
     public const string PushTest = "push-test";
+    /// <summary>Akış editor posts from owner-supplied pictures (a folder with manifest.json). No AI call; dev only.</summary>
+    public const string SeedFeedPosts = "seed-feed-posts";
     public const string MigrateLibraryItemImages = "migrate-library-item-images";
     public const string AccountSmoke = "account-smoke";
     public const string OutfitImportSmoke = "outfit-import-smoke";
@@ -45,10 +47,10 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
     /// <summary>Hard ceiling of image-model calls in one run (library images and synthetic fixtures together).</summary>
     public const int MaxImageCallsPerRun = 30;
 
-    public static readonly IReadOnlyList<string> Commands = [GrantTestPremium, RevokeTestPremium, GenerateLibraryImages, GenerateMarketingImages, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, Logs, MigrateLibraryItemImages, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, AiUsageBackfill, PublishItemImages, CdnCheck, PublicUrls, GoogleAuth, PushTest];
+    public static readonly IReadOnlyList<string> Commands = [SeedFeedPosts, GrantTestPremium, RevokeTestPremium, GenerateLibraryImages, GenerateMarketingImages, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, Logs, MigrateLibraryItemImages, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, AiUsageBackfill, PublishItemImages, CdnCheck, PublicUrls, GoogleAuth, PushTest];
 
     /// <summary>Commands that create or change test accounts or spend AI credit on a throw-away user: never on prod.</summary>
-    public static readonly IReadOnlySet<string> DevOnly = new HashSet<string>(StringComparer.Ordinal) { GrantTestPremium, RevokeTestPremium, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, PublicUrls, GenerateMarketingImages };
+    public static readonly IReadOnlySet<string> DevOnly = new HashSet<string>(StringComparer.Ordinal) { SeedFeedPosts, GrantTestPremium, RevokeTestPremium, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, PublicUrls, GenerateMarketingImages };
 
     private static readonly IReadOnlyDictionary<string, string[]> AllowedOptions = new Dictionary<string, string[]>(StringComparer.Ordinal)
     {
@@ -67,6 +69,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [PublicUrls] = [],
         [GoogleAuth] = ["add-client-id"],
         [PushTest] = ["email"],
+        [SeedFeedPosts] = ["dir"],
         [MigrateLibraryItemImages] = [],
         [AccountSmoke] = ["api-url"],
         [OutfitImportSmoke] = ["api-url"],
@@ -92,6 +95,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [PublicUrls] = ["enable", "disable"],
         [GoogleAuth] = [],
         [PushTest] = [],
+        [SeedFeedPosts] = ["dry-run"],
         [MigrateLibraryItemImages] = ["dry-run"],
         [AccountSmoke] = ["keep-user"],
         [OutfitImportSmoke] = ["keep-user"],
