@@ -184,6 +184,14 @@
         "alt": "Droblet uygulaması, Bugün ekranı: hava durumu ve günün kombini",
         "caption": "Bugün"
       },
+      "wardrobe": {
+        "alt": "Droblet uygulaması, Gardırop ekranı: fotoğraflarıyla parçaların, kategori ve sezon filtreleri",
+        "caption": "Gardırop"
+      },
+      "trip": {
+        "alt": "Droblet uygulaması, bavul ekranı: Londra için hava durumu, günlük looklar ve bavul listesi",
+        "caption": "Bavul"
+      },
       "looks": {
         "alt": "Droblet uygulaması, Looklar ekranı: kaydedilmiş kombinler",
         "caption": "Looklar"

@@ -95,7 +95,7 @@ function buildPlan(trip: Pick<Trip, 'startDate' | 'endDate' | 'cabinOnly'>, pack
   const dates = tripDates(trip.startDate, trip.endDate);
   const days = dates.map((date, i) => {
     const look = looks.length > 0 ? looks[i % looks.length] : undefined;
-    return { date, look: look ? { id: look.id, name: look.name, occasion: look.occasion, imageUrl: look.tryOnImageUrl } : null };
+    return { date, look: look ? { id: look.id, name: look.name, occasion: look.occasion, imageUrl: look.tryOnImageUrl ?? look.coverImageUrl ?? null } : null };
   });
   const rainy = forecastFor(trip.startDate, trip.endDate).filter((d) => d.condition === 'rain').length;
   return {

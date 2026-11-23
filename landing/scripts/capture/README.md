@@ -27,7 +27,7 @@ shown in the store.
 | `friends` | 25 Arkadaş akışı | `droplet://friends/feed` |
 | `profile` | 28 Profil | `droplet://profile` |
 
-The capture takes more screens than the page shows: since 23 Nov 2026 the page uses only the ones with real pictures (`src/lib/screens.ts`; the showcase pictures are `mobile/assets/showcase/`, see `mobile/src/fixtures/showcaseImages.ts`) — wardrobe, stylist, trip and profile are captured but not copied into the page's set. `npm run check` fails when a referenced file is missing in
+The capture takes more screens than the page shows: since 23 Nov 2026 the page uses only the ones with real pictures (`src/lib/screens.ts`; the showcase pictures are `mobile/assets/showcase/`, see `mobile/src/fixtures/showcaseImages.ts`). `wardrobe` and `trip` are on the page again (the wardrobe pieces have photographs — `item-*.webp`, showcase build only — and the trip's days show the look covers); `stylist` and `profile` are captured but not copied into the page's set: a prompt form and a menu, no pictures in them. After a capture keep only the files the page uses (`git status` shows the extra ones). `npm run check` fails when a referenced file is missing in
 either language, when the two sets differ, when a language's set is over 2.5 MB or the hero image over 400 KB.
 
 ## Men's showcase account (canvas 17)
