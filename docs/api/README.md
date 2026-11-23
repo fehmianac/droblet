@@ -209,6 +209,7 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | Method | Path | Auth | Doc | What |
 |---|---|---|---|---|
 | GET | `v1/catalog/brand` | user | [S](store-social-settings.md) | Brands |
+| GET | `v1/catalog/color` | user | [S](store-social-settings.md) | Colours the catalog comes in (the colour filter) |
 | GET | `v1/catalog/product` | user | [S](store-social-settings.md) | Products (paged) |
 | GET | `v1/catalog/product/{id}` | user | [S](store-social-settings.md) | Product detail |
 | POST | `v1/tenant/catalog/complete` | user | [S](store-social-settings.md) | Complete my piece(s) |
@@ -226,6 +227,7 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | GET | `v1/tenant/favorite/product` | user | [S](store-social-settings.md) | Favourite products |
 | PUT | `v1/tenant/favorite/product/{productId}` | user | [S](store-social-settings.md) | Favourite a product |
 | DELETE | `v1/tenant/favorite/product/{productId}` | user | [S](store-social-settings.md) | Remove a favourite product |
+| GET | `v1/tenant/feed-post/{id}` | user | [S](store-social-settings.md) | One Akış post as the caller sees it |
 | GET | `v1/tenant/feed-post/saved` | user | [S](store-social-settings.md) | Saved Akış posts |
 | PUT | `v1/tenant/feed-post/{id}/like` | user | [S](store-social-settings.md) | Like an Akış post |
 | DELETE | `v1/tenant/feed-post/{id}/like` | user | [S](store-social-settings.md) | Take back a like |
