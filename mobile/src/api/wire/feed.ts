@@ -52,7 +52,8 @@ export type FeedAuthorWire = {
   verified: boolean;
 };
 
-export type FeedPieceWire = { category: string; imageUrl: string | null };
+/** `subcategory`: a `SubcategoryCatalog` id ("trench-coat"); null or left out when unknown. */
+export type FeedPieceWire = { category: string; subcategory?: string | null; imageUrl: string | null };
 
 /** `FeedPostDto`. */
 export type FeedPostWire = {
@@ -97,7 +98,7 @@ export function toFeedProduct(wire: FeedProductWire): FeedProduct {
 }
 
 export function toFeedPiece(wire: FeedPieceWire): FeedPiece {
-  return { category: wire.category, imageUrl: wire.imageUrl ?? null };
+  return { category: wire.category, subcategory: wire.subcategory || null, imageUrl: wire.imageUrl ?? null };
 }
 
 export function toFeedPost(wire: FeedPostWire): FeedPost {

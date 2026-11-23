@@ -65,6 +65,8 @@ export const ANALYTICS_EVENTS = [
   'push_permission',
   /** Akış F1: a post scrolled into view, once per post per app session; `postId`, `authorKind` edit | stylist. */
   'feed_post_view',
+  /** Akış: a post's detail opened from its card (photograph or title); `postId`, `kind` editor | user. */
+  'feed_post_open',
   /** Akış F1: ♡ toggled; `postId`, `liked`. */
   'feed_like',
   /** Akış F1: "Kaydet" toggled; `postId`, `saved`. */

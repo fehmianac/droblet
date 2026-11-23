@@ -152,6 +152,13 @@
         "notSavable": "Bu gönderi look olarak kaydedilemiyor.",
         "gone": "Bu gönderi artık yayında değil."
       }
+    },
+    "openPostA11y": "{{title}} gönderisinin detayını aç",
+    "detail": {
+      "piecesTitle": "Parçalar · {{count}}",
+      "notFound": "Bu gönderi şu an açılamıyor. Akışa dönüp tekrar açmayı dene.",
+      "backToFeed": "Akışa dön",
+      "pieceZoomA11y": "{{name}}, parça fotoğrafı"
     }
   }
 }

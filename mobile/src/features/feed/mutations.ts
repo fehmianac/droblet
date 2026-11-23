@@ -32,7 +32,7 @@ import { newClientMutation } from '@/sync/clientMutation';
 import { useIsOnline } from '@/sync/network';
 import { TENANT_WRITE_SCOPE } from '@/sync/queryKeys';
 
-import { applyLike, hidePostThisSession, removeFeedPost, updateFeedPosts } from './logic';
+import { applyLike, hidePostThisSession, ownedItemIds, removeFeedPost, updateFeedPosts } from './logic';
 import { feedKeys, type FeedPages } from './queries';
 
 export const feedMutationKeys = {
@@ -54,10 +54,11 @@ export function saveAsLookErrorKey(error: unknown): 'paywall' | 'notSavable' | '
 
 const postPath = (id: string) => `v1/tenant/feed-post/${encodeURIComponent(id)}`;
 
-/** Writes `change` into every cached copy of the post: each tab's pages and the saved list. */
+/** Writes `change` into every cached copy of the post: each tab's pages, the saved list and the copy of the open detail. */
 function patchPost(client: QueryClient, postId: string, change: (post: FeedPost) => FeedPost): void {
   client.setQueriesData<FeedPages>({ queryKey: feedKeys.posts }, (prev) => updateFeedPosts(prev, (p) => p.id === postId, change));
   client.setQueryData<FeedPost[]>(feedKeys.saved, (prev) => prev?.map((p) => (p.id === postId ? change(p) : p)));
+  client.setQueryData<FeedPost | null>(feedKeys.opened, (prev) => (prev && prev.id === postId ? change(prev) : prev));
 }
 
 /** Takes the post out of every cached list (each tab's pages, the saved list) and keeps it out for this session. */
@@ -65,6 +66,7 @@ function dropPost(client: QueryClient, postId: string): void {
   hidePostThisSession(postId);
   client.setQueriesData<FeedPages>({ queryKey: feedKeys.posts }, (prev) => removeFeedPost(prev, postId));
   client.setQueryData<FeedPost[]>(feedKeys.saved, (prev) => prev?.filter((p) => p.id !== postId));
+  client.setQueryData<FeedPost | null>(feedKeys.opened, (prev) => (prev && prev.id === postId ? null : prev));
 }
 
 /**
@@ -190,6 +192,26 @@ export function registerFeedMutations(client: QueryClient): void {
 }
 
 const id = () => newClientMutation().clientMutationId;
+
+/**
+ * Opens a post's detail (`feed/[id]`) from its card. The detail has no read of its own: it draws the post from the
+ * cache, so the tapped copy is kept for it (`feedKeys.opened`) in case the post leaves the lists while it is open.
+ */
+export function useOpenFeedPost() {
+  const client = useQueryClient();
+  return (post: FeedPost) => {
+    client.setQueryData<FeedPost | null>(feedKeys.opened, post);
+    track('feed_post_open', { postId: post.id, kind: post.kind });
+    router.push({ pathname: '/feed/[id]', params: { id: post.id } });
+  };
+}
+
+/** "Kendi parçalarımla kur": the look builder (15) with the wardrobe pieces matched to the post, and its occasion. */
+export function openBuildWithMine(post: Pick<FeedPost, 'id' | 'products' | 'occasion'>): void {
+  const mine = ownedItemIds(post);
+  track('feed_build_with_mine', { postId: post.id, count: mine.length });
+  router.push({ pathname: '/look/new', params: { itemIds: mine.join(','), ...(post.occasion ? { occasion: post.occasion } : {}) } });
+}
 
 /** ♡ on a post: optimistic, queued offline. */
 export function useLikeFeedPost() {

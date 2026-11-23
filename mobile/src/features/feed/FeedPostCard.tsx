@@ -1,28 +1,28 @@
 import { router } from 'expo-router';
 import { Bookmark, CirclePlus, Heart, Layers, ShoppingBag, Sparkles } from 'lucide-react-native';
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, ScrollView, useWindowDimensions, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 
-import { track } from '@/analytics/track';
 import type { FeedPost, FeedProduct } from '@/api/contracts/feed';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
-import { ImageSlot, type Piece } from '@/components/ui/ImageSlot';
+import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
-import { useTryOnAction } from '@/features/tryon/useTryOnAction';
 import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { formatMoney, formatNumber } from '@/lib/format';
 import { toDisplayUpper } from '@/lib/upper';
 import { feedTones, spacing } from '@/theme/tokens';
 
-import { AuthorAvatar, VerifiedBadge } from './FeedBits';
+import { AuthorAvatar, FeedLink, FeedToggle, VerifiedBadge } from './FeedBits';
+import { FeedCarousel } from './FeedCarousel';
 import { FeedPieceStrip } from './FeedPieceStrip';
 import { FeedUserPostCard } from './FeedUserPostCard';
 import { BUILD_WITH_MINE_MIN, occasionLabel, ownedItemIds, postMeta } from './logic';
-import { useLikeFeedPost, useSaveFeedPost } from './mutations';
+import { openBuildWithMine, useLikeFeedPost, useOpenFeedPost, useSaveFeedPost } from './mutations';
 import { SaveAsLookSheet } from './SaveAsLookSheet';
+import { useFeedTryOn } from './useFeedTryOn';
 
 type Props = {
   post: FeedPost;
@@ -37,68 +37,6 @@ type Props = {
 /** Height of the photo area on the board: 410 on a full card, 400 on a card without pieces. */
 const FULL_IMAGE = 410;
 const COMPACT_IMAGE = 400;
-
-const piecesOf = (products: FeedProduct[]): Piece[] => products.map((p) => ({ category: p.category, color: p.colors[0], imageUrl: p.imageUrl }));
-
-/** The photos, one page each: "1 / N" counter, the buyable chip and the dots under the photo (canvas 06″). */
-function Carousel({ post, height, teen, overlay }: { post: FeedPost; height: number; teen: boolean; overlay?: ReactNode }) {
-  const { t } = useTranslation();
-  const { width: windowWidth } = useWindowDimensions();
-  // The card sits 20 in from each edge and has a 1 pt hairline.
-  const width = Math.max(1, windowWidth - spacing.gutter * 2 - 2);
-  const [index, setIndex] = useState(0);
-  const count = Math.max(1, post.images.length);
-  // The placeholder figure wears the products; a photograph without products, its pieces.
-  const pieces = post.products.length > 0 ? piecesOf(post.products) : post.pieces.map((p) => ({ category: p.category, imageUrl: p.imageUrl }));
-  const onScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => setIndex(Math.round(e.nativeEvent.contentOffset.x / width));
-
-  return (
-    <View style={{ height }} className="bg-sand">
-      <ScrollView
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        scrollEnabled={count > 1}
-        onMomentumScrollEnd={onScrollEnd}
-        testID={`feed.post.${post.id}.carousel`}
-      >
-        {(post.images.length > 0 ? post.images : [null]).map((uri, i) => (
-          <View key={`${post.id}-${i}`} style={{ width, height }}>
-            <ImageSlot
-              uri={uri}
-              className="h-full w-full"
-              accessibilityLabel={t('homeFeed.imageA11y', { title: post.title, index: i + 1, count })}
-              placeholder={{ kind: 'look', pieces, seed: `${post.id}-${i}`, figureHeight: Math.round(height * 0.6) }}
-            />
-          </View>
-        ))}
-      </ScrollView>
-      {count > 1 ? (
-        <View className="absolute right-3 top-3 h-6 justify-center rounded-pill bg-feed-counter px-[9px]" pointerEvents="none" accessible={false}>
-          <Text variant="badge" tone="cream" testID={`feed.post.${post.id}.counter`}>
-            {t('homeFeed.imageCounter', { index: index + 1, count })}
-          </Text>
-        </View>
-      ) : null}
-      {!teen && post.products.length > 0 && post.buyableCount > 0 ? (
-        <View className="absolute bottom-3 left-3 h-7 flex-row items-center gap-[5px] rounded-pill bg-feed-chip px-2.5" pointerEvents="none" testID={`feed.post.${post.id}.buyable`}>
-          <Icon icon={ShoppingBag} size={13} />
-          <Text variant="badge" className="text-[11.5px]">
-            {t('homeFeed.buyable', { count: post.buyableCount })}
-          </Text>
-        </View>
-      ) : null}
-      {overlay}
-      {count > 1 ? (
-        <View className="absolute -bottom-3.5 left-0 right-0 flex-row justify-center gap-[5px]" pointerEvents="none" accessible={false}>
-          {Array.from({ length: count }, (_, i) => (
-            <View key={i} className={`h-1.5 w-1.5 rounded-pill ${i === index ? 'bg-ink' : 'bg-feed-dot'}`} />
-          ))}
-        </View>
-      ) : null}
-    </View>
-  );
-}
 
 /** One piece of the strip: thumbnail + name + "Gardırobunda var" (green) or "Marka · fiyat"; opens the product. */
 function PieceChip({ product, teen }: { product: FeedProduct; teen: boolean }) {
@@ -153,23 +91,6 @@ function PieceChip({ product, teen }: { product: FeedProduct; teen: boolean }) {
   );
 }
 
-/** ♡ (accent when liked) and the bookmark, as on the board: borderless 44 targets. */
-function Toggle({ icon, on, size, label, onPress, testID }: { icon: typeof Heart; on: boolean; size: number; label: string; onPress: () => void; testID: string }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityState={{ selected: on }}
-      hitSlop={4}
-      testID={testID}
-      className="h-icon-btn w-icon-btn items-center justify-center rounded-pill active:opacity-70"
-    >
-      <Icon icon={icon} size={size} tone={on ? 'accent' : 'ink'} filled={on} />
-    </Pressable>
-  );
-}
-
 /**
  * One editorial post of Akış F1 (canvas 06″): author row (verified Droblet Edit), "Ofis · Sonbahar · 3 sa", the photo
  * carousel, eyebrow + serif title, the piece strip, "Üzerimde dene · 1 kredi" + "Satın al", ♡ and Kaydet, the like
@@ -186,23 +107,23 @@ function Toggle({ icon, on, size, label, onPress, testID }: { icon: typeof Heart
  * "Looklarıma ekle" (owner decision 2026-11-23; a post with pieces): the same kind of accent link under the strip. It
  * opens the sheet with the two ways of saving the post into the member's own looks — as inspiration, or with its
  * pieces (`SaveAsLookSheet`). ♡ and the bookmark stay as they are.
+ *
+ * A tap on a photograph or on the title opens the post's detail (`feed/[id]`, owner request 2026-11-23): the pieces
+ * large, the photograph in the full-screen viewer. Everything else on the card keeps its own tap.
  */
 function EditorPostCard({ post, teen, onBuy }: Pick<Props, 'post' | 'teen' | 'onBuy'>) {
   const { t } = useTranslation();
   const language = useAppLanguage();
   const like = useLikeFeedPost();
   const save = useSaveFeedPost();
-  const tryOn = useTryOnAction({
-    target: { kind: 'feed-post', id: post.id },
-    title: post.title,
-    feature: 'feed_try_on',
-    // No per-post existence check (one read per card): the server answers an existing image for free.
-    cachedJobId: null,
-  });
-  const startTryOn = () => {
-    track('feed_tryon_start', { source: 'post', postId: post.id });
-    tryOn.invite.onPress();
-  };
+  const tryOn = useFeedTryOn(post);
+  const startTryOn = tryOn.start;
+  const openPost = useOpenFeedPost();
+  const open = () => openPost(post);
+  const openLabel = t('homeFeed.openPostA11y', { title: post.title });
+  const { width: windowWidth } = useWindowDimensions();
+  // The card sits 20 in from each edge and has a 1 pt hairline.
+  const width = Math.max(1, windowWidth - spacing.gutter * 2 - 2);
 
   const hasProducts = post.products.length > 0;
   const compact = !hasProducts && post.pieces.length === 0;
@@ -213,16 +134,13 @@ function EditorPostCard({ post, teen, onBuy }: Pick<Props, 'post' | 'teen' | 'on
     .join(' · ');
   const showBuy = !teen && hasProducts && post.buyableCount > 0;
   const mine = ownedItemIds(post);
-  const buildWithMine = () => {
-    track('feed_build_with_mine', { postId: post.id, count: mine.length });
-    router.push({ pathname: '/look/new', params: { itemIds: mine.join(','), ...(post.occasion ? { occasion: post.occasion } : {}) } });
-  };
+  const buildWithMine = () => openBuildWithMine(post);
   const likes = t('homeFeed.likes', { count: post.likeCount, formatted: formatNumber(post.likeCount) });
   const [lookSheet, setLookSheet] = useState(false);
 
   const actions = (
     <View className={`flex-row items-center justify-between ${compact ? 'px-2 pt-1' : '-mx-2'}`}>
-      <Toggle
+      <FeedToggle
         icon={Heart}
         size={23}
         on={post.liked}
@@ -230,7 +148,7 @@ function EditorPostCard({ post, teen, onBuy }: Pick<Props, 'post' | 'teen' | 'on
         onPress={() => like(post, !post.liked)}
         testID={`feed.post.${post.id}.like`}
       />
-      <Toggle
+      <FeedToggle
         icon={Bookmark}
         size={20}
         on={post.saved}
@@ -279,10 +197,14 @@ function EditorPostCard({ post, teen, onBuy }: Pick<Props, 'post' | 'teen' | 'on
         </View>
       </View>
 
-      <Carousel
+      <FeedCarousel
         post={post}
-        teen={teen}
+        width={width}
         height={compact ? COMPACT_IMAGE : FULL_IMAGE}
+        buyable={!teen}
+        onPress={open}
+        pressLabel={openLabel}
+        testIDPrefix={`feed.post.${post.id}`}
         overlay={
           compact && post.canTryOn ? (
             <Pressable
@@ -315,9 +237,11 @@ function EditorPostCard({ post, teen, onBuy }: Pick<Props, 'post' | 'teen' | 'on
         <View className="gap-3 px-4 pb-4 pt-[22px]">
           <View>
             <Text variant="eyebrow">{eyebrow}</Text>
-            <Text variant="h2" className="mt-1 text-[27px] leading-[28px]">
-              {post.title}
-            </Text>
+            <Pressable onPress={open} accessibilityRole="button" accessibilityLabel={openLabel} testID={`feed.post.${post.id}.title`} className="active:opacity-70">
+              <Text variant="h2" accessibilityRole="none" className="mt-1 text-[27px] leading-[28px]">
+                {post.title}
+              </Text>
+            </Pressable>
           </View>
           {hasProducts ? (
             <ScrollView
@@ -335,34 +259,24 @@ function EditorPostCard({ post, teen, onBuy }: Pick<Props, 'post' | 'teen' | 'on
             <FeedPieceStrip postId={post.id} pieces={post.pieces} />
           )}
           {mine.length >= BUILD_WITH_MINE_MIN ? (
-            <Pressable
-              onPress={buildWithMine}
-              accessibilityRole="button"
+            <FeedLink
+              icon={Layers}
+              label={t('homeFeed.buildWithMine')}
               accessibilityLabel={t('homeFeed.buildWithMineA11y', { count: mine.length })}
-              hitSlop={{ top: 6, bottom: 6 }}
+              onPress={buildWithMine}
               testID={`feed.post.${post.id}.buildWithMine`}
-              className="-my-1 min-h-[36px] flex-row items-center gap-1.5 self-start active:opacity-70"
-            >
-              <Icon icon={Layers} size={16} tone="accent" />
-              <Text variant="label" tone="accent" className="text-[13px]">
-                {t('homeFeed.buildWithMine')}
-              </Text>
-            </Pressable>
+              className="-my-1"
+            />
           ) : null}
           {post.pieces.length > 0 ? (
-            <Pressable
-              onPress={() => setLookSheet(true)}
-              accessibilityRole="button"
+            <FeedLink
+              icon={CirclePlus}
+              label={t('homeFeed.addToLooks')}
               accessibilityLabel={t('homeFeed.addToLooksA11y')}
-              hitSlop={{ top: 6, bottom: 6 }}
+              onPress={() => setLookSheet(true)}
               testID={`feed.post.${post.id}.addToLooks`}
-              className="-my-1 min-h-[36px] flex-row items-center gap-1.5 self-start active:opacity-70"
-            >
-              <Icon icon={CirclePlus} size={16} tone="accent" />
-              <Text variant="label" tone="accent" className="text-[13px]">
-                {t('homeFeed.addToLooks')}
-              </Text>
-            </Pressable>
+              className="-my-1"
+            />
           ) : null}
           <View className="flex-row gap-2">
             {post.canTryOn ? (

@@ -5,18 +5,16 @@ import { Pressable, View } from 'react-native';
 
 import type { FeedPost } from '@/api/contracts/feed';
 import { Button } from '@/components/ui/Button';
-import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
 import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Text } from '@/components/ui/Text';
 import { formatNumber } from '@/lib/format';
-import { refreshImageQueries } from '@/lib/images';
 
-import { AuthorAvatar } from './FeedBits';
+import { AuthorAvatar, FeedToggle } from './FeedBits';
+import { feedImageSource, feedLookPieces } from './FeedCarousel';
 import { FeedPieceStrip } from './FeedPieceStrip';
 import { postMeta } from './logic';
-import { useLikeFeedPost, useSaveFeedPost } from './mutations';
-import { feedKeys } from './queries';
+import { useLikeFeedPost, useOpenFeedPost, useSaveFeedPost } from './mutations';
 
 type Props = {
   post: FeedPost;
@@ -35,7 +33,8 @@ const COVER = 410;
  * A member's look on Akış (canvas 06‴ Akış F2, decision 21): avatar and @handle (they open the profile — "Takip et"
  * lives there), "Topluluk · Hafta sonu · 1 sa", the "⋯" menu, the look's cover, its name, the piece strip (picture +
  * kind), "Benzerlerini gör" when the catalogue has something close, ♡ with the count and Kaydet. No "Üzerimde dene",
- * no buying, no buyable chip, no verified mark, no comments.
+ * no buying, no buyable chip, no verified mark, no comments. A tap on the cover or on the name opens the post's detail
+ * (`feed/[id]`), where the pieces are shown large.
  */
 export function FeedUserPostCard({ post, teen, onMenu, onSimilar }: Props) {
   const { t } = useTranslation();
@@ -43,6 +42,9 @@ export function FeedUserPostCard({ post, teen, onMenu, onSimilar }: Props) {
   const save = useSaveFeedPost();
   const author = post.author.name;
   const handle = post.author.handle;
+  const openPost = useOpenFeedPost();
+  const open = () => openPost(post);
+  const openLabel = t('homeFeed.openPostA11y', { title: post.title });
   const likes = t('homeFeed.likes', { count: post.likeCount, formatted: formatNumber(post.likeCount) });
 
   const who = (
@@ -84,24 +86,21 @@ export function FeedUserPostCard({ post, teen, onMenu, onSimilar }: Props) {
         ) : null}
       </View>
 
-      <View style={{ height: COVER }} className="bg-sand">
+      <Pressable onPress={open} accessibilityRole="button" accessibilityLabel={openLabel} style={{ height: COVER }} className="bg-sand" testID={`feed.post.${post.id}.photo.0`}>
         <ImageSlot
-          uri={post.images[0] ?? null}
-          // The cover is a public CDN URL (owner decision 22) or, until the CDN is on, a presigned one (about an hour):
-          // keyed by the post and the file so a new signature still hits the cache, a new cover does not, and an
-          // expired URL re-reads the feed and the saved list once.
-          cacheKey={post.images[0] ? `feed-cover:${post.id}:${post.images[0].split('?')[0]?.split('/').pop() ?? ''}` : null}
-          onExpired={() => refreshImageQueries([feedKeys.posts, feedKeys.saved])}
+          {...feedImageSource(post, post.images[0] ?? null)}
           className="h-full w-full"
           accessibilityLabel={t('homeFeed.coverA11y', { title: post.title })}
-          placeholder={{ kind: 'look', pieces: post.pieces.map((p) => ({ category: p.category, imageUrl: p.imageUrl })), seed: post.id, figureHeight: Math.round(COVER * 0.6) }}
+          placeholder={{ kind: 'look', pieces: feedLookPieces(post), seed: post.id, figureHeight: Math.round(COVER * 0.6) }}
         />
-      </View>
+      </Pressable>
 
       <View className="gap-3 px-4 pb-4 pt-3.5">
-        <Text variant="h2" className="text-[24px] leading-[25px]">
-          {post.title}
-        </Text>
+        <Pressable onPress={open} accessibilityRole="button" accessibilityLabel={openLabel} testID={`feed.post.${post.id}.title`} className="active:opacity-70">
+          <Text variant="h2" accessibilityRole="none" className="text-[24px] leading-[25px]">
+            {post.title}
+          </Text>
+        </Pressable>
         {post.pieces.length > 0 ? (
           <FeedPieceStrip postId={post.id} pieces={post.pieces} />
         ) : null}
@@ -117,28 +116,8 @@ export function FeedUserPostCard({ post, teen, onMenu, onSimilar }: Props) {
           />
         ) : null}
         <View className="-mx-2 flex-row items-center justify-between">
-          <Pressable
-            onPress={() => like(post, !post.liked)}
-            accessibilityRole="button"
-            accessibilityLabel={t('homeFeed.like')}
-            accessibilityState={{ selected: post.liked }}
-            hitSlop={4}
-            testID={`feed.post.${post.id}.like`}
-            className="h-icon-btn w-icon-btn items-center justify-center rounded-pill active:opacity-70"
-          >
-            <Icon icon={Heart} size={23} tone={post.liked ? 'accent' : 'ink'} filled={post.liked} />
-          </Pressable>
-          <Pressable
-            onPress={() => save(post, !post.saved)}
-            accessibilityRole="button"
-            accessibilityLabel={t('homeFeed.save')}
-            accessibilityState={{ selected: post.saved }}
-            hitSlop={4}
-            testID={`feed.post.${post.id}.save`}
-            className="h-icon-btn w-icon-btn items-center justify-center rounded-pill active:opacity-70"
-          >
-            <Icon icon={Bookmark} size={20} tone={post.saved ? 'accent' : 'ink'} filled={post.saved} />
-          </Pressable>
+          <FeedToggle icon={Heart} size={23} on={post.liked} label={t('homeFeed.like')} onPress={() => like(post, !post.liked)} testID={`feed.post.${post.id}.like`} />
+          <FeedToggle icon={Bookmark} size={20} on={post.saved} label={t('homeFeed.save')} onPress={() => save(post, !post.saved)} testID={`feed.post.${post.id}.save`} />
         </View>
         <Text variant="bodyMedium" className="-mt-1.5 text-[13.5px] leading-[19.5px]" accessibilityLiveRegion="polite" testID={`feed.post.${post.id}.likes`}>
           {likes}

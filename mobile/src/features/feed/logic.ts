@@ -1,8 +1,10 @@
 import type { InfiniteData } from '@tanstack/react-query';
 import type { TFunction } from 'i18next';
 
-import type { FeedPost, FeedPostPage, FeedProduct } from '@/api/contracts/feed';
+import type { FeedPiece, FeedPost, FeedPostPage, FeedProduct } from '@/api/contracts/feed';
+import { ITEM_CATEGORIES, type ItemCategory } from '@/api/contracts/wardrobe';
 import { feedTabOfOccasion } from '@/api/wire/feed';
+import { toSubcategoryLabel } from '@/api/wire/subcategories';
 import { relativeTime, seasonOf } from '@/lib/format';
 
 /** Applies `change` to every post matching `match`, across all loaded pages. */
@@ -100,6 +102,20 @@ export function postMeta(t: TFunction, post: Pick<FeedPost, 'author' | 'occasion
   }
   parts.push(shortAge(t, post.publishedAt, now));
   return parts.join(' · ');
+}
+
+/**
+ * The kind of a piece in the singular ("Üst", "Ayakkabı") — the label of the piece strip. A sub-type id in place of a
+ * category reads by its name ("Kazak"), anything else as sent.
+ */
+export function pieceKindLabel(t: TFunction, category: string): string {
+  const known = (ITEM_CATEGORIES as readonly string[]).includes(category);
+  return known ? t(`homeFeed.pieceKind.${category as ItemCategory}`) : (toSubcategoryLabel(category) ?? category);
+}
+
+/** The name of a piece on the post's detail: its sub-type ("Trençkot") when it has one, else its kind ("Dış giyim"). */
+export function pieceName(t: TFunction, piece: Pick<FeedPiece, 'category' | 'subcategory'>): string {
+  return toSubcategoryLabel(piece.subcategory) ?? pieceKindLabel(t, piece.category);
 }
 
 /** Posts already reported as viewed in this app session (`feed_post_view` fires once per post per session). */

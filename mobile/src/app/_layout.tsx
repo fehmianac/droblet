@@ -121,6 +121,8 @@ export default function RootLayout() {
           <Stack.Screen name="today" />
           {/* Akış F1: the full-screen editor story viewer. */}
           <Stack.Screen name="feed/story" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
+          {/* A post of Akış opened from its card: a pushed detail (no tab bar), like look/[id]. */}
+          <Stack.Screen name="feed/[id]" />
           <Stack.Screen name="plan/week" />
           <Stack.Screen name="plan/report" />
           <Stack.Screen name="edit/[id]" />
