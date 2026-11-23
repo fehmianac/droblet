@@ -49,6 +49,22 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
 
     /// <summary>seed-feed-stories: at most this many post ids in one run (the feed shows ContentFeed:MaxStories, 20 by default).</summary>
     public const int MaxSeedStories = 20;
+    /// <summary>
+    /// First trial of a real brand catalog (owner request 2026-11-23): women's products of Vakko from the public
+    /// product sitemap and product pages of vakko.com into the catalog, through the admin services. No AI call; dev only.
+    /// </summary>
+    public const string ImportVakko = "import-vakko";
+
+    /// <summary>import-vakko: products of one run (--max; default <see cref="DefaultVakkoProducts"/>).</summary>
+    public const int MaxVakkoProducts = 200;
+    public const int DefaultVakkoProducts = 100;
+    /// <summary>import-vakko: product pages one run may fetch (--max-pages; default <see cref="DefaultVakkoPages"/>).</summary>
+    public const int MaxVakkoPages = 600;
+    public const int DefaultVakkoPages = 400;
+    /// <summary>import-vakko: pause between two requests to the site (--delay-ms; never below <see cref="MinVakkoDelayMs"/>).</summary>
+    public const int MinVakkoDelayMs = 1000;
+    public const int MaxVakkoDelayMs = 10000;
+    public const int DefaultVakkoDelayMs = 1200;
     public const string MigrateLibraryItemImages = "migrate-library-item-images";
     public const string AccountSmoke = "account-smoke";
     public const string OutfitImportSmoke = "outfit-import-smoke";
@@ -61,10 +77,10 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
     /// <summary>Hard ceiling of image-model calls in one run (library images and synthetic fixtures together).</summary>
     public const int MaxImageCallsPerRun = 30;
 
-    public static readonly IReadOnlyList<string> Commands = [SeedFeedPosts, SplitFeedPosts, SeedFeedStories, GrantTestPremium, RevokeTestPremium, GenerateLibraryImages, GenerateMarketingImages, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, Logs, MigrateLibraryItemImages, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, AiUsageBackfill, PublishItemImages, CdnCheck, PublicUrls, GoogleAuth, PushTest];
+    public static readonly IReadOnlyList<string> Commands = [ImportVakko, SeedFeedPosts, SplitFeedPosts, SeedFeedStories, GrantTestPremium, RevokeTestPremium, GenerateLibraryImages, GenerateMarketingImages, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, Logs, MigrateLibraryItemImages, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, AiUsageBackfill, PublishItemImages, CdnCheck, PublicUrls, GoogleAuth, PushTest];
 
     /// <summary>Commands that create or change test accounts or spend AI credit on a throw-away user: never on prod.</summary>
-    public static readonly IReadOnlySet<string> DevOnly = new HashSet<string>(StringComparer.Ordinal) { SeedFeedPosts, SplitFeedPosts, SeedFeedStories, GrantTestPremium, RevokeTestPremium, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, PublicUrls, GenerateMarketingImages };
+    public static readonly IReadOnlySet<string> DevOnly = new HashSet<string>(StringComparer.Ordinal) { ImportVakko, SeedFeedPosts, SplitFeedPosts, SeedFeedStories, GrantTestPremium, RevokeTestPremium, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, PublicUrls, GenerateMarketingImages };
 
     private static readonly IReadOnlyDictionary<string, string[]> AllowedOptions = new Dictionary<string, string[]>(StringComparer.Ordinal)
     {
@@ -86,6 +102,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [SeedFeedPosts] = ["dir"],
         [SplitFeedPosts] = ["only", "max-calls"],
         [SeedFeedStories] = ["ids"],
+        [ImportVakko] = ["max", "max-pages", "delay-ms"],
         [MigrateLibraryItemImages] = [],
         [AccountSmoke] = ["api-url"],
         [OutfitImportSmoke] = ["api-url"],
@@ -114,6 +131,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [SeedFeedPosts] = ["dry-run"],
         [SplitFeedPosts] = ["dry-run", "force"],
         [SeedFeedStories] = ["dry-run"],
+        [ImportVakko] = ["dry-run"],
         [MigrateLibraryItemImages] = ["dry-run"],
         [AccountSmoke] = ["keep-user"],
         [OutfitImportSmoke] = ["keep-user"],
@@ -157,6 +175,15 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
 
     /// <summary>split-feed-posts budget: --max-calls (default and ceiling <see cref="MaxFeedSplitCalls"/>).</summary>
     public int FeedSplitCalls => Math.Clamp(IntOption("max-calls", MaxFeedSplitCalls), 0, MaxFeedSplitCalls);
+
+    /// <summary>import-vakko: --max (products), never above <see cref="MaxVakkoProducts"/>.</summary>
+    public int VakkoMaxProducts => Math.Clamp(IntOption("max", DefaultVakkoProducts), 1, MaxVakkoProducts);
+
+    /// <summary>import-vakko: --max-pages (page fetches), never above <see cref="MaxVakkoPages"/>.</summary>
+    public int VakkoMaxPages => Math.Clamp(IntOption("max-pages", DefaultVakkoPages), 1, MaxVakkoPages);
+
+    /// <summary>import-vakko: --delay-ms, never below <see cref="MinVakkoDelayMs"/>.</summary>
+    public int VakkoDelayMs => Math.Clamp(IntOption("delay-ms", DefaultVakkoDelayMs), MinVakkoDelayMs, MaxVakkoDelayMs);
 
     /// <summary>seed-feed-stories: --ids a,b,c → the post ids, in the order given.</summary>
     public IReadOnlyList<string> Ids =>
@@ -265,6 +292,14 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
                 if (Ids.FirstOrDefault(id => !Domain.Validation.FeedInputRules.IsId(id) || !Domain.Validation.FeedInputRules.IsId(Ops.Commands.SeedFeedStoriesCommand.StoryId(id))) is { } badStory)
                     return $"--ids: '{badStory}' is not a post id (or too long for story-…)";
                 break;
+            case ImportVakko:
+                if (Option("max") is { } vakkoMax && (!int.TryParse(vakkoMax, out var vm) || vm is < 1 or > MaxVakkoProducts))
+                    return $"--max must be 1–{MaxVakkoProducts}";
+                if (Option("max-pages") is { } vakkoPages && (!int.TryParse(vakkoPages, out var vp) || vp is < 1 or > MaxVakkoPages))
+                    return $"--max-pages must be 1–{MaxVakkoPages}";
+                if (Option("delay-ms") is { } vakkoDelay && (!int.TryParse(vakkoDelay, out var vd) || vd is < MinVakkoDelayMs or > MaxVakkoDelayMs))
+                    return $"--delay-ms must be {MinVakkoDelayMs}–{MaxVakkoDelayMs}";
+                break;
             case AiPerf:
                 if (Option("runs") is { } runs && (!int.TryParse(runs, out var r) || r is < 1 or > MaxPerfRuns))
                     return $"--runs must be 1–{MaxPerfRuns}";
@@ -337,6 +372,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         "  seed-feed-posts         --dir <folder with manifest.json> [--dry-run]  (dev only; no AI call)\n" +
         "  split-feed-posts        [--only id,id] [--max-calls N<=260] [--dry-run] [--force]  (dev only; AI: 1 detection + ≤ 5 cleanups per product-less editor post, never retries)\n" +
         "  seed-feed-stories       --ids id,id [--dry-run]                (dev only; no AI call; story-{postId} from editor posts, 7 days)\n" +
+        "  import-vakko            [--max N<=200] [--max-pages N<=600] [--delay-ms N>=1000] [--dry-run]  (dev only; no AI call; women's Vakko products from vakko.com → catalog, images hot-linked)\n" +
         "  publish-item-images     [--dry-run] [--wait | --inline]       (no AI call; starts the admin Bakım job: cleaned piece images → public/items/ + 256/768 px thumbnails)";
 }
 
