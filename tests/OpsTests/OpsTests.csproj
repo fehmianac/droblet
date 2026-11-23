@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- import-vakko: real vakko.com pages (trimmed) and a sitemap excerpt; the tests never touch the network. -->
+    <!-- import-brand sources: real pages (trimmed) and sitemap excerpts per brand (Fixtures/Vakko …); the tests never touch the network. -->
     <None Include="Fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

@@ -3,13 +3,13 @@ using System.Net;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace Ops.Commands;
+namespace Ops.Commands.BrandImport.Platforms;
 
-/// <summary>A size of a product page: its label ("38", "M", "std" for one-size) and whether it can be bought now.</summary>
-internal sealed record VakkoSize(string Label, bool InStock);
-
-/// <summary>What a vakko.com product page says about the product (raw values; <see cref="VakkoCatalogMapper"/> decides).</summary>
-internal sealed record VakkoProduct(
+/// <summary>
+/// What a SAP Commerce / Spartacus product page says about the product (raw values of the platform; the brand's source
+/// turns them into a <see cref="SourceProduct"/>).
+/// </summary>
+internal sealed record SpartacusProduct(
     string Code,
     string Name,
     string? DescriptionHtml,
@@ -23,22 +23,23 @@ internal sealed record VakkoProduct(
     string? Currency,
     decimal? StrikePrice,
     bool InStock,
-    IReadOnlyList<VakkoSize> Sizes,
+    IReadOnlyList<SourceSize> Sizes,
     IReadOnlyList<string> ImageTemplates);
 
 /// <summary>
-/// The product page is server-rendered (Angular / SAP Spartacus) and carries the app state as JSON in
+/// Platform parser shared by every SAP Commerce / Spartacus storefront (vakko.com today). The product page is
+/// server-rendered (Angular / SAP Spartacus) and carries the app state as JSON in
 /// &lt;script id="ng-state" type="application/json"&gt;: cx-state › product › details › entities › {CODE} › details › value.
 /// Pure: html in, product (or the reason it could not be read) out.
 /// </summary>
-internal static partial class VakkoPageParser
+internal static partial class SpartacusStateParser
 {
     [GeneratedRegex("""<script\b[^>]*\bid=["'][^"']*state[^"']*["'][^>]*>(?<json>.*?)</script>""", RegexOptions.Singleline | RegexOptions.IgnoreCase)]
     private static partial Regex StateScript();
 
     private static readonly string[] Scopes = ["details", "variants", "list"];
 
-    public static VakkoProduct? Parse(string html, string? expectedCode, out string? error)
+    public static SpartacusProduct? Parse(string html, string? expectedCode, out string? error)
     {
         error = null;
         var match = StateScript().Match(html ?? "");
@@ -76,7 +77,7 @@ internal static partial class VakkoPageParser
             }
 
             var sizes = Sizes(product);
-            return new VakkoProduct(
+            return new SpartacusProduct(
                 code, name,
                 Text(product, "description"),
                 Text(product, "textComponent"),
@@ -143,16 +144,16 @@ internal static partial class VakkoPageParser
         return null;
     }
 
-    private static List<VakkoSize> Sizes(JsonElement product)
+    private static List<SourceSize> Sizes(JsonElement product)
     {
-        var sizes = new List<VakkoSize>();
+        var sizes = new List<SourceSize>();
         foreach (var option in Array(product, "variantOptions"))
         {
             var label = Array(option, "variantOptionQualifiers").Select(q => Text(q, "value")).FirstOrDefault(v => v is not null);
             if (label is null)
                 continue;
             var active = !option.TryGetProperty("isActive", out var flag) || flag.ValueKind != JsonValueKind.False;
-            sizes.Add(new VakkoSize(label, active && Object(option, "stock") is { } stock && IsInStock(stock)));
+            sizes.Add(new SourceSize(label, active && Object(option, "stock") is { } stock && IsInStock(stock)));
         }
         return sizes;
     }
