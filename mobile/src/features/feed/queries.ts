@@ -18,10 +18,13 @@ export const feedKeys = {
   stories: ['content', 'feed', 'story'] as const,
   saved: ['tenant', 'feed-post', 'saved'] as const,
   similar: (postId: string) => ['tenant', 'feed-post', 'similar', postId] as const,
+  /** `GET v1/tenant/feed-post/{id}` — only asked when no list holds the post (`useFeedPostRead`). */
+  one: (postId: string) => ['tenant', 'feed-post', 'one', postId] as const,
   /**
-   * The post whose detail was opened last (`useOpenFeedPost`). There is no "get one post" read: the detail draws the
-   * post from the lists, and from this copy once the post has left them while it is open (a save removed on a post
-   * that only Kaydedilenler holds). Likes and saves are written into it like into every other copy.
+   * The post whose detail was opened last (`useOpenFeedPost`, or read from the server when the detail was opened
+   * cold). The detail draws the post from the lists, and from this copy once the post has left them while it is open
+   * (a save removed on a post that only Kaydedilenler holds). Likes and saves are written into it like into every
+   * other copy.
    */
   opened: ['content', 'feed', 'opened'] as const,
 };
@@ -56,6 +59,28 @@ export function useFeedPost(postId: string | null | undefined): FeedPost | null 
     (onChange) => cache.subscribe(onChange),
     () => (postId ? findCachedFeedPost(client, postId) : null),
   );
+}
+
+/**
+ * `GET v1/tenant/feed-post/{id}` — the post of a detail opened cold (a link, a notification, the app restarted on the
+ * screen): asked only while no list has it. The answer becomes the "opened" copy, which `useFeedPost` then draws.
+ */
+export function useFeedPostRead(postId: string | null | undefined, enabled: boolean) {
+  const client = useQueryClient();
+  return useQuery({
+    queryKey: feedKeys.one(postId ?? 'none'),
+    enabled: enabled && Boolean(postId),
+    queryFn: async () => {
+      const id = postId ?? '';
+      const post = await fromSource<FeedPost>(
+        'content',
+        () => feedFixtures.one(id),
+        async () => toFeedPost(await apiRequest<FeedPostWire>(`v1/tenant/feed-post/${encodeURIComponent(id)}`)),
+      );
+      client.setQueryData<FeedPost | null>(feedKeys.opened, post);
+      return post;
+    },
+  });
 }
 
 /** `GET v1/content/feed?occasion=&pageToken=` — editorial posts, newest first, 10 per page. */

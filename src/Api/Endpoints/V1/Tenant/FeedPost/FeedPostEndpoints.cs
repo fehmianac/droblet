@@ -96,6 +96,23 @@ public class GetSaved : IEndpoint
             .WithTags("Tenant Feed Post");
 }
 
+public class GetOne : IEndpoint
+{
+    private static async Task<IResult> Handler([FromRoute] string id, [FromServices] IApiContext apiContext, [FromServices] IFeedService feed, CancellationToken ct) =>
+        await feed.GetVisiblePostAsync(apiContext.TenantId, id, ct) is { } post ? Results.Ok(post) : StoreResults.NotFound();
+
+    public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints) =>
+        endpoints.MapGet("v1/tenant/feed-post/{id}", Handler)
+            .Produces<FeedPostDto>(StatusCodes.Status200OK)
+            .Produces<ProblemDetails>(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status500InternalServerError)
+            .RequireAuthorization(ClaimNames.TenantUserPolicy)
+            .WithSummary("One Akış post")
+            .WithDescription("The post as the caller sees it on Akış (FeedPostDto: liked, saved, pieces, try-on) — for a detail screen opened from a link or after a restart, " +
+                             "when the feed page that held the post is not loaded. 404 not_found: unknown, retired, not live yet, or a shared look the caller may not see.")
+            .WithTags("Tenant Feed Post");
+}
+
 public class GetSimilar : IEndpoint
 {
     private static async Task<IResult> Handler([FromRoute] string id, [FromServices] IApiContext apiContext, [FromServices] IFeedService feed, CancellationToken ct) =>

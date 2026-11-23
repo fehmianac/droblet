@@ -423,6 +423,8 @@ public interface IFeedService
     Task<FeedWriteOutcome> SaveAsync(string tenantId, string postId, CancellationToken ct);
     Task UnsaveAsync(string tenantId, string postId, CancellationToken ct);
     Task<IReadOnlyList<FeedPostDto>> GetSavedAsync(string tenantId, CancellationToken ct);
+    /// <summary>One post as the caller sees it on Akış (the detail screen opened without the feed loaded). Null = not there for this viewer.</summary>
+    Task<FeedPostDto?> GetVisiblePostAsync(string tenantId, string postId, CancellationToken ct);
     /// <summary>"Benzerlerini gör" of a user post; null = not a user post this viewer may see.</summary>
     Task<IReadOnlyList<ProductDto>?> GetSimilarAsync(string tenantId, string postId, CancellationToken ct);
     /// <summary>"Bunu gösterme": the post is never returned to this tenant again. Idempotent.</summary>

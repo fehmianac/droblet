@@ -407,6 +407,7 @@
     "chipAll": "Tümü",
     "fromStore": "Mağazadan",
     "fromStoreAll": "Mağazadaki tüm ürünleri gör",
+    "shelfAllA11y": "{{category}}: tümünü mağazada gör",
     "allEmpty": "Keşfet için içerik hazırlanıyor.",
     "allBrands": "Tüm markalar",
     "brandEmpty": "Bu markada şu an ürün yok."

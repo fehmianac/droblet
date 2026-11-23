@@ -89,6 +89,22 @@ describe('Keşfet and the style store (20–24b, fixtures, EN)', () => {
     expect(screen.queryByText('From the store')).toBeNull();
   });
 
+  it('20 Keşfet › "All": a shelf per kind under the newest products; a kind without products has none; "All" opens the store on that kind', async () => {
+    await open('/discover');
+    await waitFor(() => expect(screen.getByTestId('discover.shelf.jacket')).toBeTruthy(), WAIT);
+    expect(within(screen.getByTestId('discover.shelf.jacket')).getByText('Jackets')).toBeTruthy();
+    expect(screen.getByTestId('discover.shelf.jacket.product.0')).toBeTruthy();
+    expect(screen.getByTestId('discover.shelf.shoes')).toBeTruthy();
+    expect(screen.queryByTestId('discover.shelf.coat')).toBeNull(); // the fixture catalogue has no coat
+    expect(screen.queryByTestId('discover.shelf.coat.loading')).toBeNull();
+
+    await fireEvent.press(screen.getByTestId('discover.shelf.jacket.all'));
+    await waitFor(() => expect(screen).toHavePathname('/shop'), WAIT);
+    await waitFor(() => expect(screen.getByTestId('shop.product.0')).toBeTruthy(), WAIT);
+    const jackets = storeFixtures.products({ categories: ['jacket'], brandIds: [], colors: [], sizes: [], q: '', sort: 'newest' }, null).items;
+    expect(screen.queryByTestId(`shop.product.${jackets.length}`)).toBeNull(); // only the jackets
+  });
+
   it('20 Keşfet after the weekly edit (08): each screen keeps its own data — the owner\'s Keşfet crash', async () => {
     // Bugün's "Haftanın editi" opens /edit/current. Its detail (`WeeklyEdit`) and the Keşfet cover
     // (`WeeklyEditSummary`) once shared the query key ['content','edit','current']: whichever loaded

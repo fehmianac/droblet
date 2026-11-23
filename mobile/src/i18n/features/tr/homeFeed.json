@@ -156,7 +156,8 @@
     "openPostA11y": "{{title}} gönderisinin detayını aç",
     "detail": {
       "piecesTitle": "Parçalar · {{count}}",
-      "notFound": "Bu gönderi şu an açılamıyor. Akışa dönüp tekrar açmayı dene.",
+      "notFound": "Bu gönderi artık Akış'ta yok.",
+      "loading": "Gönderi yükleniyor",
       "backToFeed": "Akışa dön",
       "pieceZoomA11y": "{{name}}, parça fotoğrafı"
     }

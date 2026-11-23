@@ -167,6 +167,14 @@ public sealed class FeedService(
         return await ToDtosAsync(tenantId, viewer, slots, ct);
     }
 
+    public async Task<FeedPostDto?> GetVisiblePostAsync(string tenantId, string postId, CancellationToken ct)
+    {
+        // The same resolution as a like or a save; a shared look still waiting for its cover is not shown, as on the feed.
+        if (await ResolveAsync(tenantId, postId, ct) is not { } slot || slot.User is { CoverKey: null })
+            return null;
+        return (await ToDtosAsync(tenantId, await TenantAsync(tenantId, ct), [slot], ct)).FirstOrDefault();
+    }
+
     public async Task<IReadOnlyList<ProductDto>?> GetSimilarAsync(string tenantId, string postId, CancellationToken ct)
     {
         var viewer = await TenantAsync(tenantId, ct);

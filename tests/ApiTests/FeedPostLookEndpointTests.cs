@@ -210,6 +210,27 @@ public class FeedPostLookEndpointTests(ApiFactory factory) : IClassFixture<ApiFa
     }
 
     [Fact]
+    public async Task OnePost_IsReadAsTheCallerSeesIt_ForADetailOpenedCold_404WhenNotThereForThem()
+    {
+        var (client, _) = await factory.RegisterAsync();
+        var post = await PostAsync(factory, (ItemCategory.Top, "shirt"), (ItemCategory.Bottom, null));
+        var scheduled = await PostAsync(factory, (ItemCategory.Top, null), (ItemCategory.Bottom, null));
+        scheduled.PublishAt = DateTime.UtcNow.AddDays(1);
+        await factory.Repository.SaveAsync(scheduled);
+        await client.PutAsync($"v1/tenant/feed-post/{post.Id}/like", null);
+
+        var read = await client.GetAsync($"v1/tenant/feed-post/{post.Id}");
+        var json = await read.JsonAsync();
+
+        Assert.Equal(HttpStatusCode.OK, read.StatusCode);
+        Assert.Equal((post.Id, "Akşam yemeği kombini", true, 2), (json.GetProperty("id").GetString(), json.GetProperty("title").GetString(), json.GetProperty("liked").GetBoolean(), json.GetProperty("pieces").GetArrayLength()));
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"v1/tenant/feed-post/{scheduled.Id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"v1/tenant/feed-post/{Ulid.New()}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"v1/tenant/feed-post/u_{Ulid.New()}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await factory.CreateClient().GetAsync($"v1/tenant/feed-post/{post.Id}")).StatusCode);
+    }
+
+    [Fact]
     public async Task Pieces_ARetryOfTheSameRequest_CreatesNothingTwice_AndBothModesLiveSideBySide()
     {
         var (client, auth) = await factory.RegisterAsync();

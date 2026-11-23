@@ -101,7 +101,7 @@ describe('Akış F1 (canvas 06″)', () => {
     expect(post.getByText('EDIT OF THE WEEK · WEEKEND')).toBeTruthy();
     expect(post.getByText('Jean ve trençkot')).toBeTruthy();
     const strip = within(post.getByTestId('feed.post.post_005.pieces'));
-    for (const kind of ['Outerwear', 'Bottom', 'Shoes']) expect(strip.getByLabelText(kind)).toBeTruthy();
+    for (const kind of ['Trench coat', 'Jeans', 'Shoes']) expect(strip.getByLabelText(kind)).toBeTruthy();
     expect(strip.queryAllByRole('link')).toHaveLength(0);
     expect(strip.queryAllByRole('button')).toHaveLength(0);
     expect(post.queryAllByRole('link')).toHaveLength(0);
