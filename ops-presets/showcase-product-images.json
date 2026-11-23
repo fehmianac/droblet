@@ -1,0 +1,29 @@
+{
+  "purpose": "Showcase visuals (owner approval 2026-11-23, 15-image budget; this file 4 calls): one more look cover and three product pictures for Stil mağazası / Ürün in the showcase fixtures and on the design boards. Fictional unbranded products.",
+  "size": "1024x1536",
+  "quality": "high",
+  "format": "jpeg",
+  "style": "Clean e-commerce product photograph for a premium fashion store: one single product, centred, fully inside the frame with generous even margin, on a plain seamless warm off-white studio background with a soft natural shadow. Soft even daylight, true colours and fabric texture. No person, no mannequin, no hanger, no props. Plain unbranded product with no logos, no lettering, no text, no labels, no watermark anywhere in the image. Vertical composition.",
+  "images": [
+    {
+      "id": "product-white-shirt",
+      "segment": "women",
+      "prompt": "A women's white cotton poplin shirt, laid flat as a ghost-mannequin front view with the collar open and the sleeves relaxed at the sides."
+    },
+    {
+      "id": "product-navy-blazer",
+      "segment": "women",
+      "prompt": "A women's single-breasted navy wool-blend blazer, ghost-mannequin front view, buttoned once, with notch lapels and two flap pockets."
+    },
+    {
+      "id": "product-black-bag",
+      "segment": "women",
+      "prompt": "A medium structured black smooth-leather city handbag with two top handles and a detachable shoulder strap, three-quarter front view standing upright."
+    },
+    {
+      "id": "cover-friend-office",
+      "segment": "women",
+      "prompt": "Not a single product: a top-down photo of one outfit laid out by hand on a bed with a cream linen sheet with soft creases, soft window daylight. The outfit: grey flannel tailored trousers, a white poplin shirt, a black leather belt and black leather loafers, arranged roughly as worn, each piece flat and whole with a little space between them, slightly off-straight, not a grid and not a pile, every piece inside the frame."
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "purpose": "Showcase visuals (owner approval 2026-11-23, 15-image budget; this file 6 calls): look covers in the style of the app's AI look cover, for Bugün, Looklar and Arkadaşların ne giyiyor in the showcase fixtures and on the design boards.",
+  "size": "1024x1536",
+  "quality": "high",
+  "format": "jpeg",
+  "style": "Realistic top-down photo of one outfit laid out by hand on a bed with a cream linen sheet with soft natural creases, soft window daylight with gentle shadows under the clothes. The pieces are arranged roughly as they are worn, each laid mostly flat and whole with a little space between them and only slightly off-straight, not a strict grid and not a messy pile; at most two pieces touch at an edge, nothing stacked or crumpled. Every piece fully inside the frame. No person, no hands, no hanger, no props, nothing else on the bed. Warm neutral colour palette: cream, sand, warm beige, deep ink navy, black and a single burgundy or terracotta accent. Plain unbranded clothing with no logos, no lettering, no text, no signs, no watermark anywhere in the image. Vertical composition.",
+  "images": [
+    {
+      "id": "cover-navy-blazer",
+      "segment": "women",
+      "prompt": "The outfit: a navy wool blazer, a white poplin shirt, straight mid-blue jeans, black croc-effect leather ballet flats and a black leather shoulder bag."
+    },
+    {
+      "id": "cover-black-dress",
+      "segment": "women",
+      "prompt": "The outfit: a plain black midi dress with long sleeves, black heeled ankle boots, a small black clutch and a camel wool scarf."
+    },
+    {
+      "id": "cover-tweed-jean",
+      "segment": "women",
+      "prompt": "The outfit: a cream and black tweed jacket, a white t-shirt, straight dark-blue jeans, white leather sneakers and a small tan leather bag."
+    },
+    {
+      "id": "cover-cream-layers",
+      "segment": "women",
+      "prompt": "The outfit: a cream chunky knit jumper, wide cream trousers, a beige trench coat, tan leather loafers and a beige canvas tote."
+    },
+    {
+      "id": "cover-friend-dinner",
+      "segment": "women",
+      "prompt": "The outfit: a burgundy satin slip skirt, a black fine-knit roll-neck, black slingback heels and a small black shoulder bag."
+    },
+    {
+      "id": "cover-friend-weekend",
+      "segment": "women",
+      "prompt": "The outfit: a patterned sand and navy fair-isle jumper, light-blue wide jeans, brown suede ankle boots and a brown leather crossbody bag."
+    }
+  ]
+}

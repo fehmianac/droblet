@@ -1,0 +1,34 @@
+{
+  "purpose": "Showcase visuals (owner approval 2026-11-23, 15-image budget; this file 5 calls): Akış editor posts and stories in the app's showcase fixtures and on the design boards, so the app screens on the landing show real pictures.",
+  "size": "1024x1536",
+  "quality": "high",
+  "format": "jpeg",
+  "style": "Editorial fashion photograph for a premium wardrobe app, shot on a full-frame camera, soft natural daylight, subtle film grain, true-to-life skin texture, no retouched plastic look. Fictional adult people only, not resembling any celebrity. Tasteful, confident and natural, not a cheesy stock photo, no big smile at the camera, no phone or screen in the frame. The whole outfit from head to shoes is visible, the person centred with some calm space around. Warm neutral colour palette: cream, sand, warm beige, deep ink navy, black and a single burgundy or terracotta accent. Plain unbranded clothing with no logos, no lettering, no text, no signs, no watermark anywhere in the image. Vertical composition.",
+  "images": [
+    {
+      "id": "feed-office",
+      "segment": "women",
+      "prompt": "A woman in her early thirties with shoulder-length dark brown hair walks along a calm Istanbul street with pale stone buildings on a bright autumn morning, on her way to the office. She wears a camel wool long coat open over a fine burgundy knit, straight black tailored trousers and black leather loafers, carrying a structured black leather bag. Mid-stride, looking ahead."
+    },
+    {
+      "id": "feed-weekend",
+      "segment": "women",
+      "prompt": "A woman in her late twenties with light brown hair in a loose low ponytail stands by a small marble table on a sunny cafe terrace on a Sunday morning. She wears cream layers: a chunky cream knit over a cream shirt, wide cream trousers and white leather sneakers, a beige tote on her shoulder. Relaxed, looking to the side."
+    },
+    {
+      "id": "feed-invite",
+      "segment": "women",
+      "prompt": "A woman in her thirties with dark hair in a sleek low bun stands in a softly lit hallway with a warm plaster wall in the early evening, ready for a dinner invitation. She wears a burgundy satin midi dress with long sleeves, black heeled ankle boots and holds a small black clutch. Calm, elegant, looking slightly past the camera."
+    },
+    {
+      "id": "story-winter",
+      "segment": "women",
+      "prompt": "A woman in her late twenties with wavy dark hair stands by a tall window in a bright apartment on a winter day. She wears a sand cashmere roll-neck jumper, a long grey wool coat draped over her shoulders, charcoal wool trousers and brown leather ankle boots. Quiet, looking out of the window."
+    },
+    {
+      "id": "story-trench",
+      "segment": "women",
+      "prompt": "A woman in her early thirties with a short dark bob crosses a quiet cobbled street on a weekend afternoon. She wears a beige trench coat open over a white t-shirt, straight mid-blue jeans and tan leather loafers, a small brown crossbody bag. Mid-step, natural, looking ahead."
+    }
+  ]
+}
