@@ -51,7 +51,7 @@ public record FeedPieceDto(ItemCategory Category, string? ImageUrl, string? Subc
 /// </summary>
 /// <param name="Occasion">Null when a shared look (or a fallback edit look) has no occasion; such items match no occasion filter.</param>
 /// <param name="BuyableCount">Products that are available and not ownedSimilar.</param>
-/// <param name="ImagesExpireAt">User posts: when the presigned cover URL stops working (re-read the feed); null for editor posts.</param>
+/// <param name="ImagesExpireAt">User posts: when a presigned cover URL stops working (re-read the feed); null for editor posts and for a public cover URL (decision 22), which does not expire.</param>
 public record FeedPostDto(
     FeedPostKind Kind,
     string Id,

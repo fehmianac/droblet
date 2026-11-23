@@ -94,6 +94,7 @@ public sealed class FeedModerationService(
             p.RemovedByUserId = adminUserId;
             p.UpdatedAt = now;
         }, ct);
+        await shares.UnpublishCoverAsync(postId, ct);
         logger.LogInformation("Feed post {PostId} of tenant {TenantId} removed by admin {UserId} (report {ReportId})", postId, post.OwnerTenantId, adminUserId, open[0].Id);
         return (FeedModerationOutcome.Ok, open[0].Id, removal);
     }

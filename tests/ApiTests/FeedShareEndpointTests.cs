@@ -6,7 +6,10 @@ using Domain.Enum;
 using Domain.Extensions;
 using Domain.Services;
 using Microsoft.AspNetCore.Hosting;
+using Domain.Options;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using Tests.Shared;
 
 namespace ApiTests;
 
@@ -679,6 +682,87 @@ public class FeedShareEndpointTests(StoreSocialApiFactory factory) : IClassFixtu
         var day = WeeklyEditRules.Format(DateOnly.FromDateTime(DateTime.UtcNow));
         Assert.DoesNotContain(await factory.Repository.GetKeysAsync(FeedLikeDigestEntity.GetPk(day)), k => k.Sk.StartsWith(owner.TenantId, StringComparison.Ordinal));
         Assert.All((await FeedAsync(fan.Client)).Select(Kind), kind => Assert.Equal("editor", kind));
+    }
+
+    // ── Public cover (owner decision 22) ────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task Cover_IsPublicWhileOnTheFeed_CdnUrlWhenSwitchedOn_ReplacedWithTheCover_GoneOnAutoHideAndUnshare()
+    {
+        await ClearAsync();
+        var admin = await factory.AdminAsync();
+        await EditorPostAsync(admin, Now.AddHours(-1));
+        await EditorPostAsync(admin, Now.AddHours(-2));
+        var storage = (FakeObjectStorage)factory.Services.GetRequiredService<IObjectStorage>();
+        var photos = factory.Services.GetRequiredService<IOptionsMonitor<PhotoOptions>>().CurrentValue;
+        var owner = await SharerAsync();
+        var lookId = await LookAsync(owner.TenantId);
+        var look = (await factory.Repository.GetAsync<LookEntity>(LookEntity.GetPk(owner.TenantId), LookEntity.GetSk(lookId)))!;
+        var coverKey = StorageKeys.LookCover(owner.TenantId, lookId, LookCoverRules.SlotsHash(look.Slots));
+        await storage.PutAsync(coverKey, [1, 2, 3], "image/webp", default);
+        var postId = await ShareAsync(owner, lookId);
+        var viewer = await factory.UserAsync();
+        var publicRoot = StorageKeys.PublicItemsRoot(owner.TenantId);
+        string[] PublicCovers() => storage.Objects.Keys.Where(k => k.StartsWith(publicRoot + "cover-", StringComparison.Ordinal)).ToArray();
+        async Task<JsonElement> PostAsync() => (await FeedAsync(viewer.Client)).Single(p => Id(p) == postId);
+        async Task<FeedUserPostEntity> RowAsync() => (await factory.Repository.GetAsync<FeedUserPostEntity>(FeedUserPostEntity.GetPk(), FeedUserPostEntity.GetSk(postId)))!;
+
+        Assert.Empty(PublicCovers());                                                    // sharing itself copies nothing
+        // First read publishes; the CDN switch is off, so the public copy is still handed out presigned.
+        var first = (await PostAsync()).GetProperty("images")[0].GetString()!;
+        var publicKey = Assert.Single(PublicCovers());
+        Assert.Equal((publicKey, coverKey), ((await RowAsync()).PublicCoverKey, (await RowAsync()).PublicCoverSource));
+        Assert.Contains(publicKey, first);
+        Assert.Contains("X-Amz-Expires", first);
+        Assert.DoesNotContain(owner.TenantId, publicKey);                                // the folder is a hash of the tenant
+        Assert.Equal(ItemImageRenditions.PublicCacheControl, storage.CacheControls[publicKey]);
+
+        var enabled = photos.PublicUrlsEnabled;
+        var baseUrl = photos.PublicBaseUrl;
+        try
+        {
+            photos.PublicUrlsEnabled = true;
+            photos.PublicBaseUrl = "https://cdn.example";
+            var post = await PostAsync();
+            Assert.Equal($"https://cdn.example/{publicKey}", post.GetProperty("images")[0].GetString());
+            Assert.Equal(JsonValueKind.Null, post.GetProperty("imagesExpireAt").ValueKind);   // a public address does not expire
+            Assert.Equal(publicKey, Assert.Single(PublicCovers()));                           // read again: no second copy
+            // The saved list shows the same address.
+            await viewer.Client.PutAsync($"v1/tenant/feed-post/{postId}/save", null);
+            var saved = (await (await viewer.Client.GetAsync("v1/tenant/feed-post/saved")).JsonAsync()).EnumerateArray().Single(p => Id(p) == postId);
+            Assert.Equal($"https://cdn.example/{publicKey}", saved.GetProperty("images")[0].GetString());
+        }
+        finally
+        {
+            photos.PublicUrlsEnabled = enabled;
+            photos.PublicBaseUrl = baseUrl;
+        }
+
+        // A new cover (as after changed pieces) replaces the public copy.
+        var cover = (await factory.Repository.GetAsync<LookCoverEntity>(LookCoverEntity.GetPk(owner.TenantId), LookCoverEntity.GetSk(lookId)))!;
+        var newCoverKey = coverKey.Replace(".webp", "-b.webp", StringComparison.Ordinal);
+        await storage.PutAsync(newCoverKey, [4, 5, 6], "image/webp", default);
+        cover.ImageKey = newCoverKey;
+        await factory.Repository.SaveAsync(cover);
+        await PostAsync();
+        var replaced = Assert.Single(PublicCovers());
+        Assert.NotEqual(publicKey, replaced);
+        Assert.Equal(newCoverKey, (await RowAsync()).PublicCoverSource);
+
+        // Three reporters take the post off the feed — and its cover off the public address.
+        foreach (var reporter in new[] { await factory.UserAsync(), await factory.UserAsync(), await factory.UserAsync() })
+            (await ReportAsync(reporter.Client, postId)).EnsureSuccessStatusCode();
+        Assert.NotNull((await RowAsync()).HiddenAt);
+        Assert.Empty(PublicCovers());
+        Assert.Null((await RowAsync()).PublicCoverKey);
+
+        // An admin restore brings it back on the next read; un-share deletes it for good.
+        (await admin.PostJsonAsync($"v1/admin/feed-user-post/{postId}/restore", new { })).EnsureSuccessStatusCode();
+        await PostAsync();
+        Assert.Single(PublicCovers());
+        Assert.Equal(HttpStatusCode.NoContent, (await owner.Client.DeleteAsync($"v1/tenant/look/{lookId}/feed-share")).StatusCode);
+        Assert.Empty(PublicCovers());
+        Assert.True(storage.Objects.ContainsKey(newCoverKey));                           // the private cover is the owner's, untouched
     }
 
     // ── Weekly-edit fallback ────────────────────────────────────────────────────────────────────────────────────

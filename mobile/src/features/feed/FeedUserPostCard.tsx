@@ -106,8 +106,9 @@ export function FeedUserPostCard({ post, teen, onMenu, onSimilar }: Props) {
       <View style={{ height: COVER }} className="bg-sand">
         <ImageSlot
           uri={post.images[0] ?? null}
-          // The cover is a presigned URL (about an hour): keyed by the post so a new signature still hits the cache,
-          // and an expired one re-reads the feed and the saved list once.
+          // The cover is a public CDN URL (owner decision 22) or, until the CDN is on, a presigned one (about an hour):
+          // keyed by the post and the file so a new signature still hits the cache, a new cover does not, and an
+          // expired URL re-reads the feed and the saved list once.
           cacheKey={post.images[0] ? `feed-cover:${post.id}:${post.images[0].split('?')[0]?.split('/').pop() ?? ''}` : null}
           onExpired={() => refreshImageQueries([feedKeys.posts, feedKeys.saved])}
           className="h-full w-full"

@@ -414,7 +414,7 @@ public sealed class FeedService(
             else if (slot.User is { CoverKey: { } coverKey } user)
             {
                 var (pieces, refs) = await PiecesAsync(user, ct);
-                var ttl = TimeSpan.FromSeconds(photoOptions.CurrentValue.ReadUrlTtlSeconds);
+                var (coverUrl, coverExpiresAt) = await CoverUrlAsync(user.Post, coverKey, ct);
                 var handle = user.Owner.Handle!;
                 // The avatar travels with the post the owner chose to share; a moderator-hidden profile shows the handle only.
                 var avatar = user.Owner.IsModerationHidden() ? null : (await avatars.GetAsync(user.Owner.Id, ct))?.Url;
@@ -426,8 +426,8 @@ public sealed class FeedService(
                     user.Post.SharedAt,
                     user.Look.Name ?? "",
                     Note: null,
-                    // The AI flat-lay cover only (decision 20) — presigned for this viewer; never a try-on image or a photo of the owner.
-                    [await storage.CreateReadUrlAsync(coverKey, ttl, ct)],
+                    // The AI flat-lay cover only (decision 20), from its public address (decision 22); never a try-on image or a photo of the owner.
+                    [coverUrl],
                     Products: [],
                     BuyableCount: 0,
                     pieces,
@@ -436,10 +436,23 @@ public sealed class FeedService(
                     likeCount,
                     liked.Contains(user.Post.Id),
                     saved.Contains(user.Post.Id),
-                    ImagesExpireAt: Now.Add(ttl)));
+                    ImagesExpireAt: coverExpiresAt));
             }
         }
         return result;
+    }
+
+    /// <summary>
+    /// Owner decision 22: a shared look's cover is public while it is on the feed — a CDN URL that does not expire
+    /// (Photos:PublicUrlsEnabled). Until the CDN is switched on, or when the copy could not be made, a presigned URL.
+    /// </summary>
+    private async Task<(string Url, DateTime? ExpiresAt)> CoverUrlAsync(FeedUserPostEntity post, string coverKey, CancellationToken ct)
+    {
+        var publicKey = await shares.PublicCoverAsync(post, coverKey, ct);
+        if (publicKey is not null && photoOptions.CurrentValue.EffectivePublicBaseUrl is { } baseUrl)
+            return ($"{baseUrl.TrimEnd('/')}/{publicKey}", null);
+        var ttl = TimeSpan.FromSeconds(photoOptions.CurrentValue.ReadUrlTtlSeconds);
+        return (await storage.CreateReadUrlAsync(publicKey ?? coverKey, ttl, ct), Now.Add(ttl));
     }
 
     // ── Resolution ──────────────────────────────────────────────────────────────────────────────────────────────

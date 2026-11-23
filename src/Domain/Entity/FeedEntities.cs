@@ -164,6 +164,10 @@ public class FeedUserPostEntity : IVersionedEntity
     [JsonPropertyName("restoredByUserId")] public string? RestoredByUserId { get; set; }
     [JsonPropertyName("removedAt")] public DateTime? RemovedAt { get; set; }
     [JsonPropertyName("removedByUserId")] public string? RemovedByUserId { get; set; }
+    /// <summary>Public copy of the cover (StorageKeys.PublicLookCover) while the post is on the feed; null = not published (yet), hidden, or the copy failed.</summary>
+    [JsonPropertyName("publicCoverKey")] public string? PublicCoverKey { get; set; }
+    /// <summary>The private cover key <see cref="PublicCoverKey"/> was copied from: a new cover (changed pieces) is published again.</summary>
+    [JsonPropertyName("publicCoverSource")] public string? PublicCoverSource { get; set; }
     [JsonPropertyName("updatedAt")] public DateTime UpdatedAt { get; set; }
     [JsonPropertyName("version")] public long Version { get; set; }
 

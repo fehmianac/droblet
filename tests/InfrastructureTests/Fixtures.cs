@@ -15,9 +15,19 @@ internal static class Fixtures
     public static IOptionsMonitor<T> Monitor<T>(T value) where T : class => new StaticMonitor<T>(value);
 
     /// <summary>The Akış share state (account deletion removes the shared looks through it); covers are never requested here.</summary>
-    public static Infrastructure.Services.Store.FeedShareService FeedShares(Domain.Manager.IRepository repository) =>
-        new(repository, new NoCovers(), new Infrastructure.Services.RateLimiter(repository, TimeProvider.System), Monitor(new ContentFeedOptions()), TimeProvider.System,
+    public static Infrastructure.Services.Store.FeedShareService FeedShares(Domain.Manager.IRepository repository, Domain.Services.IObjectStorage? storage = null)
+    {
+        storage ??= new Tests.Shared.FakeObjectStorage();
+        return new(repository, new NoCovers(), storage,
+            new Infrastructure.Storage.ItemImagePublisher(storage, new NoCdn(), Microsoft.Extensions.Logging.Abstractions.NullLogger<Infrastructure.Storage.ItemImagePublisher>.Instance),
+            new Infrastructure.Services.RateLimiter(repository, TimeProvider.System), Monitor(new ContentFeedOptions()), TimeProvider.System,
             Microsoft.Extensions.Logging.Abstractions.NullLogger<Infrastructure.Services.Store.FeedShareService>.Instance);
+    }
+
+    private sealed class NoCdn : Domain.Services.ICdnCache
+    {
+        public Task PurgeAsync(IReadOnlyList<string> publicKeys, CancellationToken ct) => Task.CompletedTask;
+    }
 
     private sealed class NoCovers : Domain.Services.ILookCoverService
     {

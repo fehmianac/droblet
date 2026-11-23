@@ -153,12 +153,12 @@ teens (`social`), as is the friends' feed `GET v1/tenant/feed` (unchanged).
   "occasion": "weekend" | null,                                          // the look's occasion; null when it has none
   "publishedAt": "2026-11-22T09:14:00Z",                                 // when it was shared
   "title": "Hafta sonu", "note": null,                                   // title = the look's name ("" when it has none)
-  "images": ["https://…"],                                               // exactly one: the look's AI flat-lay cover, presigned for the viewer
+  "images": ["https://…"],                                               // exactly one: the look's AI flat-lay cover (public CDN URL, or presigned)
   "products": [], "buyableCount": 0,
   "pieces": [ { "category": "top", "subcategory": "sweater" | null, "imageUrl": "https://…" | null } ],
   "hasSimilar": true, "canTryOn": false,
   "likeCount": 38, "liked": false, "saved": false,
-  "imagesExpireAt": "2026-11-22T10:14:00Z" }                             // when images[0] stops working
+  "imagesExpireAt": "2026-11-22T10:14:00Z" }                             // when a presigned images[0] stops working; null for a public URL
 
 // FeedStoryDto
 { "id": "…", "author": { "name": "Droblet Edit", "imageUrl": null }, "imageUrl": "https://…", "headline": "Ofiste bordo & camel",
@@ -195,9 +195,12 @@ its cover is the user's own photo — or a look a moderator removed) → `429 to
 
 **What is shared.** The look's **AI flat-lay cover** (decision 20), its name, occasion and pieces, the owner's @handle
 and avatar. **Never** a try-on image, a body / face photo or an original item photo (the try-on image share of decision 20
-is a later step). `images[0]` is a **presigned GET** of the cover in the owner's private prefix, made for the viewer on
-every feed read and valid `Photos:ReadUrlTtlSeconds` (3600 s) — `imagesExpireAt` says until when; re-read the feed (or
-the saved list) for a fresh URL. A shared look whose cover is **not ready for its current pieces** (still rendering,
+is a later step). `images[0]` is the cover's **public address** while the post is on the feed (owner decision 22,
+[docs/images.md](../images.md)): a CDN URL that does not expire (`imagesExpireAt: null`) once `Photos:PublicUrlsEnabled`
+is on; the URL changes when the cover does. Until the CDN is switched on — or if the public copy could not be made — it
+is a **presigned GET** valid `Photos:ReadUrlTtlSeconds` (3600 s) and `imagesExpireAt` says until when; re-read the feed
+(or the saved list) for a fresh URL. The public copy is deleted on un-share, deletion, the automatic hide and an admin
+removal. A shared look whose cover is **not ready for its current pieces** (still rendering,
 failed, or the pieces just changed) is **not listed** until it is; sharing asks for the cover by the same rule as a save
 when the look never had one (`LookCoverRules.NeedsRequest`). `pieces` = kind + cleaned image only (`category` is the
 wardrobe category; `subcategory` the item's sub-type id when it has one; the image is the cleaned item image as in

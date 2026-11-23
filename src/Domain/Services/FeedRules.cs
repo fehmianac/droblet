@@ -393,6 +393,14 @@ public interface IFeedShareService
     Task<IReadOnlyList<ReportEntity>> OpenReportsAsync(string ownerTenantId, string lookId, CancellationToken ct);
     /// <summary>Re-counts the distinct reporters of the post's open reports and hides it at ContentFeed:ReportsToAutoHide. Null = no such post.</summary>
     Task<FeedUserPostEntity?> RefreshReportsAsync(string postId, CancellationToken ct);
+    /// <summary>
+    /// Owner decision 22: the public copy of a listed post's cover (StorageKeys.PublicLookCover), made on the first read
+    /// and again when the cover changed (new pieces). Returns its key; null when the copy could not be made or the post
+    /// changed meanwhile — the caller then falls back to a presigned URL of the private cover. Never throws.
+    /// </summary>
+    Task<string?> PublicCoverAsync(FeedUserPostEntity post, string coverKey, CancellationToken ct);
+    /// <summary>Takes the public copy away (auto-hide, admin removal); the post row stays. Never throws on storage errors.</summary>
+    Task UnpublishCoverAsync(string postId, CancellationToken ct);
 }
 
 public enum FeedModerationOutcome { Ok, NotFound, NotReported }

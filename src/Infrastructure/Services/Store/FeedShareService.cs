@@ -17,11 +17,16 @@ namespace Infrastructure.Services.Store;
 /// / hide / report pointer other people left on it (found through the post's reaction index). The moderation reports
 /// themselves (ReportEntity) are the moderation record and keep their own retention: a look that is shared again is
 /// counted against its still-open reports, so un-sharing is not a way around the auto-hide.
+/// Owner decision 22: while a post is on the feed its AI cover has a public copy (public/{stage}/items/{tenantHash}/cover-…,
+/// served by the CDN like the cleaned piece images). It is made on the first feed read, replaced when the cover changes,
+/// and deleted on un-share, look / account deletion, auto-hide and admin removal.
 /// Depends only on what every host has (the look service uses it from the workers too).
 /// </summary>
 public sealed class FeedShareService(
     IRepository repository,
     ILookCoverService covers,
+    IObjectStorage storage,
+    IItemImagePublisher publicImages,
     IRateLimiter rateLimiter,
     IOptionsMonitor<ContentFeedOptions> options,
     TimeProvider timeProvider,
@@ -86,6 +91,7 @@ public sealed class FeedShareService(
         if (string.IsNullOrWhiteSpace(lookId))
             return;
         var postId = FeedRules.UserPostId(tenantId, lookId);
+        var publicCover = (await repository.GetAsync<FeedUserPostEntity>(FeedUserPostEntity.GetPk(), FeedUserPostEntity.GetSk(postId), ct))?.PublicCoverKey;
         var keys = new List<(string Pk, string Sk)>();
         // What other people left on the post: their own rows first, then the index that found them.
         foreach (var reaction in await repository.GetAllAsync<FeedPostReactionEntity>(FeedPostReactionEntity.GetPk(postId), ct))
@@ -103,6 +109,60 @@ public sealed class FeedShareService(
         keys.Add((FeedUserPostEntity.GetPk(), FeedUserPostEntity.GetSk(postId)));
         keys.Add((FeedShareEntity.GetPk(tenantId), FeedShareEntity.GetSk(lookId)));
         await repository.BatchDeleteKeysAsync(keys, ct);
+        // After the rows: nothing points at the copy any more. (A copy a concurrent feed read makes right now is never
+        // referenced and has an unguessable key; account deletion removes the whole public folder.)
+        await publicImages.UnpublishAsync(tenantId, [publicCover], ct);
+    }
+
+    public async Task<string?> PublicCoverAsync(FeedUserPostEntity post, string coverKey, CancellationToken ct)
+    {
+        if (post.HiddenAt is not null)
+            return null;
+        if (string.Equals(post.PublicCoverSource, coverKey, StringComparison.Ordinal) && post.PublicCoverKey is { } current
+            && StorageKeys.IsPublicItemKeyOf(current, post.OwnerTenantId))
+            return current;
+
+        var key = StorageKeys.PublicLookCover(post.OwnerTenantId, post.LookId, Convert.ToHexStringLower(System.Security.Cryptography.RandomNumberGenerator.GetBytes(16)));
+        try
+        {
+            if (!await storage.CopyAsync(coverKey, key, "image/webp", ItemImageRenditions.PublicCacheControl, ct))
+                return null;
+            var previous = post.PublicCoverKey;
+            post.PublicCoverKey = key;
+            post.PublicCoverSource = coverKey;
+            if (await repository.SaveIfVersionAsync(post, post.Version, ct))
+            {
+                await publicImages.UnpublishAsync(post.OwnerTenantId, [previous], ct);
+                return key;
+            }
+            // The row changed meanwhile (another reader published, a report, an un-share): this copy is not the post's.
+            await publicImages.UnpublishAsync(post.OwnerTenantId, [key], ct);
+            return null;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning("Cover of feed post {PostId} could not be published ({Error}); it is shown presigned", post.Id, ex.GetType().Name);
+            await publicImages.UnpublishAsync(post.OwnerTenantId, [key], ct);
+            return null;
+        }
+    }
+
+    public async Task UnpublishCoverAsync(string postId, CancellationToken ct)
+    {
+        for (var attempt = 0; attempt < Retries; attempt++)
+        {
+            var post = await repository.GetAsync<FeedUserPostEntity>(FeedUserPostEntity.GetPk(), FeedUserPostEntity.GetSk(postId), ct);
+            if (post?.PublicCoverKey is not { } key)
+                return;
+            post.PublicCoverKey = null;
+            post.PublicCoverSource = null;
+            if (await repository.SaveIfVersionAsync(post, post.Version, ct))
+            {
+                await publicImages.UnpublishAsync(post.OwnerTenantId, [key], ct);
+                return;
+            }
+        }
+        logger.LogWarning("Public cover of feed post {PostId} could not be taken away after retries", postId);
     }
 
     public async Task RemoveAllAsync(string tenantId, CancellationToken ct)
@@ -166,10 +226,17 @@ public sealed class FeedShareService(
             var now = Now;
             post.ReportCount = reporters;
             post.UpdatedAt = now;
+            var publicCover = hide ? post.PublicCoverKey : null;
             if (hide)
+            {
                 post.HiddenAt = now;
+                // Off the feed = off the public address too; an admin restore publishes it again on the next read.
+                post.PublicCoverKey = null;
+                post.PublicCoverSource = null;
+            }
             if (await repository.SaveIfVersionAsync(post, post.Version, ct))
             {
+                await publicImages.UnpublishAsync(post.OwnerTenantId, [publicCover], ct);
                 if (hide)
                     logger.LogInformation("Feed post {PostId} of tenant {TenantId} left the feed after {Reporters} reporters", postId, post.OwnerTenantId, reporters);
                 return post;
