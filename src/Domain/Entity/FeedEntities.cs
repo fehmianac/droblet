@@ -26,6 +26,8 @@ public class FeedPostPiece
     [JsonPropertyName("category")] public ItemCategory Category { get; set; }
     [JsonPropertyName("subcategory")] public string? Subcategory { get; set; }
     [JsonPropertyName("imageUrl")] public string ImageUrl { get; set; } = null!;
+    /// <summary>Reference colour id read from the piece's picture (DominantColor; no AI). Null = not read: the saved piece is "other".</summary>
+    [JsonPropertyName("colorId")] public string? ColorId { get; set; }
 }
 
 /// <summary>An Akış editor post: 1–4 images, 0–8 catalog products. likeCount lives in <see cref="FeedPostStatsEntity"/>.</summary>

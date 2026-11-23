@@ -575,6 +575,7 @@ public sealed class FeedService(
             Category = p.Category,
             Subcategory = string.IsNullOrWhiteSpace(p.Subcategory) ? null : p.Subcategory.Trim(),
             ImageUrl = p.ImageUrl.Trim(),
+            ColorId = ColorCatalog.IsKnown(p.ColorId) ? p.ColorId : null,
         }).ToList();
         var write = await repository.TransactWriteAsync([TransactWriteOperation.PutExisting(post)], ct);
         return write.Applied ? FeedPiecesOutcome.Written : FeedPiecesOutcome.NotFound;

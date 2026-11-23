@@ -75,18 +75,7 @@
     "completeEmptyAction": "Parça ekle",
     "completeFor": "{{name}} ile uyumlu",
     "completeClear": "Uyum filtresini kaldır",
-    "color": {
-      "white": "Beyaz",
-      "black": "Siyah",
-      "navy": "Lacivert",
-      "beige": "Bej",
-      "brown": "Kahverengi",
-      "cream": "Krem",
-      "olive": "Zeytin",
-      "burgundy": "Bordo",
-      "grey": "Gri",
-      "camel": "Karamel"
-    },
+    "colorsEmpty": "Katalogda henüz renk yok.",
     "favoriteAdd": "Favorilere ekle",
     "favoriteRemove": "Favorilerden çıkar"
   },

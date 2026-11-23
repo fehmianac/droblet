@@ -86,6 +86,28 @@ public class AdminAndCatalogEndpointTests(StoreSocialApiFactory factory) : IClas
     }
 
     [Fact]
+    public async Task ColorList_IsTheColoursLiveProductsComeIn_NamedInTheRequestLanguage()
+    {
+        var admin = await factory.AdminAsync();
+        var brand = await factory.SeedBrandAsync(admin);
+        await factory.SeedProductAsync(admin, brand, 100_000, ProductCategory.Shirt, ["fuchsia", "other"], ["M"]);
+        var gone = await factory.SeedProductAsync(admin, brand, 100_000, ProductCategory.Shirt, ["plum"], ["M"]);
+        await admin.DeleteAsync($"v1/admin/product/{gone}");
+        var (user, _) = await factory.RegisterAsync();
+
+        var response = await user.GetAsync("v1/catalog/color");
+        var colors = (await response.JsonAsync()).EnumerateArray().ToList();
+        var fuchsia = colors.Single(c => c.GetProperty("id").GetString() == "fuchsia");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("Fuşya", fuchsia.GetProperty("name").GetString());
+        Assert.Equal("#C81D77", fuchsia.GetProperty("hex").GetString());
+        Assert.Equal(1, fuchsia.GetProperty("count").GetInt32());
+        Assert.DoesNotContain(colors, c => c.GetProperty("id").GetString() is "other" or "plum");   // not a choice · only retired products
+        Assert.Equal(colors.Select(c => c.GetProperty("count").GetInt32()).OrderByDescending(n => n), colors.Select(c => c.GetProperty("count").GetInt32()));
+    }
+
+    [Fact]
     public async Task ProductText_ResolvesByProfileLanguage_ThenAcceptLanguage_ThenDefault_AndNeverExposesAffiliateLink()
     {
         var admin = await factory.AdminAsync();

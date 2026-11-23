@@ -70,6 +70,7 @@ try
             OpsArguments.SeedFeedPosts => await SeedFeedPostsCommand.RunAsync(services, arguments, output, arguments.Stage, cts.Token),
             OpsArguments.SplitFeedPosts => await SplitFeedPostsCommand.RunAsync(services, arguments, output, cts.Token),
             OpsArguments.ImportBrand or OpsArguments.ImportVakko => await Ops.Commands.BrandImport.ImportBrandCommand.RunAsync(services, arguments, output, cts.Token),
+            OpsArguments.ColorFeedPieces => await ColorFeedPiecesCommand.RunAsync(services, arguments, output, cts.Token),
             OpsArguments.SeedFeedStories => await SeedFeedStoriesCommand.RunAsync(services, arguments, output, cts.Token),
             OpsArguments.MigrateLibraryItemImages => await MigrateLibraryItemImagesCommand.RunAsync(services, arguments, output, cts.Token),
             OpsArguments.AccountSmoke => await new AccountSmokeCommand(services, arguments, output).RunAsync(cts.Token),

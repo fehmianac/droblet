@@ -296,7 +296,7 @@ internal sealed class SplitFeedPostsCommand(
         {
             var pieceKey = SplitFeedPostsPlan.PieceKey(post.Id, pieces.Count + 1, SplitFeedPostsPlan.ExtensionOf(contentType));
             await store.PutAsync(pieceKey, data, contentType, ct);
-            pieces.Add(new FeedPostPiece { Category = category, Subcategory = subcategory, ImageUrl = $"{store.BaseUrl.TrimEnd('/')}/{pieceKey}" });
+            pieces.Add(new FeedPostPiece { Category = category, Subcategory = subcategory, ImageUrl = $"{store.BaseUrl.TrimEnd('/')}/{pieceKey}", ColorId = PieceColorReader.Read(data) });
         }
 
         var write = await feed.SetPostPiecesAsync(post.Id, url, pieces, ct);
@@ -306,6 +306,65 @@ internal sealed class SplitFeedPostsCommand(
     }
 
     private static string Short(string text) => text.Length > 200 ? text[..200] + "…" : text;
+}
+
+/// <summary>
+/// color-feed-pieces [--only id,id] [--dry-run] [--force]: the pieces of editor posts get their colour (owner decision
+/// 2026-11-23: a piece saved from a post must not be "other"). Every piece picture is read from the catalog bucket and
+/// its reference colour is read from the pixels (DominantColor) — no AI call. Only pieces without a colour are read
+/// unless --force. Nothing else of the post is touched. Dev only.
+/// </summary>
+internal static class ColorFeedPiecesCommand
+{
+    public static Task<int> RunAsync(IServiceProvider services, OpsArguments args, OpsOutput output, CancellationToken ct) =>
+        ColorAsync(
+            services.GetRequiredService<IRepository>(),
+            services.GetRequiredService<IFeedService>(),
+            new S3CatalogImageStore(services.GetRequiredService<IAmazonS3>(), OpsHost.CatalogBucket(args.Stage), OpsHost.CatalogBaseUrl(args.Stage)),
+            PieceColorReader.Read,
+            services.GetRequiredService<IOptionsMonitor<PhotoOptions>>().CurrentValue.MaxUploadBytes,
+            args.OnlyIds, args.DryRun, args.Force, output, ct);
+
+    public static async Task<int> ColorAsync(IRepository repository, IFeedService feed, ICatalogImageStore store, Func<byte[], string?> read, long maxBytes,
+        IReadOnlyList<string> only, bool dryRun, bool force, OpsOutput output, CancellationToken ct)
+    {
+        var posts = (await repository.GetAllAsync<FeedPostEntity>(FeedPostEntity.GetPk(), ct))
+            .Where(p => !p.Retired && p.Pieces.Count > 0 && (only.Count == 0 || only.Contains(p.Id)) && (force || p.Pieces.Any(x => x.ColorId is null)))
+            .OrderBy(p => p.Id, StringComparer.Ordinal)
+            .ToList();
+        var rows = new List<IReadOnlyList<string>>();
+        int colored = 0, unread = 0, failed = 0;
+        foreach (var post in posts)
+        {
+            var pieces = new List<FeedPostPiece>(post.Pieces.Count);
+            foreach (var piece in post.Pieces)
+            {
+                var color = piece.ColorId;
+                if (color is null || force)
+                {
+                    var raw = SplitFeedPostsPlan.KeyOf(piece.ImageUrl, store.BaseUrl) is { } key ? await store.ReadAsync(key, maxBytes, ct) : null;
+                    color = raw is null ? null : read(raw);
+                    if (color is null)
+                        unread++;
+                    else
+                        colored++;
+                }
+                pieces.Add(new FeedPostPiece { Category = piece.Category, Subcategory = piece.Subcategory, ImageUrl = piece.ImageUrl, ColorId = color ?? piece.ColorId });
+            }
+            var outcome = "would be written";
+            if (!dryRun)
+            {
+                var write = await feed.SetPostPiecesAsync(post.Id, post.ImageUrls[0], pieces, ct);
+                outcome = write.ToString();
+                if (write != FeedPiecesOutcome.Written)
+                    failed++;
+            }
+            rows.Add([post.Id, string.Join(", ", pieces.Select(p => $"{p.Subcategory ?? p.Category.ToString()}: {p.ColorId ?? "—"}")), outcome]);
+        }
+        output.Table(["post id", "pieces", "outcome"], rows);
+        output.Summary($"### color-feed-pieces{(dryRun ? " (dry run)" : "")}\n\n**{colored}** piece colour(s) read in {posts.Count} post(s); {unread} picture(s) unreadable; {failed} post(s) not written. No AI call.\n");
+        return failed == 0 ? 0 : 1;
+    }
 }
 
 /// <summary>

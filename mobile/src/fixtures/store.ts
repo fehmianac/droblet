@@ -6,6 +6,7 @@ import {
   type Cart,
   type CartGroup,
   type CatalogColor,
+  type CatalogColorOption,
   type CheckoutResponse,
   type CompleteSuggestions,
   type CreatorCard,
@@ -171,6 +172,30 @@ const COLOR_WORDS: Record<CatalogColor, string> = {
   camel: 'karamel camel',
 };
 
+/** Name (tr, en) and swatch of the fixture colours — the server sends these with `GET v1/catalog/color`. */
+const COLOR_OPTIONS: Record<CatalogColor, [tr: string, en: string, hex: string]> = {
+  white: ['Beyaz', 'White', '#FFFFFF'],
+  black: ['Siyah', 'Black', '#1C1A17'],
+  navy: ['Lacivert', 'Navy', '#1B2A49'],
+  beige: ['Bej', 'Beige', '#DCCAB0'],
+  brown: ['Kahverengi', 'Brown', '#7B5236'],
+  cream: ['Krem', 'Cream', '#F1E6CF'],
+  olive: ['Zeytin yeşili', 'Olive', '#6B6B3A'],
+  burgundy: ['Bordo', 'Burgundy', '#6D1A2B'],
+  grey: ['Gri', 'Grey', '#8E8E90'],
+  camel: ['Camel', 'Camel', '#C19A6B'],
+};
+
+/** The colour filter's choices as the server builds them: colours the products come in, most products first. */
+export function colorFacets(products: ProductSummary[], language: string = currentLanguage()): CatalogColorOption[] {
+  const counts = new Map<string, number>();
+  for (const p of products) for (const c of new Set(p.colors)) counts.set(c, (counts.get(c) ?? 0) + 1);
+  return (Object.keys(COLOR_OPTIONS) as CatalogColor[])
+    .filter((id) => counts.has(id))
+    .map((id) => ({ id, name: COLOR_OPTIONS[id][language === 'en' ? 1 : 0], hex: COLOR_OPTIONS[id][2], count: counts.get(id) ?? 0 }))
+    .sort((a, b) => b.count - a.count);
+}
+
 function fold(value: string): string {
   return value.replace(/I/g, 'ı').replace(/İ/g, 'i').toLowerCase().trim();
 }
@@ -303,18 +328,21 @@ export function buildCart(rows: CartRow[], catalogue: ProductSummary[]): Cart {
   };
 }
 
+/** The fixture catalogue one segment sees (men do not get the women-only seeds). */
+function segmentCatalogue(segment: 'women' | 'men'): ProductSummary[] {
+  return localizedCatalogue().filter((p) => segment === 'women' || !WOMEN_ONLY_SEEDS.has(productsFixture.find((f) => f.id === p.id)?.name ?? ''));
+}
+
 export const storeFixtures = {
   edit: (): WeeklyEditSummary => currentEdit(),
   creators: (): CreatorCard[] => creatorsFixture,
   series: (): SeriesOutfit[] => [],
   brands: (): Brand[] => brandsFixture,
+  colors: (segment: 'women' | 'men' = 'women'): CatalogColorOption[] => colorFacets(segmentCatalogue(segment)),
 
   products: (query: ProductQuery, pageToken: string | null, segment: 'women' | 'men' = 'women'): ProductPage =>
     paginate(
-      filterProducts(
-        localizedCatalogue().filter((p) => segment === 'women' || !WOMEN_ONLY_SEEDS.has(productsFixture.find((f) => f.id === p.id)?.name ?? '')),
-        query,
-      ),
+      filterProducts(segmentCatalogue(segment), query),
       pageToken,
     ),
   product: (id: string): ProductDetail => product(id),

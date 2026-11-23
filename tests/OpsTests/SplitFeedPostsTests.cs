@@ -244,6 +244,52 @@ public class SplitFeedPostsTests : IDisposable
         Assert.Equal(3, _ai.Detections);
     }
 
+    // ── color-feed-pieces ───────────────────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ColorPieces_ReadsOnlyPiecesWithoutAColour_DryRunWritesNothing_NothingElseOfThePostChanges_NoAi()
+    {
+        await PostAsync("edit-1", pieces: true);
+        var done = await PostAsync("edit-2", pieces: true);
+        done.Pieces[0].ColorId = "navy";
+        await _host.Repository.SaveAsync(done);
+        await PostAsync("edit-3", pieces: true);                                                // its piece picture is missing
+        _store.Objects["catalog/feed/edit-1-p1.webp"] = ([1], "image/webp");
+        _store.Objects["catalog/feed/edit-2-p1.webp"] = ([2], "image/webp");
+        var feed = _host.Get<IFeedService>();
+        var reads = new List<byte>();
+        string? Read(byte[] image) { reads.Add(image[0]); return "olive"; }
+
+        var dry = await ColorFeedPiecesCommand.ColorAsync(_host.Repository, feed, _store, Read, 1024, [], dryRun: true, force: false, new OpsOutput(_dir), default);
+        Assert.Null((await GetAsync("edit-1"))!.Pieces[0].ColorId);
+        var run = await ColorFeedPiecesCommand.ColorAsync(_host.Repository, feed, _store, Read, 1024, [], dryRun: false, force: false, new OpsOutput(_dir), default);
+
+        Assert.Equal((0, 0), (dry, run));
+        Assert.Equal([1, 1], reads);                                                            // never the one that has a colour
+        var colored = (await GetAsync("edit-1"))!;
+        Assert.Equal(("olive", ItemCategory.Top, 4, "Ofis edit-1"), (colored.Pieces[0].ColorId, colored.Pieces[0].Category, colored.SortOrder, colored.Title["tr"]));
+        Assert.Equal("navy", (await GetAsync("edit-2"))!.Pieces[0].ColorId);
+        Assert.Null((await GetAsync("edit-3"))!.Pieces[0].ColorId);                             // unreadable: left without
+        Assert.Equal((0, 0), (_ai.Detections, _ai.Cleanups));
+    }
+
+    [Fact]
+    public void PieceColorReader_ReadsARealPicture_AndRefusesBytesThatAreNotOne()
+    {
+        using var bitmap = new SkiaSharp.SKBitmap(40, 40);
+        using (var canvas = new SkiaSharp.SKCanvas(bitmap))
+        {
+            canvas.Clear(SkiaSharp.SKColors.White);
+            using var paint = new SkiaSharp.SKPaint { Color = new SkiaSharp.SKColor(0x1B, 0x2A, 0x49) };
+            canvas.DrawRect(8, 8, 24, 24, paint);
+        }
+        using var png = bitmap.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100);
+
+        Assert.Equal("navy", PieceColorReader.Read(png.ToArray()));
+        Assert.Null(PieceColorReader.Read([1, 2, 3]));
+        Assert.Null(PieceColorReader.Read([]));
+    }
+
     // ── seed-feed-stories ───────────────────────────────────────────────────────────────────────────────────────
 
     [Fact]

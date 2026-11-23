@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 
 import { SIZES } from '@/api/contracts';
-import { CATALOG_COLORS, PRODUCT_SORTS, type ProductQuery } from '@/api/contracts/store';
+import { PRODUCT_SORTS, type ProductQuery } from '@/api/contracts/store';
 import { SectionState } from '@/components/blocks/SectionState';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 
 import { clearSheetFilters, toggleValue as toggle } from './filters';
-import { useBrands } from './queries';
+import { useBrands, useCatalogColors } from './queries';
 
 type Props = {
   initial: ProductQuery;
@@ -33,7 +33,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 
 /**
  * 21 "Filtrele" — ONE sheet for everything the Marka · Renk · Beden chips and the sort label open:
- * MARKA, RENK, BEDEN and SIRALAMA as chip groups, "Temizle" in the title row and "Sonuçları göster"
+ * MARKA, RENK, BEDEN and SIRALAMA as chip groups (RENK is the server's list of colours the catalogue comes in), "Temizle" in the title row and "Sonuçları göster"
  * at the foot. Choices are a draft until "Sonuçları göster". Mounted only while open, so the draft
  * starts from the applied filters each time.
  */
@@ -41,6 +41,7 @@ export function FilterSheet({ initial, profileSize, onApply, onClose }: Props) {
   const { t } = useTranslation();
   const { height } = useWindowDimensions();
   const brands = useBrands();
+  const colors = useCatalogColors();
   const [draft, setDraft] = useState(initial);
 
   return (
@@ -87,16 +88,28 @@ export function FilterSheet({ initial, profileSize, onApply, onClose }: Props) {
           </Section>
 
           <Section title={t('shop.colorEyebrow')}>
-            <ChipWrap>
-              {CATALOG_COLORS.map((c) => (
-                <Chip
-                  key={c}
-                  label={t(`shop.color.${c}`)}
-                  selected={draft.colors.includes(c)}
-                  onPress={() => setDraft((d) => ({ ...d, colors: toggle(d.colors, c) }))}
-                />
-              ))}
-            </ChipWrap>
+            <SectionState
+              query={colors}
+              skeleton={<Skeleton className="h-chip w-full rounded-pill" />}
+              isEmpty={(list) => list.length === 0}
+              emptyText={t('shop.colorsEmpty')}
+              inset={false}
+            >
+              {(list) => (
+                <ChipWrap>
+                  {list.map((c) => (
+                    <Chip
+                      key={c.id}
+                      label={c.name}
+                      swatch={c.hex}
+                      selected={draft.colors.includes(c.id)}
+                      onPress={() => setDraft((d) => ({ ...d, colors: toggle(d.colors, c.id) }))}
+                      testID={`filter.color.${c.id}`}
+                    />
+                  ))}
+                </ChipWrap>
+              )}
+            </SectionState>
           </Section>
 
           <Section title={t('shop.sizeEyebrow')}>

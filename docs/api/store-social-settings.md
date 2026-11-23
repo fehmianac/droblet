@@ -300,6 +300,7 @@ post id, so the kinds never collide.
 | Method | Path | Result |
 |---|---|---|
 | GET | `v1/catalog/brand` | `[{ "id", "name", "logoUrl", "websiteUrl" }]` — active brands, by name. |
+| GET | `v1/catalog/color` | `[{ "id", "name", "hex", "count" }]` — the colours live products of the user's segment come in, most products first; `name` in the request language. The colour filter is built from this list (`other` is never in it). |
 | GET | `v1/catalog/product` | `{ "items": [ProductDto], "pageToken": "…"|null, "count": 42 }` (`count` = total matches). |
 | GET | `v1/catalog/product/{id}` | `ProductDto`. `404 product_not_found`. Retired products resolve with `available: false`. |
 | GET | `v1/tenant/catalog/product/{id}/match` | `{ "productId", "compatibleCount": 3, "items": [{ "id","name","category","colors","imageUrl" }] }` — "Gardırobundaki N parçayla uyumlu". `404 product_not_found`. |

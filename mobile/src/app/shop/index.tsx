@@ -9,8 +9,6 @@ import { useTranslation } from 'react-i18next';
 import { FlatList, Pressable, RefreshControl, ScrollView, TextInput, View, useWindowDimensions } from 'react-native';
 
 import {
-  CATALOG_COLORS,
-  type CatalogColor,
   type ProductQuery,
   type ProductSummary,
 } from '@/api/contracts/store';
@@ -47,10 +45,10 @@ import { useThemeColors } from '@/theme/useThemeColors';
 const GUTTER = 20;
 const COLUMN_GAP = 12;
 
-function parseColors(param: string | undefined): CatalogColor[] {
+/** `?colors=a,b` — reference colour ids (lower-case kebab); anything else in the link is dropped. */
+function parseColors(param: string | undefined): string[] {
   if (!param) return [];
-  const known = CATALOG_COLORS as readonly string[];
-  return param.split(',').filter((c): c is CatalogColor => known.includes(c));
+  return param.split(',').filter((c) => /^[a-z][a-z-]{1,30}$/.test(c));
 }
 
 /** Skeleton card of the board: a 120 block and two 9-high bars. */
