@@ -290,6 +290,41 @@ public class SplitFeedPostsTests : IDisposable
         Assert.Null(PieceColorReader.Read([]));
     }
 
+    // ── note-feed-posts ─────────────────────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task Notes_WriteOnlyTheNote_DryRunWritesNothing_AMissingPostIsReported_TheCheckedInFileIsValid()
+    {
+        await PostAsync("edit-1", pieces: true);
+        var feed = _host.Get<IFeedService>();
+        FeedPostNote[] notes = [new("edit-1", " Saten babeti gri çorapla giy. ", "Wear satin flats with grey socks."), new("nope", "x", "y")];
+
+        var dry = await NoteFeedPostsCommand.WriteAsync(feed, notes, dryRun: true, new OpsOutput(_dir), default);
+        Assert.Null((await GetAsync("edit-1"))!.Note);
+        var run = await NoteFeedPostsCommand.WriteAsync(feed, notes, dryRun: false, new OpsOutput(_dir), default);
+
+        Assert.Equal((0, 1), (dry, run));                                                       // "nope" does not exist
+        var post = (await GetAsync("edit-1"))!;
+        Assert.Equal(("Saten babeti gri çorapla giy.", "Wear satin flats with grey socks."), (post.Note!["tr"], post.Note["en"]));
+        Assert.Equal(("Ofis edit-1", 1, 4, true), (post.Title["tr"], post.Pieces.Count, post.SortOrder, post.Published));
+        Assert.Null(await GetAsync("nope"));                                                    // never created
+
+        Assert.Null(NoteFeedPostsCommand.Parse("not json"));
+        Assert.Null(NoteFeedPostsCommand.Parse("[]"));
+        Assert.Null(NoteFeedPostsCommand.Parse("""[{"id":"a","noteTr":"x","noteEn":"y"},{"id":"a","noteTr":"x","noteEn":"y"}]"""));
+        Assert.Null(NoteFeedPostsCommand.Parse("""[{"id":"a","noteTr":" ","noteEn":"y"}]"""));
+        var checkedIn = NoteFeedPostsCommand.Parse(File.ReadAllText(Path.Combine(RepoRoot(), "ops-presets", "feed-notes-1123.json")));
+        Assert.Equal(57, checkedIn!.Count);
+    }
+
+    private static string RepoRoot()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !Directory.Exists(Path.Combine(dir.FullName, "ops-presets")))
+            dir = dir.Parent;
+        return dir!.FullName;
+    }
+
     // ── seed-feed-stories ───────────────────────────────────────────────────────────────────────────────────────
 
     [Fact]

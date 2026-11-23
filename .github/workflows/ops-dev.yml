@@ -25,7 +25,7 @@ on:
       command:
         description: Komut
         type: choice
-        options: [ai-smoke, account-smoke, outfit-import-smoke, ai-perf, ai-bench, ai-cost, generate-library-images, generate-marketing-images, migrate-library-item-images, grant-test-premium, revoke-test-premium, ai-probe, logs, ai-settings, ai-admin-smoke, ai-usage-backfill, publish-item-images, cdn-check, public-urls, google-auth, push-test, seed-feed-posts, split-feed-posts, seed-feed-stories, color-feed-pieces, import-vakko, import-brand]
+        options: [ai-smoke, account-smoke, outfit-import-smoke, ai-perf, ai-bench, ai-cost, generate-library-images, generate-marketing-images, migrate-library-item-images, grant-test-premium, revoke-test-premium, ai-probe, logs, ai-settings, ai-admin-smoke, ai-usage-backfill, publish-item-images, cdn-check, public-urls, google-auth, push-test, seed-feed-posts, split-feed-posts, seed-feed-stories, color-feed-pieces, note-feed-posts, import-vakko, import-brand]
         default: ai-smoke
       args:
         description: 'Ek argumanlar (or. --email a@b.c --credits 10 · --only lib-a,lib-b --dry-run · --function stylist --minutes 30)'

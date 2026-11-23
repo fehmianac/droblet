@@ -589,6 +589,16 @@ public sealed class FeedService(
         return write.Applied ? FeedPiecesOutcome.Written : FeedPiecesOutcome.NotFound;
     }
 
+    public async Task<bool> SetPostNoteAsync(string postId, IReadOnlyDictionary<string, string>? note, CancellationToken ct)
+    {
+        // Like the pieces: re-read right before the write, change the one field, never bring a deleted post back.
+        var post = await repository.GetAsync<FeedPostEntity>(FeedPostEntity.GetPk(), FeedPostEntity.GetSk(postId), ct);
+        if (post is null)
+            return false;
+        post.Note = LocalizedText.NormalizeOptional(note);
+        return (await repository.TransactWriteAsync([TransactWriteOperation.PutExisting(post)], ct)).Applied;
+    }
+
     public async Task<bool> RetirePostAsync(string postId, CancellationToken ct)
     {
         var post = await repository.GetAsync<FeedPostEntity>(FeedPostEntity.GetPk(), FeedPostEntity.GetSk(postId), ct);
