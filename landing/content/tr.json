@@ -132,6 +132,13 @@
       "priceNote": "Güncel fiyat ve deneme süresi App Store ve Google Play'de yer alır. Fazlası için ek AI görseli paketi.",
       "cta": "Ücretsiz denemeyi başlat"
     },
+    "gallery": {
+      "eyebrow": "EKRANLAR",
+      "title": "Uygulamanın içinden.",
+      "region": "Uygulama ekranları — yatay kaydırılır",
+      "previous": "Önceki ekranlar",
+      "next": "Sonraki ekranlar"
+    },
     "final": {
       "title": "Dolabın artık senin için düşünüyor."
     },
@@ -148,6 +155,48 @@
       },
       "trip": {
         "alt": "Yatağın üzerindeki kabin bavuluna katlanmış kazakları yerleştiren kadın"
+      }
+    },
+    "screens": {
+      "welcome": {
+        "alt": "Droblet uygulamasının hoş geldin ekranı",
+        "caption": "Hoş geldin"
+      },
+      "feed": {
+        "alt": "Droblet uygulaması, Akış ekranı: bugünün kombini, hikâyeler ve editör gönderileri",
+        "caption": "Akış"
+      },
+      "today": {
+        "alt": "Droblet uygulaması, Bugün ekranı: hava durumu ve günün kombini",
+        "caption": "Bugün"
+      },
+      "looks": {
+        "alt": "Droblet uygulaması, Looklar ekranı: kaydedilmiş kombinler",
+        "caption": "Looklar"
+      },
+      "suggestion": {
+        "alt": "Droblet uygulaması, kombin önerisi ekranı",
+        "caption": "Kombin önerisi"
+      },
+      "palette": {
+        "alt": "Droblet uygulaması, Renk paletim ekranı: sezon tipi ve yakışan tonlar",
+        "caption": "Renk paletim"
+      },
+      "shop": {
+        "alt": "Droblet uygulaması, Stil mağazası ekranı",
+        "caption": "Stil mağazası"
+      },
+      "product": {
+        "alt": "Droblet uygulaması, ürün ekranı: beden seçimi ve mağazaya geçiş",
+        "caption": "Ürün"
+      },
+      "friends": {
+        "alt": "Droblet uygulaması, Arkadaş akışı: arkadaşların look'ları ve yıldız puanları",
+        "caption": "Arkadaşlar"
+      },
+      "membership": {
+        "alt": "Droblet uygulaması, üyelik ekranı: üyeliğin avantajları",
+        "caption": "Üyelik"
       }
     }
   },

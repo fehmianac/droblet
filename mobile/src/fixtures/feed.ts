@@ -10,6 +10,7 @@ import { currentTeenRules } from '@/features/teen/store';
 import { onFixtureSeed } from './db';
 import { L } from './showcase';
 import { productsFixture } from './store';
+import { showcaseImage, showcaseImages, type ShowcaseImage } from './showcaseImages';
 
 /**
  * Typed fixtures for Akış F1 (canvas 06″): editorial posts and stories. Author names are placeholders
@@ -164,7 +165,7 @@ function buildUser(now: number, s: UserSeed): FeedPost {
     publishedAt: new Date(now - s.hoursAgo * HOUR).toISOString(),
     title: s.title,
     note: null,
-    images: [`fixture://feed/${s.id}/cover`],
+    images: [showcaseImage(USER_COVERS[s.id]) ?? `fixture://feed/${s.id}/cover`],
     products: [],
     pieces: s.pieces,
     hasSimilar: s.hasSimilar,
@@ -187,6 +188,23 @@ function build(now: number): FeedPost[] {
   return out;
 }
 
+/** Showcase pictures of the first editor posts (by position), the shared looks and the stories; the rest keep their placeholders. */
+const POST_IMAGES: readonly (readonly ShowcaseImage[])[] = [
+  ['feed-office', 'story-winter'],
+  ['feed-weekend'],
+  ['feed-invite'],
+  [],
+  ['story-trench'],
+];
+const USER_COVERS: Record<string, ShowcaseImage | undefined> = { upost_001: 'cover-friend-weekend', upost_002: 'cover-cream-layers' };
+const STORY_IMAGES: Record<string, ShowcaseImage | undefined> = { story_001: 'feed-office', story_002: 'feed-weekend', story_003: 'story-winter' };
+
+/** `count` picture addresses of a post: its showcase pictures first, placeholders ("fixture://…", never loads) for the rest. */
+function postImages(index: number, id: string, count: number): string[] {
+  const real = showcaseImages(POST_IMAGES[index] ?? []);
+  return Array.from({ length: count }, (_, i) => real[i] ?? `fixture://feed/${id}/${i + 1}`);
+}
+
 function buildEditor(now: number): FeedPost[] {
   return seeds().map((s, index) => {
     const id = `post_${String(index + 1).padStart(3, '0')}`;
@@ -198,7 +216,7 @@ function buildEditor(now: number): FeedPost[] {
       publishedAt: new Date(now - s.hoursAgo * HOUR).toISOString(),
       title: s.title,
       note: s.note,
-      images: Array.from({ length: s.imageCount }, (_, i) => `fixture://feed/${id}/${i + 1}`),
+      images: postImages(index, id, s.imageCount),
       products: s.products,
       pieces: [],
       hasSimilar: false,
@@ -216,7 +234,7 @@ function buildStories(now: number): EditorStory[] {
   const story = (id: string, name: string, headline: string, productId: string | null, hoursAgo: number): EditorStory => ({
     id,
     author: { name, imageUrl: null },
-    imageUrl: `fixture://feed/story/${id}`,
+    imageUrl: showcaseImage(STORY_IMAGES[id]) ?? `fixture://feed/story/${id}`,
     headline,
     product: productId ? product(productId) : null,
     publishedAt: at(hoursAgo),

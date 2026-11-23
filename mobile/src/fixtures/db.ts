@@ -4,6 +4,7 @@ import type { PlanDay, WearLog } from '@/api/contracts/today';
 import type { Item, ItemCategory, ItemColor, ItemSeason } from '@/api/contracts/wardrobe';
 
 import { L, SHOWCASE } from './showcase';
+import { showcaseImage, type ShowcaseImage } from './showcaseImages';
 
 /**
  * In-memory stand-in for the tenant's server data while the E2–E6 backend is written. Shared by the
@@ -62,7 +63,7 @@ function seedItems(): Item[] {
     item('item_white_sneakers', 'Beyaz sneaker', 'shoes', 'white', ['spring', 'summer', 'autumn'], { size: '38', wearCount: 10 }),
     item('item_silk_scarf', 'İpek fular', 'accessory', 'brown', ['spring', 'autumn'], { size: null, fabric: 'İpek', wearCount: 1 }),
     item('item_linen_shirt', 'Keten gömlek', 'top', 'beige', ['spring', 'summer'], { subcategory: 'Gömlek', fabric: 'Keten', wearCount: 0 }),
-  ];
+  ].map((i) => (ITEM_IMAGES[i.id] ? { ...i, imageUrl: showcaseImage(ITEM_IMAGES[i.id]) } : i));
 }
 
 /**
@@ -101,6 +102,18 @@ export function slotFromItem(slot: LookSlotKind, source: Item): LookSlot {
   };
 }
 
+const LOOK_COVERS: Record<string, ShowcaseImage | undefined> = {
+  look_lacivert_blazer: 'cover-navy-blazer',
+  look_siyah_duz_elbise: 'cover-black-dress',
+  look_tuvit_jean: 'cover-tweed-jean',
+  look_krem_katmanlar: 'cover-cream-layers',
+};
+const ITEM_IMAGES: Record<string, ShowcaseImage | undefined> = {
+  item_white_shirt: 'product-white-shirt',
+  item_navy_blazer: 'product-navy-blazer',
+  item_black_bag: 'product-black-bag',
+};
+
 function seedLooks(items: Item[], persona: FixturePersona = 'women'): Look[] {
   const byId = (id: string): Item => {
     const found = items.find((i) => i.id === id);
@@ -116,6 +129,8 @@ function seedLooks(items: Item[], persona: FixturePersona = 'women'): Look[] {
     rating: null,
     ratingCount: 0,
     tryOnImageUrl: null,
+    // Showcase build, women's wardrobe: the look's cover picture (as the AI look cover of the real app).
+    ...(persona === 'women' && LOOK_COVERS[id] ? { coverImageUrl: showcaseImage(LOOK_COVERS[id]) } : {}),
     createdAt: CREATED,
     baseVersion: 1,
     ...extra,

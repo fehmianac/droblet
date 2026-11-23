@@ -132,6 +132,13 @@
       "priceNote": "The current price and trial length are listed on the App Store and Google Play. Need more? Add an extra AI image pack.",
       "cta": "Start the free trial"
     },
+    "gallery": {
+      "eyebrow": "SCREENS",
+      "title": "Inside the app.",
+      "region": "App screens — scrolls sideways",
+      "previous": "Previous screens",
+      "next": "Next screens"
+    },
     "final": {
       "title": "Your wardrobe now thinks for you."
     },
@@ -148,6 +155,48 @@
       },
       "trip": {
         "alt": "A woman placing folded sweaters into a cabin suitcase on the bed"
+      }
+    },
+    "screens": {
+      "welcome": {
+        "alt": "Droblet app welcome screen",
+        "caption": "Welcome"
+      },
+      "feed": {
+        "alt": "Droblet app, Feed screen: today's outfit, stories and editor posts",
+        "caption": "Feed"
+      },
+      "today": {
+        "alt": "Droblet app, Today screen: the weather and the outfit of the day",
+        "caption": "Today"
+      },
+      "looks": {
+        "alt": "Droblet app, Looks screen: saved outfits",
+        "caption": "Looks"
+      },
+      "suggestion": {
+        "alt": "Droblet app, outfit suggestion screen",
+        "caption": "Outfit suggestion"
+      },
+      "palette": {
+        "alt": "Droblet app, My colour palette screen: season type and the tones that suit you",
+        "caption": "My colour palette"
+      },
+      "shop": {
+        "alt": "Droblet app, Style store screen",
+        "caption": "Style store"
+      },
+      "product": {
+        "alt": "Droblet app, product screen: size choice and the link to the brand's store",
+        "caption": "Product"
+      },
+      "friends": {
+        "alt": "Droblet app, Friends feed: friends' looks and star ratings",
+        "caption": "Friends"
+      },
+      "membership": {
+        "alt": "Droblet app, membership screen: what membership includes",
+        "caption": "Membership"
       }
     }
   },

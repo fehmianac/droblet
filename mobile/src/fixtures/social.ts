@@ -18,6 +18,7 @@ import { ApiError } from '@/api/errors';
 import { applyRating } from '@/features/social/feedMath';
 
 import { L } from './showcase';
+import { showcaseImage } from './showcaseImages';
 
 /**
  * Typed fixtures for E9 (arkadaş akışı, kişi profili, dolapları keşfet). First names and handles are
@@ -67,7 +68,7 @@ function seedLooks(): LookRow[] {
       handle: 'selin',
       occasion: 'wedding',
       hoursAgo: 2,
-      imageUrl: null,
+      imageUrl: showcaseImage('cover-friend-dinner'),
       pieces: [
         piece('dress', 'navy'),
         piece('outerwear', 'cream'),
@@ -84,7 +85,7 @@ function seedLooks(): LookRow[] {
       handle: 'ayse',
       occasion: 'weekend',
       hoursAgo: 9,
-      imageUrl: null,
+      imageUrl: showcaseImage('cover-friend-weekend'),
       pieces: [
         piece('top', 'white'),
         piece('bottom', 'blue'),
@@ -100,7 +101,7 @@ function seedLooks(): LookRow[] {
       handle: 'selin',
       occasion: 'office',
       hoursAgo: 30,
-      imageUrl: null,
+      imageUrl: showcaseImage('cover-friend-office'),
       pieces: [
         piece('outerwear', 'navy'),
         piece('top', 'white'),
