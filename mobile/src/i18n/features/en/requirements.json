@@ -213,10 +213,7 @@
     "premium": {
       "title": "This feature comes with membership",
       "body": "Outfit suggestions, suitcase packing, the weekly plan and the colour palette are in the membership. See it on me comes with 30 AI images a month.",
-      "plans": "See membership plans",
-      "selfServe": "Turn it on for free for now",
-      "selfServeNote": "Trial period: membership features are turned on temporarily. You can turn them off in Settings.",
-      "selfServeFailed": "Couldn't turn it on. Try again."
+      "plans": "See membership plans"
     },
     "credits": {
       "title": "No AI images left",
