@@ -14,7 +14,7 @@ import { StoreButtons } from './StoreButtons';
 const privacyIcons = ['lock', 'trash', 'visibility'] as const;
 
 /** Screenshot of each step of the loop (Dijitalleştir · Kombinle · Tamamla), in dictionary order. */
-const stepScreens: readonly ScreenName[] = ['looks', 'suggestion', 'product'];
+const stepScreens: readonly ScreenName[] = ['wardrobe', 'suggestion', 'product'];
 
 /** Screenshot of each feature, in dictionary order. */
 const featureScreens: readonly ScreenName[] = ['suggestion', 'today', 'looks', 'palette', 'shop', 'friends'];
@@ -60,8 +60,10 @@ const galleryScreens: readonly ScreenName[] = [
   'segment',
   'feed',
   'today',
+  'wardrobe',
   'looks',
   'suggestion',
+  'trip',
   'friends',
   'shop',
   'product',

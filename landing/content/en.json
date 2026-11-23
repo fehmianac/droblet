@@ -184,6 +184,14 @@
         "alt": "Droblet app, Today screen: the weather and the outfit of the day",
         "caption": "Today"
       },
+      "wardrobe": {
+        "alt": "Droblet app, Wardrobe screen: your pieces with their photos, category and season filters",
+        "caption": "Wardrobe"
+      },
+      "trip": {
+        "alt": "Droblet app, trip screen: the forecast for London, a look for each day and the packing list",
+        "caption": "Packing"
+      },
       "looks": {
         "alt": "Droblet app, Looks screen: saved outfits",
         "caption": "Looks"

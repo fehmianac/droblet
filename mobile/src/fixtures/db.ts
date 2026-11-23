@@ -63,7 +63,30 @@ function seedItems(): Item[] {
     item('item_white_sneakers', 'Beyaz sneaker', 'shoes', 'white', ['spring', 'summer', 'autumn'], { size: '38', wearCount: 10 }),
     item('item_silk_scarf', 'İpek fular', 'accessory', 'brown', ['spring', 'autumn'], { size: null, fabric: 'İpek', wearCount: 1 }),
     item('item_linen_shirt', 'Keten gömlek', 'top', 'beige', ['spring', 'summer'], { subcategory: 'Gömlek', fabric: 'Keten', wearCount: 0 }),
-  ].map((i) => (ITEM_IMAGES[i.id] ? { ...i, imageUrl: showcaseImage(ITEM_IMAGES[i.id]) } : i));
+    ...(SHOWCASE ? showcaseItems() : []),
+  ].map((i, index) => {
+    const imageUrl = showcaseImage(ITEM_IMAGES[i.id]);
+    // Showcase build: the pieces with a picture count as the newest, so Gardırop (newest first) opens on them.
+    return imageUrl ? { ...i, imageUrl, createdAt: `2026-11-1${Math.floor(index / 10)}T1${index % 10}:00:00.000Z` } : i;
+  });
+}
+
+/**
+ * More pieces for the showcase build only (photographs in `assets/showcase/item-*`): Gardırop opens on a screen of
+ * pictures. Jest keeps the 14 pieces above — the seed its tests count and name.
+ */
+function showcaseItems(): Item[] {
+  return [
+    item('item_black_turtleneck', 'Siyah balıkçı yaka', 'top', 'black', ['autumn', 'winter'], { wearCount: 11 }),
+    item('item_beige_trousers', 'Bej bol pantolon', 'bottom', 'beige', ['spring', 'autumn'], { subcategory: 'Pantolon', fabric: 'Pamuk', wearCount: 5 }),
+    item('item_suede_bag', 'Taba süet çanta', 'bag', 'brown', ['autumn', 'winter'], { size: null, wearCount: 7 }),
+    item('item_black_belt', 'Siyah deri kemer', 'accessory', 'black', ['spring', 'summer', 'autumn', 'winter'], { subcategory: 'Kemer', size: null, fabric: 'Deri', wearCount: 13 }),
+    item('item_blue_knit', 'Mavi triko', 'top', 'blue', ['autumn', 'winter'], { subcategory: 'Triko', wearCount: 3 }),
+    item('item_ecru_tee', 'Ekru tişört', 'top', 'cream', ['spring', 'summer'], { fabric: 'Pamuk', wearCount: 15 }),
+    item('item_black_skirt', 'Siyah etek', 'bottom', 'black', ['spring', 'autumn', 'winter'], { wearCount: 4 }),
+    item('item_camel_coat', 'Taba kaban', 'outerwear', 'brown', ['autumn', 'winter'], { subcategory: 'Kaban', wearCount: 6 }),
+    item('item_check_shirt', 'Ekose gömlek', 'top', 'white', ['spring', 'summer', 'autumn'], { subcategory: 'Gömlek', wearCount: 2 }),
+  ];
 }
 
 /**
@@ -112,6 +135,17 @@ const ITEM_IMAGES: Record<string, ShowcaseImage | undefined> = {
   item_white_shirt: 'product-white-shirt',
   item_navy_blazer: 'product-navy-blazer',
   item_black_bag: 'product-black-bag',
+  item_cream_knit: 'item-cream-knit',
+  item_black_boots: 'item-black-boots',
+  item_black_turtleneck: 'item-black-turtleneck',
+  item_beige_trousers: 'item-beige-trousers',
+  item_suede_bag: 'item-suede-bag',
+  item_black_belt: 'item-black-belt',
+  item_blue_knit: 'item-blue-knit',
+  item_ecru_tee: 'item-ecru-tee',
+  item_black_skirt: 'item-black-skirt',
+  item_camel_coat: 'item-camel-coat',
+  item_check_shirt: 'item-check-shirt',
 };
 
 function seedLooks(items: Item[], persona: FixturePersona = 'women'): Look[] {

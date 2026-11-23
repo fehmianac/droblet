@@ -11,8 +11,10 @@ export const screenNames = [
   'segment',
   'feed',
   'today',
+  'wardrobe',
   'looks',
   'suggestion',
+  'trip',
   'palette',
   'shop',
   'product',
@@ -29,7 +31,7 @@ export const screenSize = { width: 593, height: 1290 } as const;
  * Changes with every new capture: the file names stay the same, so without it a browser that saw the page before keeps
  * showing the old screenshots from its cache (they are cached for hours).
  */
-export const screenVersion = '2026-11-23b';
+export const screenVersion = '2026-11-23c';
 
 export function screenSrc(locale: Locale, name: ScreenName): string {
   return `/screens/${locale}/${name}.webp?v=${screenVersion}`;
