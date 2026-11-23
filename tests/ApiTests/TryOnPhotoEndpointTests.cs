@@ -198,4 +198,75 @@ public class TryOnPhotoEndpointTests(ApiFactory factory) : IClassFixture<ApiFact
         Assert.Contains(prefixes, p => StorageKeys.TryOnReference(tenant, Ulid.New(), "jpg").StartsWith(p, StringComparison.Ordinal));
         Assert.Contains(DeletionPlan.PhotoS3Prefixes(tenant), p => StorageKeys.TryOnReference(tenant, Ulid.New(), "jpg").StartsWith(p, StringComparison.Ordinal));
     }
+
+    // ── "Üzerimde dene" on an Akış editor post that is one photograph (no products; owner decision 2026-11-23) ─────
+
+    private async Task<string> FeedPostAsync(string imageUrl, bool pieces)
+    {
+        var now = DateTime.UtcNow;
+        var post = new FeedPostEntity
+        {
+            Id = Ulid.New(), Author = new FeedAuthor { Kind = FeedAuthorKind.Edit, Name = new() { ["tr"] = "Droblet Edit" } }, Occasion = Occasion.Office,
+            Title = new() { ["tr"] = "Ofis" }, ImageUrls = [imageUrl], PublishAt = now.AddMinutes(-1), Published = true, CreatedAt = now, UpdatedAt = now,
+        };
+        if (pieces)
+            post.Pieces = [new FeedPostPiece { Category = ItemCategory.Top, Subcategory = "shirt", ImageUrl = imageUrl.Replace(".jpg", "-p1.webp", StringComparison.Ordinal) }];
+        await factory.Repository.SaveAsync(post);
+        return post.Id;
+    }
+
+    [Fact]
+    public async Task Start_FeedPostWithoutProducts_WithPieces_IsAPhotoTryOnOfThePostsPhotograph_OneCredit_SameJobAgain()
+    {
+        var (client, tenant, body) = await ArrangeAsync();
+        var url = $"https://catalog.test/catalog/feed/{Ulid.New().ToLowerInvariant()}.jpg";
+        factory.PublicImages.Images[url] = TestImages.JpegWithExif();
+        var post = await FeedPostAsync(url, pieces: true);
+
+        var start = await client.PostJsonAsync("v1/tenant/tryon", TryOn(post, "feedPost"));
+        var again = await client.PostJsonAsync("v1/tenant/tryon", TryOn(post, "feedPost"));
+
+        Assert.Equal(HttpStatusCode.Accepted, start.StatusCode);
+        var started = await start.ReadAsync<TryOnStartDto>();
+        Assert.Equal(StartStatus.Queued, started.Status);
+        Assert.Equal(started.Job!.Id, (await again.ReadAsync<TryOnStartDto>()).Job!.Id);   // same photograph → same job, no second charge
+        Assert.Equal(29, await factory.CreditsAsync(tenant));
+
+        var message = Assert.Single(factory.Events.Of<TryOnRequestedEvent>(tenant));
+        Assert.Equal(TryOnTargetKind.Photo, message.Target.Kind);                        // rendered, cached and charged as an outfit photo
+        Assert.Equal(CreditLedger.TryOnIdempotencyKey(body.Id, TryOnTargetKind.Photo, message.Target.Id, 0), message.CreditIdempotencyKey);
+        var job = (await factory.Repository.GetAsync<JobEntity>(JobEntity.GetPk(tenant), JobEntity.GetSk(started.Job.Id)))!;
+        var input = StylingJson.TryDeserialize<TryOnJobInput>(job.Input)!;
+        Assert.Empty(input.Pieces);
+        Assert.Equal(StorageKeys.TryOnReferenceUpload(tenant, message.Target.Id), input.ReferenceKey);   // the worker reads the tenant's own copy
+        var copy = factory.Storage.Objects[input.ReferenceKey!].Data;
+        Assert.False(TestImages.Contains(copy, TestImages.ExifGps));
+        Assert.Equal(TryOnRules.ReferenceHash(copy), message.Target.Id);
+    }
+
+    [Fact]
+    public async Task Start_FeedPostWithoutProducts_NoPieces422_PhotographGone404_NotAnImage422_NothingCharged()
+    {
+        var (client, tenant, _) = await ArrangeAsync();
+        var url = $"https://catalog.test/catalog/feed/{Ulid.New().ToLowerInvariant()}.jpg";
+        var notAnImage = $"https://catalog.test/catalog/feed/{Ulid.New().ToLowerInvariant()}.jpg";
+        factory.PublicImages.Images[url] = TestImages.JpegWithExif();
+        factory.PublicImages.Images[notAnImage] = "<html>not an image</html>"u8.ToArray();
+        var plain = await FeedPostAsync(url, pieces: false);
+        var gone = await FeedPostAsync($"https://catalog.test/catalog/feed/{Ulid.New().ToLowerInvariant()}.jpg", pieces: true);
+        var broken = await FeedPostAsync(notAnImage, pieces: true);
+
+        var empty = await client.PostJsonAsync("v1/tenant/tryon", TryOn(plain, "feedPost"));
+        var missing = await client.PostJsonAsync("v1/tenant/tryon", TryOn(gone, "feedPost"));
+        var invalid = await client.PostJsonAsync("v1/tenant/tryon", TryOn(broken, "feedPost"));
+        var unknown = await client.PostJsonAsync("v1/tenant/tryon", TryOn(Ulid.New(), "feedPost"));
+
+        Assert.Equal((HttpStatusCode.UnprocessableEntity, "tryon_target_empty"), (empty.StatusCode, await empty.CodeAsync()));   // as before: nothing to try on
+        Assert.DoesNotContain(url, factory.PublicImages.Reads);                                                                   // and nothing fetched for it
+        Assert.Equal((HttpStatusCode.NotFound, "target_not_found"), (missing.StatusCode, await missing.CodeAsync()));
+        Assert.Equal((HttpStatusCode.UnprocessableEntity, "tryon_reference_invalid"), (invalid.StatusCode, await invalid.CodeAsync()));
+        Assert.Equal((HttpStatusCode.NotFound, "target_not_found"), (unknown.StatusCode, await unknown.CodeAsync()));
+        Assert.Equal(30, await factory.CreditsAsync(tenant));
+        Assert.Empty(factory.Events.Of<TryOnRequestedEvent>(tenant));
+    }
 }

@@ -23,6 +23,8 @@ public class ApiFactory : WebApplicationFactory<Entrypoint>
     public CapturingEmailService Email { get; } = new();
     public FakeAppleVerifier Apple { get; } = new();
     public FakeGoogleVerifier Google { get; } = new();
+    /// <summary>The public catalog image bucket as the try-on of an Akış post reads it (no network in tests).</summary>
+    public FakePublicImageReader PublicImages { get; } = new();
 
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
@@ -48,6 +50,8 @@ public class ApiFactory : WebApplicationFactory<Entrypoint>
             services.AddSingleton<IGoogleIdentityVerifier>(Google);
             services.RemoveAll<IPasswordHasher>();
             services.AddSingleton<IPasswordHasher>(new PasswordHasher(1_000));
+            services.RemoveAll<IPublicImageReader>();
+            services.AddSingleton<IPublicImageReader>(PublicImages);
             services.RemoveAll<Domain.Manager.IEventManager>();
             services.AddSingleton<Domain.Manager.IEventManager>(Events);
         });

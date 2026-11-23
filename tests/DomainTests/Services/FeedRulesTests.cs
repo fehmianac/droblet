@@ -294,4 +294,31 @@ public class FeedRulesTests
         Assert.Equal(4, FeedRules.DistinctReporters([Report("a"), Report("a"), Report("b"), Report(null), Report(null)]));
         Assert.Equal(0, FeedRules.DistinctReporters([]));
     }
+
+    [Fact]
+    public void CanTryOn_AvailableProduct_OrThePhotographOfASplitPost_NeverThePhotographForATeen()
+    {
+        var plain = Post("plain", Now);
+        var split = Post("split", Now);
+        split.Pieces = [new FeedPostPiece { Category = ItemCategory.Top, ImageUrl = "https://img.example/1-p1.webp" }];
+        var noImage = Post("no-image", Now);
+        noImage.ImageUrls = [];
+        noImage.Pieces = split.Pieces;
+
+        Assert.True(FeedRules.CanTryOn(plain, hasAvailableProduct: true, viewerIsTeen: false));
+        Assert.True(FeedRules.CanTryOn(plain, hasAvailableProduct: true, viewerIsTeen: true));     // products: the teen try-on gate decides, as before
+        Assert.False(FeedRules.CanTryOn(plain, hasAvailableProduct: false, viewerIsTeen: false));  // neither products nor pieces
+        Assert.True(FeedRules.CanTryOn(split, hasAvailableProduct: false, viewerIsTeen: false));
+        Assert.False(FeedRules.CanTryOn(split, hasAvailableProduct: false, viewerIsTeen: true));   // a photo try-on is never for teens
+        Assert.False(FeedRules.CanTryOn(noImage, hasAvailableProduct: false, viewerIsTeen: false));
+    }
+
+    [Fact]
+    public void SamePhoto_ComparesTheFirstImageUrl()
+    {
+        Assert.True(FeedRules.SamePhoto("https://img.example/1.jpg", " https://img.example/1.jpg "));
+        Assert.False(FeedRules.SamePhoto("https://img.example/1.jpg", "https://img.example/2.jpg"));
+        Assert.False(FeedRules.SamePhoto(null, null));
+        Assert.False(FeedRules.SamePhoto("", ""));
+    }
 }

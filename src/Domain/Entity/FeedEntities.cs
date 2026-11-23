@@ -17,6 +17,17 @@ public class FeedAuthor
     [JsonPropertyName("imageUrl")] public string? ImageUrl { get; set; }
 }
 
+/// <summary>
+/// One piece of an editor post's photograph (owner decision 2026-11-23): what the AI split found in the first image, with
+/// its own clean image in the public catalog bucket. Written by the operator tool (split-feed-posts), never by the panel.
+/// </summary>
+public class FeedPostPiece
+{
+    [JsonPropertyName("category")] public ItemCategory Category { get; set; }
+    [JsonPropertyName("subcategory")] public string? Subcategory { get; set; }
+    [JsonPropertyName("imageUrl")] public string ImageUrl { get; set; } = null!;
+}
+
 /// <summary>An Akış editor post: 1–4 images, 0–8 catalog products. likeCount lives in <see cref="FeedPostStatsEntity"/>.</summary>
 public class FeedPostEntity : IEntity
 {
@@ -32,6 +43,8 @@ public class FeedPostEntity : IEntity
     [JsonPropertyName("note")] public Dictionary<string, string>? Note { get; set; }
     [JsonPropertyName("imageUrls")] public List<string> ImageUrls { get; set; } = [];
     [JsonPropertyName("productIds")] public List<string> ProductIds { get; set; } = [];
+    /// <summary>The pieces of the FIRST image (the strip under the post, and the post's photo try-on when it has no available product). Empty = not split.</summary>
+    [JsonPropertyName("pieces")] public List<FeedPostPiece> Pieces { get; set; } = [];
     [JsonPropertyName("publishAt")] public DateTime PublishAt { get; set; }
     [JsonPropertyName("sortOrder")] public int SortOrder { get; set; }
     [JsonPropertyName("published")] public bool Published { get; set; }

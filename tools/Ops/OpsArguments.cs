@@ -35,6 +35,20 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
     public const string PushTest = "push-test";
     /// <summary>Akış editor posts from owner-supplied pictures (a folder with manifest.json). No AI call; dev only.</summary>
     public const string SeedFeedPosts = "seed-feed-posts";
+    /// <summary>
+    /// The editor posts that are one photograph get their pieces: one detection + up to five cleanups per post (AI; owner
+    /// decision 2026-11-23). Hard cap <see cref="MaxFeedSplitCalls"/> AI calls in one run; dev only.
+    /// </summary>
+    public const string SplitFeedPosts = "split-feed-posts";
+
+    /// <summary>split-feed-posts: owner-approved ceiling of AI calls (detections + cleanups) in one run (--max-calls can only lower it).</summary>
+    public const int MaxFeedSplitCalls = 260;
+
+    /// <summary>Akış editor stories from existing editor posts (story-{postId}, 7 days). No AI call; dev only.</summary>
+    public const string SeedFeedStories = "seed-feed-stories";
+
+    /// <summary>seed-feed-stories: at most this many post ids in one run (the feed shows ContentFeed:MaxStories, 20 by default).</summary>
+    public const int MaxSeedStories = 20;
     public const string MigrateLibraryItemImages = "migrate-library-item-images";
     public const string AccountSmoke = "account-smoke";
     public const string OutfitImportSmoke = "outfit-import-smoke";
@@ -47,10 +61,10 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
     /// <summary>Hard ceiling of image-model calls in one run (library images and synthetic fixtures together).</summary>
     public const int MaxImageCallsPerRun = 30;
 
-    public static readonly IReadOnlyList<string> Commands = [SeedFeedPosts, GrantTestPremium, RevokeTestPremium, GenerateLibraryImages, GenerateMarketingImages, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, Logs, MigrateLibraryItemImages, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, AiUsageBackfill, PublishItemImages, CdnCheck, PublicUrls, GoogleAuth, PushTest];
+    public static readonly IReadOnlyList<string> Commands = [SeedFeedPosts, SplitFeedPosts, SeedFeedStories, GrantTestPremium, RevokeTestPremium, GenerateLibraryImages, GenerateMarketingImages, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, Logs, MigrateLibraryItemImages, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, AiUsageBackfill, PublishItemImages, CdnCheck, PublicUrls, GoogleAuth, PushTest];
 
     /// <summary>Commands that create or change test accounts or spend AI credit on a throw-away user: never on prod.</summary>
-    public static readonly IReadOnlySet<string> DevOnly = new HashSet<string>(StringComparer.Ordinal) { SeedFeedPosts, GrantTestPremium, RevokeTestPremium, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, PublicUrls, GenerateMarketingImages };
+    public static readonly IReadOnlySet<string> DevOnly = new HashSet<string>(StringComparer.Ordinal) { SeedFeedPosts, SplitFeedPosts, SeedFeedStories, GrantTestPremium, RevokeTestPremium, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, PublicUrls, GenerateMarketingImages };
 
     private static readonly IReadOnlyDictionary<string, string[]> AllowedOptions = new Dictionary<string, string[]>(StringComparer.Ordinal)
     {
@@ -70,6 +84,8 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [GoogleAuth] = ["add-client-id"],
         [PushTest] = ["email"],
         [SeedFeedPosts] = ["dir"],
+        [SplitFeedPosts] = ["only", "max-calls"],
+        [SeedFeedStories] = ["ids"],
         [MigrateLibraryItemImages] = [],
         [AccountSmoke] = ["api-url"],
         [OutfitImportSmoke] = ["api-url"],
@@ -96,6 +112,8 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [GoogleAuth] = [],
         [PushTest] = [],
         [SeedFeedPosts] = ["dry-run"],
+        [SplitFeedPosts] = ["dry-run", "force"],
+        [SeedFeedStories] = ["dry-run"],
         [MigrateLibraryItemImages] = ["dry-run"],
         [AccountSmoke] = ["keep-user"],
         [OutfitImportSmoke] = ["keep-user"],
@@ -136,6 +154,13 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
 
     /// <summary>Image-call budget of this run: --max-calls, never above <see cref="MaxImageCallsPerRun"/>.</summary>
     public int MaxImageCalls => Math.Clamp(IntOption("max-calls", MaxImageCallsPerRun), 0, MaxImageCallsPerRun);
+
+    /// <summary>split-feed-posts budget: --max-calls (default and ceiling <see cref="MaxFeedSplitCalls"/>).</summary>
+    public int FeedSplitCalls => Math.Clamp(IntOption("max-calls", MaxFeedSplitCalls), 0, MaxFeedSplitCalls);
+
+    /// <summary>seed-feed-stories: --ids a,b,c → the post ids, in the order given.</summary>
+    public IReadOnlyList<string> Ids =>
+        (Option("ids") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Distinct(StringComparer.Ordinal).ToList();
 
     /// <summary>generate-marketing-images budget: --max (required), never above <see cref="MaxMarketingImageCalls"/>.</summary>
     public int MaxMarketingCalls => Math.Clamp(IntOption("max", 0), 0, MaxMarketingImageCalls);
@@ -227,6 +252,19 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
                 if (OnlyIds.FirstOrDefault(id => !MarketingIdPattern().IsMatch(id)) is { } badId)
                     return $"--only: '{badId}' is not an image id";
                 break;
+            case SplitFeedPosts:
+                if (OnlyIds.FirstOrDefault(id => !Domain.Validation.FeedInputRules.IsId(id)) is { } badPost)
+                    return $"--only: '{badPost}' is not a post id";
+                if (Option("max-calls") is { } splitCalls && (!int.TryParse(splitCalls, out var sc) || sc is < 0 or > MaxFeedSplitCalls))
+                    return $"--max-calls must be 0–{MaxFeedSplitCalls}";
+                break;
+            case SeedFeedStories:
+                if (Ids.Count is 0 or > MaxSeedStories)
+                    return $"--ids is required: 1–{MaxSeedStories} post ids (a,b,c)";
+                // "story-{postId}" must be a content id itself.
+                if (Ids.FirstOrDefault(id => !Domain.Validation.FeedInputRules.IsId(id) || !Domain.Validation.FeedInputRules.IsId(Ops.Commands.SeedFeedStoriesCommand.StoryId(id))) is { } badStory)
+                    return $"--ids: '{badStory}' is not a post id (or too long for story-…)";
+                break;
             case AiPerf:
                 if (Option("runs") is { } runs && (!int.TryParse(runs, out var r) || r is < 1 or > MaxPerfRuns))
                     return $"--runs must be 1–{MaxPerfRuns}";
@@ -296,6 +334,9 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         "  ai-usage-backfill       [--days 7] [--dry-run]                 (no AI call; replays finished jobs into the AI usage counters, idempotent)\n" +
         "  logs                    --function stylist [--minutes 30] [--filter OpenAI] [--limit 200]\n" +
         "  migrate-library-item-images [--dry-run]                         (one-off, idempotent: library pieces → current library image)\n" +
+        "  seed-feed-posts         --dir <folder with manifest.json> [--dry-run]  (dev only; no AI call)\n" +
+        "  split-feed-posts        [--only id,id] [--max-calls N<=260] [--dry-run] [--force]  (dev only; AI: 1 detection + ≤ 5 cleanups per product-less editor post, never retries)\n" +
+        "  seed-feed-stories       --ids id,id [--dry-run]                (dev only; no AI call; story-{postId} from editor posts, 7 days)\n" +
         "  publish-item-images     [--dry-run] [--wait | --inline]       (no AI call; starts the admin Bakım job: cleaned piece images → public/items/ + 256/768 px thumbnails)";
 }
 

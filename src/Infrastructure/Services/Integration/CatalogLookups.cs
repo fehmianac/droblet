@@ -162,4 +162,66 @@ public sealed class FeedPostLookup(IRepository repository, IContentService conte
         var post = await repository.GetAsync<FeedPostEntity>(FeedPostEntity.GetPk(), FeedPostEntity.GetSk(postId), ct);
         return post is not null && FeedRules.IsLive(post, timeProvider.GetUtcNow().UtcDateTime) ? post.ProductIds.ToList() : null;
     }
+
+    public async Task<string?> GetOutfitPhotoUrlAsync(string postId, CancellationToken ct)
+    {
+        if (FeedRules.EditLookIdOf(postId) is not null || !Domain.Validation.FeedInputRules.IsId(postId))
+            return null;
+        var post = await repository.GetAsync<FeedPostEntity>(FeedPostEntity.GetPk(), FeedPostEntity.GetSk(postId), ct);
+        return post is not null && FeedRules.IsLive(post, timeProvider.GetUtcNow().UtcDateTime) && FeedRules.HasOutfitPhoto(post)
+            ? post.ImageUrls[0].Trim()
+            : null;
+    }
+}
+
+/// <summary>
+/// IPublicImageReader over HTTPS GET. Guards: https only, the host must be the host of CatalogImages:PublicBaseUrl (the
+/// URL comes from admin content, but nothing else is ever fetched), no redirects (the handler is built without them), the
+/// client's timeout (10 s) and a size cap enforced on Content-Length and again while reading.
+/// </summary>
+public sealed class HttpPublicImageReader(HttpClient http, IOptionsMonitor<CatalogImageOptions> options, ILogger<HttpPublicImageReader> logger) : IPublicImageReader
+{
+    /// <summary>The handler of the production client: a redirect could lead to another host, so none is followed.</summary>
+    public static HttpClient CreateClient() => new(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(10) };
+
+    /// <summary>https, no credentials / odd port, and exactly the configured public catalog host.</summary>
+    public static bool IsAllowed(string? url, string? publicHost, out Uri uri)
+    {
+        uri = null!;
+        if (string.IsNullOrEmpty(publicHost) || !Uri.TryCreate(url, UriKind.Absolute, out var parsed))
+            return false;
+        if (parsed.Scheme != Uri.UriSchemeHttps || !parsed.IsDefaultPort || !string.IsNullOrEmpty(parsed.UserInfo)
+            || !string.Equals(parsed.Host, publicHost, StringComparison.OrdinalIgnoreCase))
+            return false;
+        uri = parsed;
+        return true;
+    }
+
+    public async Task<byte[]?> ReadAsync(string url, long maxBytes, CancellationToken ct)
+    {
+        if (maxBytes <= 0 || !IsAllowed(url, options.CurrentValue.PublicHost, out var uri))
+            return null;
+        try
+        {
+            using var response = await http.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, ct);
+            if (!response.IsSuccessStatusCode || response.Content.Headers.ContentLength > maxBytes)
+                return null;
+            await using var stream = await response.Content.ReadAsStreamAsync(ct);
+            using var buffer = new MemoryStream();
+            var chunk = new byte[81920];
+            int read;
+            while ((read = await stream.ReadAsync(chunk, ct)) > 0)
+            {
+                if (buffer.Length + read > maxBytes)
+                    return null;
+                buffer.Write(chunk, 0, read);
+            }
+            return buffer.Length == 0 ? null : buffer.ToArray();
+        }
+        catch (Exception ex) when (ex is HttpRequestException or IOException || (ex is OperationCanceledException && !ct.IsCancellationRequested))
+        {
+            logger.LogWarning("Public image {Path} could not be read ({Error})", uri.AbsolutePath, ex.GetType().Name);
+            return null;
+        }
+    }
 }

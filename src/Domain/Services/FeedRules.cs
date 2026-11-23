@@ -16,6 +16,23 @@ public static class FeedRules
     /// <summary>Published, not retired and its publish time has come.</summary>
     public static bool IsLive(FeedPostEntity post, DateTime nowUtc) => post is { Published: true, Retired: false } && post.PublishAt <= nowUtc;
 
+    /// <summary>
+    /// The post can be tried on as its photograph (owner decision 2026-11-23): it was split into pieces and has an image.
+    /// Used only when the post has no available product — a post with products is always tried on as those products.
+    /// </summary>
+    public static bool HasOutfitPhoto(FeedPostEntity post) => post.Pieces.Count > 0 && !string.IsNullOrWhiteSpace(post.ImageUrls.FirstOrDefault());
+
+    /// <summary>
+    /// FeedPostDto.canTryOn of an editor post: an available product, or — without one — its photograph (pieces + an image).
+    /// The photograph path is a photo try-on, which is never for teens (TeenRules.IsOutfitPhotoTarget).
+    /// </summary>
+    public static bool CanTryOn(FeedPostEntity post, bool hasAvailableProduct, bool viewerIsTeen) =>
+        hasAvailableProduct || (!viewerIsTeen && HasOutfitPhoto(post));
+
+    /// <summary>The pieces of a post belong to its first image: the same URL = the same photograph.</summary>
+    public static bool SamePhoto(string? firstImageUrl, string? otherFirstImageUrl) =>
+        !string.IsNullOrWhiteSpace(firstImageUrl) && string.Equals(firstImageUrl.Trim(), otherFirstImageUrl?.Trim(), StringComparison.Ordinal);
+
     /// <summary>Published, not retired, inside its window [publishAt, expiresAt).</summary>
     public static bool IsActive(FeedStoryEntity story, DateTime nowUtc) =>
         story is { Published: true, Retired: false } && story.PublishAt <= nowUtc && (story.ExpiresAt is null || story.ExpiresAt > nowUtc);
@@ -346,6 +363,9 @@ public sealed record FeedPieceRef(ItemCategory Category, string? MainColor, stri
 
 public enum FeedWriteOutcome { Ok, NotFound }
 
+/// <summary>SetPostPiecesAsync: ImageChanged = the post's first image is no longer the one the pieces were cut from (nothing written).</summary>
+public enum FeedPiecesOutcome { Written, NotFound, ImageChanged }
+
 public enum FeedShareOutcome { Ok, NotFound, Teen, EmailNotVerified, HandleRequired, NotShareable, RateLimited }
 
 /// <summary>Akış: editor posts and stories, the shared looks of users mixed in (F2), likes, saves, hides, reports and the admin CRUD of editor content.</summary>
@@ -371,6 +391,11 @@ public interface IFeedService
     Task<AdminFeedPostDto?> GetPostAsync(string postId, CancellationToken ct);
     Task<(CatalogWriteOutcome Outcome, AdminFeedPostDto? Post, IReadOnlyList<string> MissingProductIds)> UpsertPostAsync(FeedPostInput input, CancellationToken ct);
     Task<bool> RetirePostAsync(string postId, CancellationToken ct);
+    /// <summary>
+    /// Operator tool (split-feed-posts): writes the pieces of the post's first image and nothing else. The post is re-read
+    /// right before the write; <paramref name="imageUrl"/> must still be its first image. An empty list clears them.
+    /// </summary>
+    Task<FeedPiecesOutcome> SetPostPiecesAsync(string postId, string imageUrl, IReadOnlyList<FeedPostPiece> pieces, CancellationToken ct);
     Task<IReadOnlyList<AdminFeedStoryDto>> ListStoriesAsync(CancellationToken ct);
     Task<(CatalogWriteOutcome Outcome, AdminFeedStoryDto? Story, IReadOnlyList<string> MissingProductIds)> UpsertStoryAsync(FeedStoryInput input, CancellationToken ct);
     Task<bool> RetireStoryAsync(string storyId, CancellationToken ct);
