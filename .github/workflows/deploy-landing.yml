@@ -81,6 +81,11 @@ jobs:
         env:
           NEXT_PUBLIC_SITE_URL: https://${{ env.LANDING_DOMAIN }}
           NEXT_PUBLIC_API_BASE_URL: ${{ vars.API_BASE_URL }}
+          # Store listings: empty until each store approves the app (the badges then show "Yakında" without a link).
+          # After approval set the repository variables, e.g. APP_STORE_URL=https://apps.apple.com/app/id6836442663 and
+          # PLAY_STORE_URL=https://play.google.com/store/apps/details?id=com.alatech.droplet, and deploy again.
+          NEXT_PUBLIC_APP_STORE_URL: ${{ vars.APP_STORE_URL }}
+          NEXT_PUBLIC_PLAY_STORE_URL: ${{ vars.PLAY_STORE_URL }}
         run: |
           npm ci
           npm run build

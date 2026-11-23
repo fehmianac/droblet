@@ -49,7 +49,7 @@ function Shell(props: {
         <h2 id="fallback-store" className="heading-3">
           {props.storeTitle}
         </h2>
-        <StoreButtons labels={props.common} withIcon />
+        <StoreButtons labels={props.common} />
       </section>
     </div>
   );
