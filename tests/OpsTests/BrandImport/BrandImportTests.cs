@@ -524,7 +524,8 @@ public class BrandImportTests
             Assert.All(source.ExtraColors, pair => Assert.True(ColorCatalog.IsKnown(pair.Value), pair.Value));
             Assert.DoesNotContain(BrandSources.Surveyed, b => b.Id == source.BrandId);   // a brand is either built or on the survey list
         });
-        Assert.Null(BrandSources.Find("zara"));
+        Assert.Equal(["vakko", "gap", "sarar", "beymen"], BrandSources.All.Select(s => s.BrandId));
+        Assert.Null(BrandSources.Find("zara"));                                 // blocked: surveyed, no source
         Assert.Null(BrandSources.Find(null));
         Assert.Equal(BrandSources.Surveyed.Count, BrandSources.Surveyed.Select(b => b.Id).Distinct().Count());
     }
@@ -539,7 +540,10 @@ public class BrandImportTests
         output.Flush();
         var summary = File.ReadAllText(Path.Combine(output.Directory, "summary.md"));
         Assert.Contains("| vakko | Vakko | https://www.vakko.com | women, men | ready | --brand vakko |", summary);
-        Assert.Contains("| zara | Zara | zara.com/tr | women | no source |", summary);
+        Assert.Contains("| zara | Zara | zara.com/tr | women, men | no source | blocked for automated access", summary);
+        Assert.Contains("| gap | Gap | https://gap.com.tr | women, men | ready | --brand gap |", summary);
+        Assert.Contains("| sarar | Sarar | https://sarar.com | men, women | ready | --brand sarar |", summary);
+        Assert.Contains("| beymen | Beymen | https://www.beymen.com | women, men | ready | --brand beymen |", summary);
     }
 
     [Fact]

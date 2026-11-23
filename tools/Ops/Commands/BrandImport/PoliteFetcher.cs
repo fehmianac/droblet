@@ -15,8 +15,10 @@ internal interface ISiteClient
 }
 
 /// <summary>
-/// Plain GETs with a browser-like user agent and nothing else: no sign-in, no script execution. It
-/// refuses every URL outside the source's <see cref="SourceAccess"/> itself, whatever the caller asks.
+/// Plain GETs with the source's user agent ("Mozilla/5.0" unless the site asks for more) and nothing else: no
+/// sign-in, no script execution. It refuses every URL outside the source's <see cref="SourceAccess"/>
+/// itself, whatever the caller asks. A body that is a gzip file (a "sitemap.xml.gz" served as a download, without
+/// Content-Encoding) is unpacked; the size of what one response may unpack to is capped.
 /// </summary>
 internal sealed class HttpSiteClient : ISiteClient, IDisposable
 {
@@ -30,7 +32,7 @@ internal sealed class HttpSiteClient : ISiteClient, IDisposable
         {
             Timeout = Timeout.InfiniteTimeSpan,   // every request has its own deadline
         };
-        _http.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0");
+        _http.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", access.UserAgent);
         _http.DefaultRequestHeaders.Accept.ParseAdd("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
         _http.DefaultRequestHeaders.AcceptLanguage.ParseAdd("tr-TR,tr;q=0.9");
     }
@@ -47,7 +49,11 @@ internal sealed class HttpSiteClient : ISiteClient, IDisposable
             var status = (int)response.StatusCode;
             if (!response.IsSuccessStatusCode)
                 return new SourceResponse(status, null, $"HTTP {status}");
-            return new SourceResponse(status, await response.Content.ReadAsStringAsync(deadline.Token));
+            return new SourceResponse(status, Text(await response.Content.ReadAsByteArrayAsync(deadline.Token)));
+        }
+        catch (InvalidDataException)
+        {
+            return new SourceResponse(0, null, "unreadable gzip body");
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
@@ -57,6 +63,33 @@ internal sealed class HttpSiteClient : ISiteClient, IDisposable
         {
             return new SourceResponse(0, null, ex.GetType().Name);
         }
+    }
+
+    /// <summary>What one gzip body may unpack to (the largest sitemap read today is ≈ 36 MB).</summary>
+    public const int MaxUnpackedBytes = 128 * 1024 * 1024;
+
+    /// <summary>The body as text (UTF-8); a gzip file (magic 1F 8B) is unpacked first. Throws <see cref="InvalidDataException"/> for a broken or oversized one.</summary>
+    public static string Text(byte[] body)
+    {
+        if (body.Length < 2 || body[0] != 0x1F || body[1] != 0x8B)
+            return Decode(body, body.Length);
+        using var gzip = new System.IO.Compression.GZipStream(new MemoryStream(body), System.IO.Compression.CompressionMode.Decompress);
+        using var unpacked = new MemoryStream();
+        var buffer = new byte[81920];
+        int read;
+        while ((read = gzip.Read(buffer, 0, buffer.Length)) > 0)
+        {
+            if (unpacked.Length + read > MaxUnpackedBytes)
+                throw new InvalidDataException("gzip body too large");
+            unpacked.Write(buffer, 0, read);
+        }
+        return Decode(unpacked.GetBuffer(), (int)unpacked.Length);
+    }
+
+    private static string Decode(byte[] bytes, int count)
+    {
+        var start = count >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF ? 3 : 0;   // UTF-8 byte order mark
+        return System.Text.Encoding.UTF8.GetString(bytes, start, count - start);
     }
 
     public void Dispose() => _http.Dispose();
