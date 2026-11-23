@@ -19,9 +19,18 @@ dotnet run --project tools/Ops -- import-vakko --stage dev [--segment women|men]
 registered sources and the surveyed brands that have no source yet; it touches neither the network nor AWS. Both
 commands are refused on prod. In GitHub Actions: `ops-dev.yml`, `command=import-brand`, `args="--brand vakko --segment men --dry-run"`.
 
-Vakko's men's slug table (`VakkoSource.MenSlugs`) was written from the notes of the women's run and has not met the
-live sitemap yet: the first men's run should be `--dry-run`. Suits, tuxedos and ties are left out (the catalog has
-no category for them).
+## Registered sources
+
+| `--brand` | site | segments | product data comes from | sizes | notes |
+|---|---|---|---|---|---|
+| `vakko` | vakko.com (SAP Commerce) | women, men | the page's `ng-state` script | with stock | category = the URL's slug; the men's slug table was checked against the live sitemap on 2026-11-23 (see `VakkoSource.MenSlugs`); suits, tuxedos and ties are left out (no category) |
+| `gap` | gap.com.tr (Akinon) | women, men | JSON-LD `Product` + the page's size elements, struck price and analytics block | with stock | no category or gender in the URL: category = the garment word of the name, gender from the page. The sitemap mixes women, men, children and babies and was last written in April 2026 — expect many "not women / not men" and "out of stock" rows; raise `--max-pages` |
+| `sarar` | sarar.com (T-Soft) | men, women | JSON-LD `Product` (in `@graph`) + the page's variant links | with stock | women = the "Sarar Woman" line; home textiles, ties and suits are never candidates. robots.txt asks for a truthful user agent: this source identifies itself as an importer (`SararSource.UserAgent`), and leaves out the product URLs its wildcard rules cover (`*new`, `*brand`, `*stock`, `*price` …) |
+| `beymen` | beymen.com | women, men | the `BEYMEN.productMain` state object + JSON-LD (description) | **none** | own labels only — Beymen Club, Beymen Collection, Academia — recognised by the URL slug and checked on the page; Network, Divarese, Beymen Reborn (resale) and every designer are "other brand". Per-size stock is loaded from `/api`, which robots.txt disallows, so products are imported without a size list. Discovery reads the index and 8 of the 26 product sitemaps (≈ 5.5 MB each), spread evenly |
+
+First run of each: `--dry-run --max 10`, read the table, then without. The hot-link sizes were checked with one image
+request each: Gap 780×1186 (the size the page itself uses, ≈ 130 KB), Beymen 800×1114 (`mnresize/800/1115`, ≈ 65 KB),
+Sarar 1200×1800 (`-B.jpg`, the page's zoom image, ≈ 330 KB — T-Soft has no size between it and the 450 px one).
 
 ## How it is built
 
@@ -30,14 +39,15 @@ BrandImport/
   BrandCatalogSource.cs    IBrandCatalogSource + BrandCatalogSource (defaults), SourceCandidate, SourceProduct, SourceAccess
   BrandSources.cs          the registry (All) and the surveyed brands without a source (Surveyed)
   PoliteFetcher.cs         the only way to the network: pacing, URL rules, request cap, stop rules
-  SitemapXml.cs            sitemap → URLs + images, for any source that discovers through a sitemap
+  SitemapXml.cs            sitemap → URLs + images, sitemap index → sitemaps, for any source that discovers through a sitemap
+  SourceCategories.cs      category words for sites whose URL has no category ("…-maxi-elbise" → elbise → Dress)
   CandidatePicker.cs       which candidates are fetched, in which order (round-robin over categories, deterministic)
   SourceCatalogMapper.cs   SourceProduct → ProductInput (id, category, sizes, price, images, previous price)
   SourceColors.cs          the shared Turkish / English colour dictionary
   SourceText.cs            Turkish-aware title casing, HTML → text, folding
   ImportBrandCommand.cs    the loop: discover → pick → fetch → parse → map → validate → upsert → report
-  Platforms/               parsers shared by every site of one e-commerce platform (SpartacusState: SAP Commerce)
-  Sources/                 one class per brand (VakkoSource)
+  Platforms/               parsers shared by several sites (SpartacusState: SAP Commerce; JsonLdProduct: schema.org Product + embedded JSON)
+  Sources/                 one class per brand (VakkoSource, GapSource, SararSource, BeymenSource)
 ```
 
 A source only answers brand questions: *where are the products* (`DiscoverAsync`), *what does this page say*
@@ -59,6 +69,8 @@ else is shared and behaves the same for every brand:
    robots.txt disallows.
 2. **One class** in `Sources/`, deriving from `BrandCatalogSource`: identity, `Segments`, `PriceBand`, `Access`
    (hosts + the denied path prefixes), `ImageHosts`, `DiscoverAsync`, `ParseProduct`, `CategorySlugs` per segment.
+   If the page has a JSON-LD `Product`, start from `JsonLdProductParser` and check every field against the page (Gap's
+   "availability" is not the sizes' stock); if the URL has no category, use the words of `SourceCategories`.
    If the site runs on a platform that already has a parser in `Platforms/`, use it; if the platform is new and
    other brands share it (Shopify, Salesforce Commerce …), put the parser in `Platforms/` so the next brand is a
    table and a URL pattern.
@@ -77,9 +89,11 @@ These are not conventions: the fetcher and the argument parser enforce what they
 - **Public pages only.** Plain GET requests of pages any visitor sees. Never sign in, never send credentials or
   session cookies of an account, never call the endpoints behind the account, the basket, the checkout or the search.
 - **robots.txt is respected.** Every `Disallow` that could match a URL the source builds goes into
-  `Access.DisallowedPathPrefixes`; query strings are refused unless the source sets `AllowQuery` (filter, sort and
-  search URLs are almost always disallowed and almost always carry one). A site whose robots.txt asks for a
-  `Crawl-delay` gets at least that as `--delay-ms`.
+  `Access.DisallowedPathPrefixes`, every wildcard rule (`Disallow: *price`) into `Access.DisallowedFragments`; query
+  strings are refused unless the source sets `AllowQuery` (filter, sort and search URLs are almost always disallowed
+  and almost always carry one). A site whose robots.txt asks for a `Crawl-delay` gets at least that as `--delay-ms`;
+  one that asks automated clients to identify themselves gets an honest `Access.UserAgent` instead of the tool's
+  plain `Mozilla/5.0`. Data the page loads from a disallowed endpoint (Beymen's size stock) is done without.
 - **At least one second between two requests**, sequential, one connection (`PoliteFetcher.MinDelay`; `--delay-ms`
   cannot go below 1000). The pause is taken before every request but the first — discovery included.
 - **Hard caps.** `--max-pages` ≤ 600 pages and `--max` ≤ 200 products per run; discovery may use at most the source's
@@ -97,20 +111,21 @@ These are not conventions: the fetcher and the argument parser enforce what they
 ## Survey of the requested brands (2026-11-23)
 
 Read-only: at most three plain GETs per brand (robots.txt, the sitemap index it names, one product sitemap), user
-agent `Mozilla/5.0`, two seconds apart, stopped at the first refusal. 42 requests in total. **No product page was
-fetched for any brand** — the third request went to a product sitemap, because no product URL is known before it —
-so "product page" below is what the platform is known to do, not something this survey saw. One product-page probe
-per brand is the next step before any adapter is written.
+agent `Mozilla/5.0`, two seconds apart, stopped at the first refusal. 42 requests in total. No product page was
+fetched in the survey. After the owner's approval (2026-11-23) the product pages of Gap, Sarar, Zara and Beymen were
+probed (at most 12 requests per brand, 28 in total, plus 9 to vakko.com for the men's slugs): Gap, Sarar and Beymen
+have a source now, Zara is blocked. For every other brand "product page" below is still what the platform is known to
+do, not something seen.
 
 | brand | site used | robots.txt for product pages | product sitemap | sitemap carries | product page | bot protection seen | affiliate / feed route | verdict |
 |---|---|---|---|---|---|---|---|---|
-| Zara (women) | zara.com/tr | allowed (`/tr/tr/…-p….html`); a few single products, `?`-parameters, search, cart and user paths disallowed | `sitemaps/sitemap-product-tr-tr.xml.gz`: 22 843 URLs (287 KB gzip) | URLs only | not fetched | Akamai | unknown | discovery works like Vakko; **product page unverified** (Akamai in front) — probe one page before deciding |
+| Zara (women, men) | zara.com/tr | allowed (`/tr/tr/…-p….html`); a few single products, `?`-parameters, search, cart, user and `*/availability` paths disallowed | `sitemaps/sitemap-product-tr-tr.xml.gz`: 22 843 URLs (287 KB gzip), no category or gender in the URL | URLs only | **probed 2026-11-23: HTTP 200 with a 2 KB Akamai interstitial** (`bm-verify` meta refresh + a script that posts to `/_sec/verify`) instead of the product | Akamai Bot Manager JavaScript challenge | unknown | **blocked** for automated access (the sitemap is readable, the product page is not) → needs an official feed |
 | Mango (women) | shop.mango.com | not readable | — | — | — | Vercel Security Checkpoint (HTTP 429 on robots.txt) | unknown | **blocked** for automated access → needs an official feed |
 | H&M (women) | www2.hm.com | not readable | — | — | — | Akamai (HTTP 403 on robots.txt) | unknown | **blocked** for automated access → needs an official feed |
-| Gap (women) | gap.com.tr | allowed; login, list, baskets, orders, account, users and sort / filter parameters disallowed | `sitemap-products-1.xml.gz` (on the store's S3 bucket): 2 332 URLs | URLs + lastmod | not fetched | none seen (nginx) | unknown | **adapter looks feasible like Vakko**; product page unverified |
-| Beymen (women, men) | beymen.com/tr | allowed (`/tr/p_…`); `/product/`, `/api`, cart and sort parameters disallowed; AI crawlers explicitly allowed | 26 files `product_N.xml`, 10 000 URLs each (5.5 MB each) | URLs + lastmod; no category in the URL; every label of the department store (perfume, home …) | not fetched | Imperva (Incapsula cookie); the three requests passed | unknown | discovery works, but a category must come from the page or the category sitemap and the labels must be filtered; **product page unverified** |
+| Gap (women, men) | gap.com.tr | allowed; login, list, baskets, orders, account, users and sort / filter parameters disallowed | `sitemap-products-1.xml.gz` (on the store's S3 bucket): 2 332 URLs, last written 2026-04-28 | URLs + lastmod | server-rendered (Akinon): JSON-LD `Product`, sizes with stock, struck price | none seen (nginx) | unknown | **source built** (`--brand gap`) |
+| Beymen (women, men) | beymen.com/tr | allowed (`/tr/p_…`); `/product/`, `/api`, cart and sort parameters disallowed; AI crawlers explicitly allowed | 26 files `product_N.xml`, 10 000 URLs each (5.5 MB each) | URLs + lastmod; the slug starts with the label; no category; every label of the department store (perfume, home …) | server-rendered: `BEYMEN.productMain` state + JSON-LD; **no per-size stock** (loaded from the disallowed `/api`) | Imperva (Incapsula cookie); all 8 requests passed | unknown | **source built** (`--brand beymen`), own labels only, no size list |
 | Bluemint (men) | bluemint.com | allowed (Shopify defaults: cart, checkout, account, sorted / filtered collections disallowed) | 5 files per language; the sampled one: 195 URLs | URL + lastmod + one image with title | not fetched (Shopify: JSON-LD `Product` and a public product JSON are standard) | Cloudflare | robots.txt points agents to the store's UCP/MCP catalog endpoint | technically feasible (one Shopify parser would serve four brands), **but the site asks agents to use its UCP/MCP endpoint — owner decision** |
-| Sarar (men) | sarar.com | allowed; search, cart, member pages, `/srv/service/`, sort / filter parameters disallowed | `xml/sitemap/product.xml`: 5 822 URLs (2.3 MB) | URL + lastmod + one image with title; no category in the URL; home textiles included | not fetched (T-Soft) | none seen | unknown (robots.txt mentions `/llms.txt`) | **adapter looks feasible like Vakko**; category from the page; product page unverified |
+| Sarar (men, women) | sarar.com | allowed; search, cart, member pages, `/srv/service/`, sort / filter parameters and any URL containing `new`, `brand`, `stock`, `price`, `type1`, `type2`, `discounted`, `arama` disallowed; asks agents for a truthful user agent | `xml/sitemap/product.xml`: 5 822 URLs (2.3 MB) | URL + lastmod + one image with title; no category in the URL; home textiles included | server-rendered (T-Soft): JSON-LD `Product` with the category path, variant links with stock | none seen | unknown (`/llms.txt` is an empty stub) | **source built** (`--brand sarar`) |
 | Kiğılı (men) | kigili.com | allowed (Shopify defaults + search, tags, filter parameters disallowed) | 42 files over two languages; the sampled one: 1 001 URLs | URL + lastmod + one image with title | not fetched (Shopify) | Cloudflare | robots.txt: "Agents should use UCP/MCP for catalog, cart, and checkout" | technically feasible (Shopify), **but the site asks agents to use its UCP/MCP endpoint — owner decision** |
 | Longchamp (young women) | longchamp.com | allowed (search, filters, `Product-Variation` disallowed) | one index per country site — **none for Turkey** among the ≈50 listed | not fetched | not fetched (Salesforce Commerce) | Cloudflare | unknown | no Turkish storefront found → no TRY price → **needs an official feed** or a Turkish retailer's catalog |
 | Lululemon (young women) | shop.lululemon.com | not readable | — | — | — | Akamai (HTTP 403 on robots.txt) | unknown | **blocked** for automated access → needs an official feed |
@@ -127,15 +142,27 @@ the pages read), and whether longchamp.com serves a `/tr` store outside its site
 
 ### What that means
 
-- **Like Vakko, after one product-page probe each:** Gap (gap.com.tr), Sarar, Sephora TR; Zara and Beymen if their
-  pages answer a plain client (both sit behind bot protection); Bluemint and Kiğılı if the owner is comfortable
-  reading product pages of a site that asks agents to use its catalog endpoint instead.
-- **Blocked for automated access:** Mango, H&M, Lululemon, UGG, Pop Mart (no server-rendered catalog).
+- **Built:** Gap (gap.com.tr), Sarar, Beymen (own labels) — see "Registered sources" above.
+- **Like Vakko, after one product-page probe each:** Sephora TR (no catalog category, below); Bluemint and Kiğılı if
+  the owner is comfortable reading product pages of a site that asks agents to use its catalog endpoint instead.
+- **Blocked for automated access:** Zara (JavaScript challenge on the product page), Mango, H&M, Lululemon, UGG,
+  Pop Mart (no server-rendered catalog).
 - **Official feed / other source needed:** Longchamp, Alo, Golden Goose, Legami, Stanley — no Turkish storefront
   was found, so there is no TRY price to import even where the pages are readable.
-- None of the surveyed sites is known to run on Vakko's platform (SAP Commerce / Spartacus), so no second source
-  was added. Four of them run on Shopify and five on Salesforce Commerce: a `Platforms/` parser for either would
-  serve several brands at once.
+- None of the surveyed sites runs on Vakko's platform (SAP Commerce / Spartacus). Gap, Sarar and Beymen all describe
+  the product in JSON-LD: `Platforms/JsonLdProduct.cs` is shared by the three. Four of the remaining sites run on
+  Shopify and five on Salesforce Commerce: a `Platforms/` parser for either would serve several brands at once.
+
+### Decisions the new sources leave to the owner
+
+- **Network and Divarese** are Beymen Group brands sold on beymen.com; they are not Beymen labels and are skipped
+  ("other brand"). Adding them is one prefix and one label each in `BeymenSource` — under the brand "Beymen" or as
+  brands of their own is the question.
+- **Beymen sizes.** The page names the size run in its analytics data (`"sizes":"{34,36,38}"`) without saying which
+  are in stock; the importer writes no size list rather than a possibly wrong one.
+- **Sarar's price band** is `HighStreet` and Beymen's `LuxuryTouch` (the catalog has two bands): a one-word change in
+  the source if the owner sees them differently.
+- **Zara** needs an official feed or an affiliate network: the tool never works around a challenge.
 
 ## Not built, to decide first
 

@@ -56,6 +56,14 @@ internal static class SourceColors
         ["zeytin"] = "olive",
         ["yesil"] = "emerald", ["zumrut"] = "emerald",
         ["nefti"] = "forest-green", ["koyu yesil"] = "forest-green",
+        // names the other Turkish stores use (Gap, Sarar, Beymen)
+        ["kobalt"] = "cobalt",
+        ["ten"] = "beige", ["deve tuyu"] = "camel", ["sutlu kahve"] = "taupe",
+        ["visne"] = "burgundy", ["bakir"] = "rust", ["nar cicegi"] = "coral", ["gul kurusu"] = "blush",
+        ["eflatun"] = "lilac", ["leylak"] = "lilac",
+        ["limon"] = "yellow",
+        ["cagla"] = "sage", ["yag yesili"] = "olive", ["acik yesil"] = "mint",
+        ["acik kahverengi"] = "camel", ["acik kahve"] = "camel", ["acik pembe"] = "blush",
 
         // English (and the words both languages share)
         ["black"] = "black",

@@ -14,7 +14,16 @@ internal static class SitemapXml
         return Parse(reader);
     }
 
-    public static IReadOnlyList<SitemapUrl> Parse(TextReader xml)
+    /// <summary>A sitemap index (&lt;sitemapindex&gt;&lt;sitemap&gt;&lt;loc&gt;…) → the sitemaps it names, in its order.</summary>
+    public static IReadOnlyList<string> ParseIndex(string xml)
+    {
+        using var reader = new StringReader(xml);
+        return Parse(reader, "sitemap").Select(u => u.Loc).ToList();
+    }
+
+    public static IReadOnlyList<SitemapUrl> Parse(TextReader xml) => Parse(xml, "url");
+
+    private static IReadOnlyList<SitemapUrl> Parse(TextReader xml, string entry)
     {
         var urls = new List<SitemapUrl>();
         using var reader = XmlReader.Create(xml, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, IgnoreComments = true, IgnoreWhitespace = true });
@@ -22,7 +31,7 @@ internal static class SitemapXml
         var images = new List<string>();
         while (!reader.EOF)
         {
-            if (reader.NodeType == XmlNodeType.Element && reader.LocalName == "url")
+            if (reader.NodeType == XmlNodeType.Element && reader.LocalName == entry)
             {
                 loc = null;
                 images = [];
@@ -37,7 +46,7 @@ internal static class SitemapXml
                     loc = text;
                 continue;
             }
-            else if (reader.NodeType == XmlNodeType.EndElement && reader.LocalName == "url")
+            else if (reader.NodeType == XmlNodeType.EndElement && reader.LocalName == entry)
             {
                 if (!string.IsNullOrEmpty(loc))
                     urls.Add(new SitemapUrl(loc, images));

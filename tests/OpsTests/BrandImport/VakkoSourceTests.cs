@@ -636,7 +636,11 @@ public class VakkoSourceTests
     [InlineData("gomlek", ProductCategory.Shirt)]
     [InlineData("loafer-mokasen", ProductCategory.Shoes)]
     [InlineData("klasik-ayakkabi", ProductCategory.Shoes)]
+    [InlineData("terlik", ProductCategory.Shoes)]              // the slugs below: seen in the live sitemap, a page of each read (2026-11-23)
+    [InlineData("evrak-cantasi", ProductCategory.Bag)]
+    [InlineData("erkek", ProductCategory.Bag)]                 // two leather bags filed under the department's own slug
     [InlineData("pantolon", ProductCategory.Trousers)]
+    [InlineData("dis-giyim", null)]                            // women's ponchos
     [InlineData("elbise", null)]
     [InlineData("etek", null)]
     [InlineData("topuklu-ayakkabi", null)]

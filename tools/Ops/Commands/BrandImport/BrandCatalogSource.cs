@@ -62,14 +62,24 @@ internal sealed record SourceDiscovery(IReadOnlyList<SourceCandidate> Candidates
 /// so, and nothing under the path prefixes it denies — what its robots.txt disallows plus the account / basket /
 /// search routes, written down per source. A prefix covers whole path segments: "/cart" denies /cart and /cart/…,
 /// not /cartier; end it with "/" or write the longer prefix to deny more.
+/// <see cref="DisallowedFragments"/> are the wildcard rules of a robots.txt ("Disallow: *price", "*yil-sezon*"): a URL
+/// whose path or query contains one (any case) is refused. <see cref="UserAgent"/> replaces the tool's plain
+/// "Mozilla/5.0" for a site whose robots.txt asks automated clients to say what they are.
 /// </summary>
 internal sealed record SourceAccess(IReadOnlyList<string> Hosts, IReadOnlyList<string> DisallowedPathPrefixes, bool AllowQuery = false)
 {
+    public const string DefaultUserAgent = "Mozilla/5.0";
+
+    public IReadOnlyList<string> DisallowedFragments { get; init; } = [];
+
+    public string UserAgent { get; init; } = DefaultUserAgent;
+
     public bool Allows(string? url) =>
         Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps
         && Hosts.Contains(uri.Host, StringComparer.Ordinal)
         && uri.Fragment.Length == 0 && (AllowQuery || uri.Query.Length == 0)
-        && !DisallowedPathPrefixes.Any(prefix => Covers(prefix, uri.AbsolutePath));
+        && !DisallowedPathPrefixes.Any(prefix => Covers(prefix, uri.AbsolutePath))
+        && !DisallowedFragments.Any(fragment => uri.PathAndQuery.Contains(fragment, StringComparison.OrdinalIgnoreCase));
 
     private static bool Covers(string prefix, string path) =>
         path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
