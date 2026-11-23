@@ -83,11 +83,15 @@ public class TestPushEndpointTests(StoreSocialApiFactory factory) : IClassFixtur
 
         // The notifier cannot be reached.
         Assert.Equal(HttpStatusCode.BadGateway, (await Client(user, new Invoker(null)).PostAsync("v1/tenant/notification/test-push", null)).StatusCode);
-        // Five a minute: three calls so far, two more pass, the sixth is refused.
-        await client.PostAsync("v1/tenant/notification/test-push", null);
-        await client.PostAsync("v1/tenant/notification/test-push", null);
-        var limited = await client.PostAsync("v1/tenant/notification/test-push", null);
-        Assert.Equal(HttpStatusCode.TooManyRequests, limited.StatusCode);
+        // Five a minute (a fixed window: the test may cross a minute boundary, so it calls until the limit answers).
+        HttpResponseMessage? limited = null;
+        for (var i = 0; i < 12 && limited is null; i++)
+        {
+            var next = await client.PostAsync("v1/tenant/notification/test-push", null);
+            if (next.StatusCode == HttpStatusCode.TooManyRequests)
+                limited = next;
+        }
+        Assert.NotNull(limited);
         Assert.Contains("too_many_attempts", await limited.Content.ReadAsStringAsync());
         // Signed out: 401.
         Assert.Equal(HttpStatusCode.Unauthorized, (await factory.CreateClient().PostAsync("v1/tenant/notification/test-push", null)).StatusCode);
