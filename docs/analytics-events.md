@@ -123,6 +123,7 @@ documented manual screen tracking).
 | `credit_spent` | `credit_spent` | (declared; not tracked by the app yet) | `feature`, `count` | ✓ |
 | `tryon_start` | `tryon_start` | "Üzerimde gör" accepted by the server | `path` body \| face, `cached` true \| false, `credit_cost` (0 when cached), `target` item \| look \| product \| edit-look \| feed-post \| suggestion \| plan-day \| trip-day | — |
 | `feed_post_view` | `feed_post_view` | Akış: a post card is half visible, once per post per session | `postId`, `authorKind` edit \| stylist \| user | — |
+| `feed_post_open` | `feed_post_open` | Akış (and Kaydedilenler › Akış): a post's detail is opened by tapping its photograph or title | `postId`, `kind` editor \| user | — |
 | `feed_like` | `feed_like` | Akış: ♡ toggled | `postId`, `liked` | — |
 | `feed_save` | `feed_save` | Akış: Kaydet toggled | `postId`, `saved` | — |
 | `feed_save_as_look` | `feed_save_as_look` | Akış: "Looklarıma ekle" — the server made the look | `postId`, `mode` inspiration \| pieces | — |

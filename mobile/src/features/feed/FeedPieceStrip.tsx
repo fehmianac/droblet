@@ -2,17 +2,15 @@ import { useTranslation } from 'react-i18next';
 import { ScrollView, View } from 'react-native';
 
 import type { FeedPiece } from '@/api/contracts/feed';
-import { ITEM_CATEGORIES, type ItemCategory } from '@/api/contracts/wardrobe';
-import { toSubcategoryLabel } from '@/api/wire/subcategories';
 import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Text } from '@/components/ui/Text';
 
-/** One piece of the strip: its picture and what kind of piece it is. Not a product — it opens nothing. */
+import { pieceKindLabel } from './logic';
+
+/** One piece of the strip: its picture and what kind of piece it is. Not a product; the strip opens nothing (the post's detail shows the pieces large). */
 function PieceTile({ piece }: { piece: FeedPiece }) {
   const { t } = useTranslation();
-  // The kind of piece in the singular ("Üst", "Ayakkabı"); a sub-type id reads by its name ("Kazak"), anything else as sent.
-  const known = (ITEM_CATEGORIES as readonly string[]).includes(piece.category);
-  const label = known ? t(`homeFeed.pieceKind.${piece.category as ItemCategory}`) : (toSubcategoryLabel(piece.category) ?? piece.category);
+  const label = pieceKindLabel(t, piece.category);
   return (
     <View className="h-[54px] flex-row items-center gap-2 rounded-image-lg border border-feed-line bg-cream py-1 pl-1 pr-3" accessible accessibilityLabel={label}>
       <View className="h-[46px] w-[46px] overflow-hidden rounded-thumb bg-feed-thumb">

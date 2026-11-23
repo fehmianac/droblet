@@ -152,6 +152,13 @@
         "notSavable": "This post cannot be saved as a look.",
         "gone": "This post is no longer published."
       }
+    },
+    "openPostA11y": "Open the details of {{title}}",
+    "detail": {
+      "piecesTitle": "Pieces · {{count}}",
+      "notFound": "This post can't be opened right now. Go back to the feed and open it again.",
+      "backToFeed": "Back to the feed",
+      "pieceZoomA11y": "{{name}}, piece photo"
     }
   }
 }

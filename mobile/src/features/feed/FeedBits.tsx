@@ -1,9 +1,12 @@
-import { View } from 'react-native';
+import type { LucideIcon } from 'lucide-react-native';
+import { Pressable, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import type { FeedAuthor } from '@/api/contracts/feed';
 import { Avatar } from '@/components/blocks/basics';
 import { D_PATH, MARK_VIEWBOX } from '@/components/brand/logoPaths';
+import { Icon } from '@/components/ui/Icon';
+import { Text } from '@/components/ui/Text';
 import { toDisplayUpper } from '@/lib/upper';
 import { useThemeColors } from '@/theme/useThemeColors';
 
@@ -44,4 +47,40 @@ export function monogram(name: string, language: string): string {
   const words = name.replace(/^@/, '').split(/[\s_.-]+/).filter(Boolean);
   const letters = words.length >= 2 ? `${words[0]?.[0] ?? ''}${words[1]?.[0] ?? ''}` : (words[0] ?? '').slice(0, 2);
   return toDisplayUpper(letters, language);
+}
+
+/** ♡ (accent when liked) and the bookmark of a post, as on the board: borderless 44 targets. */
+export function FeedToggle({ icon, on, size, label, onPress, testID }: { icon: LucideIcon; on: boolean; size: number; label: string; onPress: () => void; testID: string }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: on }}
+      hitSlop={4}
+      testID={testID}
+      className="h-icon-btn w-icon-btn items-center justify-center rounded-pill active:opacity-70"
+    >
+      <Icon icon={icon} size={size} tone={on ? 'accent' : 'ink'} filled={on} />
+    </Pressable>
+  );
+}
+
+/** The accent link of a post ("Kendi parçalarımla kur", "Looklarıma ekle"): 16 glyph + label, a 36 high target. */
+export function FeedLink({ icon, label, accessibilityLabel, onPress, testID, className }: { icon: LucideIcon; label: string; accessibilityLabel: string; onPress: () => void; testID: string; className?: string }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      hitSlop={{ top: 6, bottom: 6 }}
+      testID={testID}
+      className={`min-h-[36px] flex-row items-center gap-1.5 self-start active:opacity-70 ${className ?? ''}`}
+    >
+      <Icon icon={icon} size={16} tone="accent" />
+      <Text variant="label" tone="accent" className="text-[13px]">
+        {label}
+      </Text>
+    </Pressable>
+  );
 }

@@ -109,7 +109,8 @@ function seeds(): Seed[] {
       imageCount: 2,
       // A photograph without products: the piece strip (picture + kind) stands where the product strip is.
       products: [],
-      pieces: [piece('outerwear'), piece('bottom'), piece('shoes')],
+      // Two pieces carry their sub-type (their name on the post's detail), the third only its category.
+      pieces: [piece('outerwear', 'trench-coat'), piece('bottom', 'jeans'), piece('shoes')],
       likeCount: 978,
     },
     ...Array.from({ length: 8 }, (_, i): Seed => ({
@@ -127,7 +128,7 @@ function seeds(): Seed[] {
 
 type UserSeed = { id: string; handle: string; title: string; occasion: Occasion; hoursAgo: number; pieces: FeedPiece[]; hasSimilar: boolean; likeCount: number; similar: string[] };
 
-const piece = (category: string): FeedPiece => ({ category, imageUrl: null });
+const piece = (category: string, subcategory: string | null = null): FeedPiece => ({ category, subcategory, imageUrl: null });
 
 /** Looks shared by members, and the editor post each one follows in the list. */
 function userSeeds(): { after: number; seed: UserSeed }[] {

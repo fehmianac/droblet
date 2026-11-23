@@ -36,10 +36,12 @@ export type FeedProduct = ProductSummary & {
 };
 
 /**
- * One piece of a look on Akış: its picture and what kind of piece it is — never a product, never tappable. A member's
- * look (F2) has them, and so does an editor post that is a photograph without products (the pieces cut out of it).
+ * One piece of a look on Akış: its picture and what kind of piece it is — never a product (no price, nothing to buy).
+ * A member's look (F2) has them, and so does an editor post that is a photograph without products (the pieces cut out
+ * of it). `subcategory`: the sub-type id ("trench-coat") when the server knows it — the piece's name on the post's
+ * detail; left out by older servers and older cached posts.
  */
-export type FeedPiece = { category: string; imageUrl: string | null };
+export type FeedPiece = { category: string; subcategory?: string | null; imageUrl: string | null };
 
 /** Akış F2 (decision 21): `editor` = Droblet Edit / a stylist, `user` = a look a member shared with "Akışta paylaş". */
 export type FeedPostKind = 'editor' | 'user';
