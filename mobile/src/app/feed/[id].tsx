@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { IconButton } from '@/components/ui/IconButton';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
-import { StateMessage } from '@/components/ui/StateMessage';
+import { ScreenState } from '@/components/ui/ScreenState';
 import { Text } from '@/components/ui/Text';
 import { BuySheet } from '@/features/feed/BuySheet';
 import { AuthorAvatar, FeedLink, FeedToggle, VerifiedBadge } from '@/features/feed/FeedBits';
@@ -18,7 +18,7 @@ import { FeedCarousel } from '@/features/feed/FeedCarousel';
 import { FeedPostPieces } from '@/features/feed/FeedPostPieces';
 import { BUILD_WITH_MINE_MIN, isHiddenThisSession, ownedItemIds, postMeta } from '@/features/feed/logic';
 import { openBuildWithMine, useLikeFeedPost, useSaveFeedPost } from '@/features/feed/mutations';
-import { useFeedPost } from '@/features/feed/queries';
+import { useFeedPost, useFeedPostRead } from '@/features/feed/queries';
 import { SaveAsLookSheet } from '@/features/feed/SaveAsLookSheet';
 import { useFeedTryOn } from '@/features/feed/useFeedTryOn';
 import { useUserPostSheets } from '@/features/feed/useUserPostSheets';
@@ -207,6 +207,8 @@ export default function FeedPostScreen() {
   const post = useFeedPost(id);
   // "Bunu gösterme" / "Şikâyet et" took the post out of every list: nothing left to show here.
   const hidden = !post && Boolean(id) && isHiddenThisSession(id);
+  // Opened cold (a link, a restart on this screen): no list holds the post, so it is read by its id.
+  const read = useFeedPostRead(id, !post && !hidden);
   useEffect(() => {
     if (hidden) leave();
   }, [hidden]);
@@ -216,7 +218,13 @@ export default function FeedPostScreen() {
     <Screen bottom>
       <ScreenHeader leading="back" onLeadingPress={leave} />
       {hidden ? null : (
-        <StateMessage message={t('homeFeed.detail.notFound')} actionLabel={t('homeFeed.detail.backToFeed')} onAction={() => router.replace('/')} role="status" testID="feed.detail.notFound" />
+        <ScreenState
+          query={read}
+          loadingLabel={t('homeFeed.detail.loading')}
+          notFound={{ message: t('homeFeed.detail.notFound'), actionLabel: t('homeFeed.detail.backToFeed'), onAction: () => router.replace('/') }}
+        >
+          {() => null}
+        </ScreenState>
       )}
     </Screen>
   );

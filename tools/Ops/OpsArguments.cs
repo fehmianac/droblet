@@ -46,6 +46,10 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
 
     /// <summary>Akış editor stories from existing editor posts (story-{postId}, 7 days). No AI call; dev only.</summary>
     public const string SeedFeedStories = "seed-feed-stories";
+    /// <summary>Writes the editor's note of editor posts from a checked-in file. No AI call. Dev only.</summary>
+    public const string NoteFeedPosts = "note-feed-posts";
+    /// <summary>Reads the colour of every editor-post piece from its picture. No AI call. Dev only.</summary>
+    public const string ColorFeedPieces = "color-feed-pieces";
 
     /// <summary>seed-feed-stories: at most this many post ids in one run (the feed shows ContentFeed:MaxStories, 20 by default).</summary>
     public const int MaxSeedStories = 20;
@@ -81,10 +85,10 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
     /// <summary>Hard ceiling of image-model calls in one run (library images and synthetic fixtures together).</summary>
     public const int MaxImageCallsPerRun = 30;
 
-    public static readonly IReadOnlyList<string> Commands = [ImportBrand, ImportVakko, SeedFeedPosts, SplitFeedPosts, SeedFeedStories, GrantTestPremium, RevokeTestPremium, GenerateLibraryImages, GenerateMarketingImages, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, Logs, MigrateLibraryItemImages, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, AiUsageBackfill, PublishItemImages, CdnCheck, PublicUrls, GoogleAuth, PushTest];
+    public static readonly IReadOnlyList<string> Commands = [ImportBrand, ImportVakko, SeedFeedPosts, SplitFeedPosts, SeedFeedStories, ColorFeedPieces, NoteFeedPosts, GrantTestPremium, RevokeTestPremium, GenerateLibraryImages, GenerateMarketingImages, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, Logs, MigrateLibraryItemImages, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, AiUsageBackfill, PublishItemImages, CdnCheck, PublicUrls, GoogleAuth, PushTest];
 
     /// <summary>Commands that create or change test accounts or spend AI credit on a throw-away user: never on prod.</summary>
-    public static readonly IReadOnlySet<string> DevOnly = new HashSet<string>(StringComparer.Ordinal) { ImportBrand, ImportVakko, SeedFeedPosts, SplitFeedPosts, SeedFeedStories, GrantTestPremium, RevokeTestPremium, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, PublicUrls, GenerateMarketingImages };
+    public static readonly IReadOnlySet<string> DevOnly = new HashSet<string>(StringComparer.Ordinal) { ImportBrand, ImportVakko, SeedFeedPosts, SplitFeedPosts, SeedFeedStories, ColorFeedPieces, NoteFeedPosts, GrantTestPremium, RevokeTestPremium, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, PublicUrls, GenerateMarketingImages };
 
     private static readonly IReadOnlyDictionary<string, string[]> AllowedOptions = new Dictionary<string, string[]>(StringComparer.Ordinal)
     {
@@ -92,7 +96,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [RevokeTestPremium] = ["email"],
         [GenerateLibraryImages] = ["only", "max-calls", "quality", "price-per-image"],
         [GenerateMarketingImages] = ["prompts", "only", "max"],
-        [AiSmoke] = ["api-url", "price-per-image"],
+        [AiSmoke] = ["api-url", "price-per-image", "brand", "category"],
         [AiProbe] = [],
         [AiPerf] = ["api-url", "runs", "flows"],
         [AiBench] = ["reps", "efforts", "qualities", "models", "max-calls"],
@@ -106,6 +110,8 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [SeedFeedPosts] = ["dir"],
         [SplitFeedPosts] = ["only", "max-calls"],
         [SeedFeedStories] = ["ids"],
+        [ColorFeedPieces] = ["only"],
+        [NoteFeedPosts] = ["file"],
         [ImportBrand] = ["brand", "segment", "max", "max-pages", "delay-ms"],
         [ImportVakko] = ["segment", "max", "max-pages", "delay-ms"],
         [MigrateLibraryItemImages] = [],
@@ -122,7 +128,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [RevokeTestPremium] = [],
         [GenerateLibraryImages] = ["dry-run", "force"],
         [GenerateMarketingImages] = ["dry-run"],
-        [AiSmoke] = ["keep-user", "items-only", "prereq-only", "photo-tryon"],
+        [AiSmoke] = ["keep-user", "items-only", "prereq-only", "photo-tryon", "product-tryon"],
         [AiProbe] = [],
         [AiPerf] = ["keep-user", "face"],
         [AiBench] = ["text-only", "image-only"],
@@ -136,6 +142,8 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [SeedFeedPosts] = ["dry-run"],
         [SplitFeedPosts] = ["dry-run", "force"],
         [SeedFeedStories] = ["dry-run"],
+        [ColorFeedPieces] = ["dry-run", "force"],
+        [NoteFeedPosts] = ["dry-run"],
         [ImportBrand] = ["dry-run", "list"],
         [ImportVakko] = ["dry-run"],
         [MigrateLibraryItemImages] = ["dry-run"],
@@ -304,6 +312,14 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
                 if (Option("max-calls") is { } splitCalls && (!int.TryParse(splitCalls, out var sc) || sc is < 0 or > MaxFeedSplitCalls))
                     return $"--max-calls must be 0–{MaxFeedSplitCalls}";
                 break;
+            case ColorFeedPieces:
+                if (OnlyIds.FirstOrDefault(id => !Domain.Validation.FeedInputRules.IsId(id)) is { } badColorPost)
+                    return $"--only: '{badColorPost}' is not a post id";
+                break;
+            case NoteFeedPosts:
+                if (Option("file") is not { } notesFile || !AiSettingsPresetPattern().IsMatch(notesFile))
+                    return "--file is required: a notes file from ops-presets/ (….json)";
+                break;
             case SeedFeedStories:
                 if (Ids.Count is 0 or > MaxSeedStories)
                     return $"--ids is required: 1–{MaxSeedStories} post ids (a,b,c)";
@@ -390,7 +406,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         "  revoke-test-premium     --email <e>                            (dev only)\n" +
         "  generate-library-images [--only id,id] [--dry-run] [--force] [--max-calls N<=30] [--quality high]\n" +
         "  generate-marketing-images --max N<=6 [--prompts ops-presets/welcome-images.json] [--only id,id] [--dry-run]  (dev only; never retries)\n" +
-        "  ai-smoke                [--api-url URL] [--keep-user] [--items-only | --prereq-only]  (dev only)\n" +
+        "  ai-smoke                [--api-url URL] [--keep-user] [--items-only | --prereq-only | --photo-tryon | --product-tryon [--brand id] [--category coat]]  (dev only)\n" +
         "  account-smoke           [--api-url URL] [--keep-user]  (dev only; e-mail verification + data export)\n" +
         "  ai-admin-smoke          [--api-url URL]  (dev only; admin AI prompts / trials / publish → a stylist job uses it → rollback; ≤ 4 AI calls)\n" +
         "  outfit-import-smoke     [--api-url URL] [--keep-user]  (dev only; 3 outfit photos → review → commit, then a re-import that matches)\n" +
@@ -403,6 +419,8 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         "  migrate-library-item-images [--dry-run]                         (one-off, idempotent: library pieces → current library image)\n" +
         "  seed-feed-posts         --dir <folder with manifest.json> [--dry-run]  (dev only; no AI call)\n" +
         "  split-feed-posts        [--only id,id] [--max-calls N<=260] [--dry-run] [--force]  (dev only; AI: 1 detection + ≤ 5 cleanups per product-less editor post, never retries)\n" +
+        "  color-feed-pieces       [--only id,id] [--dry-run] [--force]    (dev only; no AI call; the colour of every editor-post piece, read from its picture)\n" +
+        "  note-feed-posts         --file ops-presets/….json [--dry-run]   (dev only; no AI call; the editor's note of editor posts: { id, noteTr, noteEn })\n" +
         "  seed-feed-stories       --ids id,id [--dry-run]                (dev only; no AI call; story-{postId} from editor posts, 7 days)\n" +
         "  import-brand            --brand <id> --segment women|men [--max N<=200] [--max-pages N<=600] [--delay-ms N>=1000] [--dry-run]  (dev only; no AI call; a brand's public products → catalog, images hot-linked)\n" +
         "  import-brand            --list                                 (the registered brand sources and the surveyed brands without one; no network)\n" +

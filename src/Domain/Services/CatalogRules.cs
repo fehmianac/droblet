@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using Domain.Domain;
 using Domain.Entity;
 using Domain.Enum;
 
@@ -182,6 +183,24 @@ public static class CatalogRules
     /// <summary>The products a user of <paramref name="segment"/> may be shown (their segment and unisex).</summary>
     public static IEnumerable<CatalogProductEntity> ForSegment(IEnumerable<CatalogProductEntity> products, Segment segment) =>
         products.Where(p => SegmentPolicy.Shows(p.Segment, segment));
+
+    /// <summary>
+    /// The colour filter's choices: every known colour at least one live product of the segment comes in, most
+    /// products first (ties in the reference order). "Other" is not a choice — it says nothing a user could pick by.
+    /// </summary>
+    public static IReadOnlyList<CatalogColorDto> ColorFacets(IEnumerable<CatalogProductEntity> products, Segment segment, string? language)
+    {
+        var counts = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var product in ForSegment(products, segment).Where(p => !p.Retired))
+            foreach (var color in product.Colors.Select(NormalizeColor).Distinct(StringComparer.Ordinal))
+                counts[color] = counts.GetValueOrDefault(color) + 1;
+        return ColorCatalog.All
+            .Select((definition, order) => (definition, order, count: counts.GetValueOrDefault(definition.Id)))
+            .Where(c => c.count > 0 && c.definition.Id != ColorCatalog.OtherId)
+            .OrderByDescending(c => c.count).ThenBy(c => c.order)
+            .Select(c => new CatalogColorDto(c.definition.Id, Localized.Resolve(c.definition.Name, language), c.definition.Hex, c.count))
+            .ToList();
+    }
 
     /// <summary>True when the price went down — the only change that flags watch-list rows.</summary>
     public static bool IsPriceDrop(long previousMinor, long currentMinor) => currentMinor > 0 && currentMinor < previousMinor;

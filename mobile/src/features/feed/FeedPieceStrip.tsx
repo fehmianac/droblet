@@ -5,12 +5,13 @@ import type { FeedPiece } from '@/api/contracts/feed';
 import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Text } from '@/components/ui/Text';
 
-import { pieceKindLabel } from './logic';
+import { pieceName } from './logic';
 
 /** One piece of the strip: its picture and what kind of piece it is. Not a product; the strip opens nothing (the post's detail shows the pieces large). */
 function PieceTile({ piece }: { piece: FeedPiece }) {
   const { t } = useTranslation();
-  const label = pieceKindLabel(t, piece.category);
+  // The same name as on the post's detail: the sub-type ("Trençkot") when known, else the kind ("Dış giyim").
+  const label = pieceName(t, piece);
   return (
     <View className="h-[54px] flex-row items-center gap-2 rounded-image-lg border border-feed-line bg-cream py-1 pl-1 pr-3" accessible accessibilityLabel={label}>
       <View className="h-[46px] w-[46px] overflow-hidden rounded-thumb bg-feed-thumb">

@@ -6,6 +6,9 @@ namespace Domain.Domain;
 
 public record BrandDto(string Id, string Name, string? LogoUrl, string? WebsiteUrl);
 
+/// <summary>One choice of the colour filter: a reference colour id, its name in the request language, its swatch and how many products carry it.</summary>
+public record CatalogColorDto(string Id, string Name, string Hex, int Count);
+
 /// <summary>Public product shape. The affiliate link is never here — it is only returned by checkout, with a click id.</summary>
 public record ProductDto(
     string Id,

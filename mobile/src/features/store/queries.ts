@@ -4,6 +4,7 @@ import { keepPreviousData, queryOptions, useInfiniteQuery, useQuery, useQueryCli
 import { apiRequest } from '@/api/client';
 import type {
   Brand,
+  CatalogColorOption,
   BuilderSlot,
   Cart,
   CompleteSuggestions,
@@ -65,6 +66,7 @@ export const storeKeys = {
   creators: ['content', 'creator'] as const,
   series: ['content', 'series-outfit'] as const,
   brands: ['catalog', 'brand'] as const,
+  colors: (segment: 'women' | 'men' = 'women') => ['catalog', 'color', segment] as const,
   /** The catalogue of one segment: the server lists the user's segment plus unisex (docs/api/segments.md §5). */
   products: (query: ProductQuery, segment: 'women' | 'men' = 'women') => ['catalog', 'product', 'list', segment, query] as const,
   product: (id: string) => ['catalog', 'product', 'detail', id] as const,
@@ -127,6 +129,17 @@ export function useBrands() {
     staleTime: 60 * 60_000,
     queryFn: () =>
       fromSource<Brand[]>('catalog', storeFixtures.brands, async () => (await apiRequest<BrandWire[]>('v1/catalog/brand')).map(toBrand)),
+  });
+}
+
+/** 21 "Filtrele" · RENK — the colours the catalogue of the user's segment actually comes in, most products first. */
+export function useCatalogColors() {
+  const segment = useSegment();
+  return useQuery({
+    queryKey: storeKeys.colors(segment),
+    staleTime: 60 * 60_000,
+    queryFn: () =>
+      fromSource<CatalogColorOption[]>('catalog', () => storeFixtures.colors(segment), () => apiRequest<CatalogColorOption[]>('v1/catalog/color')),
   });
 }
 

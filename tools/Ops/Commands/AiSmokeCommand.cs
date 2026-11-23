@@ -100,6 +100,14 @@ internal sealed partial class AiSmokeCommand(IServiceProvider services, OpsArgum
                 return _rows.Any(r => r.Status is "failed" or "timeout" or "error" || r.Failure.Length > 0) ? 1 : 0;
             }
 
+            // --product-tryon: only the try-on of ONE catalog product (--brand, --category): body photo + the product's
+            // picture as the brand publishes it (often on a model) → 1 image call.
+            if (args.Flag("product-tryon"))
+            {
+                await ProductTryOnAsync(fixtures, args.Option("brand"), args.Option("category") ?? "coat", ct);
+                return _rows.Any(r => r.Status is "failed" or "timeout" or "error" || r.Failure.Length > 0) ? 1 : 0;
+            }
+
             // --prereq-only: canvas 11 flows only (thin-wardrobe gap filling + face-path try-on), on this user.
             if (args.Flag("prereq-only"))
             {
@@ -402,6 +410,53 @@ internal sealed partial class AiSmokeCommand(IServiceProvider services, OpsArgum
             if (s2 == 200 && img?["referenceUrl"]?.GetValue<string>() is { } refUrl)
                 await DownloadAsync(refUrl, "tryon-outfit-photo-reference", ct);
         }
+        var after = await CreditsAsync(ct);
+        if (_rows.LastOrDefault() is { } last)
+            _rows[^1] = last with { Notable = $"{last.Notable}; credits {before} → {after}" };
+    }
+
+    /// <summary>
+    /// The try-on of one catalog product (target kind "product"): the newest product of the brand and category. The product
+    /// picture is the brand's own — for an imported catalog that is a photograph of a model wearing it, which is what this
+    /// run is for. One image call; the result and the product picture are kept in the run's artifact.
+    /// </summary>
+    private async Task ProductTryOnAsync(SmokeFixtures fixtures, string? brand, string category, CancellationToken ct)
+    {
+        var watch = Stopwatch.StartNew();
+        var (bodyData, _) = await fixtures.GetAsync(SmokeFixtures.Body, ct);
+        var photo = await UploadProfilePhotoAsync("body", bodyData, ct);
+        Add("photo body", photo.Ok ? "200" : "failed", watch.Elapsed, photo.Error, $"{bodyData.Length / 1024} KB synthetic");
+        if (!photo.Ok) return;
+
+        var path = $"v1/catalog/product?category={Uri.EscapeDataString(category)}&limit=1" + (brand is null ? "" : $"&brand={Uri.EscapeDataString(brand)}");
+        var (status, page, elapsed) = await CallAsync(HttpMethod.Get, path, null, ct);
+        var product = page?["items"]?.AsArray().FirstOrDefault();
+        if (status != 200 || product?["id"]?.GetValue<string>() is not { } productId)
+        {
+            Add("GET v1/catalog/product", status.ToString(), elapsed, "no_product", $"no {category} product{(brand is null ? "" : $" of {brand}")}");
+            return;
+        }
+        Add("GET v1/catalog/product", "200", elapsed, null, $"{productId} · {product["brandName"]} · {product["name"]}");
+        if (product["imageUrl"]?.GetValue<string>() is { } productImage)
+            await DownloadAsync(productImage, "tryon-product-source", ct);
+
+        var before = await CreditsAsync(ct);
+        var target = new JsonObject { ["kind"] = "product", ["id"] = productId };
+        (status, var body, elapsed) = await CallAsync(HttpMethod.Post, "v1/tenant/tryon", new JsonObject { ["requestId"] = Ulid.New(), ["target"] = target }, ct);
+        if (status != 202 || body?["job"]?["id"]?.GetValue<string>() is not { } jobId)
+        {
+            Add("POST v1/tenant/tryon (product)", status.ToString(), elapsed, Code(body), body?.ToJsonString());
+            return;
+        }
+        string? imageId = null;
+        await PollStepAsync("try-on (catalog product)", "POST v1/tenant/tryon", jobId, elapsed, ct, result =>
+        {
+            imageId = result?["tryOnImageId"]?.GetValue<string>();
+            return $"image {imageId} {result?["referenceIssue"]}";
+        });
+        await SavePhotosAsync("product-tryon", ct);
+        if (imageId is not null)
+            await SaveTryOnAsync(imageId, "tryon-product", ct);
         var after = await CreditsAsync(ct);
         if (_rows.LastOrDefault() is { } last)
             _rows[^1] = last with { Notable = $"{last.Notable}; credits {before} → {after}" };

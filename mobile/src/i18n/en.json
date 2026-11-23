@@ -407,6 +407,7 @@
     "chipAll": "All",
     "fromStore": "From the store",
     "fromStoreAll": "See all products in the store",
+    "shelfAllA11y": "{{category}}: see all in the store",
     "allEmpty": "Discover is being prepared.",
     "allBrands": "All brands",
     "brandEmpty": "No products from this brand right now."

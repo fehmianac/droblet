@@ -75,18 +75,7 @@
     "completeEmptyAction": "Add a piece",
     "completeFor": "Goes with {{name}}",
     "completeClear": "Remove the match filter",
-    "color": {
-      "white": "White",
-      "black": "Black",
-      "navy": "Navy",
-      "beige": "Beige",
-      "brown": "Brown",
-      "cream": "Cream",
-      "olive": "Olive",
-      "burgundy": "Burgundy",
-      "grey": "Grey",
-      "camel": "Camel"
-    },
+    "colorsEmpty": "No colours in the catalogue yet.",
     "favoriteAdd": "Add to favourites",
     "favoriteRemove": "Remove from favourites"
   },

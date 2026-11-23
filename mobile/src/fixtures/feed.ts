@@ -402,6 +402,9 @@ function find(id: string): FeedPost {
 }
 
 export const feedFixtures = {
+  /** One post by id; 404 when it is not on the feed. */
+  one: (id: string): FeedPost => find(id),
+
   page: (tab: FeedTab, pageToken: string | null): FeedPostPage => {
     if (state.failNext) {
       state.failNext = false;

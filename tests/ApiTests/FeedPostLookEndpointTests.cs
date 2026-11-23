@@ -5,6 +5,7 @@ using Domain.Enum;
 using Domain.Events;
 using Domain.Extensions;
 using Domain.Services;
+using Infrastructure.Services.Store;
 using Microsoft.Extensions.DependencyInjection;
 using Tests.Shared;
 
@@ -177,6 +178,56 @@ public class FeedPostLookEndpointTests(ApiFactory factory) : IClassFixture<ApiFa
         Assert.Null(stored.CoverImageKey);
         Assert.True(FeedRules.IsShareable(stored));                                             // a normal own look
         Assert.Equal(4, (await client.GetAsync<List<ItemDto>>("v1/tenant/item"))!.Count);
+    }
+
+    [Fact]
+    public async Task Pieces_SavedAgainAfterTheLookIsDeleted_ReuseTheSameWardrobePieces_AndCarryTheColourReadFromThePicture()
+    {
+        var (client, auth) = await factory.RegisterAsync();
+        var tenant = auth.TenantId;
+        var post = await PostAsync(factory, (ItemCategory.Top, "shirt"), (ItemCategory.Bottom, null), (ItemCategory.Shoes, null));
+        post.Pieces[0].ColorId = "navy";
+        post.Pieces[1].ColorId = "not-a-colour";
+        await factory.Repository.SaveAsync(post);
+
+        var first = await (await client.PostJsonAsync($"v1/tenant/feed-post/{post.Id}/look", Body("pieces"))).ReadAsync<LookDto>();
+        var before = await ItemsAsync(tenant);
+        // The member drops one piece and the look, then saves the post again.
+        var dropped = FeedLookService.PieceItemId(tenant, post, 2);
+        Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync($"v1/tenant/look/{first.Id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync($"v1/tenant/item/{dropped}")).StatusCode);
+        var again = await client.PostJsonAsync($"v1/tenant/feed-post/{post.Id}/look", Body("pieces"));
+
+        Assert.Equal(HttpStatusCode.Created, again.StatusCode);
+        var second = await again.ReadAsync<LookDto>();
+        Assert.NotEqual(first.Id, second.Id);
+        var after = await ItemsAsync(tenant);
+        Assert.Equal(3, before.Count);
+        Assert.Equal(before.Select(i => i.Id).Order(), after.Select(i => i.Id).Order());        // the same three pieces: no twin, the dropped one is back
+        Assert.Equal(first.Slots.Select(s => s.ItemId), second.Slots.Select(s => s.ItemId));
+        Assert.Equal(["navy"], after.Single(i => i.Id == FeedLookService.PieceItemId(tenant, post, 0)).ColorIds);
+        Assert.Equal(["other"], after.Single(i => i.Id == FeedLookService.PieceItemId(tenant, post, 1)).ColorIds);   // an unknown id is not trusted
+    }
+
+    [Fact]
+    public async Task OnePost_IsReadAsTheCallerSeesIt_ForADetailOpenedCold_404WhenNotThereForThem()
+    {
+        var (client, _) = await factory.RegisterAsync();
+        var post = await PostAsync(factory, (ItemCategory.Top, "shirt"), (ItemCategory.Bottom, null));
+        var scheduled = await PostAsync(factory, (ItemCategory.Top, null), (ItemCategory.Bottom, null));
+        scheduled.PublishAt = DateTime.UtcNow.AddDays(1);
+        await factory.Repository.SaveAsync(scheduled);
+        await client.PutAsync($"v1/tenant/feed-post/{post.Id}/like", null);
+
+        var read = await client.GetAsync($"v1/tenant/feed-post/{post.Id}");
+        var json = await read.JsonAsync();
+
+        Assert.Equal(HttpStatusCode.OK, read.StatusCode);
+        Assert.Equal((post.Id, "Akşam yemeği kombini", true, 2), (json.GetProperty("id").GetString(), json.GetProperty("title").GetString(), json.GetProperty("liked").GetBoolean(), json.GetProperty("pieces").GetArrayLength()));
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"v1/tenant/feed-post/{scheduled.Id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"v1/tenant/feed-post/{Ulid.New()}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"v1/tenant/feed-post/u_{Ulid.New()}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await factory.CreateClient().GetAsync($"v1/tenant/feed-post/{post.Id}")).StatusCode);
     }
 
     [Fact]

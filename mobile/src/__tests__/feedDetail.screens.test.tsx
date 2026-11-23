@@ -223,7 +223,7 @@ describe('Akış · post detail (owner request 2026-11-23)', () => {
     await fireEvent.press(screen.getByTestId('feed.postMenu.hide'));
     await waitFor(() => expect(screen).toHavePathname('/'), WAIT);
     await waitFor(() => expect(screen.queryByTestId(`feed.post.${USER_POST}`)).toBeNull(), WAIT);
-    expect(screen.queryByTestId('feed.detail.notFound')).toBeNull();
+    expect(screen.queryByTestId('state-not-found')).toBeNull();
     expect(screen.getByTestId(`feed.post.${PHOTO}`)).toBeTruthy();
   });
 
@@ -265,14 +265,27 @@ describe('Akış · post detail (owner request 2026-11-23)', () => {
     await waitFor(() => expect(feedFixtures.saved()).toEqual([]), WAIT);
     await waitFor(() => expect(screen.getByTestId('feed.detail.save').props.accessibilityState).toMatchObject({ selected: false }), WAIT);
     expect(screen.getByTestId('feed.detail.title')).toHaveTextContent('Davette saten');
-    expect(screen.queryByTestId('feed.detail.notFound')).toBeNull();
+    expect(screen.queryByTestId('state-not-found')).toBeNull();
   });
 
-  it('opened without the post in the cache: says so and leads back to Akış', async () => {
+  it('opened cold (a link, a restart): the post is read by its id and drawn like any other', async () => {
+    await AsyncStorage.setItem(triedOnKey('u1'), 'yes');
+    await renderRouter('./src/app', { initialUrl: `/feed/${PHOTO}` });
+    await waitFor(() => expect(screen.getByTestId('feed.detail')).toBeTruthy(), WAIT);
+    expect(screen.getByTestId('feed.detail.title')).toHaveTextContent('Jean ve trençkot');
+    expect(screen.queryByTestId('state-not-found')).toBeNull();
+
+    // A like works on it as on a post opened from the feed.
+    const before = screen.getByTestId('feed.detail.like').props.accessibilityState.selected;
+    await fireEvent.press(screen.getByTestId('feed.detail.like'));
+    await waitFor(() => expect(screen.getByTestId('feed.detail.like').props.accessibilityState.selected).toBe(!before), WAIT);
+  });
+
+  it('opened cold with an id that is not on the feed: says so and leads back to Akış', async () => {
     await AsyncStorage.setItem(triedOnKey('u1'), 'yes');
     await renderRouter('./src/app', { initialUrl: '/feed/post_404' });
-    await waitFor(() => expect(screen.getByTestId('feed.detail.notFound')).toBeTruthy(), WAIT);
-    expect(screen.getByText("This post can't be opened right now. Go back to the feed and open it again.")).toBeTruthy();
+    await waitFor(() => expect(screen.getByTestId('state-not-found')).toBeTruthy(), WAIT);
+    expect(screen.getByText('This post is no longer on the feed.')).toBeTruthy();
     expect(screen.queryByTestId('feed.detail')).toBeNull();
     expect(screen.getByLabelText('Go back')).toBeTruthy();
 

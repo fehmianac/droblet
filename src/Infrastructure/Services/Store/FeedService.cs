@@ -167,6 +167,14 @@ public sealed class FeedService(
         return await ToDtosAsync(tenantId, viewer, slots, ct);
     }
 
+    public async Task<FeedPostDto?> GetVisiblePostAsync(string tenantId, string postId, CancellationToken ct)
+    {
+        // The same resolution as a like or a save; a shared look still waiting for its cover is not shown, as on the feed.
+        if (await ResolveAsync(tenantId, postId, ct) is not { } slot || slot.User is { CoverKey: null })
+            return null;
+        return (await ToDtosAsync(tenantId, await TenantAsync(tenantId, ct), [slot], ct)).FirstOrDefault();
+    }
+
     public async Task<IReadOnlyList<ProductDto>?> GetSimilarAsync(string tenantId, string postId, CancellationToken ct)
     {
         var viewer = await TenantAsync(tenantId, ct);
@@ -575,9 +583,20 @@ public sealed class FeedService(
             Category = p.Category,
             Subcategory = string.IsNullOrWhiteSpace(p.Subcategory) ? null : p.Subcategory.Trim(),
             ImageUrl = p.ImageUrl.Trim(),
+            ColorId = ColorCatalog.IsKnown(p.ColorId) ? p.ColorId : null,
         }).ToList();
         var write = await repository.TransactWriteAsync([TransactWriteOperation.PutExisting(post)], ct);
         return write.Applied ? FeedPiecesOutcome.Written : FeedPiecesOutcome.NotFound;
+    }
+
+    public async Task<bool> SetPostNoteAsync(string postId, IReadOnlyDictionary<string, string>? note, CancellationToken ct)
+    {
+        // Like the pieces: re-read right before the write, change the one field, never bring a deleted post back.
+        var post = await repository.GetAsync<FeedPostEntity>(FeedPostEntity.GetPk(), FeedPostEntity.GetSk(postId), ct);
+        if (post is null)
+            return false;
+        post.Note = LocalizedText.NormalizeOptional(note);
+        return (await repository.TransactWriteAsync([TransactWriteOperation.PutExisting(post)], ct)).Applied;
     }
 
     public async Task<bool> RetirePostAsync(string postId, CancellationToken ct)

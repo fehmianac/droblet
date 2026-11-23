@@ -156,7 +156,8 @@
     "openPostA11y": "Open the details of {{title}}",
     "detail": {
       "piecesTitle": "Pieces · {{count}}",
-      "notFound": "This post can't be opened right now. Go back to the feed and open it again.",
+      "notFound": "This post is no longer on the feed.",
+      "loading": "Loading the post",
       "backToFeed": "Back to the feed",
       "pieceZoomA11y": "{{name}}, piece photo"
     }

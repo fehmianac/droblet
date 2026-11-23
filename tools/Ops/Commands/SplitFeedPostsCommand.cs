@@ -296,7 +296,7 @@ internal sealed class SplitFeedPostsCommand(
         {
             var pieceKey = SplitFeedPostsPlan.PieceKey(post.Id, pieces.Count + 1, SplitFeedPostsPlan.ExtensionOf(contentType));
             await store.PutAsync(pieceKey, data, contentType, ct);
-            pieces.Add(new FeedPostPiece { Category = category, Subcategory = subcategory, ImageUrl = $"{store.BaseUrl.TrimEnd('/')}/{pieceKey}" });
+            pieces.Add(new FeedPostPiece { Category = category, Subcategory = subcategory, ImageUrl = $"{store.BaseUrl.TrimEnd('/')}/{pieceKey}", ColorId = PieceColorReader.Read(data) });
         }
 
         var write = await feed.SetPostPiecesAsync(post.Id, url, pieces, ct);
@@ -306,6 +306,133 @@ internal sealed class SplitFeedPostsCommand(
     }
 
     private static string Short(string text) => text.Length > 200 ? text[..200] + "…" : text;
+}
+
+/// <summary>
+/// color-feed-pieces [--only id,id] [--dry-run] [--force]: the pieces of editor posts get their colour (owner decision
+/// 2026-11-23: a piece saved from a post must not be "other"). Every piece picture is read from the catalog bucket and
+/// its reference colour is read from the pixels (DominantColor) — no AI call. Only pieces without a colour are read
+/// unless --force. Nothing else of the post is touched. Dev only.
+/// </summary>
+internal static class ColorFeedPiecesCommand
+{
+    public static Task<int> RunAsync(IServiceProvider services, OpsArguments args, OpsOutput output, CancellationToken ct) =>
+        ColorAsync(
+            services.GetRequiredService<IRepository>(),
+            services.GetRequiredService<IFeedService>(),
+            new S3CatalogImageStore(services.GetRequiredService<IAmazonS3>(), OpsHost.CatalogBucket(args.Stage), OpsHost.CatalogBaseUrl(args.Stage)),
+            PieceColorReader.Read,
+            services.GetRequiredService<IOptionsMonitor<PhotoOptions>>().CurrentValue.MaxUploadBytes,
+            args.OnlyIds, args.DryRun, args.Force, output, ct);
+
+    public static async Task<int> ColorAsync(IRepository repository, IFeedService feed, ICatalogImageStore store, Func<byte[], string?> read, long maxBytes,
+        IReadOnlyList<string> only, bool dryRun, bool force, OpsOutput output, CancellationToken ct)
+    {
+        var posts = (await repository.GetAllAsync<FeedPostEntity>(FeedPostEntity.GetPk(), ct))
+            .Where(p => !p.Retired && p.Pieces.Count > 0 && (only.Count == 0 || only.Contains(p.Id)) && (force || p.Pieces.Any(x => x.ColorId is null)))
+            .OrderBy(p => p.Id, StringComparer.Ordinal)
+            .ToList();
+        var rows = new List<IReadOnlyList<string>>();
+        int colored = 0, unread = 0, failed = 0;
+        foreach (var post in posts)
+        {
+            var pieces = new List<FeedPostPiece>(post.Pieces.Count);
+            foreach (var piece in post.Pieces)
+            {
+                var color = piece.ColorId;
+                if (color is null || force)
+                {
+                    var raw = SplitFeedPostsPlan.KeyOf(piece.ImageUrl, store.BaseUrl) is { } key ? await store.ReadAsync(key, maxBytes, ct) : null;
+                    color = raw is null ? null : read(raw);
+                    if (color is null)
+                        unread++;
+                    else
+                        colored++;
+                }
+                pieces.Add(new FeedPostPiece { Category = piece.Category, Subcategory = piece.Subcategory, ImageUrl = piece.ImageUrl, ColorId = color ?? piece.ColorId });
+            }
+            var outcome = "would be written";
+            if (!dryRun)
+            {
+                var write = await feed.SetPostPiecesAsync(post.Id, post.ImageUrls[0], pieces, ct);
+                outcome = write.ToString();
+                if (write != FeedPiecesOutcome.Written)
+                    failed++;
+            }
+            rows.Add([post.Id, post.Title.GetValueOrDefault("tr") ?? "", post.Occasion.ToString(), string.Join(", ", pieces.Select(p => $"{p.Subcategory ?? p.Category.ToString()}: {p.ColorId ?? "—"}")), outcome]);
+        }
+        output.Table(["post id", "title", "occasion", "pieces", "outcome"], rows);
+        output.Summary($"### color-feed-pieces{(dryRun ? " (dry run)" : "")}\n\n**{colored}** piece colour(s) read in {posts.Count} post(s); {unread} picture(s) unreadable; {failed} post(s) not written. No AI call.\n");
+        return failed == 0 ? 0 : 1;
+    }
+}
+
+internal sealed record FeedPostNote(
+    [property: System.Text.Json.Serialization.JsonPropertyName("id")] string Id,
+    [property: System.Text.Json.Serialization.JsonPropertyName("noteTr")] string NoteTr,
+    [property: System.Text.Json.Serialization.JsonPropertyName("noteEn")] string NoteEn);
+
+/// <summary>
+/// note-feed-posts --file ops-presets/….json [--dry-run]: the editor's note of editor posts (one styling sentence under
+/// the title), from a checked-in file of { id, noteTr, noteEn }. Only the note is written; a post that does not exist is
+/// reported. Idempotent. Dev only; no AI call.
+/// </summary>
+internal static class NoteFeedPostsCommand
+{
+    /// <summary>The admin form's limit of a note (FeedPostInputValidator).</summary>
+    public const int MaxNoteLength = 600;
+
+    /// <summary>The notes of a file; null when it is not a list of valid entries (ids unique, both languages, within the limit).</summary>
+    public static IReadOnlyList<FeedPostNote>? Parse(string json)
+    {
+        List<FeedPostNote>? notes;
+        try
+        {
+            notes = System.Text.Json.JsonSerializer.Deserialize<List<FeedPostNote>>(json);
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return null;
+        }
+        if (notes is null || notes.Count == 0 || notes.Select(n => n?.Id).Distinct(StringComparer.Ordinal).Count() != notes.Count)
+            return null;
+        return notes.All(n => n is not null && Domain.Validation.FeedInputRules.IsId(n.Id)
+                              && n.NoteTr?.Trim() is { Length: > 0 and <= MaxNoteLength } && n.NoteEn?.Trim() is { Length: > 0 and <= MaxNoteLength })
+            ? notes
+            : null;
+    }
+
+    public static async Task<int> RunAsync(IServiceProvider services, OpsArguments args, OpsOutput output, CancellationToken ct)
+    {
+        var file = args.Option("file")!;
+        if (!File.Exists(file) || Parse(await File.ReadAllTextAsync(file, ct)) is not { } notes)
+        {
+            output.Error($"{file}: missing, or not a list of {{ id, noteTr, noteEn }} with unique post ids and notes of 1–{MaxNoteLength} characters.");
+            return 2;
+        }
+        return await WriteAsync(services.GetRequiredService<IFeedService>(), notes, args.DryRun, output, ct);
+    }
+
+    public static async Task<int> WriteAsync(IFeedService feed, IReadOnlyList<FeedPostNote> notes, bool dryRun, OpsOutput output, CancellationToken ct)
+    {
+        var rows = new List<IReadOnlyList<string>>();
+        var missing = 0;
+        foreach (var note in notes)
+        {
+            var outcome = "would be written";
+            if (!dryRun)
+            {
+                var written = await feed.SetPostNoteAsync(note.Id, new Dictionary<string, string> { ["tr"] = note.NoteTr.Trim(), ["en"] = note.NoteEn.Trim() }, ct);
+                outcome = written ? "written" : "post not found";
+                if (!written)
+                    missing++;
+            }
+            rows.Add([note.Id, note.NoteTr.Trim(), outcome]);
+        }
+        output.Table(["post id", "note (tr)", "outcome"], rows);
+        output.Summary($"### note-feed-posts{(dryRun ? " (dry run)" : "")}\n\n**{notes.Count - missing}** of {notes.Count} note(s) {(dryRun ? "would be written" : "written")}. No AI call.\n");
+        return missing == 0 ? 0 : 1;
+    }
 }
 
 /// <summary>

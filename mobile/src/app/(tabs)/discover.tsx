@@ -16,7 +16,9 @@ import { Screen } from '@/components/ui/Screen';
 import { ScreenState } from '@/components/ui/ScreenState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
+import { useSegment } from '@/features/segment/store';
 import { CreatorCardView } from '@/features/store/CreatorCardView';
+import { DiscoverShelf, discoverShelfCategories } from '@/features/store/DiscoverShelf';
 import { useSetFavorite } from '@/features/store/mutations';
 import { EMPTY_PRODUCT_QUERY, useBrands, useCreators, useCurrentEdit, useFavoriteProducts, useProducts, useSeriesOutfits } from '@/features/store/queries';
 import { ShopProductCard } from '@/features/store/ShopProductCard';
@@ -221,6 +223,8 @@ function AdultDiscover() {
   const allLoading = edit.isPending || products.isPending;
   const allEmpty = !allLoading && !edit.data && newest.length === 0 && brandId === null && (creators.data?.length ?? 0) === 0;
   const series = useSeriesOutfits(section === 'series');
+  // Under the newest products: a shelf per kind (coats, jackets, …), narrowed by the same brand chip.
+  const shelves = discoverShelfCategories(useSegment());
 
   const refresh = () => {
     void edit.refetch();
@@ -326,6 +330,10 @@ function AdultDiscover() {
                 )}
               </View>
             ) : null}
+
+            {shelves.map((category) => (
+              <DiscoverShelf key={category} category={category} brandId={brandId} enabled={section === 'all'} />
+            ))}
 
             {(creators.data?.length ?? 0) > 0 ? (
               <View className="gap-4">

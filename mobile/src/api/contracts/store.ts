@@ -90,6 +90,12 @@ export type ProductSort = (typeof PRODUCT_SORTS)[number];
 export type ProductSize = string;
 export const ONE_SIZE = 'ONE';
 
+/**
+ * GET v1/catalog/color — one choice of the colour filter: a colour live products of the user's segment come in,
+ * named in the request language. The list is the server's, so a new colour in the catalogue needs no app release.
+ */
+export type CatalogColorOption = { id: string; name: string; hex: string; count: number };
+
 /** GET v1/catalog/brand */
 /**
  * `logoUrl` is the brand's official logo as supplied through the catalogue; when absent the app
@@ -129,7 +135,8 @@ export type ProductSummary = {
 export type ProductQuery = {
   categories: ProductCategory[];
   brandIds: string[];
-  colors: CatalogColor[];
+  /** Reference colour ids — whatever `GET v1/catalog/color` offers (the filter is built from that list). */
+  colors: string[];
   sizes: ProductSize[];
   q: string;
   sort: ProductSort;

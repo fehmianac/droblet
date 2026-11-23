@@ -102,27 +102,37 @@ public sealed class FeedLookService(
         if (!decision.Allowed)
             return ServiceResult.Denied<LookDto>(decision);
 
-        // Every picture first: a piece whose picture cannot be read is left out, and a look still needs two pieces.
+        // A piece saved from this post before is the same wardrobe piece (its id is a function of the post and the piece,
+        // not of the look): saving the post again — after deleting the look, say — reuses it instead of adding a twin.
+        // Every other piece needs its picture first: one whose picture cannot be read is left out, and a look still
+        // needs two pieces.
         var maxBytes = photoOptions.CurrentValue.MaxUploadBytes;
-        var readable = new List<(FeedPostPiece Piece, int Index, StoredPicture Picture)>(post.Pieces.Count);
+        var usable = new List<(FeedPostPiece Piece, int Index, string ItemId, bool Owned, StoredPicture? Picture)>(post.Pieces.Count);
         for (var index = 0; index < post.Pieces.Count; index++)
         {
             var piece = post.Pieces[index];
-            if (await publicImages.ReadAsync(piece.ImageUrl.Trim(), maxBytes, ct) is { } raw && Picture(raw) is { } picture)
-                readable.Add((piece, index, picture));
+            var itemId = PieceItemId(tenantId, post, index);
+            if (await repository.GetAsync<ItemEntity>(ItemEntity.GetPk(tenantId), ItemEntity.GetSk(itemId), ct) is not null)
+                usable.Add((piece, index, itemId, true, null));
+            else if (await publicImages.ReadAsync(piece.ImageUrl.Trim(), maxBytes, ct) is { } raw && Picture(raw) is { } picture)
+                usable.Add((piece, index, itemId, false, picture));
         }
-        var slots = FeedRules.LookSlots(readable.Select(r => r.Piece.Category).ToList());
+        var slots = FeedRules.LookSlots(usable.Select(r => r.Piece.Category).ToList());
         if (slots.Count < OutfitSlotRules.MinPieces)
             return ServiceResult.Invalid<LookDto>(StoreSocialErrorCodes.LookNotSavable);
 
         var lookSlots = new List<LookSlotValue>(slots.Count);
-        for (var position = 0; position < readable.Count; position++)
+        for (var position = 0; position < usable.Count; position++)
         {
-            var (piece, index, picture) = readable[position];
-            // Ids are a function of the request: a retry writes the same objects and finds the same receipts.
-            var itemId = Ulid.Deterministic(post.PublishAt, $"feed-look:{tenantId}:{lookId}:{index}");
+            var (piece, index, itemId, owned, picture) = usable[position];
+            if (owned)
+            {
+                if (slots.TryGetValue(position, out var ownedSlot))
+                    lookSlots.Add(new LookSlotValue { Slot = ownedSlot, ItemId = itemId });
+                continue;
+            }
             string? cleanedKey = null, originalKey = null;
-            if (picture.IsWebp)
+            if (picture!.IsWebp)
             {
                 // Already a clean piece picture: stored where a confirmed item's cleaned image lives. The 256 / 768 renditions
                 // are not made here — the Api cannot resample (SkiaSharp lives in the item processor): the piece shows its
@@ -138,13 +148,21 @@ public sealed class FeedLookService(
 
             var subcategory = ItemRules.IsValidSubcategory(piece.Subcategory?.Trim()) ? piece.Subcategory?.Trim() : null;
             // The name is the piece's kind in the request language ("Blazer", else the category: "Dış giyim"). What a piece of
-            // a photograph does not know takes the neutral value: the colour "other", every season, no size / brand /
-            // fabric — the member edits the piece like any other.
+            // a photograph does not know takes the neutral value: every season, no size / brand / fabric — the member
+            // edits the piece like any other. The colour is the one read from the piece's picture ("other" when not read).
+            // The receipt is the look request's (a retry replays it); the item id is the post piece's.
             var result = await wardrobe.CreateImportedItemAsync(tenantId, new ImportedItemCommand(
-                $"fp-{lookId}-{index}", itemId, PieceName(piece.Category, subcategory, language), piece.Category, subcategory, [ColorCatalog.OtherId], null,
+                $"fp-{lookId}-{index}", itemId, PieceName(piece.Category, subcategory, language), piece.Category, subcategory, [ColorCatalog.IsKnown(piece.ColorId) ? piece.ColorId! : ColorCatalog.OtherId], null,
                 OutfitImportRules.SeasonsOrAll([]), originalKey, cleanedKey), ct);
             if (result.Outcome == ItemCreateOutcome.Rejected)
             {
+                // "Id taken" = the same piece arrived from a parallel save of this post: it is there, so it is used.
+                if (result.Code == ErrorCodes.ItemIdTaken)
+                {
+                    if (slots.TryGetValue(position, out var takenSlot))
+                        lookSlots.Add(new LookSlotValue { Slot = takenSlot, ItemId = itemId });
+                    continue;
+                }
                 foreach (var key in new[] { cleanedKey, originalKey }.OfType<string>())
                     await storage.DeleteAsync(key, ct);
                 if (result.Code == ErrorCodes.PremiumRequired)
@@ -175,8 +193,8 @@ public sealed class FeedLookService(
             return await RaceAsync(tenantId, post.Id, FeedLookMode.Pieces, lookId, ct);
         // A look of own pieces: its AI flat-lay cover is asked for exactly as when the member saves a look (best effort).
         var cover = await covers.RequestAsync(look, ct);
-        logger.LogInformation("Feed post {PostId} saved with its pieces as look {LookId} by tenant {TenantId}: {Items} item(s), {Slots} slot(s)",
-            post.Id, lookId, tenantId, readable.Count, look.Slots.Count);
+        logger.LogInformation("Feed post {PostId} saved with its pieces as look {LookId} by tenant {TenantId}: {Items} new item(s), {Slots} slot(s)",
+            post.Id, lookId, tenantId, usable.Count(u => !u.Owned), look.Slots.Count);
         return ServiceResult.Created(await ToDtoAsync(look, cover, ct));
     }
 
@@ -193,6 +211,10 @@ public sealed class FeedLookService(
 
     private async Task<LookDto> ToDtoAsync(LookEntity look, LookCoverEntity? cover, CancellationToken ct) =>
         await covers.WithCoverAsync(look, look.ToDto(await LookService.ItemIdsAsync(repository, look.TenantId, ct)), cover, ct);
+
+    /// <summary>The wardrobe id of one piece of a post for one member: the same piece is the same item however often the post is saved.</summary>
+    public static string PieceItemId(string tenantId, FeedPostEntity post, int index) =>
+        Ulid.Deterministic(post.PublishAt, $"feed-piece:{tenantId}:{post.Id}:{index}");
 
     /// <summary>The post's title in the request language, cut to a look name's length.</summary>
     private string? Name(FeedPostEntity post, string language)

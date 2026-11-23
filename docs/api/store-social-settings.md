@@ -125,6 +125,7 @@ teens (`social`), as is the friends' feed `GET v1/tenant/feed` (unchanged).
 | DELETE | `v1/tenant/feed-post/{id}/like` | `{ "liked": false, "likeCount": 1283 }`. Idempotent. Same `404`. |
 | PUT | `v1/tenant/feed-post/{id}/save` | `204`. Idempotent (a repeat keeps the first save time). Same `404`. |
 | DELETE | `v1/tenant/feed-post/{id}/save` | `204`, always (idempotent). |
+| GET | `v1/tenant/feed-post/{id}` | Both kinds. `FeedPostDto` as I see the post on Akış (liked, saved, pieces, `canTryOn`) — for the detail screen opened from a link or after a restart, when no loaded feed page holds the post. `404 not_found`: unknown, retired, not live yet, or a shared look I may not see (or whose cover is not ready). |
 | GET | `v1/tenant/feed-post/saved` | `FeedPostDto[]`, newest save first, both kinds. Posts retired, unpublished, un-shared, hidden or not visible to me right now are left out. |
 | GET | `v1/tenant/feed-post/{id}/similar` | **User posts.** `ProductDto[]`, at most `ContentFeed:MaxSimilarProducts` (12) — see **Similar products**. `404 not_found` for an editor post or a user post I may not see. |
 | PUT | `v1/tenant/feed-post/{id}/hide` | `204`. "Bunu gösterme": the feed never returns the post to me again. Idempotent; works on both kinds. `404` as for like. There is no un-hide. |
@@ -196,7 +197,7 @@ request never creates twice). The look's `name` is the post's title in the reque
   member's storage as the item's image and published like a confirmed item's (no background removal, no recognition; the
   256 / 768 px renditions are added later by `publish-item-images`, until then the full piece picture — at most 768 px —
   is served), `category` / `subcategory` from the piece, `name` = the sub-type's label in the request language (else the
-  category's), `colorIds: ["other"]`, every season, no size / brand / fabric, `source: "photo"`. Then a normal own look
+  category's), `colorIds` = the colour read from the piece's picture (`FeedPostPiece.colorId`, set by the operator tools from the pixels — no AI; `["other"]` when not read), every season, no size / brand / fabric, `source: "photo"`. The item's id is a function of the member, the post and the piece: saving the same post again (after deleting the look, say) reuses the pieces already in the wardrobe instead of adding them twice, and brings back one the member deleted. Then a normal own look
   (`source: "user"`) is made of them, one piece per slot by the slot mapping (the first piece keeps a contested slot; a
   dress closes the bottom; a piece without a slot is still added to the wardrobe). Its AI cover is requested like any
   saved look's, and it can be planned, tried on, edited and shared like any look.
@@ -300,6 +301,7 @@ post id, so the kinds never collide.
 | Method | Path | Result |
 |---|---|---|
 | GET | `v1/catalog/brand` | `[{ "id", "name", "logoUrl", "websiteUrl" }]` — active brands, by name. |
+| GET | `v1/catalog/color` | `[{ "id", "name", "hex", "count" }]` — the colours live products of the user's segment come in, most products first; `name` in the request language. The colour filter is built from this list (`other` is never in it). |
 | GET | `v1/catalog/product` | `{ "items": [ProductDto], "pageToken": "…"|null, "count": 42 }` (`count` = total matches). |
 | GET | `v1/catalog/product/{id}` | `ProductDto`. `404 product_not_found`. Retired products resolve with `available: false`. |
 | GET | `v1/tenant/catalog/product/{id}/match` | `{ "productId", "compatibleCount": 3, "items": [{ "id","name","category","colors","imageUrl" }] }` — "Gardırobundaki N parçayla uyumlu". `404 product_not_found`. |

@@ -9,8 +9,8 @@ import { useTranslation } from 'react-i18next';
 import { FlatList, Pressable, RefreshControl, ScrollView, TextInput, View, useWindowDimensions } from 'react-native';
 
 import {
-  CATALOG_COLORS,
-  type CatalogColor,
+  PRODUCT_CATEGORIES,
+  type ProductCategory,
   type ProductQuery,
   type ProductSummary,
 } from '@/api/contracts/store';
@@ -47,10 +47,10 @@ import { useThemeColors } from '@/theme/useThemeColors';
 const GUTTER = 20;
 const COLUMN_GAP = 12;
 
-function parseColors(param: string | undefined): CatalogColor[] {
+/** `?colors=a,b` — reference colour ids (lower-case kebab); anything else in the link is dropped. */
+function parseColors(param: string | undefined): string[] {
   if (!param) return [];
-  const known = CATALOG_COLORS as readonly string[];
-  return param.split(',').filter((c): c is CatalogColor => known.includes(c));
+  return param.split(',').filter((c) => /^[a-z][a-z-]{1,30}$/.test(c));
 }
 
 /** Skeleton card of the board: a 120 block and two 9-high bars. */
@@ -142,7 +142,8 @@ export default function ShopScreen() {
   const { width, height } = useWindowDimensions();
   const cardWidth = (width - GUTTER * 2 - COLUMN_GAP) / 2;
   // `brand`: Keşfet › "Mağazadan" opened with one brand chosen.
-  const params = useLocalSearchParams<{ colors?: string; brand?: string }>();
+  // `category`: a Keşfet shelf's "Tümü" opened with that kind chosen.
+  const params = useLocalSearchParams<{ colors?: string; brand?: string; category?: string }>();
   const bodyProfile = useBodyProfile();
   // The category chips of the design, in order (canvas 17: the men's store has Jeanler instead of Elbiseler).
   // Shoes and bags are reached through search and the builder.
@@ -153,6 +154,7 @@ export default function ShopScreen() {
     ...EMPTY_PRODUCT_QUERY,
     colors: parseColors(params.colors),
     brandIds: typeof params.brand === 'string' && params.brand ? [params.brand] : [],
+    categories: (PRODUCT_CATEGORIES as readonly string[]).includes(params.category ?? '') ? [params.category as ProductCategory] : [],
   }));
   const [search, setSearch] = useState('');
   const [filterOpen, setFilterOpen] = useState(false);
