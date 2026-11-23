@@ -50,21 +50,25 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
     /// <summary>seed-feed-stories: at most this many post ids in one run (the feed shows ContentFeed:MaxStories, 20 by default).</summary>
     public const int MaxSeedStories = 20;
     /// <summary>
-    /// First trial of a real brand catalog (owner request 2026-11-23): women's products of Vakko from the public
-    /// product sitemap and product pages of vakko.com into the catalog, through the admin services. No AI call; dev only.
+    /// Products of one brand's public site into the catalog, through the admin services (owner request 2026-11-23):
+    /// --brand takes a source registered in Ops.Commands.BrandImport.BrandSources, --segment women | men; --list prints
+    /// the sources. No AI call; dev only.
     /// </summary>
+    public const string ImportBrand = "import-brand";
+
+    /// <summary>The first brand import, kept as an alias of import-brand --brand vakko (women unless --segment men).</summary>
     public const string ImportVakko = "import-vakko";
 
-    /// <summary>import-vakko: products of one run (--max; default <see cref="DefaultVakkoProducts"/>).</summary>
-    public const int MaxVakkoProducts = 200;
-    public const int DefaultVakkoProducts = 100;
-    /// <summary>import-vakko: product pages one run may fetch (--max-pages; default <see cref="DefaultVakkoPages"/>).</summary>
-    public const int MaxVakkoPages = 600;
-    public const int DefaultVakkoPages = 400;
-    /// <summary>import-vakko: pause between two requests to the site (--delay-ms; never below <see cref="MinVakkoDelayMs"/>).</summary>
-    public const int MinVakkoDelayMs = 1000;
-    public const int MaxVakkoDelayMs = 10000;
-    public const int DefaultVakkoDelayMs = 1200;
+    /// <summary>import-brand / import-vakko: products of one run (--max; default <see cref="DefaultImportProducts"/>).</summary>
+    public const int MaxImportProducts = 200;
+    public const int DefaultImportProducts = 100;
+    /// <summary>import-brand / import-vakko: product pages one run may fetch (--max-pages; default <see cref="DefaultImportPages"/>).</summary>
+    public const int MaxImportPages = 600;
+    public const int DefaultImportPages = 400;
+    /// <summary>import-brand / import-vakko: pause between two requests to the site (--delay-ms; never below <see cref="MinImportDelayMs"/>).</summary>
+    public const int MinImportDelayMs = 1000;
+    public const int MaxImportDelayMs = 10000;
+    public const int DefaultImportDelayMs = 1200;
     public const string MigrateLibraryItemImages = "migrate-library-item-images";
     public const string AccountSmoke = "account-smoke";
     public const string OutfitImportSmoke = "outfit-import-smoke";
@@ -77,10 +81,10 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
     /// <summary>Hard ceiling of image-model calls in one run (library images and synthetic fixtures together).</summary>
     public const int MaxImageCallsPerRun = 30;
 
-    public static readonly IReadOnlyList<string> Commands = [ImportVakko, SeedFeedPosts, SplitFeedPosts, SeedFeedStories, GrantTestPremium, RevokeTestPremium, GenerateLibraryImages, GenerateMarketingImages, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, Logs, MigrateLibraryItemImages, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, AiUsageBackfill, PublishItemImages, CdnCheck, PublicUrls, GoogleAuth, PushTest];
+    public static readonly IReadOnlyList<string> Commands = [ImportBrand, ImportVakko, SeedFeedPosts, SplitFeedPosts, SeedFeedStories, GrantTestPremium, RevokeTestPremium, GenerateLibraryImages, GenerateMarketingImages, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, Logs, MigrateLibraryItemImages, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, AiUsageBackfill, PublishItemImages, CdnCheck, PublicUrls, GoogleAuth, PushTest];
 
     /// <summary>Commands that create or change test accounts or spend AI credit on a throw-away user: never on prod.</summary>
-    public static readonly IReadOnlySet<string> DevOnly = new HashSet<string>(StringComparer.Ordinal) { ImportVakko, SeedFeedPosts, SplitFeedPosts, SeedFeedStories, GrantTestPremium, RevokeTestPremium, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, PublicUrls, GenerateMarketingImages };
+    public static readonly IReadOnlySet<string> DevOnly = new HashSet<string>(StringComparer.Ordinal) { ImportBrand, ImportVakko, SeedFeedPosts, SplitFeedPosts, SeedFeedStories, GrantTestPremium, RevokeTestPremium, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, PublicUrls, GenerateMarketingImages };
 
     private static readonly IReadOnlyDictionary<string, string[]> AllowedOptions = new Dictionary<string, string[]>(StringComparer.Ordinal)
     {
@@ -102,7 +106,8 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [SeedFeedPosts] = ["dir"],
         [SplitFeedPosts] = ["only", "max-calls"],
         [SeedFeedStories] = ["ids"],
-        [ImportVakko] = ["max", "max-pages", "delay-ms"],
+        [ImportBrand] = ["brand", "segment", "max", "max-pages", "delay-ms"],
+        [ImportVakko] = ["segment", "max", "max-pages", "delay-ms"],
         [MigrateLibraryItemImages] = [],
         [AccountSmoke] = ["api-url"],
         [OutfitImportSmoke] = ["api-url"],
@@ -131,6 +136,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [SeedFeedPosts] = ["dry-run"],
         [SplitFeedPosts] = ["dry-run", "force"],
         [SeedFeedStories] = ["dry-run"],
+        [ImportBrand] = ["dry-run", "list"],
         [ImportVakko] = ["dry-run"],
         [MigrateLibraryItemImages] = ["dry-run"],
         [AccountSmoke] = ["keep-user"],
@@ -176,14 +182,27 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
     /// <summary>split-feed-posts budget: --max-calls (default and ceiling <see cref="MaxFeedSplitCalls"/>).</summary>
     public int FeedSplitCalls => Math.Clamp(IntOption("max-calls", MaxFeedSplitCalls), 0, MaxFeedSplitCalls);
 
-    /// <summary>import-vakko: --max (products), never above <see cref="MaxVakkoProducts"/>.</summary>
-    public int VakkoMaxProducts => Math.Clamp(IntOption("max", DefaultVakkoProducts), 1, MaxVakkoProducts);
+    /// <summary>import-brand: --brand; import-vakko: always "vakko".</summary>
+    public string? ImportBrandId => Command == ImportVakko ? "vakko" : Option("brand")?.Trim().ToLowerInvariant();
 
-    /// <summary>import-vakko: --max-pages (page fetches), never above <see cref="MaxVakkoPages"/>.</summary>
-    public int VakkoMaxPages => Math.Clamp(IntOption("max-pages", DefaultVakkoPages), 1, MaxVakkoPages);
+    /// <summary>import-brand / import-vakko: --segment women | men (import-vakko: women when not given).</summary>
+    public Domain.Enum.CatalogSegment ImportSegment => ParseSegment(Option("segment")) ?? Domain.Enum.CatalogSegment.Women;
 
-    /// <summary>import-vakko: --delay-ms, never below <see cref="MinVakkoDelayMs"/>.</summary>
-    public int VakkoDelayMs => Math.Clamp(IntOption("delay-ms", DefaultVakkoDelayMs), MinVakkoDelayMs, MaxVakkoDelayMs);
+    private static Domain.Enum.CatalogSegment? ParseSegment(string? value) => value?.Trim().ToLowerInvariant() switch
+    {
+        "women" => Domain.Enum.CatalogSegment.Women,
+        "men" => Domain.Enum.CatalogSegment.Men,
+        _ => null,
+    };
+
+    /// <summary>import-brand / import-vakko: --max (products), never above <see cref="MaxImportProducts"/>.</summary>
+    public int ImportMaxProducts => Math.Clamp(IntOption("max", DefaultImportProducts), 1, MaxImportProducts);
+
+    /// <summary>import-brand / import-vakko: --max-pages (page fetches), never above <see cref="MaxImportPages"/>.</summary>
+    public int ImportMaxPages => Math.Clamp(IntOption("max-pages", DefaultImportPages), 1, MaxImportPages);
+
+    /// <summary>import-brand / import-vakko: --delay-ms, never below <see cref="MinImportDelayMs"/>.</summary>
+    public int ImportDelayMs => Math.Clamp(IntOption("delay-ms", DefaultImportDelayMs), MinImportDelayMs, MaxImportDelayMs);
 
     /// <summary>seed-feed-stories: --ids a,b,c → the post ids, in the order given.</summary>
     public IReadOnlyList<string> Ids =>
@@ -292,13 +311,26 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
                 if (Ids.FirstOrDefault(id => !Domain.Validation.FeedInputRules.IsId(id) || !Domain.Validation.FeedInputRules.IsId(Ops.Commands.SeedFeedStoriesCommand.StoryId(id))) is { } badStory)
                     return $"--ids: '{badStory}' is not a post id (or too long for story-…)";
                 break;
-            case ImportVakko:
-                if (Option("max") is { } vakkoMax && (!int.TryParse(vakkoMax, out var vm) || vm is < 1 or > MaxVakkoProducts))
-                    return $"--max must be 1–{MaxVakkoProducts}";
-                if (Option("max-pages") is { } vakkoPages && (!int.TryParse(vakkoPages, out var vp) || vp is < 1 or > MaxVakkoPages))
-                    return $"--max-pages must be 1–{MaxVakkoPages}";
-                if (Option("delay-ms") is { } vakkoDelay && (!int.TryParse(vakkoDelay, out var vd) || vd is < MinVakkoDelayMs or > MaxVakkoDelayMs))
-                    return $"--delay-ms must be {MinVakkoDelayMs}–{MaxVakkoDelayMs}";
+            case ImportBrand or ImportVakko:
+                if (Flag("list"))
+                {
+                    if (Options.Count > 0 || Flags.Count > 1)
+                        return "--list takes no other option";
+                    break;
+                }
+                var sources = Ops.Commands.BrandImport.BrandSources.All;
+                if (Ops.Commands.BrandImport.BrandSources.Find(ImportBrandId) is not { } brandSource)
+                    return $"--brand is required: one of {string.Join(", ", sources.Select(b => b.BrandId))} (import-brand --list shows them)";
+                if (Option("segment") is { } segment && ParseSegment(segment) is null || Command == ImportBrand && Option("segment") is null)
+                    return "--segment must be women | men";
+                if (!brandSource.Segments.Contains(ImportSegment))
+                    return $"{brandSource.BrandId} has no {Option("segment")}'s source";
+                if (Option("max") is { } importMax && (!int.TryParse(importMax, out var im) || im is < 1 or > MaxImportProducts))
+                    return $"--max must be 1–{MaxImportProducts}";
+                if (Option("max-pages") is { } importPages && (!int.TryParse(importPages, out var ip) || ip is < 1 or > MaxImportPages))
+                    return $"--max-pages must be 1–{MaxImportPages}";
+                if (Option("delay-ms") is { } importDelay && (!int.TryParse(importDelay, out var id) || id is < MinImportDelayMs or > MaxImportDelayMs))
+                    return $"--delay-ms must be {MinImportDelayMs}–{MaxImportDelayMs}";
                 break;
             case AiPerf:
                 if (Option("runs") is { } runs && (!int.TryParse(runs, out var r) || r is < 1 or > MaxPerfRuns))
@@ -372,7 +404,9 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         "  seed-feed-posts         --dir <folder with manifest.json> [--dry-run]  (dev only; no AI call)\n" +
         "  split-feed-posts        [--only id,id] [--max-calls N<=260] [--dry-run] [--force]  (dev only; AI: 1 detection + ≤ 5 cleanups per product-less editor post, never retries)\n" +
         "  seed-feed-stories       --ids id,id [--dry-run]                (dev only; no AI call; story-{postId} from editor posts, 7 days)\n" +
-        "  import-vakko            [--max N<=200] [--max-pages N<=600] [--delay-ms N>=1000] [--dry-run]  (dev only; no AI call; women's Vakko products from vakko.com → catalog, images hot-linked)\n" +
+        "  import-brand            --brand <id> --segment women|men [--max N<=200] [--max-pages N<=600] [--delay-ms N>=1000] [--dry-run]  (dev only; no AI call; a brand's public products → catalog, images hot-linked)\n" +
+        "  import-brand            --list                                 (the registered brand sources and the surveyed brands without one; no network)\n" +
+        "  import-vakko            [--segment women|men] [--max N<=200] [--max-pages N<=600] [--delay-ms N>=1000] [--dry-run]  (alias of import-brand --brand vakko; women unless --segment men)\n" +
         "  publish-item-images     [--dry-run] [--wait | --inline]       (no AI call; starts the admin Bakım job: cleaned piece images → public/items/ + 256/768 px thumbnails)";
 }
 
