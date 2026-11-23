@@ -18,6 +18,7 @@ import { toDisplayUpper } from '@/lib/upper';
 import { feedTones, spacing } from '@/theme/tokens';
 
 import { AuthorAvatar, VerifiedBadge } from './FeedBits';
+import { FeedPieceStrip } from './FeedPieceStrip';
 import { FeedUserPostCard } from './FeedUserPostCard';
 import { BUILD_WITH_MINE_MIN, occasionLabel, ownedItemIds, postMeta } from './logic';
 import { useLikeFeedPost, useSaveFeedPost } from './mutations';
@@ -46,7 +47,8 @@ function Carousel({ post, height, teen, overlay }: { post: FeedPost; height: num
   const width = Math.max(1, windowWidth - spacing.gutter * 2 - 2);
   const [index, setIndex] = useState(0);
   const count = Math.max(1, post.images.length);
-  const pieces = piecesOf(post.products);
+  // The placeholder figure wears the products; a photograph without products, its pieces.
+  const pieces = post.products.length > 0 ? piecesOf(post.products) : post.pieces.map((p) => ({ category: p.category, imageUrl: p.imageUrl }));
   const onScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => setIndex(Math.round(e.nativeEvent.contentOffset.x / width));
 
   return (
@@ -77,7 +79,7 @@ function Carousel({ post, height, teen, overlay }: { post: FeedPost; height: num
           </Text>
         </View>
       ) : null}
-      {!teen && post.buyableCount > 0 ? (
+      {!teen && post.products.length > 0 && post.buyableCount > 0 ? (
         <View className="absolute bottom-3 left-3 h-7 flex-row items-center gap-[5px] rounded-pill bg-feed-chip px-2.5" pointerEvents="none" testID={`feed.post.${post.id}.buyable`}>
           <Icon icon={ShoppingBag} size={13} />
           <Text variant="badge" className="text-[11.5px]">
@@ -170,8 +172,12 @@ function Toggle({ icon, on, size, label, onPress, testID }: { icon: typeof Heart
 /**
  * One editorial post of Akış F1 (canvas 06″): author row (verified Droblet Edit), "Ofis · Sonbahar · 3 sa", the photo
  * carousel, eyebrow + serif title, the piece strip, "Üzerimde dene · 1 kredi" + "Satın al", ♡ and Kaydet, the like
- * count and the editor's note. A post without products is the board's compact card: the try-on pill sits on the
- * photo, no title, no strip. No comments, share, follow or try-on counts (decisions 18–19).
+ * count and the editor's note. A post without products and without pieces is the board's compact card: the try-on
+ * pill sits on the photo, no title, no strip. No comments, share, follow or try-on counts (decisions 18–19).
+ *
+ * A photograph without products that carries the pieces cut out of it (owner decision 2026-11-23) is the full card
+ * with the piece strip (picture + kind, nothing to tap) where the product strip is: nothing to buy, so no "Satın al"
+ * and no buyable chip; "Üzerimde dene" dresses the whole outfit of the photograph.
  *
  * "Kendi parçalarımla kur" (under the strip, when two or more pieces are matched to wardrobe items): opens the look
  * builder (15) with those pieces in their slots and the post's occasion — the look made from what the user owns.
@@ -193,13 +199,14 @@ function EditorPostCard({ post, teen, onBuy }: Pick<Props, 'post' | 'teen' | 'on
     tryOn.invite.onPress();
   };
 
-  const compact = post.products.length === 0;
+  const hasProducts = post.products.length > 0;
+  const compact = !hasProducts && post.pieces.length === 0;
   const meta = postMeta(t, post);
   const occasion = occasionLabel(t, post.occasion);
   const eyebrow = [t(post.author.kind === 'edit' ? 'homeFeed.eyebrowEdit' : 'homeFeed.eyebrowStylist'), occasion ? toDisplayUpper(occasion, language) : null]
     .filter(Boolean)
     .join(' · ');
-  const showBuy = !teen && post.buyableCount > 0;
+  const showBuy = !teen && hasProducts && post.buyableCount > 0;
   const mine = ownedItemIds(post);
   const buildWithMine = () => {
     track('feed_build_with_mine', { postId: post.id, count: mine.length });
@@ -306,17 +313,21 @@ function EditorPostCard({ post, teen, onBuy }: Pick<Props, 'post' | 'teen' | 'on
               {post.title}
             </Text>
           </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            className="-mx-4"
-            contentContainerClassName="gap-2 px-4"
-            accessibilityLabel={t('homeFeed.piecesA11y')}
-          >
-            {post.products.map((p) => (
-              <PieceChip key={p.id} product={p} teen={teen} />
-            ))}
-          </ScrollView>
+          {hasProducts ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              className="-mx-4"
+              contentContainerClassName="gap-2 px-4"
+              accessibilityLabel={t('homeFeed.piecesA11y')}
+            >
+              {post.products.map((p) => (
+                <PieceChip key={p.id} product={p} teen={teen} />
+              ))}
+            </ScrollView>
+          ) : (
+            <FeedPieceStrip postId={post.id} pieces={post.pieces} />
+          )}
           {mine.length >= BUILD_WITH_MINE_MIN ? (
             <Pressable
               onPress={buildWithMine}

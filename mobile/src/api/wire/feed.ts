@@ -66,7 +66,7 @@ export type FeedPostWire = {
   note: string | null;
   images: string[] | null;
   products: FeedProductWire[] | null;
-  /** A member's look: its pieces. `[]` on editor posts; older servers omit it. */
+  /** A member's look: its pieces. An editor photograph without products: the pieces cut out of it. `[]` otherwise; older servers omit it. */
   pieces?: FeedPieceWire[] | null;
   hasSimilar?: boolean | null;
   canTryOn?: boolean | null;
@@ -122,7 +122,8 @@ export function toFeedPost(wire: FeedPostWire): FeedPost {
     images: (wire.images ?? []).filter((url) => typeof url === 'string' && url.length > 0),
     // A member's look sells nothing: no products, no buyable count, no try-on (decision 21).
     products: user ? [] : (wire.products ?? []).map(toFeedProduct),
-    pieces: user ? (wire.pieces ?? []).map(toFeedPiece) : [],
+    // An editor post that is a photograph without products carries its pieces too (owner decision 2026-11-23).
+    pieces: (wire.pieces ?? []).map(toFeedPiece),
     hasSimilar: Boolean(wire.hasSimilar),
     canTryOn: user ? false : (wire.canTryOn ?? true),
     buyableCount: user ? 0 : Math.max(0, wire.buyableCount ?? 0),
