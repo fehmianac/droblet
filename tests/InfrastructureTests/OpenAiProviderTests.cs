@@ -377,8 +377,8 @@ public class OpenAiProviderTests
         Assert.Contains("name=size\r\n\r\n1024x1536", call.Body);
         Assert.Contains("name=quality\r\n\r\nlow", call.Body);
         Assert.Equal(3, call.Body.Split("name=\"image[]\"").Length - 1);
-        Assert.Contains("rumpled cream linen sheet", call.Body);
-        Assert.Contains("slightly messy", call.Body);
+        Assert.Contains("cream linen sheet", call.Body);
+        Assert.Contains("never stacked on top of each other", call.Body);
         Assert.Contains("The 3 image(s)", call.Body);
         Assert.Contains("no person", call.Body);
         Assert.Equal(Webp, result.Data);
