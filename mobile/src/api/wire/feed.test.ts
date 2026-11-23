@@ -111,6 +111,13 @@ describe('feed wire mappers', () => {
     expect(toFeedPost(post({ kind: 'editor', canTryOn: false }))).toMatchObject({ kind: 'editor', canTryOn: false });
   });
 
+  it('keeps the pieces of an editor photograph without products, and its try-on', () => {
+    const pieces = [{ category: 'outerwear', imageUrl: 'https://cdn.test/o.jpg' }, { category: 'bottom', imageUrl: null }, { category: 'shoes', imageUrl: null }];
+    const mapped = toFeedPost(post({ kind: 'editor', products: [], pieces, canTryOn: true, buyableCount: 0 }));
+    expect(mapped).toMatchObject({ kind: 'editor', products: [], pieces, canTryOn: true, buyableCount: 0 });
+    expect(toFeedPost(post({ kind: 'editor', pieces: null })).pieces).toEqual([]);
+  });
+
   it('maps a page and its cursor', () => {
     expect(toFeedPostPage({ items: [post()], pageToken: 'abc' })).toMatchObject({ items: [{ id: 'post_1' }], nextPageToken: 'abc' });
     expect(toFeedPostPage({ items: [], pageToken: null }).nextPageToken).toBeNull();

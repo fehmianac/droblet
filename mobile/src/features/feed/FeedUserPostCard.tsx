@@ -1,11 +1,9 @@
 import { router } from 'expo-router';
 import { Bookmark, Ellipsis, Heart, Search } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
-import type { FeedPiece, FeedPost } from '@/api/contracts/feed';
-import { ITEM_CATEGORIES, type ItemCategory } from '@/api/contracts/wardrobe';
-import { toSubcategoryLabel } from '@/api/wire/subcategories';
+import type { FeedPost } from '@/api/contracts/feed';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
@@ -15,6 +13,7 @@ import { formatNumber } from '@/lib/format';
 import { refreshImageQueries } from '@/lib/images';
 
 import { AuthorAvatar } from './FeedBits';
+import { FeedPieceStrip } from './FeedPieceStrip';
 import { postMeta } from './logic';
 import { useLikeFeedPost, useSaveFeedPost } from './mutations';
 import { feedKeys } from './queries';
@@ -31,24 +30,6 @@ type Props = {
 
 /** Cover height on the board: the same 410 as an editor card. */
 const COVER = 410;
-
-/** One piece of the strip: its picture and what kind of piece it is. Not a product — it opens nothing. */
-function PieceTile({ piece }: { piece: FeedPiece }) {
-  const { t } = useTranslation();
-  // The kind of piece in the singular ("Üst", "Ayakkabı"); a sub-type id reads by its name ("Kazak"), anything else as sent.
-  const known = (ITEM_CATEGORIES as readonly string[]).includes(piece.category);
-  const label = known ? t(`homeFeed.pieceKind.${piece.category as ItemCategory}`) : (toSubcategoryLabel(piece.category) ?? piece.category);
-  return (
-    <View className="h-[54px] flex-row items-center gap-2 rounded-image-lg border border-feed-line bg-cream py-1 pl-1 pr-3" accessible accessibilityLabel={label}>
-      <View className="h-[46px] w-[46px] overflow-hidden rounded-thumb bg-feed-thumb">
-        <ImageSlot uri={piece.imageUrl} className="h-full w-full" placeholder={{ kind: 'garment', category: piece.category, glyphSize: 22 }} />
-      </View>
-      <Text variant="label" className="text-[12.5px]" numberOfLines={1}>
-        {label}
-      </Text>
-    </View>
-  );
-}
 
 /**
  * A member's look on Akış (canvas 06‴ Akış F2, decision 21): avatar and @handle (they open the profile — "Takip et"
@@ -122,18 +103,7 @@ export function FeedUserPostCard({ post, teen, onMenu, onSimilar }: Props) {
           {post.title}
         </Text>
         {post.pieces.length > 0 ? (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            className="-mx-4"
-            contentContainerClassName="gap-2 px-4"
-            accessibilityLabel={t('homeFeed.piecesA11y')}
-            testID={`feed.post.${post.id}.pieces`}
-          >
-            {post.pieces.map((piece, index) => (
-              <PieceTile key={`${piece.category}-${index}`} piece={piece} />
-            ))}
-          </ScrollView>
+          <FeedPieceStrip postId={post.id} pieces={post.pieces} />
         ) : null}
         {post.hasSimilar && !teen && onSimilar ? (
           <Button

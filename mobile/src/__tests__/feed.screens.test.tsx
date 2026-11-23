@@ -88,6 +88,37 @@ describe('Akış F1 (canvas 06″)', () => {
     expect(screen.queryByTestId('feed.firstStep')).toBeNull();
   });
 
+  it('a photograph without products shows its pieces where the product strip is: try-on, nothing to buy', async () => {
+    const items = feedFixtures.page('all', null).items;
+    const photo = items.find((p) => p.id === 'post_005')!;
+    expect(photo).toMatchObject({ kind: 'editor', products: [], canTryOn: true, buyableCount: 0 });
+    expect(photo.pieces).toHaveLength(3);
+    feedFixtureOptions.setPosts([items.find((p) => p.id === 'post_001')!, photo]);
+    await openFeed({ triedOn: true });
+
+    const post = within(screen.getByTestId('feed.post.post_005'));
+    // The full card: eyebrow and title, then the piece strip — picture + kind, nothing to tap.
+    expect(post.getByText('EDIT OF THE WEEK · WEEKEND')).toBeTruthy();
+    expect(post.getByText('Jean ve trençkot')).toBeTruthy();
+    const strip = within(post.getByTestId('feed.post.post_005.pieces'));
+    for (const kind of ['Outerwear', 'Bottom', 'Shoes']) expect(strip.getByLabelText(kind)).toBeTruthy();
+    expect(strip.queryAllByRole('link')).toHaveLength(0);
+    expect(strip.queryAllByRole('button')).toHaveLength(0);
+    expect(post.queryAllByRole('link')).toHaveLength(0);
+    // "Üzerimde dene · 1 kredi" stays (the whole outfit of the photograph); nothing to buy, nothing similar.
+    expect(post.getByTestId('feed.post.post_005.tryOn').props.accessibilityLabel).toBe('Try it on me · 1 credit');
+    expect(post.queryByTestId('feed.post.post_005.buy')).toBeNull();
+    expect(post.queryByTestId('feed.post.post_005.buyable')).toBeNull();
+    expect(post.queryByTestId('feed.post.post_005.similar')).toBeNull();
+    expect(post.queryByTestId('feed.post.post_005.buildWithMine')).toBeNull();
+
+    // A post with products keeps its product strip (tappable pieces) and has no piece strip.
+    const withProducts = within(screen.getByTestId('feed.post.post_001'));
+    expect(withProducts.queryByTestId('feed.post.post_001.pieces')).toBeNull();
+    expect(withProducts.getByTestId('feed.piece.prod_004').props.accessibilityRole).toBe('link');
+    expect(withProducts.getByTestId('feed.post.post_001.buy')).toBeTruthy();
+  });
+
   it('shows "İlk look\'unu dene" to a user who never tried anything on', async () => {
     await openFeed();
     await waitFor(() => expect(screen.getByTestId('feed.firstStep')).toBeTruthy(), WAIT);

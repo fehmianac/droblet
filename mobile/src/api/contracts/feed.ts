@@ -35,7 +35,10 @@ export type FeedProduct = ProductSummary & {
   ownedItemId: string | null;
 };
 
-/** One piece of a member's look on Akış (F2): its picture and what kind of piece it is — never a product, never tappable. */
+/**
+ * One piece of a look on Akış: its picture and what kind of piece it is — never a product, never tappable. A member's
+ * look (F2) has them, and so does an editor post that is a photograph without products (the pieces cut out of it).
+ */
 export type FeedPiece = { category: string; imageUrl: string | null };
 
 /** Akış F2 (decision 21): `editor` = Droblet Edit / a stylist, `user` = a look a member shared with "Akışta paylaş". */
@@ -52,7 +55,7 @@ export type FeedPost = {
   /** Editorial photos, in carousel order (may be empty → the look placeholder). */
   images: string[];
   products: FeedProduct[];
-  /** A member's look: its pieces (picture + kind). Empty on editor posts. */
+  /** The look's pieces (picture + kind): on a member's look and on an editor photograph without products. Empty otherwise. */
   pieces: FeedPiece[];
   /** The catalogue has products like this look's pieces ("Benzerlerini gör"). */
   hasSimilar: boolean;

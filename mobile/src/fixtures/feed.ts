@@ -49,6 +49,8 @@ type Seed = {
   hoursAgo: number;
   imageCount: number;
   products: FeedProduct[];
+  /** A photograph without products: the pieces cut out of it. */
+  pieces?: FeedPiece[];
   likeCount: number;
 };
 
@@ -102,7 +104,9 @@ function seeds(): Seed[] {
       edit: true,
       hoursAgo: 26,
       imageCount: 2,
-      products: [product('prod_020'), product('prod_012', true), product('prod_024')],
+      // A photograph without products: the piece strip (picture + kind) stands where the product strip is.
+      products: [],
+      pieces: [piece('outerwear'), piece('bottom'), piece('shoes')],
       likeCount: 978,
     },
     ...Array.from({ length: 8 }, (_, i): Seed => ({
@@ -218,7 +222,7 @@ function buildEditor(now: number): FeedPost[] {
       note: s.note,
       images: postImages(index, id, s.imageCount),
       products: s.products,
-      pieces: [],
+      pieces: s.pieces ?? [],
       hasSimilar: false,
       canTryOn: true,
       buyableCount: s.products.filter((p) => !p.ownedSimilar && p.available !== false).length,
