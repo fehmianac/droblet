@@ -29,6 +29,16 @@ let mockQuery: MockQuery;
 const success = (data: unknown): MockQuery => ({ data, status: 'success', fetchStatus: 'idle', error: null, isRefetching: false, isPending: false, isError: false, refetch: mockRefetch });
 jest.mock('@/entitlement/useEntitlement', () => ({ useEntitlement: () => mockQuery }));
 
+// What the store answers: prices and the trial are the store's alone — the app has none of its own. `[]` = the store
+// gave no products (a simulator without StoreKit, products not approved yet).
+const STORE_PRODUCTS = [
+  { productId: 'com.alatech.droplet.premium.monthly', kind: 'subscription', period: 'month', localizedPrice: '₺199,99', trialDays: 7, credits: null },
+  { productId: 'com.alatech.droplet.premium.yearly', kind: 'subscription', period: 'year', localizedPrice: '₺1.499,99', trialDays: 7, credits: null },
+  { productId: 'com.alatech.droplet.credits.20', kind: 'consumable', period: null, localizedPrice: '₺79,99', trialDays: null, credits: 20 },
+];
+let mockStoreProducts: unknown[] = STORE_PRODUCTS;
+jest.mock('@/purchases/billing', () => ({ ...jest.requireActual('@/purchases/billing'), fetchStoreProducts: async () => mockStoreProducts }));
+
 const WAIT = { timeout: 5000 };
 
 async function open(url: string) {
@@ -40,6 +50,7 @@ beforeEach(async () => {
   jest.clearAllMocks();
   creditSheetStore.close();
   mockQuery = success(member);
+  mockStoreProducts = STORE_PRODUCTS;
   await AsyncStorage.clear();
   await i18n.changeLanguage('en');
 });
@@ -106,6 +117,17 @@ describe('/subscription — Üyelik yönetimi', () => {
 });
 
 describe('05 Üyelik', () => {
+  it('the store gives no products: the plans are listed without any price or trial — the app never shows a price of its own', async () => {
+    mockStoreProducts = [];
+    mockQuery = success({ ...member, tier: 'free' });
+    await open('/paywall');
+    await waitFor(() => expect(screen.getByTestId('plan-year')).toBeTruthy(), WAIT);
+    await waitFor(() => expect(screen.getByTestId('plan-year').props.accessibilityState).toMatchObject({ busy: false }), WAIT);
+    expect(screen.queryByText(/₺|\$|€/)).toBeNull();
+    expect(screen.queryByText(/days free/)).toBeNull();
+    expect(screen.queryByText(/you pay/)).toBeNull();
+  });
+
   it('free: headline, benefits, plan cards from the store products, footer links', async () => {
     mockQuery = success({ ...member, tier: 'free' });
     await open('/paywall');

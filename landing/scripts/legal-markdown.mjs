@@ -40,8 +40,6 @@ export function renderLegalMarkdown(dictionary, locale, key) {
     '',
     `# ${doc.title}`,
     '',
-    `> **${legal.draftTitle}.** ${legal.draftBody}`,
-    '>',
     `> ${legal.versionLabel}: ${legal.version}`,
     '',
     doc.intro,

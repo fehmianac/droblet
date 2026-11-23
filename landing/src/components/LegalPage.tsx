@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { getDictionary, type Dictionary, type Locale } from '@/lib/i18n';
 import { pageMetadata } from '@/lib/metadata';
-import { Icon } from './Icons';
 import { PageShell } from './PageShell';
 
 export type LegalDoc = keyof Dictionary['legal']['docs'];
@@ -83,19 +82,6 @@ export function LegalPage({ locale, doc }: { locale: Locale; doc: LegalDoc }) {
             {t.versionLabel}: {t.version}
           </p>
         </header>
-
-        <aside role="note" className="flex gap-3 rounded-card border border-danger bg-paper p-5">
-          <Icon name="alert" className="mt-0.5 flex-none text-danger" />
-          <div className="flex flex-col gap-1.5">
-            <p className="m-0 flex flex-wrap items-center gap-2 font-medium text-danger">
-              <span className="rounded-full border border-danger px-2.5 py-0.5 text-[11px] leading-[15px] tracking-[0.14em]">
-                {t.draftBadge}
-              </span>
-              {t.draftTitle}
-            </p>
-            <p className="body-text text-ink">{t.draftBody}</p>
-          </div>
-        </aside>
 
         <p className="m-0 text-[17px] leading-relaxed">{content.intro}</p>
 

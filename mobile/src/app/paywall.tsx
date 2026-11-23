@@ -66,7 +66,8 @@ function PlanOption({
   const { t } = useTranslation();
   const tag = t(plan === 'year' ? 'paywall.bestValue' : 'paywall.flexible');
   const name = t(plan === 'year' ? 'paywall.yearly' : 'paywall.monthly');
-  const price = product
+  // The price is the store's; without one (the store gave no products) the card shows the plan alone.
+  const price = product?.localizedPrice
     ? t(plan === 'year' ? 'paywall.perYear' : 'paywall.perMonth', { price: product.localizedPrice })
     : null;
   const trial = product?.trialDays ? t('paywall.trialDays', { count: product.trialDays }) : null;
@@ -88,7 +89,7 @@ function PlanOption({
         <Text variant="button" numberOfLines={1} adjustsFontSizeToFit>
           {price}
         </Text>
-      ) : (
+      ) : product ? null : (
         <Skeleton className="h-5 w-24 rounded-tag" />
       )}
       {trial ? (
@@ -210,7 +211,7 @@ export default function PaywallScreen() {
 
   const trialDays = chosen?.trialDays ?? null;
   let finePrint: string | null = null;
-  if (chosen) {
+  if (chosen?.localizedPrice) {
     const price = chosen.localizedPrice;
     const storeName = Platform.OS === 'ios' ? 'App Store' : 'Google Play';
     if (plan === 'year') finePrint = t(trialDays ? 'paywall.finePrintTrialYear' : 'paywall.finePrintYear', { price, store: storeName });

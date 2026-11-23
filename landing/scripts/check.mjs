@@ -118,8 +118,7 @@ for (const locale of locales) {
     expect(/<title>[^<]+<\/title>/.test(html), `${label}: no <title>`);
     expect(/<meta name="description" content="[^"]+"/.test(html), `${label}: no meta description`);
     if (legalPages.includes(page)) {
-      const banner = dictionaries[locale].legal.draftTitle;
-      expect(html.includes(banner), `${label}: draft banner "${banner}" not found`);
+      expect(html.includes(dictionaries[locale].footer.registration), `${label}: company registration line not found`);
       expect(/<meta name="robots" content="noindex/.test(html), `${label}: legal draft must be noindex`);
       expect(html.includes(dictionaries[locale].legal.summaryLabel), `${label}: summary box not found`);
       // Every legal page is reachable from the footer of every page in that language.

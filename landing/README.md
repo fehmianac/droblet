@@ -41,7 +41,7 @@ All are read at build time (`src/lib/site.ts`). An empty value is a supported st
 | `NEXT_PUBLIC_API_BASE_URL` | `/delete-account`, `/reset-password`, invite preview | those pages show "Şu an kullanılamıyor" instead of a form; the build still passes |
 | `NEXT_PUBLIC_APP_STORE_URL` | App Store buttons | button is a disabled "App Store · Yakında" pill |
 | `NEXT_PUBLIC_PLAY_STORE_URL` | Google Play buttons | button is a disabled "Google Play · Yakında" pill |
-| `NEXT_PUBLIC_CONTACT_EMAIL` | footer "İletişim" (`mailto:`) | the link is not rendered |
+| `NEXT_PUBLIC_CONTACT_EMAIL` | footer "İletişim" (`mailto:`) | `info@alatech.co` |
 | `NEXT_PUBLIC_TEEN_PARENT_CONSENT` | `/parent-consent/` notice and consent form — only the exact value `1` turns it on | the page says "Bu bağlantı henüz kullanılamıyor" and no draft text is exported (default; keep it until the lawyer approves the wording) |
 
 The deploy workflow currently passes only `NEXT_PUBLIC_SITE_URL` and `NEXT_PUBLIC_API_BASE_URL`. Until it also

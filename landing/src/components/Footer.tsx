@@ -30,7 +30,11 @@ export function Footer({ locale, page }: Props) {
             <Wordmark size="footer" />
           </span>
           <p className="small-text">
-            {t.company} · {siteHost}
+            {t.copyright} · {siteHost}
+            <br />
+            {t.address}
+            <br />
+            {t.registration}
           </p>
         </div>
 

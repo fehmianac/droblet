@@ -2,13 +2,11 @@
 
 # Gizlilik Politikası
 
-> **Taslak — hukuk onayı bekliyor.** Bu metin kapsamlı bir taslaktır ve hukuk onayından önce bağlayıcı değildir. Köşeli parantez içindeki yerler (ör. [ŞİRKET ADRESİ]) henüz belirlenmemiş bilgilerdir.
->
-> Taslak tarihi: 19 Kasım 2026 · Yürürlük: [YÜRÜRLÜK TARİHİ]
+> Son güncelleme: 23 Kasım 2026
 
-Bu politika, Droblet mobil uygulamasını ve droblet.alatech.co web sitesini kullandığında kişisel verilerinin nasıl işlendiğini anlatır. Veri sorumlusu Droblet Ltd'dir (Londra, Birleşik Krallık). Politika Birleşik Krallık Genel Veri Koruma Tüzüğü (UK GDPR) ve 2018 Veri Koruma Kanunu'na göre hazırlanmıştır; Türkiye'deki kullanıcılar için 6698 sayılı KVKK kapsamındaki ayrıntılar ayrıca KVKK Aydınlatma Metni'nde yer alır.
+Bu politika, Droblet mobil uygulamasını ve droblet.alatech.co web sitesini kullandığında kişisel verilerinin nasıl işlendiğini anlatır. Veri sorumlusu Ala Tech Solutions LTD'dir (Londra, Birleşik Krallık). Politika Birleşik Krallık Genel Veri Koruma Tüzüğü (UK GDPR) ve 2018 Veri Koruma Kanunu'na göre hazırlanmıştır; Türkiye'deki kullanıcılar için 6698 sayılı KVKK kapsamındaki ayrıntılar ayrıca KVKK Aydınlatma Metni'nde yer alır.
 
-**Veri sorumlusu:** Droblet Ltd, [ŞİRKET ADRESİ], Londra, Birleşik Krallık · Şirket no. [ŞİRKET NUMARASI] · [İLETİŞİM E-POSTASI]
+**Veri sorumlusu:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık · Şirket no. 17100391 · info@alatech.co
 
 ## KISACA
 
@@ -19,13 +17,13 @@ Bu politika, Droblet mobil uygulamasını ve droblet.alatech.co web sitesini kul
 - Rehberinden arkadaş bulmak istersen rehberin telefonundan çıkmaz; yalnızca tek kullanımlık karmalar gönderilir ve saklanmaz.
 - Reklam için izleme yapmayız, reklam kimliğini okumayız ve verini satmayız. Uygulamayı geliştirmek için Google Analytics for Firebase ile takma adlı ürün analitiği yaparız; bunu Ayarlar › Gizlilik › “Ürün analitiği”nden istediğin an kapatabilirsin. Markaya yönlendirdiğimizde komisyon için yalnızca bir tıklama kimliği ekleriz.
 - Hesabını sildiğinde verilerin hemen silinir; yedeklerden en geç 30 gün içinde çıkar.
-- Verine erişme, düzeltme, silme, itiraz ve taşıma hakların var: [İLETİŞİM E-POSTASI].
+- Verine erişme, düzeltme, silme, itiraz ve taşıma hakların var: info@alatech.co.
 
 ## 1. Biz kimiz
 
-Veri sorumlusu: Droblet Ltd, [ŞİRKET ADRESİ], Londra, Birleşik Krallık; şirket no. [ŞİRKET NUMARASI]; Bilgi Komiserliği (ICO) kayıt no. [ICO KAYIT NUMARASI].
+Veri sorumlusu: Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık; şirket no. 17100391.
 
-Gizlilikle ilgili tüm sorular ve hak başvuruları için: [İLETİŞİM E-POSTASI]. Türkiye'deki veri sorumlusu temsilcimiz: [TÜRKİYE TEMSİLCİSİ].
+Gizlilikle ilgili tüm sorular ve hak başvuruları için: info@alatech.co.
 
 ## 2. Bu politika neyi kapsar
 
@@ -101,7 +99,7 @@ Yapay zekâ özelliklerini OpenAI (OpenAI, L.L.C. / OpenAI Ireland Ltd [HUKUK ON
 - Renk paleti ve boy fotoğrafı yokken “Üzerimde gör”: yüz fotoğrafın (ikincisinde seçtiğin vücut tipi, boyun ve bedeninle birlikte).
 - Stilist, haftalık plan, bavul: tarih, sezon, ortam, hava durumu, stil profilin, palet sonucun, gardırobundaki parçaların türü, rengi, kumaşı ve sezonu, yazdığın serbest metin ve dil. Adın, e-postan, boyun ve kilon gönderilmez.
 
-OpenAI bu verileri bizim adımıza ve talimatımızla işleyen bir veri işleyendir. OpenAI'nin API koşullarına göre API üzerinden gönderilen veriler modellerin eğitiminde kullanılmaz; kötüye kullanımı izlemek için [OPENAI SAKLAMA SÜRESİ] süreyle saklanabilir. [HUKUK ONAYI: veri işleme sözleşmesi ve sıfır saklama seçeneği]
+OpenAI bu verileri bizim adımıza ve talimatımızla işleyen bir veri işleyendir. OpenAI'nin API koşullarına göre API üzerinden gönderilen veriler modellerin eğitiminde kullanılmaz; kötüye kullanımı izlemek için sınırlı bir süre saklanabilir.
 
 Yapay zekâ çıktıları yalnızca öneridir; senin hakkında hukuki ya da benzeri önemli sonuç doğuran otomatik karar vermeyiz (UK GDPR m. 22). Yapay zekâ önerileri kalıcı verine yalnızca sen onayladıktan sonra girer.
 
@@ -167,17 +165,17 @@ Verini satmayız ve reklam amacıyla paylaşmayız. Hizmeti sunmak için şu tar
 - Mahkemeler, kolluk ve düzenleyici kurumlar: hukuken zorunlu olduğunda ya da birinin hayati çıkarlarını korumak için.
 - Hukuk, muhasebe ve denetim danışmanlarımız; şirketimizin birleşmesi, devri ya da satışı hâlinde, bu politikaya bağlı kalmak koşuluyla alıcı ya da halef.
 
-Güncel veri işleyen listesini [İLETİŞİM E-POSTASI] adresinden isteyebilirsin.
+Güncel veri işleyen listesini info@alatech.co adresinden isteyebilirsin.
 
 ## 12. Yurt dışına aktarım
 
 Droblet Birleşik Krallık'ta kurulu bir şirkettir ve hizmet sağlayıcılarımız farklı ülkelerdedir. Bu nedenle verilerin Türkiye ve Birleşik Krallık dışına, özellikle AB'ye (Almanya — AWS) ve ABD'ye (OpenAI, Twilio SendGrid, Google — Firebase Cloud Messaging ve Google Analytics for Firebase dahil —, Apple, Cloudflare) aktarılır.
 
-Birleşik Krallık'tan AB'ye aktarım, Birleşik Krallık'ın AB/AEA için verdiği yeterlilik düzenlemesine dayanır. ABD'ye ve diğer ülkelere aktarımda [YURT DIŞI AKTARIM MEKANİZMASI] (ör. UK–ABD veri köprüsü kapsamında sertifikalı alıcılar, ICO Uluslararası Veri Aktarım Sözleşmesi ya da AB Standart Sözleşme Hükümlerine Birleşik Krallık eki) kullanılır.
+Birleşik Krallık'tan AB'ye aktarım, Birleşik Krallık'ın AB/AEA için verdiği yeterlilik düzenlemesine dayanır. ABD'ye ve diğer ülkelere aktarımda uygun güvenceler (ör. UK–ABD veri köprüsü kapsamında sertifikalı alıcılar, ICO Uluslararası Veri Aktarım Sözleşmesi ya da AB Standart Sözleşme Hükümlerine Birleşik Krallık eki) kullanılır.
 
 Türkiye'den yurt dışına aktarım KVKK m. 9'a tabidir; dayanaklar KVKK Aydınlatma Metni'nde yer alır. [HUKUK ONAYI: KVKK standart sözleşme ve Kurul'a bildirim]
 
-Aktarım güvencelerinin bir kopyasını [İLETİŞİM E-POSTASI] adresinden isteyebilirsin.
+Aktarım güvencelerinin bir kopyasını info@alatech.co adresinden isteyebilirsin.
 
 ## 13. Ne kadar saklıyoruz
 
@@ -193,9 +191,9 @@ Aktarım güvencelerinin bir kopyasını [İLETİŞİM E-POSTASI] adresinden ist
 - “Verilerimi indir” ile hazırlanan veri kopyası (ZIP dosyası): 7 gün; sonra kendiliğinden silinir. İsteğin kaydı 30 gün tutulur.
 - Rehber eşleştirme tuzu: en fazla 10 dakika; yüklenen karmalar: hiç saklanmaz.
 - Bildirim gönderim kayıtları: 14 gün; mağaza bildirim kayıtları: 90 gün.
-- Markaya gidiş tıklamaları ve sipariş bildirimleri: [AFFILIATE KAYIT SAKLAMA SÜRESİ]; hesabını sildiğinde bu kayıtlarla hesabın arasındaki bağ silinir, kalan gelir kaydı anonimdir.
-- Şikâyet kayıtları: [ŞİKAYET KAYDI SAKLAMA SÜRESİ]; hesabını sildiğinde hakkındaki şikâyetler silinir, gönderdiğin şikâyetler kimliğin olmadan kalır.
-- Sunucu ve güvenlik kayıtları (log): [LOG SAKLAMA SÜRESİ]. Loglara e-posta, şifre, fotoğraf, yazdığın serbest metin ya da yapay zekâ yanıtı yazılmaz.
+- Markaya gidiş tıklamaları ve sipariş bildirimleri: hesabını sildiğinde bu kayıtlarla hesabın arasındaki bağ silinir, kalan gelir kaydı anonimdir.
+- Şikâyet kayıtları: hesabını sildiğinde hakkındaki şikâyetler silinir, gönderdiğin şikâyetler kimliğin olmadan kalır.
+- Sunucu ve güvenlik kayıtları (log): loglara e-posta, şifre, fotoğraf, yazdığın serbest metin ya da yapay zekâ yanıtı yazılmaz.
 - Yedekler: canlı veritabanı 30 günlük zamana göre geri yükleme yedeğiyle korunur; silinen veriler yedeklerden en geç 30 gün içinde çıkar. Fotoğraf depolama alanında sürüm saklama kapalıdır, silinen fotoğrafın eski bir kopyası tutulmaz.
 
 Yasal bir yükümlülük ya da süren bir uyuşmazlık nedeniyle daha uzun saklamamız gereken veriler yalnızca o amaçla ve gerektiği süre boyunca saklanır.
@@ -225,7 +223,7 @@ UK GDPR kapsamında şu haklara sahipsin:
 
 Türkiye'de yaşıyorsan KVKK m. 11'deki hakların KVKK Aydınlatma Metni'nde anlatılır.
 
-Başvurunu [İLETİŞİM E-POSTASI] adresine, hesabına kayıtlı e-posta adresinden gönder. Kimliğini doğrulamak için ek bilgi isteyebiliriz. Başvurulara en geç bir ay içinde yanıt veririz (karmaşık başvurularda bu süre iki ay daha uzatılabilir; bunu sana bildiririz). Başvuru ücretsizdir.
+Başvurunu info@alatech.co adresine, hesabına kayıtlı e-posta adresinden gönder. Kimliğini doğrulamak için ek bilgi isteyebiliriz. Başvurulara en geç bir ay içinde yanıt veririz (karmaşık başvurularda bu süre iki ay daha uzatılabilir; bunu sana bildiririz). Başvuru ücretsizdir.
 
 Verilerinin büyük bölümünü uygulamada kendin görebilir, düzeltebilir ve silebilirsin.
 
@@ -244,7 +242,7 @@ Push bildirimleri yalnızca telefonunun bildirim iznini verirsen gönderilir. Bi
 
 ## 17. Çocuklar
 
-Droblet 18 yaşından küçükler için değildir ve 18 yaşından küçüklerden bilerek veri toplamayız. 18 yaşından küçük birinin hesap açtığını öğrenirsek hesabı ve verileri sileriz. Bunu fark edersen [İLETİŞİM E-POSTASI] adresine yaz.
+Droblet 18 yaşından küçükler için değildir ve 18 yaşından küçüklerden bilerek veri toplamayız. 18 yaşından küçük birinin hesap açtığını öğrenirsek hesabı ve verileri sileriz. Bunu fark edersen info@alatech.co adresine yaz.
 
 İleride 13–18 yaş arası kullanıcılar için ebeveyn onaylı bir sürüm sunulursa bu politika önceden güncellenir.
 
@@ -262,4 +260,4 @@ Web sitemiz kendi kodu ile çerez yazmaz, tarayıcıda veri saklamaz ve analitik
 
 Bu politikayı güncelleyebiliriz. Önemli değişiklikleri yürürlükten önce uygulamada ya da e-postayla bildiririz; yeni bir işleme amacı rızanı gerektiriyorsa önce rızanı isteriz.
 
-Sorular ve başvurular: [İLETİŞİM E-POSTASI] · Droblet Ltd, [ŞİRKET ADRESİ], Londra, Birleşik Krallık.
+Sorular ve başvurular: info@alatech.co · Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık.

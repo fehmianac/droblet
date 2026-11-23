@@ -112,9 +112,11 @@ export function CreditPackSheet({ reason }: { reason: CreditSheetReason }) {
                 {t('credits.packMeta')}
               </Text>
             </View>
-            <Text variant="total" className="text-[16px]">
-              {pack.localizedPrice}
-            </Text>
+            {pack.localizedPrice ? (
+              <Text variant="total" className="text-[16px]">
+                {pack.localizedPrice}
+              </Text>
+            ) : null}
           </View>
         ) : (
           <Skeleton className="h-20 w-full rounded-card" />
@@ -126,7 +128,7 @@ export function CreditPackSheet({ reason }: { reason: CreditSheetReason }) {
 
         <View className="gap-1.5">
           <Button
-            label={pack ? t('credits.buy', { price: pack.localizedPrice }) : t('me.topUp')}
+            label={pack?.localizedPrice ? t('credits.buy', { price: pack.localizedPrice }) : t('me.topUp')}
             onPress={buy}
             disabled={!pack || busy}
             loading={store.isPending || flow.phase === 'purchasing' || flow.phase === 'verifying'}
