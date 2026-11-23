@@ -155,12 +155,26 @@
       },
       "trip": {
         "alt": "A woman placing folded sweaters into a cabin suitcase on the bed"
+      },
+      "feed": {
+        "alts": [
+          "A woman walking down a street in a camel coat, a burgundy knit and black trousers",
+          "An outfit laid out on a bed: navy blazer, white shirt, jeans, ballet flats and a black bag",
+          "A woman on a cafe terrace in a cream knit and cream trousers",
+          "An outfit laid out on a bed: black roll-neck, burgundy satin skirt, heels and a black bag",
+          "A woman in a hallway in a burgundy satin dress and black boots",
+          "A woman walking on a cobbled street in a beige trench coat, a white t-shirt and jeans"
+        ]
       }
     },
     "screens": {
       "welcome": {
         "alt": "Droblet app welcome screen",
         "caption": "Welcome"
+      },
+      "segment": {
+        "alt": "Droblet app, department screen: women's and men's collections",
+        "caption": "Department"
       },
       "feed": {
         "alt": "Droblet app, Feed screen: today's outfit, stories and editor posts",
@@ -198,6 +212,11 @@
         "alt": "Droblet app, membership screen: what membership includes",
         "caption": "Membership"
       }
+    },
+    "feed": {
+      "eyebrow": "FEED",
+      "title": "Fresh ideas every morning.",
+      "body": "Editors' picks and looks shared by the community in one feed. Save what you like and build it with your own pieces."
     }
   },
   "footer": {

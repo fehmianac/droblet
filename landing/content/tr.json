@@ -155,12 +155,26 @@
       },
       "trip": {
         "alt": "Yatağın üzerindeki kabin bavuluna katlanmış kazakları yerleştiren kadın"
+      },
+      "feed": {
+        "alts": [
+          "Camel kaban, bordo triko ve siyah pantolonla sokakta yürüyen kadın",
+          "Yatağa serilmiş kombin: lacivert blazer, beyaz gömlek, jean, babet ve siyah çanta",
+          "Krem triko ve krem pantolonla kafe terasında duran kadın",
+          "Yatağa serilmiş kombin: siyah balıkçı yaka, bordo saten etek, topuklu ayakkabı ve siyah çanta",
+          "Bordo saten elbise ve siyah botlarla koridorda duran kadın",
+          "Bej trençkot, beyaz tişört ve jean ile arnavut kaldırımında yürüyen kadın"
+        ]
       }
     },
     "screens": {
       "welcome": {
         "alt": "Droblet uygulamasının hoş geldin ekranı",
         "caption": "Hoş geldin"
+      },
+      "segment": {
+        "alt": "Droblet uygulaması, reyon seçimi ekranı: kadın ve erkek koleksiyonları",
+        "caption": "Reyon seçimi"
       },
       "feed": {
         "alt": "Droblet uygulaması, Akış ekranı: bugünün kombini, hikâyeler ve editör gönderileri",
@@ -198,6 +212,11 @@
         "alt": "Droblet uygulaması, üyelik ekranı: üyeliğin avantajları",
         "caption": "Üyelik"
       }
+    },
+    "feed": {
+      "eyebrow": "AKIŞ",
+      "title": "İlham her sabah yenilenir.",
+      "body": "Editör seçkileri ve topluluğun paylaştığı kombinler tek akışta. Beğendiğini kaydet, kendi parçalarınla kur."
     }
   },
   "footer": {

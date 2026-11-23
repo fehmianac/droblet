@@ -42,27 +42,30 @@ env:
 - inputText: "deniz@example.com"
 - tapOn:
     point: "50%,14%"
+# Shown as plain text first: typing into the secure field can be swallowed by the iOS password suggestions.
+- tapOn:
+    id: "auth.password.toggle"
 - tapOn:
     id: "auth.password"
 - inputText: "showcase1"
 - tapOn:
     point: "50%,14%"
-# Canvas 18: the birth year replaced the 18+ box — an adult year.
+# Canvas 18: the birth year replaced the 18+ box — an adult year (update 2004 when it stops being one of the first rows).
 - tapOn:
     id: "birth.year"
 - extendedWaitUntil:
     visible:
       id: "birth.yearSheet.list"
     timeout: 5000
-- scrollUntilVisible:
-    element:
-      id: "birth.yearSheet.option.1996"
-    direction: DOWN
-    timeout: 20000
-    centerElement: true
+# The sheet opens around the 7th newest year. A short swipe INSIDE the list brings an adult year up (scrollUntilVisible
+# starts its swipe on the backdrop, which closes the sheet).
+- swipe:
+    start: "50%,82%"
+    end: "50%,66%"
+    duration: 800
 - waitForAnimationToEnd
 - tapOn:
-    id: "birth.yearSheet.option.1996"
+    id: "birth.yearSheet.option.2004"
 - tapOn:
     id: "birth.yearSheet.select"
 - waitForAnimationToEnd

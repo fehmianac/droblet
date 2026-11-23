@@ -27,6 +27,9 @@ const photos = {
   trip: { src: '/photos/landing-trip.webp', width: 1536, height: 1024 },
 } as const;
 
+/** The Akış band: editor photographs and look covers (fictional, AI-made), in the order of `home.photos.feed.alts`. */
+const feedPhotos = ['feed-office', 'cover-navy-blazer', 'feed-weekend', 'cover-friend-dinner', 'feed-invite', 'story-trench'] as const;
+
 /**
  * Features shown with a photograph instead of a screenshot (canvas `Landing`), by dictionary index; the
  * rest keep their phone frame. `position` is the crop focus inside the 4/3 card.
@@ -54,6 +57,7 @@ const toneClasses = [
 /** Order of the screens gallery before the closing call to action. */
 const galleryScreens: readonly ScreenName[] = [
   'welcome',
+  'segment',
   'feed',
   'today',
   'looks',
@@ -205,6 +209,33 @@ export function HomePage({ locale }: { locale: Locale }) {
               </article>
             );
           })}
+        </section>
+
+        {/* Akış: what the feed looks like */}
+        <section id="feed" className="border-t border-line bg-paper">
+          <div className="mx-auto flex max-w-page flex-col gap-9 px-4 py-14 sm:px-6 sm:py-[72px]">
+            <div className="flex max-w-[640px] flex-col gap-2.5" data-reveal>
+              <p className="eyebrow text-accent">{t.feed.eyebrow}</p>
+              <h2 className="section-title">{t.feed.title}</h2>
+              <p className="body-text text-[16px]">{t.feed.body}</p>
+            </div>
+            <ul className="m-0 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-3 sm:gap-4 lg:grid-cols-6" data-reveal>
+              {feedPhotos.map((name, index) => (
+                <li key={name} className="overflow-hidden rounded-card bg-sand">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- static export: no image loader */}
+                  <img
+                    src={`/photos/${name}.webp`}
+                    width={800}
+                    height={1200}
+                    alt={t.photos.feed.alts[index] ?? ''}
+                    loading="lazy"
+                    decoding="async"
+                    className="block aspect-[2/3] w-full object-cover"
+                  />
+                </li>
+              ))}
+            </ul>
+          </div>
         </section>
 
         {/* Privacy promise */}
