@@ -114,6 +114,15 @@ and “Security”, TR + EN) now says this. Please confirm this is acceptable fo
 / 25 and KVKK art. 12 (security, privacy by default), and whether the item photo screen needs an extra notice. Technical
 detail: [docs/images.md](../images.md).
 
+### Q1d. Covers of looks shared to the feed at public, unguessable addresses — added 2026-11-23
+Owner decisions 21–22: an adult member can share an own look to the home feed (off by default, one confirmation sheet).
+While it is shared, the look's **AI cover** (the clothes laid out on a bed; no person, never a try-on image or a photo
+of the member) is copied to a public address in the same folder as the item images (`…/cover-<look id>-<128-bit
+random>.webp`). The copy is deleted when the member stops sharing, deletes the look or the account, when three members
+report the look (automatic removal) and when a moderator removes it. Covers of looks that are not shared stay private.
+Privacy policy §10 and “Security” (TR + EN) now say this, and §10 now lists what a shared look shows. Please confirm the
+wording and whether the confirmation sheet ("Bu look'u, kapağını ve parça görsellerini herkes görebilir") is enough notice.
+
 ### Q1d. "See it on me" with an outfit photo the user chooses — added 2026-11-20
 Owner request: try a **whole outfit from a photo** (e.g. a saved inspiration photo, an outfit import photo) on the user
 without splitting it into pieces. What is processed: the user's own full-body photo (consent 1) or face photo + body type
