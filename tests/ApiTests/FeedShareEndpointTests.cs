@@ -406,7 +406,8 @@ public class FeedShareEndpointTests(StoreSocialApiFactory factory) : IClassFixtu
         Assert.Equal("https://img.example/1.jpg", pieces[1].GetProperty("imageUrl").GetString());
         Assert.Equal(["category", "imageUrl", "subcategory"], pieces[0].EnumerateObject().Select(p => p.Name).Order());
         // Editor posts keep their shape, with the new fields at their defaults.
-        Assert.Equal(("editor", true, false), (editorPost.GetProperty("kind").GetString(), editorPost.GetProperty("canTryOn").GetBoolean(), editorPost.GetProperty("hasSimilar").GetBoolean()));
+        // (This editor post has no product: nothing to try on.)
+        Assert.Equal(("editor", false, false), (editorPost.GetProperty("kind").GetString(), editorPost.GetProperty("canTryOn").GetBoolean(), editorPost.GetProperty("hasSimilar").GetBoolean()));
         Assert.Empty(editorPost.GetProperty("pieces").EnumerateArray());
 
         // Similar products: same category + the piece's main colour; the look's own catalog piece first; no retired one.

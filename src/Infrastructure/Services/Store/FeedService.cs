@@ -406,7 +406,8 @@ public sealed class FeedService(
                     FeedRules.BuyableCount(products),
                     Pieces: [],
                     HasSimilar: false,
-                    CanTryOn: true,
+                    // "Üzerimde dene" dresses the post's available catalog products: a post without any has nothing to try on.
+                    CanTryOn: products.Any(p => p.Available),
                     likeCount,
                     liked.Contains(post.Id),
                     saved.Contains(post.Id)));

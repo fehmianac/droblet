@@ -142,7 +142,7 @@ teens (`social`), as is the friends' feed `GET v1/tenant/feed` (unchanged).
   "images": ["https://…"],                                              // 1–4
   "products": [ { /* ProductDto, every field */ "ownedSimilar": true, "ownedItemId": "01J…" } ],  // 0–8; retired products stay listed with available: false
   "buyableCount": 2,                                                     // products that are available and not ownedSimilar
-  "pieces": [], "hasSimilar": false, "canTryOn": true,                   // editor posts: always these values
+  "pieces": [], "hasSimilar": false, "canTryOn": true,                   // canTryOn: the post has an available product (false = no "Üzerimde dene")
   "likeCount": 1284, "liked": false, "saved": false,
   "imagesExpireAt": null }
 
