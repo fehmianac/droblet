@@ -245,20 +245,43 @@ if (existsSync(legalDocsDir)) {
   }
 }
 
-// ── 6. Home page images ────────────────────────────────────────────────────────────────────────────
-// The page shows photographs only — no app screenshots (owner decision, 23 Nov 2026) — and every image has alt text
-// and a pixel size.
+// ── 6. App screenshots ─────────────────────────────────────────────────────────────────────────────
+// Every language has the same set of screenshots; each page shows its own language's set, and every
+// screenshot a page references is in out/. Weight budgets keep the landing page light.
+const screensDir = join(out, 'screens');
+const screenSets = Object.fromEntries(
+  locales.map((locale) => {
+    const dir = join(screensDir, locale);
+    return [locale, existsSync(dir) ? readdirSync(dir).filter((name) => name.endsWith('.webp')).sort() : []];
+  }),
+);
 for (const locale of locales) {
+  expect(screenSets[locale].length > 0, `out/screens/${locale}/ has no screenshots`);
+  expect(
+    screenSets[locale].join() === screenSets[defaultLocale].join(),
+    `out/screens/${locale}/ differs from out/screens/${defaultLocale}/ (${screenSets[locale].join(', ')})`,
+  );
+  const bytes = screenSets[locale].reduce((sum, name) => sum + statSync(join(screensDir, locale, name)).size, 0);
+  expect(bytes < 2.5 * 1024 * 1024, `out/screens/${locale}/ weighs ${(bytes / 1048576).toFixed(2)} MB (budget 2.5 MB)`);
+
   const home = join(out, locale === defaultLocale ? '' : locale, 'index.html');
   if (!existsSync(home)) continue;
   const html = readFileSync(home, 'utf8');
-  expect(!/\ssrc="\/screens\//.test(html), `${relative(root, home)}: shows an app screenshot`);
-  const images = [...html.matchAll(/<img\b[^>]*>/g)];
-  expect(images.length > 0, `${relative(root, home)}: shows no photograph`);
-  for (const [tag] of images) {
+  const referenced = [...html.matchAll(/<img\b[^>]*\ssrc="(\/screens\/[^"]+)"/g)].map(([, src]) => src);
+  expect(referenced.length > 0, `${relative(root, home)}: shows no app screenshot`);
+  for (const src of new Set(referenced)) {
+    expect(src.startsWith(`/screens/${locale}/`), `${relative(root, home)}: shows "${src}" from another language`);
+    for (const other of locales) {
+      const file = join(out, src.replace(`/screens/${locale}/`, `/screens/${other}/`));
+      expect(existsSync(file), `${relative(root, home)}: screenshot "${relative(out, file)}" is missing`);
+    }
+  }
+  for (const [tag] of html.matchAll(/<img\b[^>]*>/g)) {
     expect(/\salt="[^"]+"/.test(tag), `${relative(root, home)}: <img> without alt text: ${tag.slice(0, 80)}`);
     expect(/\swidth="\d+"/.test(tag) && /\sheight="\d+"/.test(tag), `${relative(root, home)}: <img> without width/height`);
   }
+  const hero = join(screensDir, locale, 'today.webp');
+  if (existsSync(hero)) expect(statSync(hero).size < 400 * 1024, `out/screens/${locale}/today.webp (hero) is over 400 KB`);
 }
 
 // ── Result ─────────────────────────────────────────────────────────────────────────────────────────

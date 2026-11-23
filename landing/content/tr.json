@@ -132,6 +132,13 @@
       "priceNote": "Güncel fiyat ve deneme süresi App Store ve Google Play'de yer alır. Fazlası için ek AI görseli paketi.",
       "cta": "Ücretsiz denemeyi başlat"
     },
+    "gallery": {
+      "eyebrow": "EKRANLAR",
+      "title": "Uygulamanın içinden.",
+      "region": "Uygulama ekranları — yatay kaydırılır",
+      "previous": "Önceki ekranlar",
+      "next": "Sonraki ekranlar"
+    },
     "final": {
       "title": "Dolabın artık senin için düşünüyor."
     },
@@ -148,6 +155,56 @@
       },
       "trip": {
         "alt": "Yatağın üzerindeki kabin bavuluna katlanmış kazakları yerleştiren kadın"
+      }
+    },
+    "screens": {
+      "welcome": {
+        "alt": "Droblet uygulamasının hoş geldin ekranı",
+        "caption": "Hoş geldin"
+      },
+      "today": {
+        "alt": "Droblet uygulaması, Bugün ekranı: hava durumu ve günün kombini",
+        "caption": "Bugün"
+      },
+      "wardrobe": {
+        "alt": "Droblet uygulaması, Gardırop ekranı: kategorilere ayrılmış parçalar",
+        "caption": "Gardırop"
+      },
+      "looks": {
+        "alt": "Droblet uygulaması, Looklar ekranı: kaydedilmiş kombinler",
+        "caption": "Looklar"
+      },
+      "stylist": {
+        "alt": "Droblet uygulaması, Stilist ekranı: ortam ve hava seçimi",
+        "caption": "Stilist"
+      },
+      "suggestion": {
+        "alt": "Droblet uygulaması, kombin önerisi ekranı",
+        "caption": "Kombin önerisi"
+      },
+      "trip": {
+        "alt": "Droblet uygulaması, bavul detayı: günlük looklar ve bavul listesi",
+        "caption": "Bavul"
+      },
+      "palette": {
+        "alt": "Droblet uygulaması, Renk paletim ekranı: sezon tipi ve yakışan tonlar",
+        "caption": "Renk paletim"
+      },
+      "shop": {
+        "alt": "Droblet uygulaması, Stil mağazası ekranı",
+        "caption": "Stil mağazası"
+      },
+      "product": {
+        "alt": "Droblet uygulaması, ürün ekranı: beden seçimi ve mağazaya geçiş",
+        "caption": "Ürün"
+      },
+      "friends": {
+        "alt": "Droblet uygulaması, Arkadaş akışı: arkadaşların look'ları ve yıldız puanları",
+        "caption": "Arkadaşlar"
+      },
+      "profile": {
+        "alt": "Droblet uygulaması, Profil ekranı: bu ayki AI görseli kredisi ve üyelik",
+        "caption": "Profil"
       }
     }
   },
