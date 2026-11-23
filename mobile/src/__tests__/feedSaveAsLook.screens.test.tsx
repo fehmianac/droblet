@@ -169,17 +169,28 @@ describe('Akış · "Looklarıma ekle" (owner decision 2026-11-23)', () => {
     await waitFor(() => expect(screen.getByTestId('look-edit')).toBeTruthy(), WAIT);
   });
 
-  it('a post with one piece can only be saved as inspiration', async () => {
+  it('a post with one piece: "Add the piece to my wardrobe" takes the place of the look with pieces — the piece is added, no look is made, never twice', async () => {
     await openFeed((photo) => {
       photo.pieces = [{ category: 'dress', imageUrl: null }];
     });
-    const sheet = await openSheet();
-    const pieces = sheet.getByTestId('feed.lookSheet.pieces');
-    expect(pieces.props.accessibilityState).toMatchObject({ disabled: true });
-    expect(pieces.props.accessibilityLabel).toBe('Save with its pieces. This post does not have enough pieces for a look.');
-    await fireEvent.press(pieces);
-    expect(fixtureDb.looks).toHaveLength(4);
+    const before = fixtureDb.items.length;
+    let sheet = await openSheet();
+    expect(sheet.queryByTestId('feed.lookSheet.pieces')).toBeNull();
+    const row = sheet.getByTestId('feed.lookSheet.wardrobe');
+    expect(row.props.accessibilityLabel).toBe('Add the piece to my wardrobe. The piece goes to your wardrobe; no look is made.');
     expect(sheet.getByTestId('feed.lookSheet.inspiration').props.accessibilityState).toMatchObject({ disabled: false });
+
+    await fireEvent.press(row);
+    await waitFor(() => expect(screen.getByTestId('toast-feed-pieces')).toBeTruthy(), WAIT);
+    expect(screen.getByTestId('toast-message')).toHaveTextContent('Added to your wardrobe');
+    await waitFor(() => expect(screen.queryByTestId('feed.lookSheet')).toBeNull(), WAIT);
+    expect(fixtureDb.items).toHaveLength(before + 1);
+    expect(fixtureDb.looks).toHaveLength(4);
+
+    sheet = await openSheet();
+    await fireEvent.press(sheet.getByTestId('feed.lookSheet.wardrobe'));
+    await waitFor(() => expect(screen.queryByTestId('feed.lookSheet')).toBeNull(), WAIT);
+    expect(fixtureDb.items).toHaveLength(before + 1);
   });
 
   it('a failure keeps the sheet open and says so; nothing is created', async () => {

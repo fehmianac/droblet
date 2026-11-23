@@ -77,6 +77,12 @@ describe('store wire mappers', () => {
     expect(p.priceBand).toBe('luxury_touch');
   });
 
+  it('"sizes on the brand site" is said only for a product without a size list', () => {
+    expect(toProductSummary(bag).sizesOnBrandSite).toBe(false);
+    expect(toProductSummary({ ...bag, sizesOnBrandSite: true })).toMatchObject({ sizes: ['ONE'], sizesOnBrandSite: true });
+    expect(toProductSummary({ ...shirt, sizesOnBrandSite: true }).sizesOnBrandSite).toBe(false);
+  });
+
   it('knitwear is the app category "knit"', () => {
     expect(toProductSummary(knit).category).toBe('knit');
   });

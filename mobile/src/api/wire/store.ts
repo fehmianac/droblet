@@ -62,6 +62,7 @@ export function toProductSummary(wire: ProductWire): ProductSummary {
     colors: wire.colors,
     // A product without sizes (bags, accessories) is one-size on the device.
     sizes: wire.sizes.length > 0 ? wire.sizes : [ONE_SIZE],
+    sizesOnBrandSite: wire.sizes.length === 0 && wire.sizesOnBrandSite === true,
     available: wire.available,
     description: wire.description,
     priceBand: toSnake(wire.priceBand),

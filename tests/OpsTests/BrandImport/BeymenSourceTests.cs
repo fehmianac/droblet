@@ -110,6 +110,8 @@ public class BeymenSourceTests
         Assert.Equal("https://cdn.beymen.com/mnresize/800/1115/productimages/eakaataj.2va_IMG_01_8684786456897.jpg", input.Images![0]);
         Assert.Equal(SkirtUrl, input.AffiliateUrl);
         Assert.Equal(ImportSkip.OtherSegment, SourceCatalogMapper.Map(Beymen, CatalogSegment.Men, page).Skip);
+        Assert.True(mapped!.Input.SizesOnBrandSite);                                             // no size list: the size is chosen on beymen.com
+        Assert.Empty(mapped.Input.Sizes!);
     }
 
     [Fact]

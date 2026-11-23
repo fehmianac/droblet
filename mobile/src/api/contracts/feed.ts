@@ -109,3 +109,13 @@ export const FEED_LOOK_MIN_PIECES = 2;
  * `look_not_savable` · 403 `premium_required` · 409 `look_id_taken`. Queued like the other feed writes.
  */
 export type SaveFeedPostAsLookRequest = { postId: string; mode: FeedLookMode; requestId: string };
+
+/**
+ * POST `v1/tenant/feed-post/{id}/pieces` `{ requestId }` → 200 `ItemDto[]` — "Parçayı gardırobuma ekle" (owner decision
+ * 2026-11-23): the post's pieces become wardrobe items and no look is made. Offered where the pieces do not make a
+ * look (fewer than `FEED_LOOK_MIN_PIECES`). The same piece is never added twice. Errors as for the look.
+ */
+export type AddFeedPostPiecesRequest = { postId: string; requestId: string };
+
+/** What the "Looklarıma ekle" sheet can do: one of the two looks, or the pieces alone. */
+export type FeedSaveChoice = FeedLookMode | 'wardrobe';

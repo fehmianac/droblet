@@ -129,6 +129,9 @@ internal interface IBrandCatalogSource
     /// <summary>False for another label sold on the brand's site.</summary>
     bool IsOwnBrand(string? brandName);
 
+    /// <summary>True when the source cannot read the size list at all (Beymen): products are stored as "sizes on the brand's site", not as one-size.</summary>
+    bool SizesOnBrandSite { get; }
+
     /// <summary>A raw image URL → the hot-link the catalog stores (https, the brand's image host, a sane size); null = not usable.</summary>
     string? ImageUrl(string? raw);
 
@@ -166,6 +169,8 @@ internal abstract class BrandCatalogSource : IBrandCatalogSource
     }
 
     public virtual IReadOnlyDictionary<string, string> ExtraColors { get; } = new Dictionary<string, string>();
+
+    public virtual bool SizesOnBrandSite => false;
 
     public virtual bool IsOwnBrand(string? brandName) =>
         string.IsNullOrWhiteSpace(brandName) || SourceText.Fold(brandName).StartsWith(SourceText.Fold(DisplayName), StringComparison.Ordinal);

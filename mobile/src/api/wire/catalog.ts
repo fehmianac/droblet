@@ -47,6 +47,8 @@ export type ProductWire = {
   colors: string[];
   /** May be empty (bags, accessories) → one size. */
   sizes: string[];
+  /** true = `sizes` is empty because the catalogue does not know them: the size is chosen on the brand's site. Left out by older servers. */
+  sizesOnBrandSite?: boolean;
   priceMinor: number;
   currency: string;
   /** Only when the last price change was a drop. */

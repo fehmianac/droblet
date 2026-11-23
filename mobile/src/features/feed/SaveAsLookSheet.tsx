@@ -2,7 +2,7 @@ import { ChevronRight, Image as ImageIcon, Shirt, type LucideIcon } from 'lucide
 import { useTranslation } from 'react-i18next';
 import { Pressable, View } from 'react-native';
 
-import { FEED_LOOK_MIN_PIECES, type FeedLookMode, type FeedPost } from '@/api/contracts/feed';
+import { FEED_LOOK_MIN_PIECES, type FeedPost, type FeedSaveChoice } from '@/api/contracts/feed';
 import { DropLoader } from '@/components/brand/DropLoader';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
@@ -54,7 +54,8 @@ type Props = {
 /**
  * "Looklarıma ekle" on an Akış editor post with pieces (owner decision 2026-11-23): the post's title, then the two ways
  * — "İlham olarak kaydet" (the photograph becomes the look's cover, nothing is added to the wardrobe) and "Parçalarıyla
- * kaydet" (the pieces become wardrobe items and the look is made of them; needs two pieces) — and "Vazgeç". The tapped
+ * kaydet" (the pieces become wardrobe items and the look is made of them) or, when the post has fewer than two pieces,
+ * "Parçayı gardırobuma ekle" (the piece goes to the wardrobe, no look) — and "Vazgeç". The tapped
  * row shows progress; once the look exists the sheet closes and the toast offers "Gör". A failure keeps the sheet open
  * (the toast, or the paywall, says why).
  */
@@ -63,7 +64,7 @@ export function SaveAsLookSheet({ post, onClose }: Props) {
   const { save, saving } = useSaveFeedPostAsLook();
   const count = post?.pieces.length ?? 0;
   const enough = count >= FEED_LOOK_MIN_PIECES;
-  const choose = (mode: FeedLookMode) => {
+  const choose = (mode: FeedSaveChoice) => {
     if (!post || saving) return;
     void save(post, mode).then((done) => {
       if (done) onClose();
@@ -91,21 +92,35 @@ export function SaveAsLookSheet({ post, onClose }: Props) {
             title={t('homeFeed.lookSheet.inspiration')}
             body={t('homeFeed.lookSheet.inspirationBody')}
             busy={saving === 'inspiration'}
-            disabled={saving === 'pieces'}
+            disabled={saving === 'pieces' || saving === 'wardrobe'}
             busyLabel={t('homeFeed.lookSheet.saving')}
             onPress={() => choose('inspiration')}
             testID="feed.lookSheet.inspiration"
           />
-          <Row
-            icon={Shirt}
-            title={t('homeFeed.lookSheet.pieces')}
-            body={enough ? t('homeFeed.lookSheet.piecesBody', { count }) : t('homeFeed.lookSheet.piecesUnavailable')}
-            busy={saving === 'pieces'}
-            disabled={!enough || saving === 'inspiration'}
-            busyLabel={t('homeFeed.lookSheet.saving')}
-            onPress={() => choose('pieces')}
-            testID="feed.lookSheet.pieces"
-          />
+          {enough ? (
+            <Row
+              icon={Shirt}
+              title={t('homeFeed.lookSheet.pieces')}
+              body={t('homeFeed.lookSheet.piecesBody', { count })}
+              busy={saving === 'pieces'}
+              disabled={saving === 'inspiration'}
+              busyLabel={t('homeFeed.lookSheet.saving')}
+              onPress={() => choose('pieces')}
+              testID="feed.lookSheet.pieces"
+            />
+          ) : (
+            // Too few pieces for a look (canvas 06″c · tek parça): the piece goes to the wardrobe on its own.
+            <Row
+              icon={Shirt}
+              title={t('homeFeed.lookSheet.wardrobe', { count })}
+              body={t('homeFeed.lookSheet.wardrobeBody', { count })}
+              busy={saving === 'wardrobe'}
+              disabled={saving === 'inspiration'}
+              busyLabel={t('homeFeed.lookSheet.saving')}
+              onPress={() => choose('wardrobe')}
+              testID="feed.lookSheet.wardrobe"
+            />
+          )}
           <Button variant="secondary" label={t('homeFeed.lookSheet.cancel')} onPress={close} disabled={saving !== null} testID="feed.lookSheet.cancel" />
         </View>
       ) : null}

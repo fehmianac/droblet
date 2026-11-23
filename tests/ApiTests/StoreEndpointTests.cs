@@ -86,6 +86,37 @@ public class AdminAndCatalogEndpointTests(StoreSocialApiFactory factory) : IClas
     }
 
     [Fact]
+    public async Task SizesOnBrandSite_IsSaidOnlyWhileTheProductHasNoSizeList_AndSurvivesAnUpdateThatLeavesItOut()
+    {
+        var admin = await factory.AdminAsync();
+        var brand = await factory.SeedBrandAsync(admin);
+        var (user, _) = await factory.RegisterAsync();
+        object Body(string[] sizes, bool? flag) => new
+        {
+            brandId = brand, name = StoreSocialApiFactory.Text("Yün Kaban", "Wool Coat"), category = "coat", colors = new[] { "black" }, sizes,
+            priceMinor = 500_000, priceBand = "luxuryTouch", images = new[] { "https://img.example/1.jpg" }, affiliateUrl = "https://shop.example/p", sizesOnBrandSite = flag,
+        };
+        async Task<(bool Flag, int Sizes)> ReadAsync()
+        {
+            var json = await (await user.GetAsync("v1/catalog/product/prod-no-sizes")).JsonAsync();
+            return (json.GetProperty("sizesOnBrandSite").GetBoolean(), json.GetProperty("sizes").GetArrayLength());
+        }
+
+        (await admin.PutJsonAsync("v1/admin/product/prod-no-sizes", Body([], true))).EnsureSuccessStatusCode();
+        var imported = await ReadAsync();
+        (await admin.PutJsonAsync("v1/admin/product/prod-no-sizes", Body([], null))).EnsureSuccessStatusCode();   // a feed without the column
+        var kept = await ReadAsync();
+        (await admin.PutJsonAsync("v1/admin/product/prod-no-sizes", Body(["S", "M"], true))).EnsureSuccessStatusCode();
+        var sized = await ReadAsync();
+        var ordinary = await (await user.GetAsync($"v1/catalog/product/{await factory.SeedProductAsync(admin, brand, sizes: [])}")).JsonAsync();
+
+        Assert.Equal((true, 0), imported);
+        Assert.Equal((true, 0), kept);
+        Assert.Equal((false, 2), sized);                                                        // a size list wins
+        Assert.False(ordinary.GetProperty("sizesOnBrandSite").GetBoolean());                    // a one-size product (a bag) is not "on the brand's site"
+    }
+
+    [Fact]
     public async Task ColorList_IsTheColoursLiveProductsComeIn_NamedInTheRequestLanguage()
     {
         var admin = await factory.AdminAsync();

@@ -297,6 +297,8 @@ Uygulama **çok dilli**; ilk diller **Türkçe ve İngilizce**, sonrası veriyle
 | 18 | Yasal metinlere AI kullanım sayaçları | Kullanıcı başına AI kullanım sayıları (yalnız sayılar) tutuluyor, dışa aktarmada `data/ai-usage.json`; gizlilik/KVKK metnine bir satır (hukukçu onayı) |
 | 19 | Firebase/GA4 konsol ayarları | Olay saklama 14 ay, Google signals ve veri paylaşımı kapalı, Google Ads veri işleme şartları kabul, Ads/AdMob bağlama yok; hukukçu Q16 (meşru menfaat mi ön rıza mı) |
 | 20 | iOS paylaş menüsü (Share Extension) | Apple: App Group `group.com.alatech.droplet`, App ID'lerde App Groups, `com.alatech.droplet.share` App ID, ana profili yenile (secret `IOS_PROVISIONING_PROFILE`), uzantı profili (secret `IOS_SHARE_PROVISIONING_PROFILE`), repo değişkeni `PROFILE_NAME_SHARE` |
+| 21 | Logolu Akış gönderileri | (23 Kasım 2026 kararı) Marka logosu açıkça görünen iki gönderi (Chanel kolajı, Polo) dev'de kalır, prod'a geçmez: prod'dan önce kaldırılır ya da markadan izin alınır |
+| 22 | Marka kataloğu izinleri | Dev'deki içe aktarılan ürünler (Vakko, Beymen, Sarar, Gap) deneme amaçlıdır; gerçek kullanıcılara açılmadan önce markalardan izin / resmi ürün akışı gerekir. Bluemint ve Kiğılı'nın katalog ucu "ajan kimliği" (yayımlanmış profil + imzalı istek) istiyor; Sephora kendini tanıtan otomatik istekleri reddediyor (403) — üçü için de resmi ürün akışı (ör. Awin) istenmeli |
 | 14 | Prod kurulumu | Altyapı + SSM + mağaza başvurusu; ürün sahibini bekler |
 
 Benim tarafımda (bekleme listesi dışı, sıradaki işler): paywall'a abonelik koşulları linki; moderasyonda "içerik kaldırıldı"nın gerçekten kaldırması; palette ai-perf zaman aşımı incelemesi.

@@ -54,7 +54,8 @@ internal static class SourceCatalogMapper
             product.Url,                    // the buy link: "Satın al" opens it with the click id appended
             AffiliateSource.Direct,
             Retired: false,
-            Segment: segment);
+            Segment: segment,
+            SizesOnBrandSite: source.SizesOnBrandSite && product.Sizes.Count == 0);
         var strike = PriceMinor(product.ListPrice) is { } list && list > price ? list : (long?)null;
         return (new MappedProduct(input, strike), null);
     }
@@ -73,7 +74,8 @@ internal static class SourceCatalogMapper
         && SameText(stored.Description, input.Description)
         && stored.Colors.SequenceEqual((input.Colors ?? []).Select(CatalogRules.NormalizeColor).Distinct(), StringComparer.Ordinal)
         && stored.Sizes.SequenceEqual((input.Sizes ?? []).Select(CatalogRules.NormalizeSize).Distinct(), StringComparer.Ordinal)
-        && stored.Images.SequenceEqual(input.Images ?? [], StringComparer.Ordinal);
+        && stored.Images.SequenceEqual(input.Images ?? [], StringComparer.Ordinal)
+        && stored.SizesOnBrandSite == (input.SizesOnBrandSite ?? stored.SizesOnBrandSite);
 
     private static bool SameText(IReadOnlyDictionary<string, string>? stored, IReadOnlyDictionary<string, string>? input)
     {

@@ -38,7 +38,9 @@ public record ProductInput(
     string? AffiliateUrl,
     AffiliateSource? AffiliateSource,
     bool Retired = false,
-    CatalogSegment? Segment = null);
+    CatalogSegment? Segment = null,
+    // The source has no size list (not a one-size product): the app says "sizes on the brand's site". Omitted = unchanged on an update.
+    bool? SizesOnBrandSite = null);
 
 public record EditLookVariantInput(PriceBand PriceBand, IReadOnlyList<string>? ProductIds);
 

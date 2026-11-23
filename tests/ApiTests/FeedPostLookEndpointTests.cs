@@ -210,6 +210,37 @@ public class FeedPostLookEndpointTests(ApiFactory factory) : IClassFixture<ApiFa
     }
 
     [Fact]
+    public async Task AddPieces_PutsThePiecesInTheWardrobe_WithoutALook_NeverTwice_AndALaterLookReusesThem()
+    {
+        var (client, auth) = await factory.RegisterAsync();
+        var tenant = auth.TenantId;
+        var single = await PostAsync(factory, (ItemCategory.Dress, "midi-dress"));
+        single.Pieces[0].ColorId = "burgundy";
+        await factory.Repository.SaveAsync(single);
+        var pair = await PostAsync(factory, (ItemCategory.Top, null), (ItemCategory.Bottom, null));
+        var requestId = Ulid.New();
+
+        var first = await client.PostJsonAsync($"v1/tenant/feed-post/{single.Id}/pieces", new { requestId });
+        var retry = await client.PostJsonAsync($"v1/tenant/feed-post/{single.Id}/pieces", new { requestId });
+        var again = await client.PostJsonAsync($"v1/tenant/feed-post/{single.Id}/pieces", new { requestId = Ulid.New() });
+        await client.PostJsonAsync($"v1/tenant/feed-post/{pair.Id}/pieces", new { requestId = Ulid.New() });
+        var look = await client.PostJsonAsync($"v1/tenant/feed-post/{pair.Id}/look", Body("pieces"));
+
+        Assert.Equal((HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK), (first.StatusCode, retry.StatusCode, again.StatusCode));
+        var item = Assert.Single((await first.ReadAsync<List<ItemDto>>())!);
+        Assert.Equal((FeedLookService.PieceItemId(tenant, single, 0), ItemCategory.Dress, "burgundy"), (item.Id, item.Category, item.ColorIds[0]));
+        Assert.Equal(item.Id, Assert.Single((await again.ReadAsync<List<ItemDto>>())!).Id);
+        Assert.Equal(3, (await ItemsAsync(tenant)).Count);                                      // one dress + the pair, nothing twice
+        Assert.Equal(HttpStatusCode.Created, look.StatusCode);
+        Assert.Single(await LooksAsync(tenant));                                                // only the look asked for
+        Assert.Equal(3, (await ItemsAsync(tenant)).Count);                                      // the look reused the pair
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await client.PostJsonAsync($"v1/tenant/feed-post/{(await PostAsync(factory)).Id}/pieces", new { requestId = Ulid.New() })).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.PostJsonAsync($"v1/tenant/feed-post/{Ulid.New()}/pieces", new { requestId = Ulid.New() })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostJsonAsync($"v1/tenant/feed-post/{single.Id}/pieces", new { requestId = "x" })).StatusCode);
+    }
+
+    [Fact]
     public async Task OnePost_IsReadAsTheCallerSeesIt_ForADetailOpenedCold_404WhenNotThereForThem()
     {
         var (client, _) = await factory.RegisterAsync();

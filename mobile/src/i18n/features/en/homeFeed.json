@@ -142,13 +142,19 @@
       "pieces": "Save with its pieces",
       "piecesBody_one": "{{count}} piece is added to your wardrobe and the look is made of it.",
       "piecesBody_other": "{{count}} pieces are added to your wardrobe and the look is made of them.",
-      "piecesUnavailable": "This post does not have enough pieces for a look.",
+      "wardrobe_one": "Add the piece to my wardrobe",
+      "wardrobe_other": "Add the pieces to my wardrobe",
+      "wardrobeBody_one": "The piece goes to your wardrobe; no look is made.",
+      "wardrobeBody_other": "{{count}} pieces go to your wardrobe; no look is made.",
+      "wardrobeToast": "Added to your wardrobe",
+      "wardrobeQueuedToast": "You're offline. It will be added to your wardrobe when you're back online.",
       "cancel": "Cancel",
       "saving": "Saving",
       "savedToast": "Added to your looks",
       "queuedToast": "You are offline. It will be added to your looks when you are back online.",
       "errors": {
         "failed": "The look could not be saved. Try again.",
+        "wardrobeFailed": "The piece couldn't be added to your wardrobe. Try again.",
         "notSavable": "This post cannot be saved as a look.",
         "gone": "This post is no longer published."
       }

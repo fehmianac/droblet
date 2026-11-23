@@ -156,6 +156,17 @@ public class FeedPostLookRequestValidator : AbstractValidator<FeedPostLookReques
     }
 }
 
+/// <summary>POST v1/tenant/feed-post/{id}/pieces — requestId: a client ULID (a retry of the same request creates nothing twice).</summary>
+public record FeedPostPiecesRequest(string? RequestId);
+
+public class FeedPostPiecesRequestValidator : AbstractValidator<FeedPostPiecesRequest>
+{
+    public FeedPostPiecesRequestValidator()
+    {
+        RuleFor(x => x.RequestId).Must(Domain.Extensions.Ulid.IsValid).WithErrorCode("request_id_invalid");
+    }
+}
+
 public record FeedPostReportRequest(ReportReason Reason, string? Note);
 
 public class FeedPostReportRequestValidator : AbstractValidator<FeedPostReportRequest>

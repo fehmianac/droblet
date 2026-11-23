@@ -27,7 +27,11 @@ public record ProductDto(
     IReadOnlyList<string> Images,
     bool Available,
     DateTime CreatedAt,
-    CatalogSegment Segment = CatalogSegment.Women);
+    CatalogSegment Segment = CatalogSegment.Women)
+{
+    /// <summary>True = `Sizes` is empty because the catalog does not know them (not a one-size product): the size is chosen on the brand's site.</summary>
+    public bool SizesOnBrandSite { get; init; }
+}
 
 public record LookRefDto(LookRefKind Kind, string Id);
 
@@ -101,7 +105,7 @@ public static class StoreDtoMapper
         p.Category, CatalogRules.SlotOf(p.Category),
         p.Colors, p.Sizes, p.PriceMinor, p.Currency,
         p.PreviousPriceMinor is { } previous && previous > p.PriceMinor ? previous : null,
-        p.PriceBand, p.Images, !p.Retired, p.CreatedAt, p.Segment);
+        p.PriceBand, p.Images, !p.Retired, p.CreatedAt, p.Segment) { SizesOnBrandSite = p.SizesOnBrandSite && p.Sizes.Count == 0 };
 
     public static ClosetItemDto ToDto(this ClosetItem item) => new(item.Id, item.Name, item.Category, item.Colors, item.ImageUrl);
 
