@@ -200,6 +200,23 @@ public interface IEditLookLookup
 public interface IFeedPostLookup
 {
     Task<IReadOnlyList<string>?> GetProductIdsAsync(string postId, CancellationToken ct);
+
+    /// <summary>
+    /// The photograph of a live editor post that can be tried on as a whole outfit (FeedRules.HasOutfitPhoto: it was split
+    /// into pieces): the URL of its first image, in the public catalog image bucket. null = no live post, or one without
+    /// pieces / image (a weekly-edit fallback post and a user's shared look never have one).
+    /// </summary>
+    Task<string?> GetOutfitPhotoUrlAsync(string postId, CancellationToken ct);
+}
+
+/// <summary>
+/// Reads an image of the PUBLIC catalog image bucket by its URL (the photograph of an Akış editor post for its photo
+/// try-on). Only https URLs on the host of CatalogImages:PublicBaseUrl are fetched — never an arbitrary host. null = not
+/// allowed, not found, too large or unreachable.
+/// </summary>
+public interface IPublicImageReader
+{
+    Task<byte[]?> ReadAsync(string url, long maxBytes, CancellationToken ct);
 }
 
 // ── Service result shared by the E2–E7 services (the Api maps Kind to an HTTP status in one place).

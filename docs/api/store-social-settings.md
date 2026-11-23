@@ -142,7 +142,8 @@ teens (`social`), as is the friends' feed `GET v1/tenant/feed` (unchanged).
   "images": ["https://…"],                                              // 1–4
   "products": [ { /* ProductDto, every field */ "ownedSimilar": true, "ownedItemId": "01J…" } ],  // 0–8; retired products stay listed with available: false
   "buyableCount": 2,                                                     // products that are available and not ownedSimilar
-  "pieces": [], "hasSimilar": false, "canTryOn": true,                   // canTryOn: the post has an available product (false = no "Üzerimde dene")
+  "pieces": [ { "category": "outerwear", "subcategory": "blazer" | null, "imageUrl": "https://…/catalog/feed/{id}-p1.webp" } ],  // the pieces of images[0] (the strip under the post); [] when the post was not split
+  "hasSimilar": false, "canTryOn": true,                                 // canTryOn: see "Editor post pieces" below (false = no "Üzerimde dene")
   "likeCount": 1284, "liked": false, "saved": false,
   "imagesExpireAt": null }
 
@@ -164,6 +165,17 @@ teens (`social`), as is the friends' feed `GET v1/tenant/feed` (unchanged).
 { "id": "…", "author": { "name": "Droblet Edit", "imageUrl": null }, "imageUrl": "https://…", "headline": "Ofiste bordo & camel",
   "product": ProductDto | null, "publishedAt": "…" }
 ```
+
+**Editor post pieces and `canTryOn`** (owner decision 2026-11-23). An editor post that is one photograph (no products)
+is split by AI into its pieces (operator tool `split-feed-posts`: at most five, each with its own clean image in the
+public catalog bucket): `pieces[]` has the same shape as on a user post (`category` = wardrobe `ItemCategory`,
+`subcategory` or `null`, `imageUrl` always set, public, not expiring). A post that was not split, and the weekly-edit
+fallback, send `pieces: []`. `canTryOn` = the post has an **available product**, **or** it has none but has `pieces` and
+an image. In the second case `POST v1/tenant/tryon` with `{ "kind": "feedPost", "id": postId }` renders the **whole
+outfit of the post's photograph** as a photo try-on (one credit, cached per photograph like any outfit photo; the answer
+has no `pieces`); for a teen that case is `canTryOn: false` (a photo try-on is never for teens). A post with neither
+products nor pieces still answers `422 tryon_target_empty`. The admin post (`AdminFeedPostDto`) shows a read-only
+`pieceCount`; saving a post in the panel keeps its pieces while the first image stays and drops them when it changes.
 
 **Deviations from the first F2 sketch (mobile: please note).** `occasion` is **nullable** (a shared look may have none;
 the weekly-edit fallback never has one). `imagesExpireAt` is an added field (user posts). `pieces[].subcategory` is added.

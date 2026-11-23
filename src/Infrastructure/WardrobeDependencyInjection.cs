@@ -38,6 +38,10 @@ public static class WardrobeDependencyInjection
             sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Services.Integration.CatalogProductLookup>>()));
         services.TryAddSingleton<IEditLookLookup, Services.Integration.EditLookLookup>();
         services.TryAddSingleton<IFeedPostLookup, Services.Integration.FeedPostLookup>();
+        services.TryAddSingleton<IPublicImageReader>(sp => new Services.Integration.HttpPublicImageReader(
+            Services.Integration.HttpPublicImageReader.CreateClient(),
+            sp.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<CatalogImageOptions>>(),
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Services.Integration.HttpPublicImageReader>>()));
 
         services.AddSingleton<Services.Integration.IProfileStatsService, Services.Integration.ProfileStatsService>();
         services.AddSingleton<ILibraryCatalog, LibraryCatalog>();

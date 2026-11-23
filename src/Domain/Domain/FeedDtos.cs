@@ -86,7 +86,9 @@ public record FeedLikeDto(bool Liked, long LikeCount);
 public record AdminFeedPostDto(
     string Id, Segment? Segment, FeedAuthorInput Author, Occasion Occasion, IReadOnlyDictionary<string, string> Title, IReadOnlyDictionary<string, string>? Note,
     IReadOnlyList<string> ImageUrls, IReadOnlyList<string> ProductIds, DateTime PublishAt, int SortOrder, bool Published, bool Retired, long LikeCount,
-    DateTime CreatedAt, DateTime UpdatedAt);
+    DateTime CreatedAt, DateTime UpdatedAt,
+    // Read only: the pieces the AI split found in the first image (kept by an edit while that image stays, dropped when it changes).
+    int PieceCount = 0);
 
 public record AdminFeedStoryDto(
     string Id, Segment? Segment, FeedStoryAuthorInput Author, string ImageUrl, IReadOnlyDictionary<string, string> Headline, string? ProductId,
@@ -96,7 +98,7 @@ public static class FeedDtoMapper
 {
     public static AdminFeedPostDto ToAdminDto(this FeedPostEntity p, long likeCount) => new(
         p.Id, p.Segment, new FeedAuthorInput(p.Author.Kind, p.Author.Name, p.Author.Handle, p.Author.ImageUrl), p.Occasion, p.Title, p.Note,
-        p.ImageUrls, p.ProductIds, p.PublishAt, p.SortOrder, p.Published, p.Retired, likeCount, p.CreatedAt, p.UpdatedAt);
+        p.ImageUrls, p.ProductIds, p.PublishAt, p.SortOrder, p.Published, p.Retired, likeCount, p.CreatedAt, p.UpdatedAt, p.Pieces.Count);
 
     public static AdminFeedStoryDto ToAdminDto(this FeedStoryEntity s) => new(
         s.Id, s.Segment, new FeedStoryAuthorInput(s.Author.Name, s.Author.ImageUrl), s.ImageUrl, s.Headline, s.ProductId, s.PublishAt, s.ExpiresAt,

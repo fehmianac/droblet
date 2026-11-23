@@ -32,6 +32,7 @@ public sealed class TryOnService(
     ICatalogProductLookup products,
     IEditLookLookup editLooks,
     IFeedPostLookup feedPosts,
+    IPublicImageReader publicImages,
     ILibraryCatalog library,
     IRequestLanguage requestLanguage,
     IOptionsMonitor<PhotoOptions> photoOptions,
@@ -331,9 +332,11 @@ public sealed class TryOnService(
                 // "Üzerimde dene" on an Akış post: its available catalog products as one outfit (same identity, cache and
                 // single credit as any outfit of those products — retired products drop out in OutfitAsync).
                 var productIds = await feedPosts.GetProductIdsAsync(target.Id, ct);
-                return productIds is null
-                    ? (null, ErrorCodes.TargetNotFound)
-                    : await OutfitAsync(tenantId, productIds.Select(id => new OutfitPiece(null, id)), ct);
+                if (productIds is null)
+                    return (null, ErrorCodes.TargetNotFound);
+                var outfit = await OutfitAsync(tenantId, productIds.Select(id => new OutfitPiece(null, id)), ct);
+                // No available product: a post that was split into pieces is tried on as its photograph (photo try-on).
+                return outfit.Item1 is not null ? outfit : await FeedPostPhotoAsync(tenantId, target.Id, ct) ?? outfit;
             }
             case TryOnTargetKind.Photo or TryOnTargetKind.ImportPhoto:
                 return await ReferenceAsync(tenantId, target, ct);
@@ -393,6 +396,29 @@ public sealed class TryOnService(
             return (new Resolved(new TryOnTarget(TryOnTargetKind.Photo, TryOnRules.ReferenceHash(clean.Data), 0), [], clean), null);
         }
         return (null, ErrorCodes.TargetNotFound);
+    }
+
+    /// <summary>
+    /// "Üzerimde dene" on an Akış editor post without an available product (owner decision 2026-11-23): the whole outfit of
+    /// the post's photograph, as a photo try-on — the same target (kind Photo, id = the hash of the EXIF-stripped bytes), so
+    /// the same cache, one credit and the same worker path as any outfit photo. The photograph is read from the public
+    /// catalog image bucket only (IPublicImageReader). null = the post has no photograph to try on (no pieces) or the
+    /// caller is a teen (a photo try-on is never for teens): the caller answers as before (tryon_target_empty).
+    /// </summary>
+    private async Task<(Resolved?, string?)?> FeedPostPhotoAsync(string tenantId, string postId, CancellationToken ct)
+    {
+        if (await feedPosts.GetOutfitPhotoUrlAsync(postId, ct) is not { } url)
+            return null;
+        if (await repository.GetAsync<TenantEntity>(TenantEntity.GetPk(), TenantEntity.GetSk(tenantId), ct) is { IsTeen: true })
+            return null;
+        var settings = photoOptions.CurrentValue;
+        var raw = await publicImages.ReadAsync(url, settings.MaxUploadBytes, ct);
+        if (raw is null)
+            return (null, ErrorCodes.TargetNotFound);
+        var clean = ImageMetadataStripper.Strip(raw);
+        if (clean is null || !settings.AllowedContentTypes.Contains(clean.ContentType))
+            return (null, ErrorCodes.TryOnReferenceInvalid);
+        return (new Resolved(new TryOnTarget(TryOnTargetKind.Photo, TryOnRules.ReferenceHash(clean.Data), 0), [], clean), null);
     }
 
     /// <summary>Drops pieces that no longer exist (deleted item, retired product); what is left is the outfit's identity.</summary>

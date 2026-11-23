@@ -3,6 +3,7 @@ using System.Text.Json;
 using Domain.Entity;
 using Domain.Enum;
 using Domain.Extensions;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ApiTests;
 
@@ -316,5 +317,73 @@ public class FeedEndpointTests(StoreSocialApiFactory factory) : IClassFixture<St
         Assert.Equal(1, post.GetProperty("likeCount").GetInt64());
         Assert.Empty(await factory.Repository.GetKeysAsync(FeedLikeEntity.GetPk(auth.TenantId)));
         Assert.Empty(await factory.Repository.GetKeysAsync(FeedSaveEntity.GetPk(auth.TenantId)));
+    }
+
+    // ── Editor posts that are one photograph: pieces + canTryOn (owner decision 2026-11-23) ────────────────────────
+
+    private static List<FeedPostPiece> Pieces(string image) =>
+    [
+        new() { Category = ItemCategory.Outerwear, Subcategory = "blazer", ImageUrl = image.Replace(".jpg", "-p1.webp", StringComparison.Ordinal) },
+        new() { Category = ItemCategory.Shoes, Subcategory = null, ImageUrl = image.Replace(".jpg", "-p2.webp", StringComparison.Ordinal) },
+    ];
+
+    private Task<FeedPostEntity?> PostEntityAsync(string id) => factory.Repository.GetAsync<FeedPostEntity>(FeedPostEntity.GetPk(), FeedPostEntity.GetSk(id));
+
+    [Fact]
+    public async Task Post_WithoutProducts_CarriesItsPieces_CanTryOnOnlyWithPieces()
+    {
+        await ClearAsync();
+        var admin = await factory.AdminAsync();
+        const string image = "https://img.example/photo-1.jpg";
+        var split = await PutPostAsync(admin, Post(Now.AddMinutes(-1), images: [image]));
+        var plain = await PutPostAsync(admin, Post(Now.AddMinutes(-2), images: ["https://img.example/photo-2.jpg"]));
+        var feedService = factory.Services.GetRequiredService<Domain.Services.IFeedService>();
+        Assert.Equal(Domain.Services.FeedPiecesOutcome.Written, await feedService.SetPostPiecesAsync(split, image, Pieces(image), default));
+        var (user, _) = await factory.RegisterAsync();
+
+        var items = (await (await user.GetAsync("v1/content/feed")).JsonAsync()).GetProperty("items").EnumerateArray().ToList();
+
+        var withPieces = items.Single(i => i.GetProperty("id").GetString() == split);
+        var pieces = withPieces.GetProperty("pieces").EnumerateArray().ToList();
+        Assert.Equal(2, pieces.Count);
+        Assert.Equal(("outerwear", "blazer", "https://img.example/photo-1-p1.webp"),
+            (pieces[0].GetProperty("category").GetString(), pieces[0].GetProperty("subcategory").GetString(), pieces[0].GetProperty("imageUrl").GetString()));
+        Assert.Equal(("shoes", JsonValueKind.Null), (pieces[1].GetProperty("category").GetString(), pieces[1].GetProperty("subcategory").ValueKind));
+        Assert.True(withPieces.GetProperty("canTryOn").GetBoolean());                    // its photograph can be tried on
+        Assert.Empty(withPieces.GetProperty("products").EnumerateArray());
+        var without = items.Single(i => i.GetProperty("id").GetString() == plain);
+        Assert.Empty(without.GetProperty("pieces").EnumerateArray());
+        Assert.False(without.GetProperty("canTryOn").GetBoolean());                      // neither products nor pieces
+    }
+
+    [Fact]
+    public async Task AdminUpsert_KeepsThePieces_WhileTheFirstImageStays_ClearsThemWhenItChanges()
+    {
+        await ClearAsync();
+        var admin = await factory.AdminAsync();
+        const string image = "https://img.example/photo-1.jpg";
+        var id = await PutPostAsync(admin, Post(Now.AddMinutes(-1), images: [image]));
+        var feedService = factory.Services.GetRequiredService<Domain.Services.IFeedService>();
+        var created = (await PostEntityAsync(id))!;
+        await feedService.SetPostPiecesAsync(id, image, Pieces(image), default);
+        var before = (await PostEntityAsync(id))!;
+
+        // The panel saves the post again (new title, a second image): the pieces are not part of its form and stay.
+        await PutPostAsync(admin, Post(Now.AddMinutes(-1), title: "Yeni başlık", images: [image, "https://img.example/extra.jpg"]), id);
+        var edited = (await PostEntityAsync(id))!;
+        var adminDto = await (await admin.GetAsync("v1/admin/feed-post")).JsonAsync();
+        // A stale split (another photograph) is refused; then the first image changes and the pieces go.
+        var stale = await feedService.SetPostPiecesAsync(id, "https://img.example/other.jpg", Pieces(image), default);
+        await PutPostAsync(admin, Post(Now.AddMinutes(-1), images: ["https://img.example/photo-new.jpg"]), id);
+        var replaced = (await PostEntityAsync(id))!;
+
+        Assert.Equal(2, before.Pieces.Count);
+        Assert.Equal((created.UpdatedAt, created.Title["tr"]), (before.UpdatedAt, before.Title["tr"]));   // the split wrote the pieces and nothing else
+        Assert.Equal("Yeni başlık", edited.Title["tr"]);
+        Assert.Equal(["https://img.example/photo-1-p1.webp", "https://img.example/photo-1-p2.webp"], edited.Pieces.Select(p => p.ImageUrl));
+        Assert.Equal(2, adminDto.EnumerateArray().Single(p => p.GetProperty("id").GetString() == id).GetProperty("pieceCount").GetInt32());
+        Assert.Equal(Domain.Services.FeedPiecesOutcome.ImageChanged, stale);
+        Assert.Empty(replaced.Pieces);
+        Assert.Equal(Domain.Services.FeedPiecesOutcome.NotFound, await feedService.SetPostPiecesAsync(Ulid.New(), image, Pieces(image), default));
     }
 }

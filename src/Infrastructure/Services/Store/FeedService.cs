@@ -404,10 +404,12 @@ public sealed class FeedService(
                     post.ImageUrls,
                     products,
                     FeedRules.BuyableCount(products),
-                    Pieces: [],
+                    // The pieces the AI split found in the photograph (the strip under the post); empty for a post that was not split.
+                    Pieces: post.Pieces.Select(p => new FeedPieceDto(p.Category, p.ImageUrl, string.IsNullOrWhiteSpace(p.Subcategory) ? null : p.Subcategory)).ToList(),
                     HasSimilar: false,
-                    // "Üzerimde dene" dresses the post's available catalog products: a post without any has nothing to try on.
-                    CanTryOn: products.Any(p => p.Available),
+                    // "Üzerimde dene" dresses the post's available catalog products; a post without any is tried on as its
+                    // photograph (photo try-on) once it has pieces — never for a teen (FeedRules.CanTryOn).
+                    CanTryOn: FeedRules.CanTryOn(post, products.Any(p => p.Available), viewer?.IsTeen ?? false),
                     likeCount,
                     liked.Contains(post.Id),
                     saved.Contains(post.Id)));
@@ -551,8 +553,31 @@ public sealed class FeedService(
             CreatedAt = existing?.CreatedAt ?? now,
             UpdatedAt = now,
         };
+        // The pieces belong to the first image (split-feed-posts), not to the panel's form: an edit keeps them, a new first
+        // image drops them (they would show another photograph's pieces).
+        if (existing is not null && FeedRules.SamePhoto(existing.ImageUrls.FirstOrDefault(), post.ImageUrls.FirstOrDefault()))
+            post.Pieces = existing.Pieces;
         await repository.SaveAsync(post, ct);
         return (existing is null ? CatalogWriteOutcome.Created : CatalogWriteOutcome.Updated, post.ToAdminDto(await LikeCountAsync(post.Id, ct)), []);
+    }
+
+    public async Task<FeedPiecesOutcome> SetPostPiecesAsync(string postId, string imageUrl, IReadOnlyList<FeedPostPiece> pieces, CancellationToken ct)
+    {
+        // Re-read right before the write and change nothing but the pieces (an admin edit made meanwhile is kept; the like
+        // counter lives in its own row). PutExisting: a post deleted meanwhile is not brought back.
+        var post = await repository.GetAsync<FeedPostEntity>(FeedPostEntity.GetPk(), FeedPostEntity.GetSk(postId), ct);
+        if (post is null)
+            return FeedPiecesOutcome.NotFound;
+        if (!FeedRules.SamePhoto(post.ImageUrls.FirstOrDefault(), imageUrl))
+            return FeedPiecesOutcome.ImageChanged;
+        post.Pieces = pieces.Select(p => new FeedPostPiece
+        {
+            Category = p.Category,
+            Subcategory = string.IsNullOrWhiteSpace(p.Subcategory) ? null : p.Subcategory.Trim(),
+            ImageUrl = p.ImageUrl.Trim(),
+        }).ToList();
+        var write = await repository.TransactWriteAsync([TransactWriteOperation.PutExisting(post)], ct);
+        return write.Applied ? FeedPiecesOutcome.Written : FeedPiecesOutcome.NotFound;
     }
 
     public async Task<bool> RetirePostAsync(string postId, CancellationToken ct)

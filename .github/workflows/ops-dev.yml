@@ -13,6 +13,8 @@ name: Ops (dev)
 #   gh workflow run ops-dev.yml --ref <branch> -f command=ai-usage-backfill -f args="--days 7"   (no AI call: replays finished jobs into the AI usage counters; idempotent)
 #   gh workflow run ops-dev.yml --ref <branch> -f command=publish-item-images -f args="--dry-run"   (no AI call: cleaned piece images → public/items/ + thumbnails; idempotent; needs the public-items infra)
 #   gh workflow run ops-dev.yml --ref <branch> -f command=outfit-import-smoke   (Kombinlerini içe aktar: 3 outfit photos → commit, re-import matches; needs the outfit-import infra)
+#   gh workflow run ops-dev.yml --ref <branch> -f command=split-feed-posts -f args="--dry-run"   (AI, hard cap 260 calls: product-less editor posts → pieces; --only id,id --max-calls N --force)
+#   gh workflow run ops-dev.yml --ref <branch> -f command=seed-feed-stories -f args="--ids edit-1123-01,edit-1123-02"   (no AI call: editor stories from editor posts, 7 days)
 
 on:
   workflow_dispatch:
@@ -20,7 +22,7 @@ on:
       command:
         description: Komut
         type: choice
-        options: [ai-smoke, account-smoke, outfit-import-smoke, ai-perf, ai-bench, ai-cost, generate-library-images, generate-marketing-images, migrate-library-item-images, grant-test-premium, revoke-test-premium, ai-probe, logs, ai-settings, ai-admin-smoke, ai-usage-backfill, publish-item-images, cdn-check, public-urls, google-auth, push-test, seed-feed-posts]
+        options: [ai-smoke, account-smoke, outfit-import-smoke, ai-perf, ai-bench, ai-cost, generate-library-images, generate-marketing-images, migrate-library-item-images, grant-test-premium, revoke-test-premium, ai-probe, logs, ai-settings, ai-admin-smoke, ai-usage-backfill, publish-item-images, cdn-check, public-urls, google-auth, push-test, seed-feed-posts, split-feed-posts, seed-feed-stories]
         default: ai-smoke
       args:
         description: 'Ek argumanlar (or. --email a@b.c --credits 10 · --only lib-a,lib-b --dry-run · --function stylist --minutes 30)'

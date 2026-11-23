@@ -288,6 +288,93 @@ public class IntegrationSeamTests
         Assert.Null(await lookup.GetProductIdsAsync("bad id#", default));
     }
 
+    [Fact]
+    public async Task FeedPostLookup_OutfitPhoto_OnlyALiveSplitPostHasOne()
+    {
+        var host = new WorkerTestHost();
+        async Task Post(string id, bool pieces, bool published = true) => await host.Repository.SaveAsync(new FeedPostEntity
+        {
+            Id = id, Author = new FeedAuthor { Kind = FeedAuthorKind.Edit, Name = new() { ["tr"] = "Droblet Edit" } }, Occasion = Occasion.Office,
+            Title = new() { ["tr"] = "Ofis" }, ImageUrls = [$"https://img.example/{id}.jpg", "https://img.example/second.jpg"],
+            Pieces = pieces ? [new FeedPostPiece { Category = ItemCategory.Dress, ImageUrl = $"https://img.example/{id}-p1.webp" }] : [],
+            PublishAt = Now.AddHours(-1), Published = published, CreatedAt = Now, UpdatedAt = Now,
+        });
+        await Post("split", pieces: true);
+        await Post("plain", pieces: false);
+        await Post("draft", pieces: true, published: false);
+        var lookup = host.Get<IFeedPostLookup>();
+
+        Assert.Equal("https://img.example/split.jpg", await lookup.GetOutfitPhotoUrlAsync("split", default));   // the first image
+        Assert.Null(await lookup.GetOutfitPhotoUrlAsync("plain", default));
+        Assert.Null(await lookup.GetOutfitPhotoUrlAsync("draft", default));
+        Assert.Null(await lookup.GetOutfitPhotoUrlAsync("nope", default));
+        Assert.Null(await lookup.GetOutfitPhotoUrlAsync("e_edit-look", default));                               // weekly-edit fallback: never
+        Assert.Null(await lookup.GetOutfitPhotoUrlAsync("bad id#", default));
+    }
+
+    // ── IPublicImageReader: only the public catalog host, https, capped ─────────────────────────────────────────
+
+    private sealed class CountingHandler(Func<HttpRequestMessage, HttpResponseMessage> respond) : HttpMessageHandler
+    {
+        public List<Uri> Requests { get; } = [];
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Requests.Add(request.RequestUri!);
+            return Task.FromResult(respond(request));
+        }
+    }
+
+    private static (HttpPublicImageReader Reader, CountingHandler Handler) PublicReader(Func<HttpRequestMessage, HttpResponseMessage> respond, string baseUrl = "https://catalog.test")
+    {
+        var handler = new CountingHandler(respond);
+        var options = new TestOptionsMonitor<CatalogImageOptions>(new CatalogImageOptions { PublicBaseUrl = baseUrl });
+        return (new HttpPublicImageReader(new HttpClient(handler), options, NullLogger<HttpPublicImageReader>.Instance), handler);
+    }
+
+    private sealed class TestOptionsMonitor<T>(T value) : Microsoft.Extensions.Options.IOptionsMonitor<T>
+    {
+        public T CurrentValue => value;
+        public T Get(string? name) => value;
+        public IDisposable? OnChange(Action<T, string?> listener) => null;
+    }
+
+    [Fact]
+    public async Task PublicImageReader_ReadsOnlyHttpsUrlsOfTheCatalogHost()
+    {
+        var (reader, handler) = PublicReader(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent([1, 2, 3]) });
+
+        Assert.Equal([1, 2, 3], await reader.ReadAsync("https://catalog.test/catalog/feed/a.jpg", 100, default));
+        Assert.Null(await reader.ReadAsync("http://catalog.test/catalog/feed/a.jpg", 100, default));            // not https
+        Assert.Null(await reader.ReadAsync("https://evil.example/catalog/feed/a.jpg", 100, default));           // another host
+        Assert.Null(await reader.ReadAsync("https://sub.catalog.test/a.jpg", 100, default));                    // not a sub-domain either
+        Assert.Null(await reader.ReadAsync("https://catalog.test.evil.example/a.jpg", 100, default));
+        Assert.Null(await reader.ReadAsync("https://user@catalog.test/a.jpg", 100, default));
+        Assert.Null(await reader.ReadAsync("https://catalog.test:8443/a.jpg", 100, default));
+        Assert.Null(await reader.ReadAsync("https://169.254.169.254/latest/meta-data", 100, default));
+        Assert.Null(await reader.ReadAsync("not a url", 100, default));
+        Assert.Single(handler.Requests);                                                                         // nothing else was ever fetched
+    }
+
+    [Fact]
+    public async Task PublicImageReader_NoConfiguredHost_TooLarge_NotFound_NetworkError_AreNull()
+    {
+        var (unconfigured, unconfiguredHandler) = PublicReader(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent([1]) }, baseUrl: "");
+        var (large, _) = PublicReader(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(new byte[101]) });
+        var (missing, _) = PublicReader(_ => new HttpResponseMessage(HttpStatusCode.NotFound));
+        var (redirect, redirectHandler) = PublicReader(_ => new HttpResponseMessage(HttpStatusCode.Found) { Headers = { Location = new Uri("https://evil.example/x.jpg") } });
+        var (down, _) = PublicReader(_ => throw new HttpRequestException("down"));
+        const string url = "https://catalog.test/catalog/feed/a.jpg";
+
+        Assert.Null(await unconfigured.ReadAsync(url, 100, default));
+        Assert.Empty(unconfiguredHandler.Requests);
+        Assert.Null(await large.ReadAsync(url, 100, default));
+        Assert.Null(await missing.ReadAsync(url, 100, default));
+        Assert.Null(await redirect.ReadAsync(url, 100, default));       // a redirect is an answer, never followed
+        Assert.Single(redirectHandler.Requests);
+        Assert.Null(await down.ReadAsync(url, 100, default));
+    }
+
     // ── IMorningOutfitCheck on plan days ────────────────────────────────────────────────────────────────────────
 
     [Fact]
