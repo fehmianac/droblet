@@ -162,29 +162,21 @@
         "alt": "Droblet app welcome screen",
         "caption": "Welcome"
       },
+      "feed": {
+        "alt": "Droblet app, Feed screen: today's outfit, stories and editor posts",
+        "caption": "Feed"
+      },
       "today": {
         "alt": "Droblet app, Today screen: the weather and the outfit of the day",
         "caption": "Today"
-      },
-      "wardrobe": {
-        "alt": "Droblet app, Wardrobe screen: pieces sorted by category",
-        "caption": "Wardrobe"
       },
       "looks": {
         "alt": "Droblet app, Looks screen: saved outfits",
         "caption": "Looks"
       },
-      "stylist": {
-        "alt": "Droblet app, Stylist screen: choosing the occasion and the weather",
-        "caption": "Stylist"
-      },
       "suggestion": {
         "alt": "Droblet app, outfit suggestion screen",
         "caption": "Outfit suggestion"
-      },
-      "trip": {
-        "alt": "Droblet app, suitcase detail: daily looks and the packing list",
-        "caption": "Suitcase"
       },
       "palette": {
         "alt": "Droblet app, My colour palette screen: season type and the tones that suit you",
@@ -202,9 +194,9 @@
         "alt": "Droblet app, Friends feed: friends' looks and star ratings",
         "caption": "Friends"
       },
-      "profile": {
-        "alt": "Droblet app, Profile screen: this month's AI image credits and membership",
-        "caption": "Profile"
+      "membership": {
+        "alt": "Droblet app, membership screen: what membership includes",
+        "caption": "Membership"
       }
     }
   },

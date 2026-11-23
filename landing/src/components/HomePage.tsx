@@ -14,10 +14,10 @@ import { StoreButtons } from './StoreButtons';
 const privacyIcons = ['lock', 'trash', 'visibility'] as const;
 
 /** Screenshot of each step of the loop (Dijitalleştir · Kombinle · Tamamla), in dictionary order. */
-const stepScreens: readonly ScreenName[] = ['wardrobe', 'looks', 'product'];
+const stepScreens: readonly ScreenName[] = ['looks', 'suggestion', 'product'];
 
 /** Screenshot of each feature, in dictionary order. */
-const featureScreens: readonly ScreenName[] = ['stylist', 'suggestion', 'trip', 'palette', 'shop', 'friends'];
+const featureScreens: readonly ScreenName[] = ['suggestion', 'today', 'looks', 'palette', 'shop', 'friends'];
 
 /** Photographs (fictional, AI-made people) in `public/photos/`, with their pixel size. */
 const photos = {
@@ -54,17 +54,15 @@ const toneClasses = [
 /** Order of the screens gallery before the closing call to action. */
 const galleryScreens: readonly ScreenName[] = [
   'welcome',
+  'feed',
   'today',
-  'wardrobe',
   'looks',
-  'stylist',
   'suggestion',
-  'trip',
-  'palette',
+  'friends',
   'shop',
   'product',
-  'friends',
-  'profile',
+  'palette',
+  'membership',
 ];
 
 export function homeMetadata(locale: Locale): Metadata {
@@ -114,7 +112,7 @@ export function HomePage({ locale }: { locale: Locale }) {
               />
               {/* The app itself, over the photo's lower-left corner (curtain and floor, clear of the subject). */}
               <div className="absolute bottom-0 -left-2 w-[34%] sm:-left-8">
-                <PhoneFrame locale={locale} screen="today" alt={screens.today.alt} className="w-full" />
+                <PhoneFrame locale={locale} screen="feed" alt={screens.feed.alt} className="w-full" />
               </div>
             </div>
           </div>
@@ -259,7 +257,7 @@ export function HomePage({ locale }: { locale: Locale }) {
             </div>
           </div>
           <div className="stage h-[460px] flex-[1_1_340px] items-start bg-sand pt-10 sm:h-[560px] sm:pt-12" data-reveal>
-            <PhoneFrame locale={locale} screen="profile" alt={screens.profile.alt} className="w-[270px] sm:w-[290px]" />
+            <PhoneFrame locale={locale} screen="membership" alt={screens.membership.alt} className="w-[270px] sm:w-[290px]" />
           </div>
         </section>
 

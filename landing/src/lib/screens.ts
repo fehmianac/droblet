@@ -8,22 +8,20 @@ import type { Locale } from './i18n';
  */
 export const screenNames = [
   'welcome',
+  'feed',
   'today',
-  'wardrobe',
   'looks',
-  'stylist',
   'suggestion',
-  'trip',
   'palette',
   'shop',
   'product',
   'friends',
-  'profile',
+  'membership',
 ] as const;
 
 export type ScreenName = (typeof screenNames)[number];
 
-/** Pixel size of every exported screenshot (iPhone 17 Pro Max capture, scaled to 1290 px tall). */
+/** Pixel size of every exported screenshot (iPhone 17 capture, scaled to 1290 px tall). */
 export const screenSize = { width: 593, height: 1290 } as const;
 
 export function screenSrc(locale: Locale, name: ScreenName): string {

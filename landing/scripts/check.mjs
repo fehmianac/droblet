@@ -280,8 +280,8 @@ for (const locale of locales) {
     expect(/\salt="[^"]+"/.test(tag), `${relative(root, home)}: <img> without alt text: ${tag.slice(0, 80)}`);
     expect(/\swidth="\d+"/.test(tag) && /\sheight="\d+"/.test(tag), `${relative(root, home)}: <img> without width/height`);
   }
-  const hero = join(screensDir, locale, 'today.webp');
-  if (existsSync(hero)) expect(statSync(hero).size < 400 * 1024, `out/screens/${locale}/today.webp (hero) is over 400 KB`);
+  const hero = join(screensDir, locale, 'feed.webp');
+  if (existsSync(hero)) expect(statSync(hero).size < 400 * 1024, `out/screens/${locale}/feed.webp (hero) is over 400 KB`);
 }
 
 // ── Result ─────────────────────────────────────────────────────────────────────────────────────────

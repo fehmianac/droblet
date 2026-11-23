@@ -13,7 +13,9 @@ shown in the store.
 | File | Screen (canvas board) | App link |
 |---|---|---|
 | `welcome` | 01 Hoş geldin | first screen after the splash |
-| `today` | 06 Bugün | tab after sign-in |
+| `feed` | 06″ Akış | first tab after sign-in |
+| `today` | 06 Bugün | `droplet://today` |
+| `membership` | 05 Üyelik | `droplet://paywall` (the showcase account is a member: no prices on it) |
 | `wardrobe` | 10 Gardırop › Parçalar | `droplet://wardrobe` |
 | `looks` | 14 Looklar | `droplet://wardrobe/looks` |
 | `stylist` | 16 Stilist | `droplet://stylist` |
@@ -25,7 +27,7 @@ shown in the store.
 | `friends` | 25 Arkadaş akışı | `droplet://friends/feed` |
 | `profile` | 28 Profil | `droplet://profile` |
 
-The list the page uses is `src/lib/screens.ts`; `npm run check` fails when a referenced file is missing in
+The capture takes more screens than the page shows: since 23 Nov 2026 the page uses only the ones with real pictures (`src/lib/screens.ts`; the showcase pictures are `mobile/assets/showcase/`, see `mobile/src/fixtures/showcaseImages.ts`) — wardrobe, stylist, trip and profile are captured but not copied into the page's set. `npm run check` fails when a referenced file is missing in
 either language, when the two sets differ, when a language's set is over 2.5 MB or the hero image over 400 KB.
 
 ## Men's showcase account (canvas 17)
