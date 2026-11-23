@@ -73,10 +73,11 @@ Jost 400/500 are downloaded by `next/font` at build time and served from `/_next
 request to Google. The logo (direction A) is copied from `mobile/assets/brand/` (`src/app/icon.svg`,
 `public/brand/icon.svg`, inline paths in `src/components/Logo.tsx`). The hero and three feature rows (stylist, try-on, suitcase)
 show the canvas' **photographs** (`public/photos/*.webp` — fictional, AI-made people; the try-on one carries the
-"SENİN ÜZERİNDE · ÖRNEK" tag; alt texts in `home.photos`). The canvas' other image placeholders are replaced by
-**real app screenshots** (`public/screens/{tr,en}/*.webp`, each page shows its own language) in a CSS iPhone
-frame (`src/components/PhoneFrame.tsx`); there are no statistics, testimonials or real people's names.
-How to regenerate the screenshots and `og.png`: [`scripts/capture/README.md`](scripts/capture/README.md).
+"SENİN ÜZERİNDE · ÖRNEK" tag; alt texts in `home.photos`). The page shows **no app screenshots** (owner decision,
+23 Nov 2026: the old screens had no real images): the three steps, the other features (palette with its swatches,
+shop, friends) and membership are type and cards; there are no statistics, testimonials or real people's names.
+`scripts/capture/` can still take screenshots from a showcase build if they come back; `og.png` still shows the old
+ones and waits for a new image.
 Scroll-in motion (`RevealOnScroll`, opacity/transform only) is off under `prefers-reduced-motion` and leaves the
 page fully visible without JavaScript. Images are plain `<img>` with `width`/`height` (no `next/image` loader in
 a static export); only the hero photo loads eagerly.
