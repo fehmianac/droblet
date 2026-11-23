@@ -96,7 +96,11 @@ public interface IOutfitImportService
     Task<bool> DiscardAsync(string tenantId, string sessionId, CancellationToken ct);
 }
 
-/// <summary>A new wardrobe piece created by an outfit import commit (WardrobeService: receipt + item, entitlement check).</summary>
+/// <summary>
+/// A new wardrobe piece created by an outfit import commit (WardrobeService: receipt + item, entitlement check).
+/// CleanedImageKey = an already clean piece picture under the tenant's items prefix (a piece of an Akış post saved "with
+/// its pieces"): it is the item's image and is published like a confirmed item's; OriginalImageKey may then be null.
+/// </summary>
 public sealed record ImportedItemCommand(
     string ClientMutationId,
     string ItemId,
@@ -106,4 +110,5 @@ public sealed record ImportedItemCommand(
     IReadOnlyList<string> ColorIds,
     string? Fabric,
     IReadOnlyList<Season> Seasons,
-    string OriginalImageKey);
+    string? OriginalImageKey,
+    string? CleanedImageKey = null);

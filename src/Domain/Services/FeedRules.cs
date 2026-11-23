@@ -29,6 +29,33 @@ public static class FeedRules
     public static bool CanTryOn(FeedPostEntity post, bool hasAvailableProduct, bool viewerIsTeen) =>
         hasAvailableProduct || (!viewerIsTeen && HasOutfitPhoto(post));
 
+    /// <summary>
+    /// "Looklarıma ekle" (owner decision 2026-11-23). Which outfit slot each piece of a post takes when the post is saved
+    /// "with its pieces" (index in the post's piece list → slot): the category's default slot, one piece per slot — the first
+    /// piece keeps a contested slot, a dress takes the top and closes the bottom (the same rule as an outfit import). A piece
+    /// without a slot is still added to the wardrobe.
+    /// </summary>
+    public static IReadOnlyDictionary<int, OutfitSlot> LookSlots(IReadOnlyList<ItemCategory> categories)
+    {
+        var pieces = categories
+            .Select((category, index) => new OutfitImportOccurrence { Ref = index.ToString("D3", CultureInfo.InvariantCulture), Category = category })
+            .ToList();
+        OutfitImportRules.AssignSlots(pieces, p => p.Category);
+        return pieces.Where(p => p.Slot is not null).ToDictionary(p => int.Parse(p.Ref, CultureInfo.InvariantCulture), p => p.Slot!.Value);
+    }
+
+    /// <summary>
+    /// Whether an editor post can be saved into the member's own looks: as inspiration it needs pieces and a photograph;
+    /// with its pieces it needs at least <see cref="OutfitSlotRules.MinPieces"/> pieces that take a slot (a look's minimum).
+    /// </summary>
+    public static bool CanSaveAsLook(FeedPostEntity post, FeedLookMode mode) => mode == FeedLookMode.Inspiration
+        ? HasOutfitPhoto(post)
+        : LookSlots(post.Pieces.Select(p => p.Category).ToList()).Count >= OutfitSlotRules.MinPieces;
+
+    /// <summary>The look a member already made of this post in this mode (inspiration looks and piece looks are told apart by their source).</summary>
+    public static bool IsLookOf(LookEntity look, string postId, FeedLookMode mode) =>
+        string.Equals(look.FeedPostId, postId, StringComparison.Ordinal) && (look.Source == LookSource.Inspiration) == (mode == FeedLookMode.Inspiration);
+
     /// <summary>The pieces of a post belong to its first image: the same URL = the same photograph.</summary>
     public static bool SamePhoto(string? firstImageUrl, string? otherFirstImageUrl) =>
         !string.IsNullOrWhiteSpace(firstImageUrl) && string.Equals(firstImageUrl.Trim(), otherFirstImageUrl?.Trim(), StringComparison.Ordinal);
@@ -367,6 +394,23 @@ public enum FeedWriteOutcome { Ok, NotFound }
 public enum FeedPiecesOutcome { Written, NotFound, ImageChanged }
 
 public enum FeedShareOutcome { Ok, NotFound, Teen, EmailNotVerified, HandleRequired, NotShareable, RateLimited }
+
+/// <summary>"Looklarıma ekle": RequestId = the new look's id (client ULID; a retry of the same request never creates twice).</summary>
+public sealed record SaveFeedPostAsLookCommand(FeedLookMode Mode, string RequestId);
+
+/// <summary>
+/// "Looklarıma ekle" on an Akış editor post with pieces (owner decision 2026-11-23): the post becomes a look of the member —
+/// as inspiration (the photograph is the cover, no pieces) or with its pieces (they become wardrobe items, the look is made
+/// of them). No AI call here; a look of pieces gets its AI cover by the same rule as any saved look.
+/// </summary>
+public interface IFeedLookService
+{
+    /// <summary>
+    /// Created = a new look; Ok = the look this member already made of this post in this mode. NotFound not_found (unknown,
+    /// not live, a user post), Invalid look_not_savable, Forbidden (the wardrobe-item entitlement), Conflict look_id_taken.
+    /// </summary>
+    Task<ServiceResult<LookDto>> SaveAsLookAsync(string tenantId, string postId, SaveFeedPostAsLookCommand command, CancellationToken ct);
+}
 
 /// <summary>Akış: editor posts and stories, the shared looks of users mixed in (F2), likes, saves, hides, reports and the admin CRUD of editor content.</summary>
 public interface IFeedService

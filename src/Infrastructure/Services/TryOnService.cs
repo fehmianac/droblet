@@ -267,7 +267,8 @@ public sealed class TryOnService(
         foreach (var day in planned)
         {
             var (resolved, _) = await ResolveAsync(tenantId, new TryOnTargetInput(TryOnTargetKind.Look, day.LookId!), ct);
-            if (resolved is null)
+            // An inspiration look (a photograph, no pieces) is never part of the week's batch: it is tried on from its own screen only.
+            if (resolved is null || resolved.Reference is not null)
                 continue;
 
             var cached = await CachedAsync(tenantId, body.Key, resolved.Target, ct);
@@ -306,9 +307,12 @@ public sealed class TryOnService(
             case TryOnTargetKind.Look:
             {
                 var look = await repository.GetAsync<LookEntity>(LookEntity.GetPk(tenantId), LookEntity.GetSk(target.Id), ct);
-                return look is null
-                    ? (null, ErrorCodes.TargetNotFound)
-                    : await OutfitAsync(tenantId, look.Slots.Select(s => new OutfitPiece(s.ItemId, s.ProductId)), ct);
+                if (look is null)
+                    return (null, ErrorCodes.TargetNotFound);
+                // An inspiration look has no pieces: it is tried on as its photograph (the Akış post's, kept as the look's cover).
+                if (look is { Source: LookSource.Inspiration, Slots.Count: 0 })
+                    return await LookPhotoAsync(tenantId, look, ct);
+                return await OutfitAsync(tenantId, look.Slots.Select(s => new OutfitPiece(s.ItemId, s.ProductId)), ct);
             }
             case TryOnTargetKind.Suggestion:
             {
@@ -413,6 +417,28 @@ public sealed class TryOnService(
             return null;
         var settings = photoOptions.CurrentValue;
         var raw = await publicImages.ReadAsync(url, settings.MaxUploadBytes, ct);
+        if (raw is null)
+            return (null, ErrorCodes.TargetNotFound);
+        var clean = ImageMetadataStripper.Strip(raw);
+        if (clean is null || !settings.AllowedContentTypes.Contains(clean.ContentType))
+            return (null, ErrorCodes.TryOnReferenceInvalid);
+        return (new Resolved(new TryOnTarget(TryOnTargetKind.Photo, TryOnRules.ReferenceHash(clean.Data), 0), [], clean), null);
+    }
+
+    /// <summary>
+    /// "Üzerimde dene" on an inspiration look (an Akış post saved "as inspiration"): its photograph — the tenant's own copy,
+    /// the look's cover — as a photo try-on, exactly like the post itself (same target kind Photo, id = the hash of the
+    /// bytes, so the image tried on from the post is reused and nothing is charged twice). Never for a teen: a photo try-on
+    /// is not theirs (tryon_target_empty, as for the post).
+    /// </summary>
+    private async Task<(Resolved?, string?)> LookPhotoAsync(string tenantId, LookEntity look, CancellationToken ct)
+    {
+        if (look.CoverImageKey is not { } key || !StorageKeys.BelongsToTenant(key, tenantId))
+            return (null, ErrorCodes.TryOnTargetEmpty);
+        if (await repository.GetAsync<TenantEntity>(TenantEntity.GetPk(), TenantEntity.GetSk(tenantId), ct) is { IsTeen: true })
+            return (null, ErrorCodes.TryOnTargetEmpty);
+        var settings = photoOptions.CurrentValue;
+        var raw = await storage.ReadAsync(key, settings.MaxUploadBytes, ct);
         if (raw is null)
             return (null, ErrorCodes.TargetNotFound);
         var clean = ImageMetadataStripper.Strip(raw);

@@ -69,6 +69,8 @@ export const ANALYTICS_EVENTS = [
   'feed_like',
   /** Akış F1: "Kaydet" toggled; `postId`, `saved`. */
   'feed_save',
+  /** Akış: "Looklarıma ekle" — the server made the look; `postId`, `mode` inspiration | pieces. */
+  'feed_save_as_look',
   /** Akış F1: an editor story opened in the viewer; `storyId`. */
   'feed_story_view',
   /** Akış F1: a product opened on the brand site; `productId`, `brandId`, `source` post | story, `postId`. */

@@ -61,6 +61,12 @@ export type Look = {
   moderation?: ContentModeration | null;
   /** Made by "Kombinlerini içe aktar" (wire `source: 'import'`): cannot be shared to Akış. */
   imported?: boolean;
+  /**
+   * An Akış post saved with "İlham olarak kaydet" (wire `source: 'inspiration'`): the post's photograph is the cover
+   * (`coverImageUrl`) and the look has no pieces — the member does not own them. Never shared, planned, worn or edited
+   * in the builder; it can be favourited, tried on as its photograph and deleted.
+   */
+  inspiration?: boolean;
   /** Akış F2 (decision 21): the owner shared this look to the home feed ("Akışta paylaş"). Default off. */
   sharedToFeed?: boolean;
   /** What the shared look got on Akış; null / absent while it is not shared. */

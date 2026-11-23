@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Domain.Entity;
 using Domain.Entity.Base;
+using Domain.Enum;
 using Domain.Manager;
 using Domain.Options;
 using Domain.Services;
@@ -37,7 +38,8 @@ public sealed class WardrobeClosetReader(
 
     public async Task<IReadOnlyList<ClosetLook>> GetLooksAsync(string tenantId, CancellationToken ct)
     {
-        var looks = await repository.GetAllAsync<LookEntity>(LookEntity.GetPk(tenantId), ct);
+        // An inspiration look is an editor photograph the owner kept for themselves, not an outfit of theirs: never shown to others.
+        var looks = (await repository.GetAllAsync<LookEntity>(LookEntity.GetPk(tenantId), ct)).Where(l => l.Source != LookSource.Inspiration).ToList();
         if (looks.Count == 0)
             return [];
         var items = await ItemsByIdAsync(tenantId, ct);
@@ -52,7 +54,7 @@ public sealed class WardrobeClosetReader(
         if (string.IsNullOrWhiteSpace(lookId))
             return null;
         var look = await repository.GetAsync<LookEntity>(LookEntity.GetPk(tenantId), LookEntity.GetSk(lookId), ct);
-        return look is null ? null : await ToClosetLookAsync(look, await ItemsByIdAsync(tenantId, ct), ct);
+        return look is null || look.Source == LookSource.Inspiration ? null : await ToClosetLookAsync(look, await ItemsByIdAsync(tenantId, ct), ct);
     }
 
     public async Task<IReadOnlyList<ClosetTrip>> GetCompletedTripsAsync(string tenantId, CancellationToken ct)

@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Bookmark, Heart, Layers, ShoppingBag, Sparkles } from 'lucide-react-native';
+import { Bookmark, CirclePlus, Heart, Layers, ShoppingBag, Sparkles } from 'lucide-react-native';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, useWindowDimensions, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
@@ -22,6 +22,7 @@ import { FeedPieceStrip } from './FeedPieceStrip';
 import { FeedUserPostCard } from './FeedUserPostCard';
 import { BUILD_WITH_MINE_MIN, occasionLabel, ownedItemIds, postMeta } from './logic';
 import { useLikeFeedPost, useSaveFeedPost } from './mutations';
+import { SaveAsLookSheet } from './SaveAsLookSheet';
 
 type Props = {
   post: FeedPost;
@@ -181,6 +182,10 @@ function Toggle({ icon, on, size, label, onPress, testID }: { icon: typeof Heart
  *
  * "Kendi parçalarımla kur" (under the strip, when two or more pieces are matched to wardrobe items): opens the look
  * builder (15) with those pieces in their slots and the post's occasion — the look made from what the user owns.
+ *
+ * "Looklarıma ekle" (owner decision 2026-11-23; a post with pieces): the same kind of accent link under the strip. It
+ * opens the sheet with the two ways of saving the post into the member's own looks — as inspiration, or with its
+ * pieces (`SaveAsLookSheet`). ♡ and the bookmark stay as they are.
  */
 function EditorPostCard({ post, teen, onBuy }: Pick<Props, 'post' | 'teen' | 'onBuy'>) {
   const { t } = useTranslation();
@@ -213,6 +218,7 @@ function EditorPostCard({ post, teen, onBuy }: Pick<Props, 'post' | 'teen' | 'on
     router.push({ pathname: '/look/new', params: { itemIds: mine.join(','), ...(post.occasion ? { occasion: post.occasion } : {}) } });
   };
   const likes = t('homeFeed.likes', { count: post.likeCount, formatted: formatNumber(post.likeCount) });
+  const [lookSheet, setLookSheet] = useState(false);
 
   const actions = (
     <View className={`flex-row items-center justify-between ${compact ? 'px-2 pt-1' : '-mx-2'}`}>
@@ -343,6 +349,21 @@ function EditorPostCard({ post, teen, onBuy }: Pick<Props, 'post' | 'teen' | 'on
               </Text>
             </Pressable>
           ) : null}
+          {post.pieces.length > 0 ? (
+            <Pressable
+              onPress={() => setLookSheet(true)}
+              accessibilityRole="button"
+              accessibilityLabel={t('homeFeed.addToLooksA11y')}
+              hitSlop={{ top: 6, bottom: 6 }}
+              testID={`feed.post.${post.id}.addToLooks`}
+              className="-my-1 min-h-[36px] flex-row items-center gap-1.5 self-start active:opacity-70"
+            >
+              <Icon icon={CirclePlus} size={16} tone="accent" />
+              <Text variant="label" tone="accent" className="text-[13px]">
+                {t('homeFeed.addToLooks')}
+              </Text>
+            </Pressable>
+          ) : null}
           <View className="flex-row gap-2">
             {post.canTryOn ? (
               <Button
@@ -378,6 +399,7 @@ function EditorPostCard({ post, teen, onBuy }: Pick<Props, 'post' | 'teen' | 'on
         </View>
       )}
       {tryOn.sheet}
+      {lookSheet ? <SaveAsLookSheet post={post} onClose={() => setLookSheet(false)} /> : null}
     </View>
   );
 }

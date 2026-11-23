@@ -129,6 +129,7 @@ teens (`social`), as is the friends' feed `GET v1/tenant/feed` (unchanged).
 | GET | `v1/tenant/feed-post/{id}/similar` | **User posts.** `ProductDto[]`, at most `ContentFeed:MaxSimilarProducts` (12) — see **Similar products**. `404 not_found` for an editor post or a user post I may not see. |
 | PUT | `v1/tenant/feed-post/{id}/hide` | `204`. "Bunu gösterme": the feed never returns the post to me again. Idempotent; works on both kinds. `404` as for like. There is no un-hide. |
 | POST | `v1/tenant/feed-post/{id}/report` | **User posts.** Body `{ "reason": ReportReason, "note"?: string ≤ 500 }` (`reason` = `spam` \| `inappropriate` \| `harassment` \| `impersonation` \| `minorSafety` \| `other`, the same values as the people report) → `201 { "reportId" }`. One report per user per post: a repeat answers `200` with the same id. The post is hidden for the reporter from then on (no separate hide needed). `404 not_found` (editor post, unknown, not visible), `422 cannot_target_self`, `429 too_many_attempts` (`Social:ReportsPerDay`, the budget shared with the people report), `400` (unknown reason, note too long). |
+| POST | `v1/tenant/feed-post/{id}/look` | **Editor posts with pieces.** "Looklarıma ekle". Body `{ "mode": "inspiration" \| "pieces", "requestId": "<ulid>" }` → `201 LookDto` (the app's normal look shape, [W §4](wardrobe-looks-plan-stylist.md)); the same post in the same mode again → `200` with the look made then (while it exists). `404 not_found`, `422 look_not_savable`, `403 premium_required`, `409 look_id_taken`, `400`. See **Saving a post into my looks**. |
 | PUT | `v1/tenant/look/{id}/feed-share` | `204`. Shares my look; published at once, no pre-approval; idempotent. `403 teen_restricted` (`feature: "social"`), `404 not_found`, `422 email_not_verified` \| `handle_required` \| `look_not_shareable`, `429 too_many_attempts` (only when `ContentFeed:MaxSharesPerDay` > 0). See **Sharing**. |
 | DELETE | `v1/tenant/look/{id}/feed-share` | `204`, always (idempotent). The post goes with its likes, saves, hides and report pointers. |
 
@@ -176,6 +177,36 @@ outfit of the post's photograph** as a photo try-on (one credit, cached per phot
 has no `pieces`); for a teen that case is `canTryOn: false` (a photo try-on is never for teens). A post with neither
 products nor pieces still answers `422 tryon_target_empty`. The admin post (`AdminFeedPostDto`) shows a read-only
 `pieceCount`; saving a post in the panel keeps its pieces while the first image stays and drops them when it changes.
+
+**Saving a post into my looks** (owner decision 2026-11-23). `POST v1/tenant/feed-post/{id}/look` turns an editor post
+that has `pieces` into a look of the member, in one of two ways. The bookmark (`…/save`) is unrelated and unchanged.
+No AI model is called by this endpoint. `requestId` is a client ULID and becomes the new look's id (a retry of the same
+request never creates twice). The look's `name` is the post's title in the request language (cut to 60), its
+`occasion` the post's.
+
+- `mode: "inspiration"` — "İlham olarak kaydet". The post's photograph (first image, read from the public catalog image
+  bucket, metadata stripped) is copied under the member's prefix and becomes the look's cover (`coverImageUrl`). The
+  look has **no pieces** (`slots: []`, `pieceCount: 0`) and `source: "inspiration"`; nothing is added to the wardrobe.
+  It never gets an AI cover, can never be shared to Akış (`422 look_not_shareable`), is not part of what followers see
+  of my looks, and is deleted like any look (its photograph goes with it). `PUT v1/tenant/look/{id}` accepts `slots: []`
+  for it (name, occasion, favourite). `POST v1/tenant/tryon` with `{ "kind": "look", "id": lookId }` tries it on as its
+  photograph (a photo try-on: one credit, the same image as the post's own photo try-on; never for a teen —
+  `422 tryon_target_empty`); the week's batch try-on skips it. "Bunu giyiyorum" on it answers `422 wear_log_empty`.
+- `mode: "pieces"` — "Parçalarıyla kaydet". Every piece becomes a wardrobe item: its clean picture is copied into the
+  member's storage as the item's image and published like a confirmed item's (no background removal, no recognition; the
+  256 / 768 px renditions are added later by `publish-item-images`, until then the full piece picture — at most 768 px —
+  is served), `category` / `subcategory` from the piece, `name` = the sub-type's label in the request language (else the
+  category's), `colorIds: ["other"]`, every season, no size / brand / fabric, `source: "photo"`. Then a normal own look
+  (`source: "user"`) is made of them, one piece per slot by the slot mapping (the first piece keeps a contested slot; a
+  dress closes the bottom; a piece without a slot is still added to the wardrobe). Its AI cover is requested like any
+  saved look's, and it can be planned, tried on, edited and shared like any look.
+
+Errors: `404 not_found` — unknown, draft, scheduled or retired post, the weekly-edit fallback, a user post (`u_…`).
+`422 look_not_savable` — the post has no pieces; `inspiration`: no photograph that can be read; `pieces`: fewer than two
+pieces that take a look slot (a look's minimum), counting only pieces whose picture can be read. `403 premium_required`
+— the wardrobe-item entitlement (the gate of every way of adding a piece; open on every plan today). `409 look_id_taken`
+— `requestId` is the id of another look. `400` — `mode_required` / `mode_invalid`, `request_id_invalid`. Teens: open,
+both modes (editor content, like the rest of these routes).
 
 **Deviations from the first F2 sketch (mobile: please note).** `occasion` is **nullable** (a shared look may have none;
 the weekly-edit fallback never has one). `imagesExpireAt` is an added field (user posts). `pieces[].subcategory` is added.

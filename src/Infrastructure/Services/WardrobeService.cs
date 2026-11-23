@@ -568,7 +568,8 @@ public sealed class WardrobeService(
     /// <summary>
     /// A new piece the user kept in an outfit import: created like every other item (entitlement, receipt by clientMutationId,
     /// the same validation). Its image is the crop from the photo until the background removal queued by the commit
-    /// replaces it (UseOriginalImage until then).
+    /// replaces it (UseOriginalImage until then). A piece of an Akış post saved "with its pieces" arrives already clean
+    /// (CleanedImageKey): that is its image, published like a confirmed item's — no background removal follows.
     /// </summary>
     public async Task<ItemCreateResultDto> CreateImportedItemAsync(string tenantId, ImportedItemCommand command, CancellationToken ct)
     {
@@ -586,7 +587,8 @@ public sealed class WardrobeService(
 
         var now = Now;
         var original = Owned(command.OriginalImageKey, tenantId);
-        return await CreateAsync(tenantId, command.ClientMutationId, command.ItemId, new ItemEntity
+        var cleaned = Owned(command.CleanedImageKey, tenantId);
+        var item = new ItemEntity
         {
             Id = command.ItemId,
             TenantId = tenantId,
@@ -597,11 +599,22 @@ public sealed class WardrobeService(
             Fabric = command.Fabric,
             Seasons = command.Seasons.Distinct().ToList(),
             Source = ItemSource.Photo,
+            ImageKey = cleaned,
             OriginalImageKey = original,
-            UseOriginalImage = original is not null,
+            UseOriginalImage = original is not null && cleaned is null,
             CreatedAt = now,
             UpdatedAt = now,
-        }, [], ct);
+        };
+        if (cleaned is null)
+            return await CreateAsync(tenantId, command.ClientMutationId, command.ItemId, item, [], ct);
+
+        // Same as a confirmed draft: the clean picture (no person in it) becomes public under fresh random keys (best effort).
+        var published = await publisher.PublishAsync(item, ct);
+        item.SetPublicImage(published);
+        var result = await CreateAsync(tenantId, command.ClientMutationId, command.ItemId, item, [], ct);
+        if (published is not null && result.Outcome != ItemCreateOutcome.Created)
+            await publisher.UnpublishAsync(tenantId, published.Keys, ct); // a replay or a taken id: these copies belong to nothing
+        return result;
     }
 
     // ── Library and catalog product ───────────────────────────────────────────────────────────────────────────────

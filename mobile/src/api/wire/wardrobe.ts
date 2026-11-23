@@ -207,7 +207,8 @@ export async function fetchItemMap(): Promise<Map<string, Item>> {
 // ---------- looks ----------
 
 export type OutfitSlotWire = 'top' | 'bottom' | 'outerwear' | 'shoes' | 'bagAccessory';
-export type LookSourceWire = 'user' | 'stylist' | 'edit' | 'builder' | 'import';
+/** `inspiration` (server-set): an Akış post saved "as inspiration" — photo cover, no slots. */
+export type LookSourceWire = 'user' | 'stylist' | 'edit' | 'builder' | 'import' | 'inspiration';
 /** Wire occasions; the app's `Occasion` has one more key (`evening`) that is sent as `dinner`. */
 export type OccasionWire = 'office' | 'dinner' | 'weekend' | 'wedding' | 'travel' | 'sport';
 
@@ -322,6 +323,7 @@ export function toLook(wire: LookWire, ctx: LookContext): Look {
     baseVersion: wire.version,
     moderation: toModeration(wire.moderation),
     imported: wire.source === 'import',
+    inspiration: wire.source === 'inspiration',
     sharedToFeed: Boolean(wire.sharedToFeed),
     feedStats: wire.feedStats ? { likeCount: Math.max(0, wire.feedStats.likeCount ?? 0), saveCount: Math.max(0, wire.feedStats.saveCount ?? 0) } : null,
   };

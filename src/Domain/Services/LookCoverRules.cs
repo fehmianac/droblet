@@ -17,8 +17,9 @@ public static class LookCoverRules
     /// <summary>A Pending request older than this is no longer reported as pending (the app stops waiting; nothing is re-queued).</summary>
     public static readonly TimeSpan PendingTimeout = TimeSpan.FromMinutes(10);
 
-    /// <summary>Imported looks (their outfit photo is the cover) never get an AI cover.</summary>
-    public static bool IsEligible(LookEntity look) => look.CoverImageKey is null && look.Source != LookSource.Import && look.Slots.Count > 0;
+    /// <summary>Imported looks and inspiration looks (their photograph is the cover) never get an AI cover.</summary>
+    public static bool IsEligible(LookEntity look) =>
+        look.CoverImageKey is null && look.Source is not (LookSource.Import or LookSource.Inspiration) && look.Slots.Count > 0;
 
     /// <summary>
     /// Stable hash of the look's pieces: the sorted "slot|itemId|productId" refs, SHA-256, 16 lower-case hex chars. The order

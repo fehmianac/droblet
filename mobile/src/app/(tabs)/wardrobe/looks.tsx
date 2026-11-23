@@ -32,16 +32,23 @@ function LookTile({ look, itemsById, onToggleFavorite }: { look: Look; itemsById
   const { t } = useTranslation();
   const occasion = t(`occasion.${look.occasion}`);
   const rating = look.rating !== null ? formatNumber(look.rating, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : null;
+  // An Akış post saved as inspiration: its photograph is the cover and "İLHAM" stands where the occasion does.
+  const tag = look.inspiration ? t('looks.inspirationTag') : occasion;
+  const label = look.inspiration
+    ? t('looks.cardLabelInspiration', { name: look.name })
+    : rating
+      ? t('looks.cardLabelRated', { occasion, name: look.name, rating })
+      : t('looks.cardLabel', { occasion, name: look.name });
   return (
-    <View className="flex-1">
+    <View className="flex-1" testID={`looks.tile.${look.id}`}>
       <Pressable
         onPress={() => router.push({ pathname: '/look/[id]', params: { id: look.id } })}
         accessibilityRole="button"
-        accessibilityLabel={rating ? t('looks.cardLabelRated', { occasion, name: look.name, rating }) : t('looks.cardLabel', { occasion, name: look.name })}
+        accessibilityLabel={label}
         className="gap-2 active:opacity-80"
       >
         <LookCover seed={look.id} tryOnImageUrl={look.tryOnImageUrl} cover={look.tryOnImageUrl ? null : lookCoverSource(look)} slots={look.slots} itemsById={itemsById} className="h-[210px] w-full rounded-image-lg">
-          <ImageTag label={toDisplayUpper(occasion, language)} className="absolute bottom-2 left-2" />
+          <ImageTag label={toDisplayUpper(tag, language)} className="absolute bottom-2 left-2" />
           {/* 21c: the AI flat-lay is being made; the drawn flat-lay shows until it arrives (fades in). */}
           {look.coverPending && !look.coverImageUrl && !look.tryOnImageUrl ? <CoverPendingTag className="absolute left-2 top-2" /> : null}
         </LookCover>

@@ -132,6 +132,26 @@
       "empty": "Akıştan henüz bir şey kaydetmedin.",
       "emptyAction": "Akışa git",
       "unsaveA11y": "{{name}} kaydını kaldır"
+    },
+    "addToLooks": "Looklarıma ekle",
+    "addToLooksA11y": "Bu gönderiyi looklarıma ekle",
+    "lookSheet": {
+      "title": "Looklarıma ekle",
+      "inspiration": "İlham olarak kaydet",
+      "inspirationBody": "Fotoğraf kapak olur, parçalar gardırobuna eklenmez.",
+      "pieces": "Parçalarıyla kaydet",
+      "piecesBody_one": "{{count}} parça gardırobuna eklenir ve look onlardan oluşur.",
+      "piecesBody_other": "{{count}} parça gardırobuna eklenir ve look onlardan oluşur.",
+      "piecesUnavailable": "Bu gönderide look için yeterli parça yok.",
+      "cancel": "Vazgeç",
+      "saving": "Kaydediliyor",
+      "savedToast": "Looklarına eklendi",
+      "queuedToast": "Çevrimdışısın. Bağlantı gelince looklarına eklenecek.",
+      "errors": {
+        "failed": "Look kaydedilemedi. Tekrar dene.",
+        "notSavable": "Bu gönderi look olarak kaydedilemiyor.",
+        "gone": "Bu gönderi artık yayında değil."
+      }
     }
   }
 }

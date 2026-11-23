@@ -48,6 +48,7 @@ public static class WardrobeDependencyInjection
         services.AddSingleton<IWardrobeService, WardrobeService>();
         services.AddSingleton<ILookCoverService, LookCoverService>();
         services.AddSingleton<ILookService, LookService>();
+        services.AddSingleton<IFeedLookService, Services.Store.FeedLookService>();
         services.AddSingleton<IOutfitImportService, OutfitImportService>();
         services.AddSingleton<IPlanService, PlanService>();
         services.AddSingleton<IStylistService, StylistService>();
