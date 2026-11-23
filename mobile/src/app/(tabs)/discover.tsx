@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { ChevronRight, Search } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, useWindowDimensions, View } from 'react-native';
 
 import type { CreatorCard, WeeklyEditSummary } from '@/api/contracts/store';
 import { CartButton, SectionState } from '@/components/blocks/SectionState';
@@ -17,7 +17,9 @@ import { ScreenState } from '@/components/ui/ScreenState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { CreatorCardView } from '@/features/store/CreatorCardView';
-import { useCreators, useCurrentEdit, useSeriesOutfits } from '@/features/store/queries';
+import { useSetFavorite } from '@/features/store/mutations';
+import { EMPTY_PRODUCT_QUERY, useCreators, useCurrentEdit, useFavoriteProducts, useProducts, useSeriesOutfits } from '@/features/store/queries';
+import { ShopProductCard } from '@/features/store/ShopProductCard';
 import { useTeenRules } from '@/features/teen/store';
 import { useWeeklyEdit } from '@/features/today/api';
 import { useAppLanguage } from '@/i18n/useAppLanguage';
@@ -26,7 +28,10 @@ import { toDisplayUpper } from '@/lib/upper';
 import { inkFade, placeholderTones } from '@/theme/tokens';
 import { useThemeColors } from '@/theme/useThemeColors';
 
-type DiscoverSection = 'editor' | 'influencer' | 'series';
+type DiscoverSection = 'all' | 'editor' | 'influencer' | 'series';
+
+/** Products shown on "Tümü": the newest of the catalogue, two columns; the rest is one tap away in the store. */
+const ALL_PRODUCT_COUNT = 8;
 
 function CreatorStripSkeleton() {
   return (
@@ -197,14 +202,26 @@ export default function DiscoverTab() {
 function AdultDiscover() {
   const { t } = useTranslation();
   const colors = useThemeColors();
-  const [section, setSection] = useState<DiscoverSection>('editor');
+  // Opens on "Tümü" (owner decision 2026-11-23): everything there is — the edit, the store's newest products, the
+  // creators — and the chips narrow it down.
+  const [section, setSection] = useState<DiscoverSection>('all');
+  const { width } = useWindowDimensions();
   const edit = useCurrentEdit();
   const creators = useCreators();
+  const products = useProducts(EMPTY_PRODUCT_QUERY, section === 'all');
+  const favorites = useFavoriteProducts();
+  const setFavorite = useSetFavorite();
+  const favoriteIds = favorites.data?.productIds ?? [];
+  const newest = (products.data?.pages[0]?.items ?? []).slice(0, ALL_PRODUCT_COUNT);
+  const cardWidth = (width - 20 * 2 - 12) / 2;
+  const allLoading = edit.isPending || products.isPending;
+  const allEmpty = !allLoading && !edit.data && newest.length === 0 && (creators.data?.length ?? 0) === 0;
   const series = useSeriesOutfits(section === 'series');
 
   const refresh = () => {
     void edit.refetch();
     void creators.refetch();
+    if (section === 'all') void products.refetch();
   };
 
   return (
@@ -218,6 +235,7 @@ function AdultDiscover() {
       </View>
       <View className="pt-0.5">
         <ChipRow>
+          <Chip testID="discover.chip.all" label={t('discover.chipAll')} selected={section === 'all'} onPress={() => setSection('all')} />
           <Chip testID="discover.chip.editor" label={t('discover.chipEditor')} selected={section === 'editor'} onPress={() => setSection('editor')} />
           <Chip testID="discover.chip.shop" label={t('discover.chipShop')} onPress={() => router.push('/shop')} />
           <Chip
@@ -230,6 +248,78 @@ function AdultDiscover() {
           <Chip testID="discover.chip.series" label={t('discover.chipSeries')} selected={section === 'series'} onPress={() => setSection('series')} />
         </ChipRow>
       </View>
+
+      {section === 'all' ? (
+        allEmpty ? (
+          <ScreenState
+            query={edit}
+            isEmpty={() => true}
+            empty={{ message: t('discover.allEmpty'), actionLabel: t('explore.editEmptyAction'), onAction: () => router.push('/shop') }}
+          >
+            {() => null}
+          </ScreenState>
+        ) : (
+          <ScrollView
+            contentContainerClassName="gap-6 pb-8 pt-2.5"
+            refreshControl={<RefreshControl refreshing={edit.isRefetching || products.isRefetching} onRefresh={refresh} tintColor={colors.muted} />}
+            testID="discover.all"
+          >
+            {edit.data ? <EditCover edit={edit.data} /> : null}
+
+            {allLoading || newest.length > 0 ? (
+              <View className="gap-3.5">
+                <View className="flex-row items-center justify-between px-gutter">
+                  <Text variant="h3">{t('discover.fromStore')}</Text>
+                  <Pressable
+                    onPress={() => router.push('/shop')}
+                    accessibilityRole="link"
+                    accessibilityLabel={t('discover.fromStoreAll')}
+                    hitSlop={8}
+                    className="min-h-icon-btn flex-row items-center gap-0.5 active:opacity-70"
+                    testID="discover.all.store"
+                  >
+                    <Text variant="label">{t('common.seeAll')}</Text>
+                    <Icon icon={ChevronRight} size={14} />
+                  </Pressable>
+                </View>
+                {newest.length > 0 ? (
+                  <View className="flex-row flex-wrap gap-3 px-gutter">
+                    {newest.map((item, index) => (
+                      <View key={item.id} style={{ width: cardWidth }}>
+                        <ShopProductCard
+                          testID={`discover.all.product.${index}`}
+                          product={item}
+                          favorite={favoriteIds.includes(item.id)}
+                          onToggleFavorite={() => setFavorite(item.id, !favoriteIds.includes(item.id))}
+                          onPress={() => router.push({ pathname: '/shop/product/[id]', params: { id: item.id } })}
+                        />
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <View className="flex-row gap-3 px-gutter">
+                    <Skeleton className="h-[240px] flex-1 rounded-image-lg" />
+                    <Skeleton className="h-[240px] flex-1 rounded-image-lg" />
+                  </View>
+                )}
+              </View>
+            ) : null}
+
+            {(creators.data?.length ?? 0) > 0 ? (
+              <View className="gap-4">
+                <Text variant="h3" className="px-gutter">
+                  {t('explore.creatorLooks')}
+                </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2.5 px-gutter">
+                  {(creators.data ?? []).map((c) => (
+                    <CreatorCardView key={c.id} creator={c} />
+                  ))}
+                </ScrollView>
+              </View>
+            ) : null}
+          </ScrollView>
+        )
+      ) : null}
 
       {section === 'editor' ? (
         <ScreenState
@@ -307,7 +397,7 @@ function AdultDiscover() {
         <ScreenState
           query={series}
           isEmpty={(list) => list.length === 0}
-          empty={{ message: t('explore.seriesEmpty'), actionLabel: t('explore.seriesEmptyAction'), onAction: () => setSection('editor') }}
+          empty={{ message: t('explore.seriesEmpty'), actionLabel: t('explore.seriesEmptyAction'), onAction: () => setSection('all') }}
         >
           {(list) => (
             <ScrollView contentContainerClassName="gap-5 px-gutter pb-8 pt-3">

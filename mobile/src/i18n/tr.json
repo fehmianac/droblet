@@ -403,7 +403,11 @@
     "chipShop": "Mağaza",
     "chipInfluencer": "Influencer",
     "chipFriends": "Arkadaşlar",
-    "chipSeries": "Dizi outfitleri"
+    "chipSeries": "Dizi outfitleri",
+    "chipAll": "Tümü",
+    "fromStore": "Mağazadan",
+    "fromStoreAll": "Mağazadaki tüm ürünleri gör",
+    "allEmpty": "Keşfet için içerik hazırlanıyor."
   },
   "screens": {
     "weekPlan": "Haftalık plan",

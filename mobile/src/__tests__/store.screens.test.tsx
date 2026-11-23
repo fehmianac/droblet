@@ -50,19 +50,36 @@ describe('Keşfet and the style store (20–24b, fixtures, EN)', () => {
     await i18n.changeLanguage('en');
   });
 
-  it('20 Keşfet: logo header with search and cart, the five chips, the edit cover and the sponsored tag', async () => {
+  it('20 Keşfet: logo header with search and cart, the chips, the edit cover and the sponsored tag', async () => {
     await open('/discover');
     await waitFor(() => expect(screen.getByText('Net Ofis Klasikleri')).toBeTruthy(), WAIT);
     expect(screen.getByLabelText('Droblet')).toBeTruthy();
     expect(screen.getByLabelText('Search the store')).toBeTruthy();
     expect(screen.getByLabelText('Cart, 3 items')).toBeTruthy();
-    for (const chip of ['Editor', 'Shop', 'Influencer', 'Friends', 'TV outfits']) {
+    for (const chip of ['All', 'Editor', 'Shop', 'Influencer', 'Friends', 'TV outfits']) {
       expect(screen.getByLabelText(chip)).toBeTruthy();
     }
     await waitFor(() => expect(screen.getByText('@ornek_stilist')).toBeTruthy(), WAIT);
     // The tag is data-driven: only the card whose `sponsored` flag is set carries it.
     expect(screen.getAllByText('SPONSORED')).toHaveLength(1);
     expect(screen.getByLabelText('Sponsored content, Marka vitrini, Lüks dokunuş')).toBeTruthy();
+  });
+
+  it('20 Keşfet opens on "All": the edit, the newest store products and the creators together; the chips narrow it', async () => {
+    await open('/discover');
+    await waitFor(() => expect(screen.getByTestId('discover.all')).toBeTruthy(), WAIT);
+    expect(screen.getByLabelText('All').props.accessibilityState).toMatchObject({ selected: true });
+    await waitFor(() => expect(screen.getByTestId('discover.all.product.0')).toBeTruthy(), WAIT);
+    expect(screen.queryByTestId('discover.all.product.8')).toBeNull(); // eight at most; the rest is in the store
+    expect(screen.getByText('From the store')).toBeTruthy();
+    expect(screen.getByText('Net Ofis Klasikleri')).toBeTruthy();
+    expect(screen.getByText('@ornek_stilist')).toBeTruthy();
+
+    // A chip narrows it: Editor shows the edit without the store products.
+    await fireEvent.press(screen.getByLabelText('Editor'));
+    await waitFor(() => expect(screen.queryByTestId('discover.all')).toBeNull(), WAIT);
+    expect(screen.getByText('Net Ofis Klasikleri')).toBeTruthy();
+    expect(screen.queryByText('From the store')).toBeNull();
   });
 
   it('20 Keşfet after the weekly edit (08): each screen keeps its own data — the owner\'s Keşfet crash', async () => {

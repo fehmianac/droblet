@@ -403,7 +403,11 @@
     "chipShop": "Shop",
     "chipInfluencer": "Influencer",
     "chipFriends": "Friends",
-    "chipSeries": "TV outfits"
+    "chipSeries": "TV outfits",
+    "chipAll": "All",
+    "fromStore": "From the store",
+    "fromStoreAll": "See all products in the store",
+    "allEmpty": "Discover is being prepared."
   },
   "screens": {
     "weekPlan": "Weekly plan",
