@@ -173,6 +173,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     // Firebase Analytics (GA4): RNFB setup per configured platform, no ad id, privacy defaults (collection
     // starts off; the app turns it on only while Ayarlar › "Ürün analitiği" is on). docs/analytics-events.md.
     './plugins/withFirebaseAnalytics.js',
+    // Google Play device filtering: portrait screen and Wi-Fi are declared optional (uses-feature required=false).
+    './plugins/withAndroidOptionalFeatures.js',
     // react-native-firebase 27 ships Firebase iOS SDK 13 through Swift Package Manager only, which requires
     // dynamic frameworks (its pod install fails on static linkage). See docs/analytics-events.md § SDK.
     ['expo-build-properties', { ios: { useFrameworks: 'dynamic' } }],
