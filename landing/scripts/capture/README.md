@@ -51,6 +51,9 @@ without starting anything). `men-onboarding.yaml` picks an adult birth year.
 
 ## Refresh
 
+After a new capture change `screenVersion` in `src/lib/screens.ts`: the file names do not change, and the version in
+the address is what makes browsers load the new pictures.
+
 Use a separate checkout of the branch whose UI should be shown (do not build from your working copy):
 
 ```bash

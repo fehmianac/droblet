@@ -267,7 +267,7 @@ for (const locale of locales) {
   const home = join(out, locale === defaultLocale ? '' : locale, 'index.html');
   if (!existsSync(home)) continue;
   const html = readFileSync(home, 'utf8');
-  const referenced = [...html.matchAll(/<img\b[^>]*\ssrc="(\/screens\/[^"]+)"/g)].map(([, src]) => src);
+  const referenced = [...html.matchAll(/<img\b[^>]*\ssrc="(\/screens\/[^"]+)"/g)].map(([, src]) => src.split('?')[0]);
   expect(referenced.length > 0, `${relative(root, home)}: shows no app screenshot`);
   for (const src of new Set(referenced)) {
     expect(src.startsWith(`/screens/${locale}/`), `${relative(root, home)}: shows "${src}" from another language`);
