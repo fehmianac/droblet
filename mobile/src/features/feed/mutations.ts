@@ -6,7 +6,8 @@ import { useTranslation } from 'react-i18next';
 import { track } from '@/analytics/track';
 import { apiRequest } from '@/api/client';
 import type {
-  FeedLookMode,
+  AddFeedPostPiecesRequest,
+  FeedSaveChoice,
   FeedPost,
   HideFeedPostRequest,
   LikeFeedPostRequest,
@@ -41,6 +42,7 @@ export const feedMutationKeys = {
   hide: ['tenant', 'feed-post', 'hide'] as const,
   report: ['tenant', 'feed-post', 'report'] as const,
   saveAsLook: ['tenant', 'feed-post', 'look'] as const,
+  addPieces: ['tenant', 'feed-post', 'pieces'] as const,
 };
 
 /** Which sentence a failed "Looklarıma ekle" shows; `paywall` = the plan's limit (the paywall opens instead of a toast). */
@@ -189,6 +191,31 @@ export function registerFeedMutations(client: QueryClient): void {
       else toast.error(i18n.t(`homeFeed.lookSheet.errors.${key}`), { testID: 'toast-feed-look-error' });
     },
   });
+
+  // POST v1/tenant/feed-post/{id}/pieces { requestId } → 200 ItemDto[]. "Parçayı gardırobuma ekle": the pieces of a post
+  // that do not make a look go to the wardrobe on their own. Not optimistic; the toast offers "Gör" (the wardrobe).
+  client.setMutationDefaults(feedMutationKeys.addPieces, {
+    scope: TENANT_WRITE_SCOPE,
+    mutationFn: (vars: AddFeedPostPiecesRequest) =>
+      fromSource<number>(
+        'content',
+        () => feedFixtures.addPieces(vars.postId),
+        async () => (await apiRequest<unknown[]>(`${postPath(vars.postId)}/pieces`, { method: 'POST', body: { requestId: vars.requestId } })).length,
+      ),
+    onSuccess: (_count: number | undefined, vars: AddFeedPostPiecesRequest) => {
+      void client.invalidateQueries({ queryKey: wardrobeKeys.items });
+      track('feed_save_as_look', { postId: vars.postId, mode: 'wardrobe' });
+      toast.success(i18n.t('homeFeed.lookSheet.wardrobeToast'), {
+        action: { label: i18n.t('feedback.see'), onPress: () => router.push('/wardrobe') },
+        testID: 'toast-feed-pieces',
+      });
+    },
+    onError: (error: unknown) => {
+      const key = saveAsLookErrorKey(error);
+      if (key === 'paywall') openPaywall({ from: 'feed_save_as_look' });
+      else toast.error(i18n.t(key === 'gone' ? 'homeFeed.lookSheet.errors.gone' : 'homeFeed.lookSheet.errors.wardrobeFailed'), { testID: 'toast-feed-look-error' });
+    },
+  });
 }
 
 const id = () => newClientMutation().clientMutationId;
@@ -269,18 +296,23 @@ export function useReportFeedPost() {
 export function useSaveFeedPostAsLook() {
   const { t } = useTranslation();
   const online = useIsOnline();
-  const m = useMutation<Look, unknown, SaveFeedPostAsLookRequest>({ mutationKey: feedMutationKeys.saveAsLook });
-  const [saving, setSaving] = useState<FeedLookMode | null>(null);
-  const save = async (post: Pick<FeedPost, 'id'>, mode: FeedLookMode): Promise<boolean> => {
-    const vars: SaveFeedPostAsLookRequest = { postId: post.id, mode, requestId: ulid() };
+  const look = useMutation<Look, unknown, SaveFeedPostAsLookRequest>({ mutationKey: feedMutationKeys.saveAsLook });
+  const pieces = useMutation<number, unknown, AddFeedPostPiecesRequest>({ mutationKey: feedMutationKeys.addPieces });
+  const [saving, setSaving] = useState<FeedSaveChoice | null>(null);
+  // 'wardrobe' = "Parçayı gardırobuma ekle": the pieces alone, no look.
+  const save = async (post: Pick<FeedPost, 'id'>, choice: FeedSaveChoice): Promise<boolean> => {
+    const requestId = ulid();
+    const run = () => (choice === 'wardrobe' ? pieces.mutateAsync({ postId: post.id, requestId }) : look.mutateAsync({ postId: post.id, mode: choice, requestId }));
     if (!online) {
-      m.mutate(vars);
-      toast.info(t('homeFeed.lookSheet.queuedToast'), { testID: 'toast-feed-look-queued' });
+      // Queued like the other feed writes: it runs when the connection is back.
+      if (choice === 'wardrobe') pieces.mutate({ postId: post.id, requestId });
+      else look.mutate({ postId: post.id, mode: choice, requestId });
+      toast.info(t(choice === 'wardrobe' ? 'homeFeed.lookSheet.wardrobeQueuedToast' : 'homeFeed.lookSheet.queuedToast'), { testID: 'toast-feed-look-queued' });
       return true;
     }
-    setSaving(mode);
+    setSaving(choice);
     try {
-      await m.mutateAsync(vars);
+      await run();
       return true;
     } catch {
       return false;

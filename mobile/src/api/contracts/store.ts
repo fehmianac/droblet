@@ -117,6 +117,8 @@ export type ProductSummary = {
   colors: string[];
   /** `[ONE_SIZE]` for a product sold without sizes (wire `sizes: []`). */
   sizes: ProductSize[];
+  /** The catalogue has no size list for this product (not a one-size product): the size is chosen on the brand's site. */
+  sizesOnBrandSite?: boolean;
   /** Set when the last price change was a drop. */
   previousPrice?: Money | null;
   /** false = retired ("stokta yok"); still shown, cannot be bought. Absent = available. */

@@ -313,32 +313,39 @@ function ProductBody({ product }: { product: ProductDetail }) {
                 </Text>
               ) : null}
             </View>
-            <View className="flex-row flex-wrap gap-1.5" accessibilityRole="radiogroup" accessibilityLabel={t('productDetail.sizeLabel')}>
-              {product.sizes.map((s) => {
-                const label = s === ONE_SIZE ? t('shop.oneSize') : s;
-                const selected = size === s;
-                return (
-                  <Pressable
-                    key={s}
-                    onPress={() => {
-                      setPickedSize(s);
-                      setSizeError(false);
-                    }}
-                    accessibilityRole="radio"
-                    accessibilityLabel={label}
-                    accessibilityState={{ selected, checked: selected }}
-                    hitSlop={{ top: 4, bottom: 4 }}
-                    className={`h-chip min-w-[46px] items-center justify-center rounded-pill border px-2.5 active:opacity-80 ${
-                      selected ? 'border-ink bg-ink' : 'border-line'
-                    }`}
-                  >
-                    <Text variant="chip" tone={selected ? 'cream' : 'ink'} numberOfLines={1}>
-                      {label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
+            {product.sizesOnBrandSite ? (
+              // The catalogue has no size list for this product (canvas 22 · beden marka sitesinde): nothing to pick here.
+              <Text variant="caption" tone="muted" testID="product.sizesOnBrandSite">
+                {t('productDetail.sizesOnBrandSite', { brand: product.brandName })}
+              </Text>
+            ) : (
+              <View className="flex-row flex-wrap gap-1.5" accessibilityRole="radiogroup" accessibilityLabel={t('productDetail.sizeLabel')}>
+                {product.sizes.map((s) => {
+                  const label = s === ONE_SIZE ? t('shop.oneSize') : s;
+                  const selected = size === s;
+                  return (
+                    <Pressable
+                      key={s}
+                      onPress={() => {
+                        setPickedSize(s);
+                        setSizeError(false);
+                      }}
+                      accessibilityRole="radio"
+                      accessibilityLabel={label}
+                      accessibilityState={{ selected, checked: selected }}
+                      hitSlop={{ top: 4, bottom: 4 }}
+                      className={`h-chip min-w-[46px] items-center justify-center rounded-pill border px-2.5 active:opacity-80 ${
+                        selected ? 'border-ink bg-ink' : 'border-line'
+                      }`}
+                    >
+                      <Text variant="chip" tone={selected ? 'cream' : 'ink'} numberOfLines={1}>
+                        {label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
             {sizeError ? (
               <View className="flex-row items-center gap-1.5" accessibilityLiveRegion="polite">
                 <Icon icon={CircleAlert} size={14} tone="danger" />

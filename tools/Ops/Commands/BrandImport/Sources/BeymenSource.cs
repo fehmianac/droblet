@@ -222,6 +222,9 @@ internal sealed partial class BeymenSource : BrandCatalogSource
     /// <summary>A department store: a product without a stated label is NOT assumed to be Beymen's.</summary>
     public override bool IsOwnBrand(string? brandName) => OwnLabels.Contains(SourceText.Fold(brandName));
 
+    /// <summary>Per-size stock sits behind /api, which robots.txt disallows: no size list, so the app sends the shopper to the site for the size.</summary>
+    public override bool SizesOnBrandSite => true;
+
     [GeneratedRegex(@"^https://cdn\.beymen\.com/(?:mnresize/\d+/\d+/)?(?<path>productimages/[^?#\s]+)$", RegexOptions.IgnoreCase)]
     private static partial Regex ImagePath();
 

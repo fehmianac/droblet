@@ -311,6 +311,46 @@ function slotOf(category: string): LookSlotKind | null {
   return LOOK_SLOTS.find((slot) => (SLOT_CATEGORIES[slot] as readonly string[]).includes(category)) ?? null;
 }
 
+/** The wardrobe items the pieces of a post become (colour "other", every season, named after their kind). */
+function pieceItems(post: FeedPost, createdAt: string): Item[] {
+  return post.pieces.map((piece, index) => {
+      const category = ((ITEM_CATEGORIES as readonly string[]).includes(piece.category) ? piece.category : 'accessory') as ItemCategory;
+      return {
+        id: `${post.id}_p${index + 1}`,
+        name: i18n.t(`homeFeed.pieceKind.${category}`),
+        category,
+        subcategory: null,
+        brand: null,
+        size: null,
+        color: 'other',
+        fabric: null,
+        seasons: [...ITEM_SEASONS],
+        imageUrl: piece.imageUrl,
+        originalImageUrl: null,
+        useOriginalImage: false,
+        wearCount: 0,
+        lastWornAt: null,
+        createdAt,
+        baseVersion: 1,
+      };
+    });
+}
+
+/** POST v1/tenant/feed-post/{id}/pieces: the pieces go to the wardrobe, no look; a piece already there is not added again. */
+function addPieces(postId: string): number {
+  const failure = state.failNextLook;
+  if (failure) {
+    state.failNextLook = null;
+    throw new ApiError('http', failure.status, { status: failure.status, code: failure.code });
+  }
+  const post = find(postId);
+  if (post.kind !== 'editor') throw new ApiError('http', 404, { code: 'not_found', status: 404 });
+  if (post.pieces.length === 0) throw new ApiError('http', 422, { code: 'look_not_savable', status: 422 });
+  const items = pieceItems(post, new Date().toISOString());
+  fixtureDb.items = [...items.filter((item) => !fixtureDb.items.some((i) => i.id === item.id)), ...fixtureDb.items];
+  return items.length;
+}
+
 /**
  * POST v1/tenant/feed-post/{id}/look with the server's rules: an editor post with pieces only; as inspiration the look
  * has no pieces and the post's photograph as its cover; with its pieces every piece becomes a wardrobe item (colour
@@ -362,28 +402,9 @@ function saveAsLook(postId: string, mode: FeedLookMode, requestId: string): Look
     }
     if (slots.filter(Boolean).length < FEED_LOOK_MIN_PIECES) throw notSavable();
 
-    const items: Item[] = post.pieces.map((piece, index) => {
-      const category = ((ITEM_CATEGORIES as readonly string[]).includes(piece.category) ? piece.category : 'accessory') as ItemCategory;
-      return {
-        id: `${requestId}_p${index + 1}`,
-        name: i18n.t(`homeFeed.pieceKind.${category}`),
-        category,
-        subcategory: null,
-        brand: null,
-        size: null,
-        color: 'other',
-        fabric: null,
-        seasons: [...ITEM_SEASONS],
-        imageUrl: piece.imageUrl,
-        originalImageUrl: null,
-        useOriginalImage: false,
-        wearCount: 0,
-        lastWornAt: null,
-        createdAt: base.createdAt,
-        baseVersion: 1,
-      };
-    });
-    fixtureDb.items = [...items, ...fixtureDb.items];
+    const items = pieceItems(post, base.createdAt);
+    // The same piece is the same wardrobe item however often the post is saved (the server's rule).
+    fixtureDb.items = [...items.filter((item) => !fixtureDb.items.some((i) => i.id === item.id)), ...fixtureDb.items];
     const lookSlots: LookSlot[] = items.flatMap((item, index) => {
       const slot = slots[index];
       return slot ? [{ slot, source: 'wardrobe' as const, refId: item.id, name: item.name, imageUrl: item.imageUrl, brand: null, price: null, deleted: false }] : [];
@@ -452,6 +473,7 @@ export const feedFixtures = {
   },
   /** POST v1/tenant/feed-post/{id}/look — "Looklarıma ekle" (as inspiration, or with its pieces). */
   saveAsLook,
+  addPieces,
   /** Test helpers: what "Bunu gösterme" and "Şikâyet et" sent. */
   hiddenIds: (): string[] => [...state.hidden],
   reports: (): FeedReport[] => state.reports.map((r) => ({ ...r })),

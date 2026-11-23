@@ -188,6 +188,41 @@ public class PostLook : IEndpoint
             .WithTags("Tenant Feed Post");
 }
 
+public class PostPieces : IEndpoint
+{
+    private static async Task<IResult> Handler(
+        [FromRoute] string id,
+        [FromBody] FeedPostPiecesRequest request,
+        [FromServices] IValidator<FeedPostPiecesRequest> validator,
+        [FromServices] IApiContext apiContext,
+        [FromServices] IFeedLookService looks,
+        CancellationToken ct)
+    {
+        var validation = await validator.ValidateAsync(request, ct);
+        if (!validation.IsValid)
+            return Results.BadRequest(validation.Errors.ToProblemDetails());
+
+        return (await looks.AddPiecesAsync(apiContext.TenantId, id, request.RequestId!, ct)).ToHttp();
+    }
+
+    public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints) =>
+        endpoints.MapPost("v1/tenant/feed-post/{id}/pieces", Handler)
+            .Produces<List<ItemDto>>(StatusCodes.Status200OK)
+            .Produces<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest)
+            .Produces<ProblemDetails>(StatusCodes.Status403Forbidden)
+            .Produces<ProblemDetails>(StatusCodes.Status404NotFound)
+            .Produces<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)
+            .ProducesProblem(StatusCodes.Status500InternalServerError)
+            .RequireAuthorization(ClaimNames.TenantUserPolicy)
+            .WithSummary("Add the pieces of an Akış editor post to my wardrobe")
+            .WithDescription("\"Parçayı gardırobuma ekle\": every piece of the post becomes a wardrobe item, exactly as with look mode = pieces, but no look is made — " +
+                             "for a post whose pieces do not make a look (one piece, or pieces of one slot). Body { requestId } (a client ULID). → 200 ItemDto[]: the " +
+                             "post's pieces now in the wardrobe, those already there included (the same piece is never added twice). No AI call. Open to teens. " +
+                             "404 not_found (unknown, draft, scheduled, retired, a user post); 422 look_not_savable (no pieces, or no readable piece picture); " +
+                             "403 premium_required (the wardrobe-item entitlement).")
+            .WithTags("Tenant Feed Post");
+}
+
 public class PostReport : IEndpoint
 {
     private static async Task<IResult> Handler(

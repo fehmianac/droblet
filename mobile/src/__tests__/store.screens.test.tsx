@@ -255,6 +255,22 @@ describe('Keşfet and the style store (20–24b, fixtures, EN)', () => {
     expect(screen.queryByTestId('credit-confirm')).toBeNull();
   });
 
+  it('22 Ürün: a product whose sizes the catalogue does not know says the size is picked on the brand site; nothing to choose, the bar works', async () => {
+    const real = storeFixtures.product('prod_001');
+    const spy = jest.spyOn(storeFixtures, 'product').mockReturnValue({ ...real, sizes: ['ONE'], sizesOnBrandSite: true });
+    try {
+      await open('/shop/product/prod_001');
+      await waitFor(() => expect(screen.getByTestId('product.sizesOnBrandSite')).toBeTruthy(), WAIT);
+      expect(screen.getByText(`You pick your size on the ${real.brandName} site.`)).toBeTruthy();
+      expect(screen.queryByLabelText('S')).toBeNull();
+      expect(screen.queryByLabelText('One size')).toBeNull();
+      await fireEvent.press(screen.getByText('Add to wardrobe'));
+      expect(screen.queryByText('Pick a size to continue.')).toBeNull();
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   it('22 Ürün: size picker, wardrobe match, the watchlist entry (separate from the heart) and the bar', async () => {
     await open('/shop/product/prod_001');
     await waitFor(() => expect(screen.getByText('Add to cart')).toBeTruthy(), WAIT);

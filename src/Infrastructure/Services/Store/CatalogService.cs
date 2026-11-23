@@ -252,6 +252,8 @@ public sealed class CatalogService(
             Retired = input.Retired,
             // Omitted = unchanged on an update (feeds without the column keep the admin's choice), women on create.
             Segment = input.Segment ?? existing?.Segment ?? CatalogSegment.Women,
+            // Only meaningful without a size list; a product that gets sizes loses the flag.
+            SizesOnBrandSite = (input.Sizes ?? []).Count == 0 && (input.SizesOnBrandSite ?? existing?.SizesOnBrandSite ?? false),
             CreatedAt = existing?.CreatedAt ?? now,
             UpdatedAt = now,
         };

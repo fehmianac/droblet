@@ -126,7 +126,7 @@ documented manual screen tracking).
 | `feed_post_open` | `feed_post_open` | Akış (and Kaydedilenler › Akış): a post's detail is opened by tapping its photograph or title | `postId`, `kind` editor \| user | — |
 | `feed_like` | `feed_like` | Akış: ♡ toggled | `postId`, `liked` | — |
 | `feed_save` | `feed_save` | Akış: Kaydet toggled | `postId`, `saved` | — |
-| `feed_save_as_look` | `feed_save_as_look` | Akış: "Looklarıma ekle" — the server made the look | `postId`, `mode` inspiration \| pieces | — |
+| `feed_save_as_look` | `feed_save_as_look` | Akış: "Looklarıma ekle" — the server made the look | `postId`, `mode` inspiration \| pieces \| wardrobe (the pieces alone, no look) | — |
 | `feed_story_view` | `feed_story_view` | Akış: each story shown in the viewer | `storyId` | — |
 | `feed_buy_click` | `feed_buy_click` | Akış: a brand site opened from a post or a story | `productId`, `brandId`, `source` post \| story, `postId` | — |
 | `feed_tryon_start` | `feed_tryon_start` | Akış: "Üzerimde dene" tapped (intent; `tryon_start` still fires when the server accepts, target `feed-post`) | `source`, `postId` or `productId` | — |

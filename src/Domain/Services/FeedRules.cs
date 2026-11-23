@@ -410,6 +410,13 @@ public interface IFeedLookService
     /// not live, a user post), Invalid look_not_savable, Forbidden (the wardrobe-item entitlement), Conflict look_id_taken.
     /// </summary>
     Task<ServiceResult<LookDto>> SaveAsLookAsync(string tenantId, string postId, SaveFeedPostAsLookCommand command, CancellationToken ct);
+
+    /// <summary>
+    /// "Parçayı gardırobuma ekle" (owner decision 2026-11-23, a post whose pieces do not make a look): every piece of the
+    /// post becomes a wardrobe item, no look is made. Ok = the pieces now in the wardrobe (new and already there alike).
+    /// NotFound not_found, Invalid look_not_savable (no piece, or none readable), Forbidden (the wardrobe-item entitlement).
+    /// </summary>
+    Task<ServiceResult<IReadOnlyList<ItemDto>>> AddPiecesAsync(string tenantId, string postId, string requestId, CancellationToken ct);
 }
 
 /// <summary>Akış: editor posts and stories, the shared looks of users mixed in (F2), likes, saves, hides, reports and the admin CRUD of editor content.</summary>

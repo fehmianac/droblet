@@ -38,7 +38,7 @@ public record FeedProductDto(
 {
     public static FeedProductDto From(ProductDto p, bool ownedSimilar, string? ownedItemId = null) => new(
         p.Id, p.BrandId, p.BrandName, p.Name, p.Description, p.Category, p.Slot, p.Colors, p.Sizes, p.PriceMinor, p.Currency, p.PreviousPriceMinor,
-        p.PriceBand, p.Images, p.Available, p.CreatedAt, p.Segment, ownedSimilar, ownedSimilar ? ownedItemId : null);
+        p.PriceBand, p.Images, p.Available, p.CreatedAt, p.Segment, ownedSimilar, ownedSimilar ? ownedItemId : null) { SizesOnBrandSite = p.SizesOnBrandSite };
 }
 
 /// <summary>A piece of a shared look as others see it: the kind and the cleaned image only (never the original photo, name or id).</summary>

@@ -85,6 +85,7 @@
     "viewToggle": "Görünüm",
     "sizeLabel": "Beden",
     "sizeFromProfile": "· profilindeki beden seçili",
+    "sizesOnBrandSite": "Bedenini {{brand}} sitesinde seçersin.",
     "sizeRequired": "Devam etmek için bir beden seç.",
     "matchCount_one": "Gardırobundaki <b>{{count}} parçayla</b> uyumlu",
     "matchCount_other": "Gardırobundaki <b>{{count}} parçayla</b> uyumlu",

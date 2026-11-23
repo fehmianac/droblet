@@ -45,6 +45,8 @@ public class CatalogProductEntity : IEntity
     [JsonPropertyName("category")] public ProductCategory Category { get; set; }
     [JsonPropertyName("colors")] public List<string> Colors { get; set; } = [];
     [JsonPropertyName("sizes")] public List<string> Sizes { get; set; } = [];
+    /// <summary>The source could not tell which sizes are sold (Sizes is empty for that reason, not because the product is one-size): the size is chosen on the brand's site.</summary>
+    [JsonPropertyName("sizesOnBrandSite")] public bool SizesOnBrandSite { get; set; }
     [JsonPropertyName("priceMinor")] public long PriceMinor { get; set; }                 // kuruş
     [JsonPropertyName("currency")] public string Currency { get; set; } = "TRY";
     [JsonPropertyName("previousPriceMinor")] public long? PreviousPriceMinor { get; set; }

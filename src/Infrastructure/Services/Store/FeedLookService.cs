@@ -102,77 +102,18 @@ public sealed class FeedLookService(
         if (!decision.Allowed)
             return ServiceResult.Denied<LookDto>(decision);
 
-        // A piece saved from this post before is the same wardrobe piece (its id is a function of the post and the piece,
-        // not of the look): saving the post again — after deleting the look, say — reuses it instead of adding a twin.
-        // Every other piece needs its picture first: one whose picture cannot be read is left out, and a look still
-        // needs two pieces.
-        var maxBytes = photoOptions.CurrentValue.MaxUploadBytes;
-        var usable = new List<(FeedPostPiece Piece, int Index, string ItemId, bool Owned, StoredPicture? Picture)>(post.Pieces.Count);
-        for (var index = 0; index < post.Pieces.Count; index++)
-        {
-            var piece = post.Pieces[index];
-            var itemId = PieceItemId(tenantId, post, index);
-            if (await repository.GetAsync<ItemEntity>(ItemEntity.GetPk(tenantId), ItemEntity.GetSk(itemId), ct) is not null)
-                usable.Add((piece, index, itemId, true, null));
-            else if (await publicImages.ReadAsync(piece.ImageUrl.Trim(), maxBytes, ct) is { } raw && Picture(raw) is { } picture)
-                usable.Add((piece, index, itemId, false, picture));
-        }
+        var usable = await UsablePiecesAsync(tenantId, post, ct);
         var slots = FeedRules.LookSlots(usable.Select(r => r.Piece.Category).ToList());
         if (slots.Count < OutfitSlotRules.MinPieces)
             return ServiceResult.Invalid<LookDto>(StoreSocialErrorCodes.LookNotSavable);
 
+        var (items, forbidden) = await AddToWardrobeAsync(tenantId, post, usable, $"fp-{lookId}", language, ct);
+        if (forbidden)
+            return ServiceResult.Forbidden<LookDto>(ErrorCodes.PremiumRequired);
         var lookSlots = new List<LookSlotValue>(slots.Count);
-        for (var position = 0; position < usable.Count; position++)
-        {
-            var (piece, index, itemId, owned, picture) = usable[position];
-            if (owned)
-            {
-                if (slots.TryGetValue(position, out var ownedSlot))
-                    lookSlots.Add(new LookSlotValue { Slot = ownedSlot, ItemId = itemId });
-                continue;
-            }
-            string? cleanedKey = null, originalKey = null;
-            if (picture!.IsWebp)
-            {
-                // Already a clean piece picture: stored where a confirmed item's cleaned image lives. The 256 / 768 renditions
-                // are not made here — the Api cannot resample (SkiaSharp lives in the item processor): the piece shows its
-                // full picture (the split already capped its size) until publish-item-images adds them.
-                cleanedKey = StorageKeys.ItemImage(tenantId, itemId);
-                await storage.PutAsync(cleanedKey, picture.Data, picture.ContentType, ct);
-            }
-            else
-            {
-                originalKey = StorageKeys.ItemOriginal(tenantId, itemId, picture.Extension);
-                await storage.PutAsync(originalKey, picture.Data, picture.ContentType, ct);
-            }
-
-            var subcategory = ItemRules.IsValidSubcategory(piece.Subcategory?.Trim()) ? piece.Subcategory?.Trim() : null;
-            // The name is the piece's kind in the request language ("Blazer", else the category: "Dış giyim"). What a piece of
-            // a photograph does not know takes the neutral value: every season, no size / brand / fabric — the member
-            // edits the piece like any other. The colour is the one read from the piece's picture ("other" when not read).
-            // The receipt is the look request's (a retry replays it); the item id is the post piece's.
-            var result = await wardrobe.CreateImportedItemAsync(tenantId, new ImportedItemCommand(
-                $"fp-{lookId}-{index}", itemId, PieceName(piece.Category, subcategory, language), piece.Category, subcategory, [ColorCatalog.IsKnown(piece.ColorId) ? piece.ColorId! : ColorCatalog.OtherId], null,
-                OutfitImportRules.SeasonsOrAll([]), originalKey, cleanedKey), ct);
-            if (result.Outcome == ItemCreateOutcome.Rejected)
-            {
-                // "Id taken" = the same piece arrived from a parallel save of this post: it is there, so it is used.
-                if (result.Code == ErrorCodes.ItemIdTaken)
-                {
-                    if (slots.TryGetValue(position, out var takenSlot))
-                        lookSlots.Add(new LookSlotValue { Slot = takenSlot, ItemId = itemId });
-                    continue;
-                }
-                foreach (var key in new[] { cleanedKey, originalKey }.OfType<string>())
-                    await storage.DeleteAsync(key, ct);
-                if (result.Code == ErrorCodes.PremiumRequired)
-                    return ServiceResult.Forbidden<LookDto>(ErrorCodes.PremiumRequired);
-                continue;
-            }
-            // AlreadyApplied without an item = created by an earlier try of this request and deleted since: left out.
-            if (result.Item is not null && slots.TryGetValue(position, out var slot))
-                lookSlots.Add(new LookSlotValue { Slot = slot, ItemId = result.Item.Id });
-        }
+        foreach (var (position, itemId) in items)
+            if (slots.TryGetValue(position, out var slot))
+                lookSlots.Add(new LookSlotValue { Slot = slot, ItemId = itemId });
         if (lookSlots.Count < OutfitSlotRules.MinPieces)
             return ServiceResult.Invalid<LookDto>(StoreSocialErrorCodes.LookNotSavable);
 
@@ -196,6 +137,122 @@ public sealed class FeedLookService(
         logger.LogInformation("Feed post {PostId} saved with its pieces as look {LookId} by tenant {TenantId}: {Items} new item(s), {Slots} slot(s)",
             post.Id, lookId, tenantId, usable.Count(u => !u.Owned), look.Slots.Count);
         return ServiceResult.Created(await ToDtoAsync(look, cover, ct));
+    }
+
+    // ── Yalnız parçaları gardıroba ekle ───────────────────────────────────────────────────────────────────────────
+
+    public async Task<ServiceResult<IReadOnlyList<ItemDto>>> AddPiecesAsync(string tenantId, string postId, string requestId, CancellationToken ct)
+    {
+        if (FeedRules.IsUserPostId(postId) || FeedRules.EditLookIdOf(postId) is not null || !FeedInputRules.IsId(postId))
+            return ServiceResult.NotFound<IReadOnlyList<ItemDto>>(ErrorCodes.NotFound);
+        var post = await repository.GetAsync<FeedPostEntity>(FeedPostEntity.GetPk(), FeedPostEntity.GetSk(postId), ct);
+        if (post is null || !FeedRules.IsLive(post, Now))
+            return ServiceResult.NotFound<IReadOnlyList<ItemDto>>(ErrorCodes.NotFound);
+        if (post.Pieces.Count == 0)
+            return ServiceResult.Invalid<IReadOnlyList<ItemDto>>(StoreSocialErrorCodes.LookNotSavable);
+        var decision = await entitlements.CheckAsync(tenantId, Capability.WardrobeItem, ct);
+        if (!decision.Allowed)
+            return ServiceResult.Denied<IReadOnlyList<ItemDto>>(decision);
+
+        var usable = await UsablePiecesAsync(tenantId, post, ct);
+        if (usable.Count == 0)
+            return ServiceResult.Invalid<IReadOnlyList<ItemDto>>(StoreSocialErrorCodes.LookNotSavable);
+        var (items, forbidden) = await AddToWardrobeAsync(tenantId, post, usable, $"fpw-{requestId}", await requestLanguage.GetAsync(ct), ct);
+        if (forbidden)
+            return ServiceResult.Forbidden<IReadOnlyList<ItemDto>>(ErrorCodes.PremiumRequired);
+        var result = new List<ItemDto>(items.Count);
+        foreach (var (_, itemId) in items)
+            if (await repository.GetAsync<ItemEntity>(ItemEntity.GetPk(tenantId), ItemEntity.GetSk(itemId), ct) is { } item)
+                result.Add(await wardrobe.ToDtoAsync(item, ct));
+        if (result.Count == 0)
+            return ServiceResult.Invalid<IReadOnlyList<ItemDto>>(StoreSocialErrorCodes.LookNotSavable);
+        logger.LogInformation("Pieces of feed post {PostId} added to the wardrobe of tenant {TenantId}: {Items} piece(s), {New} new", post.Id, tenantId, result.Count, usable.Count(u => !u.Owned));
+        return ServiceResult.Ok<IReadOnlyList<ItemDto>>(result);
+    }
+
+    // ── Parçalar ──────────────────────────────────────────────────────────────────────────────────────────────────
+
+    private sealed record UsablePiece(FeedPostPiece Piece, int Index, string ItemId, bool Owned, StoredPicture? Picture);
+
+    /// <summary>
+    /// The pieces of a post that can be in this member's wardrobe: one saved from this post before is the same wardrobe
+    /// piece (its id is a function of the post and the piece, not of the look) — saving the post again reuses it instead of
+    /// adding a twin. Every other piece needs its picture: one whose picture cannot be read is left out.
+    /// </summary>
+    private async Task<List<UsablePiece>> UsablePiecesAsync(string tenantId, FeedPostEntity post, CancellationToken ct)
+    {
+        var maxBytes = photoOptions.CurrentValue.MaxUploadBytes;
+        var usable = new List<UsablePiece>(post.Pieces.Count);
+        for (var index = 0; index < post.Pieces.Count; index++)
+        {
+            var piece = post.Pieces[index];
+            var itemId = PieceItemId(tenantId, post, index);
+            if (await repository.GetAsync<ItemEntity>(ItemEntity.GetPk(tenantId), ItemEntity.GetSk(itemId), ct) is not null)
+                usable.Add(new UsablePiece(piece, index, itemId, true, null));
+            else if (await publicImages.ReadAsync(piece.ImageUrl.Trim(), maxBytes, ct) is { } raw && Picture(raw) is { } picture)
+                usable.Add(new UsablePiece(piece, index, itemId, false, picture));
+        }
+        return usable;
+    }
+
+    /// <summary>
+    /// Makes the wardrobe items of the usable pieces that are not there yet. Returns (position in <paramref name="usable"/>,
+    /// item id) of every piece that is in the wardrobe afterwards; Forbidden = the wardrobe-item entitlement said no.
+    /// <paramref name="receiptKey"/> is the request's (a retry replays it); the item id is the post piece's.
+    /// </summary>
+    private async Task<(List<(int Position, string ItemId)> Items, bool Forbidden)> AddToWardrobeAsync(
+        string tenantId, FeedPostEntity post, IReadOnlyList<UsablePiece> usable, string receiptKey, string language, CancellationToken ct)
+    {
+        var items = new List<(int, string)>(usable.Count);
+        for (var position = 0; position < usable.Count; position++)
+        {
+            var (piece, index, itemId, owned, picture) = usable[position];
+            if (owned)
+            {
+                items.Add((position, itemId));
+                continue;
+            }
+            string? cleanedKey = null, originalKey = null;
+            if (picture!.IsWebp)
+            {
+                // Already a clean piece picture: stored where a confirmed item's cleaned image lives. The 256 / 768 renditions
+                // are not made here — the Api cannot resample (SkiaSharp lives in the item processor): the piece shows its
+                // full picture (the split already capped its size) until publish-item-images adds them.
+                cleanedKey = StorageKeys.ItemImage(tenantId, itemId);
+                await storage.PutAsync(cleanedKey, picture.Data, picture.ContentType, ct);
+            }
+            else
+            {
+                originalKey = StorageKeys.ItemOriginal(tenantId, itemId, picture.Extension);
+                await storage.PutAsync(originalKey, picture.Data, picture.ContentType, ct);
+            }
+
+            var subcategory = ItemRules.IsValidSubcategory(piece.Subcategory?.Trim()) ? piece.Subcategory?.Trim() : null;
+            // The name is the piece's kind in the request language ("Blazer", else the category: "Dış giyim"). What a piece of
+            // a photograph does not know takes the neutral value: every season, no size / brand / fabric — the member
+            // edits the piece like any other. The colour is the one read from the piece's picture ("other" when not read).
+            var result = await wardrobe.CreateImportedItemAsync(tenantId, new ImportedItemCommand(
+                $"{receiptKey}-{index}", itemId, PieceName(piece.Category, subcategory, language), piece.Category, subcategory, [ColorCatalog.IsKnown(piece.ColorId) ? piece.ColorId! : ColorCatalog.OtherId], null,
+                OutfitImportRules.SeasonsOrAll([]), originalKey, cleanedKey), ct);
+            if (result.Outcome == ItemCreateOutcome.Rejected)
+            {
+                // "Id taken" = the same piece arrived from a parallel save of this post: it is there, so it is used.
+                if (result.Code == ErrorCodes.ItemIdTaken)
+                {
+                    items.Add((position, itemId));
+                    continue;
+                }
+                foreach (var key in new[] { cleanedKey, originalKey }.OfType<string>())
+                    await storage.DeleteAsync(key, ct);
+                if (result.Code == ErrorCodes.PremiumRequired)
+                    return (items, true);
+                continue;
+            }
+            // AlreadyApplied without an item = created by an earlier try of this request and deleted since: left out.
+            if (result.Item is not null)
+                items.Add((position, result.Item.Id));
+        }
+        return (items, false);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────────────────────────────────────────

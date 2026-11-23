@@ -85,6 +85,7 @@
     "viewToggle": "View",
     "sizeLabel": "Size",
     "sizeFromProfile": "· your profile size is selected",
+    "sizesOnBrandSite": "You pick your size on the {{brand}} site.",
     "sizeRequired": "Pick a size to continue.",
     "matchCount_one": "Goes with <b>{{count}} piece</b> in your wardrobe",
     "matchCount_other": "Goes with <b>{{count}} pieces</b> in your wardrobe",
