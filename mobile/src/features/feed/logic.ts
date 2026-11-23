@@ -35,6 +35,16 @@ export function isHiddenThisSession(postId: string): boolean {
   return hiddenThisSession.has(postId);
 }
 
+/**
+ * True while Akış shows the weekly edit instead of editor posts (no live post for this segment; the server sends the
+ * edit's looks with ids "e_…"). Those looks have no occasion, so the occasion tabs would all be empty: the screen
+ * leaves the tabs out until editor posts are back (owner decision, 23 Nov 2026).
+ */
+export function isEditFallback(posts: readonly Pick<FeedPost, 'id' | 'kind'>[]): boolean {
+  const editor = posts.filter((p) => p.kind === 'editor');
+  return editor.length > 0 && editor.every((p) => p.id.startsWith('e_'));
+}
+
 /** Wardrobe items behind the "Gardırobunda var" pieces of an editor post ("Kendi parçalarımla kur" needs two). */
 export function ownedItemIds(post: Pick<FeedPost, 'products'>): string[] {
   return [...new Set(post.products.filter((p) => p.ownedSimilar && p.ownedItemId).map((p) => p.ownedItemId as string))];

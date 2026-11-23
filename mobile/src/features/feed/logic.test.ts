@@ -8,6 +8,7 @@ import {
   buyableProducts,
   firstViewThisSession,
   hidePostThisSession,
+  isEditFallback,
   isHiddenThisSession,
   ownedItemIds,
   ownedProducts,
@@ -111,5 +112,14 @@ describe('feed logic', () => {
     expect(firstViewThisSession('p1')).toBe(false);
     resetFeedSession();
     expect(firstViewThisSession('p1')).toBe(true);
+  });
+});
+
+describe('isEditFallback', () => {
+  it('is true only when every editor post is a weekly-edit look', () => {
+    expect(isEditFallback([])).toBe(false);
+    expect(isEditFallback([{ id: 'u_a', kind: 'user' }])).toBe(false);
+    expect(isEditFallback([{ id: 'e_1', kind: 'editor' }, { id: 'u_a', kind: 'user' }, { id: 'e_2', kind: 'editor' }])).toBe(true);
+    expect(isEditFallback([{ id: 'e_1', kind: 'editor' }, { id: 'p1', kind: 'editor' }])).toBe(false);
   });
 });

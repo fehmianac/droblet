@@ -15,7 +15,7 @@ import { Text } from '@/components/ui/Text';
 import { BuySheet } from '@/features/feed/BuySheet';
 import { FeedPostCard, FeedPostSkeleton } from '@/features/feed/FeedPostCard';
 import { FirstStepCard, useHasTriedOn } from '@/features/feed/FirstStepCard';
-import { firstViewThisSession, isHiddenThisSession } from '@/features/feed/logic';
+import { firstViewThisSession, isEditFallback, isHiddenThisSession } from '@/features/feed/logic';
 import { useEditorStories, useFeedPosts } from '@/features/feed/queries';
 import { StoriesRow } from '@/features/feed/StoriesRow';
 import { TodayEmptyRow, TodayQuickCard } from '@/features/feed/TodayQuickCard';
@@ -141,6 +141,7 @@ export default function FeedScreen() {
   };
 
   const todayLook = today.data?.look ?? null;
+  const editFallback = tab === 'all' && isEditFallback(items);
 
   const header = (
     <View className="pb-4">
@@ -193,7 +194,8 @@ export default function FeedScreen() {
             {t('homeFeed.forYouNote')}
           </Text>
         </View>
-        <FeedTabs value={tab} onChange={setTab} />
+        {/* Only the weekly edit to show: its looks have no occasion, so the tabs would be empty — left out. */}
+        {editFallback ? <View className="mx-gutter border-b border-line" /> : <FeedTabs value={tab} onChange={setTab} />}
       </View>
     </View>
   );
