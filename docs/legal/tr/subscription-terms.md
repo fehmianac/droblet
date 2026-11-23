@@ -2,11 +2,11 @@
 
 # Abonelik Koşulları
 
-> Son güncelleme: 19 Kasım 2026 · Yürürlük: [YÜRÜRLÜK TARİHİ]
+> Son güncelleme: 23 Kasım 2026
 
 Bu koşullar Droblet Üyelik aboneliğini ve ek AI görseli paketlerini düzenler ve Kullanım Koşulları'nın bir parçasıdır. Satın almalar App Store ya da Google Play üzerinden yapılır; ödeme, faturalama ve iade ilgili mağazanın koşullarına da tabidir.
 
-**Veri sorumlusu:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık · Şirket no. 17100391 · [İLETİŞİM E-POSTASI]
+**Veri sorumlusu:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık · Şirket no. 17100391 · info@alatech.co
 
 ## KISACA
 
@@ -107,13 +107,13 @@ Türkiye'deki tüketiciler için: Mesafeli Sözleşmeler Yönetmeliği m. 15/1-�
 
 Birleşik Krallık'taki tüketiciler için: Consumer Contracts Regulations 2013 uyarınca dijital içerik ve hizmetler için 14 günlük cayma hakkın vardır. Dijital içeriğin (ör. ek AI görseli paketi) cayma süresi içinde hemen sağlanmasını açıkça isteyip bununla cayma hakkını kaybettiğini kabul edersen, içerik sağlandığında cayma hakkın sona erer. Abonelik hizmeti için cayma süresi içinde hizmetin başlamasını istersen, cayarsan o güne kadar sağlanan hizmetin orantılı bedelini ödemen gerekebilir. [HUKUK ONAYI: 2024 tarihli DMCC Kanunu abonelik kuralları]
 
-Cayma bildirimini mağazanın iade kanalından ya da [İLETİŞİM E-POSTASI] adresinden iletebilirsin; bize gelen bildirimlerde mağaza üzerinden iade sürecinde sana yardımcı oluruz.
+Cayma bildirimini mağazanın iade kanalından ya da info@alatech.co adresinden iletebilirsin; bize gelen bildirimlerde mağaza üzerinden iade sürecinde sana yardımcı oluruz.
 
 ## 12. Fiyat ve kapsam değişiklikleri
 
 Abonelik fiyatını değiştirebiliriz. Fiyat artışlarını yürürlüğe girmeden önce uygulama içinde ve mağazanın kuralları gereği mağaza aracılığıyla bildiririz; mağaza gerekli gördüğü hâllerde artışı kabul etmeni ister. Kabul etmezsen abonelik mevcut dönemin sonunda sona erer.
 
-Aylık AI görseli sayısını ya da üyeliğin kapsamını senin aleyhine değiştirirsek bunu en az [DEĞİŞİKLİK BİLDİRİM SÜRESİ] önce bildiririz; değişiklik bir sonraki yenileme döneminden itibaren uygulanır ve o tarihten önce iptal edebilirsin.
+Aylık AI görseli sayısını ya da üyeliğin kapsamını senin aleyhine değiştirirsek bunu önceden bildiririz; değişiklik bir sonraki yenileme döneminden itibaren uygulanır ve o tarihten önce iptal edebilirsin.
 
 ## 13. Üyelik bittiğinde
 
@@ -123,4 +123,4 @@ Fotoğraflarını silme, hesabını silme, dolap görünürlüğünü değiştir
 
 ## 14. İletişim
 
-Üyelik, kredi ya da satın alma ile ilgili sorular için: [İLETİŞİM E-POSTASI]. Ödeme ve iade için ilgili mağazanın destek kanallarını kullan.
+Üyelik, kredi ya da satın alma ile ilgili sorular için: info@alatech.co. Ödeme ve iade için ilgili mağazanın destek kanallarını kullan.

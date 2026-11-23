@@ -2,11 +2,11 @@
 
 # Terms of Use
 
-> Last updated: 19 November 2026 · Effective: [EFFECTIVE DATE]
+> Last updated: 23 November 2026
 
 These terms are the agreement between you and Ala Tech Solutions LTD (“Droblet”, “we”) for your use of the Droblet mobile app and the droblet.alatech.co website (together, the “Service”). By creating an account or using the Service you accept these terms, the Privacy Policy, the Subscription Terms and the Community Guidelines.
 
-**Data controller:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, United Kingdom · Company no. 17100391 · [CONTACT E-MAIL]
+**Data controller:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, United Kingdom · Company no. 17100391 · info@alatech.co
 
 ## IN SHORT
 
@@ -20,7 +20,7 @@ These terms are the agreement between you and Ala Tech Solutions LTD (“Droblet
 
 ## 1. Who we are and what this agreement covers
 
-The Service is provided by Ala Tech Solutions LTD, a company registered in England and Wales (company no. 17100391, address: Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, United Kingdom). You can reach us at [CONTACT E-MAIL].
+The Service is provided by Ala Tech Solutions LTD, a company registered in England and Wales (company no. 17100391, address: Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, United Kingdom). You can reach us at info@alatech.co.
 
 This agreement is made up of these Terms of Use, the Subscription Terms (for Droblet Membership and extra credit packs) and the Community Guidelines. How we process your personal data is explained in the Privacy Policy and the KVKK Information Notice; those are notices, not part of the contract.
 
@@ -53,7 +53,7 @@ Each person may open one account, for themselves only. Someone whose account we 
 
 You can create your account with e-mail and password, with Apple or with Google. You are responsible for keeping the information you give us accurate and up to date.
 
-Do not share your password and do not reuse a password from another service. If you think your account is being used without your permission, change your password and tell us at [CONTACT E-MAIL].
+Do not share your password and do not reuse a password from another service. If you think your account is being used without your permission, change your password and tell us at info@alatech.co.
 
 Your username (@handle) and display name are visible to other users. We may change or remove a username that impersonates someone, is misleading or breaks the Community Guidelines.
 
@@ -150,17 +150,17 @@ This section does not limit our liability for intent or gross negligence, for de
 
 ## 16. Changes to these terms
 
-We may change these terms. We will tell you about material changes in the app or by e-mail at least [CHANGE NOTICE PERIOD] before they take effect. If you do not accept the changes you can delete your account before the effective date; continuing to use the Service after that date means you accept the new terms.
+We may change these terms. We will tell you about material changes in the app or by e-mail before they take effect. If you do not accept the changes you can delete your account before the effective date; continuing to use the Service after that date means you accept the new terms.
 
 Changes made for security reasons or because the law requires them may take effect immediately.
 
 ## 17. Governing law and disputes
 
-This agreement is governed by [GOVERNING LAW AND COURTS]. This choice does not take away the protection of the mandatory consumer rules of the country where you live.
+You keep the protection of the mandatory consumer rules of the country where you live.
 
 If you live in Türkiye you can apply, within the monetary limits, to the Consumer Arbitration Committee (Tüketici Hakem Heyeti) where you live or where the transaction took place, and above those limits to the Consumer Court. If you live in the United Kingdom you can bring a claim in the courts of the part of the UK where you live.
 
-If something goes wrong, please write to us first at [CONTACT E-MAIL]; most problems can be solved that way.
+If something goes wrong, please write to us first at info@alatech.co; most problems can be solved that way.
 
 ## 18. Additional terms for the App Store and Google Play
 
@@ -179,6 +179,6 @@ If you downloaded the app from Google Play, the Google Play Terms of Service als
 
 ## 19. Contact
 
-Questions, complaints and notices: [CONTACT E-MAIL] · Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, United Kingdom.
+Questions, complaints and notices: info@alatech.co · Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, United Kingdom.
 
 To delete your account: in the app, Profile › Settings › Delete my account, or droblet.alatech.co/delete-account.

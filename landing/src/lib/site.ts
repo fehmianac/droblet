@@ -32,8 +32,8 @@ export const teenParentConsentEnabled = (process.env.NEXT_PUBLIC_TEEN_PARENT_CON
 export const appStoreUrl = httpUrl(process.env.NEXT_PUBLIC_APP_STORE_URL);
 export const playStoreUrl = httpUrl(process.env.NEXT_PUBLIC_PLAY_STORE_URL);
 
-const email = (process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? '').trim();
-/** Footer contact address. Empty: the link is not rendered. */
+const email = (process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? '').trim() || 'info@alatech.co';
+/** Footer contact address (the company's, unless the build overrides it). */
 export const contactEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : '';
 
 /** Custom URL scheme of the mobile app (mobile/app.config.ts). */

@@ -2,27 +2,23 @@
 
 # KVKK Aydınlatma Metni
 
-> Son güncelleme: 19 Kasım 2026 · Yürürlük: [YÜRÜRLÜK TARİHİ]
+> Son güncelleme: 23 Kasım 2026
 
 Bu metin, 6698 sayılı Kişisel Verilerin Korunması Kanunu (“KVKK”) m. 10 ve Aydınlatma Yükümlülüğünün Yerine Getirilmesinde Uyulacak Usul ve Esaslar Hakkında Tebliğ uyarınca, Droblet mobil uygulamasını ve droblet.alatech.co web sitesini kullananları bilgilendirmek için hazırlanmıştır. Bu metnin aslı Türkçedir. Açık rızanı gerektiren işlemler için ayrı açık rıza metinleri kullanılır; bu aydınlatma metni bir rıza beyanı değildir.
 
-**Veri sorumlusu:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık · Şirket no. 17100391 · [İLETİŞİM E-POSTASI]
+**Veri sorumlusu:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık · Şirket no. 17100391 · info@alatech.co
 
 ## KISACA
 
-- Veri sorumlusu Londra'da kurulu Ala Tech Solutions LTD'dir; Türkiye'deki temsilcisi [TÜRKİYE TEMSİLCİSİ].
+- Veri sorumlusu Londra'da kurulu Ala Tech Solutions LTD'dir.
 - Hesap, profil, gardırop, fotoğraf, beden, sosyal, alışveriş, üyelik ve güvenlik verilerini Hizmet'i sunmak için işleriz.
 - Boy ve yüz fotoğrafının yapay zekâ ile işlenmesi, kilo, rehberden arkadaş bulma ve pazarlama bildirimleri için açık rızana dayanırız.
 - Veriler AWS (Almanya) sunucularında saklanır; yapay zekâ işlemleri için OpenAI'ye (ABD) aktarılır.
-- KVKK m. 11'deki haklarını [İLETİŞİM E-POSTASI] adresine başvurarak kullanabilirsin; en geç 30 gün içinde yanıt veririz.
+- KVKK m. 11'deki haklarını info@alatech.co adresine başvurarak kullanabilirsin; en geç 30 gün içinde yanıt veririz.
 
 ## 1. Veri sorumlusu ve temsilcisi
 
-Veri sorumlusu: Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık (şirket no. 17100391). E-posta: [İLETİŞİM E-POSTASI]. KEP adresi: [KEP ADRESİ].
-
-Veri sorumlusu temsilcisi (Türkiye): [TÜRKİYE TEMSİLCİSİ].
-
-Veri Sorumluları Sicili (VERBİS) kaydı: [VERBİS KAYIT DURUMU].
+Veri sorumlusu: Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık (şirket no. 17100391). E-posta: info@alatech.co.
 
 ## 2. İşlenen kişisel veri kategorileri
 
@@ -86,11 +82,11 @@ Yurt dışı: Hizmet'in sunulması için kişisel verilerin şu alıcılara akta
 - Admitad (yurt dışı satış ortaklığı ağı [HUKUK ONAYI: ülke]): yalnızca tıklama kimliği.
 - Open-Meteo ([HUKUK ONAYI: ülke]): yalnızca seçtiğin şehrin koordinatları; kimlik bilgisi aktarılmaz.
 
-Yurt dışına aktarım KVKK m. 9 kapsamında [YURT DIŞI AKTARIM MEKANİZMASI] dayanağıyla yapılır (ör. Kurul'un ilan ettiği standart sözleşmelerin alıcılarla imzalanıp Kurum'a süresi içinde bildirilmesi). Bu güvencelerin bulunmadığı arızi aktarımlar için m. 9/6-a uyarınca açık rızana başvurulabilir. [HUKUK ONAYI: aktarım mekanizması]
+Yurt dışına aktarım KVKK m. 9 kapsamında uygun güvencelerle yapılır (ör. Kurul'un ilan ettiği standart sözleşmelerin alıcılarla imzalanıp Kurum'a süresi içinde bildirilmesi). Bu güvencelerin bulunmadığı arızi aktarımlar için m. 9/6-a uyarınca açık rızana başvurulabilir.
 
 ## 7. Saklama süreleri
 
-Kişisel verilerin, işleme amacı için gerekli süre boyunca saklanır: hesap ve içerik verileri sen silene ya da hesabını silene kadar; işlenmemiş yüklemeler en fazla 1 gün; parça taslakları ve yapay zekâ iş kayıtları 7 gün; kullanım olayları, kredi hareketleri ve stilist geri bildirimleri 400 gün ya da hesabını silene kadar (hangisi önce gelirse); şifre sıfırlama bağlantısı 30 dakika; yenileme anahtarı 60 gün. Satış ortaklığı kayıtları [AFFILIATE KAYIT SAKLAMA SÜRESİ], şikâyet kayıtları [ŞİKAYET KAYDI SAKLAMA SÜRESİ], sunucu kayıtları [LOG SAKLAMA SÜRESİ] saklanır. Silinen veriler yedeklerden en geç 30 gün içinde çıkar. Ayrıntılı tablo Gizlilik Politikası'ndadır.
+Kişisel verilerin, işleme amacı için gerekli süre boyunca saklanır: hesap ve içerik verileri sen silene ya da hesabını silene kadar; işlenmemiş yüklemeler en fazla 1 gün; parça taslakları ve yapay zekâ iş kayıtları 7 gün; kullanım olayları, kredi hareketleri ve stilist geri bildirimleri 400 gün ya da hesabını silene kadar (hangisi önce gelirse); şifre sıfırlama bağlantısı 30 dakika; yenileme anahtarı 60 gün. Silinen veriler yedeklerden en geç 30 gün içinde çıkar. Ayrıntılı tablo Gizlilik Politikası'ndadır.
 
 Google Analytics for Firebase'deki ürün analitiği verileri olay düzeyinde 14 ay saklanır, sonra kendiliğinden silinir.
 
@@ -114,7 +110,7 @@ Veri sorumlusuna başvurarak şu haklarını kullanabilirsin:
 
 ## 9. Başvuru yöntemi
 
-Başvurunu Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ'e uygun olarak; Droblet'e kayıtlı e-posta adresinden [İLETİŞİM E-POSTASI] adresine, güvenli elektronik imza veya mobil imzayla, kayıtlı elektronik posta (KEP) yoluyla [KEP ADRESİ] adresine ya da yazılı olarak Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık adresine iletebilirsin. Başvuruda adını, soyadını, (Türk vatandaşıysan) T.C. kimlik numaranı ya da (yabancıysan) uyruğunu ve pasaport veya kimlik numaranı, tebligata esas adresini, varsa e-posta adresini ve talebinin konusunu belirtmelisin.
+Başvurunu Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ'e uygun olarak; Droblet'e kayıtlı e-posta adresinden info@alatech.co adresine ya da yazılı olarak Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık adresine iletebilirsin. Başvuruda adını, soyadını, (Türk vatandaşıysan) T.C. kimlik numaranı ya da (yabancıysan) uyruğunu ve pasaport veya kimlik numaranı, tebligata esas adresini, varsa e-posta adresini ve talebinin konusunu belirtmelisin.
 
 Başvurunu niteliğine göre en kısa sürede ve en geç 30 gün içinde ücretsiz olarak sonuçlandırırız. İşlemin ayrıca bir maliyet gerektirmesi hâlinde Kurul'ca belirlenen tarifedeki ücret alınabilir. Başvurun reddedilirse, yanıtı yetersiz bulursan ya da süresinde yanıt verilmezse, yanıtı öğrendiğin tarihten itibaren 30 gün ve her hâlükârda başvuru tarihinden itibaren 60 gün içinde Kişisel Verileri Koruma Kurulu'na şikâyette bulunabilirsin.
 

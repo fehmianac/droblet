@@ -2,18 +2,18 @@
 
 # Çerez Bildirimi
 
-> Son güncelleme: 19 Kasım 2026 · Yürürlük: [YÜRÜRLÜK TARİHİ]
+> Son güncelleme: 23 Kasım 2026
 
 Bu bildirim, droblet.alatech.co web sitesinde ve Droblet mobil uygulamasında çerezlerin ve benzeri teknolojilerin (tarayıcı depolama alanı, cihaz depolama alanı, izleme pikselleri) kullanımını anlatır.
 
-**Veri sorumlusu:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık · Şirket no. 17100391 · [İLETİŞİM E-POSTASI]
+**Veri sorumlusu:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık · Şirket no. 17100391 · info@alatech.co
 
 ## KISACA
 
 - Web sitemizin kendi kodu çerez yazmaz ve tarayıcına hiçbir veri kaydetmez.
 - Analitik, reklam, sosyal medya ya da izleme aracı kullanmayız; bu yüzden çerez onayı istemiyoruz.
 - Yazı tipleri kendi sunucumuzdan gelir; sayfayı açtığında Google'a ya da başka bir üçüncü tarafa istek gitmez.
-- Siteyi sunan ve koruyan Cloudflare, güvenlik amacıyla zorunlu bir çerez kullanabilir: [CLOUDFLARE ÇEREZLERİ].
+- Siteyi sunan ve koruyan Cloudflare, güvenlik amacıyla zorunlu bir çerez kullanabilir.
 - Zorunlu olmayan bir çerez eklersek önce onayını isteriz.
 
 ## 1. Çerez nedir
@@ -35,7 +35,7 @@ Bağlantı sayfalarında (davet, look, şifre sıfırlama) tarayıcının dil ay
 
 ## 3. Cloudflare
 
-Web sitemiz Cloudflare üzerinden sunulur. Cloudflare, siteyi hızlı ve güvenli tutmak için ziyaretçilerin IP adresini ve istek bilgilerini işler ve kötü niyetli trafiği (bot) ayırt etmek için zorunlu bir güvenlik çerezi yazabilir: [CLOUDFLARE ÇEREZLERİ].
+Web sitemiz Cloudflare üzerinden sunulur. Cloudflare, siteyi hızlı ve güvenli tutmak için ziyaretçilerin IP adresini ve istek bilgilerini işler ve kötü niyetli trafiği (bot) ayırt etmek için zorunlu bir güvenlik çerezi yazabilir.
 
 Bu tür çerezler sitenin güvenli çalışması için kesinlikle gereklidir; KVKK Çerez Uygulamaları Rehberi ve Birleşik Krallık PECR m. 6 uyarınca onay gerektirmez. Cloudflare bu bilgileri reklam için kullanmaz. [HUKUK ONAYI: Cloudflare ayarlarının teyidi]
 
@@ -61,4 +61,4 @@ Uygulamada önbelleği temizlemek için çıkış yapabilir ya da uygulamayı si
 
 Sitemize analitik ya da başka bir zorunlu olmayan çerez eklersek, bu bildirimi güncelleriz ve çerez yerleştirilmeden önce açık onayını alırız; onay vermeden de siteyi kullanabilirsin.
 
-Sorular için: [İLETİŞİM E-POSTASI].
+Sorular için: info@alatech.co.

@@ -2,11 +2,11 @@
 
 # Topluluk Kuralları
 
-> Son güncelleme: 19 Kasım 2026 · Yürürlük: [YÜRÜRLÜK TARİHİ]
+> Son güncelleme: 23 Kasım 2026
 
 Droblet'te arkadaşlarının dolaplarına göz atabilir, look'larını puanlayabilir, onlardan ilham alabilirsin. Bu kurallar, herkesin kendini güvende ve rahat hissettiği bir topluluk için var. Kullanım Koşulları'nın bir parçasıdır.
 
-**Veri sorumlusu:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık · Şirket no. 17100391 · [İLETİŞİM E-POSTASI]
+**Veri sorumlusu:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık · Şirket no. 17100391 · info@alatech.co
 
 ## KISACA
 
@@ -14,7 +14,7 @@ Droblet'te arkadaşlarının dolaplarına göz atabilir, look'larını puanlayab
 - Çıplaklık, cinsel içerik, nefret, taciz, şiddet ve yanıltıcı hesaplar yasaktır.
 - Look'u puanla, kişiyi değil. Puanlar anonimdir; bunu kötüye kullanma.
 - Rahatsız olduğun bir kişiyi ya da içeriği profilindeki ⋯ menüsünden şikâyet edebilir ve engelleyebilirsin.
-- Şikâyetleri [MODERASYON YANIT SÜRESİ] içinde inceleriz; kuralları çiğneyen içeriği kaldırır, hesabı askıya alabiliriz.
+- Şikâyetleri inceleriz; kuralları çiğneyen içeriği kaldırır, hesabı askıya alabiliriz.
 
 ## 1. Topluluk neyi paylaşır
 
@@ -64,9 +64,9 @@ Kurallara aykırı bir profil, parça ya da look gördüğünde kişinin profili
 
 Şikâyet ettiğin kişiye senin kim olduğun söylenmez. Kötüye kullanımı önlemek için bir hesaptan günde en fazla 20 şikâyet gönderilebilir; bilerek asılsız şikâyette bulunmak da bu kuralların ihlalidir.
 
-Şikâyetleri moderasyon ekibimiz [MODERASYON YANIT SÜRESİ] içinde inceler. Reşit olmayanın güvenliğine ilişkin şikâyetlere öncelik veririz.
+Şikâyetleri moderasyon ekibimiz inceler. Reşit olmayanın güvenliğine ilişkin şikâyetlere öncelik veririz.
 
-Uygulamaya erişemiyorsan ya da bir şeyi uygulama dışından bildirmek istiyorsan [İLETİŞİM E-POSTASI] adresine yaz.
+Uygulamaya erişemiyorsan ya da bir şeyi uygulama dışından bildirmek istiyorsan info@alatech.co adresine yaz.
 
 ## 7. Engelleme
 
@@ -93,7 +93,7 @@ Tekrarlanan ihlaller daha ağır yaptırımlara yol açar.
 
 ## 9. İtiraz
 
-İçeriğinin kaldırılmasının ya da hesabının askıya alınmasının hatalı olduğunu düşünüyorsan, kararı öğrendiğin tarihten itibaren 30 gün içinde [İLETİŞİM E-POSTASI] adresine kullanıcı adınla birlikte yaz. İtirazını ilk kararı vermeyen biri inceler ve sonucunu sana bildiririz. [HUKUK ONAYI: itiraz süresi]
+İçeriğinin kaldırılmasının ya da hesabının askıya alınmasının hatalı olduğunu düşünüyorsan, kararı öğrendiğin tarihten itibaren 30 gün içinde info@alatech.co adresine kullanıcı adınla birlikte yaz. İtirazını ilk kararı vermeyen biri inceler ve sonucunu sana bildiririz. [HUKUK ONAYI: itiraz süresi]
 
 ## 10. Acil durumlar
 

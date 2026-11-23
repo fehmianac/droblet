@@ -2,11 +2,11 @@
 
 # Kullanım Koşulları
 
-> Son güncelleme: 19 Kasım 2026 · Yürürlük: [YÜRÜRLÜK TARİHİ]
+> Son güncelleme: 23 Kasım 2026
 
 Bu koşullar, Droblet mobil uygulamasını ve droblet.alatech.co web sitesini (birlikte “Hizmet”) kullanman için seninle Ala Tech Solutions LTD (“Droblet”, “biz”) arasındaki sözleşmedir. Hesap oluşturarak ya da Hizmet'i kullanarak bu koşulları, Gizlilik Politikası'nı, Abonelik Koşulları'nı ve Topluluk Kuralları'nı kabul etmiş olursun.
 
-**Veri sorumlusu:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık · Şirket no. 17100391 · [İLETİŞİM E-POSTASI]
+**Veri sorumlusu:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık · Şirket no. 17100391 · info@alatech.co
 
 ## KISACA
 
@@ -20,7 +20,7 @@ Bu koşullar, Droblet mobil uygulamasını ve droblet.alatech.co web sitesini (b
 
 ## 1. Taraflar ve sözleşmenin kapsamı
 
-Hizmet'i, İngiltere ve Galler'de kurulu Ala Tech Solutions LTD (şirket no. 17100391, adres: Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık) sunar. Bize [İLETİŞİM E-POSTASI] adresinden ulaşabilirsin.
+Hizmet'i, İngiltere ve Galler'de kurulu Ala Tech Solutions LTD (şirket no. 17100391, adres: Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık) sunar. Bize info@alatech.co adresinden ulaşabilirsin.
 
 Bu sözleşme şu belgelerden oluşur: bu Kullanım Koşulları, Abonelik Koşulları (Droblet Üyelik ve ek kredi paketleri için) ve Topluluk Kuralları. Kişisel verilerinin nasıl işlendiğini Gizlilik Politikası ve KVKK Aydınlatma Metni anlatır; bunlar sözleşme değil, bilgilendirme metnidir.
 
@@ -53,7 +53,7 @@ Her kişi yalnızca kendi adına bir hesap açabilir. Daha önce bu koşulları 
 
 Hesabını e-posta ve şifreyle, Apple ile ya da Google ile oluşturabilirsin. Verdiğin bilgilerin doğru ve güncel olmasından sen sorumlusun.
 
-Şifreni kimseyle paylaşma ve başka bir hizmette kullandığın şifreyi kullanma. Hesabının izinsiz kullanıldığını düşünürsen şifreni değiştir ve bize [İLETİŞİM E-POSTASI] adresinden haber ver.
+Şifreni kimseyle paylaşma ve başka bir hizmette kullandığın şifreyi kullanma. Hesabının izinsiz kullanıldığını düşünürsen şifreni değiştir ve bize info@alatech.co adresinden haber ver.
 
 Kullanıcı adın (@handle) ve görünen adın diğer kullanıcılara görünür. Başkasını taklit eden, yanıltıcı ya da Topluluk Kuralları'na aykırı bir kullanıcı adını değiştirebilir ya da kaldırabiliriz.
 
@@ -150,17 +150,17 @@ Bu madde; kasıt ya da ağır ihmalden, ölüm veya yaralanmaya yol açan ihmald
 
 ## 16. Koşullardaki değişiklikler
 
-Bu koşulları değiştirebiliriz. Önemli değişiklikleri yürürlüğe girmeden en az [DEĞİŞİKLİK BİLDİRİM SÜRESİ] önce uygulama içinde ya da e-postayla bildiririz. Değişiklikleri kabul etmezsen yürürlük tarihinden önce hesabını silebilirsin; yürürlükten sonra Hizmet'i kullanmaya devam etmen yeni koşulları kabul ettiğin anlamına gelir.
+Bu koşulları değiştirebiliriz. Önemli değişiklikleri yürürlüğe girmeden önce uygulama içinde ya da e-postayla bildiririz. Değişiklikleri kabul etmezsen yürürlük tarihinden önce hesabını silebilirsin; yürürlükten sonra Hizmet'i kullanmaya devam etmen yeni koşulları kabul ettiğin anlamına gelir.
 
 Güvenlik ya da yasal zorunluluk nedeniyle yapılan değişiklikler hemen yürürlüğe girebilir.
 
 ## 17. Uygulanacak hukuk ve uyuşmazlıklar
 
-Bu sözleşmeye [UYGULANACAK HUKUK VE YETKİLİ MAHKEME] uygulanır. Bu seçim, yaşadığın ülkenin tüketiciyi koruyan ve sözleşmeyle vazgeçilemeyen kurallarından yararlanma hakkını ortadan kaldırmaz.
+Yaşadığın ülkenin tüketiciyi koruyan ve sözleşmeyle vazgeçilemeyen kurallarından yararlanma hakkın saklıdır.
 
 Türkiye'de yaşıyorsan, parasal sınırlar içinde yerleşim yerindeki ya da işlemin yapıldığı yerdeki Tüketici Hakem Heyeti'ne, sınırı aşan uyuşmazlıklarda Tüketici Mahkemesi'ne başvurabilirsin. Birleşik Krallık'ta yaşıyorsan yaşadığın bölgenin mahkemelerine başvurabilirsin.
 
-Bir sorun yaşarsan önce bize [İLETİŞİM E-POSTASI] adresinden yaz; çoğu sorunu böyle çözebiliriz.
+Bir sorun yaşarsan önce bize info@alatech.co adresinden yaz; çoğu sorunu böyle çözebiliriz.
 
 ## 18. App Store ve Google Play'e ilişkin ek koşullar
 
@@ -179,6 +179,6 @@ Uygulamayı Google Play'den indirdiysen Google Play Hizmet Şartları da geçerl
 
 ## 19. İletişim
 
-Sorular, şikâyetler ve bildirimler için: [İLETİŞİM E-POSTASI] · Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık.
+Sorular, şikâyetler ve bildirimler için: info@alatech.co · Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık.
 
 Hesabını silmek için: uygulamada Profil › Ayarlar › Hesabımı sil ya da droblet.alatech.co/delete-account.

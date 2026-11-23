@@ -2,11 +2,11 @@
 
 # Community Guidelines
 
-> Last updated: 19 November 2026 · Effective: [EFFECTIVE DATE]
+> Last updated: 23 November 2026
 
 On Droblet you can browse your friends' closets, rate their looks and take inspiration from them. These guidelines exist so that everyone feels safe and comfortable in the community. They form part of the Terms of Use.
 
-**Data controller:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, United Kingdom · Company no. 17100391 · [CONTACT E-MAIL]
+**Data controller:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, United Kingdom · Company no. 17100391 · info@alatech.co
 
 ## IN SHORT
 
@@ -14,7 +14,7 @@ On Droblet you can browse your friends' closets, rate their looks and take inspi
 - Nudity, sexual content, hate, harassment, violence and misleading accounts are not allowed.
 - Rate the look, not the person. Ratings are anonymous; don't misuse that.
 - You can report and block a person or their content from the ⋯ menu on their profile.
-- We review reports within [MODERATION RESPONSE TIME]; we remove content that breaks the rules and may suspend accounts.
+- We review reports; we remove content that breaks the rules and may suspend accounts.
 
 ## 1. What the community shares
 
@@ -64,9 +64,9 @@ If you see a profile, item or look that breaks the rules, tap ⋯ › Report on 
 
 The person you report is never told who you are. To prevent abuse, an account can send at most 20 reports a day; knowingly filing false reports also breaks these guidelines.
 
-Our moderation team reviews reports within [MODERATION RESPONSE TIME]. Reports about the safety of minors are prioritised.
+Our moderation team reviews reports. Reports about the safety of minors are prioritised.
 
-If you cannot access the app or want to report something from outside it, write to [CONTACT E-MAIL].
+If you cannot access the app or want to report something from outside it, write to info@alatech.co.
 
 ## 7. Blocking
 
@@ -93,7 +93,7 @@ Repeated violations lead to stronger measures.
 
 ## 9. Appeals
 
-If you think your content was removed or your account suspended by mistake, write to [CONTACT E-MAIL] with your username within 30 days of learning of the decision. Your appeal is reviewed by someone who did not make the first decision, and we tell you the outcome. [LEGAL REVIEW: appeal period]
+If you think your content was removed or your account suspended by mistake, write to info@alatech.co with your username within 30 days of learning of the decision. Your appeal is reviewed by someone who did not make the first decision, and we tell you the outcome. [LEGAL REVIEW: appeal period]
 
 ## 10. Emergencies
 

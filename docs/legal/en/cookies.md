@@ -2,18 +2,18 @@
 
 # Cookie Notice
 
-> Last updated: 19 November 2026 · Effective: [EFFECTIVE DATE]
+> Last updated: 23 November 2026
 
 This notice explains the use of cookies and similar technologies (browser storage, device storage, tracking pixels) on the droblet.alatech.co website and in the Droblet mobile app.
 
-**Data controller:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, United Kingdom · Company no. 17100391 · [CONTACT E-MAIL]
+**Data controller:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, United Kingdom · Company no. 17100391 · info@alatech.co
 
 ## IN SHORT
 
 - Our website's own code sets no cookies and saves no data in your browser.
 - We use no analytics, advertising, social media or tracking tools, so we do not ask for cookie consent.
 - Fonts are served from our own server; opening a page sends no request to Google or any other third party.
-- Cloudflare, which delivers and protects the site, may use a strictly necessary security cookie: [CLOUDFLARE COOKIES].
+- Cloudflare, which delivers and protects the site, may use a strictly necessary security cookie.
 - If we ever add a cookie that is not strictly necessary, we will ask for your consent first.
 
 ## 1. What cookies are
@@ -35,7 +35,7 @@ On the link pages (invite, look, password reset) your browser's language setting
 
 ## 3. Cloudflare
 
-Our website is delivered through Cloudflare. To keep the site fast and secure, Cloudflare processes visitors' IP addresses and request details and may set a strictly necessary security cookie to tell malicious traffic (bots) apart: [CLOUDFLARE COOKIES].
+Our website is delivered through Cloudflare. To keep the site fast and secure, Cloudflare processes visitors' IP addresses and request details and may set a strictly necessary security cookie to tell malicious traffic (bots) apart.
 
 Such cookies are strictly necessary for the site to run securely and, under the Turkish KVKK Cookie Guidelines and regulation 6 of the UK PECR, need no consent. Cloudflare does not use this information for advertising. [LEGAL REVIEW: confirm Cloudflare settings]
 
@@ -61,4 +61,4 @@ To clear the cache in the app, sign out or uninstall the app.
 
 If we add analytics or any other cookie that is not strictly necessary, we will update this notice and ask for your explicit consent before the cookie is placed; you can use the site without consenting.
 
-Questions: [CONTACT E-MAIL].
+Questions: info@alatech.co.

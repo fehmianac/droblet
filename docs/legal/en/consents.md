@@ -2,11 +2,11 @@
 
 # Consent Texts
 
-> Last updated: 19 November 2026 · Effective: [EFFECTIVE DATE]
+> Last updated: 23 November 2026
 
 The texts below are shown together on one screen when you sign up for the app, each with its own unticked box. Each one is optional and covers only its own subject. If you did not give a consent there, you are asked again when you first use the related feature. This page collects them all so that you can read later what you agreed or did not agree to. General information on how your personal data is processed is in the KVKK Information Notice and the Privacy Policy.
 
-**Data controller:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, United Kingdom · Company no. 17100391 · [CONTACT E-MAIL]
+**Data controller:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, United Kingdom · Company no. 17100391 · info@alatech.co
 
 ## IN SHORT
 
@@ -129,6 +129,6 @@ You can withdraw any consent at any time:
 - Weight: clear the weight field in your body profile in the app.
 - Contacts: switch off Droblet's contacts permission in your phone's settings.
 - Marketing notifications: switch off the notification under Profile › Settings › Notifications.
-- In any other case, or in addition to the above: write to [CONTACT E-MAIL].
+- In any other case, or in addition to the above: write to info@alatech.co.
 
 Withdrawing consent does not affect the lawfulness of processing before the withdrawal. [LEGAL REVIEW: consent withdrawal screen in the app]

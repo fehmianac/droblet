@@ -2,11 +2,11 @@
 
 # Açık Rıza Metinleri
 
-> Son güncelleme: 19 Kasım 2026 · Yürürlük: [YÜRÜRLÜK TARİHİ]
+> Son güncelleme: 23 Kasım 2026
 
 Aşağıdaki metinler, uygulamaya kayıt olurken tek bir ekranda bir arada gösterilir; her birinin ayrı ve işaretlenmemiş bir onay kutusu vardır. Her biri isteğe bağlıdır ve yalnızca kendi konusunu kapsar. Bir rızayı o ekranda vermediysen ilgili özelliği ilk kullandığında yeniden sorulur. Bu sayfa, verdiğin ya da vermediğin rızaları sonradan okuyabilmen için hepsini bir arada sunar. Kişisel verilerinin işlenmesine ilişkin genel bilgiler KVKK Aydınlatma Metni'nde ve Gizlilik Politikası'ndadır.
 
-**Veri sorumlusu:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık · Şirket no. 17100391 · [İLETİŞİM E-POSTASI]
+**Veri sorumlusu:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık · Şirket no. 17100391 · info@alatech.co
 
 ## KISACA
 
@@ -129,6 +129,6 @@ Rızalarını dilediğin an geri alabilirsin:
 - Kilo: uygulamadaki beden profilinde kilo alanını temizle.
 - Rehber: telefonunun ayarlarından Droblet'in rehber iznini kapat.
 - Pazarlama bildirimleri: Profil › Ayarlar › Bildirimler'den ilgili bildirimi kapat.
-- Diğer her durumda ya da yukarıdakilere ek olarak: [İLETİŞİM E-POSTASI] adresine yaz.
+- Diğer her durumda ya da yukarıdakilere ek olarak: info@alatech.co adresine yaz.
 
 Rızanın geri alınması, geri almadan önce yapılan işlemlerin hukuka uygunluğunu etkilemez. [HUKUK ONAYI: uygulamada rıza geri alma ekranı]

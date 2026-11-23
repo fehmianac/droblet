@@ -2,11 +2,11 @@
 
 # Privacy Policy
 
-> Last updated: 19 November 2026 · Effective: [EFFECTIVE DATE]
+> Last updated: 23 November 2026
 
 This policy explains how your personal data is processed when you use the Droblet mobile app and the droblet.alatech.co website. The data controller is Ala Tech Solutions LTD (London, United Kingdom). The policy follows the UK General Data Protection Regulation (UK GDPR) and the Data Protection Act 2018; for users in Türkiye, the details required by Law No. 6698 (KVKK) are in the separate KVKK Information Notice.
 
-**Data controller:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, United Kingdom · Company no. 17100391 · [CONTACT E-MAIL]
+**Data controller:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, United Kingdom · Company no. 17100391 · info@alatech.co
 
 ## IN SHORT
 
@@ -17,13 +17,13 @@ This policy explains how your personal data is processed when you use the Droble
 - If you choose to find friends from your contacts, your address book never leaves your phone; only single-use hashes are sent, and they are not stored.
 - We do no ad tracking, we do not read the advertising identifier and we do not sell your data. To improve the app we run pseudonymous product analytics with Google Analytics for Firebase; you can switch it off at any time under Settings › Privacy › “Product analytics”. When we send you to a brand we add only a click id for the commission.
 - When you delete your account your data is deleted at once and leaves our backups within 30 days.
-- You have the right to access, correct, delete, object and port your data: [CONTACT E-MAIL].
+- You have the right to access, correct, delete, object and port your data: info@alatech.co.
 
 ## 1. Who we are
 
-Data controller: Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, United Kingdom; company no. 17100391; Information Commissioner's Office (ICO) registration no. [ICO REGISTRATION NUMBER].
+Data controller: Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, United Kingdom; company no. 17100391.
 
-For any privacy question or rights request: [CONTACT E-MAIL]. Our data controller representative in Türkiye: [TÜRKİYE REPRESENTATIVE].
+For any privacy question or rights request: info@alatech.co.
 
 ## 2. What this policy covers
 
@@ -99,7 +99,7 @@ Our AI features are provided by OpenAI (OpenAI, L.L.C. / OpenAI Ireland Ltd [LEG
 - Colour palette, and “See it on me” without a full-body photo: your face photo (for the latter together with the body type, height and size you choose).
 - Stylist, weekly plan, packing: date, season, occasion, weather, your style profile, your palette result, the type, colour, fabric and season of your wardrobe items, any free text you write, and your language. Your name, e-mail, height and weight are not sent.
 
-OpenAI is a processor acting on our behalf and on our instructions. Under OpenAI's API terms, data sent through the API is not used to train its models; it may be retained for [OPENAI RETENTION] to monitor for abuse. [LEGAL REVIEW: data processing agreement and zero data retention option]
+OpenAI is a processor acting on our behalf and on our instructions. Under OpenAI's API terms, data sent through the API is not used to train its models; it may be retained for a limited period to monitor for abuse.
 
 AI output is a suggestion only; we make no automated decision with legal or similarly significant effects on you (UK GDPR art. 22). AI suggestions enter your saved data only after you confirm them.
 
@@ -165,17 +165,17 @@ We do not sell your data or share it for advertising. To provide the Service we 
 - Courts, law enforcement and regulators: where the law requires it or to protect someone's vital interests.
 - Our legal, accounting and audit advisers; in a merger, transfer or sale of our company, the buyer or successor, who must keep to this policy.
 
-You can ask for the current list of processors at [CONTACT E-MAIL].
+You can ask for the current list of processors at info@alatech.co.
 
 ## 12. International transfers
 
 Droblet is a UK company and our service providers are in several countries. Your data is therefore transferred outside Türkiye and the UK, in particular to the EU (Germany — AWS) and the US (OpenAI, Twilio SendGrid, Google — including Firebase Cloud Messaging and Google Analytics for Firebase —, Apple, Cloudflare).
 
-Transfers from the UK to the EU rely on the UK's adequacy regulations for the EU/EEA. Transfers to the US and other countries rely on [TRANSFER MECHANISM] (for example certified recipients under the UK–US data bridge, the ICO International Data Transfer Agreement, or the UK Addendum to the EU Standard Contractual Clauses).
+Transfers from the UK to the EU rely on the UK's adequacy regulations for the EU/EEA. Transfers to the US and other countries rely on appropriate safeguards (for example certified recipients under the UK–US data bridge, the ICO International Data Transfer Agreement, or the UK Addendum to the EU Standard Contractual Clauses).
 
 Transfers from Türkiye abroad are subject to KVKK art. 9; the grounds are set out in the KVKK Information Notice. [LEGAL REVIEW: KVKK standard contracts and notification to the Board]
 
-You can ask for a copy of the transfer safeguards at [CONTACT E-MAIL].
+You can ask for a copy of the transfer safeguards at info@alatech.co.
 
 ## 13. How long we keep data
 
@@ -191,9 +191,9 @@ You can ask for a copy of the transfer safeguards at [CONTACT E-MAIL].
 - The copy of your data prepared with “Download my data” (ZIP file): 7 days, then deleted automatically. The record of the request is kept for 30 days.
 - Contact-matching salt: 10 minutes at most; uploaded hashes: never stored.
 - Notification delivery records: 14 days; store notification records: 90 days.
-- Clicks through to brands and order notifications: [AFFILIATE RECORD RETENTION]; when you delete your account the link between these records and your account is deleted, and the remaining revenue record is anonymous.
-- Reports: [REPORT RETENTION]; when you delete your account, reports about you are deleted and reports you filed remain without your identity.
-- Server and security logs: [LOG RETENTION]. Logs never contain e-mail addresses, passwords, photos, the free text you write or AI responses.
+- Clicks through to brands and order notifications: when you delete your account the link between these records and your account is deleted, and the remaining revenue record is anonymous.
+- Reports: when you delete your account, reports about you are deleted and reports you filed remain without your identity.
+- Server and security logs: logs never contain e-mail addresses, passwords, photos, the free text you write or AI responses.
 - Backups: the live database is protected by 30-day point-in-time recovery; deleted data leaves the backups within 30 days at the latest. Versioning is switched off on photo storage, so no older copy of a deleted photo is kept.
 
 Data we must keep longer because of a legal obligation or an ongoing dispute is kept only for that purpose and only as long as needed.
@@ -223,7 +223,7 @@ Under the UK GDPR you have the right to:
 
 If you live in Türkiye, your rights under KVKK art. 11 are explained in the KVKK Information Notice.
 
-Send your request to [CONTACT E-MAIL] from the e-mail address registered to your account. We may ask for more information to confirm your identity. We answer within one month at the latest (for complex requests this may be extended by two further months; we will tell you if so). Requests are free of charge.
+Send your request to info@alatech.co from the e-mail address registered to your account. We may ask for more information to confirm your identity. We answer within one month at the latest (for complex requests this may be extended by two further months; we will tell you if so). Requests are free of charge.
 
 You can see, correct and delete most of your data yourself in the app.
 
@@ -242,7 +242,7 @@ We do not currently send marketing e-mails or text messages. If we do, we will a
 
 ## 17. Children
 
-Droblet is not for anyone under 18 and we do not knowingly collect data from anyone under 18. If we learn that someone under 18 has opened an account, we delete the account and its data. If you notice this, write to [CONTACT E-MAIL].
+Droblet is not for anyone under 18 and we do not knowingly collect data from anyone under 18. If we learn that someone under 18 has opened an account, we delete the account and its data. If you notice this, write to info@alatech.co.
 
 If a version with parental consent for users aged 13 to 18 is offered later, this policy will be updated before then.
 
@@ -260,4 +260,4 @@ Our website's own code sets no cookies, stores nothing in your browser and conta
 
 We may update this policy. We will tell you about material changes in the app or by e-mail before they take effect; if a new purpose needs your consent, we will ask for it first.
 
-Questions and requests: [CONTACT E-MAIL] · Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, United Kingdom.
+Questions and requests: info@alatech.co · Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, United Kingdom.

@@ -2,11 +2,11 @@
 
 # Subscription Terms
 
-> Last updated: 19 November 2026 · Effective: [EFFECTIVE DATE]
+> Last updated: 23 November 2026
 
 These terms govern the Droblet Membership subscription and extra AI image packs and form part of the Terms of Use. Purchases are made through the App Store or Google Play; payment, billing and refunds are also subject to the terms of the store you use.
 
-**Data controller:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, United Kingdom · Company no. 17100391 · [CONTACT E-MAIL]
+**Data controller:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, United Kingdom · Company no. 17100391 · info@alatech.co
 
 ## IN SHORT
 
@@ -107,13 +107,13 @@ For consumers in Türkiye: under art. 15/1-ğ of the Distance Contracts Regulati
 
 For consumers in the United Kingdom: under the Consumer Contracts Regulations 2013 you have a 14-day right to cancel for digital content and services. If you expressly ask for digital content (for example an extra AI image pack) to be supplied immediately within the cancellation period and acknowledge that you lose your right to cancel, the right ends once the content is supplied. For the subscription service, if you ask for the service to start within the cancellation period and then cancel, you may have to pay for the service provided up to that point in proportion. [LEGAL REVIEW: subscription rules of the Digital Markets, Competition and Consumers Act 2024]
 
-You can give notice of cancellation through the store's refund channel or at [CONTACT E-MAIL]; if you contact us, we will help you through the store's refund process.
+You can give notice of cancellation through the store's refund channel or at info@alatech.co; if you contact us, we will help you through the store's refund process.
 
 ## 12. Price and scope changes
 
 We may change the subscription price. We announce price increases before they take effect in the app and, as the store's rules require, through the store; where the store requires it, it asks you to accept the increase. If you do not accept, the subscription ends at the end of the current period.
 
-If we change the monthly number of AI images or the scope of membership to your disadvantage, we will tell you at least [CHANGE NOTICE PERIOD] in advance; the change applies from the next renewal period and you can cancel before then.
+If we change the monthly number of AI images or the scope of membership to your disadvantage, we will tell you in advance; the change applies from the next renewal period and you can cancel before then.
 
 ## 13. When your membership ends
 
@@ -123,4 +123,4 @@ Your rights to delete your photos, delete your account, change your closet visib
 
 ## 14. Contact
 
-For questions about membership, credits or purchases: [CONTACT E-MAIL]. For payments and refunds, please use the store's support channels.
+For questions about membership, credits or purchases: info@alatech.co. For payments and refunds, please use the store's support channels.
