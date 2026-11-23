@@ -59,12 +59,18 @@ env:
       visible: "Not Now"
     commands:
       - tapOn: "Not Now"
+# Akış is the first tab since F1; Bugün is a screen of its own.
 - extendedWaitUntil:
     visible:
-      id: "tab.today"
+      id: "tab.feed"
     timeout: 30000
 - waitForAnimationToEnd:
     timeout: 4000
+- takeScreenshot: feed
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://today"
 - takeScreenshot: today
 
 - runFlow:
@@ -107,6 +113,13 @@ env:
     env:
       URL: "droplet://profile"
 - takeScreenshot: profile
+
+# Üyelik: only the photograph, title and benefits are used on the site (the prices below are placeholder data).
+- runFlow:
+    file: open.yaml
+    env:
+      URL: "droplet://paywall"
+- takeScreenshot: membership
 
 # Stylist last: the suggestion is generated from it.
 - runFlow:

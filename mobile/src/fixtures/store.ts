@@ -29,6 +29,7 @@ import { currentLanguage } from '@/i18n';
 import { moneyFromMajor, sumMoney, toIsoDate, type Money } from '@/lib/format';
 
 import { L } from './showcase';
+import { showcaseImage, type ShowcaseImage } from './showcaseImages';
 
 /**
  * Typed fixtures for E8 (Keşfet, mağaza, sepet, izleme listesi), used while `DATA_SOURCE` points the
@@ -128,6 +129,9 @@ function sizesFor(category: ProductCategory): string[] {
   return APPAREL;
 }
 
+/** Showcase pictures of the first products (white shirt, blazer, city bag), by seed index. */
+const PRODUCT_IMAGES: Record<number, ShowcaseImage | undefined> = { 0: 'product-white-shirt', 1: 'product-navy-blazer', 3: 'product-black-bag' };
+
 const productId = (index: number) => `prod_${String(index + 1).padStart(3, '0')}`;
 
 /** Newest first: index 0 is the newest product. Names are the Turkish catalogue text. */
@@ -140,7 +144,7 @@ export const productsFixture: ProductSummary[] = SEEDS.map(([name, , brandKey, c
     brandLogoUrl: brand.logoUrl,
     name,
     price: price === null ? null : lira(price),
-    imageUrl: null,
+    imageUrl: showcaseImage(PRODUCT_IMAGES[index]),
     category,
     colors,
     sizes: sizesFor(category),
