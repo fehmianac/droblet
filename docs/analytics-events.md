@@ -125,6 +125,7 @@ documented manual screen tracking).
 | `feed_post_view` | `feed_post_view` | Akış: a post card is half visible, once per post per session | `postId`, `authorKind` edit \| stylist \| user | — |
 | `feed_like` | `feed_like` | Akış: ♡ toggled | `postId`, `liked` | — |
 | `feed_save` | `feed_save` | Akış: Kaydet toggled | `postId`, `saved` | — |
+| `feed_save_as_look` | `feed_save_as_look` | Akış: "Looklarıma ekle" — the server made the look | `postId`, `mode` inspiration \| pieces | — |
 | `feed_story_view` | `feed_story_view` | Akış: each story shown in the viewer | `storyId` | — |
 | `feed_buy_click` | `feed_buy_click` | Akış: a brand site opened from a post or a story | `productId`, `brandId`, `source` post \| story, `postId` | — |
 | `feed_tryon_start` | `feed_tryon_start` | Akış: "Üzerimde dene" tapped (intent; `tryon_start` still fires when the server accepts, target `feed-post`) | `source`, `postId` or `productId` | — |

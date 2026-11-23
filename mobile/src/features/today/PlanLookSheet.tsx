@@ -103,7 +103,8 @@ function PlanLookBody({ date, occasion, onClose, onSuggest }: Required<Props> & 
   const current = day.data?.find((p) => p.date === date) ?? null;
   const dayOccasion = occasion ?? current?.occasion ?? null;
   const eyebrow = toDisplayUpper(dayOccasion ? t('planPick.eyebrow', { day: longDay(date), occasion: t(`occasion.${dayOccasion}`) }) : longDay(date), language);
-  const list = looks.data ?? [];
+  // An inspiration look has no pieces of the user's own: it is not something to plan or wear.
+  const list = (looks.data ?? []).filter((l) => !l.inspiration);
   const occasions = lookOccasions(list);
   const shown = filter === 'all' ? list : list.filter((l) => l.occasion === filter);
   const itemsById = indexItems(items.data);

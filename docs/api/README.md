@@ -234,6 +234,7 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | GET | `v1/tenant/feed-post/{id}/similar` | user | [S](store-social-settings.md) | Similar products of a shared look |
 | PUT | `v1/tenant/feed-post/{id}/hide` | user | [S](store-social-settings.md) | Hide an Akış post for me |
 | POST | `v1/tenant/feed-post/{id}/report` | user | [S](store-social-settings.md) | Report a shared look |
+| POST | `v1/tenant/feed-post/{id}/look` | user | [S](store-social-settings.md) | Save an Akış editor post into my looks |
 | GET | `v1/tenant/purchase-prompt` | user | [S](store-social-settings.md) | Pending "add to wardrobe?" prompts |
 | PUT | `v1/tenant/purchase-prompt/{id}` | user | [S](store-social-settings.md) | Answer a purchase prompt |
 | GET | `v1/tenant/watch-list` | user | [S](store-social-settings.md) | Watch list |

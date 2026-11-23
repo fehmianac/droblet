@@ -1,17 +1,35 @@
 import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { track } from '@/analytics/track';
 import { apiRequest } from '@/api/client';
-import type { FeedPost, HideFeedPostRequest, LikeFeedPostRequest, ReportFeedPostRequest, SaveFeedPostRequest } from '@/api/contracts/feed';
+import type {
+  FeedLookMode,
+  FeedPost,
+  HideFeedPostRequest,
+  LikeFeedPostRequest,
+  ReportFeedPostRequest,
+  SaveFeedPostAsLookRequest,
+  SaveFeedPostRequest,
+} from '@/api/contracts/feed';
+import type { Look } from '@/api/contracts/looks';
 import type { ReportReason } from '@/api/contracts/social';
 import { fromSource } from '@/api/dataSource';
+import { ApiError } from '@/api/errors';
 import type { FeedLikeWire } from '@/api/wire/feed';
 import { fromReportReason } from '@/api/wire/social';
+import { toLookAsync, type LookWire } from '@/api/wire/wardrobe';
 import { toast } from '@/components/ui/toast';
+import { lookKeys } from '@/features/looks/queries';
+import { openPaywall } from '@/features/teen/TeenLocks';
+import { wardrobeKeys } from '@/features/wardrobe/queries';
 import { feedFixtures } from '@/fixtures/feed';
+import i18n from '@/i18n';
+import { ulid } from '@/lib/ids';
 import { newClientMutation } from '@/sync/clientMutation';
+import { useIsOnline } from '@/sync/network';
 import { TENANT_WRITE_SCOPE } from '@/sync/queryKeys';
 
 import { applyLike, hidePostThisSession, removeFeedPost, updateFeedPosts } from './logic';
@@ -22,7 +40,17 @@ export const feedMutationKeys = {
   save: ['tenant', 'feed-post', 'save'] as const,
   hide: ['tenant', 'feed-post', 'hide'] as const,
   report: ['tenant', 'feed-post', 'report'] as const,
+  saveAsLook: ['tenant', 'feed-post', 'look'] as const,
 };
+
+/** Which sentence a failed "Looklarıma ekle" shows; `paywall` = the plan's limit (the paywall opens instead of a toast). */
+export function saveAsLookErrorKey(error: unknown): 'paywall' | 'notSavable' | 'gone' | 'failed' {
+  if (!(error instanceof ApiError)) return 'failed';
+  if (error.code === 'premium_required' || error.status === 402) return 'paywall';
+  if (error.code === 'look_not_savable') return 'notSavable';
+  if (error.status === 404) return 'gone';
+  return 'failed';
+}
 
 const postPath = (id: string) => `v1/tenant/feed-post/${encodeURIComponent(id)}`;
 
@@ -123,6 +151,42 @@ export function registerFeedMutations(client: QueryClient): void {
       dropPost(client, vars.postId);
     },
   });
+
+  // POST v1/tenant/feed-post/{id}/look { mode, requestId } → 201 LookDto (200: the look already made of this post in this
+  // mode). "Looklarıma ekle" (owner decision 2026-11-23). Not optimistic: the look (and, with its pieces, the new
+  // wardrobe items) exist once the server answers; the toast then offers "Gör".
+  client.setMutationDefaults(feedMutationKeys.saveAsLook, {
+    scope: TENANT_WRITE_SCOPE,
+    mutationFn: (vars: SaveFeedPostAsLookRequest) =>
+      fromSource<Look>(
+        'content',
+        () => feedFixtures.saveAsLook(vars.postId, vars.mode, vars.requestId),
+        async () => {
+          const wire = await apiRequest<LookWire>(`${postPath(vars.postId)}/look`, { method: 'POST', body: { mode: vars.mode, requestId: vars.requestId } });
+          // The look's slots are joined with the wardrobe: the pieces just added must be read first.
+          if (vars.mode === 'pieces') await client.invalidateQueries({ queryKey: wardrobeKeys.items });
+          return toLookAsync(wire);
+        },
+      ),
+    onSuccess: (look: Look | undefined, vars: SaveFeedPostAsLookRequest) => {
+      if (!look) return;
+      client.setQueryData<Look[]>(lookKeys.looks, (prev) => (prev ? [look, ...prev.filter((l) => l.id !== look.id)] : prev));
+      client.setQueryData<Look>(lookKeys.look(look.id), look);
+      void client.invalidateQueries({ queryKey: lookKeys.looks });
+      if (vars.mode === 'pieces') void client.invalidateQueries({ queryKey: wardrobeKeys.items });
+      track('feed_save_as_look', { postId: vars.postId, mode: vars.mode });
+      toast.success(i18n.t('homeFeed.lookSheet.savedToast'), {
+        action: { label: i18n.t('feedback.see'), onPress: () => router.push({ pathname: '/look/[id]', params: { id: look.id } }) },
+        testID: 'toast-feed-look',
+      });
+    },
+    onError: (error: unknown) => {
+      const key = saveAsLookErrorKey(error);
+      // The plan's limit is answered like every other way of adding a piece: the paywall.
+      if (key === 'paywall') openPaywall({ from: 'feed_save_as_look' });
+      else toast.error(i18n.t(`homeFeed.lookSheet.errors.${key}`), { testID: 'toast-feed-look-error' });
+    },
+  });
 }
 
 const id = () => newClientMutation().clientMutationId;
@@ -173,4 +237,34 @@ export function useReportFeedPost() {
     track('feed_report', { postId: post.id, reason });
     toast.success(t('homeFeed.reportedToast'), { testID: 'toast-feed-report' });
   };
+}
+
+/**
+ * "Looklarıma ekle" on an editor post: resolves true once the server made the look (the sheet closes; the toast with
+ * "Gör" comes from the write itself), false when it failed (the sheet stays; the toast or the paywall said why).
+ * Offline the write is queued like the other feed writes and the toast says so. `saving` = the mode on its way.
+ */
+export function useSaveFeedPostAsLook() {
+  const { t } = useTranslation();
+  const online = useIsOnline();
+  const m = useMutation<Look, unknown, SaveFeedPostAsLookRequest>({ mutationKey: feedMutationKeys.saveAsLook });
+  const [saving, setSaving] = useState<FeedLookMode | null>(null);
+  const save = async (post: Pick<FeedPost, 'id'>, mode: FeedLookMode): Promise<boolean> => {
+    const vars: SaveFeedPostAsLookRequest = { postId: post.id, mode, requestId: ulid() };
+    if (!online) {
+      m.mutate(vars);
+      toast.info(t('homeFeed.lookSheet.queuedToast'), { testID: 'toast-feed-look-queued' });
+      return true;
+    }
+    setSaving(mode);
+    try {
+      await m.mutateAsync(vars);
+      return true;
+    } catch {
+      return false;
+    } finally {
+      setSaving(null);
+    }
+  };
+  return { save, saving };
 }

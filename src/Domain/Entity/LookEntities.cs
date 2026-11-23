@@ -37,7 +37,10 @@ public class LookEntity : IVersionedEntity, IModeratedEntity
     [JsonPropertyName("favorite")] public bool Favorite { get; set; }
     [JsonPropertyName("source")] public LookSource Source { get; set; }
     // Imported look ("Kombinlerini içe aktar"): the EXIF-stripped outfit photo under the tenant prefix. Never client supplied.
+    // …or an inspiration look (LookSource.Inspiration): the Akış post's photograph, copied under the tenant prefix.
     [JsonPropertyName("coverImageKey")] public string? CoverImageKey { get; set; }
+    // The Akış editor post this look was saved from ("Looklarıma ekle", either mode); the same post + mode answers this look again.
+    [JsonPropertyName("feedPostId")] public string? FeedPostId { get; set; }
 
     // Moderation (report resolved as contentRemoved): hidden from everyone but the owner. Written only by the moderation
     // service; owner edits load and save the whole row, so they keep these fields.

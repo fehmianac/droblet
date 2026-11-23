@@ -14,7 +14,9 @@
     "cardLabel": "{{occasion}}, {{name}}",
     "cardLabelRated": "{{occasion}}, {{name}}, ortalama puan {{rating}}",
     "favoriteAdd": "{{name}}: favorilere ekle",
-    "favoriteRemove": "{{name}}: favorilerden çıkar"
+    "favoriteRemove": "{{name}}: favorilerden çıkar",
+    "inspirationTag": "İLHAM",
+    "cardLabelInspiration": "İlham, {{name}}"
   },
   "lookEditor": {
     "titleNew": "Look oluştur",
@@ -98,7 +100,10 @@
     "heroReadyNote": "Görselin hazır · kredi harcanmaz",
     "heroMore_one": "+{{count}}",
     "heroMore_other": "+{{count}}",
-    "tryOnPreparing": "Görsel hazırlanıyor…"
+    "tryOnPreparing": "Görsel hazırlanıyor…",
+    "inspirationEyebrow": "İLHAM · {{occasion}}",
+    "inspirationNoPieces": "Parçalar gardırobunda yok",
+    "inspirationPhotoA11y": "{{name}}, ilham fotoğrafı"
   },
   "trips": {
     "eyebrow": "SEYAHAT PLANLARIN",

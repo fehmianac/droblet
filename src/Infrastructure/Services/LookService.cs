@@ -69,8 +69,8 @@ public sealed class LookService(IRepository repository, ICatalogProductLookup pr
             Occasion = command.Occasion,
             Slots = slots.Select(s => s.ToValue()).ToList(),
             Favorite = command.Favorite,
-            // "stylist" is only ever set by the accept endpoint.
-            Source = command.Source == LookSource.Stylist ? LookSource.User : command.Source,
+            // "stylist" is only ever set by the accept endpoint, "inspiration" by "Looklarıma ekle" on an Akış post.
+            Source = command.Source is LookSource.Stylist or LookSource.Inspiration ? LookSource.User : command.Source,
             CreatedAt = now,
             UpdatedAt = now,
         };
@@ -100,7 +100,10 @@ public sealed class LookService(IRepository repository, ICatalogProductLookup pr
             return ServiceResult.Conflict(look.ToDto(itemIds));
 
         var slots = command.Slots.Select(s => new SlotRef(s.Slot, Blank(s.ItemId), Blank(s.ProductId))).ToList();
-        var errors = await ValidateSlotsAsync(tenantId, slots, ct);
+        // An inspiration look (an Akış post's photograph, no pieces) may stay without pieces: its name, occasion and
+        // favourite are edited like any look's. Once pieces are sent, they follow the rules of every look.
+        var keepsNoPieces = look.Source == LookSource.Inspiration && slots.Count == 0;
+        var errors = keepsNoPieces ? [] : await ValidateSlotsAsync(tenantId, slots, ct);
         if (errors.Count > 0)
             return ServiceResult.Invalid<LookDto>(errors[0]);
 

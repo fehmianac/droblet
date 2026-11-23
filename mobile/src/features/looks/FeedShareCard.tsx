@@ -35,7 +35,7 @@ type Props = {
  * what it got there. Turning it on walks the server's rules first, so nothing fails silently: an unverified e-mail
  * leads to the verify screen (the switch stays off), a missing @handle to the handle step, and the first share on
  * this phone to the confirmation sheet. Turning it off is immediate. The write is optimistic and queued offline.
- * Not drawn for teen accounts or for imported looks.
+ * Not drawn for teen accounts, for imported looks or for inspiration looks (an Akış post's photograph).
  */
 export function FeedShareCard({ look, disabled = false }: Props) {
   const { t } = useTranslation();
@@ -48,7 +48,7 @@ export function FeedShareCard({ look, disabled = false }: Props) {
   const [confirm, setConfirm] = useState(false);
   const userId = session.status === 'signedIn' ? session.user.id : null;
 
-  if (teen.isTeen || look.imported) return null;
+  if (teen.isTeen || look.imported || look.inspiration) return null;
 
   const shared = Boolean(look.sharedToFeed);
   const handle = profile.data?.handle ?? null;

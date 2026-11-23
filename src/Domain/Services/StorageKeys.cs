@@ -34,6 +34,8 @@ public static class StorageKeys
     public static string LookCoverPrefix(string tenantId) => $"{TenantRoot(tenantId)}look-cover/";
     /// <summary><c>tenant/{tenantId}/look-cover/{lookId}-{slotsHash}.webp</c>: one image per look and set of pieces.</summary>
     public static string LookCover(string tenantId, string lookId, string slotsHash) => $"{LookCoverPrefix(tenantId)}{Guard(lookId)}-{Guard(slotsHash)}.webp";
+    /// <summary>The photograph of an inspiration look (an Akış post saved "as inspiration"): its cover, deleted with the look.</summary>
+    public static string LookPhoto(string tenantId, string lookId, string extension) => $"{TenantRoot(tenantId)}look-photo/{Guard(lookId)}.{Guard(extension)}";
     public static string ItemsPrefix(string tenantId) => $"{TenantRoot(tenantId)}items/";
     /// <summary>Cleaned (background removed) garment image of a draft / item.</summary>
     public static string ItemImage(string tenantId, string draftId) => $"{ItemsPrefix(tenantId)}{Guard(draftId)}.webp";

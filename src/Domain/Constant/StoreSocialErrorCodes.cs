@@ -28,6 +28,8 @@ public static class StoreSocialErrorCodes
     public const string EmailNotVerified = "email_not_verified";
     public const string HandleRequired = "handle_required";
     public const string LookNotShareable = "look_not_shareable";
+    /// <summary>"Looklarıma ekle": the Akış post has no pieces (or no photograph / fewer than two pieces that make a look).</summary>
+    public const string LookNotSavable = "look_not_savable";
     /// <summary>Admin: the shared look has no open report to remove it by.</summary>
     public const string FeedPostNotReported = "feed_post_not_reported";
 

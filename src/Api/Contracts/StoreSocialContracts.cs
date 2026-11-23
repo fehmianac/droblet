@@ -144,6 +144,18 @@ public class ReportRequestValidator : AbstractValidator<ReportRequest>
 }
 
 /// <summary>POST v1/tenant/feed-post/{id}/report (a shared look of the Akış, F2).</summary>
+/// <summary>"Looklarıma ekle": mode = inspiration | pieces; requestId = a client ULID (the new look's id; a retry never creates twice).</summary>
+public record FeedPostLookRequest(FeedLookMode? Mode, string? RequestId);
+
+public class FeedPostLookRequestValidator : AbstractValidator<FeedPostLookRequest>
+{
+    public FeedPostLookRequestValidator()
+    {
+        RuleFor(x => x.Mode).NotNull().WithErrorCode("mode_required").IsInEnum().WithErrorCode("mode_invalid");
+        RuleFor(x => x.RequestId).Must(Domain.Extensions.Ulid.IsValid).WithErrorCode("request_id_invalid");
+    }
+}
+
 public record FeedPostReportRequest(ReportReason Reason, string? Note);
 
 public class FeedPostReportRequestValidator : AbstractValidator<FeedPostReportRequest>

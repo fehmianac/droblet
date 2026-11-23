@@ -27,8 +27,15 @@ public enum ItemSource { Photo, Library, Purchase, Manual }
 /// <summary>Phase 2 (second hand Jul 2027, rental Jan 2028). Phase 1 only ever stores None.</summary>
 public enum ItemListingStatus { None, ForSale, ForRent, Sold, Rented }
 
-/// <summary>Import = created from an outfit photo by "Kombinlerini içe aktar" (the photo is the look's cover).</summary>
-public enum LookSource { User, Stylist, Edit, Builder, Import }
+/// <summary>
+/// Import = created from an outfit photo by "Kombinlerini içe aktar" (the photo is the look's cover).
+/// Inspiration = an Akış editor post saved "as inspiration" (owner decision 2026-11-23): the post's photograph is the cover
+/// and the look has no pieces (the member does not own them). Server-set only.
+/// </summary>
+public enum LookSource { User, Stylist, Edit, Builder, Import, Inspiration }
+
+/// <summary>"Looklarıma ekle" on an Akış editor post: Inspiration = photo cover, nothing added to the wardrobe · Pieces = the post's pieces become items and the look is made of them.</summary>
+public enum FeedLookMode { Inspiration, Pieces }
 
 /// <summary>
 /// AI flat-lay cover of a saved look (LookCoverEntity): Pending = queued for the look's current pieces · Ready = the image

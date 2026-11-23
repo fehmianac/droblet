@@ -1,13 +1,16 @@
-import type { EditorStory, FeedPiece, FeedPost, FeedPostPage, FeedProduct, FeedTab } from '@/api/contracts/feed';
-import { FEED_PAGE_SIZE } from '@/api/contracts/feed';
+import type { EditorStory, FeedLookMode, FeedPiece, FeedPost, FeedPostPage, FeedProduct, FeedTab } from '@/api/contracts/feed';
+import { FEED_LOOK_MIN_PIECES, FEED_PAGE_SIZE } from '@/api/contracts/feed';
 import type { Occasion } from '@/api/contracts';
+import { LOOK_SLOTS, SLOT_CATEGORIES, type Look, type LookSlot, type LookSlotKind } from '@/api/contracts/looks';
+import { ITEM_CATEGORIES, ITEM_SEASONS, type Item, type ItemCategory } from '@/api/contracts/wardrobe';
 import type { ReportReason } from '@/api/contracts/social';
 import type { ProductSummary } from '@/api/contracts/store';
 import { ApiError } from '@/api/errors';
 import { FEED_INVITE_OCCASIONS, feedTabOccasions } from '@/api/wire/feed';
 import { currentTeenRules } from '@/features/teen/store';
+import i18n from '@/i18n';
 
-import { onFixtureSeed } from './db';
+import { clone, fixtureDb, onFixtureSeed } from './db';
 import { L } from './showcase';
 import { productsFixture } from './store';
 import { showcaseImage, showcaseImages, type ShowcaseImage } from './showcaseImages';
@@ -252,13 +255,25 @@ function buildStories(now: number): EditorStory[] {
 
 type FeedReport = { postId: string; reason: ReportReason; note: string | null };
 
-const state: { posts: FeedPost[]; stories: EditorStory[]; savedOrder: string[]; failNext: boolean; hidden: string[]; reports: FeedReport[] } = {
+const state: {
+  posts: FeedPost[];
+  stories: EditorStory[];
+  savedOrder: string[];
+  failNext: boolean;
+  hidden: string[];
+  reports: FeedReport[];
+  /** "Looklarıma ekle": `${postId}:${mode}` → the look made of it. */
+  lookOf: Record<string, string>;
+  failNextLook: { status: number; code: string } | null;
+} = {
   posts: [],
   stories: [],
   savedOrder: [],
   failNext: false,
   hidden: [],
   reports: [],
+  lookOf: {},
+  failNextLook: null,
 };
 
 export function resetFeedFixtures(options: { empty?: boolean } = {}): void {
@@ -269,6 +284,8 @@ export function resetFeedFixtures(options: { empty?: boolean } = {}): void {
   state.failNext = false;
   state.hidden = [];
   state.reports = [];
+  state.lookOf = {};
+  state.failNextLook = null;
 }
 
 onFixtureSeed((_db, { empty }) => resetFeedFixtures({ empty }));
@@ -282,7 +299,100 @@ export const feedFixtureOptions = {
   setPosts(posts: FeedPost[]) {
     state.posts = posts;
   },
+  /** The next "Looklarıma ekle" fails with this server answer (final, no retry). */
+  failNextSaveAsLook(status: number, code: string) {
+    state.failNextLook = { status, code };
+  },
 };
+
+/** The slot a piece of this category takes when a rule builds the look (the server's default slot; a dress fills "top"). */
+function slotOf(category: string): LookSlotKind | null {
+  return LOOK_SLOTS.find((slot) => (SLOT_CATEGORIES[slot] as readonly string[]).includes(category)) ?? null;
+}
+
+/**
+ * POST v1/tenant/feed-post/{id}/look with the server's rules: an editor post with pieces only; as inspiration the look
+ * has no pieces and the post's photograph as its cover; with its pieces every piece becomes a wardrobe item (colour
+ * "other", every season, named after its kind) and the look takes one piece per slot (the first keeps a contested slot, a
+ * dress closes the bottom) — at least two, or 422 `look_not_savable`. The same post + mode again answers the same look.
+ */
+function saveAsLook(postId: string, mode: FeedLookMode, requestId: string): Look {
+  const failure = state.failNextLook;
+  if (failure) {
+    state.failNextLook = null;
+    throw new ApiError('http', failure.status, { status: failure.status, code: failure.code });
+  }
+  const post = find(postId);
+  if (post.kind !== 'editor') throw new ApiError('http', 404, { code: 'not_found', status: 404 });
+  const notSavable = () => new ApiError('http', 422, { code: 'look_not_savable', status: 422 });
+  if (post.pieces.length === 0) throw notSavable();
+
+  const key = `${postId}:${mode}`;
+  const existing = fixtureDb.looks.find((l) => l.id === state.lookOf[key]);
+  if (existing) return clone(existing);
+
+  const base = {
+    id: requestId,
+    name: post.title.slice(0, 60),
+    occasion: post.occasion ?? 'weekend',
+    isFavorite: false,
+    rating: null,
+    ratingCount: 0,
+    tryOnImageUrl: null,
+    createdAt: new Date().toISOString(),
+    baseVersion: 1,
+  } satisfies Partial<Look>;
+
+  let look: Look;
+  if (mode === 'inspiration') {
+    look = { ...base, slots: [], coverImageUrl: post.images[0] ?? null, coverPending: false, inspiration: true };
+  } else {
+    const taken = new Set<LookSlotKind>();
+    const slots: (LookSlotKind | null)[] = post.pieces.map(() => null);
+    // A dress decides top / bottom first; then the pieces in their order (the first keeps a contested slot).
+    const order = post.pieces.map((_, index) => index).sort((a, b) => Number(post.pieces[b]?.category === 'dress') - Number(post.pieces[a]?.category === 'dress') || a - b);
+    for (const index of order) {
+      const category = post.pieces[index]?.category ?? '';
+      const slot = slotOf(category);
+      if (!slot || taken.has(slot)) continue;
+      taken.add(slot);
+      slots[index] = slot;
+      if (category === 'dress') taken.add('bottom');
+    }
+    if (slots.filter(Boolean).length < FEED_LOOK_MIN_PIECES) throw notSavable();
+
+    const items: Item[] = post.pieces.map((piece, index) => {
+      const category = ((ITEM_CATEGORIES as readonly string[]).includes(piece.category) ? piece.category : 'accessory') as ItemCategory;
+      return {
+        id: `${requestId}_p${index + 1}`,
+        name: i18n.t(`homeFeed.pieceKind.${category}`),
+        category,
+        subcategory: null,
+        brand: null,
+        size: null,
+        color: 'other',
+        fabric: null,
+        seasons: [...ITEM_SEASONS],
+        imageUrl: piece.imageUrl,
+        originalImageUrl: null,
+        useOriginalImage: false,
+        wearCount: 0,
+        lastWornAt: null,
+        createdAt: base.createdAt,
+        baseVersion: 1,
+      };
+    });
+    fixtureDb.items = [...items, ...fixtureDb.items];
+    const lookSlots: LookSlot[] = items.flatMap((item, index) => {
+      const slot = slots[index];
+      return slot ? [{ slot, source: 'wardrobe' as const, refId: item.id, name: item.name, imageUrl: item.imageUrl, brand: null, price: null, deleted: false }] : [];
+    });
+    look = { ...base, slots: LOOK_SLOTS.flatMap((slot) => lookSlots.filter((s) => s.slot === slot)), coverPending: true };
+  }
+  fixtureDb.looks = [look, ...fixtureDb.looks];
+  state.lookOf[key] = look.id;
+  return clone(look);
+}
 
 function find(id: string): FeedPost {
   const post = state.posts.find((p) => p.id === id);
@@ -336,6 +446,8 @@ export const feedFixtures = {
     state.reports.push({ postId: id, reason, note });
     return { reportId: `report_${state.reports.length}` };
   },
+  /** POST v1/tenant/feed-post/{id}/look — "Looklarıma ekle" (as inspiration, or with its pieces). */
+  saveAsLook,
   /** Test helpers: what "Bunu gösterme" and "Şikâyet et" sent. */
   hiddenIds: (): string[] => [...state.hidden],
   reports: (): FeedReport[] => state.reports.map((r) => ({ ...r })),

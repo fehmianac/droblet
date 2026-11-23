@@ -132,6 +132,26 @@
       "empty": "You haven't saved anything from the feed yet.",
       "emptyAction": "Go to the feed",
       "unsaveA11y": "Remove {{name}} from saved"
+    },
+    "addToLooks": "Add to my looks",
+    "addToLooksA11y": "Add this post to my looks",
+    "lookSheet": {
+      "title": "Add to my looks",
+      "inspiration": "Save as inspiration",
+      "inspirationBody": "The photo becomes the cover; the pieces are not added to your wardrobe.",
+      "pieces": "Save with its pieces",
+      "piecesBody_one": "{{count}} piece is added to your wardrobe and the look is made of it.",
+      "piecesBody_other": "{{count}} pieces are added to your wardrobe and the look is made of them.",
+      "piecesUnavailable": "This post does not have enough pieces for a look.",
+      "cancel": "Cancel",
+      "saving": "Saving",
+      "savedToast": "Added to your looks",
+      "queuedToast": "You are offline. It will be added to your looks when you are back online.",
+      "errors": {
+        "failed": "The look could not be saved. Try again.",
+        "notSavable": "This post cannot be saved as a look.",
+        "gone": "This post is no longer published."
+      }
     }
   }
 }

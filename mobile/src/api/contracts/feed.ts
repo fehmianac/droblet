@@ -89,3 +89,21 @@ export type SaveFeedPostRequest = { postId: string; saved: boolean; clientMutati
 export type HideFeedPostRequest = { postId: string; clientMutationId: string };
 /** POST `v1/tenant/feed-post/{id}/report` `{ reason, note? }` → 201 `{ reportId }`. Reasons = the social report reasons. Queued offline. */
 export type ReportFeedPostRequest = { postId: string; reason: ReportReason; note?: string; clientMutationId: string };
+
+/**
+ * "Looklarıma ekle" on an editor post with pieces (owner decision 2026-11-23): `inspiration` = a look whose cover is the
+ * post's photograph, nothing added to the wardrobe · `pieces` = the post's pieces become wardrobe items and the look is
+ * made of them.
+ */
+export const FEED_LOOK_MODES = ['inspiration', 'pieces'] as const;
+export type FeedLookMode = (typeof FEED_LOOK_MODES)[number];
+
+/** A look with pieces needs two of them (the server's minimum): under that only "İlham olarak kaydet" is offered. */
+export const FEED_LOOK_MIN_PIECES = 2;
+
+/**
+ * POST `v1/tenant/feed-post/{id}/look` `{ mode, requestId }` → 201 `LookDto` (200: the look this member already made of
+ * the post in that mode). `requestId` = a ULID from the device, the new look's id. 404 `not_found` · 422
+ * `look_not_savable` · 403 `premium_required` · 409 `look_id_taken`. Queued like the other feed writes.
+ */
+export type SaveFeedPostAsLookRequest = { postId: string; mode: FeedLookMode; requestId: string };

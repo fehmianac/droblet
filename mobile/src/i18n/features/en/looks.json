@@ -14,7 +14,9 @@
     "cardLabel": "{{occasion}}, {{name}}",
     "cardLabelRated": "{{occasion}}, {{name}}, average rating {{rating}}",
     "favoriteAdd": "{{name}}: add to favourites",
-    "favoriteRemove": "{{name}}: remove from favourites"
+    "favoriteRemove": "{{name}}: remove from favourites",
+    "inspirationTag": "INSPIRATION",
+    "cardLabelInspiration": "Inspiration, {{name}}"
   },
   "lookEditor": {
     "titleNew": "Create a look",
@@ -98,7 +100,10 @@
     "heroReadyNote": "Your image is ready · no credit used",
     "heroMore_one": "+{{count}}",
     "heroMore_other": "+{{count}}",
-    "tryOnPreparing": "Preparing image…"
+    "tryOnPreparing": "Preparing image…",
+    "inspirationEyebrow": "INSPIRATION · {{occasion}}",
+    "inspirationNoPieces": "The pieces are not in your wardrobe",
+    "inspirationPhotoA11y": "{{name}}, inspiration photo"
   },
   "trips": {
     "eyebrow": "YOUR TRAVEL PLANS",

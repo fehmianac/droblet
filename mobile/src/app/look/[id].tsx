@@ -6,19 +6,22 @@ import { Pressable, ScrollView, Share, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { Look, LookSlot } from '@/api/contracts/looks';
+import { lookCoverSource, viewerSourceOf } from '@/api/imageSources';
 import { useWearToday } from '@/api/today';
-import { PopoverMenu } from '@/components/ui/Bits';
+import { ImageTag, PopoverMenu } from '@/components/ui/Bits';
 import { BottomActionBar } from '@/components/ui/BottomActionBar';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
+import { ImageSlot } from '@/components/ui/ImageSlot';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
+import { Zoomable } from '@/components/ui/viewer';
 import { CreditConfirmSheet } from '@/features/credits/CreditConfirmSheet';
 import { useSpendConfirm } from '@/features/credits/spendConfirm';
 import { useLookWrites } from '@/features/looks/api';
@@ -198,6 +201,53 @@ function LookBody({ look, preview, itemsById, note, tryOn, invite }: BodyProps) 
 }
 
 /**
+ * An inspiration look (an Akış post saved with "İlham olarak kaydet", owner decision 2026-11-23): the post's photograph
+ * large (tap → full screen) with the "İLHAM" tag, "İLHAM · ortam" and the name, and one line in place of the piece
+ * rows — the pieces are not the member's. No rating, no "Akışta paylaş", no piece list.
+ */
+function InspirationBody({ look, note }: { look: Look; note: string | null }) {
+  const language = useAppLanguage();
+  const { t } = useTranslation();
+  const cover = lookCoverSource(look);
+  const viewer = viewerSourceOf(cover);
+  const label = t('lookDetail.inspirationPhotoA11y', { name: look.name });
+  return (
+    <ScrollView contentContainerClassName="gap-3 px-gutter pb-6 pt-1" testID="look-inspiration">
+      <Zoomable
+        images={viewer ? [{ ...viewer, label }] : []}
+        index={0}
+        disabled={!viewer}
+        accessibilityLabel={label}
+        className="h-[420px] w-full overflow-hidden rounded-card border border-line bg-sand"
+        testID="look-inspiration-photo"
+      >
+        <ImageSlot {...cover} className="h-full w-full" accessibilityLabel={label} placeholder={{ kind: 'look', pieces: [], seed: look.id, figureHeight: 250 }} />
+        <ImageTag label={toDisplayUpper(t('looks.inspirationTag'), language)} className="absolute bottom-2 left-2" />
+      </Zoomable>
+
+      <View className="gap-1">
+        <Text variant="eyebrow" testID="look-inspiration-eyebrow">
+          {toDisplayUpper(t('lookDetail.inspirationEyebrow', { occasion: t(`occasion.${look.occasion}`) }), language)}
+        </Text>
+        <Text variant="h2">{look.name}</Text>
+      </View>
+
+      <ModeratedNote moderation={look.moderation} kind="look" />
+
+      {note ? (
+        <Text variant="caption" tone="muted" accessibilityLiveRegion="polite">
+          {note}
+        </Text>
+      ) : null}
+
+      <Text variant="caption" tone="muted" testID="look-inspiration-no-pieces">
+        {t('lookDetail.inspirationNoPieces')}
+      </Text>
+    </ScrollView>
+  );
+}
+
+/**
  * 14b with nothing known yet (deep link, first load): the page's own shape — hero, eyebrow, name, piece rows — as
  * shimmering blocks (canvas n_durum), never the full-screen loader.
  */
@@ -248,13 +298,18 @@ export default function LookScreen() {
   const tryOn = useStartTryOn();
   const wear = useWearToday();
   // Canvas 18: sharing a look is social — not for a teen.
-  const hideShare = useTeenRules().hide.social;
+  const teen = useTeenRules();
   const [menu, setMenu] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleted, setDeleted] = useState(false);
   const [notice, setNotice] = useState<Notice>(null);
   const look = query.data;
+  // An Akış post saved as inspiration: a photograph without pieces. Nothing to share, edit in the builder or wear; it is
+  // tried on as its photograph (a photo try-on — never offered to a teen), favourited and deleted.
+  const inspiration = Boolean(look?.inspiration);
+  const hideShare = teen.hide.social || inspiration;
+  const hideTryOn = inspiration && teen.isTeen;
   // Only the list's copy so far: favourite, edit, share and ⋯ (they write or act on the record) are skeletons until it lands.
   const preview = query.isPlaceholderData;
   const itemsById = indexItems(items.data);
@@ -363,7 +418,13 @@ export default function LookScreen() {
         skeleton={<LookSkeleton />}
         notFound={{ message: t('lookDetail.notFound'), actionLabel: t('lookDetail.backToLooks'), onAction: () => router.replace('/wardrobe/looks') }}
       >
-        {(data) => <LookBody look={data} preview={preview} itemsById={itemsById} note={noteText} tryOn={lookTryOn} invite={invite} />}
+        {(data) =>
+          data.inspiration ? (
+            <InspirationBody look={data} note={noteText} />
+          ) : (
+            <LookBody look={data} preview={preview} itemsById={itemsById} note={noteText} tryOn={lookTryOn} invite={invite} />
+          )
+        }
       </ScreenState>
 
       {look ? (
@@ -380,26 +441,28 @@ export default function LookScreen() {
               />
             )}
             <View className="flex-1">
-              <Button
-                size="bar"
-                icon={MirrorRound}
-                label={generating ? t('lookDetail.tryOnPreparing') : t('lookEditor.tryOn')}
-                // 14b: the cost rides on the button; an existing image opens without a credit.
-                detail={generating || hasImage ? undefined : t('ai.creditCost', { count: TRY_ON_CREDIT_COST })}
-                onPress={onTryOnPress}
-                loading={tryOn.isStarting && !confirm}
-                disabled={generating}
-                testID="look-try-on"
-              />
-              {gate.count > 0 && !hasImage && !generating ? (
+              {hideTryOn ? null : (
+                <Button
+                  size="bar"
+                  icon={MirrorRound}
+                  label={generating ? t('lookDetail.tryOnPreparing') : t('lookEditor.tryOn')}
+                  // 14b: the cost rides on the button; an existing image opens without a credit.
+                  detail={generating || hasImage ? undefined : t('ai.creditCost', { count: TRY_ON_CREDIT_COST })}
+                  onPress={onTryOnPress}
+                  loading={tryOn.isStarting && !confirm}
+                  disabled={generating}
+                  testID="look-try-on"
+                />
+              )}
+              {gate.count > 0 && !hasImage && !generating && !hideTryOn ? (
                 <View className="absolute -right-1 -top-1" pointerEvents="none">
                   <StepCountBadge count={gate.count} />
                 </View>
               ) : null}
             </View>
-            {preview ? <ButtonSkeleton /> : <IconButton icon={Pencil} onPress={edit} accessibilityLabel={t('lookDetail.edit')} testID="look-edit" />}
+            {inspiration ? null : preview ? <ButtonSkeleton /> : <IconButton icon={Pencil} onPress={edit} accessibilityLabel={t('lookDetail.edit')} testID="look-edit" />}
           </View>
-          {hasImage ? (
+          {hideTryOn ? null : hasImage ? (
             // The image exists on this photo: "Üzerimde gör" opens it, and nothing is charged (13d).
             <View className="mt-1.5 min-h-[28px] flex-row items-center justify-center gap-1.5" testID="look-try-on-ready">
               <Icon icon={History} size={14} tone="accent" />
@@ -422,7 +485,8 @@ export default function LookScreen() {
         onClose={() => setMenu(false)}
         top={insets.top + 52}
         actions={[
-          {
+          // An inspiration look has no pieces: nothing to wear today, nothing to edit in the builder.
+          ...(inspiration ? [] : [{
             key: 'wear',
             label: t('lookDetail.wearToday'),
             icon: CalendarCheck,
@@ -432,7 +496,7 @@ export default function LookScreen() {
               setNotice('worn');
             },
           },
-          { key: 'edit', label: t('lookDetail.edit'), icon: Pencil, onPress: edit },
+          { key: 'edit', label: t('lookDetail.edit'), icon: Pencil, onPress: edit }]),
           { key: 'delete', label: t('lookEditor.delete'), icon: Trash2, destructive: true, onPress: () => setDeleting(true) },
         ]}
       />

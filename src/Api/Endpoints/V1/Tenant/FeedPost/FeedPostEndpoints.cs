@@ -130,6 +130,47 @@ public class PutHide : IEndpoint
             .WithTags("Tenant Feed Post");
 }
 
+public class PostLook : IEndpoint
+{
+    private static async Task<IResult> Handler(
+        [FromRoute] string id,
+        [FromBody] FeedPostLookRequest request,
+        [FromServices] IValidator<FeedPostLookRequest> validator,
+        [FromServices] IApiContext apiContext,
+        [FromServices] IFeedLookService looks,
+        CancellationToken ct)
+    {
+        var validation = await validator.ValidateAsync(request, ct);
+        if (!validation.IsValid)
+            return Results.BadRequest(validation.Errors.ToProblemDetails());
+
+        return (await looks.SaveAsLookAsync(apiContext.TenantId, id, new SaveFeedPostAsLookCommand(request.Mode!.Value, request.RequestId!), ct))
+            .ToHttp($"/v1/tenant/look/{request.RequestId}");
+    }
+
+    public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints) =>
+        endpoints.MapPost("v1/tenant/feed-post/{id}/look", Handler)
+            .Produces<LookDto>(StatusCodes.Status201Created)
+            .Produces<LookDto>(StatusCodes.Status200OK)
+            .Produces<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest)
+            .Produces<ProblemDetails>(StatusCodes.Status403Forbidden)
+            .Produces<ProblemDetails>(StatusCodes.Status404NotFound)
+            .Produces<ProblemDetails>(StatusCodes.Status409Conflict)
+            .Produces<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)
+            .ProducesProblem(StatusCodes.Status500InternalServerError)
+            .RequireAuthorization(ClaimNames.TenantUserPolicy)
+            .WithSummary("Save an Akış editor post into my looks")
+            .WithDescription("\"Looklarıma ekle\" on an editor post that has pieces. Body { mode, requestId }: mode = inspiration (a look without pieces whose cover is the " +
+                             "post's photograph; source = inspiration; nothing is added to the wardrobe; no AI cover; never shareable) | pieces (every piece of the post becomes a " +
+                             "wardrobe item with its clean picture — colour \"other\", every season, no name — and a normal own look is made of them, one piece per slot; " +
+                             "its AI cover is requested like any saved look's). requestId = a client ULID, the new look's id. → 201 LookDto; the same post in the same mode " +
+                             "again → 200 with the look made then (while it exists). name = the post's title in the request language, occasion = the post's. " +
+                             "No AI call. Open to teens. 404 not_found (unknown, draft, scheduled, retired, a user post u_…); 422 look_not_savable (no pieces; inspiration: " +
+                             "no readable photograph; pieces: fewer than two pieces that take a look slot); 403 premium_required (the wardrobe-item entitlement); " +
+                             "409 look_id_taken (requestId is another look's id).")
+            .WithTags("Tenant Feed Post");
+}
+
 public class PostReport : IEndpoint
 {
     private static async Task<IResult> Handler(
