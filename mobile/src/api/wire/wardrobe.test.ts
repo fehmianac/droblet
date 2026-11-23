@@ -271,6 +271,17 @@ describe('wardrobe wire mappers', () => {
     expect(toLook({ ...lookWire, rating: null, occasion: null }, { items, products: new Map() })).toMatchObject({ rating: null, ratingCount: 0, occasion: 'weekend' });
   });
 
+  it('Akış F2: reads the share state and its numbers; an older server reads as not shared; an imported look is marked', () => {
+    const ctx = { items: new Map(), products: new Map() };
+    expect(toLook(lookWire, ctx)).toMatchObject({ sharedToFeed: false, feedStats: null, imported: false });
+    expect(toLook({ ...lookWire, sharedToFeed: true, feedStats: { likeCount: 38, saveCount: 12 } }, ctx)).toMatchObject({
+      sharedToFeed: true,
+      feedStats: { likeCount: 38, saveCount: 12 },
+    });
+    expect(toLook({ ...lookWire, sharedToFeed: true, feedStats: null }, ctx)).toMatchObject({ sharedToFeed: true, feedStats: null });
+    expect(toLook({ ...lookWire, source: 'import' }, ctx).imported).toBe(true);
+  });
+
   it('writes slots and occasions in the wire spelling', () => {
     expect(fromSlotInput({ slot: 'accessory', source: 'store', refId: 'lx-bag' })).toEqual({ slot: 'bagAccessory', productId: 'lx-bag' });
     expect(fromSlotInput({ slot: 'top', source: 'wardrobe', refId: '01JITEM' })).toEqual({ slot: 'top', itemId: '01JITEM' });

@@ -3,10 +3,28 @@ import type { InfiniteData } from '@tanstack/react-query';
 import type { FeedPost, FeedPostPage } from '@/api/contracts/feed';
 import i18n from '@/i18n';
 
-import { applyLike, buyableProducts, firstViewThisSession, ownedProducts, postMeta, resetFeedSession, shortAge, updateFeedPosts } from './logic';
+import {
+  applyLike,
+  buyableProducts,
+  firstViewThisSession,
+  hidePostThisSession,
+  isEditFallback,
+  isHiddenThisSession,
+  ownedItemIds,
+  ownedProducts,
+  postMeta,
+  removeFeedPost,
+  resetFeedSession,
+  shortAge,
+  updateFeedPosts,
+} from './logic';
 
 const base: FeedPost = {
   id: 'p1',
+  kind: 'editor',
+  pieces: [],
+  hasSimilar: false,
+  canTryOn: true,
   author: { kind: 'edit', name: 'Droblet Edit', handle: null, imageUrl: null, verified: true },
   occasion: 'office',
   publishedAt: '2026-11-18T09:00:00Z',
@@ -21,7 +39,7 @@ const base: FeedPost = {
 };
 
 const product = (id: string, ownedSimilar: boolean, available = true) =>
-  ({ id, brandId: 'b', brandName: 'B', name: id, price: null, imageUrl: null, category: 'bag', colors: [], sizes: ['ONE'], available, ownedSimilar }) as FeedPost['products'][number];
+  ({ id, brandId: 'b', brandName: 'B', name: id, price: null, imageUrl: null, category: 'bag', colors: [], sizes: ['ONE'], available, ownedSimilar, ownedItemId: null }) as FeedPost['products'][number];
 
 beforeAll(async () => {
   await i18n.changeLanguage('tr');
@@ -62,11 +80,46 @@ describe('feed logic', () => {
     expect(shortAge(i18n.t, '2026-11-15T12:00:00Z', now)).toBe('3 g');
   });
 
+  it("writes a member's meta line: Topluluk · ortam · zaman (no season)", () => {
+    const now = new Date('2026-11-18T12:00:00Z');
+    const user = { ...base, kind: 'user' as const, author: { ...base.author, kind: 'user' as const, name: '@ornek_kullanici' }, occasion: 'weekend' as const, publishedAt: '2026-11-18T11:00:00Z' };
+    expect(postMeta(i18n.t, user, now)).toBe('Topluluk · Hafta sonu · 1 sa');
+  });
+
+  it('removes a hidden post from every loaded page and keeps it out for the session', () => {
+    const data: InfiniteData<FeedPostPage, string | null> = {
+      pages: [{ items: [base, { ...base, id: 'p2' }], nextPageToken: 'x' }, { items: [{ ...base, id: 'p3' }], nextPageToken: null }],
+      pageParams: [null, 'x'],
+    };
+    expect(removeFeedPost(data, 'p2')?.pages.map((p) => p.items.map((i) => i.id))).toEqual([['p1'], ['p3']]);
+    expect(removeFeedPost(undefined, 'p2')).toBeUndefined();
+    resetFeedSession();
+    expect(isHiddenThisSession('p2')).toBe(false);
+    hidePostThisSession('p2');
+    expect(isHiddenThisSession('p2')).toBe(true);
+    resetFeedSession();
+    expect(isHiddenThisSession('p2')).toBe(false);
+  });
+
+  it('"Kendi parçalarımla kur": the distinct wardrobe items behind the owned pieces', () => {
+    const owned = (id: string, itemId: string | null) => ({ ...product(id, true), ownedItemId: itemId });
+    expect(ownedItemIds({ products: [owned('a', 'i1'), owned('b', 'i2'), owned('c', 'i1'), owned('d', null), { ...product('e', false), ownedItemId: 'i9' }] })).toEqual(['i1', 'i2']);
+  });
+
   it('reports a post view once per session', () => {
     resetFeedSession();
     expect(firstViewThisSession('p1')).toBe(true);
     expect(firstViewThisSession('p1')).toBe(false);
     resetFeedSession();
     expect(firstViewThisSession('p1')).toBe(true);
+  });
+});
+
+describe('isEditFallback', () => {
+  it('is true only when every editor post is a weekly-edit look', () => {
+    expect(isEditFallback([])).toBe(false);
+    expect(isEditFallback([{ id: 'u_a', kind: 'user' }])).toBe(false);
+    expect(isEditFallback([{ id: 'e_1', kind: 'editor' }, { id: 'u_a', kind: 'user' }, { id: 'e_2', kind: 'editor' }])).toBe(true);
+    expect(isEditFallback([{ id: 'e_1', kind: 'editor' }, { id: 'p1', kind: 'editor' }])).toBe(false);
   });
 });

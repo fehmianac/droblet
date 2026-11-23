@@ -904,18 +904,20 @@ public static class OpenAiPrompts
     public static string LookCover(int pieceCount) => PromptTemplate.Render(LookCoverTemplate, ("pieceCount", Count(pieceCount)));
 
     /// <summary>
-    /// Registry key look.cover.image; {{pieceCount}} = the number of piece images. Canvas 21c (owner decision 2026-11-22): one
-    /// outfit thrown together on a bed (rumpled cream linen sheet, soft daylight), relaxed and slightly messy — the owner found the
-    /// first version too perfect — the pieces exactly as photographed.
+    /// Registry key look.cover.image; {{pieceCount}} = the number of piece images. Canvas 21c: one outfit laid out on a bed
+    /// (cream linen sheet, soft daylight), the pieces exactly as photographed. Owner feedback: the first version was too
+    /// perfect (2026-11-22), the second too messy and too stacked (2026-11-23) — this is the middle: laid out by hand,
+    /// each piece on its own, barely touching, neither a grid nor a pile.
     /// </summary>
     public const string LookCoverTemplate =
-        "The {{pieceCount}} image(s) are the pieces of one outfit. Create one realistic top-down photo of exactly these pieces thrown together on a bed, " +
-        "the way a person really lays out an outfit before getting dressed: relaxed and slightly messy, not styled and not a catalogue flat-lay. " +
-        "The bed has a rumpled cream linen sheet with real creases; soft natural window daylight with gentle shadows under the clothes. " +
-        "Lay the pieces loosely and close together, filling the frame: each at its own slight angle, never in a neat grid or symmetrical; " +
-        "fabric keeps its natural folds and wrinkles, a sleeve bent or pushed up, a collar or hem slightly turned, trouser legs or a skirt lying loosely and partly under the top, " +
-        "shoes set down casually at an angle, a bag strap falling where it lands. Pieces may overlap each other a little and a long piece may run off the edge of the frame, " +
-        "but every piece stays clearly recognisable. " +
+        "The {{pieceCount}} image(s) are the pieces of one outfit. Create one realistic top-down photo of exactly these pieces laid out on a bed, " +
+        "the way a person lays out an outfit by hand before getting dressed: natural and lived-in, casually arranged — neither a rigid catalogue flat-lay nor a messy pile. " +
+        "The bed has a cream linen sheet with soft natural creases; soft natural window daylight with gentle shadows under the clothes. " +
+        "Arrange the pieces roughly as they are worn — top above, trousers or skirt below, shoes and bag beside them — each laid mostly flat and whole, " +
+        "with a little space between them and only slightly off-straight, not in a strict grid and not perfectly symmetrical. " +
+        "Fabric keeps a few natural folds and wrinkles: a sleeve gently bent, a hem slightly uneven, shoes set down at a small angle. " +
+        "Pieces lie next to each other; at most two may touch or overlap at an edge, never stacked on top of each other, and nothing is crumpled or bunched up. " +
+        "Every piece is fully visible inside the frame and clearly recognisable. " +
         "Show every piece exactly as in its image: the same colour, pattern, fabric, texture, shape and every brand logo, monogram, print and lettering unchanged. " +
         "Do not add, remove, replace or restyle anything: no other clothes, accessories, props or decorations, no person, no hands, no mannequin, no hanger, no text.";
 

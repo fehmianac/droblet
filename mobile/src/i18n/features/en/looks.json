@@ -236,5 +236,38 @@
     "daySaveLook": "Save as a look",
     "notFound": "This trip is no longer in your trips.",
     "backToTrips": "Back to trips"
+  },
+  "feedShare": {
+    "title": "Share to the feed",
+    "hintOff": "Anyone can see, like and save it.",
+    "hintOn": "Live on the feed · as @{{handle}}. Switch it off to take it down.",
+    "hintOnPlain": "Live on the feed. Switch it off to take it down.",
+    "stats": "{{likes}} · {{saves}}",
+    "likes_one": "{{formatted}} like",
+    "likes_other": "{{formatted}} likes",
+    "saves_one": "{{formatted}} person saved it",
+    "saves_other": "{{formatted}} people saved it",
+    "sheet": {
+      "eyebrow": "FEED",
+      "title": "Share your look to the feed",
+      "point1": "Anyone can see this look, its cover and the pictures of its pieces.",
+      "point2": "It shows under your name @{{handle}}; people can like and save it.",
+      "point2Plain": "It shows under your username; people can like and save it.",
+      "point3": "Your body and face photos and your try-on images are never shared.",
+      "point4": "You can switch it off any time; the look leaves the feed.",
+      "accept": "Share",
+      "cancel": "Not now"
+    },
+    "removedToast": "Removed from the feed",
+    "verifyFirst": "Verify your e-mail first to share to the feed.",
+    "errors": {
+      "email_not_verified": "Verify your e-mail first to share.",
+      "handle_required": "Pick a username first to share.",
+      "look_not_shareable": "This look can't be shared to the feed right now.",
+      "teen_restricted": "Sharing to the feed is off for teen accounts.",
+      "too_many_attempts": "Too many attempts. Try again in a little while.",
+      "shareFailed": "Couldn't share. Try again.",
+      "removeFailed": "Couldn't remove it from the feed. Try again."
+    }
   }
 }

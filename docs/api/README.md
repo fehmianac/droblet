@@ -135,6 +135,8 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | GET | `v1/tenant/look/{id}` | user | [W](wardrobe-looks-plan-stylist.md) | Get look |
 | PUT | `v1/tenant/look/{id}` | user | [W](wardrobe-looks-plan-stylist.md) | Update look |
 | DELETE | `v1/tenant/look/{id}` | user | [W](wardrobe-looks-plan-stylist.md) | Delete look |
+| PUT | `v1/tenant/look/{id}/feed-share` | user | [S](store-social-settings.md) | Share my look to the Akış (F2) |
+| DELETE | `v1/tenant/look/{id}/feed-share` | user | [S](store-social-settings.md) | Take my look off the Akış |
 
 ## Today, plan, wear log
 
@@ -196,7 +198,7 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | GET | `v1/content/creator` | user | [S](store-social-settings.md) | Creator / influencer collections |
 | GET | `v1/content/creator/{id}/look` | user | [S](store-social-settings.md) | Creator / influencer looks |
 | GET | `v1/content/edit/current` | user | [S](store-social-settings.md) | Current weekly edit |
-| GET | `v1/content/feed` | user | [S](store-social-settings.md) | Akış: editor posts (paged, occasion filter) |
+| GET | `v1/content/feed` | user | [S](store-social-settings.md) | Akış: editor posts with users' shared looks mixed in (paged, occasion filter) |
 | GET | `v1/content/feed/story` | user | [S](store-social-settings.md) | Akış: editor stories |
 | GET | `v1/content/edit/{id}` | user | [S](store-social-settings.md) | Weekly edit by id |
 | GET | `v1/content/series-outfit` | user | [S](store-social-settings.md) | Series outfit collections |
@@ -229,6 +231,9 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | DELETE | `v1/tenant/feed-post/{id}/like` | user | [S](store-social-settings.md) | Take back a like |
 | PUT | `v1/tenant/feed-post/{id}/save` | user | [S](store-social-settings.md) | Save an Akış post |
 | DELETE | `v1/tenant/feed-post/{id}/save` | user | [S](store-social-settings.md) | Remove an Akış post from saved |
+| GET | `v1/tenant/feed-post/{id}/similar` | user | [S](store-social-settings.md) | Similar products of a shared look |
+| PUT | `v1/tenant/feed-post/{id}/hide` | user | [S](store-social-settings.md) | Hide an Akış post for me |
+| POST | `v1/tenant/feed-post/{id}/report` | user | [S](store-social-settings.md) | Report a shared look |
 | GET | `v1/tenant/purchase-prompt` | user | [S](store-social-settings.md) | Pending "add to wardrobe?" prompts |
 | PUT | `v1/tenant/purchase-prompt/{id}` | user | [S](store-social-settings.md) | Answer a purchase prompt |
 | GET | `v1/tenant/watch-list` | user | [S](store-social-settings.md) | Watch list |
@@ -331,6 +336,9 @@ Admin panel at `https://droblet-admin.alatech.co` ([admin.md](admin.md)). Admin 
 | GET | `v1/admin/feed-post` | admin:content.manage | [S](store-social-settings.md) | Akış posts (admin) |
 | PUT | `v1/admin/feed-post/{id}` | admin:content.manage | [S](store-social-settings.md) | Create or update an Akış post |
 | DELETE | `v1/admin/feed-post/{id}` | admin:content.manage | [S](store-social-settings.md) | Retire an Akış post |
+| GET | `v1/admin/feed-user-post` | admin:moderation.manage | [S](store-social-settings.md) | Reported / auto-hidden shared looks (Akış F2) |
+| POST | `v1/admin/feed-user-post/{id}/restore` | admin:moderation.manage | [S](store-social-settings.md) | Restore a shared look to the Akış |
+| POST | `v1/admin/feed-user-post/{id}/remove` | admin:moderation.manage | [S](store-social-settings.md) | Remove a shared look (look moderation) |
 | GET | `v1/admin/feed-story` | admin:content.manage | [S](store-social-settings.md) | Akış stories (admin) |
 | PUT | `v1/admin/feed-story/{id}` | admin:content.manage | [S](store-social-settings.md) | Create or update an Akış story |
 | DELETE | `v1/admin/feed-story/{id}` | admin:content.manage | [S](store-social-settings.md) | Retire an Akış story |

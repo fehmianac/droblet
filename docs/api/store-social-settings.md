@@ -106,50 +106,151 @@ Not in this document: wardrobe items, looks, today/plan/calendar, stylist/trips,
 `totalMinor` counts available products only. "Hide what I already own" (screen 08, Sunum) is done on the client with the
 wardrobe data or with the match endpoint below.
 
-## 2b. Akış F1 — editor posts and stories (canvas 06″, decisions 16–19)
+## 2b. Akış — editor posts, stories and users' shared looks (canvas 06″, decisions 16–21)
 
-Akış is the app's first tab. F1 = **editor content only**, entered in the admin panel: posts by "Droblet Edit" or a
-selected stylist (placeholder names only, A-7) and editor stories. Interactions: ♡ like (with count), save, "Üzerimde dene"
-(try-on target `feedPost`, W §7), buy (each product opens the brand page through the existing checkout). **No comments
-(ever), no share, no follow, no sponsored content (F3), no user looks (F2).** Teens: every route here is open (decision 17);
-the app hides prices / buy for them (teen `commerce` restriction) — the server sends the same shape. Only the friends'
-feed `GET v1/tenant/feed` is closed to teens (`social`); it is unchanged.
+Akış is the app's first tab. **F1** = editor content, entered in the admin panel: posts by "Droblet Edit" or a selected
+stylist (placeholder names only, A-7) and editor stories. **F2** (owner decision 21, 22 Nov 2026) = the looks users
+share themselves ("Akışta paylaş"), mixed into the same list. Interactions: ♡ like (with count), save; on editor posts
+also "Üzerimde dene" (try-on target `feedPost`, W §7) and buy (each product opens the brand page through the existing
+checkout); on user posts "Benzerlerini gör", "Bunu gösterme" and "Şikâyet et". **No comments (ever), no sponsored content
+(F3), no try-on and no buy on a user's look.** Teens: the reads and the like / save routes are open (decision 17) and
+return **editor posts only**; the app hides prices / buy for them (teen `commerce` restriction). Sharing is closed to
+teens (`social`), as is the friends' feed `GET v1/tenant/feed` (unchanged).
 
 | Method | Path | Result |
 |---|---|---|
-| GET | `v1/content/feed?occasion=&pageToken=` | `{ "items": [FeedPostDto], "pageToken": "…"|null }`. Published, not retired, `publishAt` ≤ now, segment = the user's segment or none. Order: `publishAt` desc, then `sortOrder` asc (then id). Page size `ContentFeed:PageSize` (10). `occasion` (optional) = one or more comma-separated `Occasion` wire names; the app's tabs: Ofis = `office`, Hafta sonu = `weekend`, **Davet = `dinner,wedding`** (owner decision 2026-11-22). Any unknown part → `400 validation_failed`. The token is a position (a post retired meanwhile never shifts the next page); an unreadable token starts from the top. |
+| GET | `v1/content/feed?occasion=&pageToken=` | `{ "items": [FeedPostDto], "pageToken": "…"|null }` — editor posts with user looks mixed in (see **The mix**). Editor posts: published, not retired, `publishAt` ≤ now, segment = the user's segment or none; order `publishAt` desc, then `sortOrder` asc (then id). Page size `ContentFeed:PageSize` (10). `occasion` (optional) = one or more comma-separated `Occasion` wire names; the app's tabs: Ofis = `office`, Hafta sonu = `weekend`, **Davet = `dinner,wedding`** (owner decision 2026-11-22); it filters both kinds (a look without an occasion matches no tab). Any unknown part → `400 validation_failed`. The token is a position in both lists plus the place inside the pattern (an item removed or added meanwhile never shifts or repeats the next page); an unreadable token starts from the top. |
 | GET | `v1/content/feed/story` | `FeedStoryDto[]` — published, not retired, inside `[publishAt, expiresAt)`, the user's segment or none. Order: `sortOrder` asc (editors pin), then `publishAt` desc. At most `ContentFeed:MaxStories` (20). |
-| PUT | `v1/tenant/feed-post/{id}/like` | `{ "liked": true, "likeCount": 1284 }`. Idempotent. `404 not_found` when the post is unknown, a draft, scheduled or retired. |
+| PUT | `v1/tenant/feed-post/{id}/like` | `{ "liked": true, "likeCount": 1284 }`. Idempotent. `404 not_found` when the post is unknown, a draft, scheduled or retired — or, for a user post, my own, of a blocked pair, taken off the feed by reports, or removed. |
 | DELETE | `v1/tenant/feed-post/{id}/like` | `{ "liked": false, "likeCount": 1283 }`. Idempotent. Same `404`. |
 | PUT | `v1/tenant/feed-post/{id}/save` | `204`. Idempotent (a repeat keeps the first save time). Same `404`. |
 | DELETE | `v1/tenant/feed-post/{id}/save` | `204`, always (idempotent). |
-| GET | `v1/tenant/feed-post/saved` | `FeedPostDto[]`, newest save first. Posts retired or unpublished since are left out. |
+| GET | `v1/tenant/feed-post/saved` | `FeedPostDto[]`, newest save first, both kinds. Posts retired, unpublished, un-shared, hidden or not visible to me right now are left out. |
+| GET | `v1/tenant/feed-post/{id}/similar` | **User posts.** `ProductDto[]`, at most `ContentFeed:MaxSimilarProducts` (12) — see **Similar products**. `404 not_found` for an editor post or a user post I may not see. |
+| PUT | `v1/tenant/feed-post/{id}/hide` | `204`. "Bunu gösterme": the feed never returns the post to me again. Idempotent; works on both kinds. `404` as for like. There is no un-hide. |
+| POST | `v1/tenant/feed-post/{id}/report` | **User posts.** Body `{ "reason": ReportReason, "note"?: string ≤ 500 }` (`reason` = `spam` \| `inappropriate` \| `harassment` \| `impersonation` \| `minorSafety` \| `other`, the same values as the people report) → `201 { "reportId" }`. One report per user per post: a repeat answers `200` with the same id. The post is hidden for the reporter from then on (no separate hide needed). `404 not_found` (editor post, unknown, not visible), `422 cannot_target_self`, `429 too_many_attempts` (`Social:ReportsPerDay`, the budget shared with the people report), `400` (unknown reason, note too long). |
+| PUT | `v1/tenant/look/{id}/feed-share` | `204`. Shares my look; published at once, no pre-approval; idempotent. `403 teen_restricted` (`feature: "social"`), `404 not_found`, `422 email_not_verified` \| `handle_required` \| `look_not_shareable`, `429 too_many_attempts` (only when `ContentFeed:MaxSharesPerDay` > 0). See **Sharing**. |
+| DELETE | `v1/tenant/look/{id}/feed-share` | `204`, always (idempotent). The post goes with its likes, saves, hides and report pointers. |
 
 ```jsonc
 // FeedPostDto — text in the request language (profile → Accept-Language → default), like every content read
-{ "id": "01J…",
-  "author": { "kind": "edit", "name": "Droblet Edit", "handle": null, "imageUrl": null, "verified": true },  // kind edit | stylist; verified = true only for kind edit (Droblet Edit), never for stylists
-  "occasion": "office", "publishedAt": "2026-11-22T07:00:00Z",          // publishedAt = the post's publishAt
+{ "kind": "editor",                                                      // editor | user
+  "id": "01J…",
+  "author": { "kind": "edit", "name": "Droblet Edit", "handle": null, "imageUrl": null, "verified": true },  // kind edit | stylist | user; verified = true only for kind edit (Droblet Edit)
+  "occasion": "office", "publishedAt": "2026-11-22T07:00:00Z",          // publishedAt = the post's publishAt; occasion null: see below
   "title": "Ofiste bordo & camel", "note": "…" | null,
   "images": ["https://…"],                                              // 1–4
-  "products": [ { /* ProductDto, every field */ "ownedSimilar": true } ],  // 0–8; retired products stay listed with available: false
+  "products": [ { /* ProductDto, every field */ "ownedSimilar": true, "ownedItemId": "01J…" } ],  // 0–8; retired products stay listed with available: false
   "buyableCount": 2,                                                     // products that are available and not ownedSimilar
-  "likeCount": 1284, "liked": false, "saved": false }
+  "pieces": [], "hasSimilar": false, "canTryOn": true,                   // editor posts: always these values
+  "likeCount": 1284, "liked": false, "saved": false,
+  "imagesExpireAt": null }
+
+// FeedPostDto of a shared look (kind user)
+{ "kind": "user",
+  "id": "u_3f9c…",                                                       // opaque, stable for owner + look ("u_" + 26 hex); the same id on like / save / hide / report / similar
+  "author": { "kind": "user", "name": "@elif_k", "handle": "elif_k", "imageUrl": "https://…" | null, "verified": false },  // imageUrl = the avatar, presigned, short-lived
+  "occasion": "weekend" | null,                                          // the look's occasion; null when it has none
+  "publishedAt": "2026-11-22T09:14:00Z",                                 // when it was shared
+  "title": "Hafta sonu", "note": null,                                   // title = the look's name ("" when it has none)
+  "images": ["https://…"],                                               // exactly one: the look's AI flat-lay cover (public CDN URL, or presigned)
+  "products": [], "buyableCount": 0,
+  "pieces": [ { "category": "top", "subcategory": "sweater" | null, "imageUrl": "https://…" | null } ],
+  "hasSimilar": true, "canTryOn": false,
+  "likeCount": 38, "liked": false, "saved": false,
+  "imagesExpireAt": "2026-11-22T10:14:00Z" }                             // when a presigned images[0] stops working; null for a public URL
 
 // FeedStoryDto
 { "id": "…", "author": { "name": "Droblet Edit", "imageUrl": null }, "imageUrl": "https://…", "headline": "Ofiste bordo & camel",
   "product": ProductDto | null, "publishedAt": "…" }
 ```
 
-**`ownedSimilar`** ("benzeri gardırobunda var"). There is no server-side wardrobe ↔ product similarity yet (the edit
-screen's "hide what I already own" is client-side and exact), so the rule is: the caller has an item added from this
-product (`item.productId`), **or** an item of the same wardrobe category (`CatalogRules.ItemCategoryOf`) whose main
-colour (first colour id) is one of the product's colours. Rule-based, free, no AI.
+**Deviations from the first F2 sketch (mobile: please note).** `occasion` is **nullable** (a shared look may have none;
+the weekly-edit fallback never has one). `imagesExpireAt` is an added field (user posts). `pieces[].subcategory` is added.
+Nothing else differs.
+
+**`ownedSimilar` / `ownedItemId`** ("benzeri gardırobunda var", "Kendi parçalarımla kur"). There is no server-side
+wardrobe ↔ product similarity yet (the edit screen's "hide what I already own" is client-side and exact), so the rule
+is: the caller has an item added from this product (`item.productId`), **or** an item of the same wardrobe category
+(`CatalogRules.ItemCategoryOf`) whose main colour (first colour id) is one of the product's colours. `ownedItemId` =
+that wardrobe item: the one added from the product when there is one, else the category + main-colour match —
+deterministic, the newest item first (`createdAt` desc, then id desc). `null` when `ownedSimilar` is false. The app opens
+the look builder pre-filled with these item ids. Rule-based, free, no AI.
 
 **Like count.** Kept in a counter row apart from the post (an admin edit never overwrites it), written in one
 transaction with the user's like row (versioned, retried on a lost race — `ContentFeed:LikeRetries`, 8): concurrent
 likes never lose a count, a repeat never counts twice. Account deletion takes the user's likes back off the counters
 (likes and saves are tenant rows: deleted with the account and included in "Verilerimi indir").
+
+### Akış F2 — users' shared looks (owner decision 21)
+
+**Sharing** (`PUT v1/tenant/look/{id}/feed-share`). Who: an **adult** account with a **verified e-mail** and a
+**@handle**; no membership needed; teens never (`403 teen_restricted`, feature `social` — the route is in the teen route
+table). Guards, in this order: `404` (not my look) → already shared → `204` → `422 email_not_verified` (the profile's
+`emailVerified`; an Apple / Google-only account has nothing to verify and passes) → `422 handle_required` (claim one with
+`PUT v1/tenant/profile/handle` first) → `422 look_not_shareable` (an **imported** look — `LookDto.source = "import"`:
+its cover is the user's own photo — or a look a moderator removed) → `429 too_many_attempts` (`ContentFeed:MaxSharesPerDay`;
+`0` = no limit, the default). Sharing is independent of the closet visibility (a private closet may share a look).
+`LookDto` (owner) carries `sharedToFeed` and, when shared, `feedStats { likeCount, saveCount }` (W §3).
+
+**What is shared.** The look's **AI flat-lay cover** (decision 20), its name, occasion and pieces, the owner's @handle
+and avatar. **Never** a try-on image, a body / face photo or an original item photo (the try-on image share of decision 20
+is a later step). `images[0]` is the cover's **public address** while the post is on the feed (owner decision 22,
+[docs/images.md](../images.md)): a CDN URL that does not expire (`imagesExpireAt: null`) once `Photos:PublicUrlsEnabled`
+is on; the URL changes when the cover does. Until the CDN is switched on — or if the public copy could not be made — it
+is a **presigned GET** valid `Photos:ReadUrlTtlSeconds` (3600 s) and `imagesExpireAt` says until when; re-read the feed
+(or the saved list) for a fresh URL. The public copy is deleted on un-share, deletion, the automatic hide and an admin
+removal. A shared look whose cover is **not ready for its current pieces** (still rendering,
+failed, or the pieces just changed) is **not listed** until it is; sharing asks for the cover by the same rule as a save
+when the look never had one (`LookCoverRules.NeedsRequest`). `pieces` = kind + cleaned image only (`category` is the
+wardrobe category; `subcategory` the item's sub-type id when it has one; the image is the cleaned item image as in
+`SocialLookDto`, or the catalog image for a catalog piece) — no item id, no name; a piece a moderator removed or the owner
+deleted is left out.
+
+**The mix.** At most **one of every `ContentFeed:UserPostEvery` (3) items** is a user look: two editor posts, then one
+user look, and so on. A user look never appears without the editor posts before it, so user looks beyond what the editor
+posts carry are not shown (no editor posts → no user looks); editor posts carry on when user looks run out. Among user
+looks: first those of people the viewer **follows**, then by **style match** (the existing `styleMatchPercent`), then the
+newest share. A viewer never gets: their **own** looks, looks of a **blocked pair** (either direction), posts they **hid**
+or **reported**, posts taken off by reports, looks a moderator removed, looks of an owner who is a teen or has no handle
+any more, or anything at all when the viewer is a **teen**. Candidates are the newest `ContentFeed:UserCandidateLimit`
+(300) shares, ranked on the read (phase-1 scale).
+
+**Similar products** (`GET …/similar`, and `hasSimilar`). The rule behind `ownedSimilar`, turned around: for each piece
+of the look, the catalog products of the viewer's segment of the **same wardrobe category** whose colours include the
+piece's **main colour**; a catalog piece of the look is itself the first product of its piece. Not retired; one piece
+after the other (round-robin, so every piece is represented), each piece's products newest first; no product twice; at
+most 12. `hasSimilar` = this list is not empty. Rule-based, free, no AI.
+
+**Reports and moderation.** A report is an ordinary moderation report of the look (`targetKind: look`, `targetId` = the
+look id — it also shows in `GET v1/admin/moderation/report`). When the look's **open** reports come from
+`ContentFeed:ReportsToAutoHide` (**3**) **distinct reporters**, the post leaves the feed automatically (likes and saves on
+it answer `404`; the owner still sees `sharedToFeed: true` and is not notified) and waits in the admin list
+(`GET v1/admin/feed-user-post`, §11). The admin either **restores** it (the open reports are resolved `dismissed`; the
+count starts again from zero) or **removes** it — the existing look moderation: the reports are resolved
+`contentRemoved`, the look is hidden from everyone but its owner, who sees it with `moderation { hidden, reason }`
+(canvas 28e) and gets the `content_removed` inbox row; the report's `POST …/restore` undoes it and the look is back in
+the feed. Un-sharing does not clear open reports: a look that is shared again is counted against them (and is hidden
+from the start when they already reach the limit).
+
+**Likes digest.** A like on a shared look writes a marker for the owner's daily digest (§9, `feed_likes_digest`).
+
+**Removal.** Un-share, deleting the look and deleting the account remove the post, its counters and every like, save,
+hide and report pointer other people left on it (found through the post's reaction index); a leaving liker's likes and
+saves come off the counters. The moderation reports themselves follow the report retention (§6). `FeedShare`, `FeedHide`
+and `FeedReport` rows are tenant rows: in `DeletionPlan` and in "Verilerimi indir".
+
+**Weekly-edit fallback** (owner's ask, 22 Nov 2026). When the viewer's segment has **no live editor post at all**, the
+feed shows the looks of the **currently published weekly edit** of that segment as editor posts instead: `kind: editor`,
+author Droblet Edit (verified), `id` = `"e_" + editLookId`, `title` / `note` = the look's title / style note, `images` =
+the look image (a look without an image is left out), `products` = the look's **first variant by price band** (the one
+try-on target `editLook` picks), Monday first, `occasion: null` (so an occasion tab stays empty). User looks mix in as
+with real editor posts. **Like, save, hide and try-on work with that id** (try-on target `feedPost`; the id resolves to
+a look of any published, not retired edit, so a like or a save keeps working after the week turns); the first live
+editor post ends the fallback. Nothing is stored: the posts are mapped on the read.
+
+**Ids.** Editor post = a slug or a ULID; user post = `u_…`; fallback = `e_…`. The underscore cannot occur in an editor
+post id, so the kinds never collide.
 
 ## 3. Catalog (screens 21, 22)
 
@@ -371,7 +472,7 @@ sign-up. The code is 8 characters, case-insensitive. Phase 1 gives no reward.
 | GET | `v1/tenant/settings` | — | `SettingsDto` — everything screen 29 needs |
 | PUT | `v1/tenant/profile/visibility` | `{ "closetVisibility", "baseVersion" }` | `ProfileDto`. `409` + current `ProfileDto` when `baseVersion` is stale. Effective immediately. |
 | GET | `v1/tenant/user/me/notifications` | — | `NotificationPrefsDto` (`version: 0` = never saved, all off). `weeklyEdit` / `priceDrop` are reported as effectively sent: on **and** a valid `marketingNotifications` consent ([C §2](consents-age-inbox-avatar.md)). |
-| PUT | `v1/tenant/user/me/notifications` | `{ "morningOutfit", "morningOutfitLocalTime": "07:30", "weeklyEdit", "friendRatings", "priceDrop"?, "followRequests"?, "timeZone": "Europe/Istanbul", "baseVersion" }` — `priceDrop` / `followRequests` omitted = unchanged | `NotificationPrefsDto`. `409` + current prefs. `400`: `local_time_invalid` (HH:mm, quarter hours only), `time_zone_invalid` (IANA id). `403 consent_required` (`missing: ["marketingNotifications"]`) when `weeklyEdit` or `priceDrop` is `true` without the marketing consent. |
+| PUT | `v1/tenant/user/me/notifications` | `{ "morningOutfit", "morningOutfitLocalTime": "07:30", "weeklyEdit", "friendRatings", "priceDrop"?, "followRequests"?, "feedLikesDigest"?, "timeZone": "Europe/Istanbul", "baseVersion" }` — `priceDrop` / `followRequests` / `feedLikesDigest` omitted = unchanged | `NotificationPrefsDto`. `409` + current prefs. `400`: `local_time_invalid` (HH:mm, quarter hours only), `time_zone_invalid` (IANA id). `403 consent_required` (`missing: ["marketingNotifications"]`) when `weeklyEdit` or `priceDrop` is `true` without the marketing consent. |
 | PUT | `v1/tenant/user/me/device` | `{ "deviceId" (8–100 chars), "platform", "pushToken"?, "timeZone"? }` | `{ "deviceId", "platform", "pushEnabled", "updatedAt" }`. `422 device_limit_reached` (10). |
 | DELETE | `v1/tenant/user/me/device/{deviceId}` | — | `204` (idempotent) |
 | DELETE | `v1/tenant/photo/{kind}/{photoId}` | — | `204`. Deletes the active photo of one kind (`body` \| `face`; `photoId` = `GET v1/tenant/photo` → `body.id` / `face.id`) and what was made from it: **body** → the try-on images generated with that photo; **face** → the palette result. `404 not_found` when `photoId` is not the active photo of that kind (also after a replay — treat 404 as "already gone"). `DELETE v1/tenant/photo` (everything at once) is unchanged. |
@@ -383,7 +484,7 @@ sign-up. The code is 8 characters, case-insensitive. Phase 1 gives no reward.
   "city": { "id": "745044", "name": "İstanbul", "region": "İstanbul", "country": "Türkiye", "countryCode": "TR",
             "latitude": 41.01384, "longitude": 28.94966, "timeZone": "Europe/Istanbul" },   // null until the city was searched once
   "notifications": { "morningOutfit": true, "morningOutfitLocalTime": "07:30", "weeklyEdit": false, "friendRatings": false,
-                     "priceDrop": false, "followRequests": false,
+                     "priceDrop": false, "followRequests": false, "feedLikesDigest": true,
                      "timeZone": "Europe/Istanbul", "version": 1, "updatedAt": "…" },
   "devices": [ { "deviceId": "…", "platform": "ios", "pushEnabled": true, "updatedAt": "…" } ],
   "profileVersion": 3 }                                    // baseVersion for profile and visibility PUTs
@@ -392,7 +493,7 @@ sign-up. The code is 8 characters, case-insensitive. Phase 1 gives no reward.
 - `morningOutfitLocalTime` is the user's **local** wall-clock time; with `timeZone` it stays correct across DST.
 - The first device registration **with a push token** creates the preferences with **only `morningOutfit` on** (decision 9,
   amended by the legal review — REVIEW §5 G2: the weekly edit is a marketing message and needs consent 5, so it starts
-  **off** until the user opts in); `weeklyEdit`, `friendRatings`, `priceDrop` and `followRequests` start off. Later
+  **off** until the user opts in); `weeklyEdit`, `friendRatings`, `priceDrop` and `followRequests` start off. `feedLikesDigest` (Akış F2: one push a day about the likes on the looks I shared) is **on by default** — unset reads as `true`, also with `version: 0`; a teen always reads `false`. Later
   registrations never change the user's choices. Push tokens are never returned.
 - Withdrawing `marketingNotifications` (`PUT v1/tenant/consents`) switches `weeklyEdit` and `priceDrop` off and removes the
   user from both send lists.
@@ -443,11 +544,12 @@ sentences in the recipient's profile language (`tr`, `en`; other languages fall 
 | `friend_ratings` | `day` | Daily digest; `friendRatings` on and a look was rated today (no scores or names in the text) | day |
 | `follow_request` | `handle` (the requester, for the deep link) | Within 15 minutes of a new request; `followRequests` on and the request still pending. The text names nobody | requester (14 days) |
 | `price_drop` | `productId` | Within 15 minutes of a price drop on a watched product; `priceDrop` on, the item's `notify` bell on **and** a valid `marketingNotifications` consent | product (14 days) |
+| `feed_likes_digest` | `day`, `count` (the number of likes in the digest = distinct people) | Daily, with the evening digest (16:00 UTC): the looks I shared (Akış F2) were liked in the 24 hours before the run; `feedLikesDigest` on (**the default**). Title "Looklarını {count} kişi beğendi". An un-like of the same day does not count. Never to a teen | day |
 | `morning_outfit` | `day` | At `morningOutfitLocalTime`; `morningOutfit` on **and** a look that still exists is planned for the user's local day (`PUT v1/tenant/plan-day/{date}` with a `lookId`; an occasion alone does not count) | local day |
 
 Every handled event is also written to the in-app inbox (`GET v1/tenant/notification`, [C §4](consents-age-inbox-avatar.md)),
 with or without a registered device: `morning_outfit`, `weekly_edit` and `price_drop` under the same conditions as the push;
-`follow_request` and `friend_ratings` even when their push is switched off.
+`follow_request`, `friend_ratings` and `feed_likes_digest` (data `day`, `count`) even when their push is switched off.
 
 ## 10. Weather
 
@@ -501,6 +603,9 @@ deleted: `DELETE` retires (ids are never reused). Ids: `^[a-z0-9][a-z0-9-]{1,62}
 | DELETE | `v1/admin/collection/{kind}/{id}/look/{lookId}` | — | `204`. `404`. |
 | GET | `v1/admin/report/revenue` | `from`, `to` (`yyyy-MM-dd` UTC, inclusive; default last 30 days; max 366) | `RevenueReport` (+ `clicks`, `byDay`, `byNetwork` — [admin.md §5](admin.md)) |
 | GET | `v1/admin/report/funnel` | `from`, `to` (default last 30 days; max 92) | `FunnelReport` |
+| GET | `v1/admin/feed-user-post` | — | `AdminFeedUserPostDto[]` — shared looks (Akış F2, §2b) with an open report, or taken off the feed by `ContentFeed:ReportsToAutoHide` distinct reporters. Teen-involved first, then auto-hidden, most reported, newest. |
+| POST | `v1/admin/feed-user-post/{id}/restore` | `{ "note"? (≤ 500) }` (body optional) | `204`. Back in the feed; the look's open reports are resolved `dismissed` (the note kept on them), so the count starts from zero. Idempotent. `404 not_found`. Audit `feed_user_post.restore`. |
+| POST | `v1/admin/feed-user-post/{id}/remove` | `{ "note"? (≤ 500) }` (body optional) | `200 { "reportId" }`. The existing look moderation: the open reports are resolved `contentRemoved` and the look is hidden from everyone but its owner (inbox `content_removed`); `reportId` = the report the removal is recorded on — its `…/moderation/report/{reportId}/restore` undoes it. `404 not_found`, `409 feed_post_not_reported` (no open report). Audit `feed_user_post.remove`. |
 | GET | `v1/admin/moderation/report` | `status` (`open` default), `pageToken`, `limit` | `{ "items": [ModerationReportDto], "pageToken" }`, newest first |
 | POST | `v1/admin/moderation/report/{id}/resolve` | `{ "resolution", "note"? (≤ 500) }` | `ModerationReportDto`. `404 not_found`. An already resolved report is returned unchanged. `contentRemoved` hides the target (below). |
 | POST | `v1/admin/moderation/report/{id}/restore` | — | `ModerationReportDto` with `contentRestoredAt`. Undo of `contentRemoved`; idempotent. `404 not_found`, `409 report_not_resolved` / `report_not_content_removed`. |
@@ -527,6 +632,14 @@ The catalog is cached per Lambda instance for 60 seconds: a change is visible ev
 { "from": "…", "to": "…", "totalEvents": 10, "totalActors": 4,
   "steps": [ { "name": "signup_started", "events": 4, "actors": 4, "rateFromPrevious": null, "rateFromFirst": null },
              { "name": "signup_completed", "events": 2, "actors": 2, "rateFromPrevious": 0.5, "rateFromFirst": 0.5 } ] }
+
+// AdminFeedUserPostDto (moderation.manage)
+{ "id": "u_3f9c…", "ownerTenantId": "…", "ownerHandle": "elif_k", "lookId": "01J…", "lookName": "Hafta sonu", "occasion": "weekend" | null,
+  "imageUrl": "https://…" | null,            // the cover the feed showed, presigned, short-lived
+  "sharedAt": "…", "status": "reported" | "autoHidden", "reporterCount": 3,
+  "reasons": [ { "reason": "spam", "count": 2 } ],
+  "reports": [ { "id", "status": "open", "reason", "note", "reporterTenantId", "reporterHandle", "createdAt" } ],   // the look's open reports
+  "hiddenAt": "…" | null, "restoredAt": "…" | null, "likeCount": 12, "involvesTeen": false }
 
 // ModerationReportDto
 { "id": "01J…", "status": "open", "reporterTenantId": "…"|null, "reporterHandle": "…"|null, "targetTenantId": "…", "targetHandle": "…",
@@ -571,7 +684,7 @@ TABLE_NAME=droblet-dev-table dotnet run --project tools/Seed -- apply     # writ
 | `Localization` | `SupportedLanguages[]`, `DefaultLanguage` | `tr`, `en` / `tr` |
 | `Catalog` | `PageSize`, `MaxPageSize`, `CacheSeconds`, `MaxCartLines`, `MaxWatchItems`, `MaxFavoriteProducts` (code default 500; not in the SSM default yet), `BulkUpsertMax`, `ImageHosts[]` (hosts product images may be downloaded from for try-on; empty = any https host), `MaxImageBytes`, `WatchAutoAddHours` (decision 10; 0 = off) | 24, 60, 60, 100, 200, 200, empty, 10 MB, 48 |
 | `Social` | `MaxFollowing`, `FeedPageSize`, `SuggestedPageSize`, `SuggestedCandidateLimit`, `SearchPageSize`, `InviteUrl`, `InviteAttributionWindowDays`, `ReportsPerDay`, `InviteResolvePerIpPerHour`, `ContactMatchesPerDay`, `ContactMatchMaxHashes` | 500, 20, 20, 100, 20, `https://droblet.alatech.co/i`, 30, 20, 60, 10, 1000 |
-| `ContentFeed` | `PageSize`, `MaxStories`, `LikeRetries` (Akış F1, §2b) | 10, 20, 8 — SSM `/droblet/{stage}/api/ContentFeed` (template.yaml `SsmApiContentFeed`), re-read every 60 s |
+| `ContentFeed` | `PageSize`, `MaxStories`, `LikeRetries` (Akış F1, §2b); F2: `MaxSharesPerDay` (looks one account may share per day, `0` = unlimited), `UserPostEvery` (one user look per N items), `UserCandidateLimit`, `ReportsToAutoHide` (distinct reporters), `MaxSimilarProducts` | 10, 20, 8; 0, 3, 300, 3, 12 — SSM `/droblet/{stage}/api/ContentFeed` (template.yaml `SsmApiContentFeed`), re-read every 60 s |
 | `Weather` | `Provider`, `CacheMinutes`, `ForecastBaseUrl`, `GeocodingBaseUrl`, `TimeoutSeconds` | `OpenMeteo`, 60 |
 | `Notifications` | `DefaultMorningLocal`, `DefaultTimeZone`, `MaxDevicesPerTenant` | `07:30`, `Europe/Istanbul`, 10 |
 | `/droblet/{stage}/notifier/Push/ServiceAccountJson` (SecureString) | the Firebase service-account JSON file as downloaded (`project_id`, `client_email`, `private_key`) | `CHANGE_ME` or empty → push disabled |

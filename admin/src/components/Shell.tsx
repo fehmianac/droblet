@@ -53,6 +53,7 @@ export const NAV: NavGroup[] = [
     items: [
       { key: 'users', href: '/users/', icon: 'users', permission: 'users.read' },
       { key: 'moderation', href: '/moderation/', icon: 'flag', permission: 'moderation.manage' },
+      { key: 'feedModeration', href: '/moderation/feed/', icon: 'image', permission: 'moderation.manage' },
     ],
   },
   {

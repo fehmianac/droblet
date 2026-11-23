@@ -58,6 +58,11 @@ public static class VisibilityPolicy
         if (request.OwnerSegment == Segment.Teen)
             return false;
 
+        // Akış F2 (decisions 17, 21): a look shared to the feed is public by the owner's own act, whatever the closet
+        // visibility — blocks and teen owners were refused above.
+        if (request.Resource == VisibleResource.FeedSharedLook)
+            return true;
+
         // Decision 7: public and followers-only cards are searchable. A private card is visible only inside an existing
         // relationship (either side follows the other), so a private owner's followers can find her and she can be asked.
         if (request.Resource == VisibleResource.ProfileCard)

@@ -236,5 +236,38 @@
     "daySaveLook": "Look olarak kaydet",
     "notFound": "Bu bavul artık bavullarında yok.",
     "backToTrips": "Bavullara dön"
+  },
+  "feedShare": {
+    "title": "Akışta paylaş",
+    "hintOff": "Herkes görebilir, beğenebilir ve kaydedebilir.",
+    "hintOn": "Akışta yayında · @{{handle}} olarak. Kapatınca Akıştan kalkar.",
+    "hintOnPlain": "Akışta yayında. Kapatınca Akıştan kalkar.",
+    "stats": "{{likes}} · {{saves}}",
+    "likes_one": "{{formatted}} beğeni",
+    "likes_other": "{{formatted}} beğeni",
+    "saves_one": "{{formatted}} kişi kaydetti",
+    "saves_other": "{{formatted}} kişi kaydetti",
+    "sheet": {
+      "eyebrow": "AKIŞ",
+      "title": "Look'unu Akışta paylaş",
+      "point1": "Bu look'u, kapağını ve parça görsellerini herkes görebilir.",
+      "point2": "@{{handle}} adınla görünür; beğenilebilir ve kaydedilebilir.",
+      "point2Plain": "Kullanıcı adınla görünür; beğenilebilir ve kaydedilebilir.",
+      "point3": "Boy ve yüz fotoğrafların ile üzerimde görsellerin paylaşılmaz.",
+      "point4": "İstediğin an kapatırsın; look Akıştan kalkar.",
+      "accept": "Paylaş",
+      "cancel": "Şimdi değil"
+    },
+    "removedToast": "Akıştan kaldırıldı",
+    "verifyFirst": "Akışta paylaşmak için önce e-postanı doğrula.",
+    "errors": {
+      "email_not_verified": "Paylaşmak için önce e-postanı doğrula.",
+      "handle_required": "Paylaşmak için önce bir kullanıcı adı al.",
+      "look_not_shareable": "Bu look şu an Akışta paylaşılamıyor.",
+      "teen_restricted": "Akışta paylaşım genç hesaplarda kapalı.",
+      "too_many_attempts": "Çok fazla deneme oldu. Biraz sonra tekrar dene.",
+      "shareFailed": "Paylaşılamadı. Tekrar dene.",
+      "removeFailed": "Akıştan kaldırılamadı. Tekrar dene."
+    }
   }
 }

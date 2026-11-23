@@ -34,10 +34,10 @@ public static class TeenRouteRules
     ];
 
     /// <summary>
-    /// Exact social routes: the friends' feed. Exact, so the Akış editor routes next to it (v1/tenant/feed-post/…, decision
-    /// 17: teens see editor content) stay open.
+    /// Exact social routes: the friends' feed and "Akışta paylaş" (Akış F2: teens never share). Exact, so the Akış editor
+    /// routes next to it (v1/tenant/feed-post/…, decision 17: teens see editor content) stay open.
     /// </summary>
-    private static readonly string[] SocialRoutes = ["v1/tenant/feed"];
+    private static readonly string[] SocialRoutes = ["v1/tenant/feed", "v1/tenant/look/{id}/feed-share"];
 
     private static readonly string[] CommercePrefixes =
     [
@@ -171,6 +171,7 @@ public static class TeenRules
     public static readonly IReadOnlySet<NotificationType> BlockedNotifications = new HashSet<NotificationType>
     {
         NotificationType.WeeklyEdit, NotificationType.PriceDrop, NotificationType.FriendRatings, NotificationType.FollowRequest,
+        NotificationType.FeedLikesDigest,
     };
 
     /// <summary>Consents a teen may not give: marketing (no marketing pushes) and contacts (no contact matching).</summary>

@@ -11,7 +11,7 @@ namespace Infrastructure.Services;
 /// A save queues the look's AI flat-lay cover when its pieces never had one (ILookCoverService, canvas 21c).
 /// </summary>
 public sealed class LookService(IRepository repository, ICatalogProductLookup products, IObjectStorage storage, ILookCoverService covers,
-    TimeProvider timeProvider) : ILookService
+    IFeedShareService feedShares, TimeProvider timeProvider) : ILookService
 {
     private DateTime Now => timeProvider.GetUtcNow().UtcDateTime;
 
@@ -23,9 +23,10 @@ public sealed class LookService(IRepository repository, ICatalogProductLookup pr
         var ratings = (await repository.GetAllAsync<LookRatingSummaryEntity>(LookRatingSummaryEntity.GetPk(tenantId), ct))
             .ToDictionary(r => r.LookId, StringComparer.Ordinal);
         var coverRows = await covers.GetAllAsync(tenantId, ct);
+        var shared = await feedShares.GetSharedAsync(tenantId, ct);
         var result = new List<LookDto>(looks.Count);
         foreach (var look in looks.OrderByDescending(l => l.CreatedAt).ThenByDescending(l => l.Id, StringComparer.Ordinal))
-            result.Add(await covers.WithCoverAsync(look, look.ToDto(itemIds) with { Rating = ToRating(ratings.GetValueOrDefault(look.Id)) },
+            result.Add(await covers.WithCoverAsync(look, Shared(look.ToDto(itemIds) with { Rating = ToRating(ratings.GetValueOrDefault(look.Id)) }, shared.GetValueOrDefault(look.Id)),
                 coverRows.GetValueOrDefault(look.Id), ct));
         return result;
     }
@@ -36,9 +37,13 @@ public sealed class LookService(IRepository repository, ICatalogProductLookup pr
         if (look is null)
             return null;
         var rating = await repository.GetAsync<LookRatingSummaryEntity>(LookRatingSummaryEntity.GetPk(tenantId), LookRatingSummaryEntity.GetSk(id), ct);
-        return await covers.WithCoverAsync(look, look.ToDto(await ItemIdsAsync(repository, tenantId, ct)) with { Rating = ToRating(rating) },
+        return await covers.WithCoverAsync(look, Shared(look.ToDto(await ItemIdsAsync(repository, tenantId, ct)) with { Rating = ToRating(rating) },
+                await feedShares.GetSharedAsync(tenantId, id, ct)),
             await covers.GetAsync(tenantId, id, ct), ct);
     }
+
+    /// <summary>sharedToFeed + feedStats (Akış F2, owner only).</summary>
+    private static LookDto Shared(LookDto dto, FeedStatsDto? stats) => stats is null ? dto : dto with { SharedToFeed = true, FeedStats = stats };
 
     private static LookRatingSummaryDto? ToRating(LookRatingSummaryEntity? summary) =>
         summary is not null && LookRatingRules.Average(summary.Sum, summary.Count) is { } average ? new LookRatingSummaryDto(average, summary.Count) : null;
@@ -107,7 +112,7 @@ public sealed class LookService(IRepository repository, ICatalogProductLookup pr
 
         // Only a change of pieces asks for a new cover (RequestAsync compares the pieces' hash); name / occasion / favourite never do.
         if (await repository.SaveIfVersionAsync(look, command.BaseVersion, ct))
-            return ServiceResult.Ok(await covers.WithCoverAsync(look, look.ToDto(itemIds), await covers.RequestAsync(look, ct), ct));
+            return ServiceResult.Ok(await covers.WithCoverAsync(look, Shared(look.ToDto(itemIds), await feedShares.GetSharedAsync(tenantId, id, ct)), await covers.RequestAsync(look, ct), ct));
 
         var current = await GetEntityAsync(tenantId, id, ct);
         return current is null ? ServiceResult.NotFound<LookDto>() : ServiceResult.Conflict(current.ToDto(itemIds));
@@ -119,6 +124,8 @@ public sealed class LookService(IRepository repository, ICatalogProductLookup pr
         if (look is null)
             return false;
         await repository.DeleteAsync(look.Pk, look.Sk, ct);
+        // A look shared to the feed leaves it: the post, its likes, saves, hides and report pointers (Akış F2).
+        await feedShares.UnshareAsync(tenantId, id, ct);
         // An imported look's cover photo is its own (nothing else points to it).
         if (look.CoverImageKey is { } cover && StorageKeys.BelongsToTenant(cover, tenantId))
             await storage.DeleteAsync(cover, ct);

@@ -56,6 +56,7 @@ public static class StoreSocialDependencyInjection
         services.TryAddSingleton<IAnalyticsService, AnalyticsService>();
         services.TryAddSingleton<ICatalogService, CatalogService>();
         services.TryAddSingleton<IContentService, ContentService>();
+        services.TryAddSingleton<IFeedShareService, FeedShareService>();
         services.TryAddSingleton<IFeedService, FeedService>();
         services.TryAddSingleton<IWatchListAutoAdd, WatchListAutoAdd>();
         services.TryAddSingleton<INotificationInbox, NotificationInboxService>();
@@ -88,6 +89,7 @@ public static class StoreSocialDependencyInjection
         services.TryAddSingleton<IAffiliateService, AffiliateService>();
         services.TryAddSingleton<ISocialService, SocialService>();
         services.TryAddSingleton<IContentModeration, ContentModerationService>();
+        services.TryAddSingleton<IFeedModeration, FeedModerationService>();
         services.TryAddSingleton<IContactMatchService, ContactMatchService>();
         services.TryAddSingleton<IInviteService, InviteService>();
         services.TryAddSingleton<ISettingsService, SettingsService>();

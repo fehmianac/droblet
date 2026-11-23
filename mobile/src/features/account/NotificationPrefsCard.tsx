@@ -64,7 +64,7 @@ export function NotificationPrefsCard() {
             void ensureConsents(CONSENTS_FOR.marketing, 'notifications').then((ok) => ok && apply(patch));
           };
           const localTime = data.morningTimeLocal;
-          const box = (key: 'morningReminder' | 'weeklyEdit' | 'friendRatings' | 'priceDrop' | 'followRequests', label: string, first = false) => (
+          const box = (key: 'morningReminder' | 'weeklyEdit' | 'friendRatings' | 'priceDrop' | 'followRequests' | 'feedLikesDigest', label: string, first = false) => (
             <ChoiceRow first={first} kind="checkbox" label={label} checked={data[key]} onPress={() => change({ [key]: !data[key] })} />
           );
           return (
@@ -100,6 +100,7 @@ export function NotificationPrefsCard() {
                 </Text>
               ) : null}
               {box('followRequests', t('friends.followRequests'))}
+              {box('feedLikesDigest', t('settings.feedLikesDigest'))}
                 </>
               )}
               {pushOff ? (

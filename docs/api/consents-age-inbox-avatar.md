@@ -105,7 +105,7 @@ The app routes an unconfirmed account to the confirmation screen before anything
 ```
 
 - `type` / `data` are the push codes of [S §9](store-social-settings.md): `morning_outfit` (`day`), `weekly_edit`
-  (`editId`), `friend_ratings` (`day`), `price_drop` (`productId`), `follow_request` (`handle`), `data_export_ready`
+  (`editId`), `friend_ratings` (`day`), `price_drop` (`productId`), `follow_request` (`handle`), `feed_likes_digest` (`day`, `count`), `data_export_ready`
   (`exportId`; written by the data export worker, never pushed — [V §2](verification-export.md)), `content_removed`
   (`targetKind`, `targetId`?, `reason`; written when a moderator removes the owner's look / item / profile fields, never
   pushed — [S §11](store-social-settings.md); TR "Paylaşımın topluluk kurallarına aykırı bulunduğu için kaldırıldı.", EN

@@ -2,6 +2,9 @@ import { useInfiniteQuery, useQuery, type InfiniteData } from '@tanstack/react-q
 
 import { apiRequest } from '@/api/client';
 import type { EditorStory, FeedPost, FeedPostPage, FeedTab } from '@/api/contracts/feed';
+import type { ProductSummary } from '@/api/contracts/store';
+import type { ProductWire } from '@/api/wire/catalog';
+import { toProductSummary } from '@/api/wire/store';
 import { fromSource, queryString } from '@/api/dataSource';
 import { feedOccasionParam, toEditorStory, toFeedPost, toFeedPostPage, type FeedPostPageWire, type FeedPostWire, type FeedStoryWire } from '@/api/wire/feed';
 import { feedFixtures } from '@/fixtures/feed';
@@ -13,6 +16,7 @@ export const feedKeys = {
   postsOf: (tab: FeedTab) => ['content', 'feed', 'post', tab] as const,
   stories: ['content', 'feed', 'story'] as const,
   saved: ['tenant', 'feed-post', 'saved'] as const,
+  similar: (postId: string) => ['tenant', 'feed-post', 'similar', postId] as const,
 };
 
 export type FeedPages = InfiniteData<FeedPostPage, string | null>;
@@ -51,5 +55,19 @@ export function useSavedFeedPosts(enabled = true) {
     enabled,
     queryFn: () =>
       fromSource<FeedPost[]>('content', () => feedFixtures.saved(), async () => (await apiRequest<FeedPostWire[]>('v1/tenant/feed-post/saved')).map(toFeedPost)),
+  });
+}
+
+/** `GET v1/tenant/feed-post/{id}/similar` → ProductDto[] — catalogue products like the pieces of a member's look ("Benzerlerini gör"). */
+export function useSimilarProducts(postId: string | null) {
+  return useQuery({
+    queryKey: feedKeys.similar(postId ?? 'none'),
+    enabled: postId !== null,
+    queryFn: () =>
+      fromSource<ProductSummary[]>(
+        'content',
+        () => feedFixtures.similar(postId ?? ''),
+        async () => (await apiRequest<ProductWire[]>(`v1/tenant/feed-post/${encodeURIComponent(postId ?? '')}/similar`)).map(toProductSummary),
+      ),
   });
 }

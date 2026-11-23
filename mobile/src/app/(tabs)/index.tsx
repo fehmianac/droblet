@@ -15,12 +15,14 @@ import { Text } from '@/components/ui/Text';
 import { BuySheet } from '@/features/feed/BuySheet';
 import { FeedPostCard, FeedPostSkeleton } from '@/features/feed/FeedPostCard';
 import { FirstStepCard, useHasTriedOn } from '@/features/feed/FirstStepCard';
-import { firstViewThisSession } from '@/features/feed/logic';
+import { firstViewThisSession, isEditFallback, isHiddenThisSession } from '@/features/feed/logic';
 import { useEditorStories, useFeedPosts } from '@/features/feed/queries';
 import { StoriesRow } from '@/features/feed/StoriesRow';
-import { TodayQuickCard } from '@/features/feed/TodayQuickCard';
+import { TodayEmptyRow, TodayQuickCard } from '@/features/feed/TodayQuickCard';
+import { useUserPostSheets } from '@/features/feed/useUserPostSheets';
 import { storySeenStore, useSeenStories } from '@/features/feed/storySeen';
 import { useUnreadNotificationCount } from '@/features/notifications/queries';
+import { PlanLookSheet } from '@/features/today/PlanLookSheet';
 import { useTeenRules } from '@/features/teen/store';
 import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { formatDate, formatTemperature } from '@/lib/format';
@@ -91,6 +93,9 @@ function PostGap() {
  * weather over "Bugün ne giysem?"; the story row ("Bugün" first, then the editor stories); "İlk look'unu dene" until
  * the first try-on; "Senin için" with Tümü · Ofis · Hafta sonu · Davet; editorial posts (paged, pull to refresh)
  * ending with "Hepsi bu kadar. Yarın sabah yeni öneriler." Teen accounts see everything except prices and buying.
+ *
+ * Akış F2 (canvas 06‴, decision 21): looks members shared sit between the editor posts with their own card — "⋯"
+ * (Bunu gösterme · Şikâyet et) and "Benzerlerini gör" open sheets owned here. The server never sends them to teens.
  */
 export default function FeedScreen() {
   const { t } = useTranslation();
@@ -106,13 +111,17 @@ export default function FeedScreen() {
   const seen = useSeenStories();
   const triedOn = useHasTriedOn();
   const [buying, setBuying] = useState<FeedPost | null>(null);
+  const userPost = useUserPostSheets({ teen });
+  // 07c "Bu güne look seç" for today, opened from the "Bugün için plan yok" row.
+  const [planDate, setPlanDate] = useState<string | null>(null);
   const listRef = useRef<FlatList<FeedPost>>(null);
 
   // A post can move to the next page while paging (a new one was published): it is shown once.
   const items: FeedPost[] = [];
   const ids = new Set<string>();
   for (const post of posts.data?.pages.flatMap((p) => p.items) ?? []) {
-    if (ids.has(post.id)) continue;
+    // Hidden or reported in this session: stays out even if a refetch brings it back.
+    if (ids.has(post.id) || isHiddenThisSession(post.id)) continue;
     ids.add(post.id);
     items.push(post);
   }
@@ -132,6 +141,7 @@ export default function FeedScreen() {
   };
 
   const todayLook = today.data?.look ?? null;
+  const editFallback = tab === 'all' && isEditFallback(items);
 
   const header = (
     <View className="pb-4">
@@ -158,6 +168,11 @@ export default function FeedScreen() {
         <View className="px-gutter pt-[18px]">
           <TodayQuickCard look={todayLook} onOpen={() => router.push('/today')} onWear={() => wear.wear(todayLook.id)} />
         </View>
+      ) : today.data ? (
+        // No look today: the same quiet row offers one of the saved looks (07c), without leaving Akış.
+        <View className="px-gutter pt-[18px]">
+          <TodayEmptyRow onOpen={() => router.push('/today')} onPick={() => setPlanDate(today.data.date)} />
+        </View>
       ) : null}
       {triedOn === false ? (
         <View className="px-gutter pt-[18px]">
@@ -179,7 +194,8 @@ export default function FeedScreen() {
             {t('homeFeed.forYouNote')}
           </Text>
         </View>
-        <FeedTabs value={tab} onChange={setTab} />
+        {/* Only the weekly edit to show: its looks have no occasion, so the tabs would be empty — left out. */}
+        {editFallback ? <View className="mx-gutter border-b border-line" /> : <FeedTabs value={tab} onChange={setTab} />}
       </View>
     </View>
   );
@@ -226,7 +242,7 @@ export default function FeedScreen() {
         ListHeaderComponent={header}
         renderItem={({ item }) => (
           <View className="px-gutter">
-            <FeedPostCard post={item} teen={teen} onBuy={setBuying} />
+            <FeedPostCard post={item} teen={teen} onBuy={setBuying} onMenu={userPost.openMenu} onSimilar={userPost.openSimilar} />
           </View>
         )}
         ItemSeparatorComponent={PostGap}
@@ -264,6 +280,17 @@ export default function FeedScreen() {
       />
 
       {teen ? null : <BuySheet post={buyingPost} onClose={() => setBuying(null)} />}
+      {userPost.sheets}
+      <PlanLookSheet
+        date={planDate}
+        occasion={today.data && planDate === today.data.date ? today.data.occasion : null}
+        onClose={() => setPlanDate(null)}
+        onSuggest={() => {
+          const date = planDate;
+          setPlanDate(null);
+          if (date) router.navigate({ pathname: '/stylist', params: { date } });
+        }}
+      />
     </Screen>
   );
 }

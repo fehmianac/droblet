@@ -24,6 +24,13 @@ public static class StoreSocialErrorCodes
     public const string CannotTargetSelf = "cannot_target_self";
     public const string FollowLimitReached = "follow_limit_reached";
 
+    // Akış F2: sharing a look to the feed
+    public const string EmailNotVerified = "email_not_verified";
+    public const string HandleRequired = "handle_required";
+    public const string LookNotShareable = "look_not_shareable";
+    /// <summary>Admin: the shared look has no open report to remove it by.</summary>
+    public const string FeedPostNotReported = "feed_post_not_reported";
+
     // Moderation (admin)
     public const string ReportNotResolved = "report_not_resolved";
     public const string ReportNotContentRemoved = "report_not_content_removed";

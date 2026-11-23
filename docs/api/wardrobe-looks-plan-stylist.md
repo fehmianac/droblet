@@ -271,9 +271,12 @@ Validation codes (400 `errors`): `category_required`, `color_required`, `color_u
   "createdAt": "…", "updatedAt": "…", "version": 1,
   "rating": { "average": 4.5, "count": 2 },
   "moderation": null,
-  "coverImageUrl": null, "coverImageUrlExpiresAt": null, "coverPending": true
+  "coverImageUrl": null, "coverImageUrlExpiresAt": null, "coverPending": true,
+  "sharedToFeed": false, "feedStats": null
 }
 ```
+`sharedToFeed` / `feedStats` (owner only; Akış F2, [S §2b](store-social-settings.md)): `sharedToFeed: true` while the look is shared to the home feed (`PUT` / `DELETE v1/tenant/look/{id}/feed-share`), and then `feedStats: { "likeCount": 38, "saveCount": 4 }` — the likes and saves other people left on the post; `feedStats: null` when it is not shared. Filled by `GET v1/tenant/look`, `GET v1/tenant/look/{id}` and the `PUT v1/tenant/look/{id}` response; `false` / `null` wherever a `LookDto` is embedded in another response. An imported look (`source: "import"`) cannot be shared (`422 look_not_shareable`). Deleting a look takes it off the feed. Sharing never changes `version`.
+
 `coverImageUrl` (owner only; filled by `GET v1/tenant/look`, `GET v1/tenant/look/{id}`, the `POST` / `PUT v1/tenant/look` responses and the suggestion accept result; `null` in other embedded looks): presigned GET (expires at `coverImageUrlExpiresAt`) of
 - an imported look's (`source: "import"`, [O](outfit-import.md)) outfit photo, else
 - the look's **AI flat-lay cover** (canvas 21c, owner decision 2026-11-22) once it is ready for the look's **current pieces**: one portrait image of the look's own pieces laid out on a cream linen sheet. An image made for earlier pieces is never returned.

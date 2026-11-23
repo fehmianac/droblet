@@ -65,7 +65,8 @@ public static class StorageKeys
     public static string ImportCrop(string tenantId, string sessionId, int index, int piece) => $"{ImportPrefix(tenantId, sessionId)}{index}-{piece}.jpg";
 
     // ── Public (Cloudflare → S3, docs/images.md) ──────────────────────────────────────────────────────────────────
-    // Only cleaned wardrobe piece images (no person in them) and their thumbnails live here. The bucket policy allows an
+    // Only cleaned wardrobe piece images (no person in them), their thumbnails, and the AI covers of looks shared to Akış
+    // (clothes only) live here. The bucket policy allows an
     // anonymous GetObject on exactly public/{stage}/items/* (from Cloudflare's ranges); every other prefix stays private.
     // The stage is part of the key so one hostname (cdn.alatech.co) serves both stages: the URL path equals the key, and a
     // Cloudflare origin rule per path prefix (/public/dev/ → dev bucket, /public/prod/ → prod bucket) picks the bucket.
@@ -92,6 +93,14 @@ public static class StorageKeys
     /// </summary>
     public static string PublicItemImage(string tenantId, string itemId, string version, string size) =>
         $"{PublicItemsRoot(tenantId)}{Guard(itemId)}-{Guard(version)}-{Guard(size)}.webp";
+
+    /// <summary>
+    /// The public copy of a look's AI cover while the look is shared to Akış (owner decision 22):
+    /// <c>public/{stage}/items/{tenantHash}/cover-{lookId}-{version}.webp</c> — the tenant's one public folder, so the same
+    /// bucket grant, CDN purge and account deletion cover it. A cover shows clothes only, never a person.
+    /// </summary>
+    public static string PublicLookCover(string tenantId, string lookId, string version) =>
+        $"{PublicItemsRoot(tenantId)}cover-{Guard(lookId)}-{Guard(version)}.webp";
 
     /// <summary>True for a key under this tenant's public folder (keys are never accepted from a client).</summary>
     public static bool IsPublicItemKeyOf(string key, string tenantId) => key.StartsWith(PublicItemsRoot(tenantId), StringComparison.Ordinal);

@@ -104,7 +104,9 @@ public enum PushTokenType { Fcm, Apns }
 /// written when every uploaded photo of an outfit import session was processed (ready for review). ParentalConsentApproved /
 /// ParentalConsentWithdrawn / TeenBecameAdult: inbox only (teen mode, docs/api/teen.md).</summary>
 public enum NotificationType { MorningOutfit, WeeklyEdit, FriendRatings, PriceDrop, FollowRequest, DataExportReady, ContentRemoved, OutfitImportReady,
-    ParentalConsentApproved, ParentalConsentWithdrawn, TeenBecameAdult }
+    ParentalConsentApproved, ParentalConsentWithdrawn, TeenBecameAdult,
+    // Akış F2: the daily digest of likes on the looks I shared (appended last).
+    FeedLikesDigest }
 
 public enum AuthProvider { Email, Apple, Google }
 
@@ -137,6 +139,8 @@ public enum VisibleResource
     WearLog,
     NotificationPrefs,
     Email,
+    // Akış F2: a look its owner shared to the home feed (cover, name, occasion, pieces, @handle, avatar) — whatever the closet visibility.
+    FeedSharedLook,
 }
 
 /// <summary>Admin panel roles (owner decision 2). Permissions per role: Domain.Services.Admin.AdminPermissions.</summary>

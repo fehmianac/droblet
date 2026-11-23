@@ -46,7 +46,7 @@ public class AccountDeletionServiceTests
         var cdn = new FakeCdnCache();
 
         await new AccountDeletionService(repository, storage,
-            new Infrastructure.Services.Social.CrossTenantCleanup(repository, TimeProvider.System, NullLogger<Infrastructure.Services.Social.CrossTenantCleanup>.Instance),
+            new Infrastructure.Services.Social.CrossTenantCleanup(repository, Fixtures.FeedShares(repository), TimeProvider.System, NullLogger<Infrastructure.Services.Social.CrossTenantCleanup>.Instance),
             cdn, NullLogger<AccountDeletionService>.Instance).DeleteAccountAsync(user, tenant, default);
 
         Assert.Equal([(HandleEntity.GetPk(), "someone"), .. othersEvents], repository.Keys.OrderBy(k => k.Pk == HandleEntity.GetPk() ? 0 : 1).ThenBy(k => k.Pk, StringComparer.Ordinal).ToArray());

@@ -108,6 +108,8 @@ export type NotificationPrefsWire = {
   priceDrop?: boolean;
   /** Off by default; older servers omit it. */
   followRequests?: boolean;
+  /** Akış F2 daily like digest. On by default; older servers omit it. */
+  feedLikesDigest?: boolean;
   timeZone: string;
   version: number;
   updatedAt: string | null;
@@ -124,6 +126,7 @@ export function toNotificationSettings(wire: NotificationPrefsWire): Notificatio
     friendRatings: wire.friendRatings,
     priceDrop: wire.priceDrop ?? false,
     followRequests: wire.followRequests ?? false,
+    feedLikesDigest: wire.feedLikesDigest ?? true,
     baseVersion: wire.version,
   };
 }
@@ -136,6 +139,7 @@ export function fromNotificationSettings(settings: NotificationSettings, timeZon
     friendRatings: settings.friendRatings,
     priceDrop: settings.priceDrop,
     followRequests: settings.followRequests,
+    feedLikesDigest: settings.feedLikesDigest,
     timeZone,
     baseVersion: settings.baseVersion,
   };

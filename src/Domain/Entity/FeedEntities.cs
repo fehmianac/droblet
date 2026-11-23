@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Domain.Entity.Base;
 using Domain.Enum;
+using Domain.Extensions;
 
 namespace Domain.Entity;
 
@@ -53,6 +54,8 @@ public class FeedPostStatsEntity : IVersionedEntity
 
     [JsonPropertyName("postId")] public string PostId { get; set; } = null!;
     [JsonPropertyName("likeCount")] public long LikeCount { get; set; }
+    /// <summary>Akış F2, user posts only (the owner's feedStats.saveCount); editor posts do not count saves.</summary>
+    [JsonPropertyName("saveCount")] public long SaveCount { get; set; }
     [JsonPropertyName("updatedAt")] public DateTime UpdatedAt { get; set; }
     [JsonPropertyName("version")] public long Version { get; set; }
 
@@ -118,4 +121,124 @@ public class FeedSaveEntity : IEntity
 
     public static string GetPk(string tenantId) => $"tenant#{tenantId}#feedsave";
     public static string GetSk(string postId) => postId;
+}
+
+// Akış F2 (owner decision 21): a user's own look shared to the home feed -------------------------------------------
+
+/// <summary>
+/// "Akışta paylaş" on a look, in the owner's partition (the look row itself is not touched: a write there would bump the
+/// version the app edits against). Its twin is the global <see cref="FeedUserPostEntity"/> (same transaction).
+/// </summary>
+public class FeedShareEntity : IEntity
+{
+    [JsonPropertyName("pk")] public string Pk => GetPk(TenantId);
+    [JsonPropertyName("sk")] public string Sk => GetSk(LookId);
+
+    [JsonPropertyName("tenantId")] public string TenantId { get; set; } = null!;
+    [JsonPropertyName("lookId")] public string LookId { get; set; } = null!;
+    [JsonPropertyName("postId")] public string PostId { get; set; } = null!;
+    [JsonPropertyName("sharedAt")] public DateTime SharedAt { get; set; }
+
+    public static string GetPk(string tenantId) => $"tenant#{tenantId}#feedshare";
+    public static string GetSk(string lookId) => lookId;
+}
+
+/// <summary>
+/// Global index of the shared looks (the feed's candidates): a pointer and its moderation state, no content — title,
+/// occasion, pieces and cover are read from the owner's look on every request. Id = FeedRules.UserPostId(owner, look).
+/// HiddenAt = taken off the feed automatically by reports (ContentFeed:ReportsToAutoHide distinct reporters) until an
+/// admin restores or removes it. ReportCount = distinct reporters of the look's OPEN reports.
+/// </summary>
+public class FeedUserPostEntity : IVersionedEntity
+{
+    [JsonPropertyName("pk")] public string Pk => GetPk();
+    [JsonPropertyName("sk")] public string Sk => GetSk(Id);
+
+    [JsonPropertyName("id")] public string Id { get; set; } = null!;
+    [JsonPropertyName("ownerTenantId")] public string OwnerTenantId { get; set; } = null!;
+    [JsonPropertyName("lookId")] public string LookId { get; set; } = null!;
+    [JsonPropertyName("sharedAt")] public DateTime SharedAt { get; set; }
+    [JsonPropertyName("reportCount")] public int ReportCount { get; set; }
+    [JsonPropertyName("hiddenAt")] public DateTime? HiddenAt { get; set; }
+    [JsonPropertyName("restoredAt")] public DateTime? RestoredAt { get; set; }
+    [JsonPropertyName("restoredByUserId")] public string? RestoredByUserId { get; set; }
+    [JsonPropertyName("removedAt")] public DateTime? RemovedAt { get; set; }
+    [JsonPropertyName("removedByUserId")] public string? RemovedByUserId { get; set; }
+    /// <summary>Public copy of the cover (StorageKeys.PublicLookCover) while the post is on the feed; null = not published (yet), hidden, or the copy failed.</summary>
+    [JsonPropertyName("publicCoverKey")] public string? PublicCoverKey { get; set; }
+    /// <summary>The private cover key <see cref="PublicCoverKey"/> was copied from: a new cover (changed pieces) is published again.</summary>
+    [JsonPropertyName("publicCoverSource")] public string? PublicCoverSource { get; set; }
+    [JsonPropertyName("updatedAt")] public DateTime UpdatedAt { get; set; }
+    [JsonPropertyName("version")] public long Version { get; set; }
+
+    public static string GetPk() => "content#feeduserpost";
+    public static string GetSk(string postId) => postId;
+}
+
+public enum FeedReactionKind { Like, Save, Hide, Report }
+
+/// <summary>
+/// Reverse index of a USER post: who liked / saved / hid / reported it, so un-share, look deletion and the owner's account
+/// deletion can remove those rows from the other tenants' partitions. Written and deleted with the tenant-side row.
+/// </summary>
+public class FeedPostReactionEntity : IEntity
+{
+    [JsonPropertyName("pk")] public string Pk => GetPk(PostId);
+    [JsonPropertyName("sk")] public string Sk => GetSk(Kind, TenantId);
+
+    [JsonPropertyName("postId")] public string PostId { get; set; } = null!;
+    [JsonPropertyName("kind")] public FeedReactionKind Kind { get; set; }
+    [JsonPropertyName("tenantId")] public string TenantId { get; set; } = null!;
+
+    public static string GetPk(string postId) => $"content#feeduserpost#{postId}#reaction";
+    public static string GetSk(FeedReactionKind kind, string tenantId) => $"{kind.ToString().ToLowerInvariant()}#{tenantId}";
+}
+
+/// <summary>"Bunu gösterme": the post is never returned to this tenant again.</summary>
+public class FeedHideEntity : IEntity
+{
+    [JsonPropertyName("pk")] public string Pk => GetPk(TenantId);
+    [JsonPropertyName("sk")] public string Sk => GetSk(PostId);
+
+    [JsonPropertyName("tenantId")] public string TenantId { get; set; } = null!;
+    [JsonPropertyName("postId")] public string PostId { get; set; } = null!;
+    [JsonPropertyName("hiddenAt")] public DateTime HiddenAt { get; set; }
+
+    public static string GetPk(string tenantId) => $"tenant#{tenantId}#feedhide";
+    public static string GetSk(string postId) => postId;
+}
+
+/// <summary>The reporter's pointer "I reported this post" → the moderation report (one report per user per post).</summary>
+public class FeedReportEntity : IEntity
+{
+    [JsonPropertyName("pk")] public string Pk => GetPk(TenantId);
+    [JsonPropertyName("sk")] public string Sk => GetSk(PostId);
+
+    [JsonPropertyName("tenantId")] public string TenantId { get; set; } = null!;
+    [JsonPropertyName("postId")] public string PostId { get; set; } = null!;
+    [JsonPropertyName("reportId")] public string ReportId { get; set; } = null!;
+    [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; }
+
+    public static string GetPk(string tenantId) => $"tenant#{tenantId}#feedreport";
+    public static string GetSk(string postId) => postId;
+}
+
+/// <summary>
+/// "Somebody liked your shared look today" marker for the daily likes digest (one row per owner and liker per UTC day; an
+/// un-like of the same day removes it). No post, no text. TTL 3 days.
+/// </summary>
+public class FeedLikeDigestEntity : IEntity
+{
+    [JsonPropertyName("pk")] public string Pk => GetPk(Day);
+    [JsonPropertyName("sk")] public string Sk => GetSk(OwnerTenantId, LikerTenantId);
+
+    [JsonPropertyName("day")] public string Day { get; set; } = null!;                    // yyyy-MM-dd UTC
+    [JsonPropertyName("ownerTenantId")] public string OwnerTenantId { get; set; } = null!;
+    [JsonPropertyName("likerTenantId")] public string LikerTenantId { get; set; } = null!;
+    [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; }
+    [JsonPropertyName("ttl")] public long Ttl => CreatedAt.AddDays(3).ToUnixTimeSeconds();
+
+    public static string GetPk(string day) => $"feedlikedigest#{day}";
+    public static string GetSk(string ownerTenantId, string likerTenantId) => $"{ownerTenantId}#{likerTenantId}";
+    public static string GetSkPrefix(string ownerTenantId) => $"{ownerTenantId}#";
 }

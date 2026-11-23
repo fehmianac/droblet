@@ -123,6 +123,12 @@ export const FIREBASE_RULES: Record<Exclude<AnalyticsEventName, 'signup_step'>, 
   feed_story_view: { name: 'feed_story_view', params: { storyId: 'story_id' } },
   feed_buy_click: { name: 'feed_buy_click', params: { productId: 'item_id', brandId: 'item_brand', source: 'source', postId: 'post_id' } },
   feed_tryon_start: { name: 'feed_tryon_start', params: { source: 'source', postId: 'post_id', productId: 'item_id' } },
+  feed_share_on: { name: 'feed_share_on', params: { lookId: 'look_id', first: 'first' } },
+  feed_share_off: { name: 'feed_share_off', params: { lookId: 'look_id' } },
+  feed_hide: { name: 'feed_hide', params: { postId: 'post_id' } },
+  feed_report: { name: 'feed_report', params: { postId: 'post_id', reason: 'reason' } },
+  feed_similar_open: { name: 'feed_similar_open', params: { postId: 'post_id' } },
+  feed_build_with_mine: { name: 'feed_build_with_mine', params: { postId: 'post_id', count: 'count' } },
 };
 
 function safeValue(value: AnalyticsParams[string]): string | number | null {

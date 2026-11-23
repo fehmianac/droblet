@@ -59,7 +59,21 @@ export type Look = {
   baseVersion: number;
   /** Owner-only: set while a moderator hides the look from everybody else (`LookDto.moderation`). */
   moderation?: ContentModeration | null;
+  /** Made by "Kombinlerini içe aktar" (wire `source: 'import'`): cannot be shared to Akış. */
+  imported?: boolean;
+  /** Akış F2 (decision 21): the owner shared this look to the home feed ("Akışta paylaş"). Default off. */
+  sharedToFeed?: boolean;
+  /** What the shared look got on Akış; null / absent while it is not shared. */
+  feedStats?: LookFeedStats | null;
 };
+
+export type LookFeedStats = { likeCount: number; saveCount: number };
+
+/**
+ * PUT (share) / DELETE (remove) `v1/tenant/look/{id}/feed-share` → 204. Queued offline, optimistic.
+ * 403 `teen_restricted` · 422 `email_not_verified` / `handle_required` / `look_not_shareable` · 429 `too_many_attempts`.
+ */
+export type FeedShareRequest = { id: string; shared: boolean; clientMutationId: string };
 
 /** GET v1/tenant/look → `Look[]` (favourite / occasion filters on the device). GET v1/tenant/look/{id} → `Look`. */
 export type LookListResponse = Look[];

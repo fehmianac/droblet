@@ -139,11 +139,24 @@ public sealed class EditLookLookup(IContentService content) : IEditLookLookup
     }
 }
 
-/// <summary>IFeedPostLookup on the Akış posts: only a live post (published, not retired, publish time come) resolves.</summary>
-public sealed class FeedPostLookup(IRepository repository, TimeProvider timeProvider) : IFeedPostLookup
+/// <summary>
+/// IFeedPostLookup on the Akış posts: only a live EDITOR post (published, not retired, publish time come) resolves, or a
+/// weekly-edit fallback post ("e_{editLookId}" of a published edit: the same variant the feed shows). A shared look of a
+/// user ("u_…", Akış F2) never resolves: nobody tries on somebody else's look (owner decision 21).
+/// </summary>
+public sealed class FeedPostLookup(IRepository repository, IContentService content, TimeProvider timeProvider) : IFeedPostLookup
 {
     public async Task<IReadOnlyList<string>?> GetProductIdsAsync(string postId, CancellationToken ct)
     {
+        if (FeedRules.EditLookIdOf(postId) is { } editLookId)
+        {
+            var look = (await content.ListEditsAsync(ct))
+                .Where(e => e is { Published: true, Retired: false })
+                .OrderByDescending(e => e.WeekStart, StringComparer.Ordinal)
+                .SelectMany(e => e.Looks)
+                .FirstOrDefault(l => l.Id == editLookId && !string.IsNullOrWhiteSpace(l.ImageUrl));
+            return look is null ? null : FeedRules.FallbackVariant(look)?.ProductIds.ToList() ?? [];
+        }
         if (!Domain.Validation.FeedInputRules.IsId(postId))
             return null;
         var post = await repository.GetAsync<FeedPostEntity>(FeedPostEntity.GetPk(), FeedPostEntity.GetSk(postId), ct);

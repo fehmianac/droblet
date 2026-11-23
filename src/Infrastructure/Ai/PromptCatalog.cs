@@ -247,7 +247,7 @@ public static class PromptCatalog
             None, () => OpenAiPrompts.Cleanup, ImageMaxLength, PromptTrialTarget.None),
 
         new(LookCover, "look", "image_look_cover", PromptKind.Image,
-            "Look kapağı (AI flat-lay): the saved look's own pieces thrown together on a bed (rumpled cream linen, soft daylight), relaxed and slightly messy, exactly as in their photos — nothing added, no person, no text.",
+            "Look kapağı (AI flat-lay): the saved look's own pieces laid out by hand on a bed (cream linen, soft daylight), natural but not piled up, each piece whole and exactly as in its photo — nothing added, no person, no text.",
             [new("pieceCount", true, "Number of piece images.", "3")],
             () => OpenAiPrompts.LookCoverTemplate, ImageMaxLength, PromptTrialTarget.None),
     ];

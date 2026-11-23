@@ -143,6 +143,21 @@ public class ReportRequestValidator : AbstractValidator<ReportRequest>
     }
 }
 
+/// <summary>POST v1/tenant/feed-post/{id}/report (a shared look of the Akış, F2).</summary>
+public record FeedPostReportRequest(ReportReason Reason, string? Note);
+
+public class FeedPostReportRequestValidator : AbstractValidator<FeedPostReportRequest>
+{
+    public FeedPostReportRequestValidator()
+    {
+        RuleFor(x => x.Reason).IsInEnum().WithErrorCode("reason_invalid");
+        RuleFor(x => x.Note).MaximumLength(500).WithErrorCode("note_too_long");
+    }
+}
+
+/// <summary>POST v1/admin/feed-user-post/{id}/restore | remove: an optional note kept on the resolved reports.</summary>
+public record FeedModerationRequest(string? Note);
+
 public record ResolveReportRequest(ReportResolution Resolution, string? Note);
 
 public class ResolveReportRequestValidator : AbstractValidator<ResolveReportRequest>
@@ -167,11 +182,11 @@ public class UpdateVisibilityRequestValidator : AbstractValidator<UpdateVisibili
     }
 }
 
-/// <summary>PriceDrop / FollowRequests are optional: omitted (null) keeps the stored value, so older clients do not switch them off.</summary>
+/// <summary>PriceDrop / FollowRequests / FeedLikesDigest are optional: omitted (null) keeps the stored value, so older clients do not switch them off.</summary>
 public record UpdateNotificationPrefsRequest(bool MorningOutfit, string MorningOutfitLocalTime, bool WeeklyEdit, bool FriendRatings, string TimeZone, long BaseVersion,
-    bool? PriceDrop = null, bool? FollowRequests = null)
+    bool? PriceDrop = null, bool? FollowRequests = null, bool? FeedLikesDigest = null)
 {
-    public NotificationPrefsInput ToInput() => new(MorningOutfit, MorningOutfitLocalTime, WeeklyEdit, FriendRatings, TimeZone, BaseVersion, PriceDrop, FollowRequests);
+    public NotificationPrefsInput ToInput() => new(MorningOutfit, MorningOutfitLocalTime, WeeklyEdit, FriendRatings, TimeZone, BaseVersion, PriceDrop, FollowRequests, FeedLikesDigest);
 }
 
 public class UpdateNotificationPrefsRequestValidator : AbstractValidator<UpdateNotificationPrefsRequest>

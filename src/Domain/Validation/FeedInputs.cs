@@ -61,7 +61,8 @@ public class FeedPostInputValidator : AbstractValidator<FeedPostInput>
         RuleFor(x => x.Id).Must(FeedInputRules.IsId).WithErrorCode("id_invalid");
         RuleFor(x => x.Segment).Must(FeedInputRules.IsSegment).WithErrorCode("segment_invalid");
         RuleFor(x => x.Author).NotNull().WithErrorCode("author_required");
-        RuleFor(x => x.Author!.Kind).IsInEnum().WithErrorCode("author_kind_invalid").When(x => x.Author is not null);
+        // "user" is the author kind of shared looks (Akış F2), never of an editor post.
+        RuleFor(x => x.Author!.Kind).Must(k => k is FeedAuthorKind.Edit or FeedAuthorKind.Stylist).WithErrorCode("author_kind_invalid").When(x => x.Author is not null);
         RuleFor(x => x.Author!.Name).Localized(languages, required: true, 60, "author_name_invalid").When(x => x.Author is not null);
         RuleFor(x => x.Author!.Handle)
             .Must(h => string.IsNullOrWhiteSpace(h) || HandleRules.IsValidFormat(HandleRules.Normalize(h)))

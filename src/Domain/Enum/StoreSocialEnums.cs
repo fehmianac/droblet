@@ -15,7 +15,10 @@ public enum ProductSlot { Top, Bottom, Outerwear, Shoes, Bag, OnePiece, Accessor
 public enum ContentCollectionKind { Creator, Series }
 
 /// <summary>Akış F1 author of an editor post: the Droblet Edit desk or a selected stylist (placeholder names only, A-7).</summary>
-public enum FeedAuthorKind { Edit, Stylist }
+public enum FeedAuthorKind { Edit, Stylist, User }
+
+/// <summary>FeedPostDto.kind: editor = admin content (and the weekly-edit fallback), user = a look shared by its owner (Akış F2).</summary>
+public enum FeedPostKind { Editor, User }
 
 /// <summary>Where a look referenced by a cart line / click / conversion lives.</summary>
 public enum LookRefKind { Edit, Collection, User, FeedPost }   // FeedPost: an Akış post (owner decision 2026-11-22); appended so stored values keep their meaning

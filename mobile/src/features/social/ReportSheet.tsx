@@ -25,7 +25,7 @@ type Props = {
 };
 
 /** One reason: 18 radio on the left, 44 high, hairline under every row but the last (as drawn). */
-function ReasonRow({ label, selected, last, onPress }: { label: string; selected: boolean; last: boolean; onPress: () => void }) {
+export function ReasonRow({ label, selected, last, onPress }: { label: string; selected: boolean; last: boolean; onPress: () => void }) {
   return (
     <Pressable
       onPress={onPress}

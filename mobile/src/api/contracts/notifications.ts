@@ -6,7 +6,7 @@
  * The server sends codes and ids only; every sentence is built in the app, per language.
  */
 
-export const NOTIFICATION_TYPES = ['morning_outfit', 'weekly_edit', 'friend_ratings', 'price_drop', 'follow_request', 'data_export_ready', 'content_removed', 'outfit_import_ready'] as const;
+export const NOTIFICATION_TYPES = ['morning_outfit', 'weekly_edit', 'friend_ratings', 'price_drop', 'follow_request', 'data_export_ready', 'content_removed', 'outfit_import_ready', 'feed_likes_digest'] as const;
 export type NotificationKind = (typeof NOTIFICATION_TYPES)[number];
 
 /** The ids the event carries (the same keys as the push `data`). */
@@ -26,6 +26,8 @@ export type NotificationData = {
   reason?: string;
   /** `outfit_import_ready`: the import whose photos are all processed (inbox only). */
   sessionId?: string;
+  /** `feed_likes_digest` (Akış F2): how many people liked my shared looks that day, when the server says. */
+  count?: number;
 };
 
 export const MODERATED_TARGET_KINDS = ['look', 'item', 'profile'] as const;

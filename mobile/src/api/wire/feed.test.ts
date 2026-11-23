@@ -72,6 +72,45 @@ describe('feed wire mappers', () => {
     expect(mapped).toMatchObject({ author: { kind: 'stylist', handle: 'ornek_stilist' }, occasion: null, images: [], products: [], buyableCount: 0, likeCount: 0, liked: false, saved: false });
   });
 
+  it('an older server (no kind, pieces, hasSimilar, canTryOn, ownedItemId) reads as an editor post that can be tried on', () => {
+    const mapped = toFeedPost(post());
+    expect(mapped).toMatchObject({ kind: 'editor', pieces: [], hasSimilar: false, canTryOn: true });
+    expect(mapped.products.map((p) => p.ownedItemId)).toEqual([null, null]);
+  });
+
+  it('carries the wardrobe item behind an owned piece ("Kendi parçalarımla kur")', () => {
+    const mapped = toFeedPost(post({ products: [{ ...product(), ownedSimilar: true, ownedItemId: '01JITEM' }, { ...product({ id: 'p2' }), ownedSimilar: true, ownedItemId: null }] }));
+    expect(mapped.products.map((p) => p.ownedItemId)).toEqual(['01JITEM', null]);
+  });
+
+  it("maps a member's look (Akış F2): @handle author, pieces, similar flag; no products, try-on, buying or verified mark", () => {
+    const mapped = toFeedPost(
+      post({
+        kind: 'user',
+        author: { kind: 'user', name: '@ornek_kullanici', handle: '@ornek_kullanici', imageUrl: 'https://cdn.test/a.jpg', verified: true },
+        occasion: 'weekend',
+        images: ['https://cdn.test/cover.jpg'],
+        pieces: [{ category: 'top', imageUrl: 'https://cdn.test/t.jpg' }, { category: 'shoes', imageUrl: null }],
+        hasSimilar: true,
+        canTryOn: true,
+        buyableCount: 3,
+      }),
+    );
+    expect(mapped).toMatchObject({
+      kind: 'user',
+      author: { kind: 'user', name: '@ornek_kullanici', handle: 'ornek_kullanici', imageUrl: 'https://cdn.test/a.jpg', verified: false },
+      images: ['https://cdn.test/cover.jpg'],
+      products: [],
+      pieces: [{ category: 'top', imageUrl: 'https://cdn.test/t.jpg' }, { category: 'shoes', imageUrl: null }],
+      hasSimilar: true,
+      canTryOn: false,
+      buyableCount: 0,
+    });
+    // Both the post and its author must say `user`; anything else stays editorial.
+    expect(toFeedPost(post({ kind: 'user' }))).toMatchObject({ kind: 'editor', author: { kind: 'edit' } });
+    expect(toFeedPost(post({ kind: 'editor', canTryOn: false }))).toMatchObject({ kind: 'editor', canTryOn: false });
+  });
+
   it('maps a page and its cursor', () => {
     expect(toFeedPostPage({ items: [post()], pageToken: 'abc' })).toMatchObject({ items: [{ id: 'post_1' }], nextPageToken: 'abc' });
     expect(toFeedPostPage({ items: [], pageToken: null }).nextPageToken).toBeNull();

@@ -15,6 +15,7 @@ downloaded the full-size image. Slow, and needless S3 GET / egress cost.
 | Image | Where | How it is served |
 |---|---|---|
 | Cleaned piece image (AI background removal, no person) — full, 768 px, 256 px | `public/{stage}/items/{tenantHash}/{itemId}-{version}-{full\|768\|256}.webp` (copy) + `tenant/{id}/items/{draftId}.webp`, `…-768.webp`, `…-256.webp` (private source) | **Public** via Cloudflare `https://cdn.alatech.co/<key>`, `Cache-Control: public, max-age=86400` |
+| AI cover of a look **shared to Akış** (clothes on a bed, no person; owner decision 22) | `public/{stage}/items/{tenantHash}/cover-{lookId}-{version}.webp` (copy) + `tenant/{id}/look-cover/…` (private source) | **Public** like the piece images, only while the post is on the feed. Every other look cover stays private (presigned, owner only) |
 | Original piece photo (EXIF stripped), multi-item crops, outfit-import crops | `tenant/{id}/items/…-original.*`, `tenant/{id}/import/…` | Private, presigned GET (1 h) |
 | Look cover photos (outfit-import originals) | `tenant/{id}/import/…` | Private, presigned GET (1 h) |
 | Body / face photos | `tenant/{id}/body/`, `tenant/{id}/face/` | Private, presigned GET (1 h) |
@@ -117,6 +118,11 @@ so it stays short (1 h, not days) and is never logged.
 - **Moderation** (`contentRemoved`): hiding an item clears its public keys in the same versioned write and deletes +
   purges the objects, so the URL stops working for everyone; the owner keeps the presigned private image. **Restore**
   publishes a fresh copy under new keys.
+- **Shared look cover** (`FeedShareService`): copied on the first feed read of the post (not at share time: the cover may
+  still be rendering), copied again under a new key when the cover changes (new pieces), and deleted + purged on
+  un-share, look deletion, account deletion (same public folder), the automatic hide at 3 reporters and an admin
+  removal. An admin restore publishes a fresh copy on the next read. If the copy fails the feed shows the private
+  cover presigned, as before.
 - **CDN purge**: `CloudflareCdnCache` posts "purge files by URL" (≤ 30 per call) when SSM `api/Cloudflare/ZoneId` and
   `api/Cloudflare/ApiToken` are set (`CHANGE_ME` = skip). Without a token a deleted image may be served from an edge
   cache for at most `max-age=86400` (1 day); the S3 object itself is gone at once.

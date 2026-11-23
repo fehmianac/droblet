@@ -52,7 +52,7 @@ function initialState(): State {
       face: { photoId: 'photo_face_1', url: null },
       generatedImageCount: 48,
     },
-    notifications: { morningReminder: true, morningTimeLocal: '07:30', weeklyEdit: false, friendRatings: false, priceDrop: false, followRequests: false, baseVersion: 1 },
+    notifications: { morningReminder: true, morningTimeLocal: '07:30', weeklyEdit: false, friendRatings: false, priceDrop: false, followRequests: false, feedLikesDigest: true, baseVersion: 1 },
     palette: 'ready',
     dataExport: { export: null, canRequest: true, nextRequestAt: null },
     verificationResends: 0,

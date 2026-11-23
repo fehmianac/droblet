@@ -134,6 +134,7 @@ Notification `data` (all strings) — the app's tap handler routes on `type`:
 | `weekly_edit` | `editId` | 08 Haftanın edit'i (`/edit/{editId}`) |
 | `friend_ratings` / `friend_rating` | `lookId` (optional) | the look (`/look/{lookId}`), else my looks (`/wardrobe/looks`) |
 | `follow_request` | `handle` | follow requests (`/friends/requests`) |
+| `feed_likes_digest` | `day`, `count` (likes in the digest) | my looks (`/wardrobe/looks`) — the daily "Looklarını N kişi beğendi" of Akış F2 ([S §9](store-social-settings.md)); setting `feedLikesDigest`, on by default |
 | `price_drop` | `productId` | 22 Ürün (`/shop/product/{productId}`), else the watch list |
 
 ## 6. Sign in with Apple — token revocation

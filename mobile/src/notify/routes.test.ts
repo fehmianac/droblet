@@ -9,6 +9,8 @@ describe('push notification routing', () => {
     expect(routeForPush({ type: 'friend_ratings', day: '2026-11-18' })).toBe('/wardrobe/looks');
     expect(routeForPush({ type: 'friend_rating', lookId: 'look-1' })).toEqual({ pathname: '/look/[id]', params: { id: 'look-1' } });
     expect(routeForPush({ type: 'morning_outfit', day: '2026-11-18' })).toBe('/today');
+    // Akış F2: the daily "Looklarını N kişi beğendi" opens the user's looks.
+    expect(routeForPush({ type: 'feed_likes_digest', count: '12' })).toBe('/wardrobe/looks');
   });
 
   it('falls back to Bugün for unknown or missing data, and never routes an unsafe id', () => {

@@ -88,10 +88,10 @@ public sealed class SettingsService(
     };
 
     private static NotificationPrefsDto TeenOff(NotificationPrefsDto dto) =>
-        dto with { WeeklyEdit = false, PriceDrop = false, FriendRatings = false, FollowRequests = false };
+        dto with { WeeklyEdit = false, PriceDrop = false, FriendRatings = false, FollowRequests = false, FeedLikesDigest = false };
 
     private static NotificationPrefsDto ToDto(NotificationPrefEntity p) =>
-        new(p.MorningOutfit, p.MorningOutfitLocalTime, p.WeeklyEdit, p.FriendRatings, p.TimeZone, p.Version, p.Version == 0 ? null : p.UpdatedAt, p.PriceDrop, p.FollowRequests);
+        new(p.MorningOutfit, p.MorningOutfitLocalTime, p.WeeklyEdit, p.FriendRatings, p.TimeZone, p.Version, p.Version == 0 ? null : p.UpdatedAt, p.PriceDrop, p.FollowRequests, !p.FeedLikesDigestOff);
 
     /// <summary>
     /// weeklyEdit / priceDrop are reported as they are effectively sent: switched on AND a valid marketing consent (consent 5).
@@ -100,7 +100,7 @@ public sealed class SettingsService(
     public async Task<NotificationPrefsDto> GetNotificationPrefsAsync(string tenantId, string userId, CancellationToken ct)
     {
         var dto = ToDto(await PrefAsync(tenantId, userId, ct) ?? DefaultPref(tenantId, userId, enabled: false, timeZone: null));
-        if (!dto.WeeklyEdit && !dto.PriceDrop && !dto.FriendRatings && dto.FollowRequests != true)
+        if (!dto.WeeklyEdit && !dto.PriceDrop && !dto.FriendRatings && dto.FollowRequests != true && !dto.FeedLikesDigest)
             return dto;
         if (await repository.IsTeenTenantAsync(tenantId, ct))
             return TeenOff(dto);
@@ -118,7 +118,7 @@ public sealed class SettingsService(
             return (SettingsOutcome.Conflict, ToDto(existing ?? DefaultPref(tenantId, userId, false, null)));
         // Teen (docs/api/teen.md §4): marketing (weekly edit, price drops) and the social types stay off whatever is sent.
         if (await repository.IsTeenTenantAsync(tenantId, ct))
-            input = input with { WeeklyEdit = false, FriendRatings = false, PriceDrop = false, FollowRequests = false };
+            input = input with { WeeklyEdit = false, FriendRatings = false, PriceDrop = false, FollowRequests = false, FeedLikesDigest = false };
 
         var updated = new NotificationPrefEntity
         {
@@ -130,6 +130,8 @@ public sealed class SettingsService(
             FriendRatings = input.FriendRatings,
             PriceDrop = input.PriceDrop ?? existing?.PriceDrop ?? false,
             FollowRequests = input.FollowRequests ?? existing?.FollowRequests ?? false,
+            // No send list for this one: the digest job reads the opt-out from the preference row itself.
+            FeedLikesDigestOff = input.FeedLikesDigest is { } digest ? !digest : existing?.FeedLikesDigestOff ?? false,
             TimeZone = input.TimeZone,
             UpdatedAt = Now,
             Version = input.BaseVersion,

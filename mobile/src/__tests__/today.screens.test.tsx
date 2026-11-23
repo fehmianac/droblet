@@ -131,7 +131,8 @@ describe('07 Haftalık plan', () => {
     expect(screen.getByText('Change')).toBeTruthy();
     await fireEvent.press(screen.getByText('Remove'));
     await waitFor(() => expect(screen.queryByText('Lacivert Blazer')).toBeNull(), WAIT);
-    expect(screen.getAllByLabelText(/^Options for /)).toHaveLength(menus.length - 1);
+    // queryAll: on a Monday today is the only planned row, so none is left (getAll throws on an empty result).
+    expect(screen.queryAllByLabelText(/^Options for /)).toHaveLength(menus.length - 1);
   });
 
   it('"Plan" on an empty day and "Change" in the ⋯ menu open 07c; the stylist stays its way out', async () => {

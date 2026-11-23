@@ -134,7 +134,10 @@ public record LookDto(
     string? CoverImageUrl = null,
     DateTime? CoverImageUrlExpiresAt = null,
     // True while the AI flat-lay cover of the look's current pieces is being made (the app shows its drawn cover meanwhile).
-    bool CoverPending = false);
+    bool CoverPending = false,
+    // Owner only (GET look, look/{id}, the update response): the look is shared to the home feed (Akış F2) and, when it is, its numbers.
+    bool SharedToFeed = false,
+    FeedStatsDto? FeedStats = null);
 
 public record LookRatingSummaryDto(double Average, long Count);
 
