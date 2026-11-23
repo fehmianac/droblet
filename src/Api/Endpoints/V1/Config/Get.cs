@@ -18,7 +18,7 @@ public class Get : IEndpoint
     {
         var language = Localized.Language(null, httpContext.RequestLanguage());
         return Results.Ok(AppConfigDto.Build(segments.CurrentValue, language, v => StartupExtensions.EnumNaming.ConvertName(v.ToString()))
-            with { Teen = TeenConfigDto.From(teen.CurrentValue) });
+            with { Teen = TeenConfigDto.From(teen.CurrentValue), TestPush = TestPushRules.IsAvailable(StorageKeys.Stage) });
     }
 
     public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints)
@@ -30,7 +30,7 @@ public class Get : IEndpoint
             .WithSummary("App configuration: open segments and the per segment choices")
             .WithDescription("No sign-in needed (onboarding). segments.available = the segments a user may choose now (Segments:Available; the others are shown as \"Yakında\"; teen is never open). " +
                              "bodyTypes / styleTags / subcategories are keyed by segment (women, men): ids with their names in the Accept-Language (tr fallback). " +
-                             "Sub-types only filter the pickers: item writes accept any id. teen = { enabled, minimumAge, adultAge, tryOnEnabled } (docs/api/teen.md §2).")
+                             "Sub-types only filter the pickers: item writes accept any id. teen = { enabled, minimumAge, adultAge, tryOnEnabled } (docs/api/teen.md §2). testPush = true on the non-prod stages: Profil shows \"Deneme bildirimi gönder\" (POST v1/tenant/notification/test-push).")
             .WithTags("Config");
     }
 }

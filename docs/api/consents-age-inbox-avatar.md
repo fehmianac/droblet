@@ -99,6 +99,7 @@ The app routes an unconfirmed account to the confirmation screen before anything
 |---|---|---|---|
 | GET | `v1/tenant/notification?limit=&pageToken=` | — | `{ "items": [ … ], "pageToken": "…" \| null, "unreadCount": 3 }`. `limit` 1–100 (default 30). Newest first; `pageToken` is an opaque cursor (new events never shift the next page). |
 | POST | `v1/tenant/notification/read` | `{ "ids": ["01J…"] }` or `{ "ids": null }` (= all) | `{ "unreadCount": 0 }`. Idempotent; unknown ids are ignored. `400 ids_out_of_range` (1–100), `id_invalid`. |
+| POST | `v1/tenant/notification/test-push` | — | **Non-prod test tool** (Profil › "Deneme bildirimi gönder", shown when `GET v1/config` → `testPush: true`). Sends one notification (`data.type = "test"`) to every device of the account that has a push token. `200 { "devices": 2, "sent": 1, "results": [{ "platform": "ios", "result": "Sent \| Unregistered \| Failed \| NotConfigured" }] }`; `devices: 0` = no device registered a token. `404 not_found` on prod, `429 too_many_attempts` (5 a minute), `502 test_push_failed` when the notifier could not be reached. The Api calls the notifier's `TestPush` function, which holds the push secrets. |
 
 ```jsonc
 { "id": "01JD…", "type": "follow_request", "createdAt": "2026-11-19T09:15:00Z", "readAt": null, "data": { "handle": "ayse" } }

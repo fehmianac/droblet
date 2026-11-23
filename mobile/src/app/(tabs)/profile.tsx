@@ -34,6 +34,7 @@ import { Text } from '@/components/ui/Text';
 import { useEntitlement } from '@/entitlement/useEntitlement';
 import { useMyPhotos, useMyProfile, usePalette, useProfileStats } from '@/features/account/queries';
 import { ProfileMenuRow, RowCard } from '@/features/account/rows';
+import { TestPushRow } from '@/features/account/TestPushRow';
 import { creditSheetStore } from '@/features/credits/creditSheetStore';
 import { ProfileCompleteCard } from '@/features/requirements/ProfileCompleteCard';
 import { useSegment } from '@/features/segment/store';
@@ -350,6 +351,7 @@ export default function ProfileTab() {
             </>
           )}
           <ProfileMenuRow icon={Lock} label={t('me.menu.settings')} onPress={() => router.push('/settings')} />
+          <TestPushRow />
         </RowCard>
 
         {__DEV__ ? <Button variant="text" label={t('profile.components')} onPress={() => router.push('/dev/components')} /> : null}

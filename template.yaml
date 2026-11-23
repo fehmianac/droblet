@@ -734,6 +734,13 @@ Resources:
                   - !Sub '${PhotoBucket.Arn}/tenant/*'
                   # Public copies of cleaned piece images: publish (copy), presigned fallback, delete, account deletion.
                   - !Sub '${PhotoBucket.Arn}/public/${Stage}/items/*'
+              # "Deneme bildirimi gönder" (non-prod only): the Api asks the notifier's TestPush function (it holds the push secrets).
+              - !If
+                - IsProd
+                - !Ref AWS::NoValue
+                - Effect: Allow
+                  Action: lambda:InvokeFunction
+                  Resource: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:droblet-${Stage}-notifier-test-push
               # Data export ZIPs: presigned download (GetObject) and account deletion (DeleteObject); written by the worker.
               - Effect: Allow
                 Action: [s3:GetObject, s3:DeleteObject]
@@ -1151,6 +1158,12 @@ Resources:
       LogGroupName: !Sub /droblet/${Stage}/lambda/notifier-friend-ratings
       RetentionInDays: !If [HasLogRetentionOverride, !Ref LogRetentionDays, !If [IsProd, 400, 90]]
 
+  NotifierTestPushLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /droblet/${Stage}/lambda/notifier-test-push
+      RetentionInDays: !If [HasLogRetentionOverride, !Ref LogRetentionDays, !If [IsProd, 400, 90]]
+
   NotifierLifecycleLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -1400,6 +1413,22 @@ Resources:
           Properties:
             Name: !Sub droblet-${Stage}-notifier-lifecycle
             ScheduleExpression: cron(0 3 * * ? *)
+
+  # "Deneme bildirimi gönder" (Profil, non-prod stages): invoked by the Api with the caller's tenant; sends one test
+  # notification to that account's devices and answers the outcome. No schedule. On prod the handler does nothing and
+  # the Api role has no permission to invoke it.
+  NotifierTestPushFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub droblet-${Stage}-notifier-test-push
+      LoggingConfig:
+        LogGroup: !Ref NotifierTestPushLogGroup
+      Handler: Notifier::Notifier.Entrypoint::TestPush
+      Role: !GetAtt NotifierLambdaRole.Arn
+      Timeout: 30
+      Environment:
+        Variables:
+          SYSTEMS_MANAGER_PATH: !Sub /droblet/${Stage}/notifier
 
   # "Verilerimi indir": SQS data-export-request → the ZIP (Notifier zip, own role, reads the api config).
   NotifierDataExportFunction:

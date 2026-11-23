@@ -455,7 +455,15 @@
   },
   "profile": {
     "logout": "Çıkış yap",
-    "components": "Bileşen vitrini"
+    "components": "Bileşen vitrini",
+    "testPush": "Deneme bildirimi gönder",
+    "testPushValue": "Test",
+    "testPushSent_one": "Deneme bildirimi gönderildi · {{count}} cihaz",
+    "testPushSent_other": "Deneme bildirimi gönderildi · {{count}} cihaz",
+    "testPushNoDevice": "Bu hesapta bildirim alabilen cihaz yok. Önce bildirimlere izin ver.",
+    "testPushNotDelivered": "Bildirim gönderilemedi ({{result}}).",
+    "testPushTooMany": "Çok sık denedin. Bir dakika sonra tekrar dene.",
+    "testPushFailed": "Deneme bildirimi gönderilemedi. Tekrar dene."
   },
   "photoGuide": {
     "title": "İyi bir boy fotoğrafı",

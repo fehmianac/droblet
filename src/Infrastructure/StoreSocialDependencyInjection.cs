@@ -79,6 +79,7 @@ public static class StoreSocialDependencyInjection
             sp.GetRequiredService<TimeProvider>(),
             sp.GetRequiredService<ILogger<ApnsPushProvider>>()));
         services.TryAddSingleton<IPushProvider, RoutingPushProvider>();
+        services.TryAddSingleton<ITestPushSender, TestPushSender>();
         return services;
     }
 
@@ -94,6 +95,10 @@ public static class StoreSocialDependencyInjection
         services.TryAddSingleton<IInviteService, InviteService>();
         services.TryAddSingleton<ISettingsService, SettingsService>();
         services.TryAddSingleton<ICrossTenantCleanup, CrossTenantCleanup>();
+        // "Deneme bildirimi gönder" (non-prod): the Api asks the notifier's TestPush function, which holds the push secrets.
+        services.TryAddSingleton<Amazon.Lambda.IAmazonLambda>(_ => new Amazon.Lambda.AmazonLambdaClient());
+        services.TryAddSingleton<ITestPushInvoker, LambdaTestPushInvoker>();
+        services.TryAddSingleton<ITestPushService, TestPushService>();
         return services;
     }
 }

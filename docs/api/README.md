@@ -302,6 +302,7 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | POST | `v1/tenant/event` | user | [S](store-social-settings.md) | Analytics events (batch) |
 | GET | `v1/tenant/notification` | user | [C](consents-age-inbox-avatar.md) | My notifications (inbox) |
 | POST | `v1/tenant/notification/read` | user | [C](consents-age-inbox-avatar.md) | Mark notifications read |
+| POST | `v1/tenant/notification/test-push` | user | [C](consents-age-inbox-avatar.md) | Send a test notification to my devices (non-prod only) |
 | GET | `v1/tenant/settings` | user | [S](store-social-settings.md) | Settings (screen 29) in one call |
 | PUT | `v1/tenant/user/me/device` | user | [S](store-social-settings.md) · [P](purchases-push.md) | Register / refresh a device |
 | DELETE | `v1/tenant/user/me/device/{deviceId}` | user | [S](store-social-settings.md) | Remove a device |

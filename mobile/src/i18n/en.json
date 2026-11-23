@@ -455,7 +455,15 @@
   },
   "profile": {
     "logout": "Sign out",
-    "components": "Component showcase"
+    "components": "Component showcase",
+    "testPush": "Send a test notification",
+    "testPushValue": "Test",
+    "testPushSent_one": "Test notification sent · {{count}} device",
+    "testPushSent_other": "Test notification sent · {{count}} devices",
+    "testPushNoDevice": "No device on this account can receive notifications. Allow notifications first.",
+    "testPushNotDelivered": "The notification could not be sent ({{result}}).",
+    "testPushTooMany": "Too many tries. Try again in a minute.",
+    "testPushFailed": "The test notification could not be sent. Try again."
   },
   "photoGuide": {
     "title": "A good full-length photo",

@@ -28,7 +28,8 @@ public record AppConfigDto(
     IReadOnlyDictionary<string, IReadOnlyList<ChoiceDto>> BodyTypes,
     IReadOnlyDictionary<string, IReadOnlyList<ChoiceDto>> StyleTags,
     IReadOnlyDictionary<string, IReadOnlyList<SubcategoryDto>> Subcategories,
-    TeenConfigDto? Teen = null)
+    TeenConfigDto? Teen = null,
+    bool TestPush = false)
 {
     /// <summary>Segments with their own lists (teen is never open and has none).</summary>
     public static readonly IReadOnlyList<Segment> ListedSegments = [Segment.Women, Segment.Men];

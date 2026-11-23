@@ -184,10 +184,10 @@ export type EntitlementWire = {
 };
 
 /** `GET v1/config` — only what the app reads (names stay the app's own; docs/api/segments.md §1). */
-export type ConfigWire = { segments?: { available?: string[] | null; all?: string[] } | null; teen?: TeenConfigWire };
+export type ConfigWire = { segments?: { available?: string[] | null; all?: string[] } | null; teen?: TeenConfigWire; testPush?: boolean };
 
 export function toAppConfig(wire: ConfigWire): AppConfig {
-  return { availableSegments: toAvailableSegments(wire.segments?.available), teen: toTeenConfig(wire.teen) };
+  return { availableSegments: toAvailableSegments(wire.segments?.available), teen: toTeenConfig(wire.teen), testPush: wire.testPush === true };
 }
 
 /** `POST v1/tenant/entitlement/purchase`. Apple: signedTransaction = StoreKit 2 JWS; Google: transactionId = purchaseToken. */

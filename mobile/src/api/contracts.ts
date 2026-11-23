@@ -201,7 +201,8 @@ export type Entitlement = {
  * `GET v1/config` (anonymous, docs/api/segments.md §1) — the app keeps its own labels and reads the ids only.
  * One open segment = no choice is shown (onboarding skips 03a, Profil › Stil profili has no segment row).
  */
-export type AppConfig = { availableSegments: AppSegment[]; teen: TeenConfig };
+/** testPush: the stage offers "Deneme bildirimi gönder" on Profil (non-prod stages only). */
+export type AppConfig = { availableSegments: AppSegment[]; teen: TeenConfig; testPush: boolean };
 
 export type ItemRecognitionQuota = { limit: number | null; used: number; remaining: number | null };
 

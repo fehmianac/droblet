@@ -32,6 +32,18 @@ public class Entrypoint
 
     public Entrypoint(IServiceProvider services) => _services = services;
 
+    /// <summary>
+    /// "Deneme bildirimi gönder" (non-prod stages; the function is not deployed on prod): invoked by the Api with the
+    /// caller's tenant, answers what each of that account's devices got.
+    /// </summary>
+    public async Task<TestPushResultDto> TestPush(TestPushRequest request, ILambdaContext context)
+    {
+        if (!TestPushRules.IsAvailable(StorageKeys.Stage) || string.IsNullOrWhiteSpace(request?.TenantId))
+            return new TestPushResultDto(0, 0, []);
+        using var cts = new CancellationTokenSource(WorkerHost.Budget(context.RemainingTime));
+        return await _services.GetRequiredService<ITestPushSender>().SendAsync(request.TenantId, cts.Token);
+    }
+
     public Task<NotificationRunResult> Reminder(ScheduledEvent scheduledEvent, ILambdaContext context) => Run(NotificationJob.Reminder, scheduledEvent, context);
     public Task<NotificationRunResult> WeeklyEdit(ScheduledEvent scheduledEvent, ILambdaContext context) => Run(NotificationJob.WeeklyEdit, scheduledEvent, context);
     public Task<NotificationRunResult> FriendRatings(ScheduledEvent scheduledEvent, ILambdaContext context) => Run(NotificationJob.FriendRatings, scheduledEvent, context);

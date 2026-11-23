@@ -62,3 +62,32 @@ public class PostRead : IEndpoint
             .Tenant("Tenant Notification", "Mark notifications read",
                 "ids = up to 100 notification ids; null marks everything read. Idempotent; unknown ids are ignored. Returns the unread count left.");
 }
+
+public class PostTestPush : IEndpoint
+{
+    private static async Task<IResult> Handler(
+        [FromServices] IApiContext apiContext,
+        [FromServices] ITestPushService testPush,
+        CancellationToken cancellationToken)
+    {
+        var (outcome, result) = await testPush.SendAsync(apiContext.TenantId, cancellationToken);
+        return outcome switch
+        {
+            TestPushOutcome.Ok => Results.Ok(result),
+            TestPushOutcome.NotAvailable => Results.Problem(statusCode: StatusCodes.Status404NotFound, title: "not_found"),
+            TestPushOutcome.RateLimited => Results.Problem(statusCode: StatusCodes.Status429TooManyRequests, title: "too_many_attempts"),
+            _ => Results.Problem(statusCode: StatusCodes.Status502BadGateway, title: "test_push_failed"),
+        };
+    }
+
+    public RouteHandlerBuilder MapEndpoint(IEndpointRouteBuilder endpoints) =>
+        endpoints.MapPost("v1/tenant/notification/test-push", Handler)
+            .Produces<TestPushResultDto>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status429TooManyRequests)
+            .ProducesProblem(StatusCodes.Status502BadGateway)
+            .Tenant("Tenant Notification", "Send a test notification to my devices (non-prod)",
+                "Test tool of the non-prod stages (GET v1/config testPush): one notification (data.type = test) to every device of the account that has a push token. " +
+                "200 { devices, sent, results[{ platform, result: Sent | Unregistered | Failed | NotConfigured }] } — devices 0 = no device registered a token (allow notifications first). " +
+                "404 not_found on prod, 429 too_many_attempts (5 a minute), 502 test_push_failed when the notifier could not be reached.");
+}

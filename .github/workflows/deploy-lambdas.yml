@@ -68,10 +68,10 @@ jobs:
           - name: palette
             project: src/Palette
             functions: palette
-          # Bes Notifier fonksiyonu (data-export dahil) ayni zip'i paylasir.
+          # Alti Notifier fonksiyonu (data-export ve test-push dahil) ayni zip'i paylasir.
           - name: notifier
             project: src/Notifier
-            functions: notifier-reminder notifier-weekly-edit notifier-friend-ratings notifier-lifecycle notifier-data-export
+            functions: notifier-reminder notifier-weekly-edit notifier-friend-ratings notifier-lifecycle notifier-data-export notifier-test-push
     steps:
       - uses: actions/checkout@v5
 
