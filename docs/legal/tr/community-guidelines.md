@@ -2,13 +2,11 @@
 
 # Topluluk Kuralları
 
-> **Taslak — hukuk onayı bekliyor.** Bu metin kapsamlı bir taslaktır ve hukuk onayından önce bağlayıcı değildir. Köşeli parantez içindeki yerler (ör. [ŞİRKET ADRESİ]) henüz belirlenmemiş bilgilerdir.
->
-> Taslak tarihi: 19 Kasım 2026 · Yürürlük: [YÜRÜRLÜK TARİHİ]
+> Son güncelleme: 19 Kasım 2026 · Yürürlük: [YÜRÜRLÜK TARİHİ]
 
 Droblet'te arkadaşlarının dolaplarına göz atabilir, look'larını puanlayabilir, onlardan ilham alabilirsin. Bu kurallar, herkesin kendini güvende ve rahat hissettiği bir topluluk için var. Kullanım Koşulları'nın bir parçasıdır.
 
-**Veri sorumlusu:** Droblet Ltd, [ŞİRKET ADRESİ], Londra, Birleşik Krallık · Şirket no. [ŞİRKET NUMARASI] · [İLETİŞİM E-POSTASI]
+**Veri sorumlusu:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık · Şirket no. 17100391 · [İLETİŞİM E-POSTASI]
 
 ## KISACA
 

@@ -69,7 +69,7 @@ describe('Açık rıza — just in time', () => {
     // The exact consent statements, never pre-ticked; one box alone is not enough.
     expect(screen.getByTestId('consent.check.bodyPhotoAi')).not.toBeChecked();
     expect(screen.getByTestId('consent.check.crossBorderTransfer')).not.toBeChecked();
-    expect(screen.getByText(/I give my explicit consent to Droblet Ltd processing my full-body photo/)).toBeTruthy();
+    expect(screen.getByText(/I give my explicit consent to Ala Tech Solutions LTD processing my full-body photo/)).toBeTruthy();
     expect(screen.getByTestId('requirements.consent.confirm')).toBeDisabled();
     await fireEvent.press(screen.getByTestId('consent.check.bodyPhotoAi'));
     expect(screen.getByTestId('requirements.consent.confirm')).toBeDisabled();

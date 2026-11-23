@@ -2,13 +2,11 @@
 
 # Subscription Terms
 
-> **Draft — pending legal review.** This text is a comprehensive draft and is not binding until it has been legally reviewed. Words in square brackets (e.g. [COMPANY ADDRESS]) are details that have not been decided yet.
->
-> Draft date: 19 November 2026 · Effective: [EFFECTIVE DATE]
+> Last updated: 19 November 2026 · Effective: [EFFECTIVE DATE]
 
 These terms govern the Droblet Membership subscription and extra AI image packs and form part of the Terms of Use. Purchases are made through the App Store or Google Play; payment, billing and refunds are also subject to the terms of the store you use.
 
-**Data controller:** Droblet Ltd, [COMPANY ADDRESS], London, United Kingdom · Company no. [COMPANY NUMBER] · [CONTACT E-MAIL]
+**Data controller:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, United Kingdom · Company no. 17100391 · [CONTACT E-MAIL]
 
 ## IN SHORT
 

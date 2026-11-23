@@ -2,13 +2,11 @@
 
 # Cookie Notice
 
-> **Draft — pending legal review.** This text is a comprehensive draft and is not binding until it has been legally reviewed. Words in square brackets (e.g. [COMPANY ADDRESS]) are details that have not been decided yet.
->
-> Draft date: 19 November 2026 · Effective: [EFFECTIVE DATE]
+> Last updated: 19 November 2026 · Effective: [EFFECTIVE DATE]
 
 This notice explains the use of cookies and similar technologies (browser storage, device storage, tracking pixels) on the droblet.alatech.co website and in the Droblet mobile app.
 
-**Data controller:** Droblet Ltd, [COMPANY ADDRESS], London, United Kingdom · Company no. [COMPANY NUMBER] · [CONTACT E-MAIL]
+**Data controller:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, United Kingdom · Company no. 17100391 · [CONTACT E-MAIL]
 
 ## IN SHORT
 

@@ -2,13 +2,11 @@
 
 # Kullanım Koşulları
 
-> **Taslak — hukuk onayı bekliyor.** Bu metin kapsamlı bir taslaktır ve hukuk onayından önce bağlayıcı değildir. Köşeli parantez içindeki yerler (ör. [ŞİRKET ADRESİ]) henüz belirlenmemiş bilgilerdir.
->
-> Taslak tarihi: 19 Kasım 2026 · Yürürlük: [YÜRÜRLÜK TARİHİ]
+> Son güncelleme: 19 Kasım 2026 · Yürürlük: [YÜRÜRLÜK TARİHİ]
 
-Bu koşullar, Droblet mobil uygulamasını ve droblet.alatech.co web sitesini (birlikte “Hizmet”) kullanman için seninle Droblet Ltd (“Droblet”, “biz”) arasındaki sözleşmedir. Hesap oluşturarak ya da Hizmet'i kullanarak bu koşulları, Gizlilik Politikası'nı, Abonelik Koşulları'nı ve Topluluk Kuralları'nı kabul etmiş olursun.
+Bu koşullar, Droblet mobil uygulamasını ve droblet.alatech.co web sitesini (birlikte “Hizmet”) kullanman için seninle Ala Tech Solutions LTD (“Droblet”, “biz”) arasındaki sözleşmedir. Hesap oluşturarak ya da Hizmet'i kullanarak bu koşulları, Gizlilik Politikası'nı, Abonelik Koşulları'nı ve Topluluk Kuralları'nı kabul etmiş olursun.
 
-**Veri sorumlusu:** Droblet Ltd, [ŞİRKET ADRESİ], Londra, Birleşik Krallık · Şirket no. [ŞİRKET NUMARASI] · [İLETİŞİM E-POSTASI]
+**Veri sorumlusu:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık · Şirket no. 17100391 · [İLETİŞİM E-POSTASI]
 
 ## KISACA
 
@@ -22,7 +20,7 @@ Bu koşullar, Droblet mobil uygulamasını ve droblet.alatech.co web sitesini (b
 
 ## 1. Taraflar ve sözleşmenin kapsamı
 
-Hizmet'i, İngiltere ve Galler'de kurulu Droblet Ltd (şirket no. [ŞİRKET NUMARASI], adres: [ŞİRKET ADRESİ], Londra, Birleşik Krallık) sunar. Bize [İLETİŞİM E-POSTASI] adresinden ulaşabilirsin.
+Hizmet'i, İngiltere ve Galler'de kurulu Ala Tech Solutions LTD (şirket no. 17100391, adres: Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık) sunar. Bize [İLETİŞİM E-POSTASI] adresinden ulaşabilirsin.
 
 Bu sözleşme şu belgelerden oluşur: bu Kullanım Koşulları, Abonelik Koşulları (Droblet Üyelik ve ek kredi paketleri için) ve Topluluk Kuralları. Kişisel verilerinin nasıl işlendiğini Gizlilik Politikası ve KVKK Aydınlatma Metni anlatır; bunlar sözleşme değil, bilgilendirme metnidir.
 
@@ -181,6 +179,6 @@ Uygulamayı Google Play'den indirdiysen Google Play Hizmet Şartları da geçerl
 
 ## 19. İletişim
 
-Sorular, şikâyetler ve bildirimler için: [İLETİŞİM E-POSTASI] · Droblet Ltd, [ŞİRKET ADRESİ], Londra, Birleşik Krallık.
+Sorular, şikâyetler ve bildirimler için: [İLETİŞİM E-POSTASI] · Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık.
 
 Hesabını silmek için: uygulamada Profil › Ayarlar › Hesabımı sil ya da droblet.alatech.co/delete-account.

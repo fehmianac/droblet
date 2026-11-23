@@ -2,13 +2,11 @@
 
 # Privacy Policy
 
-> **Draft — pending legal review.** This text is a comprehensive draft and is not binding until it has been legally reviewed. Words in square brackets (e.g. [COMPANY ADDRESS]) are details that have not been decided yet.
->
-> Draft date: 19 November 2026 · Effective: [EFFECTIVE DATE]
+> Last updated: 19 November 2026 · Effective: [EFFECTIVE DATE]
 
-This policy explains how your personal data is processed when you use the Droblet mobile app and the droblet.alatech.co website. The data controller is Droblet Ltd (London, United Kingdom). The policy follows the UK General Data Protection Regulation (UK GDPR) and the Data Protection Act 2018; for users in Türkiye, the details required by Law No. 6698 (KVKK) are in the separate KVKK Information Notice.
+This policy explains how your personal data is processed when you use the Droblet mobile app and the droblet.alatech.co website. The data controller is Ala Tech Solutions LTD (London, United Kingdom). The policy follows the UK General Data Protection Regulation (UK GDPR) and the Data Protection Act 2018; for users in Türkiye, the details required by Law No. 6698 (KVKK) are in the separate KVKK Information Notice.
 
-**Data controller:** Droblet Ltd, [COMPANY ADDRESS], London, United Kingdom · Company no. [COMPANY NUMBER] · [CONTACT E-MAIL]
+**Data controller:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, United Kingdom · Company no. 17100391 · [CONTACT E-MAIL]
 
 ## IN SHORT
 
@@ -23,7 +21,7 @@ This policy explains how your personal data is processed when you use the Droble
 
 ## 1. Who we are
 
-Data controller: Droblet Ltd, [COMPANY ADDRESS], London, United Kingdom; company no. [COMPANY NUMBER]; Information Commissioner's Office (ICO) registration no. [ICO REGISTRATION NUMBER].
+Data controller: Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, United Kingdom; company no. 17100391; Information Commissioner's Office (ICO) registration no. [ICO REGISTRATION NUMBER].
 
 For any privacy question or rights request: [CONTACT E-MAIL]. Our data controller representative in Türkiye: [TÜRKİYE REPRESENTATIVE].
 
@@ -262,4 +260,4 @@ Our website's own code sets no cookies, stores nothing in your browser and conta
 
 We may update this policy. We will tell you about material changes in the app or by e-mail before they take effect; if a new purpose needs your consent, we will ask for it first.
 
-Questions and requests: [CONTACT E-MAIL] · Droblet Ltd, [COMPANY ADDRESS], London, United Kingdom.
+Questions and requests: [CONTACT E-MAIL] · Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, United Kingdom.

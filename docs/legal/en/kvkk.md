@@ -2,17 +2,15 @@
 
 # KVKK Information Notice
 
-> **Draft — pending legal review.** This text is a comprehensive draft and is not binding until it has been legally reviewed. Words in square brackets (e.g. [COMPANY ADDRESS]) are details that have not been decided yet.
->
-> Draft date: 19 November 2026 · Effective: [EFFECTIVE DATE]
+> Last updated: 19 November 2026 · Effective: [EFFECTIVE DATE]
 
 This notice is given under art. 10 of Turkish Personal Data Protection Law No. 6698 (“KVKK”) and the Communiqué on the Procedures and Principles for Fulfilling the Obligation to Inform, to inform people who use the Droblet mobile app and the droblet.alatech.co website. This English text is a courtesy translation; the Turkish original prevails. Processing that needs your explicit consent uses separate explicit consent texts; this notice is not a consent statement.
 
-**Data controller:** Droblet Ltd, [COMPANY ADDRESS], London, United Kingdom · Company no. [COMPANY NUMBER] · [CONTACT E-MAIL]
+**Data controller:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, United Kingdom · Company no. 17100391 · [CONTACT E-MAIL]
 
 ## IN SHORT
 
-- The data controller is Droblet Ltd, established in London; its representative in Türkiye is [TÜRKİYE REPRESENTATIVE].
+- The data controller is Ala Tech Solutions LTD, established in London; its representative in Türkiye is [TÜRKİYE REPRESENTATIVE].
 - We process account, profile, wardrobe, photo, body, social, shopping, membership and security data to provide the Service.
 - We rely on your explicit consent for AI processing of your full-body and face photos, your weight, finding friends from contacts and marketing notifications.
 - Data is stored on AWS servers in Germany and transferred to OpenAI (US) for AI processing.
@@ -20,7 +18,7 @@ This notice is given under art. 10 of Turkish Personal Data Protection Law No. 6
 
 ## 1. Data controller and representative
 
-Data controller: Droblet Ltd, [COMPANY ADDRESS], London, United Kingdom (company no. [COMPANY NUMBER]). E-mail: [CONTACT E-MAIL]. Registered electronic mail (KEP) address: [KEP ADDRESS].
+Data controller: Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, United Kingdom (company no. 17100391). E-mail: [CONTACT E-MAIL]. Registered electronic mail (KEP) address: [KEP ADDRESS].
 
 Data controller representative (Türkiye): [TÜRKİYE REPRESENTATIVE].
 
@@ -78,7 +76,7 @@ Within Türkiye: when you go to a brand, only a click id containing neither your
 
 Abroad: to provide the Service your personal data is transferred to these recipients:
 
-- Droblet Ltd (United Kingdom): providing the Service as data controller.
+- Ala Tech Solutions LTD (United Kingdom): providing the Service as data controller.
 - Amazon Web Services (Germany, Frankfurt): servers, database and photo storage.
 - OpenAI (US): AI processing — item and outfit photos, with your explicit consent your full-body and face photos, style profile and wardrobe attributes.
 - Twilio SendGrid (US): password reset e-mails — e-mail address.
@@ -116,7 +114,7 @@ By applying to the data controller you can:
 
 ## 9. How to apply
 
-In line with the Communiqué on the Procedures and Principles of Application to the Data Controller, you can send your application to [CONTACT E-MAIL] from the e-mail address registered with Droblet, with a secure electronic or mobile signature, by registered electronic mail (KEP) to [KEP ADDRESS], or in writing to [COMPANY ADDRESS]. Your application must include your name, surname, Turkish ID number (if you are a Turkish citizen) or nationality and passport or ID number (if you are not), your address for notifications, your e-mail address if any, and the subject of your request.
+In line with the Communiqué on the Procedures and Principles of Application to the Data Controller, you can send your application to [CONTACT E-MAIL] from the e-mail address registered with Droblet, with a secure electronic or mobile signature, by registered electronic mail (KEP) to [KEP ADDRESS], or in writing to Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, United Kingdom. Your application must include your name, surname, Turkish ID number (if you are a Turkish citizen) or nationality and passport or ID number (if you are not), your address for notifications, your e-mail address if any, and the subject of your request.
 
 We resolve your application free of charge as soon as possible and within 30 days at the latest. If the action involves an additional cost, the fee in the Board's tariff may be charged. If your application is refused, you find the answer insufficient or we do not answer in time, you can complain to the Personal Data Protection Board within 30 days of learning the answer and in any case within 60 days of your application.
 

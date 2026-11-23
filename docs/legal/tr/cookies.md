@@ -2,13 +2,11 @@
 
 # Çerez Bildirimi
 
-> **Taslak — hukuk onayı bekliyor.** Bu metin kapsamlı bir taslaktır ve hukuk onayından önce bağlayıcı değildir. Köşeli parantez içindeki yerler (ör. [ŞİRKET ADRESİ]) henüz belirlenmemiş bilgilerdir.
->
-> Taslak tarihi: 19 Kasım 2026 · Yürürlük: [YÜRÜRLÜK TARİHİ]
+> Son güncelleme: 19 Kasım 2026 · Yürürlük: [YÜRÜRLÜK TARİHİ]
 
 Bu bildirim, droblet.alatech.co web sitesinde ve Droblet mobil uygulamasında çerezlerin ve benzeri teknolojilerin (tarayıcı depolama alanı, cihaz depolama alanı, izleme pikselleri) kullanımını anlatır.
 
-**Veri sorumlusu:** Droblet Ltd, [ŞİRKET ADRESİ], Londra, Birleşik Krallık · Şirket no. [ŞİRKET NUMARASI] · [İLETİŞİM E-POSTASI]
+**Veri sorumlusu:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık · Şirket no. 17100391 · [İLETİŞİM E-POSTASI]
 
 ## KISACA
 

@@ -2,13 +2,11 @@
 
 # Gizlilik Politikası
 
-> **Taslak — hukuk onayı bekliyor.** Bu metin kapsamlı bir taslaktır ve hukuk onayından önce bağlayıcı değildir. Köşeli parantez içindeki yerler (ör. [ŞİRKET ADRESİ]) henüz belirlenmemiş bilgilerdir.
->
-> Taslak tarihi: 19 Kasım 2026 · Yürürlük: [YÜRÜRLÜK TARİHİ]
+> Son güncelleme: 19 Kasım 2026 · Yürürlük: [YÜRÜRLÜK TARİHİ]
 
-Bu politika, Droblet mobil uygulamasını ve droblet.alatech.co web sitesini kullandığında kişisel verilerinin nasıl işlendiğini anlatır. Veri sorumlusu Droblet Ltd'dir (Londra, Birleşik Krallık). Politika Birleşik Krallık Genel Veri Koruma Tüzüğü (UK GDPR) ve 2018 Veri Koruma Kanunu'na göre hazırlanmıştır; Türkiye'deki kullanıcılar için 6698 sayılı KVKK kapsamındaki ayrıntılar ayrıca KVKK Aydınlatma Metni'nde yer alır.
+Bu politika, Droblet mobil uygulamasını ve droblet.alatech.co web sitesini kullandığında kişisel verilerinin nasıl işlendiğini anlatır. Veri sorumlusu Ala Tech Solutions LTD'dir (Londra, Birleşik Krallık). Politika Birleşik Krallık Genel Veri Koruma Tüzüğü (UK GDPR) ve 2018 Veri Koruma Kanunu'na göre hazırlanmıştır; Türkiye'deki kullanıcılar için 6698 sayılı KVKK kapsamındaki ayrıntılar ayrıca KVKK Aydınlatma Metni'nde yer alır.
 
-**Veri sorumlusu:** Droblet Ltd, [ŞİRKET ADRESİ], Londra, Birleşik Krallık · Şirket no. [ŞİRKET NUMARASI] · [İLETİŞİM E-POSTASI]
+**Veri sorumlusu:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık · Şirket no. 17100391 · [İLETİŞİM E-POSTASI]
 
 ## KISACA
 
@@ -23,7 +21,7 @@ Bu politika, Droblet mobil uygulamasını ve droblet.alatech.co web sitesini kul
 
 ## 1. Biz kimiz
 
-Veri sorumlusu: Droblet Ltd, [ŞİRKET ADRESİ], Londra, Birleşik Krallık; şirket no. [ŞİRKET NUMARASI]; Bilgi Komiserliği (ICO) kayıt no. [ICO KAYIT NUMARASI].
+Veri sorumlusu: Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık; şirket no. 17100391; Bilgi Komiserliği (ICO) kayıt no. [ICO KAYIT NUMARASI].
 
 Gizlilikle ilgili tüm sorular ve hak başvuruları için: [İLETİŞİM E-POSTASI]. Türkiye'deki veri sorumlusu temsilcimiz: [TÜRKİYE TEMSİLCİSİ].
 
@@ -262,4 +260,4 @@ Web sitemiz kendi kodu ile çerez yazmaz, tarayıcıda veri saklamaz ve analitik
 
 Bu politikayı güncelleyebiliriz. Önemli değişiklikleri yürürlükten önce uygulamada ya da e-postayla bildiririz; yeni bir işleme amacı rızanı gerektiriyorsa önce rızanı isteriz.
 
-Sorular ve başvurular: [İLETİŞİM E-POSTASI] · Droblet Ltd, [ŞİRKET ADRESİ], Londra, Birleşik Krallık.
+Sorular ve başvurular: [İLETİŞİM E-POSTASI] · Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık.

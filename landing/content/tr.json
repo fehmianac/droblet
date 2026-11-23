@@ -228,7 +228,7 @@
     }
   },
   "footer": {
-    "company": "Droblet Ltd",
+    "company": "Ala Tech Solutions LTD",
     "navAria": "Yasal ve iletişim",
     "terms": "Kullanım Koşulları",
     "privacy": "Gizlilik Politikası",
@@ -239,7 +239,10 @@
     "communityGuidelines": "Topluluk Kuralları",
     "deleteAccount": "Hesabımı sil",
     "contact": "İletişim",
-    "langAria": "Dil"
+    "langAria": "Dil",
+    "copyright": "© 2026 Ala Tech Solutions LTD",
+    "address": "Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, United Kingdom",
+    "registration": "Registered in England and Wales · Company no. 17100391"
   },
   "notFound": {
     "metaTitle": "Sayfa bulunamadı — Droblet",
@@ -249,21 +252,18 @@
     "cta": "Ana sayfaya dön"
   },
   "legal": {
-    "draftBadge": "TASLAK",
-    "draftTitle": "Taslak — hukuk onayı bekliyor",
-    "draftBody": "Bu metin kapsamlı bir taslaktır ve hukuk onayından önce bağlayıcı değildir. Köşeli parantez içindeki yerler (ör. [ŞİRKET ADRESİ]) henüz belirlenmemiş bilgilerdir.",
     "tocLabel": "İÇİNDEKİLER",
     "summaryLabel": "KISACA",
-    "versionLabel": "Taslak tarihi",
+    "versionLabel": "Son güncelleme",
     "version": "19 Kasım 2026 · Yürürlük: [YÜRÜRLÜK TARİHİ]",
     "controllerLabel": "Veri sorumlusu",
-    "controller": "Droblet Ltd, [ŞİRKET ADRESİ], Londra, Birleşik Krallık · Şirket no. [ŞİRKET NUMARASI] · [İLETİŞİM E-POSTASI]",
+    "controller": "Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık · Şirket no. 17100391 · [İLETİŞİM E-POSTASI]",
     "docs": {
       "terms": {
         "eyebrow": "YASAL",
         "title": "Kullanım Koşulları",
-        "description": "Droblet mobil uygulamasının ve droblet.alatech.co web sitesinin kullanım koşulları — taslak, hukuk onayı bekliyor.",
-        "intro": "Bu koşullar, Droblet mobil uygulamasını ve droblet.alatech.co web sitesini (birlikte “Hizmet”) kullanman için seninle Droblet Ltd (“Droblet”, “biz”) arasındaki sözleşmedir. Hesap oluşturarak ya da Hizmet'i kullanarak bu koşulları, Gizlilik Politikası'nı, Abonelik Koşulları'nı ve Topluluk Kuralları'nı kabul etmiş olursun.",
+        "description": "Droblet mobil uygulamasının ve droblet.alatech.co web sitesinin kullanım koşulları.",
+        "intro": "Bu koşullar, Droblet mobil uygulamasını ve droblet.alatech.co web sitesini (birlikte “Hizmet”) kullanman için seninle Ala Tech Solutions LTD (“Droblet”, “biz”) arasındaki sözleşmedir. Hesap oluşturarak ya da Hizmet'i kullanarak bu koşulları, Gizlilik Politikası'nı, Abonelik Koşulları'nı ve Topluluk Kuralları'nı kabul etmiş olursun.",
         "summary": [
           "Droblet'i kullanmak için 18 yaşını doldurmuş olmalısın.",
           "Yüklediğin fotoğraflar ve senin için üretilen görseller senindir ve yalnızca sana açıktır; istediğin an silebilirsin.",
@@ -277,7 +277,7 @@
           {
             "heading": "Taraflar ve sözleşmenin kapsamı",
             "paragraphs": [
-              "Hizmet'i, İngiltere ve Galler'de kurulu Droblet Ltd (şirket no. [ŞİRKET NUMARASI], adres: [ŞİRKET ADRESİ], Londra, Birleşik Krallık) sunar. Bize [İLETİŞİM E-POSTASI] adresinden ulaşabilirsin.",
+              "Hizmet'i, İngiltere ve Galler'de kurulu Ala Tech Solutions LTD (şirket no. 17100391, adres: Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık) sunar. Bize [İLETİŞİM E-POSTASI] adresinden ulaşabilirsin.",
               "Bu sözleşme şu belgelerden oluşur: bu Kullanım Koşulları, Abonelik Koşulları (Droblet Üyelik ve ek kredi paketleri için) ve Topluluk Kuralları. Kişisel verilerinin nasıl işlendiğini Gizlilik Politikası ve KVKK Aydınlatma Metni anlatır; bunlar sözleşme değil, bilgilendirme metnidir.",
               "Bu koşullar ile mağaza (App Store, Google Play) koşulları arasında ödeme, faturalama ve iade konusunda bir fark olursa o konuda mağazanın koşulları geçerlidir."
             ]
@@ -438,7 +438,7 @@
           {
             "heading": "İletişim",
             "paragraphs": [
-              "Sorular, şikâyetler ve bildirimler için: [İLETİŞİM E-POSTASI] · Droblet Ltd, [ŞİRKET ADRESİ], Londra, Birleşik Krallık.",
+              "Sorular, şikâyetler ve bildirimler için: [İLETİŞİM E-POSTASI] · Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık.",
               "Hesabını silmek için: uygulamada Profil › Ayarlar › Hesabımı sil ya da droblet.alatech.co/delete-account."
             ]
           }
@@ -447,8 +447,8 @@
       "privacy": {
         "eyebrow": "YASAL",
         "title": "Gizlilik Politikası",
-        "description": "Droblet'in kişisel verileri nasıl işlediği: hangi veriler, ne amaçla, kimlerle, ne kadar süre ve hakların — taslak, hukuk onayı bekliyor.",
-        "intro": "Bu politika, Droblet mobil uygulamasını ve droblet.alatech.co web sitesini kullandığında kişisel verilerinin nasıl işlendiğini anlatır. Veri sorumlusu Droblet Ltd'dir (Londra, Birleşik Krallık). Politika Birleşik Krallık Genel Veri Koruma Tüzüğü (UK GDPR) ve 2018 Veri Koruma Kanunu'na göre hazırlanmıştır; Türkiye'deki kullanıcılar için 6698 sayılı KVKK kapsamındaki ayrıntılar ayrıca KVKK Aydınlatma Metni'nde yer alır.",
+        "description": "Droblet'in kişisel verileri nasıl işlediği: hangi veriler, ne amaçla, kimlerle, ne kadar süre ve hakların.",
+        "intro": "Bu politika, Droblet mobil uygulamasını ve droblet.alatech.co web sitesini kullandığında kişisel verilerinin nasıl işlendiğini anlatır. Veri sorumlusu Ala Tech Solutions LTD'dir (Londra, Birleşik Krallık). Politika Birleşik Krallık Genel Veri Koruma Tüzüğü (UK GDPR) ve 2018 Veri Koruma Kanunu'na göre hazırlanmıştır; Türkiye'deki kullanıcılar için 6698 sayılı KVKK kapsamındaki ayrıntılar ayrıca KVKK Aydınlatma Metni'nde yer alır.",
         "summary": [
           "Boy fotoğrafın, yüz fotoğrafın ve senin üzerinde üretilen görseller yalnızca sana açıktır ve hiçbir ayarda başkasına gösterilmez.",
           "Bu fotoğrafları ve üretilen görselleri Profil › Gizlilik'ten, hesabını silmeden de istediğin an silebilirsin.",
@@ -463,7 +463,7 @@
           {
             "heading": "Biz kimiz",
             "paragraphs": [
-              "Veri sorumlusu: Droblet Ltd, [ŞİRKET ADRESİ], Londra, Birleşik Krallık; şirket no. [ŞİRKET NUMARASI]; Bilgi Komiserliği (ICO) kayıt no. [ICO KAYIT NUMARASI].",
+              "Veri sorumlusu: Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık; şirket no. 17100391; Bilgi Komiserliği (ICO) kayıt no. [ICO KAYIT NUMARASI].",
               "Gizlilikle ilgili tüm sorular ve hak başvuruları için: [İLETİŞİM E-POSTASI]. Türkiye'deki veri sorumlusu temsilcimiz: [TÜRKİYE TEMSİLCİSİ]."
             ]
           },
@@ -692,7 +692,7 @@
             "heading": "Değişiklikler ve iletişim",
             "paragraphs": [
               "Bu politikayı güncelleyebiliriz. Önemli değişiklikleri yürürlükten önce uygulamada ya da e-postayla bildiririz; yeni bir işleme amacı rızanı gerektiriyorsa önce rızanı isteriz.",
-              "Sorular ve başvurular: [İLETİŞİM E-POSTASI] · Droblet Ltd, [ŞİRKET ADRESİ], Londra, Birleşik Krallık."
+              "Sorular ve başvurular: [İLETİŞİM E-POSTASI] · Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık."
             ]
           }
         ]
@@ -700,10 +700,10 @@
       "kvkk": {
         "eyebrow": "YASAL",
         "title": "KVKK Aydınlatma Metni",
-        "description": "6698 sayılı Kişisel Verilerin Korunması Kanunu m. 10 uyarınca Droblet kullanıcılarına yönelik aydınlatma metni — taslak, hukuk onayı bekliyor.",
+        "description": "6698 sayılı Kişisel Verilerin Korunması Kanunu m. 10 uyarınca Droblet kullanıcılarına yönelik aydınlatma metni.",
         "intro": "Bu metin, 6698 sayılı Kişisel Verilerin Korunması Kanunu (“KVKK”) m. 10 ve Aydınlatma Yükümlülüğünün Yerine Getirilmesinde Uyulacak Usul ve Esaslar Hakkında Tebliğ uyarınca, Droblet mobil uygulamasını ve droblet.alatech.co web sitesini kullananları bilgilendirmek için hazırlanmıştır. Bu metnin aslı Türkçedir. Açık rızanı gerektiren işlemler için ayrı açık rıza metinleri kullanılır; bu aydınlatma metni bir rıza beyanı değildir.",
         "summary": [
-          "Veri sorumlusu Londra'da kurulu Droblet Ltd'dir; Türkiye'deki temsilcisi [TÜRKİYE TEMSİLCİSİ].",
+          "Veri sorumlusu Londra'da kurulu Ala Tech Solutions LTD'dir; Türkiye'deki temsilcisi [TÜRKİYE TEMSİLCİSİ].",
           "Hesap, profil, gardırop, fotoğraf, beden, sosyal, alışveriş, üyelik ve güvenlik verilerini Hizmet'i sunmak için işleriz.",
           "Boy ve yüz fotoğrafının yapay zekâ ile işlenmesi, kilo, rehberden arkadaş bulma ve pazarlama bildirimleri için açık rızana dayanırız.",
           "Veriler AWS (Almanya) sunucularında saklanır; yapay zekâ işlemleri için OpenAI'ye (ABD) aktarılır.",
@@ -713,7 +713,7 @@
           {
             "heading": "Veri sorumlusu ve temsilcisi",
             "paragraphs": [
-              "Veri sorumlusu: Droblet Ltd, [ŞİRKET ADRESİ], Londra, Birleşik Krallık (şirket no. [ŞİRKET NUMARASI]). E-posta: [İLETİŞİM E-POSTASI]. KEP adresi: [KEP ADRESİ].",
+              "Veri sorumlusu: Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık (şirket no. 17100391). E-posta: [İLETİŞİM E-POSTASI]. KEP adresi: [KEP ADRESİ].",
               "Veri sorumlusu temsilcisi (Türkiye): [TÜRKİYE TEMSİLCİSİ].",
               "Veri Sorumluları Sicili (VERBİS) kaydı: [VERBİS KAYIT DURUMU]."
             ]
@@ -776,7 +776,7 @@
             "paragraphs": [
               "Yurt içi: Markaya gittiğinde satış ortaklığı ağı Gelir Ortakları (ReklamAction) ve doğrudan anlaşmalı markalarla yalnızca adını ve e-postanı içermeyen tıklama kimliği paylaşılır. Hukuken zorunlu olduğunda yetkili kamu kurum ve kuruluşlarına ve yargı mercilerine aktarım yapılabilir.",
               "Yurt dışı: Hizmet'in sunulması için kişisel verilerin şu alıcılara aktarılır:",
-              "- Droblet Ltd (Birleşik Krallık): veri sorumlusu olarak Hizmet'in sunulması.",
+              "- Ala Tech Solutions LTD (Birleşik Krallık): veri sorumlusu olarak Hizmet'in sunulması.",
               "- Amazon Web Services (Almanya, Frankfurt): sunucu, veritabanı ve fotoğraf depolama.",
               "- OpenAI (ABD): yapay zekâ işlemleri — parça ve kombin fotoğrafları, açık rızan varsa boy ve yüz fotoğrafı, stil profili ve gardırop özellikleri.",
               "- Twilio SendGrid (ABD): şifre sıfırlama e-postaları — e-posta adresi.",
@@ -815,7 +815,7 @@
           {
             "heading": "Başvuru yöntemi",
             "paragraphs": [
-              "Başvurunu Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ'e uygun olarak; Droblet'e kayıtlı e-posta adresinden [İLETİŞİM E-POSTASI] adresine, güvenli elektronik imza veya mobil imzayla, kayıtlı elektronik posta (KEP) yoluyla [KEP ADRESİ] adresine ya da yazılı olarak [ŞİRKET ADRESİ] adresine iletebilirsin. Başvuruda adını, soyadını, (Türk vatandaşıysan) T.C. kimlik numaranı ya da (yabancıysan) uyruğunu ve pasaport veya kimlik numaranı, tebligata esas adresini, varsa e-posta adresini ve talebinin konusunu belirtmelisin.",
+              "Başvurunu Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ'e uygun olarak; Droblet'e kayıtlı e-posta adresinden [İLETİŞİM E-POSTASI] adresine, güvenli elektronik imza veya mobil imzayla, kayıtlı elektronik posta (KEP) yoluyla [KEP ADRESİ] adresine ya da yazılı olarak Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık adresine iletebilirsin. Başvuruda adını, soyadını, (Türk vatandaşıysan) T.C. kimlik numaranı ya da (yabancıysan) uyruğunu ve pasaport veya kimlik numaranı, tebligata esas adresini, varsa e-posta adresini ve talebinin konusunu belirtmelisin.",
               "Başvurunu niteliğine göre en kısa sürede ve en geç 30 gün içinde ücretsiz olarak sonuçlandırırız. İşlemin ayrıca bir maliyet gerektirmesi hâlinde Kurul'ca belirlenen tarifedeki ücret alınabilir. Başvurun reddedilirse, yanıtı yetersiz bulursan ya da süresinde yanıt verilmezse, yanıtı öğrendiğin tarihten itibaren 30 gün ve her hâlükârda başvuru tarihinden itibaren 60 gün içinde Kişisel Verileri Koruma Kurulu'na şikâyette bulunabilirsin.",
               "Verilerinin büyük bölümünü uygulamada kendin görebilir, düzeltebilir ve silebilirsin: fotoğraflar için Profil › Gizlilik, hesabın için Profil › Ayarlar › Hesabımı sil ya da droblet.alatech.co/delete-account.",
               "Verilerinin işlenip işlenmediğini öğrenmek ve bir kopyasını almak için başvuru yapmana gerek yok: Profil › Ayarlar › Gizlilik › “Verilerimi indir” ile tüm kayıtlarının (JSON) ve görsellerinin yer aldığı bir ZIP dosyası genellikle birkaç dakika içinde hazırlanır; indirme bağlantısı kayıtlı e-posta adresine ve Bildirimler'e gelir ve 7 gün geçerlidir. Günde bir kopya istenebilir. Bu yol, yukarıdaki başvuru yollarına ek bir kolaylıktır; dilersen yine yazılı başvuru yapabilirsin."
@@ -832,7 +832,7 @@
       "consents": {
         "eyebrow": "YASAL",
         "title": "Açık Rıza Metinleri",
-        "description": "Droblet uygulamasının gösterdiği ayrı açık rıza metinleri: fotoğraf ve yapay zekâ (yüz fotoğrafıyla “Üzerimde gör” dahil), kilo, rehber, pazarlama bildirimleri, yurt dışına aktarım — taslak, hukuk onayı bekliyor.",
+        "description": "Droblet uygulamasının gösterdiği ayrı açık rıza metinleri: fotoğraf ve yapay zekâ (yüz fotoğrafıyla “Üzerimde gör” dahil), kilo, rehber, pazarlama bildirimleri, yurt dışına aktarım.",
         "intro": "Aşağıdaki metinler, uygulamaya kayıt olurken tek bir ekranda bir arada gösterilir; her birinin ayrı ve işaretlenmemiş bir onay kutusu vardır. Her biri isteğe bağlıdır ve yalnızca kendi konusunu kapsar. Bir rızayı o ekranda vermediysen ilgili özelliği ilk kullandığında yeniden sorulur. Bu sayfa, verdiğin ya da vermediğin rızaları sonradan okuyabilmen için hepsini bir arada sunar. Kişisel verilerinin işlenmesine ilişkin genel bilgiler KVKK Aydınlatma Metni'nde ve Gizlilik Politikası'ndadır.",
         "summary": [
           "Rıza vermek zorunda değilsin; vermezsen yalnızca ilgili özellik çalışmaz, Droblet'in geri kalanını aynen kullanırsın.",
@@ -854,10 +854,10 @@
             "paragraphs": [
               "Ne için: Kombinleri ve mağaza ürünlerini senin üzerinde gösteren görselleri (“Üzerimde gör”) üretmek.",
               "Hangi veriler: Yüklediğin boy (tam boy) fotoğrafı ve bu fotoğraftan üretilen görseller. Fotoğrafın konum ve cihaz bilgisi yüklemeden sonraki ilk işlemde silinir.",
-              "Kim işler ve nerede: Droblet Ltd; fotoğraf AWS'nin Frankfurt (Almanya) sunucularında saklanır ve görsel üretmek için OpenAI'ye (ABD) gönderilir.",
+              "Kim işler ve nerede: Ala Tech Solutions LTD; fotoğraf AWS'nin Frankfurt (Almanya) sunucularında saklanır ve görsel üretmek için OpenAI'ye (ABD) gönderilir.",
               "Ne kadar: Fotoğrafı ya da üretilen görselleri silene veya hesabını silene kadar. Fotoğraf ve görseller hiçbir ayarda başka kullanıcılara gösterilmez.",
               "Vermezsen: “Üzerimde gör” özelliğini kullanamazsın; gardırop, look, stilist ve diğer özellikler çalışmaya devam eder.",
-              "Onay metni: “Boy fotoğrafımın, ‘Üzerimde gör’ görsellerini üretmek amacıyla Droblet Ltd tarafından işlenmesine ve bu amaçla AWS (Almanya) ile OpenAI'ye (ABD) aktarılmasına açık rıza veriyorum.”"
+              "Onay metni: “Boy fotoğrafımın, ‘Üzerimde gör’ görsellerini üretmek amacıyla Ala Tech Solutions LTD tarafından işlenmesine ve bu amaçla AWS (Almanya) ile OpenAI'ye (ABD) aktarılmasına açık rıza veriyorum.”"
             ]
           },
           {
@@ -865,10 +865,10 @@
             "paragraphs": [
               "Ne için: Yüz fotoğrafındaki ten, saç ve göz renklerine bakarak sana uyan renk sezonunu ve tonları belirlemek (renk paleti analizi).",
               "Hangi veriler: Yüklediğin yüz fotoğrafı ve ondan çıkarılan palet sonucu (sezon tipi, uyan ve kaçınılacak tonlar). Kimlik tespiti, doğrulama ya da yüz tanıma yapılmaz; seni benzersiz biçimde tanımlayan bir yüz şablonu çıkarılmaz ve saklanmaz.",
-              "Kim işler ve nerede: Droblet Ltd; fotoğraf AWS'nin Frankfurt (Almanya) sunucularında saklanır ve analiz için OpenAI'ye (ABD) gönderilir.",
+              "Kim işler ve nerede: Ala Tech Solutions LTD; fotoğraf AWS'nin Frankfurt (Almanya) sunucularında saklanır ve analiz için OpenAI'ye (ABD) gönderilir.",
               "Ne kadar: Fotoğrafı silene veya hesabını silene kadar. Yüz fotoğrafını sildiğinde palet sonucu da silinir. Fotoğraf ve palet hiçbir ayarda başka kullanıcılara gösterilmez.",
               "Vermezsen: Renk paleti analizini kullanamazsın; diğer özellikler çalışmaya devam eder.",
-              "Onay metni: “Yüz fotoğrafımın, yalnızca renk paleti analizi amacıyla ve kimlik tespiti yapılmaksızın Droblet Ltd tarafından işlenmesine ve bu amaçla AWS (Almanya) ile OpenAI'ye (ABD) aktarılmasına açık rıza veriyorum.”"
+              "Onay metni: “Yüz fotoğrafımın, yalnızca renk paleti analizi amacıyla ve kimlik tespiti yapılmaksızın Ala Tech Solutions LTD tarafından işlenmesine ve bu amaçla AWS (Almanya) ile OpenAI'ye (ABD) aktarılmasına açık rıza veriyorum.”"
             ]
           },
           {
@@ -876,10 +876,10 @@
             "paragraphs": [
               "Ne için: Beden profilini tamamlamak. Kilo bilgisi isteğe bağlıdır.",
               "Hangi veriler: Girdiğin kilo. Kilo bilgisi yapay zekâ sağlayıcısına gönderilmez ve başka kullanıcılara gösterilmez.",
-              "Kim işler ve nerede: Droblet Ltd; AWS'nin Frankfurt (Almanya) sunucularında saklanır.",
+              "Kim işler ve nerede: Ala Tech Solutions LTD; AWS'nin Frankfurt (Almanya) sunucularında saklanır.",
               "Ne kadar: Bilgiyi silene ya da hesabını silene kadar.",
               "Vermezsen: Kilo alanını boş bırakırsın; hiçbir özellik etkilenmez.",
-              "Onay metni: “Kilo bilgimin, beden profilimin bir parçası olarak Droblet Ltd tarafından saklanmasına açık rıza veriyorum.”"
+              "Onay metni: “Kilo bilgimin, beden profilimin bir parçası olarak Ala Tech Solutions LTD tarafından saklanmasına açık rıza veriyorum.”"
             ]
           },
           {
@@ -887,10 +887,10 @@
             "paragraphs": [
               "Ne için: Rehberindeki kişilerden Droblet kullananları bulmak.",
               "Hangi veriler: Rehberindeki e-posta adresleri telefonunda, her istekte değişen tek kullanımlık bir tuzla SHA-256 karmasına dönüştürülür; yalnızca bu karmalar gönderilir. Adlar, telefon numaraları ve e-posta adreslerinin kendisi telefonundan çıkmaz.",
-              "Kim işler ve nerede: Droblet Ltd; karmalar AWS'nin Frankfurt (Almanya) sunucularında yalnızca eşleştirme süresince bellekte tutulur.",
+              "Kim işler ve nerede: Ala Tech Solutions LTD; karmalar AWS'nin Frankfurt (Almanya) sunucularında yalnızca eşleştirme süresince bellekte tutulur.",
               "Ne kadar: Karmalar kaydedilmez ve loglanmaz; tuz kullanıldıktan sonra silinir ve en geç 10 dakikada geçersiz olur.",
               "Vermezsen: Telefonun rehber izni hiç sorulmaz; arkadaşlarını kullanıcı adıyla arayarak ya da davet bağlantısıyla bulabilirsin.",
-              "Onay metni: “Rehberimdeki e-posta adreslerinin telefonumda karma değerlere dönüştürülerek, Droblet'teki arkadaşlarımı bulmak amacıyla Droblet Ltd'ye gönderilmesine açık rıza veriyorum.”"
+              "Onay metni: “Rehberimdeki e-posta adreslerinin telefonumda karma değerlere dönüştürülerek, Droblet'teki arkadaşlarımı bulmak amacıyla Ala Tech Solutions LTD'ye gönderilmesine açık rıza veriyorum.”"
             ]
           },
           {
@@ -898,7 +898,7 @@
             "paragraphs": [
               "Ne için: Haftanın edit'i (editörün seçtiği look'lar ve ürünler) ve izleme listendeki ürünlerde fiyat düşüşü gibi ürün ve kampanya içerebilen bildirimleri göndermek.",
               "Hangi veriler: Bildirim tercihlerin, cihazının bildirim anahtarı, dil ve saat dilimin, izleme listen.",
-              "Kim işler ve nerede: Droblet Ltd; bildirimler iOS'ta Apple Push Notification service, Android'de Google Firebase Cloud Messaging (ABD) üzerinden iletilir.",
+              "Kim işler ve nerede: Ala Tech Solutions LTD; bildirimler iOS'ta Apple Push Notification service, Android'de Google Firebase Cloud Messaging (ABD) üzerinden iletilir.",
               "Ne kadar: Rızanı geri alana ya da hesabını silene kadar.",
               "Vermezsen: Bu bildirimler gönderilmez. Sabah kombin hatırlatması ve takip isteği gibi hizmet bildirimleri bu rızadan bağımsızdır ve ayrı ayrı kapatılabilir.",
               "Onay metni: “Haftanın edit'i ve fiyat düşüşü gibi ürün ve kampanya içerebilen bildirimlerin tarafıma gönderilmesine onay veriyorum.” [HUKUK ONAYI: 6563 sayılı Kanun ve İYS kapsamı]"
@@ -908,7 +908,7 @@
             "heading": "Açık rıza 6 — Yurt dışına aktarım",
             "paragraphs": [
               "Ne için: Droblet'in Birleşik Krallık'ta kurulu olması ve hizmet sağlayıcılarının yurt dışında bulunması nedeniyle, Hizmet'in sunulması için kişisel verilerinin Türkiye dışına aktarılması.",
-              "Hangi veriler ve alıcılar: Hesap, profil, gardırop ve kullanım verilerin Droblet Ltd'ye (Birleşik Krallık) ve AWS'ye (Almanya); yapay zekâ işlemleri için fotoğrafların ve gardırop özelliklerin OpenAI'ye (ABD); e-posta adresin Twilio SendGrid'e (ABD); bildirim anahtarın Apple ve Google'a (ABD).",
+              "Hangi veriler ve alıcılar: Hesap, profil, gardırop ve kullanım verilerin Ala Tech Solutions LTD'ye (Birleşik Krallık) ve AWS'ye (Almanya); yapay zekâ işlemleri için fotoğrafların ve gardırop özelliklerin OpenAI'ye (ABD); e-posta adresin Twilio SendGrid'e (ABD); bildirim anahtarın Apple ve Google'a (ABD).",
               "Dayanak: Bu aktarımlar öncelikle KVKK m. 9'daki uygun güvencelere (ör. standart sözleşme) dayanır. Bu rıza, söz konusu güvencelerin bulunmadığı arızi aktarımlar için KVKK m. 9/6-a kapsamında istenir. [HUKUK ONAYI: bu rızanın gerekliliği ve kapsamı]",
               "Ne kadar: Rızanı geri alana ya da hesabını silene kadar.",
               "Vermezsen ya da geri alırsan: Uygun güvencesi olmayan aktarımlar yapılmaz; buna bağlı özellikler (ör. yapay zekâ) kullanılamayabilir.",
@@ -920,10 +920,10 @@
             "paragraphs": [
               "Ne için: Boy fotoğrafın yokken, yüz fotoğrafını seçtiğin vücut tipi, boyun ve bedeninle birlikte kullanarak senin figürünü oluşturmak ve kombinleri bu figür üzerinde gösteren görselleri (“Üzerimde gör”) üretmek.",
               "Hangi veriler: Yüklediğin yüz fotoğrafı, seçtiğin vücut tipi, boy ve beden bilgin ve bunlardan üretilen görseller. Kilo bilgin kullanılmaz. Kimlik tespiti, doğrulama ya da yüz tanıma yapılmaz; seni benzersiz biçimde tanımlayan bir yüz şablonu çıkarılmaz ve saklanmaz.",
-              "Kim işler ve nerede: Droblet Ltd; fotoğraf AWS'nin Frankfurt (Almanya) sunucularında saklanır ve görsel üretmek için OpenAI'ye (ABD) gönderilir.",
+              "Kim işler ve nerede: Ala Tech Solutions LTD; fotoğraf AWS'nin Frankfurt (Almanya) sunucularında saklanır ve görsel üretmek için OpenAI'ye (ABD) gönderilir.",
               "Ne kadar: Yüz fotoğrafını ya da üretilen görselleri silene veya hesabını silene kadar. Fotoğraf ve görseller hiçbir ayarda başka kullanıcılara gösterilmez.",
               "Vermezsen: Boy fotoğrafı olmadan “Üzerimde gör”ü kullanamazsın; boy fotoğrafı ekleyerek kullanabilirsin. Renk paleti analizi bu rızadan bağımsızdır.",
-              "Onay metni: “Yüz fotoğrafımın; vücut tipim, boyum ve bedenimle birlikte ‘Üzerimde gör’ görsellerini üretmek amacıyla, kimlik tespiti yapılmaksızın Droblet Ltd tarafından işlenmesine ve bu amaçla AWS (Almanya) ile OpenAI'ye (ABD) aktarılmasına açık rıza veriyorum.” [HUKUK ONAYI: yeni amaç — yüz fotoğrafından figür üretimi]"
+              "Onay metni: “Yüz fotoğrafımın; vücut tipim, boyum ve bedenimle birlikte ‘Üzerimde gör’ görsellerini üretmek amacıyla, kimlik tespiti yapılmaksızın Ala Tech Solutions LTD tarafından işlenmesine ve bu amaçla AWS (Almanya) ile OpenAI'ye (ABD) aktarılmasına açık rıza veriyorum.” [HUKUK ONAYI: yeni amaç — yüz fotoğrafından figür üretimi]"
             ]
           },
           {
@@ -943,7 +943,7 @@
       "subscriptionTerms": {
         "eyebrow": "YASAL",
         "title": "Abonelik Koşulları",
-        "description": "Droblet Üyelik ve ek AI görseli paketleri: kapsam, fiyat, ücretsiz deneme, otomatik yenileme, iptal, iade ve cayma hakkı — taslak, hukuk onayı bekliyor.",
+        "description": "Droblet Üyelik ve ek AI görseli paketleri: kapsam, fiyat, ücretsiz deneme, otomatik yenileme, iptal, iade ve cayma hakkı.",
         "intro": "Bu koşullar Droblet Üyelik aboneliğini ve ek AI görseli paketlerini düzenler ve Kullanım Koşulları'nın bir parçasıdır. Satın almalar App Store ya da Google Play üzerinden yapılır; ödeme, faturalama ve iade ilgili mağazanın koşullarına da tabidir.",
         "summary": [
           "Droblet Üyelik aylık ya da yıllıktır; güncel fiyat ve varsa ücretsiz deneme süresi satın almadan önce mağazada gösterilir.",
@@ -1072,7 +1072,7 @@
       "cookies": {
         "eyebrow": "YASAL",
         "title": "Çerez Bildirimi",
-        "description": "droblet.alatech.co web sitesinde ve Droblet uygulamasında çerez ve benzeri teknolojilerin kullanımı — taslak, hukuk onayı bekliyor.",
+        "description": "droblet.alatech.co web sitesinde ve Droblet uygulamasında çerez ve benzeri teknolojilerin kullanımı.",
         "intro": "Bu bildirim, droblet.alatech.co web sitesinde ve Droblet mobil uygulamasında çerezlerin ve benzeri teknolojilerin (tarayıcı depolama alanı, cihaz depolama alanı, izleme pikselleri) kullanımını anlatır.",
         "summary": [
           "Web sitemizin kendi kodu çerez yazmaz ve tarayıcına hiçbir veri kaydetmez.",
@@ -1140,7 +1140,7 @@
       "communityGuidelines": {
         "eyebrow": "YASAL",
         "title": "Topluluk Kuralları",
-        "description": "Droblet'te parça, look, profil ve puanlar için topluluk kuralları; şikâyet, engelleme ve moderasyon — taslak, hukuk onayı bekliyor.",
+        "description": "Droblet'te parça, look, profil ve puanlar için topluluk kuralları; şikâyet, engelleme ve moderasyon.",
         "intro": "Droblet'te arkadaşlarının dolaplarına göz atabilir, look'larını puanlayabilir, onlardan ilham alabilirsin. Bu kurallar, herkesin kendini güvende ve rahat hissettiği bir topluluk için var. Kullanım Koşulları'nın bir parçasıdır.",
         "summary": [
           "Yalnızca kendi kıyafetlerini ve kendi look'larını paylaş; başkalarının fotoğrafını yükleme.",

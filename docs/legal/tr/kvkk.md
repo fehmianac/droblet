@@ -2,17 +2,15 @@
 
 # KVKK Aydınlatma Metni
 
-> **Taslak — hukuk onayı bekliyor.** Bu metin kapsamlı bir taslaktır ve hukuk onayından önce bağlayıcı değildir. Köşeli parantez içindeki yerler (ör. [ŞİRKET ADRESİ]) henüz belirlenmemiş bilgilerdir.
->
-> Taslak tarihi: 19 Kasım 2026 · Yürürlük: [YÜRÜRLÜK TARİHİ]
+> Son güncelleme: 19 Kasım 2026 · Yürürlük: [YÜRÜRLÜK TARİHİ]
 
 Bu metin, 6698 sayılı Kişisel Verilerin Korunması Kanunu (“KVKK”) m. 10 ve Aydınlatma Yükümlülüğünün Yerine Getirilmesinde Uyulacak Usul ve Esaslar Hakkında Tebliğ uyarınca, Droblet mobil uygulamasını ve droblet.alatech.co web sitesini kullananları bilgilendirmek için hazırlanmıştır. Bu metnin aslı Türkçedir. Açık rızanı gerektiren işlemler için ayrı açık rıza metinleri kullanılır; bu aydınlatma metni bir rıza beyanı değildir.
 
-**Veri sorumlusu:** Droblet Ltd, [ŞİRKET ADRESİ], Londra, Birleşik Krallık · Şirket no. [ŞİRKET NUMARASI] · [İLETİŞİM E-POSTASI]
+**Veri sorumlusu:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık · Şirket no. 17100391 · [İLETİŞİM E-POSTASI]
 
 ## KISACA
 
-- Veri sorumlusu Londra'da kurulu Droblet Ltd'dir; Türkiye'deki temsilcisi [TÜRKİYE TEMSİLCİSİ].
+- Veri sorumlusu Londra'da kurulu Ala Tech Solutions LTD'dir; Türkiye'deki temsilcisi [TÜRKİYE TEMSİLCİSİ].
 - Hesap, profil, gardırop, fotoğraf, beden, sosyal, alışveriş, üyelik ve güvenlik verilerini Hizmet'i sunmak için işleriz.
 - Boy ve yüz fotoğrafının yapay zekâ ile işlenmesi, kilo, rehberden arkadaş bulma ve pazarlama bildirimleri için açık rızana dayanırız.
 - Veriler AWS (Almanya) sunucularında saklanır; yapay zekâ işlemleri için OpenAI'ye (ABD) aktarılır.
@@ -20,7 +18,7 @@ Bu metin, 6698 sayılı Kişisel Verilerin Korunması Kanunu (“KVKK”) m. 10 
 
 ## 1. Veri sorumlusu ve temsilcisi
 
-Veri sorumlusu: Droblet Ltd, [ŞİRKET ADRESİ], Londra, Birleşik Krallık (şirket no. [ŞİRKET NUMARASI]). E-posta: [İLETİŞİM E-POSTASI]. KEP adresi: [KEP ADRESİ].
+Veri sorumlusu: Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık (şirket no. 17100391). E-posta: [İLETİŞİM E-POSTASI]. KEP adresi: [KEP ADRESİ].
 
 Veri sorumlusu temsilcisi (Türkiye): [TÜRKİYE TEMSİLCİSİ].
 
@@ -78,7 +76,7 @@ Yurt içi: Markaya gittiğinde satış ortaklığı ağı Gelir Ortakları (Rekl
 
 Yurt dışı: Hizmet'in sunulması için kişisel verilerin şu alıcılara aktarılır:
 
-- Droblet Ltd (Birleşik Krallık): veri sorumlusu olarak Hizmet'in sunulması.
+- Ala Tech Solutions LTD (Birleşik Krallık): veri sorumlusu olarak Hizmet'in sunulması.
 - Amazon Web Services (Almanya, Frankfurt): sunucu, veritabanı ve fotoğraf depolama.
 - OpenAI (ABD): yapay zekâ işlemleri — parça ve kombin fotoğrafları, açık rızan varsa boy ve yüz fotoğrafı, stil profili ve gardırop özellikleri.
 - Twilio SendGrid (ABD): şifre sıfırlama e-postaları — e-posta adresi.
@@ -116,7 +114,7 @@ Veri sorumlusuna başvurarak şu haklarını kullanabilirsin:
 
 ## 9. Başvuru yöntemi
 
-Başvurunu Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ'e uygun olarak; Droblet'e kayıtlı e-posta adresinden [İLETİŞİM E-POSTASI] adresine, güvenli elektronik imza veya mobil imzayla, kayıtlı elektronik posta (KEP) yoluyla [KEP ADRESİ] adresine ya da yazılı olarak [ŞİRKET ADRESİ] adresine iletebilirsin. Başvuruda adını, soyadını, (Türk vatandaşıysan) T.C. kimlik numaranı ya da (yabancıysan) uyruğunu ve pasaport veya kimlik numaranı, tebligata esas adresini, varsa e-posta adresini ve talebinin konusunu belirtmelisin.
+Başvurunu Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ'e uygun olarak; Droblet'e kayıtlı e-posta adresinden [İLETİŞİM E-POSTASI] adresine, güvenli elektronik imza veya mobil imzayla, kayıtlı elektronik posta (KEP) yoluyla [KEP ADRESİ] adresine ya da yazılı olarak Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, Birleşik Krallık adresine iletebilirsin. Başvuruda adını, soyadını, (Türk vatandaşıysan) T.C. kimlik numaranı ya da (yabancıysan) uyruğunu ve pasaport veya kimlik numaranı, tebligata esas adresini, varsa e-posta adresini ve talebinin konusunu belirtmelisin.
 
 Başvurunu niteliğine göre en kısa sürede ve en geç 30 gün içinde ücretsiz olarak sonuçlandırırız. İşlemin ayrıca bir maliyet gerektirmesi hâlinde Kurul'ca belirlenen tarifedeki ücret alınabilir. Başvurun reddedilirse, yanıtı yetersiz bulursan ya da süresinde yanıt verilmezse, yanıtı öğrendiğin tarihten itibaren 30 gün ve her hâlükârda başvuru tarihinden itibaren 60 gün içinde Kişisel Verileri Koruma Kurulu'na şikâyette bulunabilirsin.
 

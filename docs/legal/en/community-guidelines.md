@@ -2,13 +2,11 @@
 
 # Community Guidelines
 
-> **Draft — pending legal review.** This text is a comprehensive draft and is not binding until it has been legally reviewed. Words in square brackets (e.g. [COMPANY ADDRESS]) are details that have not been decided yet.
->
-> Draft date: 19 November 2026 · Effective: [EFFECTIVE DATE]
+> Last updated: 19 November 2026 · Effective: [EFFECTIVE DATE]
 
 On Droblet you can browse your friends' closets, rate their looks and take inspiration from them. These guidelines exist so that everyone feels safe and comfortable in the community. They form part of the Terms of Use.
 
-**Data controller:** Droblet Ltd, [COMPANY ADDRESS], London, United Kingdom · Company no. [COMPANY NUMBER] · [CONTACT E-MAIL]
+**Data controller:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, United Kingdom · Company no. 17100391 · [CONTACT E-MAIL]
 
 ## IN SHORT
 

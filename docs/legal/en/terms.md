@@ -2,13 +2,11 @@
 
 # Terms of Use
 
-> **Draft — pending legal review.** This text is a comprehensive draft and is not binding until it has been legally reviewed. Words in square brackets (e.g. [COMPANY ADDRESS]) are details that have not been decided yet.
->
-> Draft date: 19 November 2026 · Effective: [EFFECTIVE DATE]
+> Last updated: 19 November 2026 · Effective: [EFFECTIVE DATE]
 
-These terms are the agreement between you and Droblet Ltd (“Droblet”, “we”) for your use of the Droblet mobile app and the droblet.alatech.co website (together, the “Service”). By creating an account or using the Service you accept these terms, the Privacy Policy, the Subscription Terms and the Community Guidelines.
+These terms are the agreement between you and Ala Tech Solutions LTD (“Droblet”, “we”) for your use of the Droblet mobile app and the droblet.alatech.co website (together, the “Service”). By creating an account or using the Service you accept these terms, the Privacy Policy, the Subscription Terms and the Community Guidelines.
 
-**Data controller:** Droblet Ltd, [COMPANY ADDRESS], London, United Kingdom · Company no. [COMPANY NUMBER] · [CONTACT E-MAIL]
+**Data controller:** Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, United Kingdom · Company no. 17100391 · [CONTACT E-MAIL]
 
 ## IN SHORT
 
@@ -22,7 +20,7 @@ These terms are the agreement between you and Droblet Ltd (“Droblet”, “we�
 
 ## 1. Who we are and what this agreement covers
 
-The Service is provided by Droblet Ltd, a company registered in England and Wales (company no. [COMPANY NUMBER], address: [COMPANY ADDRESS], London, United Kingdom). You can reach us at [CONTACT E-MAIL].
+The Service is provided by Ala Tech Solutions LTD, a company registered in England and Wales (company no. 17100391, address: Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, United Kingdom). You can reach us at [CONTACT E-MAIL].
 
 This agreement is made up of these Terms of Use, the Subscription Terms (for Droblet Membership and extra credit packs) and the Community Guidelines. How we process your personal data is explained in the Privacy Policy and the KVKK Information Notice; those are notices, not part of the contract.
 
@@ -181,6 +179,6 @@ If you downloaded the app from Google Play, the Google Play Terms of Service als
 
 ## 19. Contact
 
-Questions, complaints and notices: [CONTACT E-MAIL] · Droblet Ltd, [COMPANY ADDRESS], London, United Kingdom.
+Questions, complaints and notices: [CONTACT E-MAIL] · Ala Tech Solutions LTD, Unit 501 Leroy House, 434-436 Essex Road, London N1 3FY, United Kingdom.
 
 To delete your account: in the app, Profile › Settings › Delete my account, or droblet.alatech.co/delete-account.
