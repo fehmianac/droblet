@@ -359,9 +359,9 @@ internal static class ColorFeedPiecesCommand
                 if (write != FeedPiecesOutcome.Written)
                     failed++;
             }
-            rows.Add([post.Id, string.Join(", ", pieces.Select(p => $"{p.Subcategory ?? p.Category.ToString()}: {p.ColorId ?? "—"}")), outcome]);
+            rows.Add([post.Id, post.Title.GetValueOrDefault("tr") ?? "", post.Occasion.ToString(), string.Join(", ", pieces.Select(p => $"{p.Subcategory ?? p.Category.ToString()}: {p.ColorId ?? "—"}")), outcome]);
         }
-        output.Table(["post id", "pieces", "outcome"], rows);
+        output.Table(["post id", "title", "occasion", "pieces", "outcome"], rows);
         output.Summary($"### color-feed-pieces{(dryRun ? " (dry run)" : "")}\n\n**{colored}** piece colour(s) read in {posts.Count} post(s); {unread} picture(s) unreadable; {failed} post(s) not written. No AI call.\n");
         return failed == 0 ? 0 : 1;
     }
