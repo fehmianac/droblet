@@ -177,6 +177,7 @@
     "statLooks": "LOOKS",
     "statRainy": "RAINY DAYS",
     "daysTitle": "Days",
+    "notesTitle": "Weather notes",
     "dayRain": "Rain {{chance}}%",
     "dayTemp": "{{max}} / {{min}}",
     "dayInvite": "See this look on you",

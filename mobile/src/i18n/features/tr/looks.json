@@ -177,6 +177,7 @@
     "statLooks": "LOOK",
     "statRainy": "YAĞMURLU GÜN",
     "daysTitle": "Günler",
+    "notesTitle": "Hava notları",
     "dayRain": "Yağmur %{{chance}}",
     "dayTemp": "{{max}} / {{min}}",
     "dayInvite": "Bu look'u kendi üzerinde gör",

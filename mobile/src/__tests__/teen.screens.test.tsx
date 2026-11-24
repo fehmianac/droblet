@@ -13,6 +13,8 @@ import { teenStore } from '@/features/teen/store';
 import { resetAccountFixtures } from '@/fixtures/account';
 import { resetFixtureDb } from '@/fixtures/db';
 import { resetStoreFixtures } from '@/fixtures/store';
+import * as tripFixtures from '@/fixtures/trips';
+import { fixtureCreateTrip } from '@/fixtures/trips';
 import i18n from '@/i18n';
 
 type User = { id: string; name: string; email: string; ageConfirmed: boolean; ageBand: 'adult' | 'teen' };
@@ -224,6 +226,20 @@ describe('stylist allowance (approved teen, canvas 18 · 16t–16w)', () => {
     tripPackUsed: 0,
     tripPackRemaining: 0,
   };
+
+  it('16w suitcase with packing off: the weather cards, the lock card, the weather notes and "Delete trip" — no packing job', async () => {
+    const id = '01M7RXG2H88YETZ4EKG5C4WRVK';
+    fixtureCreateTrip({ id, cityId: 'city_londra', startDate: '2026-11-25', endDate: '2026-11-29', tripTypes: ['sightseeing'], cabinOnly: false, clientMutationId: id });
+    const start = jest.spyOn(tripFixtures, 'fixtureStartPack');
+    await open(`/trip/${id}`, { ...APPROVED, stylist: ALLOWANCE });
+    await waitFor(() => expect(screen.getByTestId('trip-teen-weather')).toBeTruthy(), WAIT);
+    expect(screen.getByTestId('trip-teen-day-2026-11-25')).toBeTruthy();
+    expect(screen.getByTestId('teen.packLock.unavailable')).toBeTruthy();
+    expect(screen.getByText("Suitcase packing isn't open for teen accounts yet.")).toBeTruthy();
+    expect(screen.getByTestId('trip-delete')).toBeTruthy();
+    expect(start).not.toHaveBeenCalled();
+    start.mockRestore();
+  });
 
   it('with allowance left: the normal stylist, the quota line from the server, no membership line', async () => {
     await open('/stylist', { ...APPROVED, stylist: ALLOWANCE });

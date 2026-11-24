@@ -195,7 +195,7 @@
       "weekLeft_one": "Bu hafta {{count}} plan hakkın var",
       "weekLeft_other": "Bu hafta {{count}} plan hakkın var",
       "weekDone": "Bu haftaki planını yaptın · Pazartesi yenilenir",
-      "packOff": "Bavul hazırlama genç hesaplarda şimdilik kapalı. Parçaları kendin ekleyebilirsin.",
+      "packOff": "Bavul hazırlama genç hesaplarda şimdilik kapalı.",
       "packCard": "Listeni kendin hazırla",
       "packDone": "Bu haftaki bavul hakkını kullandın · Pazartesi yenilenir"
     }

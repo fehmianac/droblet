@@ -842,6 +842,108 @@ function PackedTrip({
 }
 
 /**
+ * 16w Bavul detayı · genç (hazırlama kapalı): the forecast as plain weather cards and the weather notes around the
+ * calm lock card — no pieces, no looks, no try-on, no AI call. "Seyahati sil" closes the screen as on 19.
+ */
+function TeenWeatherCards({ trip }: { trip: TripDetail }) {
+  const language = useAppLanguage();
+  const { t } = useTranslation();
+  const forecast = trip.forecast ?? [];
+  if (forecast.length === 0) return null;
+  return (
+    <View className="gap-2.5">
+      <Text variant="h2">{t("tripDetail.daysTitle")}</Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        className="-mx-gutter"
+        contentContainerClassName="gap-2.5 px-gutter"
+        testID="trip-teen-weather"
+      >
+        {forecast.map((weather) => (
+          <View
+            key={weather.date}
+            className="w-[132px] gap-2 rounded-card border border-line bg-paper p-3"
+            accessible
+            accessibilityLabel={t(`tripDetail.condition.${weather.condition}`)}
+            testID={`trip-teen-day-${weather.date}`}
+          >
+            <Text variant="eyebrow" className="text-[10px]">
+              {toDisplayUpper(
+                formatDate(parseLocalDate(weather.date), {
+                  weekday: "short",
+                  day: "numeric",
+                  month: "short",
+                }),
+                language,
+              )}
+            </Text>
+            <Icon icon={WEATHER_ICON[weather.condition]} size={22} />
+            <Text variant="bodyMedium" className="text-[15px]">
+              {t("tripDetail.dayTemp", {
+                max: formatTemperature(weather.maxC ?? weather.temperatureC),
+                min: formatTemperature(weather.minC ?? weather.temperatureC),
+              })}
+            </Text>
+            {weather.rainChance !== null && weather.rainChance !== undefined ? (
+              <Text variant="caption" tone="muted">
+                {t("tripDetail.dayRain", { chance: weather.rainChance })}
+              </Text>
+            ) : null}
+          </View>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
+function TeenTripFooter({
+  trip,
+  onDelete,
+}: {
+  trip: TripDetail;
+  onDelete: () => void;
+}) {
+  const language = useAppLanguage();
+  const { t } = useTranslation();
+  const notes = weatherNotes(trip.forecast);
+  return (
+    <>
+      {notes.rainyDays > 0 || notes.coldNightC !== null ? (
+        <View className="gap-2" testID="trip-weather-notes">
+          <Text variant="eyebrow">
+            {toDisplayUpper(t("tripDetail.notesTitle"), language)}
+          </Text>
+          {notes.rainyDays > 0 ? (
+            <Text variant="caption" tone="muted" className="text-[13px]">
+              {t("tripDetail.noteRain", { count: notes.rainyDays })}
+            </Text>
+          ) : null}
+          {notes.coldNightC !== null ? (
+            <Text variant="caption" tone="muted" className="text-[13px]">
+              {t("tripDetail.noteCold", {
+                temperature: formatTemperature(notes.coldNightC),
+              })}
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
+      <Pressable
+        onPress={onDelete}
+        accessibilityRole="button"
+        accessibilityLabel={t("tripDetail.deleteTrip")}
+        testID="trip-delete"
+        className="h-icon-btn items-center justify-center self-start rounded-pill border border-danger px-[15px] active:opacity-70"
+      >
+        <Text variant="chip" tone="danger">
+          {t("tripDetail.deleteTrip")}
+        </Text>
+      </Pressable>
+    </>
+  );
+}
+
+/**
  * 19 Bavul detayı (redrawn 2026-11-24 from the owner's reference video) — one long screen: the city in capitals, three
  * numbers (pieces, looks, rainy days), the day cards, the checklist with piece pictures (checked = struck through),
  * weather notes, missing pieces, single-cabin-bag mode and "Seyahati sil".
@@ -858,6 +960,9 @@ export default function TripDetailScreen() {
   const [deleting, setDeleting] = useState(false);
   const data = trip.data;
   const packed = data?.status === "packed";
+  // 16w: an approved teen whose packing is off (or used this week) sees the weather around the lock card.
+  const teenStylist = useTeenRules().stylist;
+  const teenPackLocked = teenStylist !== null && teenStylist.pack !== "open";
 
   const share = () => {
     if (!data) return;
@@ -977,7 +1082,14 @@ export default function TripDetailScreen() {
               ) : (
                 <>
                   <ForecastNote trip={detail} />
+                  {teenPackLocked ? <TeenWeatherCards trip={detail} /> : null}
                   <TripPacking trip={detail} />
+                  {teenPackLocked ? (
+                    <TeenTripFooter
+                      trip={detail}
+                      onDelete={() => setDeleting(true)}
+                    />
+                  ) : null}
                 </>
               )}
             </ScrollView>
