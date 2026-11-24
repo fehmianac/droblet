@@ -1,3 +1,4 @@
+import type { TFunction } from "i18next";
 import { router, useLocalSearchParams } from "expo-router";
 import {
   Bookmark,
@@ -106,6 +107,21 @@ function ForecastNote({ trip }: { trip: TripDetail }) {
   ) : null;
 }
 
+/** "9° / 4°" (high / low); a single figure when the day has only one temperature. */
+function dayTemperature(
+  t: TFunction,
+  weather: { temperatureC: number; minC?: number | null; maxC?: number | null },
+) {
+  const max = weather.maxC ?? weather.temperatureC;
+  const min = weather.minC ?? weather.temperatureC;
+  return max === min
+    ? formatTemperature(max)
+    : t("tripDetail.dayTemp", {
+        max: formatTemperature(max),
+        min: formatTemperature(min),
+      });
+}
+
 type DayImage =
   | { jobId: string; tryOnId: string; imageUrl: string | null }
   | null
@@ -181,9 +197,17 @@ function DayCards({
                   <View
                     className="flex-row items-center gap-1.5"
                     accessible
-                    accessibilityLabel={t(
-                      `tripDetail.condition.${weather.condition}`,
-                    )}
+                    accessibilityLabel={[
+                      t(`tripDetail.condition.${weather.condition}`),
+                      weather.rainChance !== null &&
+                      weather.rainChance !== undefined
+                        ? t("tripDetail.dayRain", {
+                            chance: weather.rainChance,
+                          })
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(", ")}
                   >
                     <Icon
                       icon={WEATHER_ICON[weather.condition]}
@@ -203,14 +227,7 @@ function DayCards({
               </View>
               {weather ? (
                 <Text variant="bodyMedium" className="text-[15px]">
-                  {t("tripDetail.dayTemp", {
-                    max: formatTemperature(
-                      weather.maxC ?? weather.temperatureC,
-                    ),
-                    min: formatTemperature(
-                      weather.minC ?? weather.temperatureC,
-                    ),
-                  })}
+                  {dayTemperature(t, weather)}
                 </Text>
               ) : null}
             </View>
@@ -602,6 +619,7 @@ function PackedTrip({
     <>
       <View
         className="flex-row border-y border-line"
+        accessible
         accessibilityLabel={t("tripDetail.summary", {
           pieces: t("trips.pieces", { count: trip.items.length }),
           looks: t("tripDetail.looks", { count: lookDays.length }),
@@ -865,7 +883,20 @@ function TeenWeatherCards({ trip }: { trip: TripDetail }) {
             key={weather.date}
             className="w-[132px] gap-2 rounded-card border border-line bg-paper p-3"
             accessible
-            accessibilityLabel={t(`tripDetail.condition.${weather.condition}`)}
+            accessibilityLabel={[
+              formatDate(parseLocalDate(weather.date), {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+              }),
+              t(`tripDetail.condition.${weather.condition}`),
+              dayTemperature(t, weather),
+              weather.rainChance !== null && weather.rainChance !== undefined
+                ? t("tripDetail.dayRain", { chance: weather.rainChance })
+                : null,
+            ]
+              .filter(Boolean)
+              .join(", ")}
             testID={`trip-teen-day-${weather.date}`}
           >
             <Text variant="eyebrow" className="text-[10px]">
@@ -880,10 +911,7 @@ function TeenWeatherCards({ trip }: { trip: TripDetail }) {
             </Text>
             <Icon icon={WEATHER_ICON[weather.condition]} size={22} />
             <Text variant="bodyMedium" className="text-[15px]">
-              {t("tripDetail.dayTemp", {
-                max: formatTemperature(weather.maxC ?? weather.temperatureC),
-                min: formatTemperature(weather.minC ?? weather.temperatureC),
-              })}
+              {dayTemperature(t, weather)}
             </Text>
             {weather.rainChance !== null && weather.rainChance !== undefined ? (
               <Text variant="caption" tone="muted">
@@ -1062,6 +1090,8 @@ export default function TripDetailScreen() {
                 <Text
                   variant="display"
                   numberOfLines={2}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.6}
                   className="text-[44px] leading-[46px] tracking-[2.6px]"
                   accessibilityLabel={detail.cityName}
                   testID="trip-city"
@@ -1082,9 +1112,11 @@ export default function TripDetailScreen() {
               ) : (
                 <>
                   <ForecastNote trip={detail} />
-                  {teenPackLocked ? <TeenWeatherCards trip={detail} /> : null}
+                  {teenPackLocked && !detail.packJobId ? (
+                    <TeenWeatherCards trip={detail} />
+                  ) : null}
                   <TripPacking trip={detail} />
-                  {teenPackLocked ? (
+                  {teenPackLocked && !detail.packJobId ? (
                     <TeenTripFooter
                       trip={detail}
                       onDelete={() => setDeleting(true)}

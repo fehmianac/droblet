@@ -2,7 +2,9 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Amazon.S3;
 using Amazon.S3.Model;
+using Domain.Entity;
 using Domain.Enum;
+using Domain.Manager;
 using Domain.Services;
 using Domain.Validation;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,7 +25,7 @@ internal sealed record FeedSeedPost(
 /// seed-feed-posts --dir &lt;folder&gt;: Akış editor posts from pictures the owner supplied. Reads &lt;folder&gt;/manifest.json and
 /// the JPEG files next to it, uploads each picture to the public catalog image bucket (catalog/feed/{id}.jpg — the same
 /// place the admin panel uploads to) and writes the post through the admin feed service ("Droblet Edit", published, no
-/// products). A post's optional "segment" (women | men) decides who gets it; without one it goes to everyone. Idempotent: the same id overwrites the same picture and post. Dev only; no AI call.
+/// products). A post's optional "segment" (women | men) decides who gets it; without one a new post goes to everyone and an existing post keeps its segment. Idempotent: the same id overwrites the same picture and post. Dev only; no AI call.
 /// </summary>
 internal static class SeedFeedPostsCommand
 {
@@ -50,6 +52,7 @@ internal static class SeedFeedPostsCommand
 
         var s3 = services.GetRequiredService<IAmazonS3>();
         var feed = services.GetRequiredService<IFeedService>();
+        var repository = services.GetRequiredService<IRepository>();
         var now = DateTime.UtcNow;
         var rows = new List<IReadOnlyList<string>>();
         var failed = 0;
@@ -62,8 +65,10 @@ internal static class SeedFeedPostsCommand
                 put.Headers.CacheControl = "public, max-age=86400";
                 await s3.PutObjectAsync(put, ct);
             }
+            // A manifest written before the women/men split has no segment: a re-seed keeps the one the post already has.
+            var segment = post.Segment ?? (await repository.GetAsync<FeedPostEntity>(FeedPostEntity.GetPk(), FeedPostEntity.GetSk(post.Id), ct))?.Segment;
             var (outcome, _, _) = await feed.UpsertPostAsync(new FeedPostInput(
-                post.Id, post.Segment,
+                post.Id, segment,
                 new FeedAuthorInput(FeedAuthorKind.Edit, new Dictionary<string, string> { ["tr"] = "Droblet Edit", ["en"] = "Droblet Edit" }, null, null),
                 post.Occasion,
                 new Dictionary<string, string> { ["tr"] = post.TitleTr, ["en"] = post.TitleEn },
@@ -73,7 +78,7 @@ internal static class SeedFeedPostsCommand
                 now.AddHours(-post.HoursAgo), 0, Published: true), ct);
             if (outcome is not (Domain.Services.CatalogWriteOutcome.Created or Domain.Services.CatalogWriteOutcome.Updated))
                 failed++;
-            rows.Add([post.Id, post.Segment?.ToString() ?? "all", post.Occasion.ToString(), post.TitleTr, outcome.ToString()]);
+            rows.Add([post.Id, segment?.ToString() ?? "all", post.Occasion.ToString(), post.TitleTr, outcome.ToString()]);
         }
         output.Table(["id", "segment", "occasion", "title", "outcome"], rows);
         output.Summary($"### seed-feed-posts\n\n**{posts.Count - failed}** of {posts.Count} posts written.\n");

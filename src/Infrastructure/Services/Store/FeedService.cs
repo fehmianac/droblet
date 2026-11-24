@@ -262,24 +262,27 @@ public sealed class FeedService(
     private async Task<List<(UserPost Post, FeedUserCandidate Rank)>> CandidatesAsync(
         TenantEntity viewer, IReadOnlySet<Occasion>? occasions, HashSet<string> hidden, CancellationToken ct)
     {
-        var rows = (await repository.GetAllAsync<FeedUserPostEntity>(FeedUserPostEntity.GetPk(), ct))
+        var all = (await repository.GetAllAsync<FeedUserPostEntity>(FeedUserPostEntity.GetPk(), ct))
             .Where(p => p.HiddenAt is null && p.OwnerTenantId != viewer.Id && !hidden.Contains(p.Id))
             .OrderByDescending(p => p.SharedAt).ThenBy(p => p.Id, StringComparer.Ordinal)
-            .Take(Math.Max(1, options.CurrentValue.UserCandidateLimit))
             .ToList();
-        if (rows.Count == 0)
+        if (all.Count == 0)
             return [];
 
         var blocked = await KeysAsync(BlockEntity.GetPk(viewer.Id), ct);
         blocked.UnionWith(await KeysAsync(BlockedByEntity.GetPk(viewer.Id), ct));
         var following = await KeysAsync(FollowingEntity.GetPk(viewer.Id), ct);
 
-        var ownerIds = rows.Select(r => r.OwnerTenantId).Distinct(StringComparer.Ordinal).ToList();
+        // Owners are filtered before the cap: capping first would let the other segment's newest shares crowd this
+        // viewer's out of the window.
+        var ownerIds = all.Select(r => r.OwnerTenantId).Distinct(StringComparer.Ordinal).ToList();
         var owners = (await repository.BatchGetAsync(ownerIds.Select(id => new TenantEntity { Id = id }).ToList(), ct))
             .Where(o => CanSee(viewer.Id, o, following.Contains(o.Id), blocked.Contains(o.Id))
                         && FeedRules.ShowsUserPost(o.Segment, viewer.Segment, following.Contains(o.Id)))
             .ToDictionary(o => o.Id, StringComparer.Ordinal);
-        rows = rows.Where(r => owners.ContainsKey(r.OwnerTenantId)).ToList();
+        var rows = all.Where(r => owners.ContainsKey(r.OwnerTenantId))
+            .Take(Math.Max(1, options.CurrentValue.UserCandidateLimit))
+            .ToList();
         if (rows.Count == 0)
             return [];
 

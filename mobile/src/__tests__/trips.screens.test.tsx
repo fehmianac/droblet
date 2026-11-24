@@ -249,3 +249,13 @@ describe('19 Bavul detayı', () => {
     expect(screen.queryByText('Try again')).toBeNull();
   });
 });
+
+describe('unknown link', () => {
+  it('shows the not-found state with the way back, not the router page', async () => {
+    await renderRouter('./src/app', { initialUrl: '/no-such-screen' });
+    await waitFor(() => expect(screen.getByTestId('route-not-found')).toBeTruthy(), { timeout: 3000 });
+    expect(screen.getByText('What you were looking for is no longer here.')).toBeTruthy();
+    await fireEvent.press(screen.getByText('Go back'));
+    await waitFor(() => expect(screen).toHavePathname('/'), { timeout: 3000 });
+  });
+});
