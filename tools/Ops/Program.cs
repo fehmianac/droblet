@@ -59,6 +59,7 @@ try
         {
             OpsArguments.GrantTestPremium => await TestPremiumCommands.GrantAsync(services, arguments, output, cts.Token),
             OpsArguments.RevokeTestPremium => await TestPremiumCommands.RevokeAsync(services, arguments, output, cts.Token),
+            OpsArguments.SetRecognitionUsed => await TestPremiumCommands.SetRecognitionUsedAsync(services, arguments, output, cts.Token),
             OpsArguments.GenerateLibraryImages => await LibraryImagesCommand.RunAsync(services, arguments, output, cts.Token),
             OpsArguments.GenerateMarketingImages => await MarketingImagesCommand.RunAsync(services, arguments, output, cts.Token),
             OpsArguments.AiSmoke => await new AiSmokeCommand(services, arguments, output).RunAsync(cts.Token),
