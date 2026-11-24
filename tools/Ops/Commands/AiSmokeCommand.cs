@@ -108,6 +108,14 @@ internal sealed partial class AiSmokeCommand(IServiceProvider services, OpsArgum
                 return _rows.Any(r => r.Status is "failed" or "timeout" or "error" || r.Failure.Length > 0) ? 1 : 0;
             }
 
+            // --look-tryon: a layered look end to end (owner request 2026-11-24): wardrobe pieces + one shop jacket →
+            // POST look → AI cover → try-on of the look. 2 image calls (cover + try-on) besides the cached body fixture.
+            if (args.Flag("look-tryon"))
+            {
+                await LookTryOnAsync(fixtures, args.Option("category") ?? "jacket", ct);
+                return _rows.Any(r => r.Status is "failed" or "timeout" or "error" || r.Failure.Length > 0) ? 1 : 0;
+            }
+
             // --prereq-only: canvas 11 flows only (thin-wardrobe gap filling + face-path try-on), on this user.
             if (args.Flag("prereq-only"))
             {
@@ -457,6 +465,92 @@ internal sealed partial class AiSmokeCommand(IServiceProvider services, OpsArgum
         await SavePhotosAsync("product-tryon", ct);
         if (imageId is not null)
             await SaveTryOnAsync(imageId, "tryon-product", ct);
+        var after = await CreditsAsync(ct);
+        if (_rows.LastOrDefault() is { } last)
+            _rows[^1] = last with { Notable = $"{last.Notable}; credits {before} → {after}" };
+    }
+
+    /// <summary>
+    /// The look builder as the app uses it: t-shirt + shirt (two top layers), jeans and sneakers from the ready library, a
+    /// jacket from the shop (productId) → look saved → cover rendered → "Üzerimde gör". The cover and the try-on image are
+    /// downloaded so every piece (the jacket above all) can be checked by eye.
+    /// </summary>
+    private async Task LookTryOnAsync(SmokeFixtures fixtures, string outerCategory, CancellationToken ct)
+    {
+        var watch = Stopwatch.StartNew();
+        var (bodyData, _) = await fixtures.GetAsync(SmokeFixtures.Body, ct);
+        var photo = await UploadProfilePhotoAsync("body", bodyData, ct);
+        Add("photo body", photo.Ok ? "200" : "failed", watch.Elapsed, photo.Error, $"{bodyData.Length / 1024} KB synthetic");
+        if (!photo.Ok) return;
+
+        string[] library = ["lib-white-tshirt", "lib-white-shirt", "lib-blue-jeans", "lib-white-sneakers"];
+        var rows = new JsonArray(library.Select(id => (JsonNode)new JsonObject { ["clientMutationId"] = Ulid.New(), ["libraryItemId"] = id }).ToArray());
+        var (status, body, elapsed) = await CallAsync(HttpMethod.Post, "v1/tenant/item/from-library", new JsonObject { ["items"] = rows }, ct);
+        Add("POST v1/tenant/item/from-library", status.ToString(), elapsed, status is 200 or 201 ? null : Code(body), string.Join(", ", library));
+        (status, var items, _) = await CallAsync(HttpMethod.Get, "v1/tenant/item", null, ct);
+        var list = (items as JsonArray ?? items?["items"]?.AsArray() ?? []).ToList();
+        string? IdOf(string libraryId) => list.FirstOrDefault(i => i?["libraryItemId"]?.GetValue<string>() == libraryId)?["id"]?.GetValue<string>();
+
+        (status, var page, elapsed) = await CallAsync(HttpMethod.Get, $"v1/catalog/product?category={Uri.EscapeDataString(outerCategory)}&limit=1", null, ct);
+        var product = page?["items"]?.AsArray().FirstOrDefault();
+        var productId = product?["id"]?.GetValue<string>();
+        Add("GET v1/catalog/product", status.ToString(), elapsed, productId is null ? "no_product" : null, $"{productId} · {product?["brandName"]} · {product?["name"]}");
+        if (productId is null || library.Any(l => IdOf(l) is null))
+        {
+            Add("look pieces", "error", TimeSpan.Zero, "pieces_missing", $"items {list.Count}");
+            return;
+        }
+        if (product?["images"]?.AsArray().FirstOrDefault()?.GetValue<string>() is { } productImage)
+            await DownloadAsync(productImage, "look-tryon-jacket-source", ct);
+
+        // Wire order = the order the user built the look in: inner top first, the shop jacket last.
+        var lookId = Ulid.New();
+        var slots = new JsonArray(
+            new JsonObject { ["slot"] = "top", ["itemId"] = IdOf("lib-white-tshirt") },
+            new JsonObject { ["slot"] = "top", ["itemId"] = IdOf("lib-white-shirt") },
+            new JsonObject { ["slot"] = "bottom", ["itemId"] = IdOf("lib-blue-jeans") },
+            new JsonObject { ["slot"] = "shoes", ["itemId"] = IdOf("lib-white-sneakers") },
+            new JsonObject { ["slot"] = "outerwear", ["productId"] = productId });
+        (status, body, elapsed) = await CallAsync(HttpMethod.Post, "v1/tenant/look",
+            new JsonObject { ["id"] = lookId, ["name"] = "Smoke layers", ["occasion"] = null, ["favorite"] = false, ["source"] = "user", ["slots"] = slots }, ct);
+        Add("POST v1/tenant/look (5 pieces, 2 top layers, shop jacket)", status.ToString(), elapsed, status is 200 or 201 ? null : Code(body) ?? body?.ToJsonString(),
+            $"slots {body?["slots"]?.AsArray().Count}, coverPending {body?["coverPending"]}");
+        if (status is not (200 or 201)) return;
+
+        // The cover is rendered in the background; the look says when it is ready.
+        var coverWatch = Stopwatch.StartNew();
+        string? coverUrl = null;
+        var pending = true;
+        while (coverWatch.Elapsed < TimeSpan.FromMinutes(3) && coverUrl is null && pending)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(4), ct);
+            var (s, look, _) = await CallAsync(HttpMethod.Get, $"v1/tenant/look/{lookId}", null, ct);
+            if (s != 200) continue;
+            coverUrl = look?["coverImageUrl"]?.GetValue<string>();
+            pending = look?["coverPending"]?.GetValue<bool>() ?? false;
+        }
+        Add("look cover (AI flat-lay)", coverUrl is not null ? "completed" : "failed", coverWatch.Elapsed, coverUrl is null ? (pending ? "cover_timeout" : "cover_not_made") : null);
+        if (coverUrl is not null)
+            await DownloadAsync(coverUrl, "look-tryon-cover", ct);
+
+        var before = await CreditsAsync(ct);
+        (status, body, elapsed) = await CallAsync(HttpMethod.Post, "v1/tenant/tryon",
+            new JsonObject { ["requestId"] = Ulid.New(), ["target"] = new JsonObject { ["kind"] = "look", ["id"] = lookId } }, ct);
+        if (status != 202 || body?["job"]?["id"]?.GetValue<string>() is not { } jobId)
+        {
+            Add("POST v1/tenant/tryon (look)", status.ToString(), elapsed, Code(body) ?? "not_started", body?.ToJsonString());
+            return;
+        }
+        var named = string.Join(" + ", (body["pieces"]?.AsArray() ?? []).Select(p => $"{p?["category"]}"));
+        string? imageId = null;
+        await PollStepAsync("try-on (layered look)", "POST v1/tenant/tryon", jobId, elapsed, ct, result =>
+        {
+            imageId = result?["tryOnImageId"]?.GetValue<string>();
+            return $"image {imageId}; pieces {named}";
+        });
+        await SavePhotosAsync("look-tryon", ct);
+        if (imageId is not null)
+            await SaveTryOnAsync(imageId, "look-tryon-result", ct);
         var after = await CreditsAsync(ct);
         if (_rows.LastOrDefault() is { } last)
             _rows[^1] = last with { Notable = $"{last.Notable}; credits {before} → {after}" };

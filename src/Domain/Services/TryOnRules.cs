@@ -10,6 +10,22 @@ namespace Domain.Services;
 /// </summary>
 public static class TryOnRules
 {
+    /// <summary>
+    /// Inside-out order the garments of a try-on are sent and named in: tops and one-pieces, bottoms, outerwear, socks,
+    /// shoes, bag, accessories. Unknown category last. Stable sorting keeps the layer order the user built (inner top first).
+    /// </summary>
+    public static int WearOrder(ItemCategory? category) => category switch
+    {
+        ItemCategory.Top or ItemCategory.Dress or ItemCategory.Beachwear or ItemCategory.Skiwear => 0,
+        ItemCategory.Bottom => 1,
+        ItemCategory.Outerwear => 2,
+        ItemCategory.Socks => 3,
+        ItemCategory.Shoes => 4,
+        ItemCategory.Bag => 5,
+        ItemCategory.Accessory => 6,
+        _ => 7,
+    };
+
     /// <summary>Body photo first; the face path only when there is no body photo. null = no photo to render on.</summary>
     public static TryOnSource? PathFor(bool hasBodyPhoto, bool hasFacePhoto) =>
         hasBodyPhoto ? TryOnSource.Body : hasFacePhoto ? TryOnSource.Face : null;

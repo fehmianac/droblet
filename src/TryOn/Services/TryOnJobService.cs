@@ -228,7 +228,8 @@ public sealed class TryOnJobService(
         var pieces = StylingJson.TryDeserialize<TryOnJobInput>(job.Input)?.Pieces ?? [];
         // Every piece in parallel (DynamoDB + S3 / https downloads); the order of the pieces is kept.
         var images = await Task.WhenAll(pieces.Select(piece => garmentImages.LoadAsync(job.TenantId, piece, ct)));
-        return images.Any(i => i is null) ? null : images.Select(i => i!).ToList();
+        // Inside-out wear order (stable): the prompt names every garment and its layer in this order (TryOnRules.WearOrder).
+        return images.Any(i => i is null) ? null : images.Select(i => i!).OrderBy(i => TryOnRules.WearOrder(i.Category)).ToList();
     }
 
     private async Task<PhotoEntity?> ActivePhotoAsync(string tenantId, PhotoKind kind, string photoId, CancellationToken ct)
