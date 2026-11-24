@@ -92,6 +92,7 @@ describe('14 Looklar', () => {
     await renderRouter('./src/app', { initialUrl: '/wardrobe/looks' });
     await waitFor(() => expect(screen.getByText('Tüvit & Jean')).toBeTruthy(), { timeout: 3000 });
     expect(screen.getAllByTestId('look-cover-pending')).toHaveLength(1);
+    expect(screen.getAllByTestId('look-cover-sweep')).toHaveLength(1);
     expect(screen.getByText('Preparing cover')).toBeTruthy();
   });
 
