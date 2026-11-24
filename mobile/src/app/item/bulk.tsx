@@ -309,7 +309,7 @@ export default function ItemBulkScreen() {
   const retry = useRetryDraft();
 
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
-  const [notice, setNotice] = useState<Notice>({ kind: 'none' });
+  const [rawNotice, setNotice] = useState<Notice>({ kind: 'none' });
   /** Picked photos the free AI recognition did not cover: each "Elle gir" takes the next one into the manual form. */
   const [unrecognised, setUnrecognised] = useState<string[]>([]);
 
@@ -325,6 +325,9 @@ export default function ItemBulkScreen() {
   }, [anyProcessing, focused]);
 
   const recognition = useItemRecognition();
+  // A member has no recognition limit: a "limit reached" notice raised before the purchase is no longer shown.
+  const notice: Notice =
+    recognition.unlimited && (rawNotice.kind === 'recognitionLimit' || rawNotice.kind === 'quotaSkipped') ? { kind: 'none' } : rawNotice;
 
   // Free AI recognition used up: the paywall opens; this screen stays underneath with "Elle gir".
   const limitReached = () => {

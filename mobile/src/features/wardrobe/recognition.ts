@@ -66,6 +66,8 @@ export function useItemRecognition() {
     remaining,
     /** True only when the server said nothing is left; unknown never blocks. */
     exhausted: remaining !== null && remaining <= 0,
+    /** True once the server said the account has no recognition limit (member): a "limit reached" notice is stale. */
+    unlimited: query.data?.tier === 'member' || query.data?.itemRecognition?.limit === null,
     refresh: () => client.invalidateQueries({ queryKey: itemRecognitionKey }),
   };
 }
