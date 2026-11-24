@@ -4,6 +4,8 @@ import { router } from 'expo-router';
 import { act, fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 
 import { fixtureDb, resetFixtureDb } from '@/fixtures/db';
+import { getActiveQueryClient } from '@/sync/activeClient';
+import { queryKeys } from '@/sync/queryKeys';
 import { fixtureCreateDrafts, fixtureDraftOptions, fixtureListDrafts, resetFixtureDrafts, setFixtureItemRecognition } from '@/fixtures/wardrobe';
 
 const mockSession = {
@@ -414,6 +416,29 @@ describe('AI recognition quota (12, 13)', () => {
     await fireEvent.press(screen.getByTestId('bulk-pick'));
     await waitFor(() => expect(screen).toHavePathname('/paywall'), WAIT);
     expect(fixtureListDrafts()).toHaveLength(0);
+  }, 20_000);
+
+  it('13: the allowance runs out, the membership is bought on the paywall → back on Toplu ekle the notice is gone and photos go through', async () => {
+    setFixtureItemRecognition(10, 10);
+    await open('/item/bulk');
+    await waitFor(() => expect(screen.getByTestId('bulk-pick')).toBeTruthy(), WAIT);
+    await settle();
+    await fireEvent.press(screen.getByTestId('bulk-pick'));
+    await waitFor(() => expect(screen).toHavePathname('/paywall'), WAIT);
+
+    // The purchase: the server now says member (unlimited) and the purchase flow refreshes every entitlement
+    // query (purchaseFlow.applyEntitlement invalidates the ['tenant', 'entitlement'] prefix).
+    setFixtureItemRecognition(null);
+    await act(async () => void getActiveQueryClient()?.invalidateQueries({ queryKey: queryKeys.entitlement }));
+    await act(async () => router.back());
+
+    await waitFor(() => expect(screen.getByTestId('bulk-pick')).toBeTruthy(), WAIT);
+    await waitFor(() => expect(screen.queryByText(/used your free AI recognitions/)).toBeNull(), WAIT);
+    expect(screen.queryByText('Become a member')).toBeNull();
+
+    await fireEvent.press(screen.getByTestId('bulk-pick'));
+    await waitFor(() => expect(fixtureListDrafts()).toHaveLength(4), WAIT);
+    expect(screen).toHavePathname('/item/bulk');
   }, 20_000);
 
   it('13: photos picked before a 402 from the server are not lost — "Enter manually" opens the form with the photo', async () => {
