@@ -103,7 +103,9 @@ export default function ItemAddScreen() {
   const camera = useRef<CameraView>(null);
   const cameraState = cameraStateOf(permission, unavailable);
 
-  const [notice, setNotice] = useState<Notice>('none');
+  const [rawNotice, setNotice] = useState<Notice>('none');
+  // A member has no recognition limit: a "limit reached" notice raised before the purchase is no longer shown.
+  const notice: Notice = recognition.unlimited && rawNotice === 'recognitionLimit' ? 'none' : rawNotice;
   const [phase, setPhase] = useState<'idle' | 'capturing' | 'sending'>('idle');
   /** The last shot (or gallery pick): shown in the frame, and carried into the manual form if AI is not available. */
   const [captured, setCaptured] = useState<PreparedPhoto | null>(null);
