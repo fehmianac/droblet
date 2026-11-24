@@ -67,6 +67,13 @@ public static class FeedRules
     /// <summary>A post / story without a segment goes to everyone; otherwise only to users of that segment.</summary>
     public static bool Shows(Segment? contentSegment, Segment userSegment) => contentSegment is null || contentSegment == userSegment;
 
+    /// <summary>
+    /// A member's shared look in the home feed (owner decision 2026-11-24: the feed is split by segment): the owner is of
+    /// the viewer's segment, or the viewer follows the owner. A segment never chosen counts as women (SegmentPolicy.Of).
+    /// </summary>
+    public static bool ShowsUserPost(Segment? ownerSegment, Segment? viewerSegment, bool viewerFollowsOwner) =>
+        viewerFollowsOwner || SegmentPolicy.Of(ownerSegment) == SegmentPolicy.Of(viewerSegment);
+
     /// <summary>Feed order: publishAt desc, then sortOrder asc, then id (stable).</summary>
     public static IOrderedEnumerable<FeedPostEntity> Order(IEnumerable<FeedPostEntity> posts) =>
         posts.OrderByDescending(p => p.PublishAt).ThenBy(p => p.SortOrder).ThenBy(p => p.Id, StringComparer.Ordinal);

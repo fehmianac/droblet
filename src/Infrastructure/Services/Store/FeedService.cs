@@ -255,7 +255,8 @@ public sealed class FeedService(
     // ── Shared looks (F2) ───────────────────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// The shared looks this viewer may get, with their rank. Never the viewer's own, a blocked pair's, a hidden-for-me or
+    /// The shared looks this viewer may get, with their rank: owners of the viewer's segment and owners the viewer follows
+    /// (FeedRules.ShowsUserPost). Never the viewer's own, a blocked pair's, a hidden-for-me or
     /// auto-hidden one, a removed look, or one whose cover is not ready for its current pieces.
     /// </summary>
     private async Task<List<(UserPost Post, FeedUserCandidate Rank)>> CandidatesAsync(
@@ -275,7 +276,8 @@ public sealed class FeedService(
 
         var ownerIds = rows.Select(r => r.OwnerTenantId).Distinct(StringComparer.Ordinal).ToList();
         var owners = (await repository.BatchGetAsync(ownerIds.Select(id => new TenantEntity { Id = id }).ToList(), ct))
-            .Where(o => CanSee(viewer.Id, o, following.Contains(o.Id), blocked.Contains(o.Id)))
+            .Where(o => CanSee(viewer.Id, o, following.Contains(o.Id), blocked.Contains(o.Id))
+                        && FeedRules.ShowsUserPost(o.Segment, viewer.Segment, following.Contains(o.Id)))
             .ToDictionary(o => o.Id, StringComparer.Ordinal);
         rows = rows.Where(r => owners.ContainsKey(r.OwnerTenantId)).ToList();
         if (rows.Count == 0)

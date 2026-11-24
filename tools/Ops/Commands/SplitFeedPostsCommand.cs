@@ -494,3 +494,45 @@ internal static class SeedFeedStoriesCommand
         return failed == 0 ? 0 : 1;
     }
 }
+
+/// <summary>
+/// segment-feed-posts --segment women|men [--only id,id] [--dry-run]: who gets an editor post / story (owner decision
+/// 2026-11-24: the home feed is split by the member's segment). Without --only every post and story that has no segment
+/// yet gets it; with --only exactly those ids, whatever they had. Only the segment is written. Idempotent. Dev only; no AI call.
+/// </summary>
+internal static class SegmentFeedPostsCommand
+{
+    public static Task<int> RunAsync(IServiceProvider services, OpsArguments args, OpsOutput output, CancellationToken ct) =>
+        WriteAsync(services.GetRequiredService<IRepository>(), args.FeedSegment!.Value, args.OnlyIds, args.DryRun, output, ct);
+
+    public static async Task<int> WriteAsync(IRepository repository, Segment segment, IReadOnlyList<string> only, bool dryRun, OpsOutput output, CancellationToken ct)
+    {
+        bool Chosen(string id, Segment? current) => only.Count == 0 ? current is null : only.Contains(id) && current != segment;
+        var posts = (await repository.GetAllAsync<FeedPostEntity>(FeedPostEntity.GetPk(), ct)).Where(p => Chosen(p.Id, p.Segment)).OrderBy(p => p.Id, StringComparer.Ordinal).ToList();
+        var stories = (await repository.GetAllAsync<FeedStoryEntity>(FeedStoryEntity.GetPk(), ct)).Where(s => Chosen(s.Id, s.Segment)).OrderBy(s => s.Id, StringComparer.Ordinal).ToList();
+
+        var rows = new List<IReadOnlyList<string>>();
+        var failed = 0;
+        foreach (var post in posts)
+        {
+            var was = post.Segment?.ToString() ?? "all";
+            post.Segment = segment;
+            var written = dryRun || (await repository.TransactWriteAsync([TransactWriteOperation.PutExisting(post)], ct)).Applied;
+            failed += written ? 0 : 1;
+            rows.Add(["post", post.Id, post.Title.GetValueOrDefault("tr") ?? "", was, dryRun ? "would be written" : written ? "written" : "not written"]);
+        }
+        foreach (var story in stories)
+        {
+            var was = story.Segment?.ToString() ?? "all";
+            story.Segment = segment;
+            var written = dryRun || (await repository.TransactWriteAsync([TransactWriteOperation.PutExisting(story)], ct)).Applied;
+            failed += written ? 0 : 1;
+            rows.Add(["story", story.Id, story.Headline.GetValueOrDefault("tr") ?? "", was, dryRun ? "would be written" : written ? "written" : "not written"]);
+        }
+        var missing = only.Where(id => rows.All(r => r[1] != id)).ToList();
+        output.Table(["kind", "id", "title", "was", "outcome"], rows);
+        output.Summary($"### segment-feed-posts{(dryRun ? " (dry run)" : "")}\n\n**{posts.Count}** post(s) and **{stories.Count}** story(ies) → {segment}; {failed} not written."
+                       + (missing.Count > 0 ? $" Not found or already {segment}: {string.Join(", ", missing)}." : "") + " No AI call.\n");
+        return failed == 0 ? 0 : 1;
+    }
+}

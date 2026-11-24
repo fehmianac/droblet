@@ -285,6 +285,36 @@ public class FeedShareEndpointTests(StoreSocialApiFactory factory) : IClassFixtu
     }
 
     [Fact]
+    public async Task Feed_SharedLooks_AreSplitBySegment_UnlessTheViewerFollowsTheOwner()
+    {
+        await ClearAsync();
+        var admin = await factory.AdminAsync();
+        for (var i = 0; i < 6; i++)
+            await EditorPostAsync(admin, Now.AddMinutes(-10 - i));   // editor posts carry the user looks (one in three)
+        async Task<TestUser> ManAsync()
+        {
+            var user = await SharerAsync();
+            var tenant = (await factory.Repository.GetAsync<TenantEntity>(TenantEntity.GetPk(), TenantEntity.GetSk(user.TenantId)))!;
+            tenant.Segment = Segment.Men;
+            await factory.Repository.SaveAsync(tenant);
+            return user;
+        }
+        var woman = await SharerAsync();
+        var otherWoman = await SharerAsync();
+        var man = await ManAsync();
+        var otherMan = await ManAsync();
+        var followedMan = await ManAsync();
+        (await woman.Client.PostAsync($"v1/tenant/follow/{followedMan.Handle}", null)).EnsureSuccessStatusCode();
+
+        var fromWoman = await SharedLookAsync(otherWoman, Now.AddHours(-1));
+        var fromMan = await SharedLookAsync(otherMan, Now.AddHours(-2));
+        var fromFollowedMan = await SharedLookAsync(followedMan, Now.AddHours(-3));
+
+        Assert.Equal([fromFollowedMan, fromWoman], (await FeedAsync(woman.Client)).Select(Id).Where(FeedRules.IsUserPostId));   // her segment + the man she follows
+        Assert.Equal([fromMan, fromFollowedMan], (await FeedAsync(man.Client)).Select(Id).Where(FeedRules.IsUserPostId));         // men only
+    }
+
+    [Fact]
     public async Task Feed_PagingStaysStableWithTheMix_OccasionFilterAppliesToUserLooks_NoEditorPostsNoUserLooks()
     {
         await ClearAsync();
