@@ -157,21 +157,6 @@ appId: com.alatech.droplet
 - tapOn:
     id: "requirements.bodyType.save"
 
-# A free account gets the membership step; on dev the temporary self-serve premium switch is on.
-- extendedWaitUntil:
-    visible:
-      id: "requirements.premium.selfServe"
-    timeout: 8000
-    optional: true
-- runFlow:
-    when:
-      visible:
-        id: "requirements.premium.selfServe"
-    commands:
-      - takeScreenshot: 11h-uyelik-adimi
-      - tapOn:
-          id: "requirements.premium.selfServe"
-
 # 11f — "Hazır", then back on the look: the try-on resumes (credit confirmation)
 - extendedWaitUntil:
     visible:

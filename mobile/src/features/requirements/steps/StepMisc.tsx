@@ -1,4 +1,3 @@
-import { useQueryClient } from '@tanstack/react-query';
 import { Check, MapPin, Search } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -13,9 +12,6 @@ import { useCitySearch, useHandleAvailability, useMyProfile } from '@/features/a
 import { AgeCheckbox } from '@/features/consent/AgeCheckbox';
 import { useConfirmAge } from '@/features/consent/age';
 import { creditSheetStore } from '@/features/credits/creditSheetStore';
-import { aiCreditsKey } from '@/features/credits/useAiCredits';
-import { useSelfPremium } from '@/entitlement/selfPremium';
-import { useEntitlement } from '@/entitlement/useEntitlement';
 import { useThemeColors } from '@/theme/useThemeColors';
 
 import { requirementsFlow } from '../store';
@@ -35,27 +31,13 @@ function Heading({ title, body }: { title: string; body: string }) {
   );
 }
 
-/** Membership: the paywall, or — while the server switch is on — "Şimdilik ücretsiz etkinleştir" right here. */
-export function StepPremium({ onDone }: StepProps) {
+/** Membership: opens the paywall. */
+export function StepPremium(_props: StepProps) {
   const { t } = useTranslation();
-  const client = useQueryClient();
-  const entitlement = useEntitlement();
-  const self = useSelfPremium();
-  const selfServe = entitlement.data?.selfServePremium?.enabled === true;
   return (
     <View className="flex-1" testID="requirements.step.premium">
       <ScrollView contentContainerClassName="gap-4 px-6 pb-6 pt-5">
         <Heading title={t('req.premium.title')} body={t('req.premium.body')} />
-        {selfServe ? (
-          <Text variant="caption" tone="muted">
-            {t('req.premium.selfServeNote')}
-          </Text>
-        ) : null}
-        {self.isError ? (
-          <Text variant="caption" tone="danger" accessibilityRole="alert">
-            {t('req.premium.selfServeFailed')}
-          </Text>
-        ) : null}
       </ScrollView>
       <StepBar>
         <Button
@@ -66,23 +48,6 @@ export function StepPremium({ onDone }: StepProps) {
           }}
           testID="requirements.premium.plans"
         />
-        {selfServe ? (
-          <Button
-            variant="secondary"
-            size="md"
-            label={t('req.premium.selfServe')}
-            loading={self.isPending}
-            onPress={() =>
-              self.mutate(true, {
-                onSuccess: () => {
-                  void client.invalidateQueries({ queryKey: aiCreditsKey });
-                  onDone();
-                },
-              })
-            }
-            testID="requirements.premium.selfServe"
-          />
-        ) : null}
       </StepBar>
     </View>
   );

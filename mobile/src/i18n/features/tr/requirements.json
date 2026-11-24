@@ -213,10 +213,7 @@
     "premium": {
       "title": "Bu özellik üyelikle açılır",
       "body": "Kombin önerileri, bavul hazırlama, haftalık plan ve renk paleti üyelikte. Üzerimde gör ayda 30 AI görseliyle gelir.",
-      "plans": "Üyelik planlarını gör",
-      "selfServe": "Şimdilik ücretsiz etkinleştir",
-      "selfServeNote": "Deneme dönemi: üyelik özellikleri geçici olarak açılır. Ayarlar'dan kapatabilirsin.",
-      "selfServeFailed": "Etkinleştirilemedi. Yeniden dene."
+      "plans": "Üyelik planlarını gör"
     },
     "credits": {
       "title": "AI görselin kalmadı",

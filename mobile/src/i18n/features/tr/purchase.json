@@ -22,16 +22,5 @@
   },
   "push": {
     "denied": "Bildirim izni kapalı. Hatırlatmaları almak için Ayarlar'dan Droblet bildirimlerini aç."
-  },
-  "selfPremium": {
-    "eyebrow": "GEÇİCİ ÜYELİK",
-    "title": "Geçici üyelik — ödeme entegrasyonu açılana kadar",
-    "bodyOff": "Ödeme sistemi açılana kadar Premium'u kendin ücretsiz etkinleştirebilirsin: aylık 30 AI görseli ve tüm üye özellikleri.",
-    "bodyOn": "Premium şu an açık. Ödeme sistemi açıldığında üyeliğini mağazadan sürdürebilirsin.",
-    "enable": "Premium'u etkinleştir",
-    "disable": "Premium'u kapat",
-    "error": "Şu an değiştirilemedi. Biraz sonra tekrar dene.",
-    "disabledError": "Geçici üyelik artık kapalı.",
-    "paywallLink": "Şimdilik ücretsiz etkinleştir"
   }
 }

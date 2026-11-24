@@ -27,7 +27,6 @@ import { photoDeleteLines } from '@/features/account/logic';
 import { useDeleteAllPhotos, useRemovePhoto, useSetVisibility } from '@/features/account/mutations';
 import { NotificationPrefsCard } from '@/features/account/NotificationPrefsCard';
 import { ProductAnalyticsCard } from '@/features/account/ProductAnalyticsCard';
-import { SelfPremiumCard } from '@/features/account/SelfPremiumCard';
 import { accountKeys, useMyPhotos, useMyProfile, usePalette } from '@/features/account/queries';
 import { ChoiceRow, ProfileMenuRow, RowCard } from '@/features/account/rows';
 import type { PreparedPhoto } from '@/features/photos/preparePhoto';
@@ -458,7 +457,6 @@ export default function SettingsScreen() {
         <NotificationPrefsCard />
 
         {/* Temporary self-serve premium; only while the server switch is on. Never for a teen. */}
-        {teen.hide.paywall ? null : <SelfPremiumCard />}
 
         <View className="flex-row flex-wrap items-center justify-between gap-3">
           <Text variant="eyebrow">{t('settings.languageEyebrow')}</Text>
