@@ -84,7 +84,6 @@ describe('purchase flow', () => {
   it('never finishes when the server refuses or cannot be reached', async () => {
     for (const [error, kind] of [
       [new ApiError('network', null, null), 'network'],
-      [new ApiError('http', 409, { code: 'purchase_owned_by_another_account' } as never), 'owned_elsewhere'],
       [new ApiError('http', 422, { code: 'purchase_invalid' } as never), 'invalid'],
       [new ApiError('http', 501, { code: 'purchase_verification_unavailable' } as never), 'not_configured'],
     ] as const) {
@@ -154,6 +153,41 @@ describe('purchase flow', () => {
 
     expect(start).not.toHaveBeenCalled();
     expect(purchaseMessage(purchaseFlow.getState())).toEqual({ key: 'purchase.errorUnavailable', tone: 'danger' });
+  });
+
+  it('a membership that sits on another Droblet account is moved here: 409 → restore → finished', async () => {
+    const purchase = storePurchase(PRODUCT_IDS.yearly);
+    (storePurchases as jest.Mock).mockResolvedValueOnce([purchase]);
+    api.mockRejectedValueOnce(new ApiError('http', 409, { code: 'purchase_owned_by_another_account' } as never));
+    api.mockResolvedValueOnce({ entitlement: premiumWire, restored: 1, ownedByAnotherAccount: 0 });
+
+    await purchaseFlow.buy(yearly, null, true);
+    await purchaseFlow.handlePurchase(purchase);
+
+    expect(api.mock.calls.map((c) => c[0])).toEqual(['v1/tenant/entitlement/purchase', 'v1/tenant/entitlement/restore']);
+    expect(purchaseFlow.getState()).toMatchObject({ phase: 'restored', restored: { member: true, ownedElsewhere: 0 } });
+    expect(purchaseMessage(purchaseFlow.getState())?.key).toBe('purchase.restoredMember');
+    expect(finish).toHaveBeenCalledWith(purchase, false);
+  });
+
+  it('when the move is refused (moved too recently) the "belongs to another account" message stays and nothing is finished', async () => {
+    const purchase = storePurchase(PRODUCT_IDS.yearly);
+    (storePurchases as jest.Mock).mockResolvedValueOnce([purchase]);
+    api.mockRejectedValueOnce(new ApiError('http', 409, { code: 'purchase_owned_by_another_account' } as never));
+    api.mockResolvedValueOnce({ entitlement: { ...premiumWire, tier: 'free' }, restored: 0, ownedByAnotherAccount: 1 });
+
+    await purchaseFlow.buy(yearly, null, true);
+    await purchaseFlow.handlePurchase(purchase);
+
+    expect(purchaseMessage(purchaseFlow.getState())?.key).toBe('purchase.restoredElsewhere');
+    expect(finish).not.toHaveBeenCalled();
+  });
+
+  it('a 409 for a transaction delivered in the background moves nothing', async () => {
+    api.mockRejectedValueOnce(new ApiError('http', 409, { code: 'purchase_owned_by_another_account' } as never));
+    await purchaseFlow.handlePurchase(storePurchase(PRODUCT_IDS.yearly));
+    expect(api).toHaveBeenCalledTimes(1);
+    expect(finish).not.toHaveBeenCalled();
   });
 
   it('restore sends what the store holds and reports the result', async () => {

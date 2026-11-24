@@ -28,7 +28,12 @@ public enum PurchaseApplyOutcome
 public interface IPurchaseService
 {
     /// <summary>Applies a store-verified purchase for the signed-in tenant (claims it). Only called with a Verified result.</summary>
-    Task<PurchaseApplyOutcome> ApplyAsync(string tenantId, StorePlatform platform, PurchaseVerificationResult verified, CancellationToken ct);
+    /// <param name="transfer">
+    /// True only when the caller proved it holds the purchase on this device and asked for it ("Satın alımları geri yükle",
+    /// or a purchase attempt that ended in "owned elsewhere"): a subscription that belongs to another Droblet account is
+    /// closed there and moved to this one (owner decision 2026-11-24). Credit packs never move.
+    /// </param>
+    Task<PurchaseApplyOutcome> ApplyAsync(string tenantId, StorePlatform platform, PurchaseVerificationResult verified, CancellationToken ct, bool transfer = false);
 
     /// <summary>
     /// A store event (notification / re-read): the tenant comes from the purchase index or the account token.
@@ -56,7 +61,7 @@ public sealed class PurchaseService(
     private readonly ILogger _logger = logger ?? NullLogger<PurchaseService>.Instance;
     private DateTime Now => timeProvider.GetUtcNow().UtcDateTime;
 
-    public async Task<PurchaseApplyOutcome> ApplyAsync(string tenantId, StorePlatform platform, PurchaseVerificationResult verified, CancellationToken ct)
+    public async Task<PurchaseApplyOutcome> ApplyAsync(string tenantId, StorePlatform platform, PurchaseVerificationResult verified, CancellationToken ct, bool transfer = false)
     {
         if (verified.Status != PurchaseVerificationStatus.Verified || verified.ProductId is null || verified.OriginalTransactionId is null)
             throw new ArgumentException("Only verified purchases can be applied.", nameof(verified));
@@ -66,9 +71,15 @@ public sealed class PurchaseService(
             return PurchaseApplyOutcome.UnknownProduct;
         if (verified.State == StoreSubscriptionState.Pending)
             return PurchaseApplyOutcome.Pending;
-        if (verified.AccountToken is { Length: > 0 } token && !StoreAccountToken.Matches(tenantId, token))
+        // A running subscription may move to the account that restores it on the device that holds it.
+        var movable = transfer && kind == StoreProductKind.Subscription
+                      && verified.State is StoreSubscriptionState.Active or StoreSubscriptionState.GracePeriod or StoreSubscriptionState.BillingRetry;
+        // The token names the account that bought it; after a move the index names the owner and wins.
+        if (!movable && verified.AccountToken is { Length: > 0 } token && !StoreAccountToken.Matches(tenantId, token)
+            && !await OwnsAsync(tenantId, platform, verified.OriginalTransactionId, ct))
             return PurchaseApplyOutcome.AccountMismatch;
-        if (!await ClaimAsync(tenantId, platform, verified.OriginalTransactionId, ct))
+        if (!await ClaimAsync(tenantId, platform, verified.OriginalTransactionId, ct)
+            && !(movable && await TransferAsync(tenantId, platform, verified, ct)))
             return PurchaseApplyOutcome.OwnedByAnotherAccount;
 
         return await WriteAsync(tenantId, platform, verified, kind.Value, ct);
@@ -255,6 +266,48 @@ public sealed class PurchaseService(
         }
         return false;
     }
+
+    /// <summary>
+    /// Moves a subscription to <paramref name="tenantId"/>: the previous owner's membership from this purchase ends now and
+    /// its purchase record is removed (so its own "restore" cannot take it back without the device), then the index points
+    /// at the new owner. A Production purchase moves at most once per Store:TransferCooldownDays — every move starts a fresh
+    /// monthly AI allowance on the new account; Sandbox / Xcode purchases have no cooldown.
+    /// </summary>
+    private async Task<bool> TransferAsync(string tenantId, StorePlatform platform, PurchaseVerificationResult verified, CancellationToken ct)
+    {
+        var key = verified.OriginalTransactionId!;
+        var index = await repository.GetAsync<StorePurchaseIndexEntity>(StorePurchaseIndexEntity.GetPk(), StorePurchaseIndexEntity.GetSk(platform, key), ct);
+        if (index is null || index.TenantId == tenantId)
+            return index is not null;
+
+        var now = Now;
+        var cooldown = TimeSpan.FromDays(Math.Max(0, store.CurrentValue.TransferCooldownDays));
+        if (verified.Environment == StoreRules.ProductionEnvironment && index.TransferredAt is { } last && now - last < cooldown)
+        {
+            _logger.LogInformation("Subscription {Key} not moved to tenant {TenantId}: moved {Days:0.0} days ago", key, tenantId, (now - last).TotalDays);
+            return false;
+        }
+
+        var previous = index.TenantId;
+        var entitlement = await repository.GetAsync<EntitlementEntity>(EntitlementEntity.GetPk(previous), EntitlementEntity.GetSk(EntitlementSource.Store, key), ct);
+        if (entitlement is not null && (entitlement.ExpiresAt is null || entitlement.ExpiresAt > now))
+        {
+            entitlement.ExpiresAt = now;
+            entitlement.State = StoreSubscriptionState.Expired;
+            entitlement.UpdatedAt = now;
+            await repository.SaveAsync(entitlement, ct);
+        }
+        await repository.DeleteAsync(StorePurchaseEntity.GetPk(previous), StorePurchaseEntity.GetSk(platform, key), ct);
+
+        index.TenantId = tenantId;
+        index.TransferredAt = now;
+        await repository.SaveAsync(index, ct);
+        _logger.LogInformation("Subscription {Key} moved from tenant {Previous} to tenant {TenantId}", key, previous, tenantId);
+        return true;
+    }
+
+    private async Task<bool> OwnsAsync(string tenantId, StorePlatform platform, string key, CancellationToken ct) =>
+        (await repository.GetAsync<StorePurchaseIndexEntity>(StorePurchaseIndexEntity.GetPk(), StorePurchaseIndexEntity.GetSk(platform, key), ct))?.TenantId == tenantId;
 
     private async Task<string?> ResolveTenantAsync(StorePlatform platform, string key, string? accountToken, CancellationToken ct)
     {

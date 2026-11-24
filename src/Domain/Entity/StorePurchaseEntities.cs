@@ -45,6 +45,8 @@ public class StorePurchaseIndexEntity : IEntity
     [JsonPropertyName("key")] public string Key { get; set; } = null!;
     [JsonPropertyName("tenantId")] public string TenantId { get; set; } = null!;
     [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; }
+    // Last time the subscription moved to another Droblet account (restore on the device that holds it).
+    [JsonPropertyName("transferredAt")] public DateTime? TransferredAt { get; set; }
 
     public static string GetPk() => "storepurchase";
     public static string GetSk(StorePlatform platform, string key) => $"{platform.ToString().ToLowerInvariant()}#{key}";

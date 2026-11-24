@@ -17,7 +17,7 @@
     "errorStore": "The store reported an error. Please try again in a moment.",
     "restoredMember": "Your purchases are restored. Your Droblet membership is active.",
     "restoredNone": "No membership to restore was found for this account.",
-    "restoredElsewhere": "The membership found belongs to another Droblet account.",
+    "restoredElsewhere": "This membership belongs to another Droblet account and was moved too recently to bring it here now. Sign in with that account to use it.",
     "gracePeriod": "Your last payment didn't go through. Your membership continues for now; update your payment method in the store settings."
   },
   "push": {
