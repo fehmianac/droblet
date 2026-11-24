@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, { cancelAnimation, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 
+import { AiShimmer } from '@/components/ui/ai/AiShimmer';
 import { Text } from '@/components/ui/Text';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 
@@ -35,6 +36,19 @@ export function CoverPendingTag({ className }: { className?: string }) {
       <Text variant="caption" tone="ink" numberOfLines={1}>
         {t('looks.coverPending')}
       </Text>
+    </View>
+  );
+}
+
+/**
+ * The loading look of a cover that is being made (canvas 21c, 3rd card): a thin paper veil over the drawn flat-lay and
+ * the light band of the AI loading language sweeping across it (1.8 s, linear). With reduce motion only the veil stays.
+ * Fills the cover; put it under the tags.
+ */
+export function CoverPendingSweep() {
+  return (
+    <View style={StyleSheet.absoluteFill} className="bg-paper/25" pointerEvents="none" testID="look-cover-sweep">
+      <AiShimmer band={0.6} from={-1.2} to={2.2} />
     </View>
   );
 }
