@@ -14,7 +14,7 @@ import { ScreenState } from '@/components/ui/ScreenState';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { useLookWrites } from '@/features/looks/api';
-import { CoverPendingSweep, CoverPendingTag } from '@/features/looks/CoverPendingTag';
+import { CoverPendingSplash } from '@/features/looks/CoverPendingTag';
 import { indexItems, LookCover, type ItemsById } from '@/features/looks/LookCover';
 import { LooksAddSheet } from '@/features/outfitImport/LooksAddSheet';
 import { filterLooks, LOOK_FILTERS, type LookFilter } from '@/features/looks/logic';
@@ -49,10 +49,9 @@ function LookTile({ look, itemsById, onToggleFavorite }: { look: Look; itemsById
         className="gap-2 active:opacity-80"
       >
         <LookCover seed={look.id} tryOnImageUrl={look.tryOnImageUrl} cover={look.tryOnImageUrl ? null : lookCoverSource(look)} slots={look.slots} itemsById={itemsById} className="h-[210px] w-full rounded-image-lg">
-          {/* 21c: the AI flat-lay is being made; the drawn flat-lay shows under a light sweep until it arrives (fades in). */}
-          {coverPending ? <CoverPendingSweep /> : null}
+          {/* 21c: the AI flat-lay is being made; the drawn flat-lay shows under the splash-mark loader until it arrives (fades in). */}
+          {coverPending ? <CoverPendingSplash /> : null}
           <ImageTag label={toDisplayUpper(tag, language)} className="absolute bottom-2 left-2" />
-          {coverPending ? <CoverPendingTag className="absolute left-2 top-2" /> : null}
         </LookCover>
         <View className="flex-row items-center justify-between gap-2">
           <Text variant="segment" numberOfLines={1} className="flex-1">
