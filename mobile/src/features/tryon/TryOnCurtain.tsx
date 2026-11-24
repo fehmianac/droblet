@@ -21,7 +21,7 @@ import { curtainTones } from '@/theme/tokens';
 
 import { isWornPiece } from './pieces';
 
-/** Canvas 21e "Deneme kabini perdesi": linen tones, independent of the theme (the stage is a photo-like surface). */
+/** Canvas 21e "Deneme kabini perdesi": plain black since 2026-11-24, independent of the theme (the stage is a photo-like surface). */
 const CURTAIN = {
   ...curtainTones,
   stripes: [
@@ -98,7 +98,7 @@ type Props = {
 };
 
 /**
- * "Üzerimde gör" wait (canvas 21e): a closed linen curtain on a rail; the card in the middle says "Hazırlanıyor…" and
+ * "Üzerimde gör" wait (canvas 21e): a closed black curtain; the card in the middle says "Hazırlanıyor…" and
  * puts the outfit's pieces on one by one by their own names ("Lacivert blazer giyiliyor…" → "… giyildi"). When the
  * result is in, the card reads "Hazır", fades, and the curtain draws to both sides over the image. Nothing behind the
  * curtain shows while it is closed. A tap anywhere during the reveal skips straight to the result. Reduce motion: no

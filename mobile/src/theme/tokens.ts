@@ -111,14 +111,15 @@ export const placeholderTones = {
 } as const;
 export type PlaceholderTone = keyof typeof placeholderTones;
 
-/** The "Üzerimde gör" curtain (canvas 21e): linen stripes, rail and the card on it — fixed tones in both themes. */
+/** The "Üzerimde gör" curtain (canvas 21e): the curtain and the card on it — fixed tones in both themes. */
 export const curtainTones = {
-  ground: '#3A342E',
-  rail: '#6E5640',
-  stripeA: '#D8CBBA',
-  stripeB: '#E6DCCF',
-  stripeC: '#CDBFAD',
-  stripeD: '#DED3C4',
+  // Owner decision 2026-11-24: the cabin curtain is plain black (was striped linen on a dark ground).
+  ground: '#000000',
+  rail: '#000000',
+  stripeA: '#000000',
+  stripeB: '#000000',
+  stripeC: '#000000',
+  stripeD: '#000000',
   ink: '#1C1A17',
   cream: '#F4F1EC',
   muted: '#8A8178',
