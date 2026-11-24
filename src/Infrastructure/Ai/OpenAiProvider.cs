@@ -181,14 +181,14 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
     {
         var prompt = await PromptAsync(PromptCatalog.TryOnBody, OpenAiPrompts.TryOn(garments.Count), [], ct,
             new Dictionary<string, string> { ["garmentCount"] = garments.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) });
-        return await EditImageAsync(prompt + OpenAiPrompts.GarmentList(garments), [bodyPhoto, .. garments], ImageUse.TryOn, quality, "image_tryon", ct);
+        return await EditImageAsync(prompt + OpenAiPrompts.GarmentList(garments) + OpenAiPrompts.TryOnBackdrop, [bodyPhoto, .. garments], ImageUse.TryOn, quality, "image_tryon", ct);
     }
 
     public async Task<ImageInput> RenderFromFaceAsync(ImageInput facePhoto, IReadOnlyList<ImageInput> garments, TryOnFigure figure, CancellationToken ct, string? quality = null)
     {
         var prompt = await PromptAsync(PromptCatalog.TryOnFace, OpenAiPrompts.TryOnFromFace(garments.Count, figure), [], ct,
             OpenAiPrompts.TryOnFromFaceValues(garments.Count, figure));
-        return await EditImageAsync(prompt + OpenAiPrompts.GarmentList(garments), [facePhoto, .. garments], ImageUse.TryOn, quality, "image_tryon", ct);
+        return await EditImageAsync(prompt + OpenAiPrompts.GarmentList(garments) + OpenAiPrompts.TryOnBackdrop, [facePhoto, .. garments], ImageUse.TryOn, quality, "image_tryon", ct);
     }
 
     public async Task<ImageInput> RenderOutfitPhotoAsync(ImageInput subject, ImageInput outfitPhoto, TryOnFigure? figure, CancellationToken ct, string? quality = null)
@@ -197,7 +197,7 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
             ? await PromptAsync(PromptCatalog.TryOnPhotoBody, OpenAiPrompts.TryOnOutfitPhotoTemplate, [], ct)
             : await PromptAsync(PromptCatalog.TryOnPhotoFace, OpenAiPrompts.TryOnOutfitPhotoFromFace(figure), [], ct, OpenAiPrompts.FigureValues(figure));
         // The user first (identity), then the outfit photo (clothes only) — the order the prompt names them in.
-        return await EditImageAsync(prompt, [subject, outfitPhoto], ImageUse.TryOn, quality, "image_tryon", ct);
+        return await EditImageAsync(prompt + OpenAiPrompts.TryOnBackdrop, [subject, outfitPhoto], ImageUse.TryOn, quality, "image_tryon", ct);
     }
 
     public async Task<ImageInput> RenderTeenAsync(ImageInput photo, IReadOnlyList<ImageInput> garments, TryOnFigure? figure, CancellationToken ct, string? quality = null)
@@ -207,7 +207,7 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
                 new Dictionary<string, string> { ["garmentCount"] = garments.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) })
             : await PromptAsync(PromptCatalog.TryOnFace, OpenAiPrompts.TryOnFromFace(garments.Count, figure), [], ct, OpenAiPrompts.TryOnFromFaceValues(garments.Count, figure));
         var guard = await PromptAsync(PromptCatalog.TryOnTeenGuard, OpenAiPrompts.TryOnTeenGuard, [], ct);
-        return await EditImageAsync(OpenAiPrompts.ForTeen(basePrompt + OpenAiPrompts.GarmentList(garments), guard), [photo, .. garments], ImageUse.TryOn, quality, "image_tryon", ct);
+        return await EditImageAsync(OpenAiPrompts.ForTeen(basePrompt + OpenAiPrompts.GarmentList(garments), guard) + OpenAiPrompts.TryOnBackdrop, [photo, .. garments], ImageUse.TryOn, quality, "image_tryon", ct);
     }
 
     /// <summary>AI flat-lay cover of a saved look (canvas 21c): the pieces' images only — no photo of a person is ever sent.</summary>
@@ -1187,6 +1187,15 @@ public static class OpenAiPrompts
             : "faceVisible: true only when exactly one face is clearly visible from the front. fullBody: whether the whole body is visible. ") +
         "tooDark: the person is hard to see because the photo is too dark or strongly backlit. blurry: the person is out of focus or motion-blurred. " +
         "appearsMinor: the person clearly appears to be under 18. Do not identify, name or describe the person.";
+
+    /// <summary>
+    /// The backdrop of every try-on image (owner decision 2026-11-24): the app shows the image whole on its sand surface,
+    /// so a grey studio wall reads as a box. Appended in code after the template, like <see cref="GarmentList"/>, so it
+    /// also applies to a published template; it overrules the "neutral studio background" wording those still carry.
+    /// </summary>
+    public const string TryOnBackdrop =
+        " Background, overruling any other background instruction above: one seamless, evenly lit, solid sand-coloured backdrop, exact colour " + ProductBackground + ", " +
+        "the same colour from edge to edge behind and under the person — no wall, no floor line, no gradient, no vignette, no props; only a very soft contact shadow at the feet.";
 
     /// <summary>House background of product images (the ready library uses the same sand tone).</summary>
     public const string ProductBackground = "#E8E1D7";
