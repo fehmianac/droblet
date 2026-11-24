@@ -37,6 +37,7 @@ const DRESS_ORDER: Record<ItemCategory, number> = {
   outerwear: 1,
   bottom: 2,
   dress: 2,
+  socks: 3,
   shoes: 3,
   bag: 4,
   accessory: 5,

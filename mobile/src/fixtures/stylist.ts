@@ -30,8 +30,9 @@ const SLOT_OF: Record<ItemCategory, LookSlotKind> = {
   bottom: 'bottom',
   outerwear: 'outerwear',
   shoes: 'shoes',
-  bag: 'accessory',
+  bag: 'bag',
   accessory: 'accessory',
+  socks: 'socks',
 };
 
 /** The missing piece the stylist proposes — a product of the catalogue fixture (leather belt). */

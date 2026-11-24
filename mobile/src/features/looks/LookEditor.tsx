@@ -6,7 +6,7 @@ import { Alert, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { Occasion } from '@/api/contracts';
-import { LOOK_MIN_PIECES, LOOK_SLOTS, type Look, type LookSlotKind } from '@/api/contracts/looks';
+import { LOOK_MIN_PIECES, LOOK_SLOTS, SLOT_CAPACITY, type Look, type LookSlot, type LookSlotKind } from '@/api/contracts/looks';
 import type { Item } from '@/api/contracts/wardrobe';
 import { ImageTag, PopoverMenu } from '@/components/ui/Bits';
 import { BottomActionBar } from '@/components/ui/BottomActionBar';
@@ -29,7 +29,21 @@ import { useIsOnline } from '@/sync/network';
 
 import { useLookWrites, type LookDraft } from './api';
 import { indexItems, LookCover, SlotThumb } from './LookCover';
-import { canSaveLook, filledCount, hasDeletedPiece, LOOK_OCCASIONS, sameSlots, slotList, toSlotInputs, type SlotMap } from './logic';
+import {
+  addPiece,
+  canSaveLook,
+  filledCount,
+  hasDeletedPiece,
+  hasRoom,
+  LOOK_OCCASIONS,
+  piecesOf,
+  removePiece,
+  replacePiece,
+  sameSlots,
+  slotList,
+  toSlotInputs,
+  type SlotMap,
+} from './logic';
 import { SlotSheet } from './SlotSheet';
 
 type Props = {
@@ -51,7 +65,8 @@ function leave() {
 }
 
 /**
- * 15 Look oluştur — name, occasion, five slots (min 2 pieces to save), slot picker sheet, and
+ * 15 / 15′ Look oluştur — name, occasion, seven boxes that may hold layers (Üst up to 3, Aksesuar up to 4; min 2
+ * pieces to save), slot picker sheet, and
  * "Üzerimde gör" behind the credit confirmation. Also the edit mode of a saved look.
  */
 export function LookEditor({ look, initialSlots, skippedCount = 0, items, initialTryOnNote, initialOccasion = null }: Props) {
@@ -64,7 +79,8 @@ export function LookEditor({ look, initialSlots, skippedCount = 0, items, initia
   const [name, setName] = useState(look?.name ?? '');
   const [occasion, setOccasion] = useState<Occasion>(look?.occasion ?? initialOccasion ?? 'office');
   const [slots, setSlots] = useState<SlotMap>(initialSlots);
-  const [sheetSlot, setSheetSlot] = useState<LookSlotKind | null>(null);
+  /** The open picker: the box, and the piece being changed (null = adding a piece to the box). */
+  const [sheet, setSheet] = useState<{ kind: LookSlotKind; current: LookSlot | null } | null>(null);
   const [menu, setMenu] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [tryOnNote, setTryOnNote] = useState<'offline' | 'failed' | null>(initialTryOnNote ?? null);
@@ -218,7 +234,7 @@ export function LookEditor({ look, initialSlots, skippedCount = 0, items, initia
         ) : null}
 
         <View className="flex-row items-center justify-between gap-3">
-          <Text variant="eyebrow">{t('lookEditor.counterEyebrow', { count, total: LOOK_SLOTS.length })}</Text>
+          <Text variant="eyebrow">{t('lookEditor.counterEyebrow', { count })}</Text>
           <Text variant="caption" tone="muted">
             {t('lookEditor.minHint', { count: LOOK_MIN_PIECES })}
           </Text>
@@ -230,68 +246,98 @@ export function LookEditor({ look, initialSlots, skippedCount = 0, items, initia
           </Text>
         ) : null}
 
-        <View className="gap-2">
+        <View className="gap-3">
           {LOOK_SLOTS.map((kind) => {
-            const slot = slots[kind];
+            const pieces = piecesOf(slots, kind);
+            const capacity = SLOT_CAPACITY[kind];
             const slotLabel = t(`lookSlot.${kind}`);
-            if (!slot) {
+            const header = (
+              <View className="flex-row items-center justify-between px-0.5">
+                <Text variant="caption" className="text-[11px] font-medium">
+                  {slotLabel}
+                </Text>
+                {capacity > 1 ? (
+                  <Text variant="caption" tone="muted" className="text-[11px]">
+                    {t('lookEditor.boxCount', { count: pieces.length, total: capacity })}
+                  </Text>
+                ) : null}
+              </View>
+            );
+            if (pieces.length === 0) {
               return (
-                <Pressable
-                  key={kind}
-                  onPress={() => setSheetSlot(kind)}
-                  accessibilityRole="button"
-                  accessibilityLabel={t('lookEditor.addSlot', { slot: slotLabel })}
-                  accessibilityHint={t('lookEditor.slotEmpty')}
-                  testID={`look-slot-${kind}`}
-                  className="flex-row items-center gap-3 rounded-menu border-[1.5px] border-dashed border-muted/60 px-2.5 py-2 active:opacity-70"
-                >
-                  <View className="h-[52px] w-11 items-center justify-center rounded-thumb bg-sand">
-                    <Icon icon={Plus} size={18} tone="muted" />
-                  </View>
-                  <View className="flex-1 gap-0.5">
-                    <Text variant="caption" tone="muted" className="text-[11px]">
-                      {slotLabel}
-                    </Text>
-                    <Text variant="body" tone="muted" numberOfLines={1}>
+                <View key={kind} className="gap-1.5">
+                  {header}
+                  <Pressable
+                    onPress={() => setSheet({ kind, current: null })}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('lookEditor.addSlot', { slot: slotLabel })}
+                    accessibilityHint={t('lookEditor.slotEmpty')}
+                    testID={`look-slot-${kind}`}
+                    className="flex-row items-center gap-3 rounded-menu border-[1.5px] border-dashed border-muted/60 px-2.5 py-2 active:opacity-70"
+                  >
+                    <View className="h-[46px] w-10 items-center justify-center rounded-thumb bg-sand">
+                      <Icon icon={Plus} size={18} tone="muted" />
+                    </View>
+                    <Text variant="body" tone="muted" numberOfLines={1} className="flex-1">
                       {t('lookEditor.slotEmpty')}
                     </Text>
-                  </View>
-                </Pressable>
+                  </Pressable>
+                </View>
               );
             }
+            const anyDeleted = pieces.some((p) => p.deleted);
             return (
-              <View
-                key={kind}
-                className={`flex-row items-center gap-3 rounded-menu border bg-paper px-2.5 py-2 ${slot.deleted ? 'border-danger' : 'border-line'}`}
-              >
-                <SlotThumb slot={slot} itemsById={itemsById} className="h-[52px] w-11 rounded-thumb" glyphSize={22} />
-                <View className="flex-1 gap-0.5">
-                  <Text variant="caption" tone="muted" className="text-[11px]">
-                    {slot.source === 'store' ? t('lookEditor.slotFromStore', { slot: slotLabel }) : slotLabel}
-                  </Text>
-                  <Text variant="bodyMedium" numberOfLines={2}>
-                    {slot.name || t('lookEditor.deletedPiece')}
-                  </Text>
-                  {slot.deleted ? (
-                    <View className="flex-row items-center gap-1.5">
-                      <Icon icon={CircleAlert} size={14} tone="danger" />
-                      <Text variant="caption" tone="danger" className="flex-1">
-                        {t('lookEditor.deletedHint')}
-                      </Text>
+              <View key={kind} className="gap-1.5">
+                {header}
+                <View className={`overflow-hidden rounded-menu border bg-paper ${anyDeleted ? 'border-danger' : 'border-line'}`}>
+                  {pieces.map((piece, index) => (
+                    <View
+                      key={`${piece.source}:${piece.refId}`}
+                      className={`flex-row items-center gap-3 px-2.5 py-2 ${index > 0 ? 'border-t border-line' : ''}`}
+                    >
+                      <SlotThumb slot={piece} itemsById={itemsById} className="h-[46px] w-10 rounded-thumb" glyphSize={20} />
+                      <View className="flex-1 gap-0.5">
+                        <Text variant="bodyMedium" numberOfLines={2}>
+                          {piece.name || t('lookEditor.deletedPiece')}
+                        </Text>
+                        {piece.deleted ? (
+                          <View className="flex-row items-center gap-1.5">
+                            <Icon icon={CircleAlert} size={14} tone="danger" />
+                            <Text variant="caption" tone="danger" className="flex-1">
+                              {t('lookEditor.deletedHint')}
+                            </Text>
+                          </View>
+                        ) : piece.price !== null ? (
+                          <Text variant="caption" tone="accent">
+                            {t('lookEditor.slotFromStore', { slot: formatMoney(piece.price) })}
+                          </Text>
+                        ) : null}
+                      </View>
+                      <IconButton
+                        icon={RefreshCw}
+                        variant="plain"
+                        iconSize={18}
+                        onPress={() => setSheet({ kind, current: piece })}
+                        accessibilityLabel={t('lookEditor.changePiece', { name: piece.name || slotLabel })}
+                        testID={index === 0 ? `look-slot-${kind}-change` : undefined}
+                      />
                     </View>
-                  ) : slot.price !== null ? (
-                    <Text variant="caption" tone="accent">
-                      {formatMoney(slot.price)}
-                    </Text>
+                  ))}
+                  {capacity > 1 && hasRoom(slots, kind) ? (
+                    <Pressable
+                      onPress={() => setSheet({ kind, current: null })}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('lookEditor.addToSlot', { slot: slotLabel })}
+                      testID={`look-slot-${kind}-add`}
+                      className="flex-row items-center gap-2 border-t border-dashed border-muted/60 px-3 py-2.5 active:opacity-70"
+                    >
+                      <Icon icon={Plus} size={16} tone="muted" />
+                      <Text variant="caption" tone="muted">
+                        {t(kind === 'accessory' ? 'lookEditor.addAccessory' : 'lookEditor.addLayer')}
+                      </Text>
+                    </Pressable>
                   ) : null}
                 </View>
-                <IconButton
-                  icon={RefreshCw}
-                  variant="plain"
-                  iconSize={18}
-                  onPress={() => setSheetSlot(kind)}
-                  accessibilityLabel={t('lookEditor.changeSlot', { slot: slotLabel })}
-                />
               </View>
             );
           })}
@@ -308,23 +354,20 @@ export function LookEditor({ look, initialSlots, skippedCount = 0, items, initia
       </BottomActionBar>
 
       <SlotSheet
-        slot={sheetSlot}
-        current={sheetSlot ? slots[sheetSlot] : undefined}
+        slot={sheet?.kind ?? null}
+        current={sheet?.current ?? undefined}
+        taken={slots}
         items={items}
-        onClose={() => setSheetSlot(null)}
+        onClose={() => setSheet(null)}
         onPick={(picked) => {
-          setSlots((prev) => ({ ...prev, [picked.slot]: picked }));
-          setSheetSlot(null);
+          const current = sheet?.current;
+          setSlots((prev) => (current ? replacePiece(prev, current, picked) : addPiece(prev, picked)));
+          setSheet(null);
         }}
         onRemove={() => {
-          if (sheetSlot) {
-            setSlots((prev) => {
-              const next = { ...prev };
-              delete next[sheetSlot];
-              return next;
-            });
-          }
-          setSheetSlot(null);
+          const current = sheet?.current;
+          if (current) setSlots((prev) => removePiece(prev, current));
+          setSheet(null);
         }}
       />
       <CreditConfirmSheet visible={confirm} onClose={() => setConfirm(false)} cost={TRY_ON_CREDIT_COST} onConfirm={onTryOnConfirm} confirming={tryOn.isStarting} />

@@ -75,7 +75,8 @@
       "bag": "Çanta",
       "accessory": "Aksesuar",
       "beachwear": "Plaj giyim",
-      "skiwear": "Kayak giyim"
+      "skiwear": "Kayak giyim",
+      "socks": "Çorap"
     },
     "buildWithMine": "Kendi parçalarımla kur",
     "buildWithMineA11y_one": "Kendi parçalarımla kur, gardırobundan {{count}} parça",

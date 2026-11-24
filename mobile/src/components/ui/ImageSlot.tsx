@@ -37,6 +37,7 @@ export const GARMENT_GLYPHS: Record<ItemCategory, string> = {
   accessory: 'M12 4a4 4 0 0 1 4 4c0 5-4 12-4 12S8 13 8 8a4 4 0 0 1 4-4zM9.5 8h5',
   beachwear: 'M8 3 3 6l2 4 3-1v12h8V9l3 1 2-4-5-3c-.5 1.5-2 2.5-4 2.5S8.5 4.5 8 3z',
   skiwear: 'M8 3 4 6v15h6V9l2 3 2-3v12h6V6l-4-3-2 4z',
+  socks: 'M9 3h6v9l-4.5 5.5a3 3 0 0 1-4.6-3.8L9 10zM9 6h6',
 };
 
 /**

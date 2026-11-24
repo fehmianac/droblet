@@ -1,7 +1,9 @@
 import type { Occasion } from '@/api/contracts';
 import {
+  LOOK_MAX_PIECES,
   LOOK_MIN_PIECES,
   LOOK_SLOTS,
+  SLOT_CAPACITY,
   SLOT_CATEGORIES,
   type Look,
   type LookSlot,
@@ -12,8 +14,11 @@ import type { Item, ItemCategory } from '@/api/contracts/wardrobe';
 import { imageVariantsOf } from '@/lib/images';
 import type { PlaceholderTone } from '@/theme/tokens';
 
-/** One piece per slot (15: five slots). */
-export type SlotMap = Partial<Record<LookSlotKind, LookSlot>>;
+/**
+ * The pieces of a look being built (15′): in box order, and inside a box in the order they were added
+ * (inner layer first). A box holds at most `SLOT_CAPACITY` pieces.
+ */
+export type SlotMap = LookSlot[];
 
 export type LookFilter = 'all' | 'favorites' | Occasion;
 
@@ -39,7 +44,9 @@ export const SLOT_FALLBACK_CATEGORY: Record<LookSlotKind, ItemCategory> = {
   bottom: 'bottom',
   outerwear: 'outerwear',
   shoes: 'shoes',
-  accessory: 'bag',
+  socks: 'socks',
+  bag: 'bag',
+  accessory: 'accessory',
 };
 
 export function slotFromWardrobeItem(slot: LookSlotKind, item: Item): LookSlot {
@@ -56,21 +63,54 @@ export function slotFromWardrobeItem(slot: LookSlotKind, item: Item): LookSlot {
   };
 }
 
+/** Pieces in box order; the order inside a box is kept. */
+export function slotList(slots: SlotMap): LookSlot[] {
+  return LOOK_SLOTS.flatMap((kind) => slots.filter((s) => s.slot === kind));
+}
+
+export function piecesOf(slots: SlotMap, kind: LookSlotKind): LookSlot[] {
+  return slots.filter((s) => s.slot === kind);
+}
+
+const samePiece = (a: Pick<LookSlot, 'source' | 'refId'>, b: Pick<LookSlot, 'source' | 'refId'>) => a.source === b.source && a.refId === b.refId;
+
+/** True while the box (and the look) can take one more piece. */
+export function hasRoom(slots: SlotMap, kind: LookSlotKind): boolean {
+  return piecesOf(slots, kind).length < SLOT_CAPACITY[kind] && slots.length < LOOK_MAX_PIECES;
+}
+
+/** Adds a piece as the outermost layer of its box; a piece already in the look, or a full box, changes nothing. */
+export function addPiece(slots: SlotMap, piece: LookSlot): SlotMap {
+  if (slots.some((s) => samePiece(s, piece)) || !hasRoom(slots, piece.slot)) return slots;
+  return slotList([...slots, piece]);
+}
+
+/** Swaps one piece for another in the same place (the layer order stays). */
+export function replacePiece(slots: SlotMap, current: LookSlot, piece: LookSlot): SlotMap {
+  if (samePiece(current, piece)) return slots;
+  if (slots.some((s) => samePiece(s, piece))) return slots;
+  return slots.map((s) => (samePiece(s, current) ? piece : s));
+}
+
+export function removePiece(slots: SlotMap, piece: LookSlot): SlotMap {
+  return slots.filter((s) => !samePiece(s, piece));
+}
+
 /**
- * Places pieces picked in the 10 multi-select into the builder: each goes to the slot its category
- * fills; the first piece wins a slot, later ones for the same slot (and unknown ids) are skipped.
+ * Places pieces picked in the 10 multi-select into the builder: each goes to the box its category
+ * fills; pieces beyond a box's capacity (and unknown ids) are skipped.
  */
 export function assignItemsToSlots(items: Item[], ids: string[]): { slots: SlotMap; skipped: string[] } {
-  const slots: SlotMap = {};
+  let slots: SlotMap = [];
   const skipped: string[] = [];
   for (const id of ids) {
     const item = items.find((i) => i.id === id);
     const slot = item ? slotForCategory(item.category) : null;
-    if (!item || !slot || slots[slot]) {
+    if (!item || !slot || !hasRoom(slots, slot)) {
       skipped.push(id);
       continue;
     }
-    slots[slot] = slotFromWardrobeItem(slot, item);
+    slots = addPiece(slots, slotFromWardrobeItem(slot, item));
   }
   return { slots, skipped };
 }
@@ -85,24 +125,20 @@ export function parseItemIds(param: string | string[] | undefined): string[] {
  * (or that the server marked) is flagged `deleted` — it must be replaced or removed before saving.
  */
 export function slotMapFromLook(look: Look, items: Item[] | undefined): SlotMap {
-  const slots: SlotMap = {};
-  for (const s of look.slots) {
-    const gone = s.source === 'wardrobe' && items !== undefined && !items.some((i) => i.id === s.refId);
-    slots[s.slot] = { ...s, deleted: s.deleted || gone };
-  }
-  return slots;
-}
-
-export function slotList(slots: SlotMap): LookSlot[] {
-  return LOOK_SLOTS.flatMap((slot) => (slots[slot] ? [slots[slot]] : []));
+  return slotList(
+    look.slots.map((s) => {
+      const gone = s.source === 'wardrobe' && items !== undefined && !items.some((i) => i.id === s.refId);
+      return { ...s, deleted: s.deleted || gone };
+    }),
+  );
 }
 
 export function filledCount(slots: SlotMap): number {
-  return slotList(slots).length;
+  return slots.length;
 }
 
 export function hasDeletedPiece(slots: SlotMap): boolean {
-  return slotList(slots).some((s) => s.deleted);
+  return slots.some((s) => s.deleted);
 }
 
 /** "Kaydet" opens with at least 2 pieces and no deleted piece left in a slot. */

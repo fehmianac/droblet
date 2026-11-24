@@ -9,7 +9,8 @@
     "bag": "Bags",
     "accessory": "Accessories",
     "beachwear": "Beachwear",
-    "skiwear": "Skiwear"
+    "skiwear": "Skiwear",
+    "socks": "Socks"
   },
   "itemSeason": {
     "spring": "Spring",
@@ -36,7 +37,9 @@
     "bottom": "Bottom",
     "outerwear": "Outerwear",
     "shoes": "Shoes",
-    "accessory": "Bag / Accessory"
+    "accessory": "Accessories",
+    "bag": "Bag",
+    "socks": "Socks"
   },
   "items": {
     "eyebrow": "YOUR WARDROBE",

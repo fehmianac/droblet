@@ -107,7 +107,7 @@ describe('stylist wire mapping', () => {
     expect(first?.name).toBe('Gece Laciverti');
     expect(first?.pieces.map((p) => [p.slot, p.source, p.refId])).toEqual([
       ['outerwear', 'wardrobe', 'I1'],
-      ['accessory', 'store', 'prd-bag'],
+      ['bag', 'store', 'prd-bag'],
     ]);
     expect(first?.pieces[1]?.price).toEqual({ amountMinor: 250000, currency: 'TRY' });
     expect(first?.pieces[1]?.category).toBe('bag');

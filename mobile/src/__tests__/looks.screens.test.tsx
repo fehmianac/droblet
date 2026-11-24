@@ -109,7 +109,7 @@ describe('14 Looklar', () => {
 describe('15 Look oluştur', () => {
   it('keeps Save disabled until 2 pieces are chosen in the slot sheet, then saves', async () => {
     await renderRouter('./src/app', { initialUrl: '/look/new' });
-    await waitFor(() => expect(screen.getByText('0 / 5 PIECES SELECTED')).toBeTruthy(), { timeout: 3000 });
+    await waitFor(() => expect(screen.getByText('0 PIECES SELECTED')).toBeTruthy(), { timeout: 3000 });
     expect(screen.getByTestId('look-save')).toBeDisabled();
     expect(screen.getByText('Save unlocks once at least 2 pieces are selected.')).toBeTruthy();
 
@@ -118,14 +118,14 @@ describe('15 Look oluştur', () => {
     // Only pieces that fit the slot are offered.
     expect(screen.queryByText('Düz jean')).toBeNull();
     await fireEvent.press(screen.getByText('Beyaz poplin gömlek'));
-    expect(screen.getByText('1 / 5 PIECE SELECTED')).toBeTruthy();
+    expect(screen.getByText('1 PIECE SELECTED')).toBeTruthy();
     expect(screen.getByTestId('look-save')).toBeDisabled();
 
     await fireEvent.press(screen.getByLabelText('Choose Bottom'));
     await fireEvent.press(screen.getByText('Düz jean'));
-    expect(screen.getByText('2 / 5 PIECES SELECTED')).toBeTruthy();
+    expect(screen.getByText('2 PIECES SELECTED')).toBeTruthy();
     expect(screen.getByTestId('look-save')).toBeEnabled();
-    expect(screen.getByLabelText('Change Top')).toBeTruthy();
+    expect(screen.getByTestId('look-slot-top-change')).toBeTruthy();
     // The hint stays in the bottom bar next to Save, as drawn.
     expect(screen.getByText('Save unlocks once at least 2 pieces are selected.')).toBeTruthy();
     expect(screen.getByText('At least 2 pieces')).toBeTruthy();
@@ -137,9 +137,33 @@ describe('15 Look oluştur', () => {
     expect(fixtureDb.looks.find((l) => l.name === 'Hafta içi')?.slots.map((s) => s.refId)).toEqual(['item_white_shirt', 'item_straight_jeans']);
   });
 
+  it('15′ layers: a second top goes over the first, and the piece already worn is not offered again', async () => {
+    await renderRouter('./src/app', { initialUrl: '/look/new?itemIds=item_white_shirt,item_straight_jeans' });
+    await waitFor(() => expect(screen.getByText('2 PIECES SELECTED')).toBeTruthy(), { timeout: 3000 });
+    expect(screen.getByText('1 / 3')).toBeTruthy();
+    // One piece per box except Top and Accessories: Bottom has no "add" row.
+    expect(screen.queryByTestId('look-slot-bottom-add')).toBeNull();
+
+    await fireEvent.press(screen.getByTestId('look-slot-top-add'));
+    await waitFor(() => expect(screen.getByTestId('look-slot-item-item_cream_knit')).toBeTruthy(), { timeout: 3000 });
+    expect(screen.queryByTestId('look-slot-item-item_white_shirt')).toBeNull();
+    await fireEvent.press(screen.getByTestId('look-slot-item-item_cream_knit'));
+    expect(screen.getByText('3 PIECES SELECTED')).toBeTruthy();
+    expect(screen.getByText('2 / 3')).toBeTruthy();
+
+    await fireEvent.changeText(screen.getByLabelText('Look name'), 'Katlı');
+    await fireEvent.press(screen.getByTestId('look-save'));
+    await waitFor(() => expect(fixtureDb.looks.find((l) => l.name === 'Katlı')).toBeTruthy(), { timeout: 3000 });
+    expect(fixtureDb.looks.find((l) => l.name === 'Katlı')?.slots.map((s) => [s.slot, s.refId])).toEqual([
+      ['top', 'item_white_shirt'],
+      ['top', 'item_cream_knit'],
+      ['bottom', 'item_straight_jeans'],
+    ]);
+  });
+
   it('a new look: "Try it on me" waits for the look to be saved before the job starts', async () => {
     await renderRouter('./src/app', { initialUrl: '/look/new?itemIds=item_white_shirt,item_straight_jeans' });
-    await waitFor(() => expect(screen.getByText('2 / 5 PIECES SELECTED')).toBeTruthy(), { timeout: 3000 });
+    await waitFor(() => expect(screen.getByText('2 PIECES SELECTED')).toBeTruthy(), { timeout: 3000 });
     await fireEvent.changeText(screen.getByLabelText('Look name'), 'Deneme');
     await fireEvent.press(screen.getByTestId('look-try-on'));
     await waitFor(() => expect(screen.getByTestId('credit-confirm')).toBeTruthy(), { timeout: 3000 });
@@ -152,7 +176,7 @@ describe('15 Look oluştur', () => {
 
   it('preselects pieces passed from the wardrobe multi-select', async () => {
     await renderRouter('./src/app', { initialUrl: '/look/new?itemIds=item_navy_blazer,item_croc_flats,item_beige_trench' });
-    await waitFor(() => expect(screen.getByText('2 / 5 PIECES SELECTED')).toBeTruthy(), { timeout: 3000 });
+    await waitFor(() => expect(screen.getByText('2 PIECES SELECTED')).toBeTruthy(), { timeout: 3000 });
     expect(screen.getByText('Lacivert yün blazer')).toBeTruthy();
     expect(screen.getByText('Kroko babet')).toBeTruthy();
     expect(screen.getByText(/1 piece couldn't be placed/)).toBeTruthy();

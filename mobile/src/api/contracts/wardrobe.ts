@@ -5,7 +5,7 @@
  */
 import type { JobAccepted } from './jobs';
 
-export const ITEM_CATEGORIES = ['top', 'bottom', 'dress', 'outerwear', 'shoes', 'bag', 'accessory', 'beachwear', 'skiwear'] as const;
+export const ITEM_CATEGORIES = ['top', 'bottom', 'dress', 'outerwear', 'shoes', 'bag', 'accessory', 'beachwear', 'skiwear', 'socks'] as const;
 export type ItemCategory = (typeof ITEM_CATEGORIES)[number];
 
 export const ITEM_SEASONS = ['spring', 'summer', 'autumn', 'winter'] as const;

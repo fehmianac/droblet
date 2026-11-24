@@ -7,18 +7,29 @@ import type { Money } from '@/lib/format';
 import type { Occasion } from '../contracts';
 import type { ContentModeration, ItemCategory } from './wardrobe';
 
-/** The five slots of the look builder (15): Üst · Alt · Dış giyim · Ayakkabı · Çanta / Aksesuar. */
-export const LOOK_SLOTS = ['top', 'bottom', 'outerwear', 'shoes', 'accessory'] as const;
+/**
+ * The boxes of the look builder (15′, owner decision 2026-11-24): Üst · Alt · Dış giyim · Ayakkabı · Çorap · Çanta ·
+ * Aksesuar. A box may hold layers (`SLOT_CAPACITY`). On the wire `socks`, `bag` and `accessory` are one slot
+ * (`bagAccessory`); the piece's category tells them apart.
+ */
+export const LOOK_SLOTS = ['top', 'bottom', 'outerwear', 'shoes', 'socks', 'bag', 'accessory'] as const;
 export type LookSlotKind = (typeof LOOK_SLOTS)[number];
 
-/** Which wardrobe categories may fill a slot (mirrors the server's OutfitSlotRules; a dress fills "top"). */
+/** Which wardrobe categories may fill a box (mirrors the server's OutfitSlotRules; a dress fills "top"). */
 export const SLOT_CATEGORIES: Record<LookSlotKind, readonly ItemCategory[]> = {
   top: ['top', 'dress', 'beachwear', 'skiwear'],
   bottom: ['bottom'],
   outerwear: ['outerwear'],
   shoes: ['shoes'],
-  accessory: ['bag', 'accessory'],
+  socks: ['socks'],
+  bag: ['bag'],
+  accessory: ['accessory'],
 };
+
+/** How many pieces a box holds (server: OutfitSlotRules — 3 top layers, 4 accessories, one of everything else). */
+export const SLOT_CAPACITY: Record<LookSlotKind, number> = { top: 3, bottom: 1, outerwear: 1, shoes: 1, socks: 1, bag: 1, accessory: 4 };
+
+export const LOOK_MAX_PIECES = 12;
 
 export const LOOK_MIN_PIECES = 2;
 

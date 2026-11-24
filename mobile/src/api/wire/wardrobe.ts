@@ -249,12 +249,14 @@ export type LookWire = {
 
 export type LookSlotInputWire = { slot: OutfitSlotWire; itemId?: string; productId?: string };
 
-export function toSlotKind(slot: OutfitSlotWire): LookSlotKind {
-  return slot === 'bagAccessory' ? 'accessory' : slot;
+/** `bagAccessory` holds the bag, the socks and the accessories: the piece's category picks the box (unknown → accessory). */
+export function toSlotKind(slot: OutfitSlotWire, category?: string | null): LookSlotKind {
+  if (slot !== 'bagAccessory') return slot;
+  return category === 'bag' ? 'bag' : category === 'socks' ? 'socks' : 'accessory';
 }
 
 export function fromSlotKind(slot: LookSlotKind): OutfitSlotWire {
-  return slot === 'accessory' ? 'bagAccessory' : slot;
+  return slot === 'accessory' || slot === 'bag' || slot === 'socks' ? 'bagAccessory' : slot;
 }
 
 export function toOccasion(occasion: string | null | undefined): Occasion | null {
@@ -277,9 +279,9 @@ export function fromSlotInput(slot: LookSlotInput): LookSlotInputWire {
 export type LookContext = { items: Map<string, Item>; products: Map<string, ProductWire> };
 
 export function toLookSlot(wire: LookSlotWire, ctx: LookContext): LookSlot {
-  const slot = toSlotKind(wire.slot);
   if (wire.productId && !wire.itemId) {
     const product = ctx.products.get(wire.productId);
+    const slot = toSlotKind(wire.slot, product?.category);
     return {
       slot,
       source: 'store',
@@ -292,6 +294,7 @@ export function toLookSlot(wire: LookSlotWire, ctx: LookContext): LookSlot {
     };
   }
   const item = wire.itemId ? ctx.items.get(wire.itemId) : undefined;
+  const slot = toSlotKind(wire.slot, item?.category);
   return {
     slot,
     source: 'wardrobe',

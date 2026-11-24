@@ -9,7 +9,8 @@
     "bag": "Çanta",
     "accessory": "Aksesuar",
     "beachwear": "Plaj giyim",
-    "skiwear": "Kayak giyim"
+    "skiwear": "Kayak giyim",
+    "socks": "Çorap"
   },
   "itemSeason": {
     "spring": "İlkbahar",
@@ -36,7 +37,9 @@
     "bottom": "Alt",
     "outerwear": "Dış giyim",
     "shoes": "Ayakkabı",
-    "accessory": "Çanta / Aksesuar"
+    "accessory": "Aksesuar",
+    "bag": "Çanta",
+    "socks": "Çorap"
   },
   "items": {
     "eyebrow": "GARDIROBUN",

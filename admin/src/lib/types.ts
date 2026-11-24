@@ -59,7 +59,7 @@ export const PRODUCT_CATEGORIES = [
   'dress', 'shoes', 'bag', 'accessory', 'swimwear', 'skiwear', 'activewear',
 ] as const;
 export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
-export const ITEM_CATEGORIES = ['top', 'bottom', 'dress', 'outerwear', 'shoes', 'bag', 'accessory', 'beachwear', 'skiwear'] as const;
+export const ITEM_CATEGORIES = ['top', 'bottom', 'dress', 'outerwear', 'shoes', 'bag', 'accessory', 'beachwear', 'skiwear', 'socks'] as const;
 export type ItemCategory = (typeof ITEM_CATEGORIES)[number];
 export const SEASONS = ['spring', 'summer', 'autumn', 'winter'] as const;
 export type Season = (typeof SEASONS)[number];
