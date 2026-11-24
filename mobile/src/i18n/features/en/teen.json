@@ -195,7 +195,7 @@
       "weekLeft_one": "{{count}} week plan left this week",
       "weekLeft_other": "{{count}} week plans left this week",
       "weekDone": "You've planned this week · Refreshes on Monday",
-      "packOff": "Suitcase packing isn't open for teen accounts yet. You can add pieces yourself.",
+      "packOff": "Suitcase packing isn't open for teen accounts yet.",
       "packCard": "Pack your own list",
       "packDone": "You've used this week's suitcase · Refreshes on Monday"
     }
