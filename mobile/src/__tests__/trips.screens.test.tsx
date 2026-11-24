@@ -165,6 +165,8 @@ describe('19 Bavul detayı', () => {
     expect(screen.getByTestId(`trip-day-tryon-${first?.date}`)).toBeTruthy();
     expect(screen.getAllByText('See it on me · 1 credit').length).toBeGreaterThan(0);
     expect(screen.getByTestId(`trip-day-save-${first?.date}`)).toBeTruthy();
+    // The day's pieces (2 × 2) appear once the wardrobe is loaded; tapping them opens the day sheet.
+    await waitFor(() => expect(screen.getByLabelText(`${weekday}: ${first?.look?.name}`)).toBeTruthy(), { timeout: 3000 });
     await fireEvent.press(screen.getByLabelText(`${weekday}: ${first?.look?.name}`));
     // A trip day is the trip's own slot list (not a saved look): it opens the day sheet (try on / save as a look).
     await waitFor(() => expect(screen.getByTestId('trip-day-tryon')).toBeTruthy(), { timeout: 3000 });

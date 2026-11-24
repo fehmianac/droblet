@@ -10,74 +10,122 @@ import type {
   TripItem,
   TripPlan,
   WeatherCondition,
-} from '@/api/contracts/trips';
-import { ApiError } from '@/api/errors';
-import { addDays, searchCities, tripDates, type SearchableCity } from '@/features/trips/logic';
-import { toIsoDate } from '@/lib/format';
+} from "@/api/contracts/trips";
+import { ApiError } from "@/api/errors";
+import {
+  addDays,
+  searchCities,
+  tripDates,
+  type SearchableCity,
+} from "@/features/trips/logic";
+import { toIsoDate } from "@/lib/format";
 
-import { clone, fixtureDb, onFixtureSeed } from './db';
-import { startFixtureJob } from './jobs';
-import { L, tx } from './showcase';
+import { clone, fixtureDb, onFixtureSeed } from "./db";
+import { startFixtureJob } from "./jobs";
+import { L, tx } from "./showcase";
 
 /**
  * Fixture "server" for trips (E5): city directory, forecast, trip CRUD, the packing job and check
  * marks. Sample data from the `Bavul` / `BavulDetay` boards. Nothing survives a restart.
  */
 export const fixtureCities: SearchableCity[] = [
-  { id: 'city_istanbul', name: L('İstanbul'), region: L('Türkiye') },
-  { id: 'city_izmir', name: L('İzmir'), region: L('Türkiye') },
-  { id: 'city_ankara', name: L('Ankara'), region: L('Türkiye') },
-  { id: 'city_antalya', name: L('Antalya'), region: L('Türkiye') },
-  { id: 'city_bodrum', name: L('Bodrum'), region: L('Muğla, Türkiye') },
-  { id: 'city_london', name: L('Londra'), region: L('Birleşik Krallık'), aliases: ['London'] },
-  { id: 'city_london_on', name: L('London'), region: L('Ontario, Kanada') },
-  { id: 'city_paris', name: L('Paris'), region: L('Fransa') },
-  { id: 'city_rome', name: L('Roma'), region: L('İtalya'), aliases: ['Rome'] },
-  { id: 'city_milan', name: L('Milano'), region: L('İtalya'), aliases: ['Milan'] },
-  { id: 'city_berlin', name: L('Berlin'), region: L('Almanya') },
-  { id: 'city_amsterdam', name: L('Amsterdam'), region: L('Hollanda') },
-  { id: 'city_barcelona', name: L('Barselona'), region: L('İspanya'), aliases: ['Barcelona'] },
-  { id: 'city_vienna', name: L('Viyana'), region: L('Avusturya'), aliases: ['Vienna', 'Wien'] },
-  { id: 'city_athens', name: L('Atina'), region: L('Yunanistan'), aliases: ['Athens'] },
-  { id: 'city_new_york', name: L('New York'), region: L('ABD') },
-  { id: 'city_dubai', name: L('Dubai'), region: L('Birleşik Arap Emirlikleri') },
-  { id: 'city_tokyo', name: L('Tokyo'), region: L('Japonya') },
+  { id: "city_istanbul", name: L("İstanbul"), region: L("Türkiye") },
+  { id: "city_izmir", name: L("İzmir"), region: L("Türkiye") },
+  { id: "city_ankara", name: L("Ankara"), region: L("Türkiye") },
+  { id: "city_antalya", name: L("Antalya"), region: L("Türkiye") },
+  { id: "city_bodrum", name: L("Bodrum"), region: L("Muğla, Türkiye") },
+  {
+    id: "city_london",
+    name: L("Londra"),
+    region: L("Birleşik Krallık"),
+    aliases: ["London"],
+  },
+  { id: "city_london_on", name: L("London"), region: L("Ontario, Kanada") },
+  { id: "city_paris", name: L("Paris"), region: L("Fransa") },
+  { id: "city_rome", name: L("Roma"), region: L("İtalya"), aliases: ["Rome"] },
+  {
+    id: "city_milan",
+    name: L("Milano"),
+    region: L("İtalya"),
+    aliases: ["Milan"],
+  },
+  { id: "city_berlin", name: L("Berlin"), region: L("Almanya") },
+  { id: "city_amsterdam", name: L("Amsterdam"), region: L("Hollanda") },
+  {
+    id: "city_barcelona",
+    name: L("Barselona"),
+    region: L("İspanya"),
+    aliases: ["Barcelona"],
+  },
+  {
+    id: "city_vienna",
+    name: L("Viyana"),
+    region: L("Avusturya"),
+    aliases: ["Vienna", "Wien"],
+  },
+  {
+    id: "city_athens",
+    name: L("Atina"),
+    region: L("Yunanistan"),
+    aliases: ["Athens"],
+  },
+  { id: "city_new_york", name: L("New York"), region: L("ABD") },
+  {
+    id: "city_dubai",
+    name: L("Dubai"),
+    region: L("Birleşik Arap Emirlikleri"),
+  },
+  { id: "city_tokyo", name: L("Tokyo"), region: L("Japonya") },
 ];
 
 export function fixtureSearchCities(query: string) {
-  return searchCities(fixtureCities, query).map(({ id, name, region }) => ({ id, name, region }));
+  return searchCities(fixtureCities, query).map(({ id, name, region }) => ({
+    id,
+    name,
+    region,
+  }));
 }
 
 type StoredTrip = TripDetail;
 
 let trips: StoredTrip[] = [];
 
-const CONDITIONS: WeatherCondition[] = ['rain', 'cloud', 'rain', 'cloud', 'rain', 'sun'];
+const CONDITIONS: WeatherCondition[] = [
+  "rain",
+  "cloud",
+  "rain",
+  "cloud",
+  "rain",
+  "sun",
+];
 const TEMPS = [9, 7, 8, 6, 8, 10];
 
 function forecastFor(startDate: string, endDate: string): ForecastDay[] {
   return tripDates(startDate, endDate).map((date, i) => ({
     date,
     temperatureC: TEMPS[i % TEMPS.length] ?? 8,
-    condition: CONDITIONS[i % CONDITIONS.length] ?? 'cloud',
+    condition: CONDITIONS[i % CONDITIONS.length] ?? "cloud",
   }));
 }
 
 const PACK_ORDER = [
-  'item_navy_blazer',
-  'item_black_midi',
-  'item_white_shirt',
-  'item_straight_jeans',
-  'item_cream_knit',
-  'item_black_trousers',
-  'item_beige_trench',
-  'item_black_boots',
-  'item_black_bag',
-  'item_croc_flats',
-  'item_tweed_jacket',
+  "item_navy_blazer",
+  "item_black_midi",
+  "item_white_shirt",
+  "item_straight_jeans",
+  "item_cream_knit",
+  "item_black_trousers",
+  "item_beige_trench",
+  "item_black_boots",
+  "item_black_bag",
+  "item_croc_flats",
+  "item_tweed_jacket",
 ];
 
-function buildPlan(trip: Pick<Trip, 'startDate' | 'endDate' | 'cabinOnly'>, packedIds: string[] = []): TripPlan {
+function buildPlan(
+  trip: Pick<Trip, "startDate" | "endDate" | "cabinOnly">,
+  packedIds: string[] = [],
+): TripPlan {
   const pool = [
     ...PACK_ORDER.flatMap((id) => fixtureDb.items.filter((i) => i.id === id)),
     ...fixtureDb.items.filter((i) => !PACK_ORDER.includes(i.id)),
@@ -95,15 +143,43 @@ function buildPlan(trip: Pick<Trip, 'startDate' | 'endDate' | 'cabinOnly'>, pack
   const dates = tripDates(trip.startDate, trip.endDate);
   const days = dates.map((date, i) => {
     const look = looks.length > 0 ? looks[i % looks.length] : undefined;
-    return { date, look: look ? { id: look.id, name: look.name, occasion: look.occasion, imageUrl: look.tryOnImageUrl ?? look.coverImageUrl ?? null } : null };
+    // Like the server's days: the pieces planned for the date (four of the list, moving along it).
+    const itemIds =
+      items.length > 0
+        ? [0, 1, 2, 3]
+            .map((n) => items[(i * 2 + n) % items.length]?.itemId)
+            .filter((id): id is string => Boolean(id))
+        : [];
+    return {
+      date,
+      itemIds: [...new Set(itemIds)],
+      look: look
+        ? {
+            id: look.id,
+            name: look.name,
+            occasion: look.occasion,
+            imageUrl: look.tryOnImageUrl ?? look.coverImageUrl ?? null,
+          }
+        : null,
+    };
   });
-  const rainy = forecastFor(trip.startDate, trip.endDate).filter((d) => d.condition === 'rain').length;
+  const rainy = forecastFor(trip.startDate, trip.endDate).filter(
+    (d) => d.condition === "rain",
+  ).length;
   return {
     items,
     days,
     missing:
       rainy > 0 && items.length > 0
-        ? [{ id: 'missing_rain_boots', name: L('Yağmur botu'), reason: tx(`${rainy} gün yağmur var`, `Rain on ${rainy} days`), category: 'shoes', productId: 'prod_rain_boots' }]
+        ? [
+            {
+              id: "missing_rain_boots",
+              name: L("Yağmur botu"),
+              reason: tx(`${rainy} gün yağmur var`, `Rain on ${rainy} days`),
+              category: "shoes",
+              productId: "prod_rain_boots",
+            },
+          ]
         : [],
     minWearsPerItem: items.length > 0 && dates.length >= 3 ? 2 : null,
   };
@@ -119,42 +195,68 @@ function withCounts(trip: StoredTrip): StoredTrip {
 }
 
 function cityOf(cityId: string) {
-  return fixtureCities.find((c) => c.id === cityId) ?? { id: cityId, name: cityId, region: '' };
+  return (
+    fixtureCities.find((c) => c.id === cityId) ?? {
+      id: cityId,
+      name: cityId,
+      region: "",
+    }
+  );
 }
 
 function seedTrips(): StoredTrip[] {
   const today = toIsoDate(new Date());
-  const upcoming = { startDate: addDays(today, 14), endDate: addDays(today, 18), cabinOnly: false };
-  const past = { startDate: addDays(today, -40), endDate: addDays(today, -37), cabinOnly: true };
-  const base = { tripTypes: ['business', 'dinner'] as Trip['tripTypes'], packJobId: null, createdAt: '2026-11-10T09:00:00.000Z', baseVersion: 1 };
+  const upcoming = {
+    startDate: addDays(today, 14),
+    endDate: addDays(today, 18),
+    cabinOnly: false,
+  };
+  const past = {
+    startDate: addDays(today, -40),
+    endDate: addDays(today, -37),
+    cabinOnly: true,
+  };
+  const base = {
+    tripTypes: ["business", "dinner"] as Trip["tripTypes"],
+    packJobId: null,
+    createdAt: "2026-11-10T09:00:00.000Z",
+    baseVersion: 1,
+  };
   return [
     withCounts({
-      id: 'trip_londra',
-      cityId: 'city_london',
-      cityName: L('Londra'),
-      region: L('Birleşik Krallık'),
+      id: "trip_londra",
+      cityId: "city_london",
+      cityName: L("Londra"),
+      region: L("Birleşik Krallık"),
       ...upcoming,
       ...base,
-      status: 'packed',
+      status: "packed",
       itemCount: 0,
       packedCount: 0,
       lookCount: 0,
-      ...buildPlan(upcoming, ['item_navy_blazer', 'item_black_midi', 'item_white_shirt']),
+      ...buildPlan(upcoming, [
+        "item_navy_blazer",
+        "item_black_midi",
+        "item_white_shirt",
+      ]),
       forecast: forecastFor(upcoming.startDate, upcoming.endDate),
     }),
     withCounts({
-      id: 'trip_paris',
-      cityId: 'city_paris',
-      cityName: 'Paris',
-      region: L('Fransa'),
+      id: "trip_paris",
+      cityId: "city_paris",
+      cityName: "Paris",
+      region: L("Fransa"),
       ...past,
       ...base,
-      tripTypes: ['sightseeing'],
-      status: 'packed',
+      tripTypes: ["sightseeing"],
+      status: "packed",
       itemCount: 0,
       packedCount: 0,
       lookCount: 0,
-      ...buildPlan(past, fixtureDb.items.map((i) => i.id)),
+      ...buildPlan(
+        past,
+        fixtureDb.items.map((i) => i.id),
+      ),
       forecast: null,
     }),
   ];
@@ -165,7 +267,14 @@ onFixtureSeed((_db, { empty }) => {
 });
 
 function summary(trip: StoredTrip): Trip {
-  const { items: _items, days: _days, missing: _missing, minWearsPerItem: _min, forecast: _forecast, ...rest } = withCounts(trip);
+  const {
+    items: _items,
+    days: _days,
+    missing: _missing,
+    minWearsPerItem: _min,
+    forecast: _forecast,
+    ...rest
+  } = withCounts(trip);
   void _items;
   void _days;
   void _missing;
@@ -176,7 +285,7 @@ function summary(trip: StoredTrip): Trip {
 
 function find(id: string): StoredTrip {
   const trip = trips.find((t) => t.id === id);
-  if (!trip) throw new ApiError('http', 404, null);
+  if (!trip) throw new ApiError("http", 404, null);
   return trip;
 }
 
@@ -207,7 +316,7 @@ export function fixtureCreateTrip(request: CreateTripRequest): TripDetail {
     endDate: request.endDate,
     tripTypes: request.tripTypes,
     cabinOnly: request.cabinOnly,
-    status: 'new',
+    status: "new",
     packJobId: null,
     itemCount: 0,
     packedCount: 0,
@@ -224,11 +333,18 @@ export function fixtureCreateTrip(request: CreateTripRequest): TripDetail {
   return clone(trip);
 }
 
-export function fixturePutTrip(id: string, request: PutTripRequest): TripDetail {
+export function fixturePutTrip(
+  id: string,
+  request: PutTripRequest,
+): TripDetail {
   const current = find(id);
-  if (current.baseVersion !== request.baseVersion) throw new ApiError('http', 409, { current: clone(summary(current)) });
+  if (current.baseVersion !== request.baseVersion)
+    throw new ApiError("http", 409, { current: clone(summary(current)) });
   const city = cityOf(request.cityId);
-  const datesChanged = current.startDate !== request.startDate || current.endDate !== request.endDate || current.cityId !== request.cityId;
+  const datesChanged =
+    current.startDate !== request.startDate ||
+    current.endDate !== request.endDate ||
+    current.cityId !== request.cityId;
   const next: StoredTrip = {
     ...current,
     cityId: request.cityId,
@@ -239,11 +355,22 @@ export function fixturePutTrip(id: string, request: PutTripRequest): TripDetail 
     tripTypes: request.tripTypes,
     cabinOnly: request.cabinOnly,
     baseVersion: current.baseVersion + 1,
-    forecast: datesChanged ? forecastFor(request.startDate, request.endDate) : current.forecast,
+    forecast: datesChanged
+      ? forecastFor(request.startDate, request.endDate)
+      : current.forecast,
   };
   // The server re-plans an accepted list when the cabin-only mode or the dates change.
-  if (current.status === 'packed' && (datesChanged || current.cabinOnly !== request.cabinOnly)) {
-    Object.assign(next, buildPlan(next, current.items.filter((i) => i.packed).map((i) => i.itemId)));
+  if (
+    current.status === "packed" &&
+    (datesChanged || current.cabinOnly !== request.cabinOnly)
+  ) {
+    Object.assign(
+      next,
+      buildPlan(
+        next,
+        current.items.filter((i) => i.packed).map((i) => i.itemId),
+      ),
+    );
   }
   return clone(replace(next));
 }
@@ -252,20 +379,38 @@ export function fixtureDeleteTrip(id: string): void {
   trips = trips.filter((t) => t.id !== id);
 }
 
-export function fixtureStartPack(id: string, request: PackTripRequest): PackTripResponse {
+export function fixtureStartPack(
+  id: string,
+  request: PackTripRequest,
+): PackTripResponse {
   const trip = find(id);
-  const jobId = startFixtureJob<TripPlan>('trip-pack', () => buildPlan(find(id)), { id: `job_${request.requestId}` });
+  const jobId = startFixtureJob<TripPlan>(
+    "trip-pack",
+    () => buildPlan(find(id)),
+    { id: `job_${request.requestId}` },
+  );
   replace({ ...trip, packJobId: jobId });
   return { jobId };
 }
 
 export function fixtureAcceptPack(id: string): TripDetail {
   const trip = find(id);
-  if (trip.status === 'packed') return clone(trip);
-  return clone(replace({ ...trip, ...buildPlan(trip), status: 'packed', packJobId: null }));
+  if (trip.status === "packed") return clone(trip);
+  return clone(
+    replace({ ...trip, ...buildPlan(trip), status: "packed", packJobId: null }),
+  );
 }
 
-export function fixtureCheckTripItem(id: string, itemId: string, request: CheckTripItemRequest): void {
+export function fixtureCheckTripItem(
+  id: string,
+  itemId: string,
+  request: CheckTripItemRequest,
+): void {
   const trip = find(id);
-  replace({ ...trip, items: trip.items.map((i) => (i.itemId === itemId ? { ...i, packed: request.packed } : i)) });
+  replace({
+    ...trip,
+    items: trip.items.map((i) =>
+      i.itemId === itemId ? { ...i, packed: request.packed } : i,
+    ),
+  });
 }

@@ -216,30 +216,32 @@ function DayCards({
             </View>
 
             <View className="h-[204px] flex-row gap-2">
-              <Pressable
-                onPress={() => onOpenDay(day)}
-                accessibilityRole="button"
-                accessibilityLabel={t("tripDetail.dayLook", {
-                  weekday,
-                  name: ref.name,
-                })}
-                accessibilityHint={t("tripDetail.dayPieces", {
-                  count: pieces.length,
-                })}
-                className="flex-1 flex-row flex-wrap content-between justify-between active:opacity-80"
-                testID={`trip-day-${day.date}`}
-              >
-                {shown.map((item) => (
-                  <ItemThumb
-                    key={item.id}
-                    category={item.category}
-                    color={item.color}
-                    {...itemImageSource(item, "thumb")}
-                    className="h-[98px] w-[48%] rounded-thumb"
-                    glyphSize={20}
-                  />
-                ))}
-              </Pressable>
+              {shown.length > 0 ? (
+                <Pressable
+                  onPress={() => onOpenDay(day)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("tripDetail.dayLook", {
+                    weekday,
+                    name: ref.name,
+                  })}
+                  accessibilityHint={t("tripDetail.dayPieces", {
+                    count: pieces.length,
+                  })}
+                  className="flex-1 flex-row flex-wrap content-between justify-between active:opacity-80"
+                  testID={`trip-day-${day.date}`}
+                >
+                  {shown.map((item) => (
+                    <ItemThumb
+                      key={item.id}
+                      category={item.category}
+                      color={item.color}
+                      {...itemImageSource(item, "thumb")}
+                      className="h-[98px] w-[48%] rounded-thumb"
+                      glyphSize={20}
+                    />
+                  ))}
+                </Pressable>
+              ) : null}
               <View className="flex-1 overflow-hidden rounded-field bg-sand">
                 {image ? (
                   <Pressable
