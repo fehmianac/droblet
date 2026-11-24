@@ -128,7 +128,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [RevokeTestPremium] = [],
         [GenerateLibraryImages] = ["dry-run", "force"],
         [GenerateMarketingImages] = ["dry-run"],
-        [AiSmoke] = ["keep-user", "items-only", "prereq-only", "photo-tryon", "product-tryon", "look-tryon"],
+        [AiSmoke] = ["keep-user", "items-only", "prereq-only", "photo-tryon", "product-tryon", "look-tryon", "direct"],
         [AiProbe] = [],
         [AiPerf] = ["keep-user", "face"],
         [AiBench] = ["text-only", "image-only"],
@@ -406,7 +406,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         "  revoke-test-premium     --email <e>                            (dev only)\n" +
         "  generate-library-images [--only id,id] [--dry-run] [--force] [--max-calls N<=30] [--quality high]\n" +
         "  generate-marketing-images --max N<=6 [--prompts ops-presets/welcome-images.json] [--only id,id] [--dry-run]  (dev only; never retries)\n" +
-        "  ai-smoke                [--api-url URL] [--keep-user] [--items-only | --prereq-only | --photo-tryon | --product-tryon [--brand id] [--category coat] | --look-tryon [--category jacket]]  (dev only)\n" +
+        "  ai-smoke                [--api-url URL] [--keep-user] [--items-only | --prereq-only | --photo-tryon | --product-tryon [--brand id] [--category coat] | --look-tryon [--category jacket] [--direct]]  (dev only)\n" +
         "  account-smoke           [--api-url URL] [--keep-user]  (dev only; e-mail verification + data export)\n" +
         "  ai-admin-smoke          [--api-url URL]  (dev only; admin AI prompts / trials / publish → a stylist job uses it → rollback; ≤ 4 AI calls)\n" +
         "  outfit-import-smoke     [--api-url URL] [--keep-user]  (dev only; 3 outfit photos → review → commit, then a re-import that matches)\n" +

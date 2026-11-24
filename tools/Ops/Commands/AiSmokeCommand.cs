@@ -554,6 +554,40 @@ internal sealed partial class AiSmokeCommand(IServiceProvider services, OpsArgum
         var after = await CreditsAsync(ct);
         if (_rows.LastOrDefault() is { } last)
             _rows[^1] = last with { Notable = $"{last.Notable}; credits {before} → {after}" };
+
+        // --direct: the same body photo and garment images through THIS checkout's provider (its prompt, not the deployed
+        // worker's) — to compare a prompt change before it is deployed. 1 more image call.
+        if (!args.Flag("direct"))
+            return;
+        var directWatch = Stopwatch.StartNew();
+        (string Url, Domain.Enum.ItemCategory Category)[] sources =
+        [
+            .. library.Select(l => list.First(i => i?["libraryItemId"]?.GetValue<string>() == l)).Select(i =>
+                (i!["imageUrl"]?.GetValue<string>() ?? "", System.Enum.Parse<Domain.Enum.ItemCategory>(i["category"]!.GetValue<string>(), ignoreCase: true))),
+            (product?["images"]?.AsArray().FirstOrDefault()?.GetValue<string>() ?? "", Domain.Enum.ItemCategory.Outerwear),
+        ];
+        var garments = new List<Domain.Services.Ai.ImageInput>();
+        using (var http = new HttpClient { Timeout = TimeSpan.FromSeconds(60) })
+        {
+            foreach (var (url, category) in sources)
+            {
+                if (url.Length == 0) continue;
+                using var response = await http.GetAsync(url, ct);
+                if (!response.IsSuccessStatusCode) continue;
+                garments.Add(new Domain.Services.Ai.ImageInput(await response.Content.ReadAsByteArrayAsync(ct), response.Content.Headers.ContentType?.MediaType ?? "image/jpeg", category));
+            }
+        }
+        if (garments.Count != sources.Length)
+        {
+            Add("try-on direct (this checkout's prompt)", "error", directWatch.Elapsed, "garment_image_missing", $"{garments.Count}/{sources.Length} images");
+            return;
+        }
+        var ordered = garments.OrderBy(g => Domain.Services.TryOnRules.WearOrder(g.Category)).ToList();
+        output.Line("direct prompt tail:" + OpenAiPrompts.GarmentList(ordered));
+        var rendered = await services.GetRequiredService<OpenAiProvider>().RenderAsync(new Domain.Services.Ai.ImageInput(bodyData, "image/jpeg"), ordered, ct);
+        Directory.CreateDirectory(Path.Combine(output.Directory, "images"));
+        await File.WriteAllBytesAsync(Path.Combine(output.Directory, "images", "look-tryon-direct" + (rendered.ContentType == "image/png" ? ".png" : rendered.ContentType == "image/jpeg" ? ".jpg" : ".webp")), rendered.Data, ct);
+        Add("try-on direct (this checkout's prompt)", "completed", directWatch.Elapsed, null, $"{ordered.Count} garments: {string.Join(" + ", ordered.Select(g => g.Category))}");
     }
 
     // ── canvas 11: thin wardrobe gap filling + the face path of try-on ────────────────────────────────────────────────
