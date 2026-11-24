@@ -594,6 +594,41 @@ public class LookAndPlanEndpointTests(ApiFactory factory) : IClassFixture<ApiFac
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"v1/tenant/look/{id}")).StatusCode);
     }
 
+    /// <summary>
+    /// Layered looks (canvas 15′): the request check let only 5 pieces through while the rules allow 12, so a look of
+    /// 6+ pieces was refused with slots_out_of_range before the rules ran (owner report 2026-11-24).
+    /// </summary>
+    [Fact]
+    public async Task Look_WithLayers_UpToTwelvePieces_IsSaved_AndEditable()
+    {
+        var (client, auth) = await factory.RegisterAsync();
+        async Task<string> Item(ItemCategory category) => (await factory.ItemAsync(auth.TenantId, category)).Id;
+        var jacket = await factory.ProductAsync("jacket");
+        var slots = new List<object>
+        {
+            Slot("top", await Item(ItemCategory.Top)), Slot("top", await Item(ItemCategory.Top)), Slot("top", await Item(ItemCategory.Top)),
+            Slot("bottom", await Item(ItemCategory.Bottom)), Slot("outerwear", productId: jacket), Slot("shoes", await Item(ItemCategory.Shoes)),
+            Slot("bagAccessory", await Item(ItemCategory.Socks)), Slot("bagAccessory", await Item(ItemCategory.Bag)),
+            Slot("bagAccessory", await Item(ItemCategory.Accessory)), Slot("bagAccessory", await Item(ItemCategory.Accessory)),
+            Slot("bagAccessory", await Item(ItemCategory.Accessory)), Slot("bagAccessory", await Item(ItemCategory.Accessory)),
+        };
+        var id = Ulid.New();
+
+        var created = await client.PostJsonAsync("v1/tenant/look", LookBody(id, slots.ToArray()));
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        var look = await created.ReadAsync<LookDto>();
+        Assert.Equal(12, look.Slots.Count);
+
+        // The same 12 pieces can be saved again (rename): PUT has the same request check.
+        var put = await client.PutJsonAsync($"v1/tenant/look/{id}", new { name = "Katmanlı", occasion = "office", slots, favorite = false, baseVersion = look.Version });
+        Assert.Equal(HttpStatusCode.OK, put.StatusCode);
+
+        // A 13th piece is refused by the request check.
+        slots.Add(Slot("bagAccessory", await Item(ItemCategory.Accessory)));
+        var tooMany = await client.PostJsonAsync("v1/tenant/look", LookBody(Ulid.New(), slots.ToArray()));
+        Assert.Equal(HttpStatusCode.BadRequest, tooMany.StatusCode);
+    }
+
     [Fact]
     public async Task Look_SlotRules_AreEnforced()
     {

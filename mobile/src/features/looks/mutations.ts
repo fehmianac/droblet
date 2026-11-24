@@ -134,7 +134,11 @@ export function registerLooksMutations(client: QueryClient): void {
     onSuccess: (saved: Look | undefined) => {
       if (saved) writeSaved(client, saved);
     },
-    onError: invalidate,
+    // The editor has already closed: a refused save must say so, not just vanish from the list.
+    onError: () => {
+      invalidate();
+      toast.error(i18n.t('lookEditor.saveFailed'), { testID: 'toast-look-save-error' });
+    },
   });
 
   client.setMutationDefaults(lookMutationKeys.put, {

@@ -218,7 +218,7 @@ public class CreateLookCommandValidator : AbstractValidator<CreateLookCommand>
         RuleFor(x => x.Occasion).IsInEnum().WithErrorCode("occasion_invalid");
         RuleFor(x => x.Source).IsInEnum().WithErrorCode("source_invalid");
         RuleFor(x => x.Slots).NotNull().WithErrorCode("slots_required")
-            .Must(s => s is null || s.Count <= OutfitSlotRules.Slots.Count).WithErrorCode("slots_out_of_range");
+            .Must(s => s is null || s.Count <= OutfitSlotRules.MaxPieces).WithErrorCode("slots_out_of_range");
         RuleForEach(x => x.Slots).ChildRules(slot => slot.RuleFor(s => s.Slot).IsInEnum().WithErrorCode("slot_invalid"));
     }
 }
@@ -231,7 +231,7 @@ public class UpdateLookCommandValidator : AbstractValidator<UpdateLookCommand>
         RuleFor(x => x.Occasion).IsInEnum().WithErrorCode("occasion_invalid");
         RuleFor(x => x.BaseVersion).GreaterThan(0).WithErrorCode("base_version_invalid");
         RuleFor(x => x.Slots).NotNull().WithErrorCode("slots_required")
-            .Must(s => s is null || s.Count <= OutfitSlotRules.Slots.Count).WithErrorCode("slots_out_of_range");
+            .Must(s => s is null || s.Count <= OutfitSlotRules.MaxPieces).WithErrorCode("slots_out_of_range");
         RuleForEach(x => x.Slots).ChildRules(slot => slot.RuleFor(s => s.Slot).IsInEnum().WithErrorCode("slot_invalid"));
     }
 }
