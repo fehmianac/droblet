@@ -63,6 +63,8 @@ token names another account is refused (409); a notification without an index en
 like §2; then every subscription this account already owns is re-read from the store server API (when configured).
 200 → `{ "entitlement": EntitlementDto, "restored": 1, "ownedByAnotherAccount": 0 }`. 501 only when nothing could be read.
 
+**Moving a membership (owner decision 2026-11-24).** A running subscription the device holds but that belongs to another Droblet account is **moved** by restore: the membership ends on the old account at once and opens on the caller (`restored` counts it). `POST …/purchase` never moves it (it is also sent in the background at launch) and still answers 409 `purchase_owned_by_another_account`; the app then calls restore when the member started the purchase. The old account's restore without the device's transaction cannot take it back. A **Production** subscription moves at most once per `Store:TransferCooldownDays` (default 30 — each move starts a fresh monthly AI allowance); a refused move is counted in `ownedByAnotherAccount`. Sandbox / Xcode purchases have no cooldown. Credit packs never move.
+
 ## 3a. Temporary self-serve premium (`POST` / `DELETE v1/tenant/entitlement/self-premium`)
 
 Owner decision 2026-11-19: until store purchases are live, a user can make their **own** account premium from Ayarlar

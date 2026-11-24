@@ -159,6 +159,8 @@ public sealed class StoreOptions
     public long? AppAppleId { get; set; }
     /// <summary>Sandbox transactions (TestFlight, App Review, sandbox testers) are accepted — Apple's review uses them on production.</summary>
     public bool AcceptSandbox { get; set; } = true;
+    /// <summary>A Production subscription moves to another Droblet account at most once in this many days (0 = no limit).</summary>
+    public int TransferCooldownDays { get; set; } = 30;
     /// <summary>
     /// Optional: base64 DER of the "StoreKit Testing in Xcode" root (Xcode → Editor → Save Public Certificate). Only a
     /// transaction whose environment is "Xcode" may chain to it; leave empty on prod.

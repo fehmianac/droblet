@@ -42,7 +42,10 @@ public sealed class StoreSyncService(
 {
     private DateTime Now => timeProvider.GetUtcNow().UtcDateTime;
 
-    public async Task<StorePurchaseOutcome> PurchaseAsync(string tenantId, StorePlatform platform, string productId, string transactionIdOrToken, CancellationToken ct)
+    public Task<StorePurchaseOutcome> PurchaseAsync(string tenantId, StorePlatform platform, string productId, string transactionIdOrToken, CancellationToken ct) =>
+        PurchaseAsync(tenantId, platform, productId, transactionIdOrToken, transfer: false, ct);
+
+    private async Task<StorePurchaseOutcome> PurchaseAsync(string tenantId, StorePlatform platform, string productId, string transactionIdOrToken, bool transfer, CancellationToken ct)
     {
         var verified = await verifier.VerifyAsync(platform, productId, transactionIdOrToken, ct);
         switch (verified.Status)
@@ -59,7 +62,7 @@ public sealed class StoreSyncService(
             return StorePurchaseOutcome.Invalid;
         }
 
-        var outcome = await purchases.ApplyAsync(tenantId, platform, verified, ct);
+        var outcome = await purchases.ApplyAsync(tenantId, platform, verified, ct, transfer);
         if (outcome is PurchaseApplyOutcome.SubscriptionActivated or PurchaseApplyOutcome.CreditsAdded or PurchaseApplyOutcome.Stale)
             await verifier.FinalizeAsync(platform, verified, verified.Kind ?? StoreProductKind.Subscription, ct);
         return Map(outcome);
@@ -71,10 +74,11 @@ public sealed class StoreSyncService(
         var available = false;
         var seen = new HashSet<string>(StringComparer.Ordinal);
 
-        // 1. What the device still holds (StoreKit currentEntitlements / Play queryPurchases).
+        // 1. What the device still holds (StoreKit currentEntitlements / Play queryPurchases). Holding it on the device is
+        //    the proof: a subscription that sits on another Droblet account moves here (PurchaseService.TransferAsync).
         foreach (var item in items)
         {
-            var outcome = await PurchaseAsync(tenantId, platform, item.ProductId, item.TransactionId, ct);
+            var outcome = await PurchaseAsync(tenantId, platform, item.ProductId, item.TransactionId, transfer: true, ct);
             if (outcome != StorePurchaseOutcome.NotAvailable)
                 available = true;
             switch (outcome)

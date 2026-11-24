@@ -171,7 +171,24 @@ export const purchaseFlow = {
       emit({ phase: 'success', productId: purchase.productId, error: null });
       track('purchase', { productId: purchase.productId, kind: productKind(purchase.productId) });
     } catch (e) {
-      if (foreground) emit({ phase: 'error', productId: purchase.productId, error: errorKindOf(e) });
+      const kind = errorKindOf(e);
+      if (!foreground) return;
+      // The store says this Apple / Google account already has the membership, on another Droblet account: the member
+      // asked for it here, so it is moved (closed there, opened here) through restore — owner decision 2026-11-24.
+      if (kind === 'owned_elsewhere' && productKind(purchase.productId) === 'subscription') {
+        emit({ phase: 'error', productId: purchase.productId, error: kind });
+        await this.restore();
+        // Moved here: the transaction is completed with the store, as after any confirmed purchase.
+        if (state.phase === 'restored' && state.restored?.member) {
+          try {
+            await finishStoreTransaction(purchase, false);
+          } catch {
+            // Finished on the next delivery.
+          }
+        }
+        return;
+      }
+      emit({ phase: 'error', productId: purchase.productId, error: kind });
     } finally {
       inFlight.delete(key);
     }

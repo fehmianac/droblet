@@ -311,6 +311,59 @@ public class ApplePurchaseTests
     }
 
     [Fact]
+    public async Task Restore_MovesASubscriptionFromAnotherAccount_ClosesItThere_AndOnlyTheDeviceHolderCanMoveIt()
+    {
+        using var h = new PurchaseHarness();
+        await h.Repository.SaveAsync(new TenantEntity { Id = PurchaseHarness.Tenant, OwnerUserId = "u1" });
+        await h.Repository.SaveAsync(new TenantEntity { Id = PurchaseHarness.OtherTenant, OwnerUserId = "u2" });
+        // Bought on the other account: the transaction carries that account's token.
+        var jws = h.Chain.Sign(h.AppleTx(PurchaseHarness.Monthly, "1", "1", h.Now.AddDays(30), accountToken: StoreAccountToken.FromTenantId(PurchaseHarness.OtherTenant)));
+        Assert.Equal(StorePurchaseOutcome.Applied, await h.Sync.PurchaseAsync(PurchaseHarness.OtherTenant, StorePlatform.Apple, PurchaseHarness.Monthly, jws, default));
+        Assert.Equal(Tier.Premium, (await h.SnapshotAsync(PurchaseHarness.OtherTenant)).Active.Tier);
+
+        // A plain purchase post (also sent in the background at launch) never moves it.
+        Assert.Equal(StorePurchaseOutcome.AccountMismatch, await h.Sync.PurchaseAsync(PurchaseHarness.Tenant, StorePlatform.Apple, PurchaseHarness.Monthly, jws, default));
+        Assert.Equal(Tier.Premium, (await h.SnapshotAsync(PurchaseHarness.OtherTenant)).Active.Tier);
+
+        // "Restore purchases" with the transaction the device holds: closed there, opened here.
+        var summary = await h.Sync.RestoreAsync(PurchaseHarness.Tenant, StorePlatform.Apple, [new RestoreItem(PurchaseHarness.Monthly, jws)], default);
+        Assert.Equal((1, 0), (summary.Restored, summary.OwnedByAnotherAccount));
+        Assert.Equal(Tier.Premium, (await h.SnapshotAsync()).Active.Tier);
+        Assert.Equal(Tier.Free, (await h.SnapshotAsync(PurchaseHarness.OtherTenant)).Active.Tier);
+
+        // The new owner's later plain posts of the same transaction (launch redelivery) are accepted; the old owner's are not.
+        Assert.Equal(StorePurchaseOutcome.Applied, await h.Sync.PurchaseAsync(PurchaseHarness.Tenant, StorePlatform.Apple, PurchaseHarness.Monthly, jws, default));
+        Assert.Equal(StorePurchaseOutcome.OwnedByAnotherAccount, await h.Sync.PurchaseAsync(PurchaseHarness.OtherTenant, StorePlatform.Apple, PurchaseHarness.Monthly, jws, default));
+
+        // The old account's own restore without the device transaction does not take it back.
+        var back = await h.Sync.RestoreAsync(PurchaseHarness.OtherTenant, StorePlatform.Apple, [], default);
+        Assert.Equal(0, back.Restored);
+        Assert.Equal(Tier.Premium, (await h.SnapshotAsync()).Active.Tier);
+        Assert.Equal(Tier.Free, (await h.SnapshotAsync(PurchaseHarness.OtherTenant)).Active.Tier);
+
+        // Sandbox purchases have no cooldown: with the device transaction it can move back.
+        var again = await h.Sync.RestoreAsync(PurchaseHarness.OtherTenant, StorePlatform.Apple, [new RestoreItem(PurchaseHarness.Monthly, jws)], default);
+        Assert.Equal(1, again.Restored);
+        Assert.Equal(Tier.Free, (await h.SnapshotAsync()).Active.Tier);
+    }
+
+    [Fact]
+    public async Task Restore_ProductionSubscription_MovesOncePerCooldown()
+    {
+        using var h = new PurchaseHarness();
+        await h.Repository.SaveAsync(new TenantEntity { Id = PurchaseHarness.Tenant, OwnerUserId = "u1" });
+        await h.Repository.SaveAsync(new TenantEntity { Id = PurchaseHarness.OtherTenant, OwnerUserId = "u2" });
+        var jws = h.Chain.Sign(h.AppleTx(PurchaseHarness.Monthly, "1", "1", h.Now.AddDays(30), environment: "Production", accountToken: StoreAccountToken.FromTenantId(PurchaseHarness.OtherTenant)));
+        Assert.Equal(StorePurchaseOutcome.Applied, await h.Sync.PurchaseAsync(PurchaseHarness.OtherTenant, StorePlatform.Apple, PurchaseHarness.Monthly, jws, default));
+
+        Assert.Equal(1, (await h.Sync.RestoreAsync(PurchaseHarness.Tenant, StorePlatform.Apple, [new RestoreItem(PurchaseHarness.Monthly, jws)], default)).Restored);
+        // Straight back within the cooldown: refused, the membership stays where it moved to.
+        var back = await h.Sync.RestoreAsync(PurchaseHarness.OtherTenant, StorePlatform.Apple, [new RestoreItem(PurchaseHarness.Monthly, jws)], default);
+        Assert.Equal((0, 1), (back.Restored, back.OwnedByAnotherAccount));
+        Assert.Equal(Tier.Premium, (await h.SnapshotAsync()).Active.Tier);
+    }
+
+    [Fact]
     public async Task PurchaseOwnedByAnotherExistingAccount_IsRefused_ButADeletedOwnerReleasesIt()
     {
         using var h = new PurchaseHarness();

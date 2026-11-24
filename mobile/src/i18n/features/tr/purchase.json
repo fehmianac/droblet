@@ -17,7 +17,7 @@
     "errorStore": "Mağaza bir hata bildirdi. Biraz sonra tekrar dene.",
     "restoredMember": "Satın alımların geri yüklendi. Droblet Üyeliğin aktif.",
     "restoredNone": "Bu hesapta geri yüklenecek bir üyelik bulunamadı.",
-    "restoredElsewhere": "Bulunan üyelik başka bir Droblet hesabına bağlı.",
+    "restoredElsewhere": "Bu üyelik başka bir Droblet hesabına bağlı ve kısa süre önce taşındığı için şimdi bu hesaba alınamıyor. O hesapla giriş yaparak kullanabilirsin.",
     "gracePeriod": "Son ödemen alınamadı. Üyeliğin şimdilik devam ediyor; mağaza ayarlarından ödeme yöntemini güncelle."
   },
   "push": {
