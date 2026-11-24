@@ -87,7 +87,8 @@ public sealed class SlotMapping
 ///   Outerwear    ← Outerwear, Skiwear
 ///   Shoes        ← Shoes
 ///   BagAccessory ← Bag, Accessory, Socks
-/// A Dress sits in the Top slot and closes the Bottom slot. A slot source is the tenant's own Item or a catalog
+/// A Dress sits in the Top slot and closes the Bottom slot in looks a rule or the model builds; a look the user builds by
+/// hand may pair a dress with a bottom (tights, leggings, trousers under a dress). A slot source is the tenant's own Item or a catalog
 /// product, never another tenant's piece (the caller resolves ids inside the caller's tenant only).
 /// A look needs at least 2 pieces (brief §4.3 / screen 15).
 /// </summary>
@@ -113,7 +114,12 @@ public static class OutfitSlotRules
     public static OutfitSlot DefaultSlot(ItemCategory category) => _mapping.DefaultSlot(category);
 
     /// <summary>Stable error codes; empty = valid.</summary>
-    public static IReadOnlyList<string> Validate(IReadOnlyList<SlotPiece> pieces, int minPieces = MinPieces)
+    /// <param name="dressClosesBottom">
+    /// True for looks a rule or the model builds (stylist, packing): a dress is never paired with a bottom. False for a look
+    /// the user builds by hand (owner report 2026-11-24: a dress with tights in the bottom box must be saved) — what the
+    /// user picks is the look.
+    /// </param>
+    public static IReadOnlyList<string> Validate(IReadOnlyList<SlotPiece> pieces, int minPieces = MinPieces, bool dressClosesBottom = true)
     {
         var errors = new List<string>();
         void Add(string code)
@@ -145,7 +151,7 @@ public static class OutfitSlotRules
         if (ids.Distinct().Count() != ids.Count)
             Add(ErrorCodes.SlotPieceRepeated);
 
-        if (pieces.Any(p => p is { Slot: OutfitSlot.Top, Category: ItemCategory.Dress }) && pieces.Any(p => p.Slot == OutfitSlot.Bottom))
+        if (dressClosesBottom && pieces.Any(p => p is { Slot: OutfitSlot.Top, Category: ItemCategory.Dress }) && pieces.Any(p => p.Slot == OutfitSlot.Bottom))
             Add(ErrorCodes.DressClosesBottom);
 
         if (pieces.Count < minPieces)

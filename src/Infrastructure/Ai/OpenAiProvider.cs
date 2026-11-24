@@ -1050,6 +1050,7 @@ public static class OpenAiPrompts
             return "";
         var parts = new List<string>(garments.Count);
         var tops = 0;
+        var underDress = garments.Any(g => g.Category == ItemCategory.Dress);
         for (var i = 0; i < garments.Count; i++)
         {
             var what = garments[i].Category switch
@@ -1058,7 +1059,7 @@ public static class OpenAiPrompts
                 ItemCategory.Dress => "a dress",
                 ItemCategory.Beachwear => "a beachwear piece",
                 ItemCategory.Skiwear => "a ski wear piece",
-                ItemCategory.Bottom => "the bottom (trousers, skirt or shorts)",
+                ItemCategory.Bottom => underDress ? "a bottom worn under the dress (tights, leggings or trousers), visible on the legs" : "the bottom (trousers, skirt or shorts)",
                 ItemCategory.Outerwear => "outerwear (a jacket, blazer or coat) worn on top of everything else, left open so the layers beneath stay visible",
                 ItemCategory.Socks => "socks, visible at the ankles",
                 ItemCategory.Shoes => "the shoes",

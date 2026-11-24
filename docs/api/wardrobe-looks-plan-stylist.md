@@ -300,7 +300,7 @@ Slot rules (server-enforced, also in `reference.slots`): a slot may hold layers 
 | PUT | `v1/tenant/look/{id}` | `{ "name", "occasion", "slots", "favorite", "baseVersion" }` | `LookDto` · 404 · 409 (current) · 422 |
 | DELETE | `v1/tenant/look/{id}` | — | 204 · 404 |
 
-422 codes: `look_min_pieces`, `slot_duplicate`, `slot_source_invalid`, `slot_category_mismatch`, `slot_item_not_found` (also another user's item), `slot_product_not_found` (unknown or retired), `slot_piece_repeated`, `dress_closes_bottom`.
+422 codes: `look_min_pieces`, `slot_duplicate`, `slot_source_invalid`, `slot_category_mismatch`, `slot_item_not_found` (also another user's item), `slot_product_not_found` (unknown or retired), `slot_piece_repeated`, `dress_closes_bottom`. `dress_closes_bottom` is no longer returned for a look the user saves (a dress may be paired with a bottom); it remains a stylist / packing guard. Up to 12 pieces per look; more → 400 `slots_out_of_range`.
 400 codes: `id_invalid`, `name_too_long` (60), `slots_required`, `slots_out_of_range`, `slot_invalid`, `base_version_invalid`.
 
 ---

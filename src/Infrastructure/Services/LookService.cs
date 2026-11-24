@@ -157,7 +157,9 @@ public sealed class LookService(IRepository repository, ICatalogProductLookup pr
             }
             pieces.Add(new SlotPiece(slot.Slot, slot.ItemId, slot.ProductId, category));
         }
-        return OutfitSlotRules.Validate(pieces);
+        // A look saved by the user (or a suggestion the user accepts — already guarded when it was made) may pair a dress
+        // with a bottom: tights or trousers under a dress are the user's choice.
+        return OutfitSlotRules.Validate(pieces, dressClosesBottom: false);
     }
 
     private Task<LookEntity?> GetEntityAsync(string tenantId, string id, CancellationToken ct) =>
