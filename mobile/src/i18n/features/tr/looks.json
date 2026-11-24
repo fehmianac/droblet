@@ -29,6 +29,7 @@
     "occasion": "Ortam",
     "tryOn": "Üzerimde gör",
     "tryOnOffline": "Üzerimde gör için internet bağlantısı gerekiyor. Bağlantı gelince tekrar dene.",
+    "saveFailed": "Look kaydedilemedi. Birazdan tekrar dene.",
     "tryOnFailed": "Görsel şu an başlatılamadı. Look'un kaydedildi; birazdan tekrar dene.",
     "counterEyebrow_one": "{{count}} PARÇA SEÇİLDİ",
     "counterEyebrow_other": "{{count}} PARÇA SEÇİLDİ",

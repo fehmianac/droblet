@@ -15,7 +15,8 @@ public interface IAiProvider
 
 public sealed class AiProviderException(string message, Exception? inner = null) : Exception(message, inner);
 
-public sealed record ImageInput(byte[] Data, string ContentType);
+/// <summary>Category: set on a garment image of a try-on so the prompt can name each piece and its layer (null = not said).</summary>
+public sealed record ImageInput(byte[] Data, string ContentType, ItemCategory? Category = null);
 
 /// <summary>Text-to-image request for operator tooling (library images, synthetic fixtures). Size e.g. "1024x1024"; format png | jpeg | webp.</summary>
 public sealed record ImageGenerationRequest(string Prompt, string Size = "1024x1024", string OutputFormat = "webp", int? OutputCompression = null, string? Quality = null);

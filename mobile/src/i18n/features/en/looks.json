@@ -29,6 +29,7 @@
     "occasion": "Occasion",
     "tryOn": "Try it on me",
     "tryOnOffline": "Try-on needs an internet connection. Try again once you're back online.",
+    "saveFailed": "The look couldn't be saved. Try again in a moment.",
     "tryOnFailed": "The image couldn't be started right now. Your look is saved; try again in a moment.",
     "counterEyebrow_one": "{{count}} PIECE SELECTED",
     "counterEyebrow_other": "{{count}} PIECES SELECTED",

@@ -1,3 +1,4 @@
+using Domain.Enum;
 using Domain.Entity;
 using Domain.Extensions;
 using Domain.Manager;
@@ -18,9 +19,11 @@ public sealed class GarmentImageLoader(IRepository repository, IObjectStorage st
     public async Task<ImageInput?> LoadAsync(string tenantId, OutfitPiece piece, CancellationToken ct)
     {
         ImageInput? image = null;
+        ItemCategory? category = null;
         if (piece.ItemId is not null)
         {
             var item = await repository.GetAsync<ItemEntity>(ItemEntity.GetPk(tenantId), ItemEntity.GetSk(piece.ItemId), ct);
+            category = item?.Category;
             var key = item is { UseOriginalImage: true, OriginalImageKey: not null } ? item.OriginalImageKey : item?.ImageKey ?? item?.OriginalImageKey;
             if (key is not null && StorageKeys.BelongsToTenant(key, tenantId) && await storage.ReadAsync(key, MaxImageBytes, ct) is { } data)
                 image = new ImageInput(data, key.EndsWith(".webp", StringComparison.Ordinal) ? "image/webp" : key.EndsWith(".png", StringComparison.Ordinal) ? "image/png" : "image/jpeg");
@@ -32,6 +35,7 @@ public sealed class GarmentImageLoader(IRepository repository, IObjectStorage st
         }
         else if (piece.ProductId is not null && await products.GetAsync(piece.ProductId, ct) is { } product)
         {
+            category = product.Category;
             image = await products.ReadImageAsync(product, ct);
         }
         else if (piece.LibraryItemId is not null
@@ -39,11 +43,12 @@ public sealed class GarmentImageLoader(IRepository repository, IObjectStorage st
                  && LibraryItemImageRules.IsResolvable(libraryItem.ImageKey))
         {
             // A ready-library piece the stylist picked for a thin wardrobe (not added yet): its global https image.
+            category = libraryItem.Category;
             image = await products.ReadImageAsync(new ProductSnapshot(libraryItem.Id, libraryItem.Name.GetValueOrDefault("tr") ?? "", null, null,
                 libraryItem.Category, libraryItem.ColorIds, libraryItem.Fabric, libraryItem.Seasons, libraryItem.ImageKey, false), ct);
         }
 
-        return image;
+        return image is null ? null : image with { Category = category };
     }
 
     /// <summary>

@@ -594,6 +594,57 @@ public class LookAndPlanEndpointTests(ApiFactory factory) : IClassFixture<ApiFac
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"v1/tenant/look/{id}")).StatusCode);
     }
 
+    /// <summary>
+    /// Layered looks (canvas 15′): the request check let only 5 pieces through while the rules allow 12, so a look of
+    /// 6+ pieces was refused with slots_out_of_range before the rules ran (owner report 2026-11-24).
+    /// </summary>
+    [Fact]
+    public async Task Look_WithLayers_UpToTwelvePieces_IsSaved_AndEditable()
+    {
+        var (client, auth) = await factory.RegisterAsync();
+        async Task<string> Item(ItemCategory category) => (await factory.ItemAsync(auth.TenantId, category)).Id;
+        var jacket = await factory.ProductAsync("jacket");
+        var slots = new List<object>
+        {
+            Slot("top", await Item(ItemCategory.Top)), Slot("top", await Item(ItemCategory.Top)), Slot("top", await Item(ItemCategory.Top)),
+            Slot("bottom", await Item(ItemCategory.Bottom)), Slot("outerwear", productId: jacket), Slot("shoes", await Item(ItemCategory.Shoes)),
+            Slot("bagAccessory", await Item(ItemCategory.Socks)), Slot("bagAccessory", await Item(ItemCategory.Bag)),
+            Slot("bagAccessory", await Item(ItemCategory.Accessory)), Slot("bagAccessory", await Item(ItemCategory.Accessory)),
+            Slot("bagAccessory", await Item(ItemCategory.Accessory)), Slot("bagAccessory", await Item(ItemCategory.Accessory)),
+        };
+        var id = Ulid.New();
+
+        var created = await client.PostJsonAsync("v1/tenant/look", LookBody(id, slots.ToArray()));
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        var look = await created.ReadAsync<LookDto>();
+        Assert.Equal(12, look.Slots.Count);
+
+        // The same 12 pieces can be saved again (rename): PUT has the same request check.
+        var put = await client.PutJsonAsync($"v1/tenant/look/{id}", new { name = "Katmanlı", occasion = "office", slots, favorite = false, baseVersion = look.Version });
+        Assert.Equal(HttpStatusCode.OK, put.StatusCode);
+
+        // A 13th piece is refused by the request check.
+        slots.Add(Slot("bagAccessory", await Item(ItemCategory.Accessory)));
+        var tooMany = await client.PostJsonAsync("v1/tenant/look", LookBody(Ulid.New(), slots.ToArray()));
+        Assert.Equal(HttpStatusCode.BadRequest, tooMany.StatusCode);
+    }
+
+    /// <summary>The look of the owner's video (2026-11-24): dress, tights in the bottom box, jacket, shoes, bag, two accessories.</summary>
+    [Fact]
+    public async Task Look_DressWithTightsJacketShoesBagAndAccessories_SevenPieces_IsSaved()
+    {
+        var (client, auth) = await factory.RegisterAsync();
+        async Task<string> Item(ItemCategory category) => (await factory.ItemAsync(auth.TenantId, category)).Id;
+
+        var created = await client.PostJsonAsync("v1/tenant/look", LookBody(Ulid.New(),
+            Slot("top", await Item(ItemCategory.Dress)), Slot("bottom", await Item(ItemCategory.Bottom)), Slot("outerwear", await Item(ItemCategory.Outerwear)),
+            Slot("shoes", await Item(ItemCategory.Shoes)), Slot("bagAccessory", await Item(ItemCategory.Bag)),
+            Slot("bagAccessory", await Item(ItemCategory.Accessory)), Slot("bagAccessory", await Item(ItemCategory.Accessory))));
+
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        Assert.Equal(7, (await created.ReadAsync<LookDto>()).Slots.Count);
+    }
+
     [Fact]
     public async Task Look_SlotRules_AreEnforced()
     {
@@ -615,7 +666,8 @@ public class LookAndPlanEndpointTests(ApiFactory factory) : IClassFixture<ApiFac
         Assert.Equal((HttpStatusCode.UnprocessableEntity, "look_min_pieces"), await Post(Slot("top", top.Id)));
         Assert.Equal((HttpStatusCode.UnprocessableEntity, "slot_item_not_found"), await Post(Slot("top", bobsTop.Id), Slot("bottom", bottom.Id))); // another tenant's piece
         Assert.Equal((HttpStatusCode.UnprocessableEntity, "slot_category_mismatch"), await Post(Slot("top", shoes.Id), Slot("bottom", bottom.Id)));
-        Assert.Equal((HttpStatusCode.UnprocessableEntity, "dress_closes_bottom"), await Post(Slot("top", dress.Id), Slot("bottom", bottom.Id)));
+        // A hand-built look may pair a dress with a bottom (tights, trousers under a dress): owner report 2026-11-24.
+        Assert.Equal((HttpStatusCode.Created, (string?)null), await Post(Slot("top", dress.Id), Slot("bottom", bottom.Id)));
         Assert.Equal((HttpStatusCode.UnprocessableEntity, "slot_duplicate"), await Post(Slot("bottom", bottom.Id), Slot("bottom", secondBottom.Id), Slot("top", top.Id)));
         Assert.Equal((HttpStatusCode.UnprocessableEntity, "slot_source_invalid"), await Post(Slot("top", top.Id, "prd"), Slot("bottom", bottom.Id)));
         Assert.Equal((HttpStatusCode.UnprocessableEntity, "slot_product_not_found"), await Post(Slot("top", top.Id), Slot("bagAccessory", productId: "prd-nope")));

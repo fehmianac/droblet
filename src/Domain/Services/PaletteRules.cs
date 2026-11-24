@@ -126,7 +126,10 @@ public static class TryOnFingerprint
 {
     public static string Of(IEnumerable<OutfitPiece> pieces)
     {
-        var canonical = string.Join('|', pieces.Select(p => p.Key).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal));
+        var keys = pieces.Select(p => p.Key).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();
+        // "v2|": outfits of several pieces rendered before every piece was named to the model (2026-11-24) could miss a
+        // layer (the jacket); their cached image is not reused. A single piece keeps its identity.
+        var canonical = (keys.Count > 1 ? "v2|" : "") + string.Join('|', keys);
         return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)))[..32];
     }
 }

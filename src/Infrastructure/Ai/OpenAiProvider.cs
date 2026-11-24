@@ -181,14 +181,14 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
     {
         var prompt = await PromptAsync(PromptCatalog.TryOnBody, OpenAiPrompts.TryOn(garments.Count), [], ct,
             new Dictionary<string, string> { ["garmentCount"] = garments.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) });
-        return await EditImageAsync(prompt, [bodyPhoto, .. garments], ImageUse.TryOn, quality, "image_tryon", ct);
+        return await EditImageAsync(prompt + OpenAiPrompts.GarmentList(garments), [bodyPhoto, .. garments], ImageUse.TryOn, quality, "image_tryon", ct);
     }
 
     public async Task<ImageInput> RenderFromFaceAsync(ImageInput facePhoto, IReadOnlyList<ImageInput> garments, TryOnFigure figure, CancellationToken ct, string? quality = null)
     {
         var prompt = await PromptAsync(PromptCatalog.TryOnFace, OpenAiPrompts.TryOnFromFace(garments.Count, figure), [], ct,
             OpenAiPrompts.TryOnFromFaceValues(garments.Count, figure));
-        return await EditImageAsync(prompt, [facePhoto, .. garments], ImageUse.TryOn, quality, "image_tryon", ct);
+        return await EditImageAsync(prompt + OpenAiPrompts.GarmentList(garments), [facePhoto, .. garments], ImageUse.TryOn, quality, "image_tryon", ct);
     }
 
     public async Task<ImageInput> RenderOutfitPhotoAsync(ImageInput subject, ImageInput outfitPhoto, TryOnFigure? figure, CancellationToken ct, string? quality = null)
@@ -207,7 +207,7 @@ public sealed class OpenAiProvider(HttpClient http, IOptionsMonitor<AiOptions> o
                 new Dictionary<string, string> { ["garmentCount"] = garments.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) })
             : await PromptAsync(PromptCatalog.TryOnFace, OpenAiPrompts.TryOnFromFace(garments.Count, figure), [], ct, OpenAiPrompts.TryOnFromFaceValues(garments.Count, figure));
         var guard = await PromptAsync(PromptCatalog.TryOnTeenGuard, OpenAiPrompts.TryOnTeenGuard, [], ct);
-        return await EditImageAsync(OpenAiPrompts.ForTeen(basePrompt, guard), [photo, .. garments], ImageUse.TryOn, quality, "image_tryon", ct);
+        return await EditImageAsync(OpenAiPrompts.ForTeen(basePrompt + OpenAiPrompts.GarmentList(garments), guard), [photo, .. garments], ImageUse.TryOn, quality, "image_tryon", ct);
     }
 
     /// <summary>AI flat-lay cover of a saved look (canvas 21c): the pieces' images only — no photo of a person is ever sent.</summary>
@@ -1038,6 +1038,40 @@ public static class OpenAiPrompts
     public const string Cleanup =
         "Product photo of exactly this garment: remove the background and anything that is not the garment, centre it, keep its true colours, pattern, fabric and shape, " +
         "plain off-white background, soft even light, no person, no hanger, no text.";
+
+    /// <summary>
+    /// Appended to the try-on prompts when the garment images carry their category (owner request 2026-11-24: "seçtiğim her
+    /// şey giydirilsin"): names every garment image and its layer, and says that none may be left out. Built in code, not in
+    /// the registry template, so it also applies to a published template. "" when no category is known.
+    /// </summary>
+    public static string GarmentList(IReadOnlyList<ImageInput> garments)
+    {
+        if (garments.Count == 0 || garments.All(g => g.Category is null))
+            return "";
+        var parts = new List<string>(garments.Count);
+        var tops = 0;
+        var underDress = garments.Any(g => g.Category == ItemCategory.Dress);
+        for (var i = 0; i < garments.Count; i++)
+        {
+            var what = garments[i].Category switch
+            {
+                ItemCategory.Top => tops++ == 0 ? "a top, the innermost layer" : "a top worn as a layer over the previous top, left open or loose enough that the layer beneath stays visible",
+                ItemCategory.Dress => "a dress",
+                ItemCategory.Beachwear => "a beachwear piece",
+                ItemCategory.Skiwear => "a ski wear piece",
+                ItemCategory.Bottom => underDress ? "a bottom worn under the dress (tights, leggings or trousers), visible on the legs" : "the bottom (trousers, skirt or shorts)",
+                ItemCategory.Outerwear => "outerwear (a jacket, blazer or coat) worn on top of everything else, left open so the layers beneath stay visible",
+                ItemCategory.Socks => "socks, visible at the ankles",
+                ItemCategory.Shoes => "the shoes",
+                ItemCategory.Bag => "a bag, carried in the hand or on the shoulder",
+                ItemCategory.Accessory => "an accessory (belt, jewellery, scarf, hat, glasses or watch), worn where it belongs",
+                _ => "a garment",
+            };
+            parts.Add($"image {Count(i + 2)} is {what}");
+        }
+        return $" The garment images in order: {string.Join("; ", parts)}. " +
+               $"All {Count(garments.Count)} pieces must be worn at the same time and each one must be clearly visible in the result: never leave a piece out, never merge two pieces into one, never replace a piece with another garment.";
+    }
 
     public static string TryOn(int garmentCount) => PromptTemplate.Render(TryOnTemplate, ("garmentCount", Count(garmentCount)));
 
