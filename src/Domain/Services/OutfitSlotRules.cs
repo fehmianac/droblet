@@ -13,7 +13,7 @@ public sealed record SlotPiece(OutfitSlot Slot, string? ItemId, string? ProductI
 /// Category → the outfit slots a piece of that category may fill; the first slot is its default one.
 /// Built from Wardrobe:SlotMapping (config) on top of the approved built-in mapping:
 ///   Top → Top · Bottom → Bottom · Dress → Top · Outerwear → Outerwear · Shoes → Shoes · Bag, Accessory → BagAccessory
-///   Beachwear → Top, Bottom · Skiwear → Top, Bottom, Outerwear
+///   Beachwear → Top, Bottom · Skiwear → Top, Bottom, Outerwear · Socks → BagAccessory
 /// </summary>
 public sealed class SlotMapping
 {
@@ -28,6 +28,7 @@ public sealed class SlotMapping
         [ItemCategory.Accessory] = [OutfitSlot.BagAccessory],
         [ItemCategory.Beachwear] = [OutfitSlot.Top, OutfitSlot.Bottom],
         [ItemCategory.Skiwear] = [OutfitSlot.Top, OutfitSlot.Bottom, OutfitSlot.Outerwear],
+        [ItemCategory.Socks] = [OutfitSlot.BagAccessory],
     });
 
     private readonly IReadOnlyDictionary<ItemCategory, IReadOnlyList<OutfitSlot>> _slots;
@@ -76,13 +77,16 @@ public sealed class SlotMapping
 
 /// <summary>
 /// The one rule set for looks — used by the Api (look CRUD, accept) and by the worker guards (StylistOutputGuard,
-/// PackingRules). Five slots, one piece per slot; which category may fill which slot is <see cref="SlotMapping"/>
+/// PackingRules). Five slots; a slot may hold layers (canvas 15′, owner decision 2026-11-24): Top up to 3 pieces
+/// (t-shirt + shirt + cardigan, at most one Dress among them), BagAccessory one bag + one pair of socks + up to 4
+/// accessories, every other slot one piece; 12 pieces at most. The order of the pieces inside a slot is the order they
+/// were sent in (inner layer first). Which category may fill which slot is <see cref="SlotMapping"/>
 /// (Wardrobe:SlotMapping config, set once at start-up and on config reload). Built-in:
 ///   Top          ← Top, Dress, Beachwear, Skiwear
 ///   Bottom       ← Bottom, Beachwear, Skiwear
 ///   Outerwear    ← Outerwear, Skiwear
 ///   Shoes        ← Shoes
-///   BagAccessory ← Bag, Accessory
+///   BagAccessory ← Bag, Accessory, Socks
 /// A Dress sits in the Top slot and closes the Bottom slot. A slot source is the tenant's own Item or a catalog
 /// product, never another tenant's piece (the caller resolves ids inside the caller's tenant only).
 /// A look needs at least 2 pieces (brief §4.3 / screen 15).
@@ -90,6 +94,9 @@ public sealed class SlotMapping
 public static class OutfitSlotRules
 {
     public const int MinPieces = 2;
+    public const int MaxPieces = 12;
+    public const int MaxTopLayers = 3;
+    public const int MaxAccessories = 4;
 
     public static readonly IReadOnlyList<OutfitSlot> Slots = System.Enum.GetValues<OutfitSlot>();
 
@@ -115,7 +122,7 @@ public static class OutfitSlotRules
                 errors.Add(code);
         }
 
-        if (pieces.Any(p => !System.Enum.IsDefined(p.Slot)) || pieces.Select(p => p.Slot).Distinct().Count() != pieces.Count)
+        if (pieces.Any(p => !System.Enum.IsDefined(p.Slot)) || OverCapacity(pieces))
             Add(ErrorCodes.SlotDuplicate);
 
         foreach (var piece in pieces)
@@ -145,5 +152,22 @@ public static class OutfitSlotRules
             Add(ErrorCodes.LookMinPieces);
 
         return errors;
+    }
+
+    /// <summary>More pieces than a slot holds (slot_duplicate). A piece of an unknown category counts as an accessory in BagAccessory.</summary>
+    private static bool OverCapacity(IReadOnlyList<SlotPiece> pieces)
+    {
+        if (pieces.Count > MaxPieces)
+            return true;
+        int In(OutfitSlot slot, Func<SlotPiece, bool>? where = null) => pieces.Count(p => p.Slot == slot && (where is null || where(p)));
+
+        return In(OutfitSlot.Top) > MaxTopLayers
+               || In(OutfitSlot.Top, p => p.Category == ItemCategory.Dress) > 1
+               || In(OutfitSlot.Bottom) > 1
+               || In(OutfitSlot.Outerwear) > 1
+               || In(OutfitSlot.Shoes) > 1
+               || In(OutfitSlot.BagAccessory, p => p.Category == ItemCategory.Bag) > 1
+               || In(OutfitSlot.BagAccessory, p => p.Category == ItemCategory.Socks) > 1
+               || In(OutfitSlot.BagAccessory, p => p.Category is not (ItemCategory.Bag or ItemCategory.Socks)) > MaxAccessories;
     }
 }

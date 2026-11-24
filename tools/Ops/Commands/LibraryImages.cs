@@ -92,6 +92,7 @@ internal static class LibraryImagePlan
         ItemCategory.Bag => "Standing upright, front three-quarter view; handles or a long strap neatly coiled or draped so that the whole bag and strap stay inside the frame.",
         ItemCategory.Accessory => "Neatly folded and softly draped, top-down flat-lay view.",
         ItemCategory.Beachwear => "Shown on an invisible ghost mannequin, straight front view.",
+        ItemCategory.Socks => "A pair, laid flat side by side, top-down flat-lay view.",
         ItemCategory.Skiwear => "Shown on an invisible ghost mannequin, straight front view, zipped, natural 3D shape.",
         _ => "Straight front view.",
     };

@@ -290,7 +290,7 @@ AI cover rules (server side, no client action): queued in the background when a 
 `rating` = what friends gave this look (`PUT v1/tenant/people/{handle}/look/{lookId}/rating`): average with one decimal and the number of ratings. It is filled by `GET v1/tenant/look` and `GET v1/tenant/look/{id}`; it is `null` while nobody rated the look and wherever a `LookDto` is embedded in another response (plan day, today, item detail, accept results). Deleting a look deletes its rating summary.
 `missing: true` = the slot is a catalog product the user does not own ("Eksik parça" → "Look'u tamamla"). `unavailable: true` = the wardrobe item was deleted.
 
-Slot rules (server-enforced, also in `reference.slots`): one piece per slot; each slot is **either** `itemId` (own wardrobe) **or** `productId` (catalog); the category must fit the slot; a **dress goes in `top` and closes `bottom`**; **at least 2 pieces**; the same piece cannot fill two slots.
+Slot rules (server-enforced, also in `reference.slots`): a slot may hold layers (canvas 15′, 2026-11-24) — `top` up to **3** pieces (at most one dress), `bagAccessory` **one bag + one pair of socks + up to 4 accessories**, every other slot one piece, **12 pieces at most**; more → `slot_duplicate`. Pieces of one slot keep the order they were sent in (inner layer first); the response lists the slots in slot order. Each piece is **either** `itemId` (own wardrobe) **or** `productId` (catalog); the category must fit the slot; a **dress goes in `top` and closes `bottom`**; **at least 2 pieces**; the same piece cannot fill two slots.
 
 | Method | Path | Request | Response |
 |---|---|---|---|

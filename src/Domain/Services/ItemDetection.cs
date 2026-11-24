@@ -43,6 +43,7 @@ public static class SubcategoryCatalog
         E("clutch", ItemCategory.Bag, W, "Clutch", "Clutch"), E("backpack", ItemCategory.Bag, U, "Sırt çantası", "Backpack"),
         E("belt", ItemCategory.Accessory, U, "Kemer", "Belt"), E("hat", ItemCategory.Accessory, U, "Şapka", "Hat"),
         E("cap", ItemCategory.Accessory, U, "Kep", "Cap"), E("beanie", ItemCategory.Accessory, U, "Bere", "Beanie"),
+        E("socks", ItemCategory.Socks, U, "Çorap", "Socks"), E("tights", ItemCategory.Socks, W, "Külotlu çorap", "Tights"),
         E("scarf", ItemCategory.Accessory, U, "Şal / eşarp", "Scarf"), E("sunglasses", ItemCategory.Accessory, U, "Güneş gözlüğü", "Sunglasses"),
         E("glasses", ItemCategory.Accessory, U, "Gözlük", "Glasses"), E("watch", ItemCategory.Accessory, U, "Saat", "Watch"),
         E("gloves", ItemCategory.Accessory, U, "Eldiven", "Gloves"), E("tie", ItemCategory.Accessory, U, "Kravat", "Tie"),

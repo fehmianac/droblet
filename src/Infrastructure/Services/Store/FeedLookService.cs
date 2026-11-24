@@ -293,6 +293,7 @@ public sealed class FeedLookService(
         [ItemCategory.Accessory] = new("Aksesuar", "Accessory"),
         [ItemCategory.Beachwear] = new("Plaj giyim", "Beachwear"),
         [ItemCategory.Skiwear] = new("Kayak giyim", "Skiwear"),
+        [ItemCategory.Socks] = new("Çorap", "Socks"),
     };
 
     /// <summary>A new piece's default name: its sub-type's label when it is a known one of that category, else the category's.</summary>

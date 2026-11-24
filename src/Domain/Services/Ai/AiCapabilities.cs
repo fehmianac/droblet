@@ -22,7 +22,7 @@ public sealed record ImageGenerationRequest(string Prompt, string Size = "1024x1
 
 public sealed record GarmentSuggestion(ItemCategoryHint? Category, IReadOnlyList<string> ColorIds, string? Fabric, IReadOnlyList<Season> Seasons, IReadOnlyDictionary<string, double> Confidence, string? Name = null, bool IsGarment = true, int GarmentCount = 1);
 
-public enum ItemCategoryHint { Top, Bottom, Dress, Outerwear, Shoes, Bag, Accessory, Beachwear, Skiwear }
+public enum ItemCategoryHint { Top, Bottom, Dress, Outerwear, Shoes, Bag, Accessory, Beachwear, Skiwear, Socks }
 
 public enum Season { Spring, Summer, Autumn, Winter }
 
