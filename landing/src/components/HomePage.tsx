@@ -99,7 +99,7 @@ export function HomePage({ locale }: { locale: Locale }) {
               {t.hero.title}
             </h1>
             <p className="m-0 max-w-[520px] text-[19px] leading-normal text-muted">{t.hero.body}</p>
-            <StoreButtons id="download" labels={dictionary.common} withIcon />
+            <StoreButtons id="download" labels={dictionary.common} />
             <p className="small-text">{t.hero.platforms}</p>
           </div>
 

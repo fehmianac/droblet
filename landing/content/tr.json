@@ -9,8 +9,8 @@
     "skipToContent": "İçeriğe geç",
     "appStore": "App Store'dan indir",
     "googlePlay": "Google Play'den indir",
-    "appStoreSoon": "App Store · Yakında",
-    "googlePlaySoon": "Google Play · Yakında",
+    "storeSoon": "Yakında",
+    "storeBadge": "tr",
     "openInApp": "Uygulamada aç",
     "backHome": "Ana sayfaya dön",
     "unavailableTitle": "Şu an kullanılamıyor"
@@ -21,7 +21,7 @@
     "how": "Nasıl çalışır",
     "features": "Özellikler",
     "membership": "Üyelik",
-    "cta": "Uygulamayı indir"
+    "cta": "Ücretsiz denemeyi başlat"
   },
   "home": {
     "hero": {
@@ -109,7 +109,7 @@
     "membership": {
       "eyebrow": "DROBLET ÜYELİK",
       "title": "Her sabah hazır bir kombin. Her seyahatte hazır bir bavul.",
-      "body": "Aylık ya da yıllık; ücretsiz deneme ile başla. Gardırop, look'lar, takvim, mağaza ve arkadaşlar üyeliksiz de açık.",
+      "body": "Aylık ya da yıllık; yıllık planda 7 gün ücretsiz. Gardırop, look'lar, takvim, mağaza ve arkadaşlar üyeliksiz de açık.",
       "benefits": [
         {
           "title": "Ayda 30 AI görseli",

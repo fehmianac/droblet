@@ -9,8 +9,8 @@
     "skipToContent": "Skip to content",
     "appStore": "Download on the App Store",
     "googlePlay": "Get it on Google Play",
-    "appStoreSoon": "App Store · Coming soon",
-    "googlePlaySoon": "Google Play · Coming soon",
+    "storeSoon": "Coming soon",
+    "storeBadge": "en",
     "openInApp": "Open in the app",
     "backHome": "Back to home",
     "unavailableTitle": "Currently unavailable"
@@ -21,7 +21,7 @@
     "how": "How it works",
     "features": "Features",
     "membership": "Membership",
-    "cta": "Get the app"
+    "cta": "Start the free trial"
   },
   "home": {
     "hero": {
@@ -109,7 +109,7 @@
     "membership": {
       "eyebrow": "DROBLET MEMBERSHIP",
       "title": "An outfit ready every morning. A suitcase ready for every trip.",
-      "body": "Monthly or yearly; start with a free trial. Wardrobe, looks, calendar, store and friends are open without a membership too.",
+      "body": "Monthly or yearly; 7 days free on the yearly plan. Wardrobe, looks, calendar, store and friends are open without a membership too.",
       "benefits": [
         {
           "title": "30 AI images a month",
