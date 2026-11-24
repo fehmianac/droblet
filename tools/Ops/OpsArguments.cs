@@ -10,6 +10,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
 {
     public const string GrantTestPremium = "grant-test-premium";
     public const string RevokeTestPremium = "revoke-test-premium";
+    public const string SetRecognitionUsed = "set-recognition-used";
     public const string GenerateLibraryImages = "generate-library-images";
     /// <summary>Marketing images (welcome screen) from a checked-in prompt file; hard cap <see cref="MaxMarketingImageCalls"/>.</summary>
     public const string GenerateMarketingImages = "generate-marketing-images";
@@ -85,15 +86,16 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
     /// <summary>Hard ceiling of image-model calls in one run (library images and synthetic fixtures together).</summary>
     public const int MaxImageCallsPerRun = 30;
 
-    public static readonly IReadOnlyList<string> Commands = [ImportBrand, ImportVakko, SeedFeedPosts, SplitFeedPosts, SeedFeedStories, ColorFeedPieces, NoteFeedPosts, GrantTestPremium, RevokeTestPremium, GenerateLibraryImages, GenerateMarketingImages, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, Logs, MigrateLibraryItemImages, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, AiUsageBackfill, PublishItemImages, CdnCheck, PublicUrls, GoogleAuth, PushTest];
+    public static readonly IReadOnlyList<string> Commands = [ImportBrand, ImportVakko, SeedFeedPosts, SplitFeedPosts, SeedFeedStories, ColorFeedPieces, NoteFeedPosts, GrantTestPremium, RevokeTestPremium, SetRecognitionUsed, GenerateLibraryImages, GenerateMarketingImages, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, Logs, MigrateLibraryItemImages, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, AiUsageBackfill, PublishItemImages, CdnCheck, PublicUrls, GoogleAuth, PushTest];
 
     /// <summary>Commands that create or change test accounts or spend AI credit on a throw-away user: never on prod.</summary>
-    public static readonly IReadOnlySet<string> DevOnly = new HashSet<string>(StringComparer.Ordinal) { ImportBrand, ImportVakko, SeedFeedPosts, SplitFeedPosts, SeedFeedStories, ColorFeedPieces, NoteFeedPosts, GrantTestPremium, RevokeTestPremium, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, PublicUrls, GenerateMarketingImages };
+    public static readonly IReadOnlySet<string> DevOnly = new HashSet<string>(StringComparer.Ordinal) { ImportBrand, ImportVakko, SeedFeedPosts, SplitFeedPosts, SeedFeedStories, ColorFeedPieces, NoteFeedPosts, GrantTestPremium, RevokeTestPremium, SetRecognitionUsed, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, PublicUrls, GenerateMarketingImages };
 
     private static readonly IReadOnlyDictionary<string, string[]> AllowedOptions = new Dictionary<string, string[]>(StringComparer.Ordinal)
     {
         [GrantTestPremium] = ["email", "credits", "days"],
         [RevokeTestPremium] = ["email"],
+        [SetRecognitionUsed] = ["email", "used"],
         [GenerateLibraryImages] = ["only", "max-calls", "quality", "price-per-image"],
         [GenerateMarketingImages] = ["prompts", "only", "max"],
         [AiSmoke] = ["api-url", "price-per-image", "brand", "category"],
@@ -126,6 +128,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
     {
         [GrantTestPremium] = [],
         [RevokeTestPremium] = [],
+        [SetRecognitionUsed] = [],
         [GenerateLibraryImages] = ["dry-run", "force"],
         [GenerateMarketingImages] = ["dry-run"],
         [AiSmoke] = ["keep-user", "items-only", "prereq-only", "photo-tryon", "product-tryon", "look-tryon", "direct"],
@@ -282,6 +285,12 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
 
         switch (Command)
         {
+            case SetRecognitionUsed:
+                if (Option("email") is not { } who || !who.Contains('@', StringComparison.Ordinal) || who.Length > 254)
+                    return "--email is required";
+                if (Option("used") is not { } used || !int.TryParse(used, out var u) || u is < 0 or > 1000)
+                    return "--used must be 0–1000";
+                break;
             case GrantTestPremium or RevokeTestPremium:
                 if (Option("email") is not { } email || !email.Contains('@', StringComparison.Ordinal) || email.Length > 254)
                     return "--email is required";
@@ -404,6 +413,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         "Usage: Ops <command> --stage dev [options]\n" +
         "  grant-test-premium      --email <e> [--credits N] [--days N]   (dev only)\n" +
         "  revoke-test-premium     --email <e>                            (dev only)\n" +
+        "  set-recognition-used    --email <e> --used N                   (dev only, no AI call: the free AI-recognition counter of a test account)\n" +
         "  generate-library-images [--only id,id] [--dry-run] [--force] [--max-calls N<=30] [--quality high]\n" +
         "  generate-marketing-images --max N<=6 [--prompts ops-presets/welcome-images.json] [--only id,id] [--dry-run]  (dev only; never retries)\n" +
         "  ai-smoke                [--api-url URL] [--keep-user] [--items-only | --prereq-only | --photo-tryon | --product-tryon [--brand id] [--category coat] | --look-tryon [--category jacket] [--direct]]  (dev only)\n" +
