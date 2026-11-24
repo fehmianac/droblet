@@ -31,18 +31,22 @@ beforeEach(async () => {
 describe('18 Bavullar', () => {
   it('shows the new-suitcase form with upcoming and past trips', async () => {
     await renderRouter('./src/app', { initialUrl: '/wardrobe/trips' });
-    await waitFor(() => expect(screen.getByText('Londra')).toBeTruthy(), { timeout: 3000 });
-    expect(screen.getByText('YOUR TRAVEL PLANS')).toBeTruthy();
+    await waitFor(() => expect(screen.getByText('LONDRA')).toBeTruthy(), { timeout: 3000 });
+    expect(screen.getByText('SUITCASE')).toBeTruthy();
+    expect(screen.getByText('Your travel plans')).toBeTruthy();
     expect(screen.getByText('New suitcase')).toBeTruthy();
     expect(screen.getByText('UPCOMING TRIPS')).toBeTruthy();
     expect(screen.getByText('PAST TRIPS')).toBeTruthy();
-    expect(screen.getByText('Paris')).toBeTruthy();
+    expect(screen.getByText('PARIS')).toBeTruthy();
+    expect(screen.getByText('Past')).toBeTruthy();
     expect(screen.getByText(/4 days · 6 pieces/)).toBeTruthy();
+    // A packed, upcoming suitcase says how much of it is in the bag.
+    expect(screen.getByText('3 / 9 packed')).toBeTruthy();
   });
 
   it('validates the form and offers city suggestions', async () => {
     await renderRouter('./src/app', { initialUrl: '/wardrobe/trips' });
-    await waitFor(() => expect(screen.getByText('Londra')).toBeTruthy(), { timeout: 3000 });
+    await waitFor(() => expect(screen.getByText('LONDRA')).toBeTruthy(), { timeout: 3000 });
 
     await fireEvent.press(screen.getByTestId('trip-submit'));
     expect(screen.getByText('Choose a city from the list.')).toBeTruthy();
@@ -68,7 +72,7 @@ describe('18 Bavullar', () => {
 
   it('opens a suitcase from its row', async () => {
     await renderRouter('./src/app', { initialUrl: '/wardrobe/trips' });
-    await waitFor(() => expect(screen.getByText('Paris')).toBeTruthy(), { timeout: 3000 });
+    await waitFor(() => expect(screen.getByText('PARIS')).toBeTruthy(), { timeout: 3000 });
     await fireEvent.press(screen.getByLabelText(/^Paris, /));
     await waitFor(() => expect(screen).toHavePathname('/trip/trip_paris'), { timeout: 3000 });
   });
@@ -102,18 +106,21 @@ describe('Yeni bavul (trip/new, derived from 18)', () => {
 });
 
 describe('19 Bavul detayı', () => {
-  it('shows forecast, list and missing piece; checking a row updates the readiness ring', async () => {
+  it('shows the city, the three numbers, the list and the missing piece; checking a row updates the packed count', async () => {
     await renderRouter('./src/app', { initialUrl: '/trip/trip_londra' });
     await waitFor(() => expect(screen.getByText('Packing list')).toBeTruthy(), { timeout: 3000 });
-    expect(screen.getByText('Londra')).toBeTruthy();
-    expect(screen.getByText('9 pieces · 5 looks')).toBeTruthy();
+    expect(screen.getByText('LONDRA')).toBeTruthy();
+    expect(screen.getByLabelText('9 pieces · 5 looks')).toBeTruthy();
+    expect(screen.getByText('PIECES')).toBeTruthy();
+    expect(screen.getByText('RAINY DAYS')).toBeTruthy();
+    expect(screen.getByText('Days')).toBeTruthy();
+    expect(screen.getByText('Missing')).toBeTruthy();
     // The catalog pick is labelled like the stylist's: "Suggested · Store" + "See".
     expect(screen.getByText('Suggested · Store')).toBeTruthy();
     expect(screen.getByTestId('trip-store-see-prod_rain_boots')).toBeTruthy();
     expect(screen.getByText('Get missing')).toBeTruthy();
-    expect(screen.getByLabelText('Daily weather forecast')).toBeTruthy();
     expect(screen.getByLabelText('Packing: 3 of 9 pieces ready')).toBeTruthy();
-    expect(screen.getByText('3/9')).toBeTruthy();
+    expect(screen.getByText('3 / 9 packed')).toBeTruthy();
 
     const row = screen.getByLabelText('Düz jean');
     expect(row).not.toBeChecked();
@@ -147,15 +154,17 @@ describe('19 Bavul detayı', () => {
   it('lists every piece with its category, tags the daily looks with the weekday and opens the day sheet', async () => {
     await renderRouter('./src/app', { initialUrl: '/trip/trip_londra' });
     await waitFor(() => expect(screen.getByText('Packing list')).toBeTruthy(), { timeout: 3000 });
-    expect(screen.getByText('In your size, within your budget')).toBeTruthy();
-    expect(screen.getByText('1 missing piece')).toBeTruthy();
     expect(screen.getByText('See the looks on me')).toBeTruthy();
     expect(screen.getAllByText('Outerwear').length).toBeGreaterThan(0);
 
     const trip = fixtureGetTrip('trip_londra');
     const first = trip.days[0];
     const weekday = new Intl.DateTimeFormat('en', { weekday: 'short' }).format(new Date(`${first?.date}T12:00:00`));
-    expect(screen.getAllByText(weekday.toUpperCase()).length).toBeGreaterThan(0);
+    // Every planned day is a card: its own try-on button (with the price) and "Save as a look".
+    expect(screen.getByTestId(`trip-day-card-${first?.date}`)).toBeTruthy();
+    expect(screen.getByTestId(`trip-day-tryon-${first?.date}`)).toBeTruthy();
+    expect(screen.getAllByText('See it on me · 1 credit').length).toBeGreaterThan(0);
+    expect(screen.getByTestId(`trip-day-save-${first?.date}`)).toBeTruthy();
     await fireEvent.press(screen.getByLabelText(`${weekday}: ${first?.look?.name}`));
     // A trip day is the trip's own slot list (not a saved look): it opens the day sheet (try on / save as a look).
     await waitFor(() => expect(screen.getByTestId('trip-day-tryon')).toBeTruthy(), { timeout: 3000 });
@@ -171,21 +180,29 @@ describe('19 Bavul detayı', () => {
     await waitFor(() => expect(screen.getByLabelText('Single cabin bag')).toBeChecked());
     await waitFor(() => expect(fixtureGetTrip('trip_londra').cabinOnly).toBe(true), { timeout: 3000 });
     // The server re-plans the list for a cabin bag.
-    await waitFor(() => expect(screen.getByText('6 pieces · 5 looks')).toBeTruthy(), { timeout: 3000 });
+    await waitFor(() => expect(screen.getByLabelText('6 pieces · 5 looks')).toBeTruthy(), { timeout: 3000 });
   });
 
-  it('opens the suggested product from the missing-piece card and the shop from the bottom bar', async () => {
+  it('opens the suggested product from the missing-piece card', async () => {
     await renderRouter('./src/app', { initialUrl: '/trip/trip_londra' });
     await waitFor(() => expect(screen.getByTestId('trip-store-prod_rain_boots')).toBeTruthy(), { timeout: 3000 });
     await fireEvent.press(screen.getByLabelText('See: Yağmur botu'));
     await waitFor(() => expect(screen).toHavePathname('/shop/product/prod_rain_boots'), { timeout: 3000 });
   });
 
-  it('opens the shop from the bottom bar', async () => {
+  it('opens the shop from "Get missing" under the missing pieces', async () => {
     await renderRouter('./src/app', { initialUrl: '/trip/trip_londra' });
     await waitFor(() => expect(screen.getByTestId('trip-complete-missing')).toBeTruthy(), { timeout: 3000 });
     await fireEvent.press(screen.getByTestId('trip-complete-missing'));
     await waitFor(() => expect(screen).toHavePathname('/shop'), { timeout: 3000 });
+  });
+
+  it('offers "Delete trip" at the end of the screen', async () => {
+    await renderRouter('./src/app', { initialUrl: '/trip/trip_londra' });
+    await waitFor(() => expect(screen.getByTestId('trip-delete')).toBeTruthy(), { timeout: 3000 });
+    await fireEvent.press(screen.getByTestId('trip-delete'));
+    expect(screen.getByText('Delete this suitcase?')).toBeTruthy();
+    expect(fixtureListTrips()).toHaveLength(2);
   });
 
   it('asks before deleting the suitcase', async () => {
@@ -213,7 +230,6 @@ describe('19 Bavul detayı', () => {
     expect(screen.getByTestId('pack-blocked-paywall', hidden)).toBeTruthy();
     expect(screen.getByText('Smart packing is a Premium feature.', hidden)).toBeTruthy();
     expect(screen.queryByText("We couldn't create it right now.", hidden)).toBeNull();
-    expect(screen.getByLabelText('Daily weather forecast', hidden)).toBeTruthy();
     start.mockRestore();
   });
 

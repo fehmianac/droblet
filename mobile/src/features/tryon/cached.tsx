@@ -1,15 +1,15 @@
-import { useQueries } from '@tanstack/react-query';
-import { History } from 'lucide-react-native';
-import { useTranslation } from 'react-i18next';
-import { View } from 'react-native';
+import { useQueries } from "@tanstack/react-query";
+import { History } from "lucide-react-native";
+import { useTranslation } from "react-i18next";
+import { View } from "react-native";
 
-import type { TryOnTarget } from '@/api/contracts/tryon';
-import { cachedTryOnImageId, cachedTryOnJobId } from '@/api/wire/tryon';
-import { Icon } from '@/components/ui/Icon';
-import { Text } from '@/components/ui/Text';
+import type { TryOnTarget } from "@/api/contracts/tryon";
+import { cachedTryOnImageId, cachedTryOnJobId } from "@/api/wire/tryon";
+import { Icon } from "@/components/ui/Icon";
+import { Text } from "@/components/ui/Text";
 
-import { currentTryOn, existingTryOnQuery, useExistingTryOn } from './api';
-import { useTryOnPhotoKey } from './photoKey';
+import { currentTryOn, existingTryOnQuery, useExistingTryOn } from "./api";
+import { useTryOnPhotoKey } from "./photoKey";
 
 /**
  * Canvas 13d — "Üzerimde gör" for a target that already has an image with the current photo (same pieces + same
@@ -21,7 +21,10 @@ import { useTryOnPhotoKey } from './photoKey';
  *   const cached = useCachedTryOn({ kind: 'look', id });
  *   const onTryOn = () => (cached.cachedJobId ? openResult(cached.cachedJobId) : openCreditSheet());
  */
-export function useCachedTryOn(target: TryOnTarget | null, options: { enabled?: boolean } = {}) {
+export function useCachedTryOn(
+  target: TryOnTarget | null,
+  options: { enabled?: boolean } = {},
+) {
   const existing = useExistingTryOn(target, options);
   const imageId = existing.data?.tryOnId ?? null;
   return {
@@ -35,13 +38,56 @@ export function useCachedTryOn(target: TryOnTarget | null, options: { enabled?: 
  * The same check for several targets (a trip's days): target id → the pseudo job id of its existing image, or null.
  * A target missing from the map has not answered (yet) or failed — treat it as uncached.
  */
-export function useCachedTryOns(targets: TryOnTarget[], options: { enabled?: boolean } = {}): Record<string, string | null> {
+export function useCachedTryOns(
+  targets: TryOnTarget[],
+  options: { enabled?: boolean } = {},
+): Record<string, string | null> {
   const photoKey = useTryOnPhotoKey();
-  const results = useQueries({ queries: targets.map((target) => existingTryOnQuery(target, options.enabled ?? true, photoKey)) });
+  const results = useQueries({
+    queries: targets.map((target) =>
+      existingTryOnQuery(target, options.enabled ?? true, photoKey),
+    ),
+  });
   const map: Record<string, string | null> = {};
   targets.forEach((target, i) => {
     const data = currentTryOn(results[i]?.data, photoKey);
-    if (data !== undefined) map[target.id] = data?.tryOnId ? cachedTryOnJobId(data.tryOnId) : null;
+    if (data !== undefined)
+      map[target.id] = data?.tryOnId ? cachedTryOnJobId(data.tryOnId) : null;
+  });
+  return map;
+}
+
+/**
+ * The existing images themselves (a trip's day cards show them): target id → `{ jobId, tryOnId, imageUrl }`, or null
+ * when the target has no image with the current photo. Same check and cache as `useCachedTryOns`.
+ */
+export function useCachedTryOnImages(
+  targets: TryOnTarget[],
+  options: { enabled?: boolean } = {},
+): Record<
+  string,
+  { jobId: string; tryOnId: string; imageUrl: string | null } | null
+> {
+  const photoKey = useTryOnPhotoKey();
+  const results = useQueries({
+    queries: targets.map((target) =>
+      existingTryOnQuery(target, options.enabled ?? true, photoKey),
+    ),
+  });
+  const map: Record<
+    string,
+    { jobId: string; tryOnId: string; imageUrl: string | null } | null
+  > = {};
+  targets.forEach((target, i) => {
+    const data = currentTryOn(results[i]?.data, photoKey);
+    if (data !== undefined)
+      map[target.id] = data?.tryOnId
+        ? {
+            jobId: cachedTryOnJobId(data.tryOnId),
+            tryOnId: data.tryOnId,
+            imageUrl: data.imageUrl,
+          }
+        : null;
   });
   return map;
 }
@@ -55,10 +101,19 @@ export function isCachedTryOnJob(jobId: string | null | undefined): boolean {
 export function CachedTryOnNote({ className }: { className?: string }) {
   const { t } = useTranslation();
   return (
-    <View className={`flex-row items-center gap-1.5 ${className ?? ''}`} accessible accessibilityRole="text" testID="tryon.cachedNote">
+    <View
+      className={`flex-row items-center gap-1.5 ${className ?? ""}`}
+      accessible
+      accessibilityRole="text"
+      testID="tryon.cachedNote"
+    >
       <Icon icon={History} size={14} tone="accent" />
-      <Text variant="caption" tone="accent" className="font-sans-medium text-[12.5px]">
-        {t('tryOn.cachedNote')}
+      <Text
+        variant="caption"
+        tone="accent"
+        className="font-sans-medium text-[12.5px]"
+      >
+        {t("tryOn.cachedNote")}
       </Text>
     </View>
   );

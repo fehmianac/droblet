@@ -17,6 +17,9 @@ import {
   tripLengthDays,
   tripShareText,
   validateTripDates,
+  rainyDayCount,
+  temperatureRange,
+  weatherNotes,
 } from './logic';
 
 describe('city search', () => {
@@ -228,5 +231,25 @@ describe('typed city', () => {
   it('asks to pick from the list when nothing matches exactly', () => {
     expect(matchTypedCity(results, 'lond')).toBeNull();
     expect(matchTypedCity([], 'London')).toBeNull();
+  });
+});
+
+describe('trip weather summary', () => {
+  const day = (condition: string, minC: number, maxC: number, rainChance: number | null = null) => ({ condition, minC, maxC, temperatureC: maxC, rainChance });
+
+  it('counts rainy days by condition or a 50 % chance, and gives the range of lows and highs', () => {
+    const forecast = [day('rain', 10, 17, 60), day('cloud', 11, 15, 80), day('sun', 11, 17, 20)];
+    expect(rainyDayCount(forecast)).toBe(2);
+    expect(temperatureRange(forecast)).toEqual({ min: 10, max: 17 });
+    expect(weatherNotes(forecast)).toEqual({ rainyDays: 2, coldNightC: 10 });
+  });
+
+  it('has nothing to say without a forecast, and no cold note for warm nights', () => {
+    expect(rainyDayCount(null)).toBeNull();
+    expect(temperatureRange([])).toBeNull();
+    expect(weatherNotes(null)).toEqual({ rainyDays: 0, coldNightC: null });
+    expect(weatherNotes([day('sun', 27, 37)])).toEqual({ rainyDays: 0, coldNightC: null });
+    // An older server gives the high only.
+    expect(temperatureRange([{ condition: 'sun', temperatureC: 9 }])).toEqual({ min: 9, max: 9 });
   });
 });
