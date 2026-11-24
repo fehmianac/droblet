@@ -40,4 +40,12 @@ public class TryOnGarmentListTests
             ordered.Select(g => g.Category!.Value));
         Assert.Equal(["a", "b"], ordered.Take(2).Select(g => g.ContentType));
     }
+
+    [Fact]
+    public void TryOnBackdrop_IsTheAppsSandSurface_AndOverrulesTheTemplateWording()
+    {
+        Assert.Contains("#E8E1D7", OpenAiPrompts.TryOnBackdrop);
+        Assert.Contains("overruling any other background instruction", OpenAiPrompts.TryOnBackdrop);
+        Assert.StartsWith(" ", OpenAiPrompts.TryOnBackdrop);   // appended after the template and the garment list
+    }
 }
