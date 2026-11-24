@@ -321,4 +321,14 @@ public class FeedRulesTests
         Assert.False(FeedRules.SamePhoto(null, null));
         Assert.False(FeedRules.SamePhoto("", ""));
     }
+
+    [Theory]
+    [InlineData(Segment.Women, Segment.Women, false, true)]
+    [InlineData(Segment.Men, Segment.Women, false, false)]
+    [InlineData(Segment.Women, Segment.Men, false, false)]
+    [InlineData(Segment.Men, Segment.Women, true, true)]       // followed: shown whatever the segment
+    [InlineData(null, Segment.Women, false, true)]             // never chosen = women
+    [InlineData(null, Segment.Men, false, false)]
+    public void ShowsUserPost_SameSegmentOrFollowed(Segment? owner, Segment? viewer, bool follows, bool expected) =>
+        Assert.Equal(expected, FeedRules.ShowsUserPost(owner, viewer, follows));
 }

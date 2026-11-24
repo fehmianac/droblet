@@ -350,4 +350,29 @@ public class SplitFeedPostsTests : IDisposable
         Assert.True(FeedRules.IsActive(story, Now.AddHours(2)));
         Assert.Equal((0, 0), (_ai.Detections, _ai.Cleanups));
     }
+
+    [Fact]
+    public async Task SegmentPosts_UnsegmentedPostsAndStoriesGetTheSegment_OnlyTheSegmentChanges_OnlyIdsOverride_NoAi()
+    {
+        await PostAsync("edit-1", pieces: true);
+        var men = await PostAsync("edit-men");
+        men.Segment = Segment.Men;
+        await _host.Repository.SaveAsync(men);
+        await SeedFeedStoriesCommand.SeedAsync(_host.Repository, _host.Get<IFeedService>(), ["edit-1"], dryRun: false, Now, new OpsOutput(_dir), default);
+
+        var dry = await SegmentFeedPostsCommand.WriteAsync(_host.Repository, Segment.Women, [], dryRun: true, new OpsOutput(_dir), default);
+        Assert.Null((await GetAsync("edit-1"))!.Segment);
+        var run = await SegmentFeedPostsCommand.WriteAsync(_host.Repository, Segment.Women, [], dryRun: false, new OpsOutput(_dir), default);
+        var again = await SegmentFeedPostsCommand.WriteAsync(_host.Repository, Segment.Women, [], dryRun: false, new OpsOutput(_dir), default);
+
+        Assert.Equal((0, 0, 0), (dry, run, again));
+        var post = (await GetAsync("edit-1"))!;
+        Assert.Equal((Segment.Women, 1, 4, "Ofis edit-1"), (post.Segment, post.Pieces.Count, post.SortOrder, post.Title["tr"]));
+        Assert.Equal(Segment.Men, (await GetAsync("edit-men"))!.Segment);                       // already has one: left alone
+        Assert.Equal(Segment.Women, Assert.Single(await _host.Repository.GetAllAsync<FeedStoryEntity>(FeedStoryEntity.GetPk())).Segment);
+
+        await SegmentFeedPostsCommand.WriteAsync(_host.Repository, Segment.Men, ["edit-1"], dryRun: false, new OpsOutput(_dir), default);
+        Assert.Equal(Segment.Men, (await GetAsync("edit-1"))!.Segment);                         // --only moves a chosen post
+        Assert.Equal((0, 0), (_ai.Detections, _ai.Cleanups));
+    }
 }

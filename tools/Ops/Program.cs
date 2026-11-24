@@ -72,6 +72,7 @@ try
             OpsArguments.SplitFeedPosts => await SplitFeedPostsCommand.RunAsync(services, arguments, output, cts.Token),
             OpsArguments.ImportBrand or OpsArguments.ImportVakko => await Ops.Commands.BrandImport.ImportBrandCommand.RunAsync(services, arguments, output, cts.Token),
             OpsArguments.ColorFeedPieces => await ColorFeedPiecesCommand.RunAsync(services, arguments, output, cts.Token),
+            OpsArguments.SegmentFeedPosts => await SegmentFeedPostsCommand.RunAsync(services, arguments, output, cts.Token),
             OpsArguments.NoteFeedPosts => await NoteFeedPostsCommand.RunAsync(services, arguments, output, cts.Token),
             OpsArguments.SeedFeedStories => await SeedFeedStoriesCommand.RunAsync(services, arguments, output, cts.Token),
             OpsArguments.MigrateLibraryItemImages => await MigrateLibraryItemImagesCommand.RunAsync(services, arguments, output, cts.Token),
