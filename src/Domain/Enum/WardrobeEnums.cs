@@ -4,7 +4,7 @@ namespace Domain.Enum;
 // Season lives in Domain.Services.Ai (Spring, Summer, Autumn, Winter) and is reused everywhere.
 
 /// <summary>Brief §4.3 chips: Üst, Alt, Elbise, Dış giyim, Ayakkabı, Çanta, Aksesuar, Plaj giyim, Kayak giyim.</summary>
-public enum ItemCategory { Top, Bottom, Dress, Outerwear, Shoes, Bag, Accessory, Beachwear, Skiwear }
+public enum ItemCategory { Top, Bottom, Dress, Outerwear, Shoes, Bag, Accessory, Beachwear, Skiwear, Socks }
 
 public enum OutfitSlot { Top, Bottom, Outerwear, Shoes, BagAccessory }
 

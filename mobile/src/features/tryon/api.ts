@@ -71,7 +71,7 @@ function startFixtureTryOn(request: StartTryOnRequest): StartTryOnResponse {
   return { jobId, pieces: fixturePieces(request.target) };
 }
 
-const FIXTURE_SLOT_CATEGORY = { top: 'top', bottom: 'bottom', outerwear: 'outerwear', shoes: 'shoes', accessory: 'bag' } as const;
+const FIXTURE_SLOT_CATEGORY = { top: 'top', bottom: 'bottom', outerwear: 'outerwear', shoes: 'shoes', socks: 'socks', bag: 'bag', accessory: 'accessory' } as const;
 
 /** What the server would list for the curtain (look slots / the item itself), in dressing order. */
 function fixturePieces(target: TryOnTarget): TryOnPiece[] {

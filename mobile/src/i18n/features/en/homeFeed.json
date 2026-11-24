@@ -75,7 +75,8 @@
       "bag": "Bag",
       "accessory": "Accessory",
       "beachwear": "Beachwear",
-      "skiwear": "Skiwear"
+      "skiwear": "Skiwear",
+      "socks": "Socks"
     },
     "buildWithMine": "Build it with my pieces",
     "buildWithMineA11y_one": "Build it with my pieces, {{count}} piece from your wardrobe",

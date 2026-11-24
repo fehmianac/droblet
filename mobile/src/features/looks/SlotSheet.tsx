@@ -68,7 +68,10 @@ function Tile({ name, caption, label, selected, onPress, children, testID }: Til
 type Props = {
   /** The slot being filled; null = closed. */
   slot: LookSlotKind | null;
+  /** The piece being changed; undefined = a piece is being added to the box. */
   current: LookSlot | undefined;
+  /** Every piece already in the look: the others are not offered again. */
+  taken?: LookSlot[];
   items: Item[] | undefined;
   onPick: (slot: LookSlot) => void;
   onRemove: () => void;
@@ -80,15 +83,17 @@ type Props = {
  * category fits the slot; Mağaza lists the catalogue pieces of the store slice
  * that fit the slot; they are added as missing pieces (`source: 'store'`).
  */
-export function SlotSheet({ slot, current, items, onPick, onRemove, onClose }: Props) {
+export function SlotSheet({ slot, current, taken = [], items, onPick, onRemove, onClose }: Props) {
   const { t } = useTranslation();
   const [source, setSource] = useState<Source>('wardrobe');
   const products = useLookSlotProducts(slot && source === 'store' ? slot : null);
   if (!slot) return <BottomSheet visible={false} onClose={onClose}>{null}</BottomSheet>;
 
   const slotLabel = t(`lookSlot.${slot}`);
-  const fitting = (items ?? []).filter((i) => SLOT_CATEGORIES[slot].includes(i.category));
   const isCurrent = (src: Source, id: string) => current?.source === src && current.refId === id && !current.deleted;
+  // A piece already worn in this look (another layer, another box) is not offered a second time.
+  const isTaken = (src: Source, id: string) => !isCurrent(src, id) && taken.some((p) => p.source === src && p.refId === id);
+  const fitting = (items ?? []).filter((i) => SLOT_CATEGORIES[slot].includes(i.category) && !isTaken('wardrobe', i.id));
 
   return (
     <BottomSheet visible onClose={onClose} title={t('lookEditor.sheetTitle', { slot: slotLabel })}>
@@ -164,7 +169,7 @@ export function SlotSheet({ slot, current, items, onPick, onRemove, onClose }: P
               >
                 {(list) => (
                   <View className="-mx-[5px] flex-row flex-wrap">
-                    {list.map((product) => {
+                    {list.filter((product) => !isTaken('store', product.id)).map((product) => {
                       const selected = isCurrent('store', product.id);
                       const price = product.price ? formatMoney(product.price) : null;
                       const label = [product.brandName, product.name, price].filter(Boolean).join(', ');

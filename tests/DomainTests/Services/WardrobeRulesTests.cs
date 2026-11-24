@@ -199,9 +199,26 @@ public class OutfitSlotRulesTests
     }
 
     [Fact]
-    public void Validate_SameSlotTwice_SlotDuplicate() =>
-        Assert.Contains(ErrorCodes.SlotDuplicate,
-            OutfitSlotRules.Validate([Item(OutfitSlot.Top, ItemCategory.Top, "a"), Item(OutfitSlot.Top, ItemCategory.Top, "b")]));
+    public void Validate_SlotCapacity_LayersAllowed_OverCapacityIsSlotDuplicate()
+    {
+        SlotPiece Top(string id) => Item(OutfitSlot.Top, ItemCategory.Top, id);
+        SlotPiece Extra(ItemCategory category, string id) => Item(OutfitSlot.BagAccessory, category, id);
+
+        // Canvas 15′: three top layers, one bag, one pair of socks and four accessories.
+        Assert.Empty(OutfitSlotRules.Validate([Top("a"), Top("b"), Top("c"), Item(OutfitSlot.Bottom, ItemCategory.Bottom, "d"),
+            Extra(ItemCategory.Bag, "e"), Extra(ItemCategory.Socks, "f"),
+            Extra(ItemCategory.Accessory, "g"), Extra(ItemCategory.Accessory, "h"), Extra(ItemCategory.Accessory, "i"), Extra(ItemCategory.Accessory, "j")]));
+        Assert.Empty(OutfitSlotRules.Validate([Item(OutfitSlot.Top, ItemCategory.Dress, "a"), Top("b")])); // a cardigan over a dress
+
+        Assert.Contains(ErrorCodes.SlotDuplicate, OutfitSlotRules.Validate([Top("a"), Top("b"), Top("c"), Top("d")]));
+        Assert.Contains(ErrorCodes.SlotDuplicate, OutfitSlotRules.Validate([Item(OutfitSlot.Top, ItemCategory.Dress, "a"), Item(OutfitSlot.Top, ItemCategory.Dress, "b")]));
+        Assert.Contains(ErrorCodes.SlotDuplicate, OutfitSlotRules.Validate([Top("a"), Item(OutfitSlot.Bottom, ItemCategory.Bottom, "b"), Item(OutfitSlot.Bottom, ItemCategory.Bottom, "c")]));
+        Assert.Contains(ErrorCodes.SlotDuplicate, OutfitSlotRules.Validate([Top("a"), Item(OutfitSlot.Shoes, ItemCategory.Shoes, "b"), Item(OutfitSlot.Shoes, ItemCategory.Shoes, "c")]));
+        Assert.Contains(ErrorCodes.SlotDuplicate, OutfitSlotRules.Validate([Top("a"), Extra(ItemCategory.Bag, "b"), Extra(ItemCategory.Bag, "c")]));
+        Assert.Contains(ErrorCodes.SlotDuplicate, OutfitSlotRules.Validate([Top("a"), Extra(ItemCategory.Socks, "b"), Extra(ItemCategory.Socks, "c")]));
+        Assert.Contains(ErrorCodes.SlotDuplicate, OutfitSlotRules.Validate([Top("a"),
+            Extra(ItemCategory.Accessory, "b"), Extra(ItemCategory.Accessory, "c"), Extra(ItemCategory.Accessory, "d"), Extra(ItemCategory.Accessory, "e"), Extra(ItemCategory.Accessory, "f")]));
+    }
 
     [Fact]
     public void Validate_SamePieceInTwoSlots_SlotPieceRepeated() =>
@@ -236,7 +253,7 @@ public class OutfitSlotRulesTests
     [InlineData(OutfitSlot.Bottom, "Bottom,Beachwear,Skiwear")]
     [InlineData(OutfitSlot.Outerwear, "Outerwear,Skiwear")]
     [InlineData(OutfitSlot.Shoes, "Shoes")]
-    [InlineData(OutfitSlot.BagAccessory, "Bag,Accessory")]
+    [InlineData(OutfitSlot.BagAccessory, "Bag,Accessory,Socks")]
     public void Accepts_Matrix(OutfitSlot slot, string csv)
     {
         var accepted = Enum.GetValues<ItemCategory>().Where(c => OutfitSlotRules.Accepts(slot, c)).Select(c => c.ToString());

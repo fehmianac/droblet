@@ -494,9 +494,9 @@ public class WardrobeEndpointTests(ApiFactory factory) : IClassFixture<ApiFactor
         Assert.Equal("Navy", en.Colors.Single(c => c.Id == "navy").Name);
         Assert.Equal("Warm Autumn", en.SeasonTypes.Single(s => s.Id == "warm-autumn").Name);
         Assert.Equal(("Lacivert", "tr"), (fallback.Colors.Single(c => c.Id == "navy").Name, fallback.Language));
-        Assert.Equal(9, en.Categories.Count);
+        Assert.Equal(10, en.Categories.Count);
         Assert.Equal((2, 30), (en.LookMinPieces, en.MaxBulkItems));
-        Assert.Equal([ItemCategory.Bag, ItemCategory.Accessory], en.Slots.Single(s => s.Slot == OutfitSlot.BagAccessory).Categories);
+        Assert.Equal([ItemCategory.Bag, ItemCategory.Accessory, ItemCategory.Socks], en.Slots.Single(s => s.Slot == OutfitSlot.BagAccessory).Categories);
         Assert.Equal("Other", en.Colors.Single(c => c.Id == "other").Name);
     }
 
@@ -604,6 +604,7 @@ public class LookAndPlanEndpointTests(ApiFactory factory) : IClassFixture<ApiFac
         var bottom = await factory.ItemAsync(auth.TenantId, ItemCategory.Bottom);
         var shoes = await factory.ItemAsync(auth.TenantId, ItemCategory.Shoes);
         var bobsTop = await factory.ItemAsync(bobAuth.TenantId, ItemCategory.Top);
+        var secondBottom = await factory.ItemAsync(auth.TenantId, ItemCategory.Bottom);
 
         async Task<(HttpStatusCode, string?)> Post(params object[] slots)
         {
@@ -615,7 +616,7 @@ public class LookAndPlanEndpointTests(ApiFactory factory) : IClassFixture<ApiFac
         Assert.Equal((HttpStatusCode.UnprocessableEntity, "slot_item_not_found"), await Post(Slot("top", bobsTop.Id), Slot("bottom", bottom.Id))); // another tenant's piece
         Assert.Equal((HttpStatusCode.UnprocessableEntity, "slot_category_mismatch"), await Post(Slot("top", shoes.Id), Slot("bottom", bottom.Id)));
         Assert.Equal((HttpStatusCode.UnprocessableEntity, "dress_closes_bottom"), await Post(Slot("top", dress.Id), Slot("bottom", bottom.Id)));
-        Assert.Equal((HttpStatusCode.UnprocessableEntity, "slot_duplicate"), await Post(Slot("top", top.Id), Slot("top", dress.Id)));
+        Assert.Equal((HttpStatusCode.UnprocessableEntity, "slot_duplicate"), await Post(Slot("bottom", bottom.Id), Slot("bottom", secondBottom.Id), Slot("top", top.Id)));
         Assert.Equal((HttpStatusCode.UnprocessableEntity, "slot_source_invalid"), await Post(Slot("top", top.Id, "prd"), Slot("bottom", bottom.Id)));
         Assert.Equal((HttpStatusCode.UnprocessableEntity, "slot_product_not_found"), await Post(Slot("top", top.Id), Slot("bagAccessory", productId: "prd-nope")));
         Assert.Equal((HttpStatusCode.Created, null), await Post(Slot("top", dress.Id), Slot("shoes", shoes.Id)));

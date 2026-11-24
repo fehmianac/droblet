@@ -57,6 +57,8 @@ public static class StylistCandidateSelector
                                   && (criteria.IsTrip || criteria.Occasion is null or Occasion.Travel or Occasion.Weekend),
         ItemCategory.Skiwear => criteria.Seasons.Contains(Season.Winter)
                                 && (criteria.IsTrip || criteria.Occasion is null or Occasion.Travel or Occasion.Sport),
+        // Socks are chosen by the user in the look builder (canvas 15′); the stylist does not pick them yet.
+        ItemCategory.Socks => false,
         _ => true,
     };
 

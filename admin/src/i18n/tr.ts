@@ -1063,7 +1063,7 @@ export const tr: Dict = {
     },
     itemCategory: {
       top: 'Üst', bottom: 'Alt', dress: 'Elbise', outerwear: 'Dış giyim', shoes: 'Ayakkabı', bag: 'Çanta',
-      accessory: 'Aksesuar', beachwear: 'Plaj giyim', skiwear: 'Kayak giyim',
+      accessory: 'Aksesuar', beachwear: 'Plaj giyim', skiwear: 'Kayak giyim', socks: 'Çorap',
     },
     season: { spring: 'İlkbahar', summer: 'Yaz', autumn: 'Sonbahar', winter: 'Kış' },
     fabric: {

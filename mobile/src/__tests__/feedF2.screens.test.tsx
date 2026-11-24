@@ -340,7 +340,7 @@ describe('Akış · "Kendi parçalarımla kur" on an editor post', () => {
     await fireEvent.press(button);
     expect(track).toHaveBeenCalledWith('feed_build_with_mine', { postId: 'post_001', count: 2 });
     await waitFor(() => expect(screen).toHavePathname('/look/new'), WAIT);
-    await waitFor(() => expect(screen.getByText('2 / 5 PIECES SELECTED')).toBeTruthy(), WAIT);
+    await waitFor(() => expect(screen.getByText('2 PIECES SELECTED')).toBeTruthy(), WAIT);
     const trench = fixtureDb.items.find((i) => i.id === 'item_beige_trench');
     const knit = fixtureDb.items.find((i) => i.id === 'item_cream_knit');
     expect(screen.getByText(trench?.name ?? '-')).toBeTruthy();

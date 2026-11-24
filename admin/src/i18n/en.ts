@@ -1062,7 +1062,7 @@ export const en = {
     },
     itemCategory: {
       top: 'Top', bottom: 'Bottom', dress: 'Dress', outerwear: 'Outerwear', shoes: 'Shoes', bag: 'Bag',
-      accessory: 'Accessory', beachwear: 'Beachwear', skiwear: 'Skiwear',
+      accessory: 'Accessory', beachwear: 'Beachwear', skiwear: 'Skiwear', socks: 'Socks',
     },
     season: { spring: 'Spring', summer: 'Summer', autumn: 'Autumn', winter: 'Winter' },
     fabric: {

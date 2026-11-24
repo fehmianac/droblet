@@ -30,7 +30,9 @@ const LOOK_SLOT_CATEGORIES: Record<LookSlotKind, ProductCategory[]> = {
   bottom: ['trousers', 'jeans', 'skirt', 'shorts'],
   outerwear: ['jacket', 'coat', 'skiwear'],
   shoes: ['shoes'],
-  accessory: ['bag', 'accessory'],
+  socks: [],
+  bag: ['bag'],
+  accessory: ['accessory'],
 };
 
 export function lookSlotCategories(slot: LookSlotKind): ProductCategory[] {

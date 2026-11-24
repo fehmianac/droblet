@@ -51,7 +51,7 @@ export default function LookNewScreen() {
 
   // Creating without preselected pieces needs nothing loaded up front (the slot sheet reads the wardrobe itself).
   if (!id && itemIds.length === 0) {
-    return <LookEditor look={null} initialSlots={{}} items={items.data} />;
+    return <LookEditor look={null} initialSlots={[]} items={items.data} />;
   }
 
   const shell = (title: string, body: React.ReactNode) => (

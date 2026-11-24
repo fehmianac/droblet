@@ -103,7 +103,7 @@ public sealed class TryOnService(
         ItemCategory.Top or ItemCategory.Beachwear or ItemCategory.Skiwear => 0,
         ItemCategory.Outerwear => 1,
         ItemCategory.Bottom or ItemCategory.Dress => 2,
-        ItemCategory.Shoes => 3,
+        ItemCategory.Socks or ItemCategory.Shoes => 3,
         ItemCategory.Bag => 4,
         _ => 5,
     };

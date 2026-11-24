@@ -181,7 +181,7 @@ const SLOT_CATEGORY: Record<OutfitSlotWire, ItemCategory> = {
 
 function wardrobePiece(slot: OutfitSlotWire, item: Item): StylistPiece {
   return {
-    slot: toSlotKind(slot),
+    slot: toSlotKind(slot, item.category),
     source: 'wardrobe',
     refId: item.id,
     name: item.name,
@@ -196,7 +196,7 @@ function wardrobePiece(slot: OutfitSlotWire, item: Item): StylistPiece {
 
 function storePiece(slot: OutfitSlotWire, product: ProductWire, category: ItemCategory | null): StylistPiece {
   return {
-    slot: toSlotKind(slot),
+    slot: toSlotKind(slot, category ?? toItemCategory(product.category)),
     source: 'store',
     refId: product.id,
     name: product.name,
@@ -234,7 +234,7 @@ export async function fetchLibraryMap(): Promise<Map<string, LibraryItem>> {
 
 function libraryPiece(slot: OutfitSlotWire, item: LibraryItem, category: ItemCategory | null): StylistPiece {
   return {
-    slot: toSlotKind(slot),
+    slot: toSlotKind(slot, category ?? item.category),
     source: 'library',
     suggested: true,
     refId: item.id,

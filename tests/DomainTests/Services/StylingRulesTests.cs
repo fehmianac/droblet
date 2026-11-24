@@ -731,7 +731,7 @@ public class AiSchemasTests
         var colors = garment["colorIds"]!["items"]!["enum"]!.AsArray().Select(v => v!.GetValue<string>()).ToList();
         var seasons = AiSchemas.PaletteSchema()["properties"]!["seasonTypeId"]!["enum"]!.AsArray().Select(v => v?.GetValue<string>()).ToList();
 
-        Assert.Equal(["top", "bottom", "dress", "outerwear", "shoes", "bag", "accessory", "beachwear", "skiwear", null], categories);
+        Assert.Equal(["top", "bottom", "dress", "outerwear", "shoes", "bag", "accessory", "beachwear", "skiwear", "socks", null], categories);
         Assert.Equal(ColorCatalog.Ids, colors);
         Assert.Equal(SeasonTypeCatalog.Ids.Append(null), seasons);
     }
