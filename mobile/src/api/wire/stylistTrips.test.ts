@@ -220,7 +220,7 @@ describe('trip wire mapping', () => {
     expect(detail.days[1]?.look).toBeNull();
     expect(detail.lookCount).toBe(1);
     expect(detail.minWearsPerItem).toBe(2);
-    expect(detail.forecast).toEqual([{ date: '2027-03-01', temperatureC: 14, condition: 'rain' }]);
+    expect(detail.forecast).toEqual([{ date: '2027-03-01', temperatureC: 14, condition: 'rain', minC: 8, maxC: 14, rainChance: 70 }]);
     expect(detail.missing[0]).toMatchObject({ category: 'outerwear', productId: null });
     expect(detail.missing[0]?.name.length).toBeGreaterThan(0);
     expect(detail.missing[0]?.reason).toBe('yağmur bekleniyor');
@@ -235,8 +235,8 @@ describe('trip wire mapping', () => {
     });
     expect(fromBlock).toEqual({
       forecast: [
-        { date: '2026-11-25', temperatureC: 9, condition: 'cloud' },
-        { date: '2026-11-26', temperatureC: 10, condition: 'cloud' },
+        { date: '2026-11-25', temperatureC: 9, condition: 'cloud', minC: 4, maxC: 9, rainChance: 20 },
+        { date: '2026-11-26', temperatureC: 10, condition: 'cloud', minC: 4, maxC: 10, rainChance: 20 },
       ],
       forecastStatus: 'available',
     });
@@ -244,7 +244,7 @@ describe('trip wire mapping', () => {
     // An unknown status from a newer server reads as "couldn't be loaded"; an older server without the block keeps the plan days' weather.
     expect(toTripForecast({ days: [], forecast: { status: 'somethingNew' as never, days: [], horizonEnd: null } }).forecastStatus).toBe('unavailable');
     expect(toTripForecast({ days: [{ date: '2026-11-25', label: null, occasion: null, slots: [], weather: weather('2026-11-25', 9) }] })).toEqual({
-      forecast: [{ date: '2026-11-25', temperatureC: 9, condition: 'cloud' }],
+      forecast: [{ date: '2026-11-25', temperatureC: 9, condition: 'cloud', minC: 4, maxC: 9, rainChance: 20 }],
     });
   });
 

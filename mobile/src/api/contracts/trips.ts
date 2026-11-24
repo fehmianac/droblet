@@ -26,7 +26,8 @@ export type City = {
 /** The four glyphs of the forecast strip; the wire's 10 conditions are folded into them. */
 export type WeatherCondition = 'sun' | 'cloud' | 'rain' | 'snow';
 
-export type ForecastDay = { date: string; temperatureC: number; condition: WeatherCondition };
+/** `temperatureC` = the day's high. `minC` / `maxC` / `rainChance` (0–100) come with the trip forecast; absent elsewhere. */
+export type ForecastDay = { date: string; temperatureC: number; condition: WeatherCondition; minC?: number; maxC?: number; rainChance?: number | null };
 
 /**
  * Wire `TripDetailDto.forecast.status`: `available` (every day) · `partial` (the first days; the rest is past the
