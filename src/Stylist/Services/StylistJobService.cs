@@ -354,7 +354,8 @@ public sealed class StylistJobService(
             dates.Select((d, i) => new { date = d, occasion = dayOccasions[i], outerLayer = layerDates.Contains(d) }),
             // The capsule the rules expect (CapsuleRules): about `pieces` in total, never more than maxPieces.
             new { target.Tops, target.Bottoms, target.Shoes, target.Outerwear, target.Bags, pieces = target.Pieces, minPieces = range.Min, maxPieces = range.Max },
-            PackingRules.RequiresMinWears(dates.Count) ? CapsuleRules.MinRewearRatio : 1.0);
+            PackingRules.RequiresMinWears(dates.Count) ? CapsuleRules.MinRewearRatio : 1.0,
+            await StyleAsync(job.TenantId, ct));
 
         var output = StylingJson.TryDeserialize<ModelPackOutput>(aliases.Restore(
             await model.GenerateAsync(new StylistPrompt(JobKind.StylistPack, prompt, language, aliases.Compact, fill.Segment, fill.Teen), ct)));
@@ -367,13 +368,27 @@ public sealed class StylistJobService(
             : null;
         var labelsFit = plan is not null && plan.Days.All(d => (d.Label?.Length ?? 0) <= settings.MaxTitleLength);
         if (plan is null || !labelsFit)
+        {
+            logger.LogInformation("Pack job {JobId}: source rule ({Reason}); {Pieces} pieces, target {Target}, {Days} days, {Candidates} candidates",
+                job.Id, plan is null ? "unusable answer" : "label too long", fallback.ItemIds.Count, target.Pieces, dates.Count, candidates.Count);
             return new Outcome(StylingJson.Serialize(Result(fallback, StylistOutputGuard.SourceRule, null, fallbackTrimmed)));
+        }
 
-        // The model is told the cabin limit, but it is enforced here: a list that is only too long is trimmed by rule
-        // (the pieces used in the most looks stay); anything else that fails the rules is replaced by the rule-based list.
-        var trim = PackingRules.TrimToCabinLimit(plan, context);
-        return trim.Plan is not null && PackingRules.Validate(trim.Plan, context).Count == 0
-            ? new Outcome(StylingJson.Serialize(Result(trim.Plan, StylistOutputGuard.SourceModel, null, trim.DroppedItemIds.Count > 0, trim.DroppedItemIds)))
+        // Small faults are fixed by rule (PackingRules.Repair) instead of throwing the model's list away. The model is
+        // told the cabin limit, but it is enforced here: a list that is only too long is trimmed by rule (the pieces used
+        // in the most looks stay); anything that still fails the rules is replaced by the rule-based list.
+        var asAnswered = PackingRules.Validate(plan, context);
+        var repaired = asAnswered.Count == 0 ? plan : PackingRules.Repair(plan, context, fallback);
+        var trim = PackingRules.TrimToCabinLimit(repaired, context);
+        var remaining = trim.Plan is null ? [PackingRules.CabinLimit] : PackingRules.Validate(trim.Plan, context);
+        var accepted = trim.Plan is not null && remaining.Count == 0;
+        // What decided the list, for measuring the prompt and the rules (ids and rule codes only — no piece, no text).
+        logger.LogInformation(
+            "Pack job {JobId}: source {Source}; answered with [{Answered}], after repair [{Remaining}]; {Pieces} pieces, target {Target}, {Days} days, {Candidates} candidates",
+            job.Id, accepted ? StylistOutputGuard.SourceModel : StylistOutputGuard.SourceRule, string.Join(',', asAnswered), string.Join(',', remaining),
+            (accepted ? trim.Plan! : fallback).ItemIds.Count, target.Pieces, dates.Count, candidates.Count);
+        return accepted
+            ? new Outcome(StylingJson.Serialize(Result(trim.Plan!, StylistOutputGuard.SourceModel, null, trim.DroppedItemIds.Count > 0, trim.DroppedItemIds)))
             : new Outcome(StylingJson.Serialize(Result(fallback, StylistOutputGuard.SourceRule, null, fallbackTrimmed)));
     }
 

@@ -55,15 +55,31 @@ public static class StylistPrompts
         }, aliases);
 
     /// <summary>Suitcase: the trip, one look per date, the expected capsule (CapsuleRules) and the re-wear ratio.</summary>
+    /// <param name="styleProfile">The user's style answers (as in the outfit and week prompts); null when there are none.</param>
     public static string Pack(CandidateAliases aliases, IEnumerable<CandidateItem> candidates, string language, object trip, object days, object capsule,
-        double minRewearRatio) =>
-        Serialize(new
+        double minRewearRatio, object? styleProfile = null)
+    {
+        var list = candidates.ToList();
+        return Serialize(new
         {
             language,
-            candidates = candidates.Select(aliases.Describe),
+            styleProfile,
+            candidates = list.Select(aliases.Describe),
+            // What kind of piece each candidate is (controlled sub-type ids; pieces without one are left out).
+            types = list.Where(c => !string.IsNullOrWhiteSpace(c.Subcategory)).ToDictionary(c => aliases.Alias(c.Id), c => c.Subcategory!),
+            // The pieces the user wears most: prefer them when they suit the trip.
+            favourites = Favourites(list).Select(c => aliases.Alias(c.Id)),
             trip,
             days,
             capsule,
             minRewearRatio,
         }, aliases);
+    }
+
+    /// <summary>The most worn third of the candidates that were worn at all (at most 12), most worn first.</summary>
+    public static IReadOnlyList<CandidateItem> Favourites(IReadOnlyList<CandidateItem> candidates) =>
+        candidates.Where(c => c.WearCount > 0)
+            .OrderByDescending(c => c.WearCount).ThenByDescending(c => c.LastWornAt ?? "", StringComparer.Ordinal).ThenBy(c => c.Id, StringComparer.Ordinal)
+            .Take(Math.Min(12, Math.Max(1, candidates.Count / 3)))
+            .ToList();
 }

@@ -73,7 +73,9 @@ public sealed record CandidateItem(
     string? Fabric,
     IReadOnlyList<Season> Seasons,
     int WearCount = 0,
-    string? LastWornAt = null);
+    string? LastWornAt = null,
+    // The controlled sub-type id ("oxford-shirt", ItemTaxonomy) — never free text. Only the packing prompt sends it.
+    string? Subcategory = null);
 
 // ── Job results (JobEntity.Result) — drafts; nothing is written to Look / PlanDay / Trip until the user accepts ───
 

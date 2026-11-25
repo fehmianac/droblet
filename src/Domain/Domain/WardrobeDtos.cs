@@ -326,7 +326,7 @@ public static class WardrobeDtoMapper
     public static PaletteColorDto ToDto(this ColorDefinition color, string? language) => new(color.Id, color.Family, color.Hex, Localized.Resolve(color.Name, language));
 
     public static CandidateItem ToCandidate(this ItemEntity item) =>
-        new(item.Id, item.Category, item.ColorIds, item.Fabric, item.Seasons, item.WearCount, item.LastWornAt);
+        new(item.Id, item.Category, item.ColorIds, item.Fabric, item.Seasons, item.WearCount, item.LastWornAt, item.Subcategory);
 
     public static WardrobeReferenceDto Reference(string? language) => new(
         ColorCatalog.All.Select(c => c.ToDto(language)).ToList(),

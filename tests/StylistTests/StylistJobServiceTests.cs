@@ -693,7 +693,7 @@ public class StylistJobServiceTests
 
         var input = Assert.Single(model.Prompts).InputJson;
         Assert.Contains("\"capsule\":{", input);
-        Assert.Contains("\"minRewearRatio\":1.5", input);
+        Assert.Contains("\"minRewearRatio\":1.3", input);
         Assert.Contains("\"outerLayer\":true", input);
     }
 
