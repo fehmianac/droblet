@@ -98,13 +98,6 @@ export default function CalendarScreen() {
           </View>
         </View>
       </View>
-      <View className="flex-row gap-[5px] px-gutter pb-3.5" accessible={false} importantForAccessibility="no-hide-descendants">
-        {weekdays.map((w, i) => (
-          <Text key={`${w}${i}`} variant="tab" tone="muted" className="flex-1 text-center" numberOfLines={1}>
-            {w}
-          </Text>
-        ))}
-      </View>
       <ScreenState query={query}>
         {({ a: data, b: lookList }) => {
           const lookOf = (status: DayStatus): Look | null =>
@@ -132,6 +125,13 @@ export default function CalendarScreen() {
                       onPress={() => setFilter(f)}
                       testID={`calendar-filter-${f}`}
                     />
+                  ))}
+                </View>
+                <View className="flex-row gap-1" accessible={false} importantForAccessibility="no-hide-descendants">
+                  {weekdays.map((w, i) => (
+                    <Text key={`${w}${i}`} variant="tab" tone="muted" className="flex-1 text-center" numberOfLines={1}>
+                      {w}
+                    </Text>
                   ))}
                 </View>
                 <View className="gap-1">
