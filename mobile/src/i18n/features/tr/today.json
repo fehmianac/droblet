@@ -82,6 +82,7 @@
     "save": "Lookbook'a kaydet",
     "saved": "Lookbook'a kaydedildi",
     "imageA11y": "{{name}}, senin üzerinde",
+    "photoA11y": "{{name}}: editörün fotoğrafı",
     "pageA11y": "{{total}} look'tan {{current}}.",
     "goToLook": "{{current}}. look'a git",
     "bandLabel": "Fiyat bandı",

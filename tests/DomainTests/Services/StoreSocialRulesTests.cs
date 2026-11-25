@@ -649,6 +649,14 @@ public class StoreInputValidatorTests
             Looks = [sameBandTwice.Looks![0] with { Variants = [new(PriceBand.HighStreet, ["a1"]), new(PriceBand.HighStreet, ["b1"])] }],
         };
         Assert.Contains("look_variants_invalid", Codes(sameBandTwice));
+
+        // A photo look (the editor's picture and note, nothing to buy) has no variant at all; a variant without products is still refused.
+        var photoLooks = Edit();
+        photoLooks = photoLooks with { Looks = photoLooks.Looks!.Select(l => l with { Variants = [] }).ToList() };
+        Assert.Empty(Codes(photoLooks));
+        var emptyBand = Edit(looks: 1, published: false);
+        emptyBand = emptyBand with { Looks = [emptyBand.Looks![0] with { Variants = [new(PriceBand.HighStreet, [])] }] };
+        Assert.Contains("look_variants_invalid", Codes(emptyBand));
     }
 
     [Fact]

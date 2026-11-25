@@ -76,7 +76,8 @@ function EditCover({ edit, teen = false }: { edit: WeeklyEditSummary; teen?: boo
     range: toDisplayUpper(formatIsoDateRange(edit.startDate, edit.endDate), language),
   });
   // Canvas 18 · 20: a teen's cover leaves out "senin üzerinde" (try-on may be closed for them).
-  const meta = teen ? t('teen.discover.editMeta', { count: edit.lookCount }) : t('explore.editMeta', { count: edit.lookCount });
+  // A photo edit has nothing "on you": the line without it (the teen one).
+  const meta = teen || edit.photoOnly ? t('teen.discover.editMeta', { count: edit.lookCount }) : t('explore.editMeta', { count: edit.lookCount });
   return (
     <Pressable
       onPress={() => router.push({ pathname: '/edit/[id]', params: { id: edit.id } })}

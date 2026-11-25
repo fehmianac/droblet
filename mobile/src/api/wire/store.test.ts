@@ -126,7 +126,14 @@ describe('store wire mappers', () => {
       endDate: '2026-11-22',
       lookCount: 7,
       imageUrl: 'https://cdn.example/cover.jpg',
+      photoOnly: false,
     });
+
+    // 08 · ürünsüz: every look is a photo without a product.
+    const photoLooks = [1, 2, 3, 4, 5, 6, 7].map((day) => ({ id: `d${day}`, day, imageUrl: `https://cdn.example/${day}.jpg`, variants: [] }));
+    const base = { id: 'e', title: 'T', subtitle: null, coverImageUrl: null, weekStart: '2026-11-23', weekEnd: '2026-11-29', segment: 'men', sponsored: false, sponsorName: null };
+    expect(toWeeklyEditSummary({ ...base, looks: photoLooks }).photoOnly).toBe(true);
+    expect(toWeeklyEditSummary({ ...base, looks: [{ ...photoLooks[0]!, variants: [{ products: [{}] }] }, ...photoLooks.slice(1)] }).photoOnly).toBe(false);
 
     const collection = { id: 'creator-1', kind: 'creator' as const, title: 'Editör 1', subtitle: null, imageUrl: null, sponsored: true, sponsorName: 'Gap' };
     expect(toCreatorCard(collection)).toEqual({

@@ -172,8 +172,9 @@ public class WeeklyEditInputValidator : AbstractValidator<WeeklyEditInput>
             look.RuleFor(l => l.Title).Localized(languages, required: true, 120, "look_title_invalid");
             look.RuleFor(l => l.StyleNote).Localized(languages, required: false, 600, "style_note_invalid");
             look.RuleFor(l => l.ImageUrl).OptionalHttps("look_image_url_invalid");
+            // No variant at all = a photo look (the editor's picture and note, nothing to buy); otherwise 1–2 bands with products.
             look.RuleFor(l => l.Variants)
-                .Must(v => v is { Count: >= 1 and <= 2 } && v.Select(i => i.PriceBand).Distinct().Count() == v.Count
+                .Must(v => v is null or { Count: 0 } || v is { Count: >= 1 and <= 2 } && v.Select(i => i.PriceBand).Distinct().Count() == v.Count
                            && v.All(i => System.Enum.IsDefined(i.PriceBand) && i.ProductIds is { Count: >= 1 and <= 10 } && i.ProductIds.All(StoreInputRules.IsId)))
                 .WithErrorCode("look_variants_invalid");
         });

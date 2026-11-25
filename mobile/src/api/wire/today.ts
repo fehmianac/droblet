@@ -314,6 +314,7 @@ function toEditLook(wire: EditLookWire, weekStart: string, state: EditUserState)
     styleNote: wire.styleNote ?? '',
     // Try-on images are generated on demand (`POST v1/tenant/tryon`, target `editLook`).
     tryOnImageUrl: null,
+    imageUrl: wire.imageUrl ?? null,
     isSaved: state.savedLookNames.has(wire.title),
     products,
   };

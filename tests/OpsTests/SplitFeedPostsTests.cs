@@ -325,6 +325,60 @@ public class SplitFeedPostsTests : IDisposable
         return dir!.FullName;
     }
 
+    // ── seed-weekly-edit ────────────────────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task SeedWeeklyEdit_SevenPhotoLooks_ThisWeek_Idempotent_NoAi()
+    {
+        static WeeklyEditDay Day(string id) => new(id, "Başlık " + id, "Title " + id, "Not " + id, "Note " + id);
+        var days = Enumerable.Range(1, 7).Select(i => Day($"men-{i}")).ToList();
+        foreach (var day in days)
+        {
+            var post = await PostAsync(day.Id);
+            post.Segment = Segment.Men;
+            await _host.Repository.SaveAsync(post);
+        }
+        var women = await PostAsync("women-1");
+        women.Segment = Segment.Women;
+        await _host.Repository.SaveAsync(women);
+        var content = _host.Get<IContentService>();
+        var wednesday = new DateOnly(2026, 11, 25);
+
+        var dry = await SeedWeeklyEditCommand.SeedAsync(_host.Repository, content, Segment.Men, days, dryRun: true, wednesday, new OpsOutput(_dir), default);
+        Assert.Empty(await content.ListEditsAsync(default));
+        var first = await SeedWeeklyEditCommand.SeedAsync(_host.Repository, content, Segment.Men, days, dryRun: false, wednesday, new OpsOutput(_dir), default);
+        var again = await SeedWeeklyEditCommand.SeedAsync(_host.Repository, content, Segment.Men, days, dryRun: false, wednesday, new OpsOutput(_dir), default);
+        var wrongSegment = await SeedWeeklyEditCommand.SeedAsync(_host.Repository, content, Segment.Men, [.. days.Take(6), Day("women-1")], dryRun: false, wednesday, new OpsOutput(_dir), default);
+        var missing = await SeedWeeklyEditCommand.SeedAsync(_host.Repository, content, Segment.Men, [.. days.Take(6), Day("nope")], dryRun: false, wednesday, new OpsOutput(_dir), default);
+
+        Assert.Equal((0, 0, 0, 1, 1), (dry, first, again, wrongSegment, missing));
+        var edit = Assert.Single(await content.ListEditsAsync(default));
+        Assert.Equal(("edit-men-2026-11-23", Segment.Men, "2026-11-23", true), (edit.Id, edit.Segment, edit.WeekStart, edit.Published));
+        Assert.Equal(Enumerable.Range(1, 7), edit.Looks.Select(l => l.Day));
+        Assert.All(edit.Looks, l => Assert.Empty(l.Variants));
+        Assert.Equal(("Başlık men-1", "Title men-1", "Not men-1", "Note men-1"), (edit.Looks[0].Title["tr"], edit.Looks[0].Title["en"], edit.Looks[0].StyleNote!["tr"], edit.Looks[0].StyleNote!["en"]));
+        Assert.Equal(edit.Looks[0].ImageUrl, edit.CoverImageUrl);
+        Assert.NotNull(edit.Looks[0].ImageUrl);
+        Assert.Equal(edit.Id, WeeklyEditRules.PickCurrent([edit], wednesday, Segment.Men)?.Id);
+        Assert.Null(WeeklyEditRules.PickCurrent([edit], wednesday, Segment.Women));
+        Assert.Equal(new DateOnly(2026, 11, 23), SeedWeeklyEditCommand.WeekStartOf(new DateOnly(2026, 11, 29)));
+        Assert.Equal(new DateOnly(2026, 11, 23), SeedWeeklyEditCommand.WeekStartOf(new DateOnly(2026, 11, 23)));
+        Assert.Equal((0, 0), (_ai.Detections, _ai.Cleanups));
+    }
+
+    [Fact]
+    public void SeedWeeklyEdit_File_SevenValidDays_Only()
+    {
+        var file = File.ReadAllText(Path.Combine(RepoRoot(), "ops-presets", "weekly-edit-men.json"));
+        var days = SeedWeeklyEditCommand.Parse(file)!;
+        Assert.Equal(7, days.Count);
+        Assert.Null(SeedWeeklyEditCommand.Parse("[]"));
+        Assert.Null(SeedWeeklyEditCommand.Parse("not json"));
+        Assert.Null(SeedWeeklyEditCommand.Parse(System.Text.Json.JsonSerializer.Serialize(days.Take(6))));
+        Assert.Null(SeedWeeklyEditCommand.Parse(System.Text.Json.JsonSerializer.Serialize(days.Select((d, i) => i == 0 ? d with { NoteTr = " " } : d))));
+        Assert.Null(SeedWeeklyEditCommand.Parse(System.Text.Json.JsonSerializer.Serialize(days.Select(d => d with { Id = "same" }))));
+    }
+
     // ── seed-feed-stories ───────────────────────────────────────────────────────────────────────────────────────
 
     [Fact]

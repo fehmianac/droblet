@@ -275,6 +275,26 @@ describe("08 Haftanın edit'i", () => {
     await waitFor(() => expect(screen).toHavePathname('/shop'), WAIT);
   });
 
+  it('08 · ürünsüz: an edit of photos alone shows the photo, the title and the note — nothing to buy, save or try on', async () => {
+    todayFixtureOptions.photoEdit = true;
+    // Even without a body photo: the screen is the editor's photo, not the "complete your profile photo" card.
+    todayFixtureOptions.hasBodyPhoto = false;
+    await renderRouter('./src/app', { initialUrl: `/edit/current?look=${firstLook}` });
+    await waitFor(() => expect(screen.getByTestId('edit-photo-hero')).toBeTruthy(), WAIT);
+    expect(screen.getAllByTestId(/^edit-photo-edit_/, { includeHiddenElements: true }).length).toBe(7);
+    expect(screen.getByLabelText('Go back')).toBeTruthy();
+    expect(screen.getByLabelText('Share')).toBeTruthy();
+    expect(screen.getByLabelText('Look 1 of 7.')).toBeTruthy();
+    // The style note is on the screen.
+    expect(screen.getAllByText(/\w/).length).toBeGreaterThan(2);
+
+    expect(screen.queryByLabelText('Save to lookbook')).toBeNull();
+    expect(screen.queryByTestId('edit-hero-invite')).toBeNull();
+    expect(screen.queryByText('High street')).toBeNull();
+    expect(screen.queryByText('Complete the look')).toBeNull();
+    expect(screen.queryByText(/Try it on me/)).toBeNull();
+  });
+
   it('marks a sponsored edit', async () => {
     todayFixtureOptions.sponsoredBy = 'Marks & Spencer';
     await renderRouter('./src/app', { initialUrl: `/edit/current?look=${firstLook}` });
