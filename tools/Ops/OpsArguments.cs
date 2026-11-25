@@ -53,6 +53,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
     public const string ColorFeedPieces = "color-feed-pieces";
     /// <summary>Gives editor posts and stories a segment (women | men): the ones without one, or the --only ids. No AI call. Dev only.</summary>
     public const string SegmentFeedPosts = "segment-feed-posts";
+    public const string SeedWeeklyEdit = "seed-weekly-edit";
 
     /// <summary>seed-feed-stories: at most this many post ids in one run (the feed shows ContentFeed:MaxStories, 20 by default).</summary>
     public const int MaxSeedStories = 20;
@@ -88,10 +89,10 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
     /// <summary>Hard ceiling of image-model calls in one run (library images and synthetic fixtures together).</summary>
     public const int MaxImageCallsPerRun = 30;
 
-    public static readonly IReadOnlyList<string> Commands = [ImportBrand, ImportVakko, SeedFeedPosts, SplitFeedPosts, SeedFeedStories, ColorFeedPieces, NoteFeedPosts, SegmentFeedPosts, GrantTestPremium, RevokeTestPremium, SetRecognitionUsed, GenerateLibraryImages, GenerateMarketingImages, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, Logs, MigrateLibraryItemImages, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, AiUsageBackfill, PublishItemImages, CdnCheck, PublicUrls, GoogleAuth, PushTest];
+    public static readonly IReadOnlyList<string> Commands = [ImportBrand, ImportVakko, SeedFeedPosts, SplitFeedPosts, SeedFeedStories, ColorFeedPieces, NoteFeedPosts, SegmentFeedPosts, SeedWeeklyEdit, GrantTestPremium, RevokeTestPremium, SetRecognitionUsed, GenerateLibraryImages, GenerateMarketingImages, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, Logs, MigrateLibraryItemImages, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, AiUsageBackfill, PublishItemImages, CdnCheck, PublicUrls, GoogleAuth, PushTest];
 
     /// <summary>Commands that create or change test accounts or spend AI credit on a throw-away user: never on prod.</summary>
-    public static readonly IReadOnlySet<string> DevOnly = new HashSet<string>(StringComparer.Ordinal) { ImportBrand, ImportVakko, SeedFeedPosts, SplitFeedPosts, SeedFeedStories, ColorFeedPieces, NoteFeedPosts, SegmentFeedPosts, GrantTestPremium, RevokeTestPremium, SetRecognitionUsed, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, PublicUrls, GenerateMarketingImages };
+    public static readonly IReadOnlySet<string> DevOnly = new HashSet<string>(StringComparer.Ordinal) { ImportBrand, ImportVakko, SeedFeedPosts, SplitFeedPosts, SeedFeedStories, ColorFeedPieces, NoteFeedPosts, SegmentFeedPosts, SeedWeeklyEdit, GrantTestPremium, RevokeTestPremium, SetRecognitionUsed, AiSmoke, AiProbe, AiPerf, AiBench, AiCost, AccountSmoke, OutfitImportSmoke, AiSettings, AiAdminSmoke, PublicUrls, GenerateMarketingImages };
 
     private static readonly IReadOnlyDictionary<string, string[]> AllowedOptions = new Dictionary<string, string[]>(StringComparer.Ordinal)
     {
@@ -117,6 +118,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [ColorFeedPieces] = ["only"],
         [NoteFeedPosts] = ["file"],
         [SegmentFeedPosts] = ["segment", "only"],
+        [SeedWeeklyEdit] = ["segment", "file"],
         [ImportBrand] = ["brand", "segment", "max", "max-pages", "delay-ms"],
         [ImportVakko] = ["segment", "max", "max-pages", "delay-ms"],
         [MigrateLibraryItemImages] = [],
@@ -151,6 +153,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         [ColorFeedPieces] = ["dry-run", "force"],
         [NoteFeedPosts] = ["dry-run"],
         [SegmentFeedPosts] = ["dry-run"],
+        [SeedWeeklyEdit] = ["dry-run"],
         [ImportBrand] = ["dry-run", "list"],
         [ImportVakko] = ["dry-run"],
         [MigrateLibraryItemImages] = ["dry-run"],
@@ -343,6 +346,12 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
                 if (OnlyIds.FirstOrDefault(id => !Domain.Validation.FeedInputRules.IsId(id)) is { } badSegmentPost)
                     return $"--only: '{badSegmentPost}' is not a post or story id";
                 break;
+            case SeedWeeklyEdit:
+                if (FeedSegment is null)
+                    return "--segment is required: women | men";
+                if (Option("file") is not { } editFile || !AiSettingsPresetPattern().IsMatch(editFile))
+                    return "--file is required: an edit file from ops-presets/ (….json)";
+                break;
             case NoteFeedPosts:
                 if (Option("file") is not { } notesFile || !AiSettingsPresetPattern().IsMatch(notesFile))
                     return "--file is required: a notes file from ops-presets/ (….json)";
@@ -450,6 +459,7 @@ internal sealed partial record OpsArguments(string Command, string Stage, IReadO
         "  color-feed-pieces       [--only id,id] [--dry-run] [--force]    (dev only; no AI call; the colour of every editor-post piece, read from its picture)\n" +
         "  note-feed-posts         --file ops-presets/….json [--dry-run]   (dev only; no AI call; the editor's note of editor posts: { id, noteTr, noteEn })\n" +
         "  segment-feed-posts      --segment women|men [--only id,id] [--dry-run]  (dev only; no AI call; editor posts and stories without a segment — or the --only ids — get it)\n" +
+        "  seed-weekly-edit        --segment women|men --file ops-presets/….json [--dry-run]  (dev only; no AI call; this week's edit from 7 editor posts, Monday to Sunday: { id, titleTr, titleEn, noteTr, noteEn }; photo and note only — no products)\n" +
         "  seed-feed-stories       --ids id,id [--dry-run]                (dev only; no AI call; story-{postId} from editor posts, 7 days)\n" +
         "  import-brand            --brand <id> --segment women|men [--max N<=200] [--max-pages N<=600] [--delay-ms N>=1000] [--dry-run]  (dev only; no AI call; a brand's public products → catalog, images hot-linked)\n" +
         "  import-brand            --list                                 (the registered brand sources and the surveyed brands without one; no network)\n" +
