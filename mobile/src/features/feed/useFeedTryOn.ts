@@ -9,6 +9,8 @@ export type FeedTryOn = {
   start: () => void;
   /** "Çevrimdışısın…" / "Başlatılamadı…" after a tap, else null. */
   note: string | null;
+  /** From the tap until the try-on screen opens: the button shows its loader. */
+  starting: boolean;
   /** The credit confirmation; render it once next to the button. */
   sheet: ReactElement;
 };
@@ -28,6 +30,7 @@ export function useFeedTryOn(post: Pick<FeedPost, 'id' | 'title'>): FeedTryOn {
       tryOn.invite.onPress();
     },
     note: tryOn.note,
+    starting: tryOn.starting,
     sheet: tryOn.sheet,
   };
 }

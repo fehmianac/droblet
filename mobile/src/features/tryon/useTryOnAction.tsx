@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useState, type ReactElement } from 'react';
+import { useRef, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { TryOnTarget } from '@/api/contracts/tryon';
@@ -32,6 +32,8 @@ export type TryOnAction = {
   invite: Pick<TryOnInviteProps, 'footer' | 'ready' | 'onPress'>;
   /** "Çevrimdışısın…" / "Başlatılamadı…" after a tap, else null. */
   note: string | null;
+  /** The job is being opened (tap → try-on screen): the button shows its loader and ignores further taps. */
+  starting: boolean;
   /** The credit confirmation (07b); render it once next to the tile. */
   sheet: ReactElement;
 };
@@ -51,7 +53,13 @@ export function useTryOnAction({ target, title, feature, cachedJobId }: Options)
   const cached = cachedJobId === undefined ? checked.cachedJobId : cachedJobId;
   const openResult = (jobId: string) => router.push({ pathname: '/tryon/[jobId]', params: { jobId, title, kind: target.kind, id: target.id } });
 
+  // One start at a time: a second tap while the request is on its way would open a second job (and spend a second credit).
+  const startingRef = useRef(false);
+  const [starting, setStarting] = useState(false);
   const start = () => {
+    if (startingRef.current) return;
+    startingRef.current = true;
+    setStarting(true);
     void (async () => {
       try {
         const { jobId } = await tryOn.start(target);
@@ -60,6 +68,9 @@ export function useTryOnAction({ target, title, feature, cachedJobId }: Options)
       } catch (error) {
         setConfirm(false);
         if (!isConsentDeclined(error) && !openCreditSheetIfExhausted(error, feature)) setNote('failed');
+      } finally {
+        startingRef.current = false;
+        setStarting(false);
       }
     })();
   };
@@ -75,6 +86,7 @@ export function useTryOnAction({ target, title, feature, cachedJobId }: Options)
   const footer = useTryOnInviteFooter(gate.req);
 
   const onPress = () => {
+    if (startingRef.current) return;
     if (!online) {
       setNote('offline');
       return;
@@ -90,6 +102,7 @@ export function useTryOnAction({ target, title, feature, cachedJobId }: Options)
   return {
     invite: { ...footer, onPress },
     note: note === 'offline' ? t('lookEditor.tryOnOffline') : note === 'failed' ? t('lookDetail.tryOnFailed') : null,
-    sheet: <CreditConfirmSheet visible={confirm} onClose={() => setConfirm(false)} cost={TRY_ON_CREDIT_COST} onConfirm={start} confirming={tryOn.isStarting} />,
+    starting,
+    sheet: <CreditConfirmSheet visible={confirm} onClose={() => setConfirm(false)} cost={TRY_ON_CREDIT_COST} onConfirm={start} confirming={starting || tryOn.isStarting} />,
   };
 }
