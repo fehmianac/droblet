@@ -41,23 +41,24 @@ public sealed record CapsuleTarget(int Tops, int Bottoms, int Shoes, int Outerwe
 /// Trip capsule sizing — deterministic: the same numbers are given to the model and used to build the rule-based list.
 /// One look per trip date; dates take the trip types' occasions in turn (business → office, dinner → dinner,
 /// sightseeing → travel; e.g. business + dinner over 3 days = office, dinner, office).
-///  • Tops (or dresses), per occasion: dressy occasions (office, dinner, wedding) get a fresh top every day up to 3 days,
-///    then one for every 1.5 days; casual occasions one for every 2 days. Occasions do not borrow each other's tops.
-///  • Bottoms per dress level (dressy / casual): one for every 3 days of that level — bottoms are re-worn.
-///  • Shoes: one pair per dress level, a second pair from 6 days on (at most 2).
-///  • One outer layer when any day is cold or wet (worn on those days), one bag.
-/// Example: 3 days business + dinner, one rainy day → 2 office tops + 1 dinner top + 1 bottom + 1 pair of shoes
-/// + 1 coat + 1 bag = 7 pieces for 3 looks; the bottom, shoes and bag are worn every day.
+/// Sized up on 2026-11-25 (owner decision: the lists were too short):
+///  • Tops (or dresses), per occasion: dressy occasions (office, dinner, wedding) get a fresh top every day up to 4 days,
+///    then one for every 1.25 days; casual occasions one for every 1.5 days. Occasions do not borrow each other's tops.
+///  • Bottoms per dress level (dressy / casual): one for every 2 days of that level — bottoms are re-worn.
+///  • Shoes: one pair per dress level, one more from 4 days on (at most 3).
+///  • One outer layer when any day is cold or wet (worn on those days), one bag, and from 3 days on one accessory.
+/// Example: 3 days business + dinner, one rainy day → 2 office tops + 1 dinner top + 2 bottoms + 1 pair of shoes
+/// + 1 coat + 1 bag + 1 accessory = 9 pieces for 3 looks; the shoes, bag and accessory are worn every day.
 /// Re-wear: on a multi-day trip every packed piece is worn and the pieces are worn at least <see cref="MinRewearRatio"/>
 /// times on average; a piece may be worn once when it gives a day (an occasion) its own look.
 /// </summary>
 public static class CapsuleRules
 {
-    public const double MinRewearRatio = 1.5;
+    public const double MinRewearRatio = 1.3;
     /// <summary>A model list may exceed the target by this many pieces.</summary>
-    public const int AboveTarget = 1;
+    public const int AboveTarget = 3;
     /// <summary>…and fall short of what the wardrobe can supply toward the target by this many.</summary>
-    public const int BelowTarget = 2;
+    public const int BelowTarget = 3;
 
     public static bool IsDressy(Occasion? occasion) => occasion is Occasion.Office or Occasion.Dinner or Occasion.Wedding;
 
@@ -69,10 +70,10 @@ public static class CapsuleRules
 
     public static int TopsFor(Occasion? occasion, int days) =>
         days <= 0 ? 0
-        : IsDressy(occasion) ? (days <= 3 ? days : (int)Math.Ceiling(days / 1.5))
-        : (int)Math.Ceiling(days / 2.0);
+        : IsDressy(occasion) ? (days <= 4 ? days : (int)Math.Ceiling(days / 1.25))
+        : (int)Math.Ceiling(days / 1.5);
 
-    public static int BottomsFor(int levelDays) => levelDays <= 0 ? 0 : (int)Math.Ceiling(levelDays / 3.0);
+    public static int BottomsFor(int levelDays) => levelDays <= 0 ? 0 : (int)Math.Ceiling(levelDays / 2.0);
 
     public static CapsuleTarget Target(IReadOnlyList<Occasion?> dayOccasions, bool outerLayer)
     {
@@ -82,8 +83,9 @@ public static class CapsuleRules
         var tops = dayOccasions.GroupBy(o => o).Sum(g => TopsFor(g.Key, g.Count()));
         var levels = dayOccasions.GroupBy(IsDressy).ToList();
         var bottoms = levels.Sum(l => BottomsFor(l.Count()));
-        var shoes = Math.Min(2, levels.Count + (days >= 6 ? 1 : 0));
-        return new CapsuleTarget(tops, bottoms, shoes, outerLayer ? 1 : 0, 1);
+        var shoes = Math.Min(3, levels.Count + (days >= 4 ? 1 : 0));
+        // The bag, and from three days on one accessory beside it (scarf, belt, watch — the same slot group).
+        return new CapsuleTarget(tops, bottoms, shoes, outerLayer ? 1 : 0, days >= 3 ? 2 : 1);
     }
 
     /// <summary>Slot uses per packed piece over the whole trip (0 for an empty list).</summary>
@@ -341,6 +343,59 @@ public static class PackingRules
         return new CabinTrim(Validate(trimmed, context).Count == 0 ? trimmed : null, dropped);
     }
 
+    /// <summary>
+    /// Small faults of a model list are fixed by rule instead of throwing the whole list away (owner decision 2026-11-25;
+    /// before, one unworn piece replaced the model's list with the rule-based one):
+    ///  • an id that is no candidate leaves the list and the looks; a piece listed twice is listed once;
+    ///  • a look of a date outside the trip is dropped; a second look of the same date is dropped;
+    ///  • a candidate a look wears without packing it joins the list;
+    ///  • a trip date without a look takes the model's look of another date with the same occasion, else that date's look
+    ///    of the rule-based list (its pieces join the list);
+    ///  • on a cold / wet date the look gets the packed outer layer (or, without a cabin limit, the wardrobe's first one);
+    ///  • a packed piece no look wears leaves the list.
+    /// Nothing else is touched: the result is still judged by Validate, and a list that fails it is replaced as before.
+    /// </summary>
+    public static PackPlan Repair(PackPlan plan, PackingContext context, PackPlan? fallback)
+    {
+        bool Known(string? id) => id is not null && context.Candidates.ContainsKey(id);
+
+        var days = new List<PackDayPlan>();
+        foreach (var date in context.Dates)
+        {
+            // A date without a look: the model's look of another date with the same occasion (its pieces are already
+            // packed, so the list stays a capsule), else the rule-based look of that date.
+            var day = plan.Days.FirstOrDefault(d => d.Date == date)
+                      ?? (plan.Days.FirstOrDefault(d => context.Dates.Contains(d.Date) && context.OccasionOn(d.Date) == context.OccasionOn(date)) is { } twin
+                          ? twin with { Date = date }
+                          : fallback?.Days.FirstOrDefault(d => d.Date == date));
+            if (day is null)
+                continue;
+            var slots = day.Slots.Where(s => Known(s.ItemId)).ToList();
+            days.Add(day with { Slots = slots });
+        }
+
+        if (context.LayerDates is { Count: > 0 } layerDates)
+        {
+            bool Outer(string? id) => Known(id) && CapsuleRules.IsOuter(context.Candidates[id!].Category);
+            var outer = plan.ItemIds.FirstOrDefault(Outer)
+                        ?? days.SelectMany(d => d.Slots).Select(s => s.ItemId).FirstOrDefault(Outer)
+                        ?? (context.CabinLimit is null ? RuleBasedPacking.PackOrder(context.Candidates.Values.Where(c => CapsuleRules.IsOuter(c.Category)), true).FirstOrDefault()?.Id : null);
+            if (outer is not null)
+            {
+                for (var i = 0; i < days.Count; i++)
+                {
+                    if (layerDates.Contains(days[i].Date) && !days[i].Slots.Any(s => Outer(s.ItemId)))
+                        days[i] = days[i] with { Slots = days[i].Slots.Append(new SlotRef(OutfitSlot.Outerwear, outer)).ToList() };
+                }
+            }
+        }
+
+        var worn = days.SelectMany(d => d.Slots).Select(s => s.ItemId!).ToHashSet(StringComparer.Ordinal);
+        var ids = plan.ItemIds.Where(id => Known(id) && worn.Contains(id)).Distinct(StringComparer.Ordinal).ToList();
+        ids.AddRange(worn.Where(id => !ids.Contains(id, StringComparer.Ordinal)).OrderBy(id => id, StringComparer.Ordinal));
+        return new PackPlan(ids, days);
+    }
+
     /// <summary>Model output -> plan. null when the structure itself is unusable (no list or no days).</summary>
     public static PackPlan? FromModel(ModelPackOutput? output)
     {
@@ -390,8 +445,9 @@ public static class PackingRules
 
 /// <summary>
 /// Rule-based suitcase, used when the model's list fails PackingRules. First the capsule of CapsuleRules: tops per
-/// occasion, bottoms and shoes per dress level, an outer layer worn on the cold / wet days, one bag — least-worn pieces
-/// first, rotated over the days so bottoms, shoes and the bag are re-worn. Cabin-only (PackingContext.CabinLimit)
+/// occasion, bottoms and shoes per dress level, an outer layer worn on the cold / wet days, one bag and one accessory —
+/// the user's most worn pieces first, neutral colours first for what is re-worn (PackOrder), rotated over the days so
+/// bottoms, shoes and the bag are re-worn. Cabin-only (PackingContext.CabinLimit)
 /// shrinks tops, then bottoms, then drops the bag, the outer layer and the second pair of shoes, lets occasions share
 /// their tops and bottoms and — for a very small limit — drops the shoes. When the capsule does not pass PackingRules
 /// (a thin wardrobe) the minimal list is used instead: ⌊n/2⌋ tops (or dresses) and ⌊n/3⌋ bottoms rotated so every
@@ -418,20 +474,38 @@ public static class RuleBasedPacking
             : null;
     }
 
+    /// <summary>Main colours that go with everything: the pieces re-worn across looks (bottoms, shoes, outer layer, bag) are picked from these first.</summary>
+    public static readonly IReadOnlySet<string> Neutrals = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "black", "white", "grey", "gray", "navy", "beige", "cream", "brown", "camel", "denim" };
+
+    public static bool IsNeutral(CandidateItem item) => item.ColorIds.Count > 0 && Neutrals.Contains(item.ColorIds[0]);
+
+    /// <summary>
+    /// The order the rule-based list takes pieces in (owner decision 2026-11-25; it used to be least worn first, which
+    /// packed what the user wears least): the pieces the user wears most first — and, for the pieces that are re-worn
+    /// across looks, neutral colours before the rest so the looks go together. Ties: the id (stable).
+    /// </summary>
+    public static IReadOnlyList<CandidateItem> PackOrder(IEnumerable<CandidateItem> items, bool neutralsFirst) =>
+        items.OrderByDescending(i => neutralsFirst && IsNeutral(i))
+            .ThenByDescending(i => i.WearCount)
+            .ThenByDescending(i => i.LastWornAt ?? "", StringComparer.Ordinal)
+            .ThenBy(i => i.Id, StringComparer.Ordinal)
+            .ToList();
+
     private static PackPlan? Capsule(PackingContext context, IReadOnlyList<Occasion?> dayOccasions, IReadOnlySet<string> layerDays)
     {
-        var ordered = StylistCandidateSelector.LeastWornFirst(context.Candidates.Values).ToList();
-        List<CandidateItem> Of(Func<ItemCategory, bool> match) => ordered.Where(c => match(c.Category)).ToList();
+        List<CandidateItem> Of(Func<ItemCategory, bool> match, bool neutralsFirst = true) =>
+            PackOrder(context.Candidates.Values.Where(c => match(c.Category)), neutralsFirst).ToList();
 
-        var tops = Of(c => c == ItemCategory.Top);
+        var tops = Of(c => c == ItemCategory.Top, neutralsFirst: false);
         var bottoms = Of(c => c == ItemCategory.Bottom);
         var separates = tops.Count > 0 && bottoms.Count > 0;
-        var bases = separates ? tops : Of(c => c == ItemCategory.Dress);
+        var bases = separates ? tops : Of(c => c == ItemCategory.Dress, neutralsFirst: false);
         if (bases.Count == 0)
             return null;
         var shoes = Of(c => c == ItemCategory.Shoes);
         var outers = Of(CapsuleRules.IsOuter);
-        var bags = Of(c => c is ItemCategory.Bag or ItemCategory.Accessory);
+        // The bag first (a real bag before an accessory standing in for one), then one accessory beside it.
+        var bags = Of(c => c == ItemCategory.Bag).Concat(Of(c => c == ItemCategory.Accessory)).ToList();
 
         var dates = context.Dates;
         var target = CapsuleRules.Target(dayOccasions, layerDays.Count > 0 && outers.Count > 0);
@@ -454,7 +528,7 @@ public static class RuleBasedPacking
             {
                 if (DecrementLargest(topCounts)) continue;
                 if (DecrementLargest(bottomCounts)) continue;
-                if (bagCount > 0) { bagCount = 0; continue; }
+                if (bagCount > 0) { bagCount--; continue; }
                 if (outerCount > 0) { outerCount = 0; continue; }
                 if (shoeCount > 1) { shoeCount--; continue; }
                 if (ShareLast(topCounts)) continue;
@@ -474,6 +548,8 @@ public static class RuleBasedPacking
         var shoesByLevel = levels.Select((_, j) => ShoesFor(shoeList, j, levels.Count)).ToList();
         var outer = outers.Take(outerCount).FirstOrDefault();
         var bag = bags.Take(bagCount).FirstOrDefault();
+        // The second piece of the bag group is worn beside the bag only when it is an accessory (a look holds one bag).
+        var accessory = bags.Take(bagCount).Skip(1).FirstOrDefault(b => b.Category == ItemCategory.Accessory);
 
         var topTurn = new int[groups.Count];
         var bottomTurn = new int[levels.Count];
@@ -488,6 +564,7 @@ public static class RuleBasedPacking
             if (outer is not null && layerDays.Contains(dates[d])) slots.Add(new SlotRef(OutfitSlot.Outerwear, outer.Id));
             if (shoesByLevel[l].Count > 0) slots.Add(new SlotRef(OutfitSlot.Shoes, Next(shoesByLevel[l], ref shoeTurn[l]).Id));
             if (bag is not null) slots.Add(new SlotRef(OutfitSlot.BagAccessory, bag.Id));
+            if (accessory is not null) slots.Add(new SlotRef(OutfitSlot.BagAccessory, accessory.Id));
             if (slots.Count < OutfitSlotRules.MinPieces)
                 return null;
             dayPlans.Add(new PackDayPlan(dates[d], null, dayOccasions[d], slots));
@@ -549,8 +626,8 @@ public static class RuleBasedPacking
     private static PackPlan? Minimal(PackingContext context, bool withOuterwear, IReadOnlyList<Occasion?> dayOccasions)
     {
         var days = context.Dates.Count;
-        var ordered = StylistCandidateSelector.LeastWornFirst(context.Candidates.Values).ToList();
-        List<CandidateItem> Of(params ItemCategory[] categories) => ordered.Where(c => categories.Contains(c.Category)).ToList();
+        List<CandidateItem> Of(params ItemCategory[] categories) =>
+            PackOrder(context.Candidates.Values.Where(c => categories.Contains(c.Category)), neutralsFirst: !categories.Contains(ItemCategory.Top) && !categories.Contains(ItemCategory.Dress)).ToList();
 
         var tops = Of(ItemCategory.Top);
         var bottoms = Of(ItemCategory.Bottom);

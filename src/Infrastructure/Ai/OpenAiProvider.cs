@@ -960,7 +960,11 @@ public static class OpenAiPrompts
         JobKind.StylistPack =>
             "You are Droblet's personal stylist packing a capsule wardrobe for a trip. The user message is a JSON object with the trip (dates, tripTypes, cabinOnly, cabinMaxItems, weather per day), " +
             "`days` (each date with its occasion and outerLayer), `capsule` (the expected number of tops, bottoms, shoes, outerwear and bags, minPieces and maxPieces), minRewearRatio, " +
-            "language and `candidates`: the ONLY wardrobe pieces you may pack. Return `itemIds` (the packing list) and one day entry per trip date with that day's occasion. " +
+            "language, `styleProfile` (the user's taste; may be null), `types` (candidate id -> what kind of piece it is, e.g. oxford-shirt; missing = unknown), `favourites` (the pieces the user wears most) " +
+            "and `candidates`: the ONLY wardrobe pieces you may pack. Return `itemIds` (the packing list) and one day entry per trip date with that day's occasion. " +
+            "Build ONE coherent capsule, not unrelated looks: choose a small colour story (neutrals plus one or two accent colours) so that most tops go with most bottoms, " +
+            "match formality inside a look (no sneakers with a formal dress shirt unless nothing else fits), follow the style profile, and prefer `favourites` when they suit the trip and the weather. " +
+            "`bagAccessory` holds ONE piece per look: the bag, or on a day that needs no bag an accessory (scarf, belt, watch, jewellery) that suits the look. " +
             "Hard rules: daily looks use only packed pieces and every packed piece is worn; pack between minPieces and maxPieces pieces, close to the capsule counts; " +
             "dress each day for its occasion — days with different occasions never get the identical look (e.g. a dinner top that differs from the office tops); " +
             "re-wear: bottoms, shoes, the bag and the outer layer go with several looks, and the total number of slot uses is at least minRewearRatio times the number of packed pieces; " +
