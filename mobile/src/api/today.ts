@@ -71,6 +71,8 @@ export function useWearToday() {
   const m = useMutation<WearLogRequest, unknown, WearLogRequest>({
     mutationKey: mutationKeys.createWearLog,
     onMutate: (vars) => {
+      // Only a wear recorded for today marks today's look (09b records past days too).
+      if (vars.date !== toIsoDate(new Date())) return;
       client.setQueryData<TodayResponse>(queryKeys.today, (prev) =>
         prev?.look && prev.look.id === vars.lookId ? { ...prev, look: { ...prev.look, wornToday: true } } : prev,
       );
@@ -78,8 +80,9 @@ export function useWearToday() {
   });
   return {
     ...m,
-    wear: (lookId: string) => {
-      const vars: WearLogRequest = { lookId, date: toIsoDate(new Date()), ...newClientMutation() };
+    /** `date` (YYYY-MM-DD) defaults to today; 09b passes a past planned day ("Bunu giydim"). */
+    wear: (lookId: string, date: string = toIsoDate(new Date())) => {
+      const vars: WearLogRequest = { lookId, date, ...newClientMutation() };
       // The queued write (`POST v1/tenant/wear-log`) is registered in src/sync; in fixture mode keep the fixture calendar in step.
       if (DATA_SOURCE.today === 'fixtures') fixtureLogWear(vars.lookId, vars.date, vars.occurredAt);
       m.mutate(vars, {

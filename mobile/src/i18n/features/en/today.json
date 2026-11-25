@@ -133,7 +133,28 @@
     "change": "Change",
     "emptyDay": "No look for this day. Pick one of your saved looks, or let the stylist suggest one.",
     "plan": "Plan",
-    "suggestForDay": "Ask the stylist"
+    "suggestForDay": "Ask the stylist",
+    "title": "My plan",
+    "viewWeek": "Week",
+    "viewMonth": "Month",
+    "viewA11y": "Plan view",
+    "filterAll": "All",
+    "filter": {
+      "worn": "Worn · {{count}}",
+      "planned": "Planned · {{count}}"
+    },
+    "more": "+{{count}}",
+    "legendToday": "Today",
+    "legendEmpty": "Empty day",
+    "plannedDays_one": "{{count}} day planned",
+    "plannedDays_other": "{{count}} days planned",
+    "triedLooks_one": "{{count}} look has an “on you” image",
+    "triedLooks_other": "{{count}} looks have an “on you” image",
+    "statusMissed": "Not worn",
+    "tryOnInvite": "See this look on yourself",
+    "tryOnCost": "See it on me · 1 credit",
+    "wore": "I wore this",
+    "remove": "Take off the calendar"
   },
   "planPick": {
     "eyebrow": "{{day}} · {{occasion}}",

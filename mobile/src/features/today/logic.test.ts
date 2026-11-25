@@ -15,6 +15,7 @@ import {
   occasionCounts,
   todayGreeting,
   weekTryOnTargets,
+  monthDayCounts,
 } from './logic';
 
 const look = (id: string, extra: Partial<Look> = {}): Look => ({
@@ -250,5 +251,25 @@ describe('06 greeting', () => {
     expect(todayGreeting(t, 'Morning', { profileName: null, cardName: null }, 'weekend')).toBe(
       'todayHome.greetingNoName.Morning\ntoday.occasionLine.weekend',
     );
+  });
+});
+
+
+describe('monthDayCounts (09′)', () => {
+  it('counts days with a wear record, days that only have a planned look, and looks with an "on you" image once', () => {
+    const month = {
+      wearLogs: [
+        { id: '1', date: '2026-11-02', lookId: 'a', itemIds: [], occurredAt: '' },
+        { id: '2', date: '2026-11-02', lookId: 'b', itemIds: [], occurredAt: '' },
+        { id: '3', date: '2026-11-03', lookId: 'a', itemIds: [], occurredAt: '' },
+        { id: '4', date: '2026-11-04', lookId: null, itemIds: ['i'], occurredAt: '' },
+      ],
+      planDays: [
+        { date: '2026-11-03', occasion: null, lookId: 'c', baseVersion: 1 }, // worn that day: the record wins
+        { date: '2026-11-26', occasion: null, lookId: 'c', baseVersion: 1 },
+        { date: '2026-11-27', occasion: 'office' as const, lookId: null, baseVersion: 1 }, // an occasion without a look
+      ],
+    };
+    expect(monthDayCounts(month, '2026-11-25', (id) => id === 'a' || id === 'c')).toEqual({ worn: 3, planned: 1, tried: 2 });
   });
 });
