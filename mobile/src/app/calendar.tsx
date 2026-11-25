@@ -15,7 +15,7 @@ import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { ScreenState } from '@/components/ui/ScreenState';
 import { Text } from '@/components/ui/Text';
-import { lookCoverSource } from '@/api/imageSources';
+import { itemImageSource, lookCoverSource } from '@/api/imageSources';
 import { Chip } from '@/components/ui/Chip';
 import { indexItems, LookCover } from '@/features/looks/LookCover';
 import { useItems } from '@/features/wardrobe/queries';
@@ -106,6 +106,13 @@ export default function CalendarScreen() {
           const pieces = selectedLook ? t('product.piecesCount', { count: selectedLook.slots.length }) : null;
           const counts = monthDayCounts(data, today, (id) => Boolean(lookList.find((l) => l.id === id)?.tryOnImageUrl));
           const logsOn = (date: string) => data.wearLogs.filter((w) => w.date === date).length;
+          // The pieces of a day's wear record, as collage tiles (only those that still exist and have a photograph).
+          const wornPieces = (date: string) =>
+            (data.wearLogs.find((w) => w.date === date)?.itemIds ?? []).flatMap((id) => {
+              const item = itemsById.get(id);
+              const image = item ? itemImageSource(item, 'thumb') : null;
+              return item && image?.uri ? [{ category: item.category, color: item.color, imageUrl: image.uri, ...(image.cacheKey ? { cacheKey: image.cacheKey } : {}), missing: false }] : [];
+            });
           const shows = (status: DayStatus) => filter === 'all' || (filter === 'worn' ? status.kind === 'worn' : status.kind === 'planned');
           const selectedPlan = selected ? (data.planDays.find((p) => p.date === selected) ?? null) : null;
           const missed = selectedStatus?.kind === 'planned' && selected !== null && selected < today;
@@ -181,7 +188,12 @@ export default function CalendarScreen() {
                                     className="h-full w-full"
                                   />
                                 ) : (
-                                  <ImageSlot uri={null} className="h-full w-full" placeholder={{ kind: 'figure', figureHeight: 33 }} />
+                                  // Worn without a saved look ("Bunu giyiyorum" on pieces): the photographs of those pieces.
+                                  <ImageSlot
+                                    uri={null}
+                                    className="h-full w-full"
+                                    placeholder={{ kind: 'look', pieces: wornPieces(date), seed: date, figureHeight: 34 }}
+                                  />
                                 )}
                               </View>
                             ) : null}
