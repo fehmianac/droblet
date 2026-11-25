@@ -34,7 +34,12 @@ function mondayOf(isoDate: string): string {
 }
 
 /** Dev/test knobs for states the fixtures cannot reach otherwise. */
-export const todayFixtureOptions: { hasBodyPhoto: boolean; sponsoredBy: string | null } = { hasBodyPhoto: true, sponsoredBy: null };
+/** `photoEdit`: 08 · ürünsüz — every look is the editor's photo, without products. */
+export const todayFixtureOptions: { hasBodyPhoto: boolean; sponsoredBy: string | null; photoEdit: boolean } = {
+  hasBodyPhoto: true,
+  sponsoredBy: null,
+  photoEdit: false,
+};
 
 const watchlist = new Set<string>();
 const savedEditLooks = new Set<string>();
@@ -60,6 +65,7 @@ onFixtureSeed((db, { empty }) => {
   savedEditLooks.clear();
   todayFixtureOptions.hasBodyPhoto = true;
   todayFixtureOptions.sponsoredBy = null;
+  todayFixtureOptions.photoEdit = false;
   if (empty) return;
   const today = toIsoDate(new Date());
   const has = (id: string | null) => (id && db.looks.some((l) => l.id === id) ? id : null);
@@ -395,8 +401,9 @@ function buildEditLooks(weekStart: string): EditLook[] {
       name: L(seed.name),
       styleNote: L(seed.note),
       tryOnImageUrl: null,
+      imageUrl: todayFixtureOptions.photoEdit ? `https://example.com/edit/${id}.jpg` : null,
       isSaved: savedEditLooks.has(id),
-      products: { high_street: seed.high.map(product), luxury_touch: seed.luxury.map(product) },
+      products: todayFixtureOptions.photoEdit ? { high_street: [], luxury_touch: [] } : { high_street: seed.high.map(product), luxury_touch: seed.luxury.map(product) },
     };
   });
 }

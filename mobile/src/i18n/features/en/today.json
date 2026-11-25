@@ -82,6 +82,7 @@
     "save": "Save to lookbook",
     "saved": "Saved to lookbook",
     "imageA11y": "{{name}}, on you",
+    "photoA11y": "{{name}}: the editor's photo",
     "pageA11y": "Look {{current}} of {{total}}.",
     "goToLook": "Go to look {{current}}",
     "bandLabel": "Price band",

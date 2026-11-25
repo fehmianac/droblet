@@ -117,10 +117,20 @@ export type EditLook = {
   styleNote: string;
   /** Owner-only try-on of this look; null until generated. */
   tryOnImageUrl: string | null;
+  /** The editor's own photo of the look, when the edit has one. */
+  imageUrl: string | null;
   /** Saved to the user's lookbook. */
   isSaved: boolean;
   products: Record<PriceBand, EditProduct[]>;
 };
+
+/**
+ * 08 · ürünsüz: an edit made of the editor's photos alone — every look has a photo and no product in any price band.
+ * Such an edit shows the photo, the day, the title and the style note; nothing to buy, save or try on.
+ */
+export function isPhotoEdit(edit: Pick<WeeklyEdit, 'looks'>): boolean {
+  return edit.looks.length > 0 && edit.looks.every((l) => l.imageUrl !== null && PRICE_BANDS.every((band) => l.products[band].length === 0));
+}
 
 /** GET v1/content/edit/current · GET v1/content/edit/{id} */
 export type WeeklyEdit = {

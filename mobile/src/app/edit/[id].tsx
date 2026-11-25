@@ -1,3 +1,5 @@
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { BookmarkCheck, BookmarkPlus, Camera, ChevronLeft, Heart, Share, ShoppingBag } from 'lucide-react-native';
 import { useRef, useState } from 'react';
@@ -6,6 +8,7 @@ import {
   Pressable,
   ScrollView,
   Share as NativeShare,
+  StyleSheet,
   useWindowDimensions,
   View,
   type NativeScrollEvent,
@@ -14,7 +17,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { PRICE_BANDS, type EditLook, type PriceBand, type WeeklyEdit } from '@/api/contracts/today';
+import { isPhotoEdit, PRICE_BANDS, type EditLook, type PriceBand, type WeeklyEdit } from '@/api/contracts/today';
 import { SponsoredTag } from '@/components/blocks/basics';
 import { Badge } from '@/components/ui/Bits';
 import { BottomActionBar } from '@/components/ui/BottomActionBar';
@@ -36,9 +39,12 @@ import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { formatDate, formatIsoDateRange, formatMoney, parseLocalDate, toIsoDate } from '@/lib/format';
 import { toDisplayUpper } from '@/lib/upper';
 import { useIsOnline } from '@/sync/network';
+import { onPhotoTones } from '@/theme/tokens';
 
 /** The image on 08 is 350 high and starts at the very top of the screen, under the status bar. */
 const HERO_HEIGHT = 350;
+/** 08 · ürünsüz: the editor's photo takes 540 of the board's 844. */
+const PHOTO_SHARE = 540 / 844;
 
 /** Without history (deep link / cold start), back goes to Bugün. */
 const goBack = () => (router.canGoBack() ? router.back() : router.replace('/'));
@@ -58,11 +64,15 @@ function initialIndex(edit: WeeklyEdit, lookId: string | undefined): number {
  *
  * 08 · fotoğraf yok — no body photo: a plain header with back and the "Profil fotoğrafını tamamla" card
  * in place of the image.
+ *
+ * 08 · ürünsüz — an edit of the editor's photos alone (no product in any look): the photo full-bleed with back and
+ * share over it and the dots on it, then the day, the title and the style note. No price bands, product rows, bar,
+ * heart or "Üzerimde gör": there is nothing to buy, save or try on.
  */
 export default function WeeklyEditScreen() {
   const language = useAppLanguage();
   const { t } = useTranslation();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const online = useIsOnline();
   const params = useLocalSearchParams<{ id: string; look?: string }>();
@@ -82,7 +92,10 @@ export default function WeeklyEditScreen() {
   const edit = query.data;
   const index = edit ? Math.min(picked ?? initialIndex(edit, params.look), Math.max(0, edit.looks.length - 1)) : 0;
   const look: EditLook | undefined = edit?.looks[index];
-  const noPhoto = edit !== undefined && !edit.hasBodyPhoto;
+  const photoEdit = edit !== undefined && isPhotoEdit(edit);
+  const showCommerce = commerce && !photoEdit;
+  const photoHeight = Math.round(height * PHOTO_SHARE);
+  const noPhoto = edit !== undefined && !edit.hasBodyPhoto && !photoEdit;
   // The actions sit on the image. Offline, the cached-data band takes the top of the screen, so the
   // screen falls back to a plain header above it (as it does when there is no image at all).
   // Without an edit to show (none published, an unknown id, a failed read) there is no image either.
@@ -114,20 +127,22 @@ export default function WeeklyEditScreen() {
             onPress={() => void NativeShare.share({ message: t('weekEdit.shareMessage', { name: look.name }) }).catch(() => undefined)}
           />
         )}
-        <IconButton
-          icon={Heart}
-          iconSize={19}
-          variant={variant}
-          active={look.isSaved}
-          accessibilityLabel={t(look.isSaved ? 'weekEdit.saved' : 'weekEdit.save')}
-          onPress={() => {
-            if (!look.isSaved) saveLook.save(look.id, band, edit?.id);
-          }}
-        />
+        {photoEdit ? null : (
+          <IconButton
+            icon={Heart}
+            iconSize={19}
+            variant={variant}
+            active={look.isSaved}
+            accessibilityLabel={t(look.isSaved ? 'weekEdit.saved' : 'weekEdit.save')}
+            onPress={() => {
+              if (!look.isSaved) saveLook.save(look.id, band, edit?.id);
+            }}
+          />
+        )}
       </View>
     ) : null;
 
-  const dots = (data: WeeklyEdit, onImage: boolean) => (
+  const dots = (data: WeeklyEdit, onImage: boolean, onPhoto = false) => (
     <View
       className="flex-row items-center justify-center gap-1.5"
       accessibilityRole="adjustable"
@@ -143,7 +158,11 @@ export default function WeeklyEditScreen() {
           hitSlop={{ top: 16, bottom: 16, left: 3, right: 3 }}
           className="h-3 justify-center"
         >
-          <View className={`h-1.5 rounded-pill ${i === index ? 'w-[18px] bg-ink' : `w-1.5 ${onImage ? 'bg-ink/30' : 'bg-line'}`}`} />
+          <View
+            className={`h-1.5 rounded-pill ${
+              i === index ? `w-[18px] ${onPhoto ? 'bg-cream' : 'bg-ink'}` : `w-1.5 ${onPhoto ? 'bg-cream/50' : onImage ? 'bg-ink/30' : 'bg-line'}`
+            }`}
+          />
         </Pressable>
       ))}
     </View>
@@ -174,7 +193,35 @@ export default function WeeklyEditScreen() {
           return (
             <>
               <ScrollView contentContainerClassName="pb-6">
-                {data.hasBodyPhoto ? (
+                {photoEdit ? (
+                  <View style={{ height: photoHeight }} testID="edit-photo-hero">
+                    <ScrollView
+                      ref={pager}
+                      horizontal
+                      pagingEnabled
+                      showsHorizontalScrollIndicator={false}
+                      contentOffset={{ x: index * width, y: 0 }}
+                      onMomentumScrollEnd={onPagerEnd}
+                    >
+                      {data.looks.map((l) => (
+                        <Image
+                          key={l.id}
+                          testID={`edit-photo-${l.id}`}
+                          source={l.imageUrl}
+                          contentFit="cover"
+                          contentPosition="top"
+                          transition={200}
+                          accessibilityLabel={t('weekEdit.photoA11y', { name: l.name })}
+                          style={{ width, height: photoHeight }}
+                        />
+                      ))}
+                    </ScrollView>
+                    <LinearGradient colors={[onPhotoTones.groundClear, onPhotoTones.groundMid]} style={styles.photoFade} pointerEvents="none" />
+                    <View className="absolute bottom-3.5 left-0 right-0" pointerEvents="box-none">
+                      {dots(data, true, true)}
+                    </View>
+                  </View>
+                ) : data.hasBodyPhoto ? (
                   <View style={{ height: HERO_HEIGHT }}>
                     <ScrollView
                       ref={pager}
@@ -200,7 +247,7 @@ export default function WeeklyEditScreen() {
                             <EditHeroInvite
                               lookId={l.id}
                               name={l.name}
-                              products={commerce ? l.products[band] : []}
+                              products={showCommerce ? l.products[band] : []}
                               topInset={overlay ? insets.top + 52 : 8}
                             />
                           )}
@@ -235,7 +282,7 @@ export default function WeeklyEditScreen() {
                   </View>
                 )}
 
-                <View className={`gap-2.5 px-gutter ${data.hasBodyPhoto ? 'pt-3.5' : 'pt-3'}`}>
+                <View className={`gap-2.5 px-gutter ${photoEdit ? 'pt-4' : data.hasBodyPhoto ? 'pt-3.5' : 'pt-3'}`}>
                   <Text variant="eyebrow">{eyebrow}</Text>
                   <Text variant="h2" className="text-[28px] leading-[31px]">
                     {current.name}
@@ -245,13 +292,13 @@ export default function WeeklyEditScreen() {
                       {t('weekEdit.sponsoredBy', { brand: data.sponsoredBy })}
                     </Text>
                   ) : null}
-                  {data.hasBodyPhoto || !commerce ? (
+                  {data.hasBodyPhoto || !showCommerce ? (
                     <Text variant="body" tone="muted" className="text-[13.5px] leading-[20px]">
                       {current.styleNote}
                     </Text>
                   ) : null}
 
-                  {commerce ? (
+                  {showCommerce ? (
                     <>
                       <SegmentedControl
                         accessibilityLabel={t('weekEdit.bandLabel')}
@@ -316,7 +363,7 @@ export default function WeeklyEditScreen() {
                   ) : null}
                 </View>
               </ScrollView>
-              {commerce ? (
+              {showCommerce ? (
                 <BottomActionBar
                   actionFill
                   totalLabel={summary.missing.length > 0 ? t('weekEdit.missing', { count: summary.missing.length }) : t('weekEdit.nothingMissing')}
@@ -349,3 +396,7 @@ export default function WeeklyEditScreen() {
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  photoFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 90 },
+});
