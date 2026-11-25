@@ -244,6 +244,11 @@ export const purchaseFlow = {
     }
   },
 
+  /** Tests only: puts the flow in a given state. */
+  __set(next: PurchaseState) {
+    emit(next);
+  },
+
   /** Tests only. */
   __reset() {
     inFlight.clear();

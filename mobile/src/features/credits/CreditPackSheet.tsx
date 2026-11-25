@@ -1,5 +1,5 @@
 import { Sparkle, X } from 'lucide-react-native';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Platform, View } from 'react-native';
 
@@ -11,10 +11,11 @@ import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
+import { showToast } from '@/components/ui/toast/store';
 import { useEntitlement } from '@/entitlement/useEntitlement';
 import { useStoreProducts } from '@/entitlement/useStoreProducts';
 import { formatDayMonth } from '@/lib/format';
-import { PurchaseStatus } from '@/purchases/PurchaseStatus';
+import { purchaseMessage, PurchaseStatus } from '@/purchases/PurchaseStatus';
 import { purchaseFlow, usePurchaseState } from '@/purchases/purchaseFlow';
 
 import { creditSheetStore, useCreditSheetReason, type CreditSheetReason } from './creditSheetStore';
@@ -30,7 +31,7 @@ export function usedShare(monthlyAllowance: number, remaining: number): number {
  * from Profil / Üyelik "Kredi yükle". Numbers come from the server (`GET v1/tenant/entitlement`), the pack's
  * price and size from the store products. The pack is a consumable bought through StoreKit 2 / Play
  * Billing; credits are added by the server (once per store transaction) before the transaction is
- * finished, and the numbers above refresh from the server's answer.
+ * finished. Once the pack is added the sheet closes itself and a toast confirms it.
  */
 export function CreditPackSheet({ reason }: { reason: CreditSheetReason }) {
   const { t } = useTranslation();
@@ -48,9 +49,23 @@ export function CreditPackSheet({ reason }: { reason: CreditSheetReason }) {
   }, [reason]);
 
   const close = () => creditSheetStore.close();
+
+  // A pack bought from this sheet closes it: the confirmation moves to a toast and the screen underneath shows
+  // the new balance. A success left over from another screen (the paywall) never closes a sheet that just opened.
+  const boughtHere = useRef(false);
+  useEffect(() => {
+    if (flow.phase === 'purchasing' || flow.phase === 'verifying') boughtHere.current = true;
+    if (flow.phase !== 'success' || !boughtHere.current) return;
+    boughtHere.current = false;
+    const message = purchaseMessage(flow);
+    if (message) showToast({ message: t(message.key, { count: message.count }), tone: 'success', testID: 'credits.added' });
+    creditSheetStore.close();
+  }, [flow, t]);
   const pack = store.data?.products.find((p) => p.kind === 'consumable' && p.credits !== null);
   const credits = entitlement.data?.credits;
-  const used = credits ? Math.max(0, credits.monthlyAllowance - credits.remaining) : null;
+  // The bar is the month's allowance alone: pack credits (part of `remaining`) never count as unused allowance.
+  const allowanceLeft = credits ? Math.min(credits.allowanceRemaining ?? credits.remaining, credits.monthlyAllowance) : 0;
+  const used = credits ? Math.max(0, credits.monthlyAllowance - allowanceLeft) : null;
 
   const buy = () => {
     if (!pack) return;
@@ -86,7 +101,7 @@ export function CreditPackSheet({ reason }: { reason: CreditSheetReason }) {
             >
               <View
                 className="h-full rounded-pill bg-accent"
-                style={{ width: `${Math.round(usedShare(credits.monthlyAllowance, credits.remaining) * 100)}%` }}
+                style={{ width: `${Math.round(usedShare(credits.monthlyAllowance, allowanceLeft) * 100)}%` }}
               />
             </View>
             <View className="flex-row justify-between gap-3">

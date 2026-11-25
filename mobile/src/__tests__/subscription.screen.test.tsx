@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
+import { act, fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 import { Linking } from 'react-native';
 
 import { creditSheetStore } from '@/features/credits/creditSheetStore';
@@ -75,6 +75,32 @@ describe('/subscription — Üyelik yönetimi', () => {
     expect(screen.getByText('Not now')).toBeTruthy();
     await fireEvent.press(screen.getByTestId('credit-pack-close'));
     expect(creditSheetStore.get()).toBeNull();
+  });
+
+  it('05b: pack credits never hide the allowance already used', async () => {
+    mockQuery = success({ tier: 'member', credits: { monthlyAllowance: 30, remaining: 61, allowanceRemaining: 21, packRemaining: 40, resetsAt: '2026-12-01T00:00:00.000Z' } });
+    await open('/subscription');
+    await waitFor(() => expect(screen.getByTestId('subscription-top-up')).toBeTruthy(), WAIT);
+    await fireEvent.press(screen.getByTestId('subscription-top-up'));
+    await waitFor(() => expect(screen.getByText('Get extra AI images')).toBeTruthy(), WAIT);
+    expect(screen.getAllByText('9 / 30 used').length).toBeGreaterThan(0);
+    expect(screen.queryByText('0 / 30 used')).toBeNull();
+  });
+
+  it('a pack bought from the 05b sheet closes it and a toast confirms the credits', async () => {
+    const pack = 'com.alatech.droplet.credits.20';
+    await open('/subscription');
+    await waitFor(() => expect(screen.getByTestId('subscription-top-up')).toBeTruthy(), WAIT);
+    await fireEvent.press(screen.getByTestId('subscription-top-up'));
+    await waitFor(() => expect(screen.getByText('Get extra AI images')).toBeTruthy(), WAIT);
+
+    await act(async () => purchaseFlow.__set({ phase: 'verifying', productId: pack, error: null }));
+    expect(creditSheetStore.get()).toBe('topUp');
+    await act(async () => purchaseFlow.__set({ phase: 'success', productId: pack, error: null }));
+
+    expect(creditSheetStore.get()).toBeNull();
+    await waitFor(() => expect(screen.getByText('20 AI images added to your account.')).toBeTruthy(), WAIT);
+    expect(screen.queryByText('Get extra AI images')).toBeNull();
   });
 
   it('opens the store subscription settings and restores purchases through the store', async () => {
