@@ -1,5 +1,5 @@
 import { router, useIsFocused, useLocalSearchParams } from 'expo-router';
-import { CalendarDays, MirrorRound, RefreshCw, Sparkles, Trash2 } from 'lucide-react-native';
+import { MirrorRound, RefreshCw, Sparkles, Trash2 } from 'lucide-react-native';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { RefreshControl, ScrollView, View } from 'react-native';
@@ -18,7 +18,6 @@ import { PopoverMenu } from '@/components/ui/Bits';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
-import { IconButton } from '@/components/ui/IconButton';
 import { ListTabBar } from '@/components/navigation/TabBar';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -31,6 +30,7 @@ import { combineQueries } from '@/features/today/combineQueries';
 import { weekDates } from '@/features/today/dates';
 import { buildWeekRows, daysToPlan, occasionCounts, weekTryOnTargets, type WeekRow } from '@/features/today/logic';
 import { PlanLookSheet } from '@/features/today/PlanLookSheet';
+import { PlanSwitch } from '@/features/today/PlanSwitch';
 import { WeekDayRow } from '@/features/today/WeekDayRow';
 import { isQuoteChanged, useStartTryOn, useWeekTryOn } from '@/features/tryon/api';
 import { useAppLanguage } from '@/i18n/useAppLanguage';
@@ -167,11 +167,13 @@ export default function PlanWeekScreen() {
       <ScreenHeader
         leading="back"
         onLeadingPress={goBack}
-        right={<IconButton icon={CalendarDays} onPress={() => router.push('/calendar')} accessibilityLabel={t('weekPlan.calendar')} />}
       />
       <View className="gap-1.5 px-gutter pb-3.5 pt-1">
         <Text variant="eyebrow">{eyebrow}</Text>
         <Text variant="display">{t('weekPlan.title')}</Text>
+        <View className="pt-2">
+          <PlanSwitch value="week" />
+        </View>
       </View>
       <ScreenState
         query={query}

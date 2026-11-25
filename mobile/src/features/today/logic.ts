@@ -68,6 +68,23 @@ export function dayStatus(date: string, month: Pick<CalendarMonth, 'wearLogs' | 
 }
 
 
+export type MonthFilter = 'all' | 'worn' | 'planned';
+
+/**
+ * 09′ the month in numbers: days with a wear record, days that only have a planned look (a wear record wins), and how
+ * many of the looks on those days have an "on you" image (`hasTryOn` reads the look list; a look counts once).
+ */
+export function monthDayCounts(
+  month: Pick<CalendarMonth, 'wearLogs' | 'planDays'>,
+  _today: string,
+  hasTryOn: (lookId: string) => boolean,
+): { worn: number; planned: number; tried: number } {
+  const wornDates = new Set(month.wearLogs.map((w) => w.date));
+  const plannedDays = month.planDays.filter((p) => p.lookId && !wornDates.has(p.date));
+  const lookIds = new Set([...month.wearLogs.map((w) => w.lookId), ...plannedDays.map((p) => p.lookId)].filter((id): id is string => Boolean(id)));
+  return { worn: wornDates.size, planned: plannedDays.length, tried: [...lookIds].filter(hasTryOn).length };
+}
+
 export type MonthReport = {
   /** Distinct days with at least one "Bunu giyiyorum" record. */
   daysLogged: number;

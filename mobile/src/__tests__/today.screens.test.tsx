@@ -5,7 +5,7 @@ import { requirementsFlow } from '@/features/requirements/store';
 import { addDays, monthOf, weekDates, weekStartOf } from '@/features/today/dates';
 import { accountFixtures, resetAccountFixtures } from '@/fixtures/account';
 import { fixtureDb, resetFixtureDb } from '@/fixtures/db';
-import { todayFixtureOptions } from '@/fixtures/today';
+import { fixtureCalendarMonth, todayFixtureOptions } from '@/fixtures/today';
 import { longDay } from '@/features/stylist/suggestionActions';
 import { formatDate, formatIsoDateRange, formatMoney, formatMonthYear, moneyFromMajor, parseLocalDate, toIsoDate, weekdayShort } from '@/lib/format';
 import { toDisplayUpper } from '@/lib/upper';
@@ -318,6 +318,36 @@ describe('09 Takvim', () => {
     await fireEvent.press(screen.getByTestId('calendar-change'));
     await waitFor(() => expect(screen.getByText('Pick a look for this day')).toBeTruthy(), WAIT);
     expect(screen.getByTestId(`planPick.look.${fixtureDb.looks[0]?.id}`)).toBeTruthy();
+  });
+
+  it('09′: the month sits beside the week ("Week | Month"), marks worn days, filters, and a planned day can leave the calendar', async () => {
+    await renderRouter('./src/app', { initialUrl: '/calendar' });
+    await waitFor(() => expect(screen.getByText(/days? logged|Nothing logged this month yet/)).toBeTruthy(), WAIT);
+    expect(screen.getByText('My plan')).toBeTruthy();
+    expect(screen.getByTestId('plan-view.month').props.accessibilityState).toMatchObject({ selected: true });
+
+    const month = fixtureCalendarMonth(toIsoDate(new Date()).slice(0, 7));
+    const worn = month.wearLogs[0]!.date;
+    const wornDays = new Set(month.wearLogs.map((w) => w.date)).size;
+    expect(screen.getByTestId(`calendar-worn-${worn}`)).toBeTruthy();
+    expect(screen.getByTestId('calendar-filter-worn')).toHaveTextContent(`Worn · ${wornDays}`);
+    // "Planned" hides the worn days' pictures (their check goes with them).
+    await fireEvent.press(screen.getByTestId('calendar-filter-planned'));
+    expect(screen.queryByTestId(`calendar-worn-${worn}`)).toBeNull();
+    await fireEvent.press(screen.getByTestId('calendar-filter-all'));
+
+    // A planned day: the look's pieces, the invitation in place of an "on you" image, and "Take off the calendar".
+    await fireEvent.press(screen.getByLabelText(/, planned, today$/));
+    await waitFor(() => expect(screen.getByTestId('calendar-day-look')).toBeTruthy(), WAIT);
+    expect(screen.getByTestId('calendar-day-pieces')).toBeTruthy();
+    expect(screen.queryByTestId('calendar-wore')).toBeNull(); // today is not a missed day
+    await fireEvent.press(screen.getByTestId('calendar-remove'));
+    await waitFor(() => expect(screen.getByLabelText(/, empty, today$/)).toBeTruthy(), WAIT);
+
+    // The other view replaces this one.
+    await fireEvent.press(screen.getByTestId('plan-view.week'));
+    await waitFor(() => expect(screen).toHavePathname('/plan/week'), WAIT);
+    expect(screen.getByTestId('plan-view.week').props.accessibilityState).toMatchObject({ selected: true });
   });
 
   it('opens the month report from "Rapor"', async () => {

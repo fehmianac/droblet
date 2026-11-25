@@ -133,7 +133,28 @@
     "change": "Değiştir",
     "emptyDay": "Bu gün için look yok. Kayıtlı looklarından birini seç ya da stilist önersin.",
     "plan": "Planla",
-    "suggestForDay": "Stilistten öner"
+    "suggestForDay": "Stilistten öner",
+    "title": "Planım",
+    "viewWeek": "Hafta",
+    "viewMonth": "Ay",
+    "viewA11y": "Plan görünümü",
+    "filterAll": "Tümü",
+    "filter": {
+      "worn": "Giydiklerim · {{count}}",
+      "planned": "Planladıklarım · {{count}}"
+    },
+    "more": "+{{count}}",
+    "legendToday": "Bugün",
+    "legendEmpty": "Boş gün",
+    "plannedDays_one": "{{count}} gün planlı",
+    "plannedDays_other": "{{count}} gün planlı",
+    "triedLooks_one": "{{count}} look'un “üzerinde” görseli var",
+    "triedLooks_other": "{{count}} look'un “üzerinde” görseli var",
+    "statusMissed": "Giyilmedi",
+    "tryOnInvite": "Bu look'u kendi üzerinde gör",
+    "tryOnCost": "Üzerimde gör · 1 kredi",
+    "wore": "Bunu giydim",
+    "remove": "Takvimden çıkar"
   },
   "planPick": {
     "eyebrow": "{{day}} · {{occasion}}",
