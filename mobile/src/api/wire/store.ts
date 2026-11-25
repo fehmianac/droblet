@@ -124,7 +124,7 @@ export type EditWire = {
   segment: string;
   sponsored: boolean;
   sponsorName: string | null;
-  looks: { id: string; day: number; imageUrl: string | null }[];
+  looks: { id: string; day: number; imageUrl: string | null; variants?: { products: unknown[] }[] }[];
 };
 
 export function toWeeklyEditSummary(wire: EditWire): WeeklyEditSummary {
@@ -135,6 +135,7 @@ export function toWeeklyEditSummary(wire: EditWire): WeeklyEditSummary {
     endDate: wire.weekEnd,
     lookCount: wire.looks.length,
     imageUrl: wire.coverImageUrl ?? wire.looks.find((l) => l.imageUrl)?.imageUrl ?? null,
+    photoOnly: wire.looks.length > 0 && wire.looks.every((l) => l.imageUrl !== null && l.variants !== undefined && l.variants.every((v) => v.products.length === 0)),
   };
 }
 

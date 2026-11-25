@@ -18,6 +18,8 @@ export type WeeklyEditSummary = {
   endDate: string;
   lookCount: number;
   imageUrl: string | null;
+  /** 08 · ürünsüz: the looks are the editor's photos alone (no product), so the cover never promises "on you". */
+  photoOnly?: boolean;
 };
 
 /**
