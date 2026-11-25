@@ -29,7 +29,10 @@ import { useAcceptPlanWeek, usePlanDays, usePlanWeekJob, usePutPlanDay, useStart
 import { combineQueries } from '@/features/today/combineQueries';
 import { weekDates } from '@/features/today/dates';
 import { buildWeekRows, daysToPlan, occasionCounts, weekTryOnTargets, type WeekRow } from '@/features/today/logic';
+import { DayLook } from '@/features/today/DayLook';
 import { PlanLookSheet } from '@/features/today/PlanLookSheet';
+import { indexItems } from '@/features/looks/LookCover';
+import { useItems } from '@/features/wardrobe/queries';
 import { PlanSwitch } from '@/features/today/PlanSwitch';
 import { WeekDayRow } from '@/features/today/WeekDayRow';
 import { isQuoteChanged, useStartTryOn, useWeekTryOn } from '@/features/tryon/api';
@@ -84,6 +87,9 @@ export default function PlanWeekScreen() {
   const [menu, setMenu] = useState<{ date: string; top: number } | null>(null);
   // 07c: the day whose look is being chosen (null = sheet closed).
   const [pick, setPick] = useState<WeekRow | null>(null);
+  // 09b: the day whose look is open in detail (null = closed).
+  const [detail, setDetail] = useState<string | null>(null);
+  const itemsById = indexItems(useItems().data);
   // 07b: the quote being confirmed (null = sheet closed) and why it is shown again.
   const [weekQuote, setWeekQuote] = useState<TryOnWeekQuote | null>(null);
   const [quoteChanged, setQuoteChanged] = useState(false);
@@ -187,6 +193,7 @@ export default function PlanWeekScreen() {
           const toPlan = daysToPlan(rows, today);
           const proposal = planJob.isDone ? (planJob.result?.days ?? []) : [];
           const menuRow = menu ? rows.find((r) => r.date === menu.date) : undefined;
+          const detailRow = detail ? rows.find((r) => r.date === detail && r.look) : undefined;
           const closeProposal = () => setPlanJobId(null);
 
           return (
@@ -313,6 +320,7 @@ export default function PlanWeekScreen() {
                     tryOnJobId={tryOnJobs[row.date] ?? null}
                     onOpenMenu={(top) => setMenu({ date: row.date, top })}
                     onPlan={() => setPick(row)}
+                    onOpen={() => setDetail(row.date)}
                     onRetryTryOn={() => void startTryOns([row.date])}
                   />
                 ))}
@@ -336,6 +344,39 @@ export default function PlanWeekScreen() {
                   },
                 ]}
               />
+
+              <BottomSheet visible={Boolean(detailRow)} onClose={() => setDetail(null)}>
+                {detailRow?.look ? (
+                  <View className="gap-3.5" testID="week-day-detail">
+                    <Text variant="eyebrow">
+                      {toDisplayUpper(formatDate(parseLocalDate(detailRow.date), { weekday: 'long', day: 'numeric', month: 'long' }), language)}
+                    </Text>
+                    <DayLook
+                      look={detailRow.look}
+                      status="planned"
+                      meta={t('calendarScreen.lookMeta', {
+                        occasion: t(`occasion.${detailRow.plan?.occasion ?? detailRow.look.occasion}`),
+                        pieces: t('product.piecesCount', { count: detailRow.look.slots.length }),
+                      })}
+                      itemsById={itemsById}
+                      onOpen={() => {
+                        const id = detailRow.look?.id;
+                        setDetail(null);
+                        if (id) router.push({ pathname: '/look/[id]', params: { id } });
+                      }}
+                      onChange={() => {
+                        setDetail(null);
+                        setPick(detailRow);
+                      }}
+                      onRemove={() => {
+                        putPlanDay.put(detailRow.plan, detailRow.date, { occasion: detailRow.plan?.occasion ?? null, lookId: null });
+                        setDetail(null);
+                      }}
+                      onWore={null}
+                    />
+                  </View>
+                ) : null}
+              </BottomSheet>
 
               <PlanLookSheet
                 date={pick?.date ?? null}
