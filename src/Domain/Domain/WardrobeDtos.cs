@@ -203,9 +203,14 @@ public record TripDto(
     IReadOnlyList<MissingPieceDto> Missing,
     DateTime CreatedAt,
     DateTime UpdatedAt,
-    long Version);
+    long Version,
+    IReadOnlyList<TripExtraDto>? Extras = null);
 
-public record TripItemDto(string ItemId, int PlannedWears, bool Packed, DateTime? PackedAt, bool Unavailable);
+/// <summary>A free-text row of the suitcase ("Diğer eşyalar"), in the order it was written.</summary>
+public record TripExtraDto(string Id, string Text, bool Packed);
+
+/// <param name="AddedByUser">The user put the piece on the list by hand; PlannedWears counts the days that wear it (0 = none).</param>
+public record TripItemDto(string ItemId, int PlannedWears, bool Packed, DateTime? PackedAt, bool Unavailable, bool AddedByUser = false);
 
 public record TripDayDto(string Date, string? Label, Occasion? Occasion, IReadOnlyList<LookSlotDto> Slots, WeatherDto? Weather);
 

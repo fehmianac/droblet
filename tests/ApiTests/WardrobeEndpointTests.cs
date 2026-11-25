@@ -1002,6 +1002,55 @@ public class StylistAndTripEndpointTests(ApiFactory factory) : IClassFixture<Api
     }
 
     [Fact]
+    public async Task Trip_ManualEdits_AddAndRemovePieces_SetADay_FreeTextRows()
+    {
+        var (client, tenant, top, bottom, shoes) = await ArrangeAsync();
+        var (other, _, foreignTop, _, _) = await ArrangeAsync();
+        var tripId = Ulid.New();
+        await client.PostJsonAsync("v1/tenant/trip", new { id = tripId, cityId = "paris", cityName = "Paris", startDate = "2027-03-01", endDate = "2027-03-02" });
+        var job = await factory.CompletedJobAsync(tenant, JobKind.StylistPack, Pack(tripId, top, bottom, shoes, "2027-03-01", "2027-03-02"));
+        await client.PostJsonAsync($"v1/tenant/trip/{tripId}/pack/{job.Id}/accept", new { clientMutationId = Ulid.New() });
+        var coat = new ItemEntity { Id = Ulid.New(), TenantId = tenant, Category = ItemCategory.Outerwear, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
+        await factory.Repository.SaveAsync(coat);
+
+        // A piece of the own wardrobe goes onto the list by hand; another tenant's piece never does.
+        var added = await (await client.PostJsonAsync($"v1/tenant/trip/{tripId}/items", new { itemIds = new[] { coat.Id, top.Id } })).ReadAsync<TripDetailDto>();
+        var foreign = await client.PostJsonAsync($"v1/tenant/trip/{tripId}/items", new { itemIds = new[] { foreignTop.Id } });
+        var row = Assert.Single(added.Items, i => i.ItemId == coat.Id);
+        Assert.Equal((true, 0, 4), (row.AddedByUser, row.PlannedWears, added.Items.Count));
+        Assert.False(Assert.Single(added.Items, i => i.ItemId == top.Id).AddedByUser); // already on the list: untouched
+        Assert.Equal((HttpStatusCode.UnprocessableEntity, "slot_item_not_found"), (foreign.StatusCode, await foreign.CodeAsync()));
+        Assert.Equal(HttpStatusCode.NotFound, (await other.PostJsonAsync($"v1/tenant/trip/{tripId}/items", new { itemIds = new[] { foreignTop.Id } })).StatusCode);
+
+        // A day as the user arranges it: the coat joins it, the wears are counted again.
+        var slots = new object[] { new { slot = "top", itemId = top.Id }, new { slot = "bottom", itemId = bottom.Id }, new { slot = "outerwear", itemId = coat.Id } };
+        var day = await (await client.PutJsonAsync($"v1/tenant/trip/{tripId}/day/2027-03-01", new { slots })).ReadAsync<TripDetailDto>();
+        Assert.Equal(3, day.Days.Single(d => d.Date == "2027-03-01").Slots.Count);
+        Assert.Equal((1, 1, 2), (day.Items.Single(i => i.ItemId == coat.Id).PlannedWears, day.Items.Single(i => i.ItemId == shoes.Id).PlannedWears, day.Items.Single(i => i.ItemId == top.Id).PlannedWears));
+        var wrongSlot = await client.PutJsonAsync($"v1/tenant/trip/{tripId}/day/2027-03-01", new { slots = new object[] { new { slot = "shoes", itemId = top.Id } } });
+        var outside = await client.PutJsonAsync($"v1/tenant/trip/{tripId}/day/2027-03-09", new { slots });
+        Assert.Equal((HttpStatusCode.UnprocessableEntity, "slot_category_mismatch"), (wrongSlot.StatusCode, await wrongSlot.CodeAsync()));
+        Assert.Equal((HttpStatusCode.UnprocessableEntity, "trip_day_out_of_range"), (outside.StatusCode, await outside.CodeAsync()));
+
+        // Removing a piece takes it out of the list and of every day that wears it; a second removal changes nothing.
+        var removed = await (await client.DeleteAsync($"v1/tenant/trip/{tripId}/item/{top.Id}")).ReadAsync<TripDetailDto>();
+        await client.DeleteAsync($"v1/tenant/trip/{tripId}/item/{top.Id}");
+        Assert.DoesNotContain(removed.Items, i => i.ItemId == top.Id);
+        Assert.All(removed.Days, d => Assert.DoesNotContain(d.Slots, s => s.ItemId == top.Id));
+        Assert.Equal(3, removed.Items.Count);
+
+        // Free-text rows: written, ticked, removed; private to the trip.
+        var extraId = Ulid.New();
+        var written = await (await client.PutJsonAsync($"v1/tenant/trip/{tripId}/extra/{extraId}", new { text = "  Pasaport ", packed = false })).ReadAsync<TripDetailDto>();
+        var ticked = await (await client.PutJsonAsync($"v1/tenant/trip/{tripId}/extra/{extraId}", new { text = "Pasaport", packed = true })).ReadAsync<TripDetailDto>();
+        var blank = await client.PutJsonAsync($"v1/tenant/trip/{tripId}/extra/{Ulid.New()}", new { text = "  ", packed = false });
+        Assert.Equal(("Pasaport", false), (Assert.Single(written.Trip.Extras!).Text, written.Trip.Extras![0].Packed));
+        Assert.True(Assert.Single(ticked.Trip.Extras!).Packed);
+        Assert.Equal(HttpStatusCode.BadRequest, blank.StatusCode);
+        Assert.Empty((await (await client.DeleteAsync($"v1/tenant/trip/{tripId}/extra/{extraId}")).ReadAsync<TripDetailDto>()).Trip.Extras!);
+    }
+
+    [Fact]
     public async Task Trip_AcceptIsReValidatedByPackingRules_Validation_PastTripIsArchived_NonMember403()
     {
         var (client, tenant, top, bottom, shoes) = await ArrangeAsync();

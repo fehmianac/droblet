@@ -12,6 +12,8 @@ import {
   type ForecastStatus,
   type Trip,
   type TripDay,
+  type TripEdit,
+  type TripExtra,
   type TripDetail,
   type TripFields,
   type TripItem,
@@ -49,6 +51,8 @@ export type TripWire = {
   createdAt: string;
   updatedAt: string;
   version: number;
+  /** Free-text rows (absent on older servers). */
+  extras?: TripExtra[] | null;
 };
 
 export type TripItemWire = {
@@ -57,6 +61,7 @@ export type TripItemWire = {
   packed: boolean;
   packedAt: string | null;
   unavailable: boolean;
+  addedByUser?: boolean;
 };
 export type TripDayWire = {
   date: string;
@@ -151,7 +156,7 @@ export function toTrip(wire: TripWire, local: TripLocal = {}): Trip {
 }
 
 function toTripItem(
-  wire: { itemId: string; packed?: boolean },
+  wire: { itemId: string; packed?: boolean; plannedWears?: number; addedByUser?: boolean },
   items: Map<string, Item>,
 ): TripItem | null {
   const item = items.get(wire.itemId);
@@ -165,7 +170,41 @@ function toTripItem(
     imageUrl: item.imageUrl,
     ...imageVariantsOf(item),
     packed: Boolean(wire.packed),
+    plannedWears: wire.plannedWears,
+    addedByUser: Boolean(wire.addedByUser),
   };
+}
+
+/** The wire slot of a wardrobe category (server `OutfitSlotRules`): socks, bags and accessories share one slot. */
+export function tripDaySlot(category: Item["category"]): LookSlotWire["slot"] {
+  if (category === "bottom" || category === "outerwear" || category === "shoes") return category;
+  if (category === "socks" || category === "bag" || category === "accessory") return "bagAccessory";
+  return "top";
+}
+
+/** Method, path and body of a manual suitcase change. A day's pieces go in the order given (inner layer first). */
+export function tripEditRequest(
+  tripId: string,
+  edit: TripEdit,
+  categoryOf: (itemId: string) => Item["category"] | undefined,
+): { path: string; method: "POST" | "PUT" | "DELETE"; body?: unknown } {
+  const base = `v1/tenant/trip/${tripId}`;
+  switch (edit.kind) {
+    case "addItems":
+      return { path: `${base}/items`, method: "POST", body: { itemIds: edit.itemIds } };
+    case "removeItem":
+      return { path: `${base}/item/${edit.itemId}`, method: "DELETE" };
+    case "setDay":
+      return {
+        path: `${base}/day/${edit.date}`,
+        method: "PUT",
+        body: { slots: edit.itemIds.map((itemId) => ({ slot: tripDaySlot(categoryOf(itemId) ?? "top"), itemId })) },
+      };
+    case "putExtra":
+      return { path: `${base}/extra/${edit.id}`, method: "PUT", body: { text: edit.text, packed: edit.packed } };
+    case "removeExtra":
+      return { path: `${base}/extra/${edit.id}`, method: "DELETE" };
+  }
 }
 
 function toTripDay(
@@ -258,6 +297,7 @@ export function toTripDetail(
     minWearsPerItem: wire.trip.everyPieceWornTwice ? 2 : null,
     ...toTripForecast(wire),
     lookCount: days.filter((d) => d.look).length,
+    extras: wire.trip.extras ?? [],
   };
 }
 
@@ -278,6 +318,7 @@ export function mergeTrip(wire: TripWire, base: TripDetail): TripDetail {
     missing: (wire.missing ?? []).map(toMissingPiece),
     minWearsPerItem: wire.everyPieceWornTwice ? 2 : null,
     gapFilled: (wire.missing ?? []).some((m) => Boolean(m.libraryItemId)),
+    extras: wire.extras ?? base.extras ?? [],
   };
 }
 

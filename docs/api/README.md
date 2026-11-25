@@ -168,6 +168,11 @@ Shared conventions (both documents, §1): camelCase JSON and enum strings; `Auth
 | POST | `v1/tenant/trip/{id}/archive` | user | [W](wardrobe-looks-plan-stylist.md) | Archive trip |
 | DELETE | `v1/tenant/trip/{id}/archive` | user | [W](wardrobe-looks-plan-stylist.md) | Unarchive trip |
 | PUT | `v1/tenant/trip/{id}/item/{itemId}` | user | [W](wardrobe-looks-plan-stylist.md) | Tick a piece on the packing checklist |
+| POST | `v1/tenant/trip/{id}/items` | user | [W](wardrobe-looks-plan-stylist.md) | Add own pieces to the packing list |
+| DELETE | `v1/tenant/trip/{id}/item/{itemId}` | user | [W](wardrobe-looks-plan-stylist.md) | Remove a piece from the packing list |
+| PUT | `v1/tenant/trip/{id}/day/{date}` | user | [W](wardrobe-looks-plan-stylist.md) | Set the pieces of a trip day |
+| PUT | `v1/tenant/trip/{id}/extra/{extraId}` | user | [W](wardrobe-looks-plan-stylist.md) | Write or tick a free-text row |
+| DELETE | `v1/tenant/trip/{id}/extra/{extraId}` | user | [W](wardrobe-looks-plan-stylist.md) | Remove a free-text row |
 | POST | `v1/tenant/trip/{id}/pack` | user | [W](wardrobe-looks-plan-stylist.md) | Build the suitcase |
 | POST | `v1/tenant/trip/{id}/pack/{jobId}/accept` | user | [W](wardrobe-looks-plan-stylist.md) | Accept the suitcase draft |
 

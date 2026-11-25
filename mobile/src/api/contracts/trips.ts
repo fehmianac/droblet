@@ -77,7 +77,29 @@ export type TripItem = ImageVariants & {
   color: ItemColor;
   imageUrl: string | null;
   packed: boolean;
+  /** Days of the trip that wear the piece (0 = on the list, worn by no day); absent on a pack draft. */
+  plannedWears?: number;
+  /** The user put the piece on the list by hand (19b "Sen ekledin"). */
+  addedByUser?: boolean;
 };
+
+/** A free-text row of the suitcase (19b "Diğer eşyalar": passport, charger). `id` is a ULID from the device. */
+export type TripExtra = { id: string; text: string; packed: boolean };
+
+export const TRIP_EXTRA_MAX = 30;
+export const TRIP_EXTRA_MAX_LENGTH = 40;
+
+/**
+ * A manual change of an accepted suitcase (19b–19d; no AI call, no credit). Each answers the trip detail.
+ * `addItems` POST …/items · `removeItem` DELETE …/item/{itemId} · `setDay` PUT …/day/{date} ·
+ * `putExtra` PUT …/extra/{id} · `removeExtra` DELETE …/extra/{id}.
+ */
+export type TripEdit =
+  | { kind: 'addItems'; itemIds: string[] }
+  | { kind: 'removeItem'; itemId: string }
+  | { kind: 'setDay'; date: string; itemIds: string[] }
+  | { kind: 'putExtra'; id: string; text: string; packed: boolean }
+  | { kind: 'removeExtra'; id: string };
 
 /**
  * A trip day. The wire day is `{ date, label, occasion, slots, weather }` — not a saved look: `look`
@@ -117,6 +139,8 @@ export type TripDetail = Trip &
     forecast: ForecastDay[] | null;
     /** Why the forecast is what it is; absent on an optimistic (not yet confirmed) trip or an older server. */
     forecastStatus?: ForecastStatus;
+    /** "Diğer eşyalar", in the order they were written. */
+    extras?: TripExtra[];
   };
 
 export type TripFields = Pick<Trip, 'cityId' | 'startDate' | 'endDate' | 'tripTypes' | 'cabinOnly'>;

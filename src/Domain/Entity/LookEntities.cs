@@ -122,6 +122,14 @@ public class WearLogEntity : IEntity
     public static string DatePrefix(string date) => $"{date}#";
 }
 
+/// <summary>A free-text row of the suitcase ("Pasaport"). Id = ULID from the device.</summary>
+public class TripExtraValue
+{
+    [JsonPropertyName("id")] public string Id { get; set; } = null!;
+    [JsonPropertyName("text")] public string Text { get; set; } = null!;
+    [JsonPropertyName("packed")] public bool Packed { get; set; }
+}
+
 public class TripEntity : IVersionedEntity
 {
     [JsonPropertyName("pk")] public string Pk => GetPk(TenantId);
@@ -140,6 +148,8 @@ public class TripEntity : IVersionedEntity
     [JsonPropertyName("packJobId")] public string? PackJobId { get; set; }
     [JsonPropertyName("everyPieceWornTwice")] public bool EveryPieceWornTwice { get; set; }
     [JsonPropertyName("missing")] public List<MissingPieceValue> Missing { get; set; } = [];
+    // "Diğer eşyalar" (canvas 19b): things the user wrote onto the list by hand (passport, charger). Private to the owner.
+    [JsonPropertyName("extras")] public List<TripExtraValue> Extras { get; set; } = [];
     [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; }
     [JsonPropertyName("updatedAt")] public DateTime UpdatedAt { get; set; }
     [JsonPropertyName("version")] public long Version { get; set; }
@@ -160,6 +170,8 @@ public class TripItemEntity : IEntity
     [JsonPropertyName("plannedWears")] public int PlannedWears { get; set; }
     [JsonPropertyName("packed")] public bool Packed { get; set; }
     [JsonPropertyName("packedAt")] public DateTime? PackedAt { get; set; }   // device time of the last mark
+    // The user put the piece on the list by hand (canvas 19b "Sen ekledin"); false for a piece of the accepted pack.
+    [JsonPropertyName("addedByUser")] public bool AddedByUser { get; set; }
 
     public static string GetPk(string tenantId) => $"tenant#{tenantId}#tripitem";
     public static string GetSk(string tripId, string itemId) => $"{tripId}#{itemId}";

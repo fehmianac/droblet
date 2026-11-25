@@ -1,11 +1,11 @@
 import type { QueryClient } from '@tanstack/react-query';
 
 import { apiRequest } from '@/api/client';
-import type { AcceptPackRequest, CheckTripItemRequest, CreateTripRequest, PutTripRequest, Trip, TripDetail, TripPlan } from '@/api/contracts/trips';
+import type { AcceptPackRequest, CheckTripItemRequest, CreateTripRequest, PutTripRequest, Trip, TripDetail, TripEdit, TripPlan } from '@/api/contracts/trips';
 import { isConflict, isGone } from '@/api/errors';
 import { fromSource } from '@/api/dataSource';
-import { fromTripFields, mergeTrip, toTripDetailAsync, type TripDetailWire, type TripWire } from '@/api/wire/trips';
-import { fixtureAcceptPack, fixtureCheckTripItem, fixtureCreateTrip, fixtureDeleteTrip, fixturePutTrip } from '@/fixtures/trips';
+import { fromTripFields, mergeTrip, toTripDetailAsync, tripEditRequest, type TripDetailWire, type TripWire } from '@/api/wire/trips';
+import { fixtureAcceptPack, fixtureCheckTripItem, fixtureCreateTrip, fixtureDeleteTrip, fixtureEditTrip, fixturePutTrip } from '@/fixtures/trips';
 import { ulid } from '@/lib/ids';
 import { conflictStore } from '@/sync/conflicts';
 import { TENANT_WRITE_SCOPE } from '@/sync/queryKeys';
@@ -24,6 +24,7 @@ export const tripMutationKeys = {
   remove: ['tenant', 'trip', 'delete'] as const,
   checkItem: ['tenant', 'trip', 'item', 'check'] as const,
   acceptPack: ['tenant', 'trip', 'pack', 'accept'] as const,
+  edit: ['tenant', 'trip', 'edit'] as const,
 };
 
 /** `cityName` goes on the wire next to `cityId` (the server stores the name the user picked). */
@@ -33,6 +34,11 @@ export type DeleteTripVariables = { id: string; clientMutationId: string };
 export type CheckTripItemVariables = { tripId: string; itemId: string; request: CheckTripItemRequest };
 /** `plan` is the draft the user saw and accepted — shown optimistically until the server confirms. */
 export type AcceptPackVariables = { tripId: string; jobId: string; request: AcceptPackRequest; plan: TripPlan };
+/**
+ * A manual change (19b–19d). `optimistic` = the detail with the change applied (`applyTripEdit`); `categories` = the
+ * category of every piece a `setDay` names (the wire wants the slot), read from the wardrobe when the change was made.
+ */
+export type EditTripVariables = { tripId: string; edit: TripEdit; optimistic: TripDetail; categories?: Record<string, string> };
 
 export function withTripCounts(trip: TripDetail): TripDetail {
   return {
@@ -217,5 +223,31 @@ export function registerTripMutations(client: QueryClient): void {
       if (saved) writeTrip(client, saved);
     },
     onError: invalidate,
+  });
+
+  client.setMutationDefaults(tripMutationKeys.edit, {
+    scope: TENANT_WRITE_SCOPE,
+    mutationFn: (vars: EditTripVariables) =>
+      fromSource<TripDetail>(
+        'wardrobe',
+        () => fixtureEditTrip(vars.tripId, vars.edit),
+        async () => {
+          const { path, method, body } = tripEditRequest(vars.tripId, vars.edit, (id) => vars.categories?.[id] as never);
+          const wire = await apiRequest<TripDetailWire>(path, { method, body });
+          return toTripDetailAsync(wire, { region: client.getQueryData<TripDetail>(tripKeys.trip(vars.tripId))?.region });
+        },
+      ),
+    onMutate: async (vars: EditTripVariables) => {
+      await client.cancelQueries({ queryKey: tripKeys.trip(vars.tripId) });
+      writeTrip(client, vars.optimistic);
+    },
+    onSuccess: (saved: TripDetail | undefined) => {
+      // Several changes may be queued: only the last answer is the list as it stands.
+      if (saved && client.isMutating({ mutationKey: tripMutationKeys.edit }) <= 1) writeTrip(client, saved);
+    },
+    onError: (_error: unknown, vars: EditTripVariables) => {
+      invalidate();
+      void client.invalidateQueries({ queryKey: tripKeys.trip(vars.tripId) });
+    },
   });
 }

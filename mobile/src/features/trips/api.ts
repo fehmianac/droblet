@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 
 import { apiRequest } from '@/api/client';
-import type { City, PackTripRequest, PackTripResponse, Trip, TripDetail, TripFields, TripPlan } from '@/api/contracts/trips';
+import type { City, PackTripRequest, PackTripResponse, Trip, TripDetail, TripEdit, TripFields, TripPlan } from '@/api/contracts/trips';
+import type { Item } from '@/api/contracts/wardrobe';
 import { useJob } from '@/api/jobs';
 import { fromSource } from '@/api/dataSource';
 import type { JobWire } from '@/api/wire/core';
@@ -13,7 +14,7 @@ import { fixtureGetTrip, fixtureListTrips, fixtureSearchCities, fixtureStartPack
 import { ulid } from '@/lib/ids';
 import { newClientMutation } from '@/sync/clientMutation';
 
-import { CITY_QUERY_MIN, foldForSearch } from './logic';
+import { applyTripEdit, CITY_QUERY_MIN, foldForSearch } from './logic';
 import {
   tripKeys,
   tripMutationKeys,
@@ -21,6 +22,7 @@ import {
   type CheckTripItemVariables,
   type CreateTripVariables,
   type DeleteTripVariables,
+  type EditTripVariables,
   type PutTripVariables,
 } from './mutations';
 
@@ -88,6 +90,7 @@ export function useTripWrites() {
   const remove = useMutation<void, unknown, DeleteTripVariables>({ mutationKey: tripMutationKeys.remove });
   const check = useMutation<void, unknown, CheckTripItemVariables>({ mutationKey: tripMutationKeys.checkItem });
   const accept = useMutation<TripDetail, unknown, AcceptPackVariables>({ mutationKey: tripMutationKeys.acceptPack });
+  const editTrip = useMutation<TripDetail, unknown, EditTripVariables>({ mutationKey: tripMutationKeys.edit });
 
   const fields = (draft: TripDraft): TripFields => ({
     cityId: draft.cityId,
@@ -158,6 +161,12 @@ export function useTripWrites() {
     },
     acceptPack: (tripId: string, jobId: string, plan: TripPlan): void => {
       accept.mutate({ tripId, jobId, plan, request: { clientMutationId: newClientMutation().clientMutationId } });
+    },
+    /** A manual change of the accepted suitcase (19b–19d): shown at once, queued when offline. `items` = the wardrobe. */
+    edit: (trip: TripDetail, edit: TripEdit, items: Item[] = []): void => {
+      const byId = new Map(items.map((i) => [i.id, i]));
+      const categories = edit.kind === 'setDay' ? Object.fromEntries(edit.itemIds.flatMap((id) => (byId.get(id) ? [[id, byId.get(id)!.category]] : []))) : undefined;
+      editTrip.mutate({ tripId: trip.id, edit, optimistic: applyTripEdit(trip, edit, (id) => byId.get(id)), categories });
     },
   };
 }
