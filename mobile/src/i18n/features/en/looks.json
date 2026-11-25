@@ -292,7 +292,7 @@
       "pickerTitle": "Add from wardrobe",
       "pickerEmpty": "Nothing to add.",
       "all": "All",
-      "onList": "Packed",
+      "onList": "In suitcase",
       "onListA11y": "{{name}}, already in the suitcase",
       "addCount_one": "Add {{count}} piece",
       "addCount_other": "Add {{count}} pieces",

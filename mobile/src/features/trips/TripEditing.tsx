@@ -48,7 +48,7 @@ function PieceGrid({ items, listed, selected, onToggle }: GridProps) {
           ))}
         </ScrollView>
       ) : null}
-      <ScrollView className="max-h-[380px]" contentContainerClassName="flex-row flex-wrap -mx-[5px]">
+      <ScrollView className="-mx-[5px] max-h-[380px]" contentContainerClassName="flex-row flex-wrap">
         {shown.map((item) => {
           const onList = listed?.has(item.id) ?? false;
           const picked = selected.includes(item.id);
