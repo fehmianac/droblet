@@ -258,6 +258,7 @@ function seedTrips(): StoredTrip[] {
         fixtureDb.items.map((i) => i.id),
       ),
       forecast: null,
+      forecastStatus: "past",
     }),
   ];
 }

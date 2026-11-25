@@ -80,7 +80,8 @@ export function LogoLoader({
             L.draw * 0.5,
             withTiming(1, { duration: L.drop, easing: EASE }),
           ),
-          withDelay(L.hold + L.out, withTiming(0, { duration: 0 })),
+          // Same 1800 ms turn as the stroke and the fade, or the drop drifts ahead of the mark.
+          withDelay(rest + L.out, withTiming(0, { duration: 0 })),
         ),
         -1,
       ),
