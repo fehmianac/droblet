@@ -171,7 +171,7 @@ function PostDetail({ post }: { post: FeedPost }) {
           <FeedToggle icon={Bookmark} size={20} on={post.saved} label={t('homeFeed.save')} onPress={() => save(post, !post.saved)} testID="feed.detail.save" />
           {post.canTryOn ? (
             <View className="ml-1.5 flex-1">
-              <Button label={t('homeFeed.tryOn')} detail={t('homeFeed.tryOnCost')} icon={Sparkles} size="bar" onPress={tryOn.start} className="px-2.5" testID="feed.detail.tryOn" />
+              <Button label={t('homeFeed.tryOn')} detail={t('homeFeed.tryOnCost')} icon={Sparkles} size="bar" onPress={tryOn.start} loading={tryOn.starting} className="px-2.5" testID="feed.detail.tryOn" />
             </View>
           ) : null}
         </View>

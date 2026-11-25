@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 
 import type { FeedPost, FeedProduct } from '@/api/contracts/feed';
+import { DropLoader } from '@/components/brand/DropLoader';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { ImageSlot } from '@/components/ui/ImageSlot';
@@ -209,12 +210,14 @@ function EditorPostCard({ post, teen, onBuy }: Pick<Props, 'post' | 'teen' | 'on
           compact && post.canTryOn ? (
             <Pressable
               onPress={startTryOn}
+              disabled={tryOn.starting}
               accessibilityRole="button"
+              accessibilityState={{ busy: tryOn.starting }}
               accessibilityLabel={t('homeFeed.tryOnOverlayA11y')}
               testID={`feed.post.${post.id}.tryOn`}
               className="absolute bottom-3 right-3 h-10 flex-row items-center gap-1.5 rounded-pill bg-feed-pill px-3.5 active:opacity-80"
             >
-              <Icon icon={Sparkles} size={15} />
+              {tryOn.starting ? <DropLoader size="inline" tone="ink" accessibilityLabel={t('homeFeed.tryOn')} /> : <Icon icon={Sparkles} size={15} />}
               <Text variant="label" className="text-[13px]">
                 {t('homeFeed.tryOn')}
               </Text>
@@ -286,6 +289,7 @@ function EditorPostCard({ post, teen, onBuy }: Pick<Props, 'post' | 'teen' | 'on
                 icon={Sparkles}
                 size="bar"
                 onPress={startTryOn}
+                loading={tryOn.starting}
                 className="flex-1 px-2.5"
                 testID={`feed.post.${post.id}.tryOn`}
               />
