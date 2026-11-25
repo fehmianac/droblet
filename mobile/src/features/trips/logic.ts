@@ -2,7 +2,9 @@ import {
   TRIP_MAX_DAYS,
   type City,
   type Trip,
+  type TripDay,
   type TripDetail,
+  type TripEdit,
   type TripItem,
 } from "@/api/contracts/trips";
 import type { ItemCategory } from "@/api/contracts/wardrobe";
@@ -215,15 +217,16 @@ export type TripShareLabels = {
  * private to its owner, so there is no link another person could open.
  */
 export function tripShareText(
-  trip: Pick<TripDetail, "items" | "days" | "missing">,
+  trip: Pick<TripDetail, "items" | "days" | "missing" | "extras">,
   labels: TripShareLabels,
 ): string {
   const sections: string[][] = [[labels.title]];
-  if (trip.items.length > 0)
-    sections.push([
-      labels.listHeader,
-      ...trip.items.map((i) => labels.item(i.name, i.packed)),
-    ]);
+  // The free-text rows (19b "Diğer eşyalar") follow the pieces in the same list.
+  const rows = [
+    ...trip.items.map((i) => labels.item(i.name, i.packed)),
+    ...(trip.extras ?? []).map((e) => labels.item(e.text, e.packed)),
+  ];
+  if (rows.length > 0) sections.push([labels.listHeader, ...rows]);
   const looks = trip.days.flatMap((d) =>
     d.look ? [labels.look(d.date, d.look.name)] : [],
   );
@@ -350,5 +353,90 @@ export function weatherNotes(
   return {
     rainyDays: rainyDayCount(forecast) ?? 0,
     coldNightC: range && range.min <= COLD_NIGHT_C ? range.min : null,
+  };
+}
+
+
+/** The boxes of the day editor (19d), in board order; a day may also hold socks and accessories it already had. */
+export const DAY_BOXES = ["top", "bottom", "outerwear", "shoes", "bag", "socks", "accessory"] as const;
+export type DayBox = (typeof DAY_BOXES)[number];
+export const DAY_BOX_CATEGORIES: Record<DayBox, readonly ItemCategory[]> = {
+  top: ["top", "dress", "beachwear", "skiwear"],
+  bottom: ["bottom"],
+  outerwear: ["outerwear"],
+  shoes: ["shoes"],
+  bag: ["bag"],
+  socks: ["socks"],
+  accessory: ["accessory"],
+};
+
+export function dayBoxOf(category: ItemCategory): DayBox {
+  return DAY_BOXES.find((box) => DAY_BOX_CATEGORIES[box].includes(category)) ?? "top";
+}
+
+type EditItem = Pick<TripItem, "name" | "category" | "color" | "imageUrl"> & { id: string } & Partial<TripItem>;
+
+/**
+ * A manual suitcase change applied to the detail as the server applies it (optimistic update and fixtures):
+ * a removed piece leaves every day; a piece put into a day joins the list; the wears are counted again.
+ * `itemOf` reads the wardrobe (a piece it does not know is skipped).
+ */
+export function applyTripEdit(
+  trip: TripDetail,
+  edit: TripEdit,
+  itemOf: (id: string) => EditItem | undefined,
+): TripDetail {
+  const extras = trip.extras ?? [];
+  if (edit.kind === "putExtra") {
+    const next = { id: edit.id, text: edit.text.trim(), packed: edit.packed };
+    return {
+      ...trip,
+      extras: extras.some((e) => e.id === edit.id) ? extras.map((e) => (e.id === edit.id ? next : e)) : [...extras, next],
+    };
+  }
+  if (edit.kind === "removeExtra") return { ...trip, extras: extras.filter((e) => e.id !== edit.id) };
+
+  const listed = new Set(trip.items.map((i) => i.itemId));
+  const row = (id: string): TripItem | null => {
+    const item = itemOf(id);
+    if (!item) return null;
+    const { id: itemId, ...rest } = item;
+    return { ...rest, itemId, packed: false, plannedWears: 0, addedByUser: true };
+  };
+  const added = (ids: string[]) =>
+    ids.filter((id, i) => !listed.has(id) && ids.indexOf(id) === i).flatMap((id) => row(id) ?? []);
+
+  let items = trip.items;
+  let days = trip.days;
+  if (edit.kind === "addItems") items = [...items, ...added(edit.itemIds)];
+  if (edit.kind === "removeItem") {
+    items = items.filter((i) => i.itemId !== edit.itemId);
+    days = days.map((d) => dayWith(trip.id, d, (d.itemIds ?? []).filter((id) => id !== edit.itemId), itemOf));
+  }
+  if (edit.kind === "setDay") {
+    items = [...items, ...added(edit.itemIds)];
+    const existing = days.find((d) => d.date === edit.date) ?? { date: edit.date, look: null, itemIds: [] };
+    const next = dayWith(trip.id, existing, edit.itemIds, itemOf);
+    days = days.some((d) => d.date === edit.date)
+      ? days.map((d) => (d.date === edit.date ? next : d))
+      : [...days, next].sort((a, b) => a.date.localeCompare(b.date));
+  }
+  const wears = new Map<string, number>();
+  for (const day of days) for (const id of new Set(day.itemIds ?? [])) wears.set(id, (wears.get(id) ?? 0) + 1);
+  return { ...trip, days, items: items.map((i) => ({ ...i, plannedWears: wears.get(i.itemId) ?? 0 })) };
+}
+
+function dayWith(tripId: string, day: TripDay, itemIds: string[], itemOf: (id: string) => EditItem | undefined): TripDay {
+  if (itemIds.length === 0) return { date: day.date, look: null, itemIds: [] };
+  const first = itemOf(itemIds[0] as string);
+  return {
+    date: day.date,
+    itemIds,
+    look: {
+      id: `${tripId}:${day.date}`,
+      name: day.look?.name ?? "",
+      occasion: day.look?.occasion ?? "travel",
+      imageUrl: first?.mediumUrl ?? first?.imageUrl ?? null,
+    },
   };
 }

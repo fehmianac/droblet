@@ -7,8 +7,10 @@ import {
   Cloud,
   CloudRain,
   Ellipsis,
+  Minus,
   MirrorRound,
   Pencil,
+  Plus,
   Share as ShareIcon,
   Snowflake,
   Sun,
@@ -17,14 +19,17 @@ import {
 } from "lucide-react-native";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, ScrollView, Share, View } from "react-native";
+import { Pressable, ScrollView, Share, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import type {
-  TripDay,
-  TripDetail,
-  TripMissingPiece,
-  WeatherCondition,
+import {
+  TRIP_EXTRA_MAX,
+  TRIP_EXTRA_MAX_LENGTH,
+  type TripDay,
+  type TripDetail,
+  type TripItem,
+  type TripMissingPiece,
+  type WeatherCondition,
 } from "@/api/contracts/trips";
 import { ITEM_CATEGORIES } from "@/api/contracts/wardrobe";
 import { PopoverMenu } from "@/components/ui/Bits";
@@ -51,6 +56,9 @@ import {
   weatherNotes,
 } from "@/features/trips/logic";
 import { TripDaySheet } from "@/features/trips/TripDaySheet";
+import { TripDayEditSheet, TripItemPicker } from "@/features/trips/TripEditing";
+import { showToast } from "@/components/ui/toast/store";
+import { ulid } from "@/lib/ids";
 import { TripPacking } from "@/features/trips/TripPacking";
 import { RequirementHint } from "@/features/requirements/RequirementHint";
 import { useGate } from "@/features/requirements/useRequirements";
@@ -139,6 +147,7 @@ function DayCards({
   onOpenImage,
   onOpenDay,
   onSaveAsLook,
+  onEditDay,
 }: {
   trip: TripDetail;
   images: Record<string, DayImage>;
@@ -146,6 +155,7 @@ function DayCards({
   onOpenImage: (jobId: string) => void;
   onOpenDay: (day: TripDay) => void;
   onSaveAsLook: (day: TripDay) => void;
+  onEditDay: (day: TripDay) => void;
 }) {
   const language = useAppLanguage();
   const { t } = useTranslation();
@@ -309,16 +319,30 @@ function DayCards({
                 testID={`trip-day-tryon-${day.date}`}
               />
             )}
-            <Pressable
-              onPress={() => onSaveAsLook(day)}
-              accessibilityRole="button"
-              accessibilityLabel={t("tripDetail.daySaveLook")}
-              className="min-h-icon-btn flex-row items-center justify-center gap-1.5 active:opacity-70"
-              testID={`trip-day-save-${day.date}`}
-            >
-              <Icon icon={Bookmark} size={16} />
-              <Text variant="label">{t("tripDetail.daySaveLook")}</Text>
-            </Pressable>
+            <View className="flex-row items-center justify-between">
+              <Pressable
+                onPress={() => onEditDay(day)}
+                accessibilityRole="button"
+                accessibilityLabel={t("tripDetail.manual.dayEdit")}
+                className="min-h-icon-btn flex-row items-center gap-1.5 active:opacity-70"
+                testID={`trip-day-edit-${day.date}`}
+              >
+                <Icon icon={Pencil} size={16} tone="accent" />
+                <Text variant="label" tone="accent">
+                  {t("tripDetail.manual.dayEdit")}
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => onSaveAsLook(day)}
+                accessibilityRole="button"
+                accessibilityLabel={t("tripDetail.daySaveLook")}
+                className="min-h-icon-btn flex-row items-center justify-center gap-1.5 active:opacity-70"
+                testID={`trip-day-save-${day.date}`}
+              >
+                <Icon icon={Bookmark} size={16} />
+                <Text variant="label">{t("tripDetail.daySaveLook")}</Text>
+              </Pressable>
+            </View>
           </View>
         );
       })}
@@ -327,6 +351,15 @@ function DayCards({
 }
 
 /** Square check mark of the canvas checklists (accent-colour ink when on). */
+/** 19b, list in edit mode: the "take out" mark in the place of the check box. */
+function RemoveMark() {
+  return (
+    <View className="h-7 w-7 items-center justify-center rounded-pill border-[1.5px] border-danger">
+      <Icon icon={Minus} size={16} tone="danger" />
+    </View>
+  );
+}
+
 function CheckBox({ checked, size }: { checked: boolean; size: 18 | 20 }) {
   return (
     <View
@@ -505,6 +538,49 @@ function PackedTrip({
   const [openDay, setOpenDay] = useState<TripDay | null>(null);
   const [tryOnNote, setTryOnNote] = useState<"offline" | "failed" | null>(null);
   const pendingScope = useRef<"all" | string>("all");
+  // 19b–19d: manual changes of the list and the days (no AI call, no credit).
+  const [editing, setEditing] = useState(false);
+  const [picker, setPicker] = useState(false);
+  const [editDay, setEditDay] = useState<TripDay | null>(null);
+  const [removing, setRemoving] = useState<TripItem | null>(null);
+  const [extraText, setExtraText] = useState("");
+  const wardrobe = items.data ?? [];
+  const listed = new Set(trip.items.map((i) => i.itemId));
+  const extras = trip.extras ?? [];
+  const extrasPacked = extras.filter((e) => e.packed).length;
+  const wearsOf = (item: TripItem) =>
+    item.plannedWears ?? trip.days.filter((d) => (d.itemIds ?? []).includes(item.itemId)).length;
+  const removeItem = (item: TripItem) => {
+    writes.edit(trip, { kind: "removeItem", itemId: item.itemId }, wardrobe);
+    setRemoving(null);
+  };
+  const askRemove = (item: TripItem) => {
+    // A piece a day wears leaves that day too: asked first. A piece worn by no day goes at once, with an undo.
+    if (wearsOf(item) > 0) {
+      setRemoving(item);
+      return;
+    }
+    removeItem(item);
+    showToast({
+      message: t("tripDetail.manual.removed", { name: item.name }),
+      action: { label: t("tripDetail.manual.undo"), onPress: () => writes.edit({ ...trip, items: trip.items.filter((i) => i.itemId !== item.itemId) }, { kind: "addItems", itemIds: [item.itemId] }, wardrobe) },
+      testID: "trip-item-removed",
+    });
+  };
+  const addExtra = () => {
+    const text = extraText.trim();
+    if (!text || extras.length >= TRIP_EXTRA_MAX) return;
+    writes.edit(trip, { kind: "putExtra", id: ulid(), text, packed: false });
+    setExtraText("");
+  };
+  const editDayMeta = (day: TripDay) => {
+    const weather = trip.forecast?.find((f) => f.date === day.date);
+    return [
+      formatDate(parseLocalDate(day.date), { weekday: "short", day: "numeric", month: "short" }),
+      weather ? dayTemperature(t, weather) : null,
+      weather?.rainChance != null ? t("tripDetail.dayRain", { chance: weather.rainChance }) : null,
+    ].filter(Boolean).join(" · ");
+  };
 
   const ready = readiness(trip.items);
   const lookDays = trip.days.filter((d) => d.look);
@@ -696,6 +772,7 @@ function PackedTrip({
             }
             onOpenDay={setOpenDay}
             onSaveAsLook={saveAsLook}
+            onEditDay={setEditDay}
           />
         </View>
       ) : (
@@ -703,28 +780,42 @@ function PackedTrip({
       )}
 
       <View>
-        <View className="flex-row items-baseline justify-between border-b border-line pb-1.5">
-          <Text variant="h2">{t("tripDetail.listTitle")}</Text>
-          <Text
-            variant="caption"
-            tone="muted"
-            accessibilityLabel={t("tripDetail.readinessLabel", ready)}
-            testID="trip-packed-count"
+        <View className="flex-row items-center justify-between border-b border-line pb-1.5">
+          <View>
+            <Text variant="h2">{t("tripDetail.listTitle")}</Text>
+            <Text
+              variant="caption"
+              tone="muted"
+              accessibilityLabel={t("tripDetail.readinessLabel", ready)}
+              testID="trip-packed-count"
+            >
+              {t("tripDetail.packedCount", ready)}
+            </Text>
+          </View>
+          <Pressable
+            onPress={() => setEditing((on) => !on)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: editing }}
+            className="min-h-icon-btn justify-center pl-3 active:opacity-70"
+            testID="trip-list-edit"
           >
-            {t("tripDetail.packedCount", ready)}
-          </Text>
+            <Text variant="label" tone="accent">
+              {editing ? t("tripDetail.manual.done") : t("tripDetail.manual.edit")}
+            </Text>
+          </Pressable>
         </View>
         {rows.map((item) => (
           <Pressable
             key={item.itemId}
-            onPress={() => writes.setPacked(trip.id, item.itemId, !item.packed)}
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: item.packed }}
-            accessibilityLabel={item.name}
+            onPress={() => (editing ? askRemove(item) : writes.setPacked(trip.id, item.itemId, !item.packed))}
+            accessibilityRole={editing ? "button" : "checkbox"}
+            accessibilityState={editing ? undefined : { checked: item.packed }}
+            accessibilityLabel={editing ? t("tripDetail.manual.removeA11y", { name: item.name }) : item.name}
             accessibilityHint={t(`itemCategory.${item.category}`)}
+            testID={editing ? `trip-item-remove-${item.itemId}` : `trip-item-${item.itemId}`}
             className="min-h-icon-btn flex-row items-center gap-3 border-b border-line py-2 active:opacity-70"
           >
-            <CheckBox checked={item.packed} size={20} />
+            {editing ? <RemoveMark /> : <CheckBox checked={item.packed} size={20} />}
             <View className={item.packed ? "opacity-50" : ""}>
               <ItemThumb
                 category={item.category}
@@ -734,19 +825,39 @@ function PackedTrip({
                 glyphSize={18}
               />
             </View>
-            <Text
-              variant="body"
-              tone={item.packed ? "muted" : "ink"}
-              numberOfLines={2}
-              className={`flex-1 ${item.packed ? "line-through" : ""}`}
-            >
-              {item.name}
-            </Text>
+            <View className="flex-1">
+              <Text
+                variant="body"
+                tone={item.packed ? "muted" : "ink"}
+                numberOfLines={2}
+                className={item.packed ? "line-through" : ""}
+              >
+                {item.name}
+              </Text>
+              {editing && (wearsOf(item) > 0 || item.addedByUser) ? (
+                <Text variant="caption" tone="muted" className="text-[12px]" testID={`trip-item-note-${item.itemId}`}>
+                  {wearsOf(item) > 0 ? t("tripDetail.manual.wornDays", { count: wearsOf(item) }) : t("tripDetail.manual.addedByYou")}
+                </Text>
+              ) : null}
+            </View>
             <Text variant="caption" tone="muted" numberOfLines={1}>
               {t(`itemCategory.${item.category}`)}
             </Text>
           </Pressable>
         ))}
+        {editing ? (
+          <Pressable
+            onPress={() => setPicker(true)}
+            accessibilityRole="button"
+            testID="trip-add-items"
+            className="min-h-[52px] flex-row items-center gap-2.5 border-b border-line active:opacity-70"
+          >
+            <Icon icon={Plus} size={18} tone="accent" />
+            <Text variant="bodyMedium" tone="accent" className="text-[14.5px]">
+              {t("tripDetail.manual.addFromWardrobe")}
+            </Text>
+          </Pressable>
+        ) : null}
         {notes.rainyDays > 0 || notes.coldNightC !== null ? (
           <View className="gap-1.5 pt-3.5" testID="trip-weather-notes">
             {notes.rainyDays > 0 ? (
@@ -763,6 +874,68 @@ function PackedTrip({
             ) : null}
           </View>
         ) : null}
+      </View>
+
+      <View testID="trip-extras">
+        <View className="flex-row items-baseline justify-between border-b border-line pb-1.5">
+          <Text variant="h2">{t("tripDetail.manual.extrasTitle")}</Text>
+          {extras.length > 0 ? (
+            <Text variant="caption" tone="muted" testID="trip-extras-count">
+              {t("tripDetail.packedCount", { packed: extrasPacked, total: extras.length })}
+            </Text>
+          ) : null}
+        </View>
+        {extras.map((extra) => (
+          <Pressable
+            key={extra.id}
+            onPress={() =>
+              writes.edit(trip, editing ? { kind: "removeExtra", id: extra.id } : { kind: "putExtra", id: extra.id, text: extra.text, packed: !extra.packed })
+            }
+            accessibilityRole={editing ? "button" : "checkbox"}
+            accessibilityState={editing ? undefined : { checked: extra.packed }}
+            accessibilityLabel={editing ? t("tripDetail.manual.extraRemoveA11y", { name: extra.text }) : extra.text}
+            testID={`trip-extra-${extra.id}`}
+            className="min-h-icon-btn flex-row items-center gap-3 border-b border-line py-2 active:opacity-70"
+          >
+            {editing ? <RemoveMark /> : <CheckBox checked={extra.packed} size={20} />}
+            <Text variant="body" tone={extra.packed ? "muted" : "ink"} numberOfLines={2} className={`flex-1 ${extra.packed ? "line-through" : ""}`}>
+              {extra.text}
+            </Text>
+          </Pressable>
+        ))}
+        {extras.length < TRIP_EXTRA_MAX ? (
+          <View className="min-h-[52px] flex-row items-center gap-2.5 border-b border-line">
+            <Icon icon={Plus} size={18} tone="accent" />
+            <TextInput
+              value={extraText}
+              onChangeText={setExtraText}
+              onSubmitEditing={addExtra}
+              placeholder={t("tripDetail.manual.extraPlaceholder")}
+              accessibilityLabel={t("tripDetail.manual.extraLabel")}
+              maxLength={TRIP_EXTRA_MAX_LENGTH}
+              returnKeyType="done"
+              submitBehavior="submit"
+              testID="trip-extra-input"
+              className="flex-1 py-2 font-sans text-[14.5px] text-ink"
+            />
+            {extraText.trim() ? (
+              <Pressable
+                onPress={addExtra}
+                accessibilityRole="button"
+                testID="trip-extra-add"
+                className="h-8 justify-center rounded-pill bg-ink px-3.5 active:opacity-80"
+              >
+                <Text variant="chip" tone="cream">
+                  {t("tripDetail.manual.extraAdd")}
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : (
+          <Text variant="caption" tone="muted" className="pt-2">
+            {t("tripDetail.manual.extraLimit", { count: TRIP_EXTRA_MAX })}
+          </Text>
+        )}
       </View>
 
       <View className="gap-2.5">
@@ -832,6 +1005,46 @@ function PackedTrip({
           {t("tripDetail.deleteTrip")}
         </Text>
       </Pressable>
+
+      <TripItemPicker
+        visible={picker}
+        subtitle={`${trip.cityName} · ${formatDateRange(parseLocalDate(trip.startDate), parseLocalDate(trip.endDate))}`}
+        items={wardrobe}
+        listed={listed}
+        onClose={() => setPicker(false)}
+        onAdd={(itemIds) => writes.edit(trip, { kind: "addItems", itemIds }, wardrobe)}
+      />
+
+      <TripDayEditSheet
+        day={editDay}
+        meta={editDay ? editDayMeta(editDay) : ""}
+        items={wardrobe}
+        listed={listed}
+        onClose={() => setEditDay(null)}
+        onSave={(day, itemIds) => {
+          writes.edit(trip, { kind: "setDay", date: day.date, itemIds }, wardrobe);
+          setEditDay(null);
+        }}
+      />
+
+      <BottomSheet
+        visible={removing !== null}
+        onClose={() => setRemoving(null)}
+        title={removing ? t("tripDetail.manual.removeTitle", { name: removing.name }) : undefined}
+      >
+        <View className="gap-3.5">
+          <Text variant="body" tone="muted">
+            {t("tripDetail.manual.removeBody", { count: removing ? wearsOf(removing) : 0 })}
+          </Text>
+          <Button
+            variant="danger"
+            label={t("tripDetail.manual.removeConfirm")}
+            onPress={() => removing && removeItem(removing)}
+            testID="trip-item-remove-confirm"
+          />
+          <Button variant="secondary" label={t("common.cancel")} onPress={() => setRemoving(null)} />
+        </View>
+      </BottomSheet>
 
       <TripDaySheet
         day={openDay}

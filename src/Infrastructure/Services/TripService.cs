@@ -212,6 +212,7 @@ public sealed class TripService(
             {
                 TenantId = tenantId, TripId = id, ItemId = itemId, PlannedWears = wears[itemId],
                 Packed = packedBefore.ContainsKey(itemId), PackedAt = packedBefore.GetValueOrDefault(itemId),
+                AddedByUser = oldItems.Any(o => o.ItemId == itemId && o.AddedByUser),
             })));
             operations.AddRange(plan.Days.Select(d => TransactWriteOperation.Put(new TripDayEntity
             {
@@ -225,7 +226,8 @@ public sealed class TripService(
             if (!write.Applied)
                 continue;
 
-            var stale = oldItems.Where(i => !wears.ContainsKey(i.ItemId)).Select(i => (i.Pk, i.Sk))
+            // A piece the user put on the list by hand survives a regenerated list (it is worn by no day of the new plan).
+            var stale = oldItems.Where(i => !wears.ContainsKey(i.ItemId) && !i.AddedByUser).Select(i => (i.Pk, i.Sk))
                 .Concat(oldDays.Where(d => plan.Days.All(p => p.Date != d.Date)).Select(d => (d.Pk, d.Sk))).ToList();
             if (stale.Count > 0)
                 await repository.BatchDeleteKeysAsync(stale, ct);
@@ -258,6 +260,133 @@ public sealed class TripService(
             new MutationReceiptEntity { TenantId = tenantId, ClientMutationId = command.ClientMutationId, CreatedAt = Now }, [row], ct);
         var stored = await repository.GetAsync<TripItemEntity>(row.Pk, row.Sk, ct) ?? row;
         return ServiceResult.Ok(ToDto(stored, itemIds));
+    }
+
+    // ── Manual edits (canvas 19b–19d): no AI call, no credit ──────────────────────────────────────────────────────
+
+    public async Task<ServiceResult<TripDetailDto>> AddItemsAsync(string tenantId, string id, AddTripItemsCommand command, CancellationToken ct)
+    {
+        var trip = await GetEntityAsync(tenantId, id, ct);
+        if (trip is null)
+            return ServiceResult.NotFound<TripDetailDto>(ErrorCodes.TripNotFound);
+
+        var wanted = command.ItemIds.Distinct(StringComparer.Ordinal).ToList();
+        var wardrobe = await LookService.ItemIdsAsync(repository, tenantId, ct);
+        if (wanted.Any(itemId => !wardrobe.Contains(itemId)))
+            return ServiceResult.Invalid<TripDetailDto>(ErrorCodes.SlotItemNotFound);
+
+        var onList = (await ItemsAsync(tenantId, id, ct)).Select(i => i.ItemId).ToHashSet(StringComparer.Ordinal);
+        foreach (var itemId in wanted.Where(itemId => !onList.Contains(itemId)))
+            await repository.SaveAsync(new TripItemEntity { TenantId = tenantId, TripId = id, ItemId = itemId, AddedByUser = true }, ct);
+        return ServiceResult.Ok(await DetailAsync(trip, ct));
+    }
+
+    public async Task<ServiceResult<TripDetailDto>> RemoveItemAsync(string tenantId, string id, string itemId, CancellationToken ct)
+    {
+        var trip = await GetEntityAsync(tenantId, id, ct);
+        if (trip is null)
+            return ServiceResult.NotFound<TripDetailDto>(ErrorCodes.TripNotFound);
+
+        // The days first: a failure in between leaves a piece on the list that no day wears, never a day wearing a piece the list lacks.
+        foreach (var day in (await DaysAsync(tenantId, id, ct)).Where(d => d.Slots.Any(s => s.ItemId == itemId)))
+        {
+            day.Slots = day.Slots.Where(s => s.ItemId != itemId).ToList();
+            await repository.SaveAsync(day, ct);
+        }
+        await repository.DeleteAsync(TripItemEntity.GetPk(tenantId), TripItemEntity.GetSk(id, itemId), ct);
+        await RecountWearsAsync(tenantId, id, ct);
+        return ServiceResult.Ok(await DetailAsync(trip, ct));
+    }
+
+    public async Task<ServiceResult<TripDetailDto>> SetDayAsync(string tenantId, string id, string date, SetTripDayCommand command, CancellationToken ct)
+    {
+        var trip = await GetEntityAsync(tenantId, id, ct);
+        if (trip is null)
+            return ServiceResult.NotFound<TripDetailDto>(ErrorCodes.TripNotFound);
+        if (!TripDates(trip).Contains(date))
+            return ServiceResult.Invalid<TripDetailDto>(ErrorCodes.TripDayOutOfRange);
+
+        // What the user picks is the look (a dress may sit with a bottom); an empty day is allowed.
+        var categories = (await repository.GetAllAsync<ItemEntity>(ItemEntity.GetPk(tenantId), ct)).ToDictionary(i => i.Id, i => i.Category, StringComparer.Ordinal);
+        var pieces = command.Slots
+            .Select(s => new SlotPiece(s.Slot, s.ItemId, s.ProductId, s.ItemId is not null && categories.TryGetValue(s.ItemId, out var c) ? c : null))
+            .ToList();
+        if (pieces.Any(p => p.ProductId is not null))
+            return ServiceResult.Invalid<TripDetailDto>(ErrorCodes.SlotSourceInvalid);
+        if (OutfitSlotRules.Validate(pieces, minPieces: 0, dressClosesBottom: false) is { Count: > 0 } errors)
+            return ServiceResult.Invalid<TripDetailDto>(errors[0]);
+
+        var onList = (await ItemsAsync(tenantId, id, ct)).Select(i => i.ItemId).ToHashSet(StringComparer.Ordinal);
+        foreach (var itemId in pieces.Select(p => p.ItemId!).Where(itemId => !onList.Contains(itemId)))
+            await repository.SaveAsync(new TripItemEntity { TenantId = tenantId, TripId = id, ItemId = itemId, AddedByUser = true }, ct);
+
+        var day = await repository.GetAsync<TripDayEntity>(TripDayEntity.GetPk(tenantId), TripDayEntity.GetSk(id, date), ct)
+                  ?? new TripDayEntity { TenantId = tenantId, TripId = id, Date = date };
+        day.Slots = command.Slots.Select(s => new LookSlotValue { Slot = s.Slot, ItemId = s.ItemId }).ToList();
+        await repository.SaveAsync(day, ct);
+        await RecountWearsAsync(tenantId, id, ct);
+        return ServiceResult.Ok(await DetailAsync(trip, ct));
+    }
+
+    public async Task<ServiceResult<TripDetailDto>> PutExtraAsync(string tenantId, string id, string extraId, PutTripExtraCommand command, CancellationToken ct)
+    {
+        var text = command.Text.Trim();
+        if (!Domain.Extensions.Ulid.IsValid(extraId))
+            return ServiceResult.Invalid<TripDetailDto>(ErrorCodes.ValidationFailed);
+        for (var attempt = 0; attempt < MaxVersionRetries; attempt++)
+        {
+            var trip = await GetEntityAsync(tenantId, id, ct);
+            if (trip is null)
+                return ServiceResult.NotFound<TripDetailDto>(ErrorCodes.TripNotFound);
+
+            var extra = trip.Extras.FirstOrDefault(e => e.Id == extraId);
+            if (extra is null)
+            {
+                if (trip.Extras.Count >= TripLimits.MaxExtras)
+                    return ServiceResult.Invalid<TripDetailDto>(ErrorCodes.TripExtraLimit);
+                trip.Extras.Add(extra = new TripExtraValue { Id = extraId });
+            }
+            extra.Text = text;
+            extra.Packed = command.Packed;
+            trip.UpdatedAt = Now;
+            if (await repository.SaveIfVersionAsync(trip, trip.Version, ct))
+                return ServiceResult.Ok(await DetailAsync(trip, ct));
+        }
+
+        throw new InvalidOperationException($"Trip {id} extra could not be saved after {MaxVersionRetries} attempts.");
+    }
+
+    public async Task<ServiceResult<TripDetailDto>> RemoveExtraAsync(string tenantId, string id, string extraId, CancellationToken ct)
+    {
+        for (var attempt = 0; attempt < MaxVersionRetries; attempt++)
+        {
+            var trip = await GetEntityAsync(tenantId, id, ct);
+            if (trip is null)
+                return ServiceResult.NotFound<TripDetailDto>(ErrorCodes.TripNotFound);
+            if (trip.Extras.RemoveAll(e => e.Id == extraId) == 0)
+                return ServiceResult.Ok(await DetailAsync(trip, ct));
+            trip.UpdatedAt = Now;
+            if (await repository.SaveIfVersionAsync(trip, trip.Version, ct))
+                return ServiceResult.Ok(await DetailAsync(trip, ct));
+        }
+
+        throw new InvalidOperationException($"Trip {id} extra could not be removed after {MaxVersionRetries} attempts.");
+    }
+
+    /// <summary>PlannedWears of every list row = the days that wear the piece now (0 = on the list, worn by no day).</summary>
+    private async Task RecountWearsAsync(string tenantId, string tripId, CancellationToken ct)
+    {
+        var wears = (await DaysAsync(tenantId, tripId, ct))
+            .SelectMany(d => d.Slots.Where(s => s.ItemId is not null).Select(s => s.ItemId!).Distinct(StringComparer.Ordinal))
+            .GroupBy(itemId => itemId, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.Count(), StringComparer.Ordinal);
+        foreach (var row in await ItemsAsync(tenantId, tripId, ct))
+        {
+            var count = wears.GetValueOrDefault(row.ItemId);
+            if (row.PlannedWears == count)
+                continue;
+            row.PlannedWears = count;
+            await repository.SaveAsync(row, ct);
+        }
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────────────────────────────────────────
@@ -358,11 +487,12 @@ public sealed class TripService(
 
         return new TripDto(trip.Id, trip.CityId, trip.CityName, trip.StartDate, trip.EndDate, trip.TripTypes, trip.CabinOnly, status,
             trip.ArchivedAt is not null || status == TripStatus.Past, trip.ArchivedAt, TripDates(trip).Count, items.Count,
-            items.Count(i => i.Packed), trip.EveryPieceWornTwice, trip.Missing.Select(m => m.ToDto()).ToList(), trip.CreatedAt, trip.UpdatedAt, trip.Version);
+            items.Count(i => i.Packed), trip.EveryPieceWornTwice, trip.Missing.Select(m => m.ToDto()).ToList(), trip.CreatedAt, trip.UpdatedAt, trip.Version,
+            trip.Extras.Select(e => new TripExtraDto(e.Id, e.Text, e.Packed)).ToList());
     }
 
     private static TripItemDto ToDto(TripItemEntity row, IReadOnlySet<string> itemIds) =>
-        new(row.ItemId, row.PlannedWears, row.Packed, row.PackedAt, !itemIds.Contains(row.ItemId));
+        new(row.ItemId, row.PlannedWears, row.Packed, row.PackedAt, !itemIds.Contains(row.ItemId), row.AddedByUser);
 
     private Task<TripEntity?> GetEntityAsync(string tenantId, string id, CancellationToken ct) =>
         repository.GetAsync<TripEntity>(TripEntity.GetPk(tenantId), TripEntity.GetSk(id), ct);

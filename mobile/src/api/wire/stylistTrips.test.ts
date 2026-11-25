@@ -3,7 +3,7 @@ import i18n from '@/i18n';
 
 import type { ProductWire } from './catalog';
 import { fromAcceptSuggestion, fromDislikeReasons, fromStylistRequest, toAcceptedSuggestion, toStylistResult, type OutfitResultWire } from './stylist';
-import { mergeTrip, toMissingPiece, toTrip, toTripDetail, toTripForecast, toTripPlan, type PackResultWire, type TripDetailWire, type TripWire } from './trips';
+import { mergeTrip, toMissingPiece, toTrip, toTripDetail, toTripForecast, toTripPlan, tripEditRequest, type PackResultWire, type TripDetailWire, type TripWire } from './trips';
 import { cachedTryOnImageId, cachedTryOnJobId, toTryOnResult, toWeekJobs, toWeekQuote, toWireTarget } from './tryon';
 import { toCity, toForecast, toWeatherGlyph } from './weather';
 
@@ -271,7 +271,7 @@ describe('trip wire mapping', () => {
       droppedItemIds: [],
     };
     const plan = toTripPlan(wire, items);
-    expect(plan.items).toEqual([{ itemId: 'I1', name: 'Lacivert blazer', category: 'outerwear', color: 'navy', imageUrl: 'https://img.test/I1.png', packed: false }]);
+    expect(plan.items).toEqual([{ itemId: 'I1', name: 'Lacivert blazer', category: 'outerwear', color: 'navy', imageUrl: 'https://img.test/I1.png', packed: false, plannedWears: 2, addedByUser: false }]);
     expect(plan.days[0]?.look?.name).toBe('Gün 1');
     expect(plan.minWearsPerItem).toBeNull();
   });
@@ -353,5 +353,22 @@ describe('weather wire mapping', () => {
     expect(toWeatherGlyph('thunderstorm')).toBe('rain');
     expect(toWeatherGlyph('clear')).toBe('sun');
     expect(toWeatherGlyph(null)).toBe('cloud');
+  });
+});
+
+
+describe('manual suitcase changes on the wire (19b–19d)', () => {
+  const category = (id: string) => ({ a: 'top', b: 'socks', c: 'dress', d: 'outerwear' })[id] as never;
+
+  it('names the endpoint of each change; a day sends its pieces with their slot, in order', () => {
+    expect(tripEditRequest('T', { kind: 'addItems', itemIds: ['a'] }, category)).toEqual({ path: 'v1/tenant/trip/T/items', method: 'POST', body: { itemIds: ['a'] } });
+    expect(tripEditRequest('T', { kind: 'removeItem', itemId: 'a' }, category)).toEqual({ path: 'v1/tenant/trip/T/item/a', method: 'DELETE' });
+    expect(tripEditRequest('T', { kind: 'setDay', date: '2027-03-01', itemIds: ['c', 'a', 'd', 'b'] }, category)).toEqual({
+      path: 'v1/tenant/trip/T/day/2027-03-01',
+      method: 'PUT',
+      body: { slots: [{ slot: 'top', itemId: 'c' }, { slot: 'top', itemId: 'a' }, { slot: 'outerwear', itemId: 'd' }, { slot: 'bagAccessory', itemId: 'b' }] },
+    });
+    expect(tripEditRequest('T', { kind: 'putExtra', id: 'x', text: 'Pasaport', packed: true }, category)).toEqual({ path: 'v1/tenant/trip/T/extra/x', method: 'PUT', body: { text: 'Pasaport', packed: true } });
+    expect(tripEditRequest('T', { kind: 'removeExtra', id: 'x' }, category)).toEqual({ path: 'v1/tenant/trip/T/extra/x', method: 'DELETE' });
   });
 });

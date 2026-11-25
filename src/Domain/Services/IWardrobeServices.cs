@@ -251,6 +251,22 @@ public sealed record AcceptPackCommand(string ClientMutationId);
 
 public sealed record MarkPackedCommand(bool Packed, string ClientMutationId, DateTime OccurredAt);
 
+/// <summary>Pieces of the user's own wardrobe put on the packing list by hand (canvas 19c).</summary>
+public sealed record AddTripItemsCommand(IReadOnlyList<string> ItemIds);
+
+/// <summary>The pieces of one trip day as the user arranged them (canvas 19d); own wardrobe pieces only. Empty = the day wears nothing.</summary>
+public sealed record SetTripDayCommand(IReadOnlyList<LookSlotInput> Slots);
+
+/// <summary>A free-text row of the suitcase: created or changed as a whole (text and tick).</summary>
+public sealed record PutTripExtraCommand(string Text, bool Packed);
+
+public static class TripLimits
+{
+    public const int MaxExtras = 30;
+    public const int MaxExtraLength = 40;
+    public const int MaxAddedItems = 40;
+}
+
 public interface ITripService
 {
     Task<IReadOnlyList<TripDto>> GetAllAsync(string tenantId, CancellationToken ct);
@@ -262,6 +278,14 @@ public interface ITripService
     Task<ServiceResult<JobDto>> StartPackAsync(string tenantId, string id, StartPackCommand command, string? requestLanguage, CancellationToken ct);
     Task<ServiceResult<TripDetailDto>> AcceptPackAsync(string tenantId, string id, string jobId, AcceptPackCommand command, CancellationToken ct);
     Task<ServiceResult<TripItemDto>> MarkPackedAsync(string tenantId, string id, string itemId, MarkPackedCommand command, CancellationToken ct);
+    /// <summary>Own wardrobe pieces onto the list; a piece already on it stays as it is. 422 slot_item_not_found for an unknown piece.</summary>
+    Task<ServiceResult<TripDetailDto>> AddItemsAsync(string tenantId, string id, AddTripItemsCommand command, CancellationToken ct);
+    /// <summary>The piece leaves the list and every day that wears it. Idempotent.</summary>
+    Task<ServiceResult<TripDetailDto>> RemoveItemAsync(string tenantId, string id, string itemId, CancellationToken ct);
+    /// <summary>Replaces the pieces of one trip day; a piece the list lacks is added to it. The look rules of a hand-built look apply.</summary>
+    Task<ServiceResult<TripDetailDto>> SetDayAsync(string tenantId, string id, string date, SetTripDayCommand command, CancellationToken ct);
+    Task<ServiceResult<TripDetailDto>> PutExtraAsync(string tenantId, string id, string extraId, PutTripExtraCommand command, CancellationToken ct);
+    Task<ServiceResult<TripDetailDto>> RemoveExtraAsync(string tenantId, string id, string extraId, CancellationToken ct);
 }
 
 // ── E6 ────────────────────────────────────────────────────────────────────────────────────────────────────────────

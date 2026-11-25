@@ -2,7 +2,11 @@ import { ApiError } from '@/api/errors';
 import { PackRefusedError } from '@/api/wire/trips';
 import { fixtureCities } from '@/fixtures/trips';
 
+import type { TripDetail } from '@/api/contracts/trips';
+
 import {
+  applyTripEdit,
+  dayBoxOf,
   forecastNotice,
   matchTypedCity,
   packErrorState,
@@ -251,5 +255,59 @@ describe('trip weather summary', () => {
     expect(weatherNotes([day('sun', 27, 37)])).toEqual({ rainyDays: 0, coldNightC: null });
     // An older server gives the high only.
     expect(temperatureRange([{ condition: 'sun', temperatureC: 9 }])).toEqual({ min: 9, max: 9 });
+  });
+});
+
+
+describe('applyTripEdit (19b–19d)', () => {
+  const piece = (id: string, category: 'top' | 'bottom' | 'outerwear' = 'top') => ({ id, name: id, category, color: 'navy' as const, imageUrl: null });
+  const wardrobe = [piece('a'), piece('b', 'bottom'), piece('c', 'outerwear'), piece('d')];
+  const itemOf = (id: string) => wardrobe.find((p) => p.id === id);
+  const row = (id: string, plannedWears: number) => ({ itemId: id, name: id, category: itemOf(id)!.category, color: 'navy' as const, imageUrl: null, packed: false, plannedWears });
+  const look = (date: string) => ({ id: `t:${date}`, name: 'Gün', occasion: 'travel' as const, imageUrl: null });
+  const trip = {
+    id: 't',
+    items: [row('a', 2), row('b', 1)],
+    days: [
+      { date: '2027-03-01', look: look('2027-03-01'), itemIds: ['a', 'b'] },
+      { date: '2027-03-02', look: look('2027-03-02'), itemIds: ['a'] },
+    ],
+    extras: [],
+  } as unknown as TripDetail;
+
+  it('adds wardrobe pieces by hand once, and skips what is already on the list or unknown', () => {
+    const next = applyTripEdit(trip, { kind: 'addItems', itemIds: ['c', 'a', 'c', 'zz'] }, itemOf);
+    expect(next.items.map((i) => i.itemId)).toEqual(['a', 'b', 'c']);
+    expect(next.items[2]).toMatchObject({ addedByUser: true, plannedWears: 0, packed: false });
+  });
+
+  it('a removed piece leaves every day; a day left without pieces has no look; the wears are counted again', () => {
+    const next = applyTripEdit(trip, { kind: 'removeItem', itemId: 'a' }, itemOf);
+    expect(next.items.map((i) => [i.itemId, i.plannedWears])).toEqual([['b', 1]]);
+    expect(next.days.map((d) => [d.itemIds, d.look === null])).toEqual([[['b'], false], [[], true]]);
+  });
+
+  it('a day takes its new pieces in order; a piece the list lacks joins it; a piece no day wears stays with 0 wears', () => {
+    const next = applyTripEdit(trip, { kind: 'setDay', date: '2027-03-01', itemIds: ['d', 'c'] }, itemOf);
+    expect(next.days[0]?.itemIds).toEqual(['d', 'c']);
+    expect(next.days[0]?.look?.name).toBe('Gün');
+    expect(next.items.map((i) => [i.itemId, i.plannedWears, Boolean(i.addedByUser)])).toEqual([
+      ['a', 1, false],
+      ['b', 0, false],
+      ['d', 1, true],
+      ['c', 1, true],
+    ]);
+  });
+
+  it('free-text rows are written (trimmed), replaced by id and removed', () => {
+    const written = applyTripEdit(trip, { kind: 'putExtra', id: 'x', text: ' Pasaport ', packed: false }, itemOf);
+    const ticked = applyTripEdit(written, { kind: 'putExtra', id: 'x', text: 'Pasaport', packed: true }, itemOf);
+    expect(written.extras).toEqual([{ id: 'x', text: 'Pasaport', packed: false }]);
+    expect(ticked.extras).toEqual([{ id: 'x', text: 'Pasaport', packed: true }]);
+    expect(applyTripEdit(ticked, { kind: 'removeExtra', id: 'x' }, itemOf).extras).toEqual([]);
+  });
+
+  it('puts every category in its box', () => {
+    expect((['dress', 'skiwear', 'socks', 'bag', 'accessory', 'shoes'] as const).map(dayBoxOf)).toEqual(['top', 'top', 'socks', 'bag', 'accessory', 'shoes']);
   });
 });

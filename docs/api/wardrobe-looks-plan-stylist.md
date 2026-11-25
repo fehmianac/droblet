@@ -419,6 +419,18 @@ Plans the 7 days from `weekStart`. `days` is optional; a day without an occasion
 | POST | `v1/tenant/trip/{id}/pack` | `{ "requestId": "01J…" }` | 202 `JobDto` (result `PackResult`, §9) · 403 · 404 `trip_not_found` · 409 |
 | POST | `v1/tenant/trip/{id}/pack/{jobId}/accept` | `{ "clientMutationId": "01J…" }` | `TripDetailDto` · 404 · 409 `job_not_completed` / `suggestion_stale` |
 | PUT | `v1/tenant/trip/{id}/item/{itemId}` | `{ "packed": true, "clientMutationId": "01J…", "occurredAt": "…" }` | `TripItemDto` · 404 |
+| POST | `v1/tenant/trip/{id}/items` | `{ "itemIds": ["01J…"] }` (1–40 own wardrobe pieces) | `TripDetailDto` · 404 `trip_not_found` · 422 `slot_item_not_found` |
+| DELETE | `v1/tenant/trip/{id}/item/{itemId}` | — | `TripDetailDto` (idempotent) · 404 `trip_not_found` |
+| PUT | `v1/tenant/trip/{id}/day/{date}` | `{ "slots": [{ "slot": "top", "itemId": "01J…" }] }` | `TripDetailDto` · 404 · 422 `trip_day_out_of_range` / `slot_*` |
+| PUT | `v1/tenant/trip/{id}/extra/{extraId}` | `{ "text": "Pasaport", "packed": false }` | `TripDetailDto` · 400 · 404 · 422 `trip_extra_limit` |
+| DELETE | `v1/tenant/trip/{id}/extra/{extraId}` | — | `TripDetailDto` (idempotent) · 404 |
+
+**Manual changes (canvas 19b–19d).** No AI call and no credit; every call answers the whole detail.
+
+- `POST …/items` puts own wardrobe pieces on the list by hand (`TripItemDto.addedByUser = true`, `plannedWears = 0`). A piece already on the list stays as it is. A hand-added piece survives a regenerated pack.
+- `DELETE …/item/{itemId}` takes the piece off the list **and out of every day that wears it**; `plannedWears` of the rest is counted again.
+- `PUT …/day/{date}` replaces the pieces of one trip day (own pieces only, `productId` is refused). The rules of a hand-built look apply (layers per slot, category ↔ slot; a dress may sit with a bottom); an empty list is allowed. A piece the list lacks is added to it; a piece no day wears any more stays on the list with `plannedWears = 0`. The day's try-on image follows its pieces (same cache as a look), so a changed day has no image until one is asked for.
+- `PUT …/extra/{extraId}` writes or replaces a free-text row (`extraId` = ULID from the device; text 1–40 characters after trimming; 30 rows at most). Rows come back as `TripDto.extras: [{ id, text, packed }]`, in the order they were written.
 
 `cityId` is the id of a `GET v1/weather/city` result (stored as sent). A trip sent with only `cityName` (typed city, older client) is geocoded on the server and stored with the first match's id and name; no match → 422 `trip_city_not_found`, geocoder down → 503 `weather_unavailable` (a trip is never stored without a location).
 Trip 400 codes: `id_invalid`, `city_required` (neither `cityId` nor `cityName`), `city_id_invalid`, `city_name_too_long`, `start_date_invalid`, `end_date_invalid`, `date_range_invalid` (end before start, or longer than 21 days), `trip_types_invalid`.

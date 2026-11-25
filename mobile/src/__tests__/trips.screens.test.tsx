@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 import { Share } from 'react-native';
 
-import { resetFixtureDb } from '@/fixtures/db';
+import { fixtureDb, resetFixtureDb } from '@/fixtures/db';
 import { ApiError } from '@/api/errors';
 import * as tripFixtures from '@/fixtures/trips';
 import { fixtureGetTrip, fixtureListTrips } from '@/fixtures/trips';
@@ -172,6 +172,91 @@ describe('19 Bavul detayı', () => {
     await waitFor(() => expect(screen.getByTestId('trip-day-tryon')).toBeTruthy(), { timeout: 3000 });
     expect(screen.getByTestId('trip-day-save-look')).toBeTruthy();
     expect(screen).toHavePathname('/trip/trip_londra');
+  });
+
+  it('19b–19c: "Edit" turns the list into add / take out; a wardrobe piece is added by hand and taken out again', async () => {
+    await renderRouter('./src/app', { initialUrl: '/trip/trip_londra' });
+    await waitFor(() => expect(screen.getByText('Packing list')).toBeTruthy(), { timeout: 3000 });
+    const before = fixtureGetTrip('trip_londra');
+    const spare = fixtureDb.items.find((i) => !before.items.some((t) => t.itemId === i.id))!;
+
+    await fireEvent.press(screen.getByTestId('trip-list-edit'));
+    expect(screen.getByText('Done')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('trip-add-items'));
+    await waitFor(() => expect(screen.getByTestId('trip-picker')).toBeTruthy(), { timeout: 3000 });
+    // A piece already in the suitcase is tagged and cannot be picked.
+    await waitFor(() => expect(screen.getByTestId(`trip-pick-${before.items[0]!.itemId}`)).toBeDisabled(), { timeout: 3000 });
+    expect(screen.getByText('Pick a piece')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId(`trip-pick-${spare.id}`));
+    await fireEvent.press(screen.getByText('Add 1 piece'));
+
+    await waitFor(() => expect(screen.getByText('3 / 10 packed')).toBeTruthy(), { timeout: 3000 });
+    expect(screen.getByTestId(`trip-item-note-${spare.id}`)).toHaveTextContent('Added by you');
+    await waitFor(() => expect(fixtureGetTrip('trip_londra').items.find((i) => i.itemId === spare.id)).toMatchObject({ addedByUser: true, plannedWears: 0 }), { timeout: 3000 });
+
+    // Worn by no day: it leaves at once (with an undo).
+    await fireEvent.press(screen.getByTestId(`trip-item-remove-${spare.id}`));
+    await waitFor(() => expect(screen.getByText('3 / 9 packed')).toBeTruthy(), { timeout: 3000 });
+    expect(screen.queryByTestId('trip-item-remove-confirm')).toBeNull();
+  });
+
+  it('19b: taking out a piece a day wears asks first, then the piece leaves the list and that day', async () => {
+    await renderRouter('./src/app', { initialUrl: '/trip/trip_londra' });
+    await waitFor(() => expect(screen.getByText('Packing list')).toBeTruthy(), { timeout: 3000 });
+    const before = fixtureGetTrip('trip_londra');
+    const worn = before.days[0]!.itemIds![0]!;
+    const days = before.days.filter((d) => d.itemIds?.includes(worn)).length;
+
+    await fireEvent.press(screen.getByTestId('trip-list-edit'));
+    expect(screen.getByTestId(`trip-item-note-${worn}`)).toHaveTextContent(days === 1 ? "In 1 day's look" : `In ${days} days' looks`);
+    await fireEvent.press(screen.getByTestId(`trip-item-remove-${worn}`));
+    await waitFor(() => expect(screen.getByTestId('trip-item-remove-confirm')).toBeTruthy(), { timeout: 3000 });
+    expect(fixtureGetTrip('trip_londra').items).toHaveLength(9); // nothing happened yet
+    await fireEvent.press(screen.getByTestId('trip-item-remove-confirm'));
+
+    await waitFor(() => expect(fixtureGetTrip('trip_londra').items).toHaveLength(8), { timeout: 3000 });
+    expect(fixtureGetTrip('trip_londra').days.some((d) => d.itemIds?.includes(worn))).toBe(false);
+    expect(screen.queryByTestId(`trip-item-remove-${worn}`)).toBeNull();
+  });
+
+  it('19b "Other things": a free-text row is written, ticked and deleted', async () => {
+    await renderRouter('./src/app', { initialUrl: '/trip/trip_londra' });
+    await waitFor(() => expect(screen.getByText('Other things')).toBeTruthy(), { timeout: 3000 });
+    expect(screen.queryByTestId('trip-extra-add')).toBeNull();
+    await fireEvent.changeText(screen.getByTestId('trip-extra-input'), '  Passport ');
+    await fireEvent.press(screen.getByTestId('trip-extra-add'));
+
+    await waitFor(() => expect(screen.getByLabelText('Passport')).toBeTruthy(), { timeout: 3000 });
+    expect(screen.getByTestId('trip-extras-count')).toHaveTextContent('0 / 1 packed');
+    await fireEvent.press(screen.getByLabelText('Passport'));
+    await waitFor(() => expect(screen.getByTestId('trip-extras-count')).toHaveTextContent('1 / 1 packed'), { timeout: 3000 });
+    await waitFor(() => expect(fixtureGetTrip('trip_londra').extras).toEqual([expect.objectContaining({ text: 'Passport', packed: true })]), { timeout: 3000 });
+
+    await fireEvent.press(screen.getByTestId('trip-list-edit'));
+    await fireEvent.press(screen.getByLabelText('Passport: delete from the list'));
+    await waitFor(() => expect(fixtureGetTrip('trip_londra').extras).toEqual([]), { timeout: 3000 });
+  });
+
+  it('19d: "Change pieces" opens the day box by box; taking a piece out and saving changes that day only', async () => {
+    await renderRouter('./src/app', { initialUrl: '/trip/trip_londra' });
+    await waitFor(() => expect(screen.getByText('Packing list')).toBeTruthy(), { timeout: 3000 });
+    const before = fixtureGetTrip('trip_londra');
+    const day = before.days.find((d) => (d.itemIds?.length ?? 0) > 1)!;
+    const out = day.itemIds![0]!;
+
+    await waitFor(() => expect(screen.getByTestId(`trip-day-edit-${day.date}`)).toBeTruthy(), { timeout: 3000 });
+    await fireEvent.press(screen.getByTestId(`trip-day-edit-${day.date}`));
+    await waitFor(() => expect(screen.getByTestId('trip-day-edit')).toBeTruthy(), { timeout: 3000 });
+    expect(screen.getByText("The day's pieces")).toBeTruthy();
+    expect(screen.getByTestId('trip-day-save-edit')).toBeDisabled(); // nothing changed yet
+    await waitFor(() => expect(screen.getByTestId(`trip-day-remove-${out}`)).toBeTruthy(), { timeout: 3000 });
+    await fireEvent.press(screen.getByTestId(`trip-day-remove-${out}`));
+    await fireEvent.press(screen.getByTestId('trip-day-save-edit'));
+
+    await waitFor(() => expect(fixtureGetTrip('trip_londra').days.find((d) => d.date === day.date)?.itemIds).toEqual(day.itemIds!.slice(1)), { timeout: 3000 });
+    // The piece stays on the packing list: the user takes it out there.
+    expect(fixtureGetTrip('trip_londra').items.some((i) => i.itemId === out)).toBe(true);
+    expect(screen.queryByTestId('trip-day-edit')).toBeNull();
   });
 
   it('switches to the single cabin bag mode with the check box', async () => {

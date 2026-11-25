@@ -1,17 +1,20 @@
-import type {
-  CheckTripItemRequest,
-  CreateTripRequest,
-  ForecastDay,
-  PackTripRequest,
-  PackTripResponse,
-  PutTripRequest,
-  Trip,
-  TripDetail,
-  TripItem,
-  TripPlan,
-  WeatherCondition,
+import {
+  TRIP_EXTRA_MAX,
+  type CheckTripItemRequest,
+  type CreateTripRequest,
+  type ForecastDay,
+  type PackTripRequest,
+  type PackTripResponse,
+  type PutTripRequest,
+  type Trip,
+  type TripDetail,
+  type TripEdit,
+  type TripItem,
+  type TripPlan,
+  type WeatherCondition,
 } from "@/api/contracts/trips";
 import { ApiError } from "@/api/errors";
+import { applyTripEdit } from "@/features/trips/logic";
 import {
   addDays,
   searchCities,
@@ -414,4 +417,14 @@ export function fixtureCheckTripItem(
       i.itemId === itemId ? { ...i, packed: request.packed } : i,
     ),
   });
+}
+
+
+/** A manual suitcase change (19b–19d), applied as the server applies it. */
+export function fixtureEditTrip(id: string, edit: TripEdit): TripDetail {
+  const trip = find(id);
+  if (edit.kind === "putExtra" && !(trip.extras ?? []).some((e) => e.id === edit.id) && (trip.extras ?? []).length >= TRIP_EXTRA_MAX) {
+    throw new ApiError("http", 422, { code: "trip_extra_limit" });
+  }
+  return clone(replace(applyTripEdit(trip, edit, (itemId) => fixtureDb.items.find((i) => i.id === itemId))));
 }

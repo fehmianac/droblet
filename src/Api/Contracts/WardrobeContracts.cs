@@ -379,6 +379,24 @@ public class MarkPackedCommandValidator : AbstractValidator<MarkPackedCommand>
     }
 }
 
+public class AddTripItemsCommandValidator : AbstractValidator<AddTripItemsCommand>
+{
+    public AddTripItemsCommandValidator() =>
+        RuleFor(x => x.ItemIds).Must(ids => ids is { Count: > 0 and <= TripLimits.MaxAddedItems } && ids.All(Ulid.IsValid)).WithErrorCode("item_ids_invalid");
+}
+
+public class SetTripDayCommandValidator : AbstractValidator<SetTripDayCommand>
+{
+    public SetTripDayCommandValidator() =>
+        RuleFor(x => x.Slots).Must(slots => slots is { Count: <= 12 } && slots.All(s => s is not null)).WithErrorCode("slots_invalid");
+}
+
+public class PutTripExtraCommandValidator : AbstractValidator<PutTripExtraCommand>
+{
+    public PutTripExtraCommandValidator() =>
+        RuleFor(x => x.Text).Must(text => text is not null && text.Trim().Length is > 0 and <= TripLimits.MaxExtraLength).WithErrorCode("extra_text_invalid");
+}
+
 // ── E6 / E7 ───────────────────────────────────────────────────────────────────────────────────────────────────────
 
 public class StartTryOnCommandValidator : AbstractValidator<StartTryOnCommand>
