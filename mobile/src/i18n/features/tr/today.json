@@ -72,7 +72,8 @@
     "bodyPhotoAction": "Fotoğraf ekle",
     "quoteChanged": "Haftan değişti, kredi tutarı güncellendi. Yeni tutarı onayla.",
     "cachedDays_one": "{{count}} günün görseli hazır, kredi harcamaz.",
-    "cachedDays_other": "{{count}} günün görseli hazır, kredi harcamaz."
+    "cachedDays_other": "{{count}} günün görseli hazır, kredi harcamaz.",
+    "openDayA11y": "{{day}}: {{name}} look'unu aç"
   },
   "weekEdit": {
     "eyebrow": "HAFTALIK STİL · {{range}} · {{weekday}} · {{occasion}}",

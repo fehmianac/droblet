@@ -72,7 +72,8 @@
     "bodyPhotoAction": "Add a photo",
     "quoteChanged": "Your week changed and so did the credit amount. Confirm the new amount.",
     "cachedDays_one": "{{count}} day already has its image and costs nothing.",
-    "cachedDays_other": "{{count}} days already have their images and cost nothing."
+    "cachedDays_other": "{{count}} days already have their images and cost nothing.",
+    "openDayA11y": "{{day}}: open the look {{name}}"
   },
   "weekEdit": {
     "eyebrow": "WEEKLY STYLE · {{range}} · {{weekday}} · {{occasion}}",

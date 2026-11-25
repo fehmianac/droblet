@@ -25,6 +25,8 @@ type Props = {
   onOpenMenu: (top: number) => void;
   /** "Planla" on an empty day: 07c "Bu güne look seç". */
   onPlan: () => void;
+  /** A tap on the day's name: 09b, the look in detail (pieces, "on you", change). */
+  onOpen: () => void;
   /** Try-on job started for this day in this session, if any. */
   tryOnJobId: string | null;
   /** Polling runs only while the screen is focused. */
@@ -36,7 +38,7 @@ type Props = {
  * One day of 07 Haftalık plan, as drawn: a paper card (56 × 72 look thumbnail, "PAZARTESİ · OFİS", the look
  * name, the date and the borderless ⋯ button) or the dashed empty day (sand "+" tile, "Kombin seçilmedi", "Planla").
  */
-export function WeekDayRow({ row, onOpenMenu, onPlan, tryOnJobId, focused, onRetryTryOn }: Props) {
+export function WeekDayRow({ row, onOpenMenu, onPlan, onOpen, tryOnJobId, focused, onRetryTryOn }: Props) {
   const language = useAppLanguage();
   const { t } = useTranslation();
   const anchor = useRef<ViewInstance>(null);
@@ -100,7 +102,13 @@ export function WeekDayRow({ row, onOpenMenu, onPlan, tryOnJobId, focused, onRet
             placeholder={{ kind: 'look', pieces: coverPieces(row.look.slots, undefined, 45), seed: row.look.id, figureHeight: 45 }}
           />
         </Zoomable>
-        <View className="flex-1 gap-[3px]">
+        <Pressable
+          onPress={onOpen}
+          accessibilityRole="button"
+          accessibilityLabel={t('weekPlan.openDayA11y', { day: dayLabel, name: row.look.name })}
+          testID={`week-day-open-${row.date}`}
+          className="flex-1 gap-[3px] active:opacity-70"
+        >
           <Text variant="eyebrow" numberOfLines={1}>
             {eyebrow}
           </Text>
@@ -113,7 +121,7 @@ export function WeekDayRow({ row, onOpenMenu, onPlan, tryOnJobId, focused, onRet
             </Text>
             {job.isDone ? <Badge label={t('weekPlan.tryOnReady')} tone="accent" /> : null}
           </View>
-        </View>
+        </Pressable>
         <View ref={anchor} collapsable={false}>
           <IconButton
             icon={Ellipsis}

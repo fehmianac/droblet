@@ -102,6 +102,23 @@ describe('06 Bugün', () => {
 });
 
 describe('07 Haftalık plan', () => {
+  it('a planned day opens in detail (09b): the pieces, the try-on invitation, "Open look", "Change" and "Take off the calendar"', async () => {
+    await renderRouter('./src/app', { initialUrl: '/plan/week' });
+    await waitFor(() => expect(screen.getByText('Lacivert Blazer')).toBeTruthy(), WAIT);
+    await fireEvent.press(screen.getByTestId(`week-day-open-${today}`));
+    await waitFor(() => expect(screen.getByTestId('week-day-detail')).toBeTruthy(), WAIT);
+    expect(screen.getByTestId('calendar-day-pieces')).toBeTruthy();
+    expect(screen.getByText('Open look')).toBeTruthy();
+    // No "on you" image yet: the invitation with its price (nothing is generated on its own).
+    expect(screen.getByTestId('calendar-day-tryon')).toBeTruthy();
+    expect(screen.getAllByText('See it on me · 1 credit').length).toBeGreaterThan(0);
+
+    // "Change" closes the detail and opens 07c for that day.
+    await fireEvent.press(screen.getByTestId('calendar-change'));
+    await waitFor(() => expect(screen.getByText('Pick a look for this day')).toBeTruthy(), WAIT);
+    expect(screen.queryByTestId('week-day-detail')).toBeNull();
+  });
+
   it('lists the week, asks before spending credits and removes a look from the ⋯ menu', async () => {
     await renderRouter('./src/app', { initialUrl: '/plan/week' });
     await waitFor(() => expect(screen.getByText('Lacivert Blazer')).toBeTruthy(), WAIT);
