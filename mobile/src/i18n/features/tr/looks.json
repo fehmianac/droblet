@@ -319,7 +319,26 @@
         "bag": "Çanta",
         "socks": "Çorap",
         "accessory": "Aksesuar"
-      }
+      },
+      "fromLooks": "Look'larımdan seç",
+      "addFromLook": "Look'tan ekle",
+      "looksTitle": "Look'larımdan seç",
+      "looksEmpty": "Henüz kayıtlı look'un yok.",
+      "lookMeta": "{{pieces}} · {{onList}}",
+      "lookOnListAll": "hepsi bavulda",
+      "lookOnListNone": "bavulda yok",
+      "lookOnListSome": "{{count}} tanesi bavulda",
+      "lookToDay": "Bu look'u güne koy",
+      "lookToDayNote": "Look'un parçaları güne yerleşir; bavulda olmayanlar listeye eklenir. Kredi harcamaz.",
+      "lookAddCount_one": "{{count}} parçayı bavula ekle",
+      "lookAddCount_other": "{{count}} parçayı bavula ekle",
+      "lookAllOnList": "Hepsi zaten bavulda",
+      "lookPick": "Look seç",
+      "changedByYou": "Sen değiştirdin",
+      "draftBody": "Günlerin parçalarını ve listeyi istediğin gibi değiştir; onayladığında bu haliyle bavuluna kaydedilir.",
+      "regenTitle": "Liste yeniden hazırlansın mı?",
+      "regenBody": "Bu taslakta yaptığın değişiklikler silinir ve stilist yeni bir liste hazırlar.",
+      "days": "Günler"
     }
   },
   "feedShare": {

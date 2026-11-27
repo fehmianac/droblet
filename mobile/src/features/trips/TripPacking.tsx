@@ -22,6 +22,7 @@ import { toDisplayUpper } from '@/lib/upper';
 import { useIsOnline } from '@/sync/network';
 
 import { usePackJob, useStartPack, useTripWrites } from './api';
+import { TripDraft } from './TripDraft';
 import { packErrorState, tripDates, tripLengthDays, type PackErrorState } from './logic';
 
 const MAX_DAY_BOXES = 7;
@@ -71,6 +72,8 @@ export function TripPacking({ trip }: { trip: TripDetail }) {
   if (jobActive && job.isDone && job.result && trip.packJobId) {
     const plan = job.result;
     const jobId = trip.packJobId;
+    // 19e: the draft can be changed before it is accepted. A teen's suitcase has no manual editing (16w).
+    if (teenStylist === null) return <TripDraft trip={trip} jobId={jobId} plan={plan} online={online} onRegenerate={retry} />;
     return (
       <View className="gap-4">
         <View className="gap-1.5">

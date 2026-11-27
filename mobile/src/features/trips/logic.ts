@@ -7,6 +7,7 @@ import {
   type TripEdit,
   type TripItem,
 } from "@/api/contracts/trips";
+import type { Look } from "@/api/contracts/looks";
 import type { ItemCategory } from "@/api/contracts/wardrobe";
 import {
   isConsentRequired,
@@ -372,6 +373,15 @@ export const DAY_BOX_CATEGORIES: Record<DayBox, readonly ItemCategory[]> = {
 
 export function dayBoxOf(category: ItemCategory): DayBox {
   return DAY_BOXES.find((box) => DAY_BOX_CATEGORIES[box].includes(category)) ?? "top";
+}
+
+/**
+ * 19f: the wardrobe pieces of a saved look, in its order — store pieces, deleted pieces and pieces the wardrobe no
+ * longer holds are left out.
+ */
+export function lookItemIds(look: Pick<Look, "slots">, wardrobe: { has(id: string): boolean }): string[] {
+  const ids = look.slots.filter((s) => s.source === "wardrobe" && !s.deleted && wardrobe.has(s.refId)).map((s) => s.refId);
+  return ids.filter((id, i) => ids.indexOf(id) === i);
 }
 
 type EditItem = Pick<TripItem, "name" | "category" | "color" | "imageUrl"> & { id: string } & Partial<TripItem>;

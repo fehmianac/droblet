@@ -220,7 +220,8 @@ export function registerTripMutations(client: QueryClient): void {
       if (detail) writeTrip(client, { ...detail, ...vars.plan, status: 'packed', packJobId: null });
     },
     onSuccess: (saved: TripDetail | undefined) => {
-      if (saved) writeTrip(client, saved);
+      // 19e: changes made to the draft are queued behind the acceptance — their last answer is the list as it stands.
+      if (saved && client.isMutating({ mutationKey: tripMutationKeys.edit }) === 0) writeTrip(client, saved);
     },
     onError: invalidate,
   });

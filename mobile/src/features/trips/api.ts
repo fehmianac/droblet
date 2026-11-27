@@ -159,8 +159,21 @@ export function useTripWrites() {
     setPacked: (tripId: string, itemId: string, packed: boolean): void => {
       check.mutate({ tripId, itemId, request: { packed, ...newClientMutation() } });
     },
-    acceptPack: (tripId: string, jobId: string, plan: TripPlan): void => {
+    /**
+     * Accepts the draft. 19e: `changes` are what the user did to the draft before accepting — they are written right
+     * after the acceptance, in order (the server accepts the list as the stylist made it, then takes each change).
+     * `changes.trip` is the trip the draft belongs to; the screen shows the final list at once.
+     */
+    acceptPack: (tripId: string, jobId: string, plan: TripPlan, changes?: { trip: TripDetail; edits: TripEdit[]; items: Item[] }): void => {
       accept.mutate({ tripId, jobId, plan, request: { clientMutationId: newClientMutation().clientMutationId } });
+      if (!changes || changes.edits.length === 0) return;
+      const byId = new Map(changes.items.map((i) => [i.id, i]));
+      let detail: TripDetail = { ...changes.trip, ...plan, status: 'packed', packJobId: null };
+      for (const edit of changes.edits) {
+        detail = applyTripEdit(detail, edit, (id) => byId.get(id));
+        const categories = edit.kind === 'setDay' ? Object.fromEntries(edit.itemIds.flatMap((id) => (byId.get(id) ? [[id, byId.get(id)!.category]] : []))) : undefined;
+        editTrip.mutate({ tripId, edit, optimistic: detail, categories });
+      }
     },
     /** A manual change of the accepted suitcase (19b–19d): shown at once, queued when offline. `items` = the wardrobe. */
     edit: (trip: TripDetail, edit: TripEdit, items: Item[] = []): void => {

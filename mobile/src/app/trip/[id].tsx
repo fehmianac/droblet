@@ -56,7 +56,8 @@ import {
   weatherNotes,
 } from "@/features/trips/logic";
 import { TripDaySheet } from "@/features/trips/TripDaySheet";
-import { TripDayEditSheet, TripItemPicker } from "@/features/trips/TripEditing";
+import { TripDayEditSheet, TripItemPicker, TripLookPicker } from "@/features/trips/TripEditing";
+import { useLooks } from "@/features/looks/queries";
 import { showToast } from "@/components/ui/toast/store";
 import { ulid } from "@/lib/ids";
 import { TripPacking } from "@/features/trips/TripPacking";
@@ -541,6 +542,8 @@ function PackedTrip({
   // 19b–19d: manual changes of the list and the days (no AI call, no credit).
   const [editing, setEditing] = useState(false);
   const [picker, setPicker] = useState(false);
+  const [lookPicker, setLookPicker] = useState(false);
+  const looks = useLooks().data ?? [];
   const [editDay, setEditDay] = useState<TripDay | null>(null);
   const [removing, setRemoving] = useState<TripItem | null>(null);
   const [extraText, setExtraText] = useState("");
@@ -858,6 +861,19 @@ function PackedTrip({
             </Text>
           </Pressable>
         ) : null}
+        {editing ? (
+          <Pressable
+            onPress={() => setLookPicker(true)}
+            accessibilityRole="button"
+            testID="trip-add-look"
+            className="min-h-[52px] flex-row items-center gap-2.5 border-b border-line active:opacity-70"
+          >
+            <Icon icon={Plus} size={18} tone="accent" />
+            <Text variant="bodyMedium" tone="accent" className="text-[14.5px]">
+              {t("tripDetail.manual.addFromLook")}
+            </Text>
+          </Pressable>
+        ) : null}
         {notes.rainyDays > 0 || notes.coldNightC !== null ? (
           <View className="gap-1.5 pt-3.5" testID="trip-weather-notes">
             {notes.rainyDays > 0 ? (
@@ -1015,11 +1031,22 @@ function PackedTrip({
         onAdd={(itemIds) => writes.edit(trip, { kind: "addItems", itemIds }, wardrobe)}
       />
 
+      <TripLookPicker
+        visible={lookPicker}
+        subtitle={`${trip.cityName} · ${formatDateRange(parseLocalDate(trip.startDate), parseLocalDate(trip.endDate))}`}
+        looks={looks}
+        items={wardrobe}
+        listed={listed}
+        onClose={() => setLookPicker(false)}
+        onAdd={(itemIds) => writes.edit(trip, { kind: "addItems", itemIds }, wardrobe)}
+      />
+
       <TripDayEditSheet
         day={editDay}
         meta={editDay ? editDayMeta(editDay) : ""}
         items={wardrobe}
         listed={listed}
+        looks={looks}
         onClose={() => setEditDay(null)}
         onSave={(day, itemIds) => {
           writes.edit(trip, { kind: "setDay", date: day.date, itemIds }, wardrobe);

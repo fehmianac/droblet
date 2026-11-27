@@ -1,9 +1,10 @@
-import { Check, Plus, X } from 'lucide-react-native';
+import { Bookmark, Check, Plus, X } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, View } from 'react-native';
 
 import { itemImageSource } from '@/api/imageSources';
+import type { Look } from '@/api/contracts/looks';
 import type { TripDay } from '@/api/contracts/trips';
 import { ITEM_CATEGORIES, type Item, type ItemCategory } from '@/api/contracts/wardrobe';
 import { BottomSheet } from '@/components/ui/BottomSheet';
@@ -11,11 +12,12 @@ import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { Icon } from '@/components/ui/Icon';
 import { Text } from '@/components/ui/Text';
+import { indexItems, LookCover } from '@/features/looks/LookCover';
 import { ItemThumb } from '@/features/wardrobe/ItemThumb';
 import { useAppLanguage } from '@/i18n/useAppLanguage';
 import { toDisplayUpper } from '@/lib/upper';
 
-import { DAY_BOX_CATEGORIES, DAY_BOXES, dayBoxOf, type DayBox } from './logic';
+import { DAY_BOX_CATEGORIES, DAY_BOXES, dayBoxOf, lookItemIds, type DayBox } from './logic';
 
 type GridProps = {
   items: Item[];
@@ -95,6 +97,124 @@ function PieceGrid({ items, listed, selected, onToggle }: GridProps) {
   );
 }
 
+type LookGridProps = {
+  looks: Look[];
+  items: Item[];
+  listed: ReadonlySet<string>;
+  selected: string | null;
+  onSelect: (lookId: string) => void;
+};
+
+/** 19f: the saved looks that still have a wardrobe piece — cover, name, "4 parça · 2 tanesi bavulda". One is picked. */
+function LookGrid({ looks, items, listed, selected, onSelect }: LookGridProps) {
+  const { t } = useTranslation();
+  const itemsById = indexItems(items);
+  const usable = looks.filter((look) => lookItemIds(look, itemsById).length > 0);
+  if (usable.length === 0) {
+    return (
+      <Text variant="body" tone="muted" className="py-6 text-center" testID="trip-looks-empty">
+        {t('tripDetail.manual.looksEmpty')}
+      </Text>
+    );
+  }
+  return (
+    <ScrollView className="-mx-1.5 max-h-[420px]" contentContainerClassName="flex-row flex-wrap">
+      {usable.map((look) => {
+        const ids = lookItemIds(look, itemsById);
+        const onList = ids.filter((id) => listed.has(id)).length;
+        const picked = selected === look.id;
+        const meta = t('tripDetail.manual.lookMeta', {
+          pieces: t('tripDetail.dayPieces', { count: ids.length }),
+          onList:
+            onList === ids.length
+              ? t('tripDetail.manual.lookOnListAll')
+              : onList === 0
+                ? t('tripDetail.manual.lookOnListNone')
+                : t('tripDetail.manual.lookOnListSome', { count: onList }),
+        });
+        return (
+          <Pressable
+            key={look.id}
+            onPress={() => onSelect(look.id)}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: picked }}
+            accessibilityLabel={`${look.name}, ${meta}`}
+            testID={`trip-look-${look.id}`}
+            className="w-1/2 gap-[5px] px-1.5 pb-3 active:opacity-70"
+          >
+            <LookCover
+              seed={look.id}
+              tryOnImageUrl={look.tryOnImageUrl}
+              slots={look.slots}
+              itemsById={itemsById}
+              className={`h-[176px] w-full rounded-image ${picked ? 'border-2 border-ink' : ''}`}
+            />
+            {picked ? (
+              <View className="absolute right-3 top-1.5 h-[22px] w-[22px] items-center justify-center rounded-pill bg-ink">
+                <Icon icon={Check} size={13} tone="cream" />
+              </View>
+            ) : null}
+            <Text variant="label" numberOfLines={1}>
+              {look.name}
+            </Text>
+            <Text variant="caption" tone="muted" numberOfLines={1} className="text-[12px]">
+              {meta}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
+type LookPickerProps = {
+  visible: boolean;
+  subtitle: string;
+  looks: Look[];
+  items: Item[];
+  listed: ReadonlySet<string>;
+  onClose: () => void;
+  /** The pieces of the picked look that are not on the list yet. */
+  onAdd: (itemIds: string[]) => void;
+};
+
+/** 19f from the packing list ("Look'tan ekle"): the pieces of one saved look join the list; the days stay as they are. */
+export function TripLookPicker({ visible, subtitle, looks, items, listed, onClose, onAdd }: LookPickerProps) {
+  const { t } = useTranslation();
+  const [selected, setSelected] = useState<string | null>(null);
+  const close = () => {
+    setSelected(null);
+    onClose();
+  };
+  const look = looks.find((l) => l.id === selected);
+  const missing = look ? lookItemIds(look, indexItems(items)).filter((id) => !listed.has(id)) : [];
+  return (
+    <BottomSheet visible={visible} onClose={close} title={t('tripDetail.manual.looksTitle')}>
+      <View className="gap-3.5" testID="trip-look-picker">
+        <Text variant="caption" tone="muted">
+          {subtitle}
+        </Text>
+        <LookGrid looks={looks} items={items} listed={listed} selected={selected} onSelect={setSelected} />
+        <Button
+          label={
+            !look
+              ? t('tripDetail.manual.lookPick')
+              : missing.length === 0
+                ? t('tripDetail.manual.lookAllOnList')
+                : t('tripDetail.manual.lookAddCount', { count: missing.length })
+          }
+          disabled={missing.length === 0}
+          onPress={() => {
+            onAdd(missing);
+            close();
+          }}
+          testID="trip-look-picker-add"
+        />
+      </View>
+    </BottomSheet>
+  );
+}
+
 type PickerProps = {
   visible: boolean;
   /** "Paris · 22 – 24 Eki" under the title. */
@@ -146,6 +266,8 @@ type DayProps = {
   items: Item[];
   /** Pieces on the packing list now. */
   listed: ReadonlySet<string>;
+  /** Saved looks (19f "Look'larımdan seç"); the entry is hidden when not given. */
+  looks?: Look[];
   onClose: () => void;
   onSave: (day: TripDay, itemIds: string[]) => void;
 };
@@ -160,28 +282,63 @@ const MAIN_BOXES: readonly DayBox[] = ['top', 'bottom', 'outerwear', 'shoes', 'b
  * picker (one piece of the box's kind) opens inside the same sheet. Saving costs nothing; the day's "on you" image
  * follows the pieces, so a changed day has none until the user asks for it again.
  */
-export function TripDayEditSheet({ day, meta, items, listed, onClose, onSave }: DayProps) {
+export function TripDayEditSheet({ day, meta, items, listed, looks, onClose, onSave }: DayProps) {
   return (
     <BottomSheet visible={day !== null} onClose={onClose}>
       {/* Keyed by the wardrobe too: a sheet opened before the wardrobe arrived starts over with the day's pieces. */}
-      {day ? <DayEditor key={`${day.date}:${items.length}`} day={day} meta={meta} items={items} listed={listed} onClose={onClose} onSave={onSave} /> : null}
+      {day ? <DayEditor key={`${day.date}:${items.length}`} day={day} meta={meta} items={items} listed={listed} looks={looks} onClose={onClose} onSave={onSave} /> : null}
     </BottomSheet>
   );
 }
 
-function DayEditor({ day, meta, items, listed, onSave }: DayProps & { day: TripDay }) {
+function DayEditor({ day, meta, items, listed, looks, onSave }: DayProps & { day: TripDay }) {
   const { t } = useTranslation();
   const language = useAppLanguage();
   const byId = new Map(items.map((i) => [i.id, i]));
   const initial = (day.itemIds ?? []).filter((id) => byId.has(id));
   const [ids, setIds] = useState<string[]>(initial);
   const [picking, setPicking] = useState<{ box: DayBox; replace: string | null } | null>(null);
+  // 19f: null = closed, '' = open with nothing picked, otherwise the picked look.
+  const [lookPick, setLookPick] = useState<string | null>(null);
 
   const pieces = ids.flatMap((id) => byId.get(id) ?? []);
   const inBox = (box: DayBox) => pieces.filter((p) => dayBoxOf(p.category) === box);
   const boxes = DAY_BOXES.filter((box) => MAIN_BOXES.includes(box) || inBox(box).length > 0);
   const joining = pieces.filter((p) => !listed.has(p.id));
   const changed = ids.length !== initial.length || ids.some((id, i) => id !== initial[i]);
+
+  if (lookPick !== null && looks) {
+    const look = looks.find((l) => l.id === lookPick);
+    const lookIds = look ? lookItemIds(look, byId) : [];
+    return (
+      <View className="gap-3.5" testID="trip-day-looks">
+        <View className="flex-row items-center justify-between">
+          <View className="flex-1 gap-1">
+            <Text variant="h2">{t('tripDetail.manual.looksTitle')}</Text>
+            <Text variant="caption" tone="muted">
+              {meta}
+            </Text>
+          </View>
+          <Pressable onPress={() => setLookPick(null)} accessibilityRole="button" accessibilityLabel={t('common.cancel')} className="h-11 w-11 items-center justify-center active:opacity-70">
+            <Icon icon={X} size={20} />
+          </Pressable>
+        </View>
+        <LookGrid looks={looks} items={items} listed={listed} selected={lookPick || null} onSelect={setLookPick} />
+        <Text variant="caption" tone="muted">
+          {t('tripDetail.manual.lookToDayNote')}
+        </Text>
+        <Button
+          label={t('tripDetail.manual.lookToDay')}
+          disabled={lookIds.length === 0}
+          onPress={() => {
+            setIds(lookIds);
+            setLookPick(null);
+          }}
+          testID="trip-day-look-apply"
+        />
+      </View>
+    );
+  }
 
   if (picking) {
     const candidates = items.filter((i) => DAY_BOX_CATEGORIES[picking.box].includes(i.category) && (!ids.includes(i.id) || i.id === picking.replace));
@@ -211,6 +368,19 @@ function DayEditor({ day, meta, items, listed, onSave }: DayProps & { day: TripD
         <Text variant="eyebrow">{toDisplayUpper(meta, language)}</Text>
         <Text variant="h2">{t('tripDetail.manual.dayTitle')}</Text>
       </View>
+      {looks ? (
+        <Pressable
+          onPress={() => setLookPick('')}
+          accessibilityRole="button"
+          testID="trip-day-from-looks"
+          className="min-h-icon-btn flex-row items-center gap-2 self-start active:opacity-70"
+        >
+          <Icon icon={Bookmark} size={16} tone="accent" />
+          <Text variant="label" tone="accent">
+            {t('tripDetail.manual.fromLooks')}
+          </Text>
+        </Pressable>
+      ) : null}
       <View>
         {boxes.map((box) => {
           const held = inBox(box);

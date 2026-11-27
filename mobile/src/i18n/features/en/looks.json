@@ -319,7 +319,26 @@
         "bag": "Bag",
         "socks": "Socks",
         "accessory": "Accessory"
-      }
+      },
+      "fromLooks": "Pick from my looks",
+      "addFromLook": "Add from a look",
+      "looksTitle": "Pick from my looks",
+      "looksEmpty": "You have no saved looks yet.",
+      "lookMeta": "{{pieces}} · {{onList}}",
+      "lookOnListAll": "all in suitcase",
+      "lookOnListNone": "none in suitcase",
+      "lookOnListSome": "{{count}} in suitcase",
+      "lookToDay": "Put this look on the day",
+      "lookToDayNote": "The look's pieces fill the day; those not in the suitcase join the list. No credit is spent.",
+      "lookAddCount_one": "Add {{count}} piece to the suitcase",
+      "lookAddCount_other": "Add {{count}} pieces to the suitcase",
+      "lookAllOnList": "All already in the suitcase",
+      "lookPick": "Pick a look",
+      "changedByYou": "Changed by you",
+      "draftBody": "Change the days' pieces and the list as you like; once you approve, it's saved to your suitcase this way.",
+      "regenTitle": "Prepare the list again?",
+      "regenBody": "The changes you made to this draft are lost and the stylist prepares a new list.",
+      "days": "Days"
     }
   },
   "feedShare": {
